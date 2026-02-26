@@ -10,7 +10,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
@@ -19,10 +18,11 @@ import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCa
 import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
-  disabled: boolean;
+  gridColumns: string;
+  isFetchingNextPage: boolean;
+  isPending: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (key: Sort) => void;
-  repositories: RepositoryWithSettings[];
   sort: Sort;
 }
 
@@ -47,22 +47,31 @@ const COLUMNS = [
 ];
 
 export default function SeerRepoTableHeader({
-  disabled,
+  gridColumns,
+  isFetchingNextPage,
+  isPending,
   mutateRepositorySettings,
   onSortClick,
-  repositories,
   sort,
 }: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
-    listItemCheckboxState;
-  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
+  const {
+    countSelected,
+    isAllSelected,
+    isAnySelected,
+    queryKeyRef,
+    selectAll,
+    selectedIds,
+    knownIds,
+  } = listItemCheckboxState;
+  const queryOptions = queryKeyRef.current
+    ? parseQueryKey(queryKeyRef.current).options
+    : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {
-    const repositoryIds =
-      selectedIds === 'all' ? repositories.map(repo => repo.id) : selectedIds;
+    const repositoryIds = selectedIds === 'all' ? knownIds : selectedIds;
     mutateRepositorySettings(
       {
         enabledCodeReview,
@@ -93,45 +102,47 @@ export default function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      <TableHeader>
-        <SimpleTable.HeaderCell>
-          <SelectAllCheckbox
-            listItemCheckboxState={listItemCheckboxState}
-            repositories={repositories}
-            disabled={disabled}
-          />
-        </SimpleTable.HeaderCell>
-        {COLUMNS.map(({title, key, sortKey}) => (
-          <SimpleTable.HeaderCell
-            key={key}
-            handleSortClick={
-              sortKey
-                ? () =>
-                    onSortClick({
-                      field: sortKey,
-                      kind:
-                        sortKey === sort.field
-                          ? sort.kind === 'asc'
-                            ? 'desc'
-                            : 'asc'
-                          : 'desc',
-                    })
-                : undefined
-            }
-            sort={sort?.field === sortKey ? sort.kind : undefined}
-          >
-            {title}
+      {isAnySelected ? null : (
+        <TableHeader gridColumns={gridColumns}>
+          <SimpleTable.HeaderCell>
+            <SelectAllCheckbox
+              disabled={isPending || isFetchingNextPage}
+              knownIds={knownIds}
+              listItemCheckboxState={listItemCheckboxState}
+            />
           </SimpleTable.HeaderCell>
-        ))}
-      </TableHeader>
+          {COLUMNS.map(({title, key, sortKey}) => (
+            <SimpleTable.HeaderCell
+              key={key}
+              handleSortClick={
+                sortKey
+                  ? () =>
+                      onSortClick({
+                        field: sortKey,
+                        kind:
+                          sortKey === sort.field
+                            ? sort.kind === 'asc'
+                              ? 'desc'
+                              : 'asc'
+                            : 'desc',
+                      })
+                  : undefined
+              }
+              sort={sort?.field === sortKey ? sort.kind : undefined}
+            >
+              {title}
+            </SimpleTable.HeaderCell>
+          ))}
+        </TableHeader>
+      )}
 
       {isAnySelected ? (
-        <TableHeader>
+        <TableHeader gridColumns={gridColumns}>
           <TableCellFirst>
             <SelectAllCheckbox
+              disabled={isPending || isFetchingNextPage}
+              knownIds={knownIds}
               listItemCheckboxState={listItemCheckboxState}
-              repositories={repositories}
-              disabled={disabled}
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
@@ -181,8 +192,8 @@ export default function SeerRepoTableHeader({
                     count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
-                : countSelected > repositories.length
-                  ? t('Selected all %s+ repositories.', repositories.length)
+                : countSelected > knownIds.length
+                  ? t('Selected all %s+ repositories.', knownIds.length)
                   : tn(
                       'Selected %s repository.',
                       'Selected all %s repositories.',
@@ -198,20 +209,20 @@ export default function SeerRepoTableHeader({
 
 function SelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},
-  repositories,
+  knownIds,
   disabled,
 }: {
   disabled: boolean;
+  knownIds: string[];
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
-  repositories: RepositoryWithSettings[];
 }) {
   return (
     <Checkbox
       id="repository-table-select-all"
       checked={isAllSelected}
-      disabled={repositories.length === 0 || disabled}
+      disabled={knownIds.length === 0 || disabled}
       onChange={() => {
-        if (isAllSelected === true || selectedIds.length === repositories.length) {
+        if (isAllSelected === true || selectedIds.length === knownIds.length) {
           deselectAll();
         } else {
           selectAll();
@@ -221,8 +232,10 @@ function SelectAllCheckbox({
   );
 }
 
-const TableHeader = styled(SimpleTable.Header)`
-  grid-row: 1;
+const TableHeader = styled(SimpleTable.Header)<{gridColumns: string}>`
+  grid-template-columns: ${p => p.gridColumns};
+  grid-column: unset;
+  grid-row: unset;
   z-index: ${p => p.theme.zIndex.initial};
   height: min-content;
 `;

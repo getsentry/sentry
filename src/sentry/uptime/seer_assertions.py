@@ -10,11 +10,15 @@ import logging
 from typing import Any
 
 import orjson
-import requests
-from django.conf import settings
 from pydantic import BaseModel, Field
+from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -351,17 +355,15 @@ def generate_assertion_suggestions(
     )
 
     try:
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/llm/generate",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            "/v1/llm/generate",
+            body,
             timeout=30,
         )
-        response.raise_for_status()
-    except requests.RequestException as e:
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except (SeerApiError, MaxRetryError, Urllib3TimeoutError) as e:
         logger.exception("Failed to call Seer LLM proxy")
         return None, f"Seer LLM proxy request failed: {e}"
 

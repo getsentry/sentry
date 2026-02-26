@@ -11,6 +11,7 @@ from sentry.testutils.cases import TestCase
 
 # Example dart symbol map for testing
 DART_SYMBOLS_UUID = "b8e43a-f242-3d73-a453-aeb6a777ef75"
+DART_PARTIAL_SYMBOLS_UUID = "2a68dffb-fd23-4373-bf08-be9c0aeca62d"
 DART_SYMBOLS_DATA = (
     b'["NetworkException", "xyz", "DatabaseException", "abc", "FileNotFoundException", "def"]'
 )
@@ -147,9 +148,10 @@ class DartPluginDeobfuscationTest(TestCase):
 
     def test_dart_partial_deobfuscation_direct(self) -> None:
         """Test partial deobfuscation when some symbols are not in the map."""
-        # Upload symbols that only contain xyz mapping
+        # Upload symbols that only contain xyz mapping, using a distinct debug_id
+        # to avoid DifCache filesystem collisions with the full symbol map
         partial_symbols = b'["NetworkException", "xyz"]'
-        self.upload_dart_symbols(data=partial_symbols)
+        self.upload_dart_symbols(debug_id=DART_PARTIAL_SYMBOLS_UUID, data=partial_symbols)
 
         data = {
             "project": self.project.id,
@@ -158,7 +160,7 @@ class DartPluginDeobfuscationTest(TestCase):
             "debug_meta": {
                 "images": [
                     {
-                        "debug_id": DART_SYMBOLS_UUID,
+                        "debug_id": DART_PARTIAL_SYMBOLS_UUID,
                     }
                 ]
             },

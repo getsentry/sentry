@@ -71,6 +71,7 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -765,7 +766,20 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+  // When multiple aggregates exist, only plot the selected one (radio selection).
+  // This mirrors Big Number behavior — all aggregates are queried, but only
+  // one is rendered at a time.
+  const selectedIndex = getSelectedAggregateIndex(
+    query.selectedAggregate,
+    query.aggregates.length
+  );
+  const selectedAggregate = query.aggregates[selectedIndex];
+  // Filter query to only the selected aggregate.
+  const filteredQuery = selectedAggregate
+    ? {...query, aggregates: [selectedAggregate]}
+    : query;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
     meta: {
       fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],

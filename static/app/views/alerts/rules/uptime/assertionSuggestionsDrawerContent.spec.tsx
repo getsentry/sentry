@@ -4,9 +4,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsDrawerContent';
 import {
-  AssertionType,
-  ComparisonType,
-  OpType,
+  UptimeAssertionType,
+  UptimeComparisonType,
+  UptimeOpType,
   type PreviewCheckPayload,
 } from 'sentry/views/alerts/rules/uptime/types';
 
@@ -46,33 +46,33 @@ describe('AssertionSuggestionsDrawerContent', () => {
     suggested_assertion: null,
     suggestions: [
       {
-        assertion_type: AssertionType.STATUS_CODE,
-        comparison: ComparisonType.EQUALS,
+        assertion_type: UptimeAssertionType.STATUS_CODE,
+        comparison: UptimeComparisonType.EQUALS,
         expected_value: '200',
         confidence: 0.95,
         explanation: 'HTTP 200 indicates a successful response',
         json_path: null,
         header_name: null,
         assertion_json: {
-          op: OpType.STATUS_CODE_CHECK,
+          op: UptimeOpType.STATUS_CODE_CHECK,
           id: 'sug-1',
-          operator: {cmp: ComparisonType.EQUALS},
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
       },
       {
-        assertion_type: AssertionType.JSON_PATH,
-        comparison: ComparisonType.EQUALS,
+        assertion_type: UptimeAssertionType.JSON_PATH,
+        comparison: UptimeComparisonType.EQUALS,
         expected_value: 'ok',
         confidence: 0.8,
         explanation: 'The status field should be ok',
         json_path: '$.status',
         header_name: null,
         assertion_json: {
-          op: OpType.JSON_PATH,
+          op: UptimeOpType.JSON_PATH,
           id: 'sug-2',
           value: '$.status',
-          operator: {cmp: ComparisonType.EQUALS},
+          operator: {cmp: UptimeComparisonType.EQUALS},
           operand: {jsonpath_op: 'literal', value: 'ok'},
         },
       },

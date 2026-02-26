@@ -1,17 +1,18 @@
 import orjson
-import requests
-from django.conf import settings
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.seer.services.test_generation.model import CreateUnitTestResponse
 from sentry.seer.services.test_generation.service import TestGenerationService
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 
 class RegionBackedTestGenerationService(TestGenerationService):
     def start_unit_test_generation(
         self, *, region_name: str, github_org: str, repo: str, pr_id: int, external_id: str
     ) -> CreateUnitTestResponse:
-        url = f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/unit-tests"
         body = orjson.dumps(
             {
                 "repo": {
@@ -25,15 +26,19 @@ class RegionBackedTestGenerationService(TestGenerationService):
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        response = requests.post(
-            url,
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            "/v1/automation/codegen/unit-tests",
+            body,
         )
 
-        if response.status_code == 200:
+        if response.status == 200:
             return CreateUnitTestResponse()
         else:
-            return CreateUnitTestResponse(error_detail=response.text)
+            try:
+                error_detail = response.data.decode("utf-8") if response.data else None
+            except (AttributeError, UnicodeDecodeError):
+                error_detail = None
+            return CreateUnitTestResponse(
+                error_detail=error_detail or f"Request failed with status {response.status}"
+            )
