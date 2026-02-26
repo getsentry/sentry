@@ -1,13 +1,14 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
@@ -81,6 +82,19 @@ export function MobileBuildDetectSection() {
               preserveOnUnmount
             />
           </section>
+
+          {(thresholdType === 'absolute_diff' || thresholdType === 'relative_diff') && (
+            <Alert variant="muted">
+              {tct(
+                "Base build for comparison is the previous build that matches this monitor's filters and has the same [platform], [packageName], and [buildConfiguration].",
+                {
+                  platform: <code>{'platform'}</code>,
+                  packageName: <code>{'package_name'}</code>,
+                  buildConfiguration: <code>{'build_configuration'}</code>,
+                }
+              )}
+            </Alert>
+          )}
 
           <ThresholdSection thresholdType={thresholdType} />
         </Stack>
