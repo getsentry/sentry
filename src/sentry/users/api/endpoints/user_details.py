@@ -358,7 +358,9 @@ class UserDetailsEndpoint(UserEndpoint):
             if is_updating_superuser or is_updating_staff:
                 if not user_can_elevate(user):
                     # Revoke superuser/staff privileges if the user is not a member of the default organization.
-                    # Just do this all the time as a precaution.
+                    # Clear validated_data so only the revocation fields are persisted,
+                    # avoiding side effects from other fields in the rejected request.
+                    serializer.validated_data.clear()
                     serializer.save(is_superuser=False, is_staff=False)
                     return Response(
                         {

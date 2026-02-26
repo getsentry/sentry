@@ -296,6 +296,28 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert not user.is_superuser
         assert not user.is_staff
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_revocation_does_not_persist_other_fields_from_rejected_request(self) -> None:
+        """A 403 revocation must only update is_superuser/is_staff. Other fields
+        in the request (e.g. isActive) must not be written to the database."""
+        self.user.update(is_superuser=True, is_staff=True, is_active=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            isActive="false",
+            status_code=403,
+        )
+        assert resp.status_code == 403
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+        assert not user.is_staff
+        # is_active must remain unchanged — the request was rejected
+        assert user.is_active
+
 
 @control_silo_test
 @override_options({"staff.ga-rollout": False})
