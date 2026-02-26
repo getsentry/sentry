@@ -9,10 +9,10 @@ import {
   getJsonPathOperandValue,
   normalizeJsonPathOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/utils';
-import type {JsonPathOp} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeJsonPathOp} from 'sentry/views/alerts/rules/uptime/types';
 
 export function JsonPathOpRow({node}: {node: JsonPathOpTreeNode}) {
-  const normalizedOp: JsonPathOp = normalizeJsonPathOp(node.value);
+  const normalizedOp: UptimeJsonPathOp = normalizeJsonPathOp(node.value);
 
   const operandValue = getJsonPathOperandValue(normalizedOp.operand);
   const {combinedLabel, combinedTooltip} =

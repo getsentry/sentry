@@ -296,7 +296,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 2
-        condition = conditions[0]
+        condition = DataCondition.objects.get(
+            condition_group=condition_group, type=Condition.GREATER.value
+        )
         self.assert_data_condition_updated(condition)
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)

@@ -731,6 +731,11 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "github.webhook.mailbox-bucketing.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3235,6 +3240,15 @@ register(
 # chunks to avoid Lua unpack() limits. Set to 0 for unlimited.
 register(
     "spans.buffer.max-spans-per-evalsha",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
+# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
+# re-serialisation of the entire destination set during SUNIONSTORE.
+register(
+    "spans.buffer.zero-copy-dest-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

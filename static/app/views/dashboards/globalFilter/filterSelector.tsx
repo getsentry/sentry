@@ -345,31 +345,23 @@ function FilterSelector({
         menuHeaderTrailingItems={({closeOverlay}) => (
           <Flex gap="lg">
             {activeFilterValues.length > 0 && (
-              <StyledButton
-                size="xs"
-                aria-label={t('Clear Selections')}
-                priority="transparent"
+              <MenuComponents.ClearButton
                 onClick={() => {
                   setSearchQuery('');
                   handleChange([]);
-                  closeOverlay();
                 }}
-              >
-                {t('Clear')}
-              </StyledButton>
+              />
             )}
             {!disableRemoveFilter && (
-              <StyledButton
-                size="xs"
+              <MenuComponents.HeaderButton
                 aria-label={t('Remove Filter')}
-                priority="transparent"
                 onClick={() => {
                   onRemoveFilter(globalFilter);
                   closeOverlay();
                 }}
               >
                 {t('Remove Filter')}
-              </StyledButton>
+              </MenuComponents.HeaderButton>
             )}
           </Flex>
         )}
@@ -440,31 +432,22 @@ function FilterSelector({
       menuHeaderTrailingItems={({closeOverlay}) => (
         <Flex gap="lg">
           {activeFilterValues.length > 0 && (
-            <StyledButton
-              size="xs"
-              aria-label={t('Clear Selections')}
-              priority="transparent"
+            <MenuComponents.ClearButton
               onClick={() => {
                 setSearchQuery('');
                 handleChange([]);
-                closeOverlay();
               }}
-            >
-              {t('Clear')}
-            </StyledButton>
+            />
           )}
           {!disableRemoveFilter && (
-            <StyledButton
-              size="xs"
-              priority="transparent"
-              aria-label={t('Remove Filter')}
+            <MenuComponents.HeaderButton
               onClick={() => {
                 onRemoveFilter(globalFilter);
                 closeOverlay();
               }}
             >
               {t('Remove Filter')}
-            </StyledButton>
+            </MenuComponents.HeaderButton>
           )}
         </Flex>
       )}
@@ -494,14 +477,6 @@ const translateKnownFilterOptions = (
 };
 
 export default FilterSelector;
-
-const StyledButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
-`;
 
 export const MenuTitleWrapper = styled('span')`
   display: inline-block;
