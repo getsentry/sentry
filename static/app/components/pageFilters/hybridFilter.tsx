@@ -55,13 +55,13 @@ function stagingReducer<Value extends SelectKey>(
     case 'toggle': {
       const newSet = new Set(action.currentStaged);
       newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-      return {...state, stagedValue: [...newSet], lastSelected: action.val};
+      return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
     }
     case 'toggle range': {
       if (state.lastSelected === null) {
         const newSet = new Set(action.currentStaged);
         newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-        return {...state, stagedValue: [...newSet], lastSelected: action.val};
+        return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
       }
 
       // Only include options visible in the current filtered state so that
@@ -79,7 +79,7 @@ function stagingReducer<Value extends SelectKey>(
         // Anchor or clicked item not visible — fall back to single toggle
         const newSet = new Set(action.currentStaged);
         newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-        return {...state, stagedValue: [...newSet], lastSelected: action.val};
+        return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
       }
 
       const targetState = !action.currentStaged.includes(action.val);
@@ -93,7 +93,7 @@ function stagingReducer<Value extends SelectKey>(
       });
 
       // Sort by original option order
-      const sortedValue = [...newValueSet].sort((a, b) => {
+      const sortedValue = Array.from(newValueSet).sort((a, b) => {
         const aIdx = flatOptions.findIndex(opt => opt.value === a);
         const bIdx = flatOptions.findIndex(opt => opt.value === b);
         return aIdx - bIdx;
@@ -292,7 +292,8 @@ export function useStagedCompactSelect<Value extends SelectKey>({
           oldValueSet.delete(val);
         }
       });
-      const diff = newValueSet.size > 0 ? [...newValueSet] : [...oldValueSet];
+      const diff =
+        newValueSet.size > 0 ? Array.from(newValueSet) : Array.from(oldValueSet);
 
       if (diff.length > 1 || sectionToggleWasPressed.current) {
         sectionToggleWasPressed.current = false;
