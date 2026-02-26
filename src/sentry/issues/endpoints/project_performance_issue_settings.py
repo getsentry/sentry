@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -34,6 +35,7 @@ from sentry.issues.grouptype import (
     QueryInjectionVulnerabilityGroupType,
     WebVitalsGroup,
 )
+from sentry.models.project import Project
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds
@@ -260,7 +262,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
 
         return Response(get_merged_settings(project))
 
-    def put(self, request: Request, project) -> Response:
+    def put(self, request: Request, project: Project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -299,12 +301,12 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        performance_issue_settings_default = projectoptions.get_well_known_default(
+        performance_issue_settings_default: dict[str, Any] = projectoptions.get_well_known_default(
             SETTINGS_PROJECT_OPTION_KEY,
             project=project,
         )
 
-        performance_issue_settings = project.get_option(
+        performance_issue_settings: dict[str, Any] = project.get_option(
             SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
         )
 
@@ -321,13 +323,8 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        merged_settings = {
-            **performance_issue_settings_default,
-            **performance_issue_settings,
-            **data,
-        }
         sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
-        update_performance_settings(project, merged_settings, sync_detectors=sync_detectors)
+        update_performance_settings(project, changes=data, sync_detectors=sync_detectors)
 
         if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(

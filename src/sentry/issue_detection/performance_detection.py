@@ -599,25 +599,30 @@ SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 @transaction.atomic
 def update_performance_settings(
     project: Project,
-    merged_settings: dict[str, Any],
+    changes: dict[str, Any],
     sync_detectors: bool = False,
 ) -> dict[DetectorType, bool]:
     """
-    Atomically update ProjectOption and optionally sync to WFE Detectors.
+    Atomically apply setting changes to ProjectOption and optionally sync to WFE Detectors.
+
+    Only the provided changes are merged into the existing project-level settings.
+    System defaults and well-known defaults are not affected.
 
     Args:
         project: The project to update settings for
-        merged_settings: The complete merged settings to save
+        changes: The settings to change (only the delta, not the full config)
         sync_detectors: Whether to sync settings to WFE Detectors
 
     Returns:
         Dict of DetectorType -> bool indicating which detectors were updated
         (empty if sync_detectors is False)
     """
-    project.update_option(SETTINGS_PROJECT_OPTION_KEY, merged_settings)
+    current = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default={})
+    current.update(changes)
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, current)
 
     if sync_detectors:
-        return sync_project_options_to_wfe_detectors(project, merged_settings)
+        return sync_project_options_to_wfe_detectors(project, changes)
 
     return {}
 
