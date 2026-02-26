@@ -179,7 +179,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t('Set up feature flag integrations'),
         },
         {
-          path: `${organizationSettingsPathPrefix}/seer/`,
+          path: `${organizationSettingsPathPrefix}/seer/projects/`,
           title: t('Seer'),
           description: t(
             "Manage settings for Seer's automated analysis across your organization"

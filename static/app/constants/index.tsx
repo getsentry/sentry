@@ -657,7 +657,7 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: false, // TODO(seer): add external stats when ready
     },
     getProductLink: (organization: Organization) =>
-      `/settings/${organization.slug}/seer/`,
+      `/settings/${organization.slug}/seer/projects/`,
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SIZE_ANALYSIS]: {

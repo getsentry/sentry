@@ -51,7 +51,9 @@ function getStoppingPointOptions(organization: Organization) {
             '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
             {
               settings: (
-                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                <Link
+                  to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                />
               ),
             }
           ),
@@ -67,7 +69,9 @@ function getStoppingPointOptions(organization: Organization) {
             '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
             {
               settings: (
-                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                <Link
+                  to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                />
               ),
             }
           ),

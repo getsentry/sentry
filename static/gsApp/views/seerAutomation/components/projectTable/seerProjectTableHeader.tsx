@@ -43,7 +43,9 @@ const COLUMNS = [
               '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
               {
                 settings: (
-                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                  <Link
+                    to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                  />
                 ),
               }
             )}

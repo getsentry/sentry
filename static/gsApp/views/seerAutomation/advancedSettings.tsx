@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
-export default function SeerAutomationSettings() {
+export default function SeerAdvancedSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 

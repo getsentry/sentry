@@ -58,7 +58,7 @@ export default function getConfiguration({
           description: t('Manage ownership rules for a project'),
         },
         {
-          path: `${pathPrefix}/seer/`,
+          path: `${pathPrefix}/seer/projects/`,
           title: t('Seer'),
           show: () => !organization?.hideAiFeatures,
         },

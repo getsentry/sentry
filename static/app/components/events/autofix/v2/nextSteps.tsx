@@ -143,7 +143,9 @@ function StepButton({
           '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
           {
             settings: (
-              <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              <Link
+                to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+              />
             ),
           }
         )}
@@ -193,7 +195,9 @@ function StepButton({
       title={tct(
         '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
         {
-          settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+          settings: (
+            <Link to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`} />
+          ),
         }
       )}
     >

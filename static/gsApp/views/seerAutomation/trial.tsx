@@ -66,7 +66,7 @@ export default function SeerAutomationTrial() {
 
     // If you've already got Seer, then go to settings and you should see the new ones.
     if (organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/projects/`));
       return;
     }
 

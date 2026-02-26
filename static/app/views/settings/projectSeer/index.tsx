@@ -366,7 +366,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
                     href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
                   />
                 ),
-                bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
+                bulklink: <Link to={`/settings/${organization.slug}/seer/projects/`} />,
               }
             )}
           </Subheading>

@@ -20,7 +20,7 @@ export default function SettingsPageTabs() {
       `/settings/${organization.slug}/seer/projects/`,
     ],
     [t('Repos (Code Review)'), `/settings/${organization.slug}/seer/repos/`],
-    [t('Advanced Settings'), `/settings/${organization.slug}/seer/`],
+    [t('Advanced Settings'), `/settings/${organization.slug}/seer/advanced/`],
   ];
 
   return (

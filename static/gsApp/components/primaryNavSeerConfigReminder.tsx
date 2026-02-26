@@ -146,7 +146,7 @@ function useReminderCopywriting() {
         'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Root Cause Analysis and Code Review.'
       ),
       pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
+        ? `/settings/${organization.slug}/seer/projects/`
         : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_ROOT_CAUSE_ANALYSIS]: {
@@ -155,7 +155,7 @@ function useReminderCopywriting() {
         'Seer is enabled but Root Cause Analysis is not configured. Configure Seer to automatically look at issues and generate code fixes.'
       ),
       pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
+        ? `/settings/${organization.slug}/seer/projects/`
         : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_CODE_REVIEW]: {

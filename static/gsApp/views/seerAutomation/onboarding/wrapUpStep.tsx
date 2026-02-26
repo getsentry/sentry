@@ -73,9 +73,8 @@ export function WrapUpStep() {
                 </NextStepsList>
                 <Text density="comfortable">
                   {tct(
-                    'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
+                    'If you want to adjust your configurations, you can modify [projects:projects] and [repos:repos] settings individually.',
                     {
-                      settings: <Link to={`/settings/${organization.slug}/seer/`} />,
                       projects: (
                         <Link to={`/settings/${organization.slug}/seer/projects/`} />
                       ),
@@ -91,9 +90,8 @@ export function WrapUpStep() {
                 </Heading>
                 <Text density="comfortable">
                   {tct(
-                    'You can restart the wizard and continue setting up Seer, or if you prefer, you can set-up Seer on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
+                    'You can restart the wizard and continue setting up Seer, or if you prefer, you can configure [projects:projects] and [repos:repos] individually.',
                     {
-                      settings: <Link to={`/settings/${organization.slug}/seer/`} />,
                       projects: (
                         <Link to={`/settings/${organization.slug}/seer/projects/`} />
                       ),

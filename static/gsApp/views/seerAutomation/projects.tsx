@@ -42,13 +42,8 @@ export default function SeerAutomationProjects() {
                     <span>{t('Default automations for new projects')}</span>
                     <QuestionTooltip
                       isHoverable
-                      title={tct(
-                        'These settings apply as new projects are created. Any [link:existing projects] will not be affected.',
-                        {
-                          link: (
-                            <Link to={`/settings/${organization.slug}/seer/projects/`} />
-                          ),
-                        }
+                      title={t(
+                        'These settings apply as new projects are created. Any existing projects will not be affected.'
                       )}
                       size="xs"
                       icon="info"
@@ -88,7 +83,7 @@ export default function SeerAutomationProjects() {
                               {
                                 settings: (
                                   <Link
-                                    to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                    to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
                                   />
                                 ),
                               }

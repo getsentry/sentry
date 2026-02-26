@@ -103,7 +103,7 @@ export function ConfigureDefaultsStep() {
                   {tct(
                     `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
                     {
-                      link: <Link to={`/settings/${organization.slug}/seer/`} />,
+                      link: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
                     }
                   )}
                 </Text>

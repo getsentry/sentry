@@ -1,5 +1,4 @@
 import {Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import Form from 'sentry/components/forms/form';
@@ -42,13 +41,8 @@ export default function SeerAutomationRepos() {
                     <span>{t('Default Code Review for New Repos')}</span>
                     <QuestionTooltip
                       isHoverable
-                      title={tct(
-                        'These settings apply as repos are newly connected. Any [link:existing repos] will not be affected.',
-                        {
-                          link: (
-                            <Link to={`/settings/${organization.slug}/seer/repos/`} />
-                          ),
-                        }
+                      title={t(
+                        'These settings apply as repos are newly connected. Any existing repos will not be affected.'
                       )}
                       size="xs"
                       icon="info"

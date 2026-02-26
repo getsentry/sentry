@@ -20,7 +20,7 @@ export default function SeerAutomation() {
 
   useEffect(() => {
     if (showNewSeer(organization)) {
-      navigate(`/settings/${organization.slug}/seer/projects/`);
+      navigate(`/settings/${organization.slug}/seer/projects/`, {replace: true});
     }
   }, [navigate, organization.slug, organization]);
 

@@ -344,7 +344,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   onSkip={() => setStepsCollapsed(true)}
                 >
                   <LinkButton
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/repos/`}
                     size="sm"
                     priority="primary"
                   >
@@ -381,7 +381,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   onSkip={() => setStepsCollapsed(true)}
                 >
                   <LinkButton
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/projects/`}
                     size="sm"
                     priority="primary"
                   >
@@ -462,7 +462,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                 {
                                   seerProjectSettings: (
                                     <Link
-                                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/projects/`}
                                     />
                                   ),
                                   docsLink: (
