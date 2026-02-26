@@ -34,6 +34,7 @@ import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
@@ -232,7 +233,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
-  const axisRangeProp = props.axisRange ?? 'auto';
+  const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
   const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
     {

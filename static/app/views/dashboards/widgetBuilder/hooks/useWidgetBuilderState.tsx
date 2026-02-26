@@ -30,6 +30,7 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -347,6 +348,7 @@ function useWidgetBuilderState(): {
   const [axisRange, setAxisRange] = useQueryParamState<'auto' | 'dataMin' | undefined>({
     fieldName: 'axisRange',
     decoder: decodeScalar,
+    deserializer: getAxisRange,
   });
 
   const state = useMemo(
@@ -923,10 +925,7 @@ function useWidgetBuilderState(): {
           if (action.payload.traceMetric) {
             setTraceMetric(deserializeTraceMetric(action.payload.traceMetric), options);
           }
-          setAxisRange(
-            action.payload.axisRange as 'auto' | 'dataMin' | undefined,
-            options
-          );
+          setAxisRange(getAxisRange(action.payload.axisRange), options);
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);

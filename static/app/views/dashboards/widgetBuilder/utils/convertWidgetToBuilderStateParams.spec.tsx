@@ -123,6 +123,30 @@ describe('convertWidgetToBuilderStateParams', () => {
     );
   });
 
+  it('omits axisRange when widget axisRange is null', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      axisRange: null,
+    };
+
+    const params = convertWidgetToBuilderStateParams(
+      widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
+    );
+    expect(params.axisRange).toBeUndefined();
+  });
+
+  it('omits axisRange when widget axisRange is invalid', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      axisRange: 'invalid',
+    };
+
+    const params = convertWidgetToBuilderStateParams(
+      widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
+    );
+    expect(params.axisRange).toBeUndefined();
+  });
+
   describe('traceMetric', () => {
     it('includes the trace metric in the builder params', () => {
       const widget: Widget = WidgetFixture({

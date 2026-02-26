@@ -251,4 +251,16 @@ describe('convertBuilderStateToWidget', () => {
 
     expect(widget.axisRange).toBe('dataMin');
   });
+
+  it('falls back to dataset config axisRange when state.axisRange is invalid', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+      axisRange: 'invalid' as any,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
 });
