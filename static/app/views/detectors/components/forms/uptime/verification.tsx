@@ -3,10 +3,12 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {UptimeAssertionsField} from 'sentry/views/alerts/rules/uptime/assertions/field';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
+import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
+import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
 export function UptimeDetectorVerificationSection() {
-  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
   if (!hasRuntimeAssertions) {
     return null;
@@ -14,7 +16,10 @@ export function UptimeDetectorVerificationSection() {
 
   return (
     <Container>
-      <Section title={t('Verification')}>
+      <Section
+        title={t('Verification')}
+        trailingItems={<ConnectedTestUptimeMonitorButton size="xs" />}
+      >
         <UptimeSectionGrid>
           <UptimeAssertionsField
             name="assertion"
@@ -23,6 +28,11 @@ export function UptimeDetectorVerificationSection() {
               'Define conditions that must be met for the check to be considered successful.'
             )}
             flexibleControlStateSize
+            trailingButtons={
+              hasAiAssertionSuggestions ? (
+                <ConnectedAssertionSuggestionsButton size="sm" />
+              ) : undefined
+            }
           />
         </UptimeSectionGrid>
       </Section>
