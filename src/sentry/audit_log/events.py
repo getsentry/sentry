@@ -180,14 +180,14 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         from sentry.issues.endpoints.project_performance_issue_settings import (
-            project_settings_to_group_map as map,
+            ENABLED_KEY_TO_GROUP_TYPE,
         )
 
         data = audit_log_entry.data
         items_string = ", ".join(
-            f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
+            f"to {'enable' if value else 'disable'} detection of {ENABLED_KEY_TO_GROUP_TYPE[key].description} issue"
             for (key, value) in data.items()
-            if key in map.keys()
+            if key in ENABLED_KEY_TO_GROUP_TYPE
         )
         return "edited project performance issue detector settings " + items_string
 

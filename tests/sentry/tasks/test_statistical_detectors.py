@@ -6,7 +6,10 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.endpoints.project_performance_issue_settings import (
+    FUNCTION_DURATION_REGRESSION_SETTING,
+    TRANSACTION_DURATION_REGRESSION_SETTING,
+)
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
@@ -213,7 +216,7 @@ def test_detect_transaction_trends_options(
     ProjectOption.objects.set_value(
         project=project,
         key="sentry:performance_issue_settings",
-        value={InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: option_enabled},
+        value={TRANSACTION_DURATION_REGRESSION_SETTING: option_enabled},
     )
 
     options = {
@@ -246,7 +249,7 @@ def test_detect_function_trends_options(
     ProjectOption.objects.set_value(
         project=project,
         key="sentry:performance_issue_settings",
-        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: option_enabled},
+        value={FUNCTION_DURATION_REGRESSION_SETTING: option_enabled},
     )
 
     options = {
@@ -268,7 +271,7 @@ def test_detect_function_trends_options_with_str(
     ProjectOption.objects.set_value(
         project=project,
         key="sentry:performance_issue_settings",
-        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: True},
+        value={FUNCTION_DURATION_REGRESSION_SETTING: True},
     )
 
     options = {

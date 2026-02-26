@@ -30,7 +30,10 @@ from snuba_sdk import (
 
 from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
-from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.endpoints.project_performance_issue_settings import (
+    FUNCTION_DURATION_REGRESSION_SETTING,
+    TRANSACTION_DURATION_REGRESSION_SETTING,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
@@ -337,7 +340,7 @@ def detect_transaction_trends(
 
     projects = get_detector_enabled_projects(
         project_ids,
-        project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
+        project_option=TRANSACTION_DURATION_REGRESSION_SETTING,
     )
 
     trends = EndpointRegressionDetector.detect_trends(projects, start_time)
@@ -427,7 +430,7 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
 
     projects = get_detector_enabled_projects(
         project_ids,
-        project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
+        project_option=FUNCTION_DURATION_REGRESSION_SETTING,
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start_time)
@@ -1096,7 +1099,7 @@ def query_functions_timeseries(
 def get_detector_enabled_projects(
     project_ids: list[int],
     feature_name: str | None = None,
-    project_option: InternalProjectOptions | None = None,
+    project_option: str | None = None,
 ) -> list[Project]:
     projects_qs = Project.objects.filter(id__in=project_ids)
 
@@ -1111,6 +1114,6 @@ def get_detector_enabled_projects(
 
     if project_option is not None:
         settings = get_performance_issue_settings(projects)
-        projects = [project for project in projects if settings[project][project_option.value]]
+        projects = [project for project in projects if settings[project][project_option]]
 
     return projects
