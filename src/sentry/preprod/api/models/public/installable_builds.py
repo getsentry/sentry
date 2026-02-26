@@ -12,7 +12,7 @@ from sentry.preprod.api.models.public.shared import (
 from sentry.preprod.models import PreprodArtifact
 
 
-class BuildSummaryResponseDict(TypedDict):
+class InstallableBuildResponseDict(TypedDict):
     buildId: str
     state: str
     appInfo: AppInfoResponseDict
@@ -24,7 +24,7 @@ class BuildSummaryResponseDict(TypedDict):
     downloadCount: int
 
 
-def create_build_summary_dict(artifact: PreprodArtifact) -> BuildSummaryResponseDict:
+def create_installable_build_dict(artifact: PreprodArtifact) -> InstallableBuildResponseDict:
     download_count = int(getattr(artifact, "download_count", 0) or 0)
 
     return {

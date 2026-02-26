@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,14 +15,12 @@ from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
-from sentry.preprod.api.models.public.builds import (
-    BuildSummaryResponseDict,
-    create_build_summary_dict,
+from sentry.preprod.api.models.public.installable_builds import (
+    InstallableBuildResponseDict,
+    create_installable_build_dict,
 )
 from sentry.preprod.api.validators import PreprodPublicBuildsValidator
 from sentry.preprod.models import PreprodArtifact
-
-logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -93,7 +89,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "BuildsListResponse", list[BuildSummaryResponseDict]
+                "BuildsListResponse", list[InstallableBuildResponseDict]
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
@@ -174,17 +170,8 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             "-date_added"
         )
 
-        def on_results(results: list[PreprodArtifact]) -> list[BuildSummaryResponseDict]:
-            builds: list[BuildSummaryResponseDict] = []
-            for artifact in results:
-                try:
-                    builds.append(create_build_summary_dict(artifact))
-                except Exception:
-                    logger.exception(
-                        "preprod.public_api.builds.transform_error",
-                        extra={"artifact_id": artifact.id},
-                    )
-            return builds
+        def on_results(results: list[PreprodArtifact]) -> list[InstallableBuildResponseDict]:
+            return [create_installable_build_dict(artifact) for artifact in results]
 
         return self.paginate(
             request=request,
