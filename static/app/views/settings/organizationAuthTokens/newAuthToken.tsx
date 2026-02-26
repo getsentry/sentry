@@ -96,7 +96,7 @@ function AuthTokenCreateForm({
   return (
     <form.AppForm>
       <form.FormWrapper>
-        <form.FieldGroup title="Create New Organization Token">
+        <form.FieldGroup title={t('Create New Organization Token')}>
           <form.AppField name="name">
             {field => (
               <field.Layout.Row

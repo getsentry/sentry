@@ -139,7 +139,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   return (
     <form.AppForm>
       <form.FormWrapper>
-        <form.FieldGroup title="Organization Token Details">
+        <form.FieldGroup title={t('Organization Token Details')}>
           <form.AppField name="name">
             {field => (
               <field.Layout.Row
