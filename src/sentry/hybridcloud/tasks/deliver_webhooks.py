@@ -116,38 +116,35 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     lock_key = _drain_lock_key(mailbox_name)
     try:
         if cache.add(lock_key, 1, timeout=15):
-            try:
-                # Only drain if the mailbox head is ready to deliver (schedule_for in the
-                # past). This mirrors the scheduler's schedule_for__lte guard and prevents
-                # push-triggered drains from calling schedule_next_attempt on a payload
-                # that is still in its retry backoff window, which would burn through
-                # MAX_ATTEMPTS and push the next retry further into the future.
-                head_id = (
-                    WebhookPayload.objects.filter(
-                        mailbox_name=mailbox_name,
-                        schedule_for__lte=timezone.now(),
-                    )
-                    .order_by("id")
-                    .values_list("id", flat=True)
-                    .first()
+            # Only drain if the mailbox head is ready to deliver (schedule_for in the
+            # past). This mirrors the scheduler's schedule_for__lte guard and prevents
+            # push-triggered drains from calling schedule_next_attempt on a payload
+            # that is still in its retry backoff window, which would burn through
+            # MAX_ATTEMPTS and push the next retry further into the future.
+            head_id = (
+                WebhookPayload.objects.filter(
+                    mailbox_name=mailbox_name,
+                    schedule_for__lte=timezone.now(),
                 )
-                if head_id is None:
-                    # Head is in backoff — release the lock and let the scheduler handle it.
-                    cache.delete(lock_key)
-                    metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
-                    return
-                drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
-            except Exception:
-                # Enqueue failed — release the lock so delivery isn't blocked for 15s.
-                try:
-                    cache.delete(lock_key)
-                except Exception:
-                    pass
-                raise
+                .order_by("id")
+                .values_list("id", flat=True)
+                .first()
+            )
+            if head_id is None:
+                # Head is in backoff — release the lock and let the scheduler handle it.
+                cache.delete(lock_key)
+                metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
+                return
+            drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.success")
         else:
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.skipped")
     except Exception:
+        # Release the lock on any failure so delivery isn't blocked for 15s.
+        try:
+            cache.delete(lock_key)
+        except Exception:
+            pass
         metrics.incr("hybridcloud.deliver_webhooks.push_trigger.error")
 
 
