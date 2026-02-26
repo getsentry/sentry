@@ -9,9 +9,9 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   PreviewCheckStatus,
-  type Assertion,
   type PreviewCheckPayload,
   type PreviewCheckResponse,
+  type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface TestUptimeMonitorButtonProps {
@@ -20,7 +20,7 @@ interface TestUptimeMonitorButtonProps {
    * The caller is responsible for providing fallback values appropriate to their context.
    */
   getFormData: () => {
-    assertion: Assertion | null;
+    assertion: UptimeAssertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     method: string;

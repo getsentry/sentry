@@ -85,6 +85,8 @@ class PrebuiltDashboardId(IntEnum):
     MCP_RESOURCES = 21
     MCP_PROMPTS = 22
     LARAVEL_OVERVIEW = 23
+    FRONTEND_ASSETS = 24
+    FRONTEND_ASSETS_SUMMARY = 25
 
 
 class PrebuiltDashboard(TypedDict):
@@ -193,6 +195,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
         "title": "Laravel Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS,
+        "title": "Frontend Assets",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+        "title": "Frontend Assets Summary",
     },
 ]
 

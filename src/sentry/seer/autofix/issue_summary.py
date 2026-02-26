@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import Any
 
 import orjson
-import requests
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -27,6 +26,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    autofix_connection_pool,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
@@ -35,7 +35,10 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_summarization_default_connection_pool,
+)
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -93,16 +96,15 @@ def _fetch_user_preference(project_id: int) -> str | None:
         path = "/v1/project-preference"
         body = orjson.dumps({"project_id": project_id})
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            autofix_connection_pool,
+            path,
+            body,
             timeout=5,
         )
-        response.raise_for_status()
+
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
 
         result = response.json()
         preference = result.get("preference")
@@ -262,16 +264,15 @@ def _call_seer(
     )
 
     # Route to summarization URL
-    response = requests.post(
-        f"{settings.SEER_SUMMARIZATION_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        path,
+        body,
         timeout=30,
     )
-    response.raise_for_status()
+
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     return SummarizeIssueResponse.validate(response.json())
 
@@ -309,14 +310,31 @@ def _generate_fixability_score(
 def get_and_update_group_fixability_score(
     group: Group,
     force_generate: bool = False,
-    summary: dict[str, Any] | None = None,
 ) -> float:
     """
     Get the fixability score for a group and update the group with the score.
     If the fixability score is already set, return it without generating a new one.
+    Reads the issue summary from cache to pass to Seer, avoiding a DB lookup for the summary on Seer's side.
     """
     if not force_generate and group.seer_fixability_score is not None:
         return group.seer_fixability_score
+
+    summary = None
+    try:
+        cache_key = get_issue_summary_cache_key(group.id)
+        cached = cache.get(cache_key)
+        if cached:
+            required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
+            if all(cached.get(k) is not None for k in required_fields):
+                summary = {
+                    "group_id": group.id,
+                    **{k: cached[k] for k in required_fields},
+                }
+    except Exception:
+        logger.exception(
+            "Failed to read issue summary from cache for fixability score",
+            extra={"group_id": group.id},
+        )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
         issue_summary = _generate_fixability_score(group, summary=summary)
@@ -478,6 +496,10 @@ def _generate_summary(
         trace_tree,
     )
 
+    summary_dict = issue_summary.dict()
+    summary_dict["event_id"] = event.event_id
+    cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))
+
     if should_run_automation:
         try:
             run_automation(group, user, event, source)
@@ -485,11 +507,6 @@ def _generate_summary(
             logger.exception(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
             )
-
-    summary_dict = issue_summary.dict()
-    summary_dict["event_id"] = event.event_id
-
-    cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
     return summary_dict, 200
 

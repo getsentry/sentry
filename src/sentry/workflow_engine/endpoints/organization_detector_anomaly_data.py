@@ -4,7 +4,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -112,11 +111,6 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         Pass `legacy_alert=true` query param to treat detector_id as a legacy alert rule ID.
         """
-        if not features.has(
-            "organizations:anomaly-detection-threshold-data", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
-
         start = request.GET.get("start")
         end = request.GET.get("end")
 

@@ -390,6 +390,59 @@ describe('SavedQueriesTable', () => {
     );
   });
 
+  it('should not crash when a saved query has no query field', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Malformed Query',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Attacker'},
+        },
+        {
+          id: 2,
+          name: 'Valid Query',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />);
+    expect(await screen.findByText('Valid Query')).toBeInTheDocument();
+    expect(screen.queryByText('Malformed Query')).not.toBeInTheDocument();
+  });
+
+  it('should not crash when a saved query has an empty query array', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Empty Query',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Attacker'},
+          query: [],
+        },
+        {
+          id: 2,
+          name: 'Valid Query',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />);
+    expect(await screen.findByText('Valid Query')).toBeInTheDocument();
+    expect(screen.queryByText('Empty Query')).not.toBeInTheDocument();
+  });
+
   it('should duplicate a query', async () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     await screen.findByText('Query Name');

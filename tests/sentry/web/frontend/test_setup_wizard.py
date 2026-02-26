@@ -320,15 +320,19 @@ class SetupWizard(PermissionTestCase):
         assert "Access-Control-Allow-Origin" in resp.headers
         assert "Access-Control-Allow-Methods" in resp.headers
 
-    @override_options(
-        {"demo-mode.enabled": True, "demo-mode.users": [100], "demo-mode.orgs": [100]}
-    )
     def test_demo_user(self) -> None:
-        demo_user = self.create_user("demo@example.com", id=100)
-        self.create_organization(owner=self.user, id=100)
+        demo_user = self.create_user("demo@example.com")
+        demo_org = self.create_organization(owner=self.user)
 
-        self.login_as(demo_user)
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_org.id],
+            }
+        ):
+            self.login_as(demo_user)
 
-        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
-        resp = self.client.get(url)
-        assert resp.status_code == 403
+            url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+            resp = self.client.get(url)
+            assert resp.status_code == 403

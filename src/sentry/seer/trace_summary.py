@@ -3,15 +3,16 @@ from datetime import timedelta
 from typing import Any
 
 import orjson
-import requests
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.organization import Organization
-from sentry.seer.models import SummarizeTraceResponse
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError, SummarizeTraceResponse
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_summarization_default_connection_pool,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
@@ -79,14 +80,12 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = requests.post(
-        f"{settings.SEER_SUMMARIZATION_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        path,
+        body,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
 
     return SummarizeTraceResponse.validate(response.json())

@@ -36,7 +36,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -552,9 +551,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
                 "organization_id": organization_id,
             }
         )
-
-    if not features.has("organizations:seer-webhooks", organization):
-        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
 
     broadcast_webhooks_for_organization.delay(
         resource_name="seer",

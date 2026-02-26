@@ -32,7 +32,6 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
   const summary = feedbackIssue.metadata.summary;
-  const isAiSummaryEnabled = areAiFeaturesAllowed;
 
   const userNodeId = useId();
 
@@ -52,7 +51,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   }
 
   const emailSubject =
-    isAiSummaryEnabled && summary
+    areAiFeaturesAllowed && summary
       ? `Following up from ${organization.name}: ${summary}`
       : `Following up from ${organization.name}`;
 
@@ -66,7 +65,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   return (
     <Flex align="center" gap="md" className={className} style={style}>
       <Flex align="center" wrap="wrap" gap="xs">
-        {isAiSummaryEnabled && summary && (
+        {areAiFeaturesAllowed && summary && (
           <Fragment>
             <AiPrivacyTooltip>
               <strong>{summary}</strong>

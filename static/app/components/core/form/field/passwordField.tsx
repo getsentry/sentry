@@ -9,7 +9,9 @@ import {t} from 'sentry/locale';
 
 import type {InputFieldProps} from './inputField';
 
-export function PasswordField(props: Omit<InputFieldProps, 'type' | 'trailingItems'>) {
+export function PasswordField(
+  props: Omit<InputFieldProps, 'type' | 'trailingItems' | 'id'>
+) {
   const [isFieldVisible, setisFieldVisible] = useState(false);
 
   return (

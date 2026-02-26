@@ -129,7 +129,7 @@ export function WidgetBuilderXAxisSelector() {
         tooltipText={t('Select the field to use for X-axis categories.')}
       />
       <FullWidthCompactSelect
-        searchable
+        search
         loading={isLoading}
         value={currentXAxisField}
         options={fieldOptions}
