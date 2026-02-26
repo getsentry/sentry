@@ -10,7 +10,6 @@ import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {CHART_MAX_BAR_WIDTH} from './constants';
@@ -27,12 +26,17 @@ export function Chart({
   attributeDistribution,
   theme,
   cohortCount,
+  query,
+  onAddSearchFilter,
+  onSetGroupBys,
 }: {
   attributeDistribution: AttributeDistribution[number];
   cohortCount: number;
+  query: string;
   theme: Theme;
+  onAddSearchFilter?: (params: {key: string; value: string; negated?: boolean}) => void;
+  onSetGroupBys?: (groupBys: string[], mode: string) => void;
 }) {
-  const query = useQueryParamsQuery();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
   const formatSingleModeTooltip = useFormatSingleModeTooltip();
@@ -63,11 +67,15 @@ export function Chart({
     [attributeDistribution.attributeName, theme]
   );
 
+  const hasActions = !!(onAddSearchFilter || onSetGroupBys);
+
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: formatSingleModeTooltip,
     chartWidth,
-    actionsHtmlRenderer,
+    actionsHtmlRenderer: hasActions ? actionsHtmlRenderer : undefined,
+    onAddSearchFilter,
+    onSetGroupBys,
   });
 
   useLayoutEffect(() => {

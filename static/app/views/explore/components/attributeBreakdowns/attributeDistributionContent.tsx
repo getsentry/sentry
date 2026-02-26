@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -22,7 +22,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {
+  useAddSearchFilter,
+  useQueryParamsQuery,
+  useSetQueryParamsGroupBys,
+} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
@@ -53,6 +58,16 @@ export function AttributeDistribution() {
   });
 
   const query = useQueryParamsQuery();
+  const addSearchFilter = useAddSearchFilter();
+  const setGroupBys = useSetQueryParamsGroupBys();
+
+  const onSetGroupBys = useCallback(
+    (groupBys: string[], _mode: string) => {
+      setGroupBys(groupBys, Mode.AGGREGATE);
+    },
+    [setGroupBys]
+  );
+
   const dataset = useSpansDataset();
   const {selection} = usePageFilters();
   const theme = useTheme();
@@ -186,6 +201,9 @@ export function AttributeDistribution() {
                     attributeDistribution={distribution}
                     cohortCount={cohortCount}
                     theme={theme}
+                    query={query}
+                    onAddSearchFilter={addSearchFilter}
+                    onSetGroupBys={onSetGroupBys}
                   />
                 ))}
             </AttributeBreakdownsComponent.ChartsGrid>
