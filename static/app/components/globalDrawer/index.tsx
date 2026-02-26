@@ -120,7 +120,7 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const scrollLock = useScrollLock(document.body);
+  const scrollLock = useScrollLock(document.documentElement);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
     (renderer, options) => {
       scrollLock.acquire();
