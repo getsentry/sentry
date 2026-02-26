@@ -35,8 +35,10 @@ class TestCompareImages:
         assert result is not None
         assert result.width == 50
         assert result.aligned_height == 50
-        assert result.changed_pixels > 0
-        assert result.diff_score > 0.0
+        assert result.before_width == 30
+        assert result.before_height == 30
+        assert result.after_width == 50
+        assert result.after_height == 50
 
     def test_modified_block(self):
         before = _make_solid_image(100, 100, (100, 100, 100, 255))

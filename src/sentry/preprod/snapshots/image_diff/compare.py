@@ -147,10 +147,10 @@ def _compare_single_pair(
             failOnLayoutDiff=False,
         )
 
-        base_count = base_resp.get("diffCount", 0)
-        color_count = color_resp.get("diffCount", 0)
-        base_pct = base_resp.get("diffPercentage", 0.0)
-        color_pct = color_resp.get("diffPercentage", 0.0)
+        base_count = base_resp.diffCount or 0
+        color_count = color_resp.diffCount or 0
+        base_pct = base_resp.diffPercentage or 0.0
+        color_pct = color_resp.diffPercentage or 0.0
 
         if color_pct > base_pct:
             chosen_output = color_output
