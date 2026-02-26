@@ -384,7 +384,7 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
-                  llmPostamble={
+                  postamble={
                     isManualIntegration ? LLM_ONBOARDING_INSTRUCTIONS : undefined
                   }
                   onCopy={

@@ -66,14 +66,14 @@ interface OnboardingCopyMarkdownButtonProps {
   source: string;
   steps: OnboardingStep[];
   borderless?: boolean;
+  onCopy?: () => void;
   /**
    * Optional markdown content to append after the steps. Use this to
-   * include LLM-specific context or instructions (e.g. a decision tree for
+   * include additional context or instructions (e.g. a decision tree for
    * manual instrumentation) that should be part of the copied output but are
    * not represented as onboarding steps.
    */
-  llmPostamble?: string;
-  onCopy?: () => void;
+  postamble?: string;
 }
 
 /**
@@ -84,7 +84,7 @@ export function OnboardingCopyMarkdownButton({
   steps,
   source,
   borderless,
-  llmPostamble,
+  postamble,
   onCopy,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
@@ -97,11 +97,11 @@ export function OnboardingCopyMarkdownButton({
         authToken,
       });
 
-      if (!llmPostamble) {
+      if (!postamble) {
         return stepsMarkdown;
       }
 
-      return `${stepsMarkdown}\n\n---\n\n${llmPostamble}`;
+      return `${stepsMarkdown}\n\n---\n\n${postamble}`;
     } catch {
       return '';
     }
