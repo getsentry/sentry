@@ -18,7 +18,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
-  TIER_GRANULARITY: class
+  TIER_GRANULARITY: file
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
@@ -95,8 +95,8 @@ jobs:
         run: |
           SCRIPT=.github/workflows/scripts/split-tests-by-tier.py
           CLASS=/tmp/classification/test-service-classification.json
-          T1_SHARDS=6
-          T2_SHARDS=16
+          T1_SHARDS=5
+          T2_SHARDS=17
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
@@ -107,18 +107,18 @@ jobs:
             DURATIONS_FLAG="--durations-file /tmp/durations/test-durations.json --n-workers 3"
           fi
 
-          # T1 uses --dist=loadfile → worker-simulated LPT (scopes are indivisible per worker)
+          # T1 uses --dist=load → flat LPT (xdist distributes individual tests across workers)
           mkdir -p /tmp/tier1-shards
           python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
-            --swap-rounds 0 \
+            --swap-rounds 0 --flat-lpt \
             $DURATIONS_FLAG
 
-          # T2 uses --dist=load → flat LPT (xdist distributes individual tests across workers)
+          # T2 uses --dist=loadfile → worker-simulated LPT (scopes are indivisible per worker)
           mkdir -p /tmp/tier2-shards
           python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
-            --swap-rounds 0 --flat-lpt \
+            --swap-rounds 0 \
             $DURATIONS_FLAG
 
           echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
@@ -168,10 +168,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5]
+        instance: [0, 1, 2, 3, 4]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 6
+      MATRIX_INSTANCE_TOTAL: 5
       PYTHONHASHSEED: '0'
 
     steps:
@@ -215,7 +215,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -262,10 +262,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 16
+      MATRIX_INSTANCE_TOTAL: 17
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
@@ -373,7 +373,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=load \
+            --dist=loadfile \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
