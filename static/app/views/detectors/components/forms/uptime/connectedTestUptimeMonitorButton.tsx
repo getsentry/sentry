@@ -34,10 +34,5 @@ export function ConnectedTestUptimeMonitorButton({
     };
   };
 
-  return (
-    <TestUptimeMonitorButton
-      getFormData={getFormData}
-      size={size}
-    />
-  );
+  return <TestUptimeMonitorButton getFormData={getFormData} size={size} />;
 }
