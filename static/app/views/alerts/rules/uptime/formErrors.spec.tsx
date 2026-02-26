@@ -4,6 +4,7 @@ import {
   AssertionFormError,
   extractPreviewCheckError,
   mapPreviewCheckErrorToMessage,
+  mapToFormErrors,
   resolveErroredAssertionOp,
 } from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
@@ -31,6 +32,29 @@ function makeContext({
     resetPreviewCheckResult: jest.fn(),
   };
 }
+
+describe('mapToFormErrors', () => {
+  it('returns nonFieldErrors for assertion errors', () => {
+    const body = {
+      assertion: {
+        error: PreviewCheckErrorKind.COMPILATION_ERROR,
+        compileError: {
+          type: CompilationErrorType.INVALID_JSON_PATH,
+          msg: 'bad path',
+          assertPath: ['0', '0'],
+        },
+      },
+    };
+    expect(mapToFormErrors(body)).toEqual({
+      nonFieldErrors: ['Failed to create monitor (Assertion Compilation Error)'],
+    });
+  });
+
+  it('flattens dataSources fields to top level for non-assertion errors', () => {
+    const body = {dataSources: {url: ['Enter a valid URL.']}};
+    expect(mapToFormErrors(body)).toEqual({url: ['Enter a valid URL.']});
+  });
+});
 
 describe('extractPreviewCheckError', () => {
   it('extracts error from direct format', () => {
