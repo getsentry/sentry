@@ -79,7 +79,7 @@ export function NewUptimeDetectorForm() {
 
 function NewUptimeDetectorFormContent() {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setPreviewCheckError} = usePreviewCheckResult();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <NewDetectorLayout
@@ -97,7 +97,7 @@ function NewUptimeDetectorFormContent() {
       }
       mapFormErrors={responseJson => {
         const extractedError = extractCompilationError(responseJson);
-        setPreviewCheckError(extractedError);
+        previewCheckResult?.setPreviewCheckError(extractedError);
         return mapToFormErrors(extractedError);
       }}
     >
@@ -120,7 +120,7 @@ function EditExistingUptimeDetectorFormContent({
   detector: UptimeDetector;
 }) {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setPreviewCheckError} = usePreviewCheckResult();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <EditDetectorLayout
@@ -140,7 +140,7 @@ function EditExistingUptimeDetectorFormContent({
       }
       mapFormErrors={responseJson => {
         const extractedError = extractCompilationError(responseJson);
-        setPreviewCheckError(extractedError);
+        previewCheckResult?.setPreviewCheckError(extractedError);
         return mapToFormErrors(extractedError);
       }}
     >

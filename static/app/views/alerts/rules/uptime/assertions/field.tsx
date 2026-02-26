@@ -99,7 +99,7 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
       value={rootOp}
       erroredOp={erroredOp}
       onChange={op => {
-        previewCheckResult.resetPreviewCheckResult();
+        previewCheckResult?.resetPreviewCheckResult();
         onChange({root: op}, {});
         onBlur({root: op}, {});
       }}

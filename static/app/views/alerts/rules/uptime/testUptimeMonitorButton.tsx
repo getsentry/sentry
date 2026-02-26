@@ -52,7 +52,7 @@ export function TestUptimeMonitorButton({
   size,
 }: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
-  const {setPreviewCheckData, setPreviewCheckError} = usePreviewCheckResult();
+  const previewCheckResult = usePreviewCheckResult();
 
   const {mutate: runPreviewCheck, isPending} = useMutation<
     PreviewCheckResult,
@@ -66,23 +66,23 @@ export function TestUptimeMonitorButton({
         data: {...payload},
       }),
     onSuccess: response => {
-      setPreviewCheckData(response);
+      previewCheckResult?.setPreviewCheckData(response);
       if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
         addSuccessMessage(t('Uptime check passed successfully'));
       } else {
         const trailingMessage = mapPreviewCheckResultToMessage(response);
-        addErrorMessage(t('Uptime check failed %s', trailingMessage ? `(${trailingMessage})` : ''));
+        addErrorMessage(t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : ''));
       }
     },
     onError: (error: RequestError) => {
       const extractedError = extractCompilationError(error.responseJSON);
-      setPreviewCheckError(extractedError);
+      previewCheckResult?.setPreviewCheckError(extractedError);
 
       if (onValidationError && error.status === 400 && error.responseJSON) {
         onValidationError(error.responseJSON);
       } else {
         const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
-        addErrorMessage(t('Uptime check failed %s', trailingMessage ? `(${trailingMessage})` : ''));
+        addErrorMessage(t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : ''));
       }
     },
   });

@@ -160,6 +160,7 @@ export function resolveErroredOp(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>,
   rootOp: AndOp
 ): Op | null {
+  if (!previewCheckResult) return null;
   const {data, error} = previewCheckResult;
 
   if (data) {
@@ -202,6 +203,7 @@ const ASSERTION_ERROR_TYPE_LABELS: Partial<Record<string, string>> = {
 function getFormErrorMessage(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>
 ): string | null {
+  if (!previewCheckResult) return null;
   const {data, error} = previewCheckResult;
 
   if (data) {
@@ -246,7 +248,7 @@ interface AssertionFormErrorProps {
 export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
   const previewCheckResult = usePreviewCheckResult();
 
-  if (!erroredOp || erroredOp.id !== op.id) {
+  if (!previewCheckResult || !erroredOp || erroredOp.id !== op.id) {
     return null;
   }
 

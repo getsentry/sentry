@@ -44,12 +44,6 @@ export function PreviewCheckResultProvider({children}: {children: React.ReactNod
   );
 }
 
-export function usePreviewCheckResult() {
-  const context = useContext(PreviewCheckResultContext);
-  if (!context) {
-    throw new Error(
-      'usePreviewCheckResult must be used within a PreviewCheckResultProvider'
-    );
-  }
-  return context;
+export function usePreviewCheckResult(): PreviewCheckResultContextType | null {
+  return useContext(PreviewCheckResultContext);
 }

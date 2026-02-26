@@ -117,7 +117,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setPreviewCheckError} = usePreviewCheckResult();
+  const previewCheckResult = usePreviewCheckResult();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -224,7 +224,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={responseJson => {
         const extractedError = extractCompilationError(responseJson);
-        setPreviewCheckError(extractedError);
+        previewCheckResult?.setPreviewCheckError(extractedError);
         return mapToFormErrors(extractedError);
       }}
       onFieldChange={onFieldChange}
