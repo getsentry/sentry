@@ -1243,3 +1243,22 @@ class PushTriggerTest(TestCase):
 
         # Lock must be released so the scheduler can still reach this mailbox
         assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_skips_drain_when_head_is_in_backoff(self, mock_drain: MagicMock) -> None:
+        from datetime import timedelta
+
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        # Create a payload whose head is in a retry backoff window
+        webhook = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
+        webhook.update(schedule_for=timezone.now() + timedelta(minutes=5))
+
+        maybe_trigger_drain(webhook.mailbox_name, webhook.id)
+
+        # No drain should be enqueued — head is not ready
+        mock_drain.delay.assert_not_called()
+        # Lock must also be released so the scheduler can pick it up when backoff expires
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None

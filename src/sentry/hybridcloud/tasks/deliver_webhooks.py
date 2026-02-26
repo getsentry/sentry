@@ -117,16 +117,26 @@ def maybe_trigger_drain(mailbox_name: str, payload_id: int) -> None:
     try:
         if cache.add(lock_key, 1, timeout=15):
             try:
-                # Drain from the head of the mailbox, not from the new payload's ID.
-                # The caller provides the just-created payload's ID, but older undelivered
-                # payloads in the same mailbox must be processed first to preserve ordering.
+                # Only drain if the mailbox head is ready to deliver (schedule_for in the
+                # past). This mirrors the scheduler's schedule_for__lte guard and prevents
+                # push-triggered drains from calling schedule_next_attempt on a payload
+                # that is still in its retry backoff window, which would burn through
+                # MAX_ATTEMPTS and push the next retry further into the future.
                 head_id = (
-                    WebhookPayload.objects.filter(mailbox_name=mailbox_name)
+                    WebhookPayload.objects.filter(
+                        mailbox_name=mailbox_name,
+                        schedule_for__lte=timezone.now(),
+                    )
                     .order_by("id")
                     .values_list("id", flat=True)
                     .first()
                 )
-                drain_mailbox.delay(head_id if head_id is not None else payload_id)
+                if head_id is None:
+                    # Head is in backoff — release the lock and let the scheduler handle it.
+                    cache.delete(lock_key)
+                    metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
+                    return
+                drain_mailbox.delay(head_id)
             except Exception:
                 # Enqueue failed — release the lock so delivery isn't blocked for 15s.
                 try:
@@ -199,9 +209,8 @@ def schedule_webhook_delivery() -> None:
 
     for record in scheduled_mailboxes[:BATCH_SIZE]:
         if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-            lock_key = f"wh:drain_active:{record['mailbox_name']}"
             try:
-                if cache.get(lock_key):
+                if cache.get(_drain_lock_key(record["mailbox_name"])):
                     continue
             except Exception:
                 pass
