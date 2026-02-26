@@ -3,6 +3,7 @@ import {
   createFormHook,
   formOptions,
   revalidateLogic,
+  type AnyFormApi,
   type DeepKeys,
 } from '@tanstack/react-form';
 
@@ -14,6 +15,7 @@ import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
+import {RadioField} from './field/radioField';
 import {RangeField} from './field/rangeField';
 import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
@@ -39,6 +41,7 @@ const fieldComponents = {
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
+  Radio: RadioField,
   Range: RangeField,
   Select: SelectField,
   SelectAsync: SelectAsyncField,
@@ -55,7 +58,7 @@ const {useAppForm} = createFormHook({
   formComponents: {
     FieldGroup,
     SubmitButton,
-    FormWrapper,
+    AppForm,
   },
   fieldContext,
   formContext,
@@ -75,6 +78,14 @@ function SubmitButton(props: ButtonProps) {
         />
       )}
     </form.Subscribe>
+  );
+}
+
+function AppForm({children, form}: {children: React.ReactNode; form: AnyFormApi}) {
+  return (
+    <formContext.Provider value={form}>
+      <FormWrapper>{children}</FormWrapper>
+    </formContext.Provider>
   );
 }
 
