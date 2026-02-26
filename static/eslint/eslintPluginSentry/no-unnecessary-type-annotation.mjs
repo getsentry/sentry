@@ -58,9 +58,14 @@ const rule = {
         // Skip object and array literal initializers — a future `prefer-satisfies`
         // rule will handle these. For literals, TypeScript contextually types the
         // expression using the annotation, so the inferred type always matches.
+        // Also skip function expressions and arrow functions — the annotation
+        // provides contextual typing for parameters (e.g. `e` in event handlers).
+        // Without the annotation, parameters become implicitly `any`.
         if (
           node.init.type === 'ObjectExpression' ||
-          node.init.type === 'ArrayExpression'
+          node.init.type === 'ArrayExpression' ||
+          node.init.type === 'ArrowFunctionExpression' ||
+          node.init.type === 'FunctionExpression'
         ) {
           return;
         }

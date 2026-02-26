@@ -56,6 +56,18 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
       code: 'const obj: { a: number } = { a: 1 };',
       filename: 'valid.ts',
     },
+
+    // Arrow function (excluded — annotation provides contextual parameter types)
+    {
+      code: 'import {FocusEventHandler} from "react";\nconst handleBlur: FocusEventHandler<HTMLInputElement> = e => {};',
+      filename: 'valid.ts',
+    },
+
+    // Function expression (excluded — annotation provides contextual parameter types)
+    {
+      code: 'const fn: (x: number) => number = function(x) { return x; };',
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
