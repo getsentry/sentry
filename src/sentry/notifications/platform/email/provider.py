@@ -138,6 +138,7 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     key = NotificationProviderKey.EMAIL
     default_renderer = EmailRenderer
     target_class = GenericNotificationTarget
+    supports_threading = False
     target_resource_types = [NotificationTargetResourceType.EMAIL]
 
     @classmethod

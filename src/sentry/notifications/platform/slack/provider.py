@@ -119,6 +119,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     key = NotificationProviderKey.SLACK
     default_renderer = SlackRenderer
     target_class = IntegrationNotificationTarget
+    supports_threading = True
     target_resource_types = [
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,

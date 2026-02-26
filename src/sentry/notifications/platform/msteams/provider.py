@@ -122,6 +122,7 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
     key = NotificationProviderKey.MSTEAMS
     default_renderer = MSTeamsRenderer
     target_class = IntegrationNotificationTarget
+    supports_threading = False
     target_resource_types = [
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,

@@ -123,6 +123,7 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     key = NotificationProviderKey.DISCORD
     default_renderer = DiscordRenderer
     target_class = IntegrationNotificationTarget
+    supports_threading = False
     target_resource_types = [
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,

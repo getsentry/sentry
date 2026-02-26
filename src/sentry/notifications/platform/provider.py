@@ -108,6 +108,7 @@ class NotificationProvider[RenderableT](Protocol):
     default_renderer: type[NotificationRenderer[RenderableT]]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
+    supports_threading: bool
 
     @classmethod
     def validate_target(cls, *, target: NotificationTarget) -> None:
