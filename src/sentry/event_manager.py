@@ -1968,7 +1968,7 @@ severity_connection_pool = connection_from_url(
 class SeverityScoreRequest(TypedDict):
     message: str
     has_stacktrace: int
-    handled: bool
+    handled: bool | None
     org_id: int
     project_id: int
     trigger_timeout: NotRequired[bool]
