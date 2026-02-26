@@ -15,7 +15,7 @@ function TestForm({defaultValue = '', disabled, label = 'Password'}: TestFormPro
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="password">
         {field => (
           <field.Layout.Row label={label}>

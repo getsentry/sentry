@@ -454,55 +454,50 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       <FormSearch route="/settings/organization/">
         <FieldGroup title={t('General')}>
           {/* Slug — explicit save with warning */}
-          <slugForm.AppForm>
-            <slugForm.FormWrapper>
-              <slugForm.AppField name="slug">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Organization Slug')}
-                    hintText={t('A unique ID used to identify this organization')}
-                    required
-                  >
-                    <field.Input
-                      value={field.state.value}
-                      onChange={value => field.handleChange(slugify(value))}
-                      disabled={!hasWriteAccess}
-                    />
-                  </field.Layout.Row>
-                )}
-              </slugForm.AppField>
-              <slugForm.Subscribe
-                selector={state => state.values.slug !== initialData.slug}
-              >
-                {isDirty =>
-                  isDirty && (
-                    <Container paddingTop="lg">
-                      <Alert variant="info" showIcon={false}>
-                        {tct(
-                          'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
-                          {
-                            link: (
-                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
-                            ),
-                          }
-                        )}
-                      </Alert>
-                      <Flex gap="sm" justify="end" paddingTop="lg">
-                        <Button
-                          onClick={() => slugForm.reset()}
-                          disabled={!hasWriteAccess}
-                        >
-                          {t('Cancel')}
-                        </Button>
-                        <slugForm.SubmitButton disabled={!hasWriteAccess}>
-                          {t('Save')}
-                        </slugForm.SubmitButton>
-                      </Flex>
-                    </Container>
-                  )
-                }
-              </slugForm.Subscribe>
-            </slugForm.FormWrapper>
+          <slugForm.AppForm form={slugForm}>
+            <slugForm.AppField name="slug">
+              {field => (
+                <field.Layout.Row
+                  label={t('Organization Slug')}
+                  hintText={t('A unique ID used to identify this organization')}
+                  required
+                >
+                  <field.Input
+                    value={field.state.value}
+                    onChange={value => field.handleChange(slugify(value))}
+                    disabled={!hasWriteAccess}
+                  />
+                </field.Layout.Row>
+              )}
+            </slugForm.AppField>
+            <slugForm.Subscribe
+              selector={state => state.values.slug !== initialData.slug}
+            >
+              {isDirty =>
+                isDirty && (
+                  <Container paddingTop="lg">
+                    <Alert variant="info" showIcon={false}>
+                      {tct(
+                        'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
+                        {
+                          link: (
+                            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+                          ),
+                        }
+                      )}
+                    </Alert>
+                    <Flex gap="sm" justify="end" paddingTop="lg">
+                      <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
+                        {t('Cancel')}
+                      </Button>
+                      <slugForm.SubmitButton disabled={!hasWriteAccess}>
+                        {t('Save')}
+                      </slugForm.SubmitButton>
+                    </Flex>
+                  </Container>
+                )
+              }
+            </slugForm.Subscribe>
           </slugForm.AppForm>
 
           {/* Display Name */}

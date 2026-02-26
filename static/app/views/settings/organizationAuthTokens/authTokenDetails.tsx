@@ -140,39 +140,37 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.AppField name="name">
-          {field => (
-            <field.Layout.Row
-              label={t('Name')}
-              hintText={t('A name to help you identify this token.')}
-              required
-            >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
+    <form.AppForm form={form}>
+      <form.AppField name="name">
+        {field => (
+          <field.Layout.Row
+            label={t('Name')}
+            hintText={t('A name to help you identify this token.')}
+            required
+          >
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
 
-        <FieldGroup
-          label={t('Token')}
-          help={t('You can only view the token once after creation.')}
-        >
-          <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
-        </FieldGroup>
+      <FieldGroup
+        label={t('Token')}
+        help={t('You can only view the token once after creation.')}
+      >
+        <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
+      </FieldGroup>
 
-        <FieldGroup
-          label={t('Scopes')}
-          help={t('You cannot change the scopes of an existing token.')}
-        >
-          <div>{token.scopes.slice().sort().join(', ')}</div>
-        </FieldGroup>
+      <FieldGroup
+        label={t('Scopes')}
+        help={t('You cannot change the scopes of an existing token.')}
+      >
+        <div>{token.scopes.slice().sort().join(', ')}</div>
+      </FieldGroup>
 
-        <Flex justify="end" gap="md" padding="md">
-          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-          <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+      <Flex justify="end" gap="md" padding="md">
+        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }
