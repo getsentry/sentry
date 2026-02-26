@@ -101,5 +101,6 @@ export const startTourModalCss = css`
   width: 545px;
   [role='document'] {
     box-shadow: none;
+    border: none;
   }
 `;

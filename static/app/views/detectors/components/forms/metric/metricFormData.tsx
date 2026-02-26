@@ -90,7 +90,8 @@ interface SnubaQueryFormData {
 }
 
 export interface MetricDetectorFormData
-  extends PrioritizeLevelFormData,
+  extends
+    PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {

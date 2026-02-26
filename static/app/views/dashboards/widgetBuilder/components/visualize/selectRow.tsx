@@ -5,9 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -66,15 +64,6 @@ interface SelectRowProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
   stringFields?: string[];
-}
-
-export function renderDropdownMenuFooter() {
-  return (
-    <FooterWrapper>
-      <IconInfo size="xs" />
-      {t('Select relevant fields or tags to use as groups within the table')}
-    </FooterWrapper>
-  );
 }
 
 function validateParameter(
@@ -139,10 +128,19 @@ export function SelectRow({
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
+  // Derived from state rather than passed as prop - categorical bars use a dedicated action
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
 
+  // Determines which action to use for updating visualization fields:
+  // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
+  // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging
+  // with X-axis, which is set in `XAxisSelector`)
+  // - Other widgets (Table, Big Number): SET_FIELDS for all columns at once
   const updateAction = isTimeSeriesWidget
     ? BuilderStateAction.SET_Y_AXIS
-    : BuilderStateAction.SET_FIELDS;
+    : isCategoricalBarWidget
+      ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
+      : BuilderStateAction.SET_FIELDS;
 
   const openColumnSelect = useCallback(() => {
     requestAnimationFrame(() => {
@@ -197,15 +195,12 @@ export function SelectRow({
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
-        searchable
+        search
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
         options={sortSelectedFirst(aggregateValue, aggregateOptions)}
         value={aggregateValue}
         position="bottom-start"
-        menuFooter={
-          state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
-        }
         onChange={dropdownSelection => {
           const isNone = dropdownSelection.value === NONE;
           let newFields = cloneDeep(fields);
@@ -457,7 +452,7 @@ export function SelectRow({
       {hasColumnParameter && (
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
-            searchable
+            search
             options={sortSelectedFirst(columnValue, columnOptions)}
             value={columnValue}
             onChange={newField => {
@@ -506,16 +501,6 @@ export const ColumnCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
-`;
-
-const FooterWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-  align-items: center;
-  justify-content: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SelectWrapper = styled('div')`

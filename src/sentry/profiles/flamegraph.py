@@ -529,7 +529,6 @@ class FlamegraphExecutor:
         # If we still don't have enough continuous profile candidates + transaction profile candidates,
         # we'll fall back to directly using the continuous profiling data
         if len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles:
-
             conditions = []
             conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
             conditions.append(
@@ -578,7 +577,6 @@ class FlamegraphExecutor:
             continuous_profile_results = all_results[0]
 
             for row in continuous_profile_results["data"]:
-
                 # Make sure to dedupe profile chunks so we don't reuse chunks
                 if (row["profiler_id"], row["chunk_id"]) in seen_chunks:
                     continue

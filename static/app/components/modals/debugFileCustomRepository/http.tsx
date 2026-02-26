@@ -195,7 +195,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               onClick={handleClearPassword}
               icon={<IconClose size="sm" />}
               size="xs"
-              title={t('Clear password')}
+              tooltipProps={{title: t('Clear password')}}
               aria-label={t('Clear password')}
               priority="transparent"
             />

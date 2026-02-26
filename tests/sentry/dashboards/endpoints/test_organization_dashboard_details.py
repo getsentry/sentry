@@ -137,6 +137,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
         assert response.data["id"] == "default-overview"
 
+    def test_get_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("get", self.url("default-overview"))
+            assert response.status_code == 200
+            assert response.data["widgets"][7]["widgetType"] == "spans"
+
     def test_prebuilt_dashboard_with_discover_split_feature_flag(self) -> None:
         response = self.do_request("get", self.url("default-overview"))
         assert response.status_code == 200, response.data
@@ -372,14 +378,15 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert not response.data["permissions"]
 
     def test_dashboard_viewable_with_no_edit_permissions(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=1142,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=1289)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -760,11 +767,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
 
     def test_allow_delete_as_superuser_but_no_edit_perms(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
@@ -811,14 +817,15 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             assert response.status_code == 404
 
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=1235)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -826,14 +833,15 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 403
 
     def test_delete_dashboard_with_edit_permissions_disabled(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
-        user = self.create_user(id=1235)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -841,14 +849,14 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
 
     def test_creator_can_delete_dashboard(self) -> None:
+        user = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=user.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=12333)
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -856,9 +864,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204, response.content
 
     def test_user_in_team_with_access_can_delete_dashboard(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -870,7 +879,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         permissions.teams_with_edit_access.set([team])
 
         # Create user and add to team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, teams=[team])
         self.login_as(user)
 
@@ -878,9 +887,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204, response.content
 
     def test_user_in_team_without_access_cannot_delete_dashboard(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -892,7 +902,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         permissions.teams_with_edit_access.set([team])
 
         # Create user not in team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.login_as(user)
 
         response = self.do_request("put", self.url(dashboard.id))
@@ -1026,7 +1036,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.dashboard.projects.set([self.project])
 
         # user has access to the above project
-        user = self.create_user(id=3456)
+        user = self.create_user()
         team = self.create_team(organization=self.organization)
         self.create_member(user=user, organization=self.organization, teams=[team])
         self.project.add_team(team)
@@ -1039,11 +1049,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_allow_put_as_superuser_but_no_edit_perms(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
@@ -1357,7 +1366,62 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Ensure this value is less than or equal to 10" in response.content
+        assert b"The maximum limit for this display type is 10" in response.content
+
+    def test_add_categorical_bar_widget_with_valid_limit(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 20,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        assert widgets[0].limit == 20
+
+    def test_add_categorical_bar_widget_with_invalid_limit_above_maximum(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 26,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {
@@ -2126,6 +2190,31 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         assert DashboardTombstone.objects.filter(slug=slug).exists()
 
+    def test_update_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "New title",
+                    "displayType": "line",
+                    "widgetType": "transaction-like",
+                    "queries": [
+                        {
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+            ],
+        }
+        slug = "default-overview"
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("put", self.url(slug), data=data)
+            assert response.status_code == 400, response.data
+
     def test_update_unknown_prebuilt(self) -> None:
         data = {
             "title": "First dashboard",
@@ -2349,37 +2438,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
-    def test_add_discover_widget_returns_validation_error(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {
-                    "title": "Issues",
-                    "displayType": "table",
-                    "widgetType": "discover",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["count()", "total.count"],
-                            "columns": ["total.count"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                },
-            ],
-        }
-        with self.feature({"organizations:deprecate-discover-widget-type": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-
-        assert response.status_code == 400, response.data
-        assert (
-            "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-            in response.content.decode()
-        )
-
     def test_update_dashboard_with_filters(self) -> None:
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -2492,7 +2550,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
     def test_update_dashboard_permissions_with_put(self) -> None:
-
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -2500,7 +2557,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2517,7 +2574,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2537,7 +2594,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2563,14 +2620,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert "isEditableByEveryone" in response.data["permissions"]
 
     def test_edit_dashboard_with_edit_permissions_not_granted(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=3456)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -2578,16 +2636,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 403
 
     def test_all_users_can_edit_dashboard_with_edit_permissions_disabled(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
-        user = self.create_user(id=3456)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -2596,13 +2653,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["title"] == "New Dashboard 9"
 
     def test_creator_can_edit_dashboard(self) -> None:
-        user = self.create_user(id=12333)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=user.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
@@ -2612,10 +2669,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["title"] == "New Dashboard 9"
 
     def test_user_in_team_with_access_can_edit_dashboard(self) -> None:
-        self.create_user(id=11452)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -2627,7 +2684,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         permissions.teams_with_edit_access.set([team])
 
         # Create user and add to team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, teams=[team])
         self.login_as(user)
 
@@ -2635,10 +2692,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
 
     def test_user_in_team_without_access_cannot_edit_dashboard(self) -> None:
-        self.create_user(id=11452)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -2650,7 +2707,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         permissions.teams_with_edit_access.set([team])
 
         # Create user not in team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.login_as(user)
 
         response = self.do_request("put", self.url(dashboard.id), data={"title": "New Dashboard 9"})
@@ -2659,7 +2716,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_user_tries_to_update_dashboard_edit_perms(self) -> None:
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=self.dashboard)
 
-        user = self.create_user(id=28193)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -2677,7 +2734,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_only_owner_can_update_dashboard_edit_perms(self) -> None:
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
 
-        user = self.create_user(id=28193)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
 
@@ -2688,7 +2745,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 403
 
-        user = self.create_user(id=28194)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
 
@@ -2717,7 +2774,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2753,7 +2810,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2784,7 +2841,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2811,7 +2868,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2857,7 +2914,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3484,6 +3541,115 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not appear in the fields of the query" in response.content
 
+    def test_rejects_cross_org_linked_dashboard(self) -> None:
+        other_org = self.create_organization(name="other-org")
+        other_dashboard = Dashboard.objects.create(
+            title="Other Org Dashboard",
+            created_by_id=self.user.id,
+            organization=other_org,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Cross-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": other_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
+
+        # Verify no DashboardFieldLink was created
+        assert DashboardFieldLink.objects.count() == 0
+
+    def test_allows_same_org_linked_dashboard_after_fix(self) -> None:
+        same_org_dashboard = Dashboard.objects.create(
+            title="Same Org Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Same-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": same_org_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": same_org_dashboard.id,
+            }
+        ]
+
+    def test_rejects_nonexistent_linked_dashboard(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Nonexistent Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [{"field": "project", "dashboardId": 999999999}],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
+
     def test_cannot_delete_prebuilt_insights_dashboard(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Frontend Session Health",
@@ -3682,12 +3848,13 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_ondemand_hits_card_limit(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {
-            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
-        }, [
-            "sometag",
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]},
+            [
+                "sometag",
+                "someothertag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3727,9 +3894,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_ondemand_updates_existing_widget(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3789,9 +3959,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             ],
         }
 
-        mock_query.return_value = {"data": [{"count_unique(someothertag)": 0}]}, [
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(someothertag)": 0}]},
+            [
+                "someothertag",
+            ],
+        )
         with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
@@ -3811,9 +3984,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_ondemand_updates_new_widget(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3873,9 +4049,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             ],
         }
 
-        mock_query.return_value = {"data": [{"count_unique(someotherothertag)": 0}]}, [
-            "someotherothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(someotherothertag)": 0}]},
+            [
+                "someotherothertag",
+            ],
+        )
         with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
@@ -3895,9 +4074,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_cardinality_check_with_feature_flag(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3939,9 +4121,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
     def test_feature_check_takes_precedence_over_cardinality(
         self, mock_query: mock.MagicMock
     ) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [

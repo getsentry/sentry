@@ -5,7 +5,12 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
@@ -36,6 +41,7 @@ export function FeatureFlagOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -87,18 +93,33 @@ export function FeatureFlagOnboardingLayout({
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
-          ))}
-          <StyledLinkButton to="/issues/" priority="primary">
-            {t('Take me to Issues')}
-          </StyledLinkButton>
-        </Steps>
-        <Divider />
-        <OnboardingAdditionalFeatures organization={organization} />
-      </Wrapper>
+      <TabSelectionScope>
+        <Wrapper>
+          <Steps>
+            {steps.map((step, index) => (
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={steps}
+                      source="feature_flag_onboarding"
+                    />
+                  ) : undefined
+                }
+              />
+            ))}
+            <StyledLinkButton to="/issues/" priority="primary">
+              {t('Take me to Issues')}
+            </StyledLinkButton>
+          </Steps>
+          <Divider />
+          <OnboardingAdditionalFeatures organization={organization} />
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
@@ -137,6 +158,7 @@ const Divider = styled('div')`
     height: 1px;
     left: 0;
     right: 0;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
 `;

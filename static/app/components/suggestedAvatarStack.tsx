@@ -1,12 +1,13 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar, type ActorAvatarProps} from '@sentry/scraps/avatar';
 
 import type {Actor} from 'sentry/types/core';
 
-interface SuggestedAvatarStackProps
-  extends Omit<ActorAvatarProps, 'actor' | 'hasTooltip'> {
+interface SuggestedAvatarStackProps extends Omit<
+  ActorAvatarProps,
+  'actor' | 'hasTooltip'
+> {
   owners: Actor[];
   reverse?: boolean;
 }
@@ -28,7 +29,6 @@ function SuggestedAvatarStack({
     <AvatarStack reverse={reverse} data-test-id="suggested-avatar-stack">
       {suggestedOwners.slice(0, numAvatars - 1).map((owner, i) => (
         <Avatar
-          round={firstSuggestion!.type === 'user'}
           actor={owner}
           hasTooltip={false}
           {...props}
@@ -57,12 +57,8 @@ const AvatarStack = styled('div')<{reverse: boolean}>`
   ${p => p.reverse && `flex-direction: row-reverse;`}
 `;
 
-const translateStyles = (props: {index: number; reverse: boolean}) => css`
-  transform: translateX(${props.reverse ? 60 * props.index : 60 * -props.index}%);
-`;
-
 const Avatar = styled(ActorAvatar)<{index: number; reverse: boolean}>`
-  ${translateStyles}
+  transform: translateX(${p => (p.reverse ? 60 * p.index : 60 * -p.index)}%);
 `;
 
 export default SuggestedAvatarStack;

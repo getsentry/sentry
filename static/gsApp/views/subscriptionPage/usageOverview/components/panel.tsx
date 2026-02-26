@@ -114,7 +114,9 @@ function PanelHeader({
           to={`${productLink}?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
           icon={<IconSettings />}
           aria-label={t('Configure %s', displayName)}
-          title={tct('Configure [productName]', {productName: displayName})}
+          tooltipProps={{
+            title: tct('Configure [productName]', {productName: displayName}),
+          }}
           analyticsEventName="Subscription Settings: Product Link Clicked"
           analyticsEventKey="subscription_settings.product_link_clicked"
           analyticsParams={{
@@ -149,7 +151,10 @@ function ProductBreakdownPanel({
     staleTime: 60_000,
   });
   const setupRequired =
-    shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
+    shouldCheckSetup &&
+    !setupCheckLoading &&
+    (!setupCheck?.isSeerConfigured ||
+      (setupCheck?.needsConfigReminder && !setupCheck?.isCodeReviewEnabled));
 
   if (!billedCategory) {
     return null;

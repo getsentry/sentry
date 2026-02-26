@@ -5,13 +5,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('ScreensOverview', () => {

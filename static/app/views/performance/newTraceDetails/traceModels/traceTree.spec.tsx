@@ -182,7 +182,7 @@ const eapTraceWithOccurences = makeEAPTrace([
       makeEAPSpan({
         event_id: 'eap-span-2',
         is_transaction: false,
-        occurrences: [makeEAPOccurrence({event_id: 'eap-occurence-1'})],
+        occurrences: [makeEAPOccurrence({event_id: 'eap-occurrence-1'})],
       }),
     ],
   }),
@@ -615,7 +615,7 @@ describe('TraceTree', () => {
       expect(eapSpan?.errors.size).toBe(1);
     });
 
-    it('adds eap occurences to tree nodes', () => {
+    it('adds eap occurrences to tree nodes', () => {
       const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceOptions);
 
       expect(tree.root.children[0]!.occurrences.size).toBe(1);

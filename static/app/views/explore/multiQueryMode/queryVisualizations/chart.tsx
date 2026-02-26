@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -14,8 +15,8 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -24,7 +25,6 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {
   useUpdateQueryAtIndex,

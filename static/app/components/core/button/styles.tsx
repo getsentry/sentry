@@ -45,7 +45,7 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
+  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled'> & {
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
   }
@@ -70,6 +70,7 @@ export function DO_NOT_USE_getButtonStyles(
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
+    whiteSpace: 'nowrap',
 
     fontWeight: p.theme.font.weight.sans.medium,
 
@@ -181,18 +182,8 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    // Hides the interaction state layer
-    '> span:first-child': {
-      display: 'none',
-    },
-
-    // Link buttons do not have interaction state layer
     ...(p.priority === 'link' && {
       transform: 'translateY(0px)',
-
-      '> span:first-child': {
-        transform: 'translateY(0px)',
-      },
 
       '&::before': {
         display: 'none',
@@ -204,7 +195,7 @@ export function DO_NOT_USE_getButtonStyles(
     }),
 
     // Borderless buttons are not chonky
-    ...((p.borderless || type === 'transparent' || type === 'link') && {
+    ...((type === 'transparent' || type === 'link') && {
       border: 'none',
       transform: 'translateY(0px)',
 

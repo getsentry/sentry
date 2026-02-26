@@ -2,10 +2,11 @@ import type React from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {
   StepType,
   type OnboardingStep,
@@ -27,19 +28,27 @@ export function Step({
   onOptionalToggleClick,
   collapsible = false,
   trailingItems,
+  stepIndex,
   ...props
-}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> & OnboardingStep) {
+}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> &
+  // stepIndex is required so StepIndexProvider can disambiguate tab
+  // selection keys across steps (used by the Copy as Markdown feature).
+  OnboardingStep & {stepIndex: number}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
     <ContentWrapper>
-      <ContentBlocksRenderer contentBlocks={content} />
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer contentBlocks={content} />
+      </StepIndexProvider>
     </ContentWrapper>
   );
 
   const stepTitle = <StepTitle>{title ?? StepTitles[type]}</StepTitle>;
   const trailingItemsContent = trailingItems ? (
-    <ButtonBar onClick={e => e.stopPropagation()}>{trailingItems}</ButtonBar>
+    <Grid flow="column" align="center" gap="md" onClick={e => e.stopPropagation()}>
+      {trailingItems}
+    </Grid>
   ) : null;
 
   return collapsible ? (

@@ -854,7 +854,7 @@ def filter_exceptions_for_exception_groups(
     # When there's more than one distinct top-level exception, return one of each of them AND the root exception group.
     # NOTE: This deviates from the original RFC, because finding a common ancestor that shares
     # one of each top-level exception that is _not_ the root is overly complicated.
-    # Also, it's more likely the stack trace of the root exception will be more meaningful
+    # Also, it's more likely the stacktrace of the root exception will be more meaningful
     # than one of an inner exception group.
     if exception_tree[0].exception:
         distinct_top_level_exceptions.append(exception_tree[0].exception)
@@ -974,7 +974,6 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
             exception.module == "io.reactivex.rxjava3.exceptions"
             and exception.type in JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES
             and exception.mechanism
-            and exception.mechanism.type == "UncaughtExceptionHandler"
         ):
             rxjava_exception_id = exception.mechanism.exception_id
             break

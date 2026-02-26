@@ -445,9 +445,9 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # Verify results are sorted by count (descending)
         counts = [item["count"] for item in result]
-        assert counts == sorted(
-            counts, reverse=True
-        ), "Results should be sorted by count descending"
+        assert counts == sorted(counts, reverse=True), (
+            "Results should be sorted by count descending"
+        )
 
     def test_get_filter_key_values_with_substring_filter(self):
         """Test substring filtering of filter key values"""

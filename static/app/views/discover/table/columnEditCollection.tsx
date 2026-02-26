@@ -3,8 +3,9 @@ import {createPortal} from 'react-dom';
 import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -530,7 +531,7 @@ class ColumnEditCollection extends Component<Props, State> {
               <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
-                title={t('Remove column')}
+                tooltipProps={{title: t('Remove column')}}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
                 priority="transparent"
@@ -643,7 +644,7 @@ class ColumnEditCollection extends Component<Props, State> {
               size="sm"
               aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
-              title={title}
+              tooltipProps={{title}}
               disabled={!canAdd}
               icon={<IconAdd />}
             >
@@ -654,7 +655,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 size="sm"
                 aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
-                title={title}
+                tooltipProps={{title}}
                 disabled={!canAdd}
                 icon={<IconAdd />}
               >
@@ -683,7 +684,9 @@ function OnDemandEquationsWarning() {
   );
 }
 
-const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`
+const Actions = styled((props: GridProps & {showAliasField?: boolean}) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))<{showAliasField?: boolean}>`
   grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
   justify-content: flex-start;
 `;

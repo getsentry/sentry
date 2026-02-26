@@ -74,6 +74,18 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
+    # OpenStack Swift transaction IDs
+    ("swift_txn_id - base", "tx274a77a8975c4a66aeb24-0052d95365", "<swift_txn_id>"),
+    (
+        "swift_txn_id - with suffix",
+        "tx274a77a8975c4a66aeb24-0052d95365-cluster01",
+        "<swift_txn_id>",
+    ),
+    (
+        "swift_txn_id - not matching prefix",
+        "ab274a77a8975c4a66aeb24-0052d95365",
+        "<hex>-0052d95365",
+    ),
     ("hex with prefix - lowercase, 4 digits", "0x9af8", "<hex>"),
     ("hex with prefix - uppercase, 4 digits", "0x9AF8", "<hex>"),
     ("hex with prefix - lowercase, 8 digits", "0x9af8c3be", "<hex>"),
@@ -96,6 +108,8 @@ standard_cases = [
     ("hex without prefix - uppercase, 16 digits", "9AF8C3BE3A1231FE", "<hex>"),
     ("hex without prefix - lowercase, 24 digits", "9af8c3be3a1231fe1121acb1", "<hex>"),
     ("hex without prefix - uppercase, 24 digits", "9AF8C3BE3A1231FE1121ACB1", "<hex>"),
+    ("hex without prefix - lowercase, 128 digits", "b0" * 64, "<hex>"),
+    ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
     ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
     ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
     ("float", "0.23", "<float>"),

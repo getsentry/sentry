@@ -59,6 +59,15 @@ export const mobile: PlatformKey[] = [
   'cocoa-swift',
 ];
 
+export const android: PlatformKey[] = ['android', 'java-android'];
+
+export const apple: PlatformKey[] = [
+  'apple-ios',
+  'apple-macos',
+  'cocoa-objc',
+  'cocoa-swift',
+];
+
 // Mirrors `BACKEND` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const backend: PlatformKey[] = [
@@ -315,7 +324,6 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'dotnet-maui',
   'dotnet-winforms',
   'dotnet-wpf',
-  'dotnet-xamarin',
   'flutter',
   'go',
   'go-echo',
@@ -386,6 +394,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'react-native',
   'ruby',
   'ruby-rack',
   'ruby-rails',
@@ -395,7 +404,10 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'elixir',
+  'dotnet-xamarin',
+]);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
@@ -404,6 +416,15 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'apple',
   'apple-ios',
   'apple-macos',
+  'dotnet',
+  'dotnet-aspnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'react-native',
   'go',
   'go-echo',
   'go-fasthttp',
@@ -476,13 +497,15 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
-export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
+export const withoutMetricsSupport: Set<PlatformKey> = new Set(['dotnet-xamarin']);
 
 export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'android',
   'apple',
   'bun',
   'dart',
+  'deno',
+  'dotnet',
   'electron',
   'go',
   'java',

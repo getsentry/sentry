@@ -18,8 +18,7 @@ jobs:
         with:
           node-version-file: '.node-version'
 
-      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
-
+      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
       - name: node_modules cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache

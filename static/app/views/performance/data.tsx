@@ -2,9 +2,9 @@ import type {Location} from 'history';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

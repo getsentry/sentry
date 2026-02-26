@@ -170,6 +170,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? space(1) : 0)};
   padding: ${space(1.5)};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => (p.hideCloseButton ? '24px' : space(2))};
   padding-top: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
@@ -186,6 +187,11 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    overflow-x: auto;
+    pointer-events: auto;
+  }
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
@@ -204,6 +210,17 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-width),
     var(--drawer-max-width)
   ) !important;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border: none;
+    box-shadow: none;
+    /* Without this, the base SlideOverPanel's overscroll-behavior: contain blocks horizontal scroll chaining. */
+    overscroll-behavior-x: auto;
+  }
 
   &[data-resizing] {
     /* Hide scrollbars during resize */

@@ -53,11 +53,11 @@ interface MetricCardConfig {
   title: string;
   value: string;
   comparisonUrl?: string;
+  componentBreakdown?: ComponentBreakdown;
   delta?: MetricDelta;
   labelTooltip?: string;
   percentageText?: string;
   showInsightsButton?: boolean;
-  watchBreakdown?: WatchBreakdown;
 }
 interface MetricDelta {
   baseValue: number;
@@ -65,9 +65,10 @@ interface MetricDelta {
   percentageChange: number;
 }
 
-interface WatchBreakdown {
+interface ComponentBreakdown {
   appValue: string;
-  watchValue: string;
+  appClipValue?: string;
+  watchValue?: string;
 }
 
 export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
@@ -94,6 +95,9 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
   const watchArtifactMetric = sizeInfo.size_metrics.find(
     metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
+  );
+  const appClipArtifactMetrics = sizeInfo.size_metrics.filter(
+    metric => metric.metrics_artifact_type === MetricsArtifactType.APP_CLIP_ARTIFACT
   );
   const installMetricValue = formattedPrimaryMetricInstallSize(sizeInfo);
   const downloadMetricValue = formattedPrimaryMetricDownloadSize(sizeInfo);
@@ -145,9 +149,10 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       labelTooltip: labels.installSizeDescription,
       value: installMetricValue,
       comparisonUrl,
-      watchBreakdown: getWatchBreakdown(
+      componentBreakdown: getComponentBreakdown(
         primarySizeMetric,
         watchArtifactMetric,
+        appClipArtifactMetrics,
         'install_size_bytes'
       ),
       delta: installDelta,
@@ -159,9 +164,10 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       labelTooltip: labels.downloadSizeDescription,
       value: downloadMetricValue,
       comparisonUrl,
-      watchBreakdown: getWatchBreakdown(
+      componentBreakdown: getComponentBreakdown(
         primarySizeMetric,
         watchArtifactMetric,
+        appClipArtifactMetrics,
         'download_size_bytes'
       ),
       delta: downloadDelta,
@@ -208,12 +214,13 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
           <Stack gap="xs">
             <Flex align="center" gap="sm" wrap="wrap">
               <Heading as="h3">
-                {card.watchBreakdown ? (
+                {card.componentBreakdown ? (
                   <Tooltip
                     title={
-                      <WatchBreakdownTooltip
-                        appValue={card.watchBreakdown.appValue}
-                        watchValue={card.watchBreakdown.watchValue}
+                      <ComponentBreakdownTooltip
+                        appValue={card.componentBreakdown.appValue}
+                        watchValue={card.componentBreakdown.watchValue}
+                        appClipValue={card.componentBreakdown.appClipValue}
                       />
                     }
                     position="bottom"
@@ -306,8 +313,12 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   );
 }
 
-function WatchBreakdownTooltip(props: {appValue: string; watchValue: string}) {
-  const {appValue, watchValue} = props;
+function ComponentBreakdownTooltip(props: {
+  appValue: string;
+  appClipValue?: string;
+  watchValue?: string;
+}) {
+  const {appValue, watchValue, appClipValue} = props;
 
   return (
     <Stack align="start">
@@ -317,28 +328,46 @@ function WatchBreakdownTooltip(props: {appValue: string; watchValue: string}) {
         </Text>
         <Text size="md">{appValue}</Text>
       </Flex>
-      <Flex gap="sm">
-        <Text size="md" bold>
-          {t('Watch')}:
-        </Text>
-        <Text size="md">{watchValue}</Text>
-      </Flex>
+      {watchValue ? (
+        <Flex gap="sm">
+          <Text size="md" bold>
+            {t('Watch')}:
+          </Text>
+          <Text size="md">{watchValue}</Text>
+        </Flex>
+      ) : null}
+      {appClipValue ? (
+        <Flex gap="sm">
+          <Text size="md" bold>
+            {t('App Clip')}:
+          </Text>
+          <Text size="md">{appClipValue}</Text>
+        </Flex>
+      ) : null}
     </Stack>
   );
 }
 
-function getWatchBreakdown(
+function getComponentBreakdown(
   primaryMetric: BuildDetailsSizeInfoSizeMetric | undefined,
   watchMetric: BuildDetailsSizeInfoSizeMetric | undefined,
+  appClipMetrics: BuildDetailsSizeInfoSizeMetric[],
   field: 'install_size_bytes' | 'download_size_bytes'
-): WatchBreakdown | undefined {
-  if (!primaryMetric || !watchMetric) {
+): ComponentBreakdown | undefined {
+  if (!primaryMetric) {
+    return undefined;
+  }
+
+  const appClipTotal = appClipMetrics.reduce((sum, metric) => sum + metric[field], 0);
+
+  if (!watchMetric && appClipTotal === 0) {
     return undefined;
   }
 
   return {
     appValue: formatBytesBase10(primaryMetric[field]),
-    watchValue: formatBytesBase10(watchMetric[field]),
+    watchValue: watchMetric ? formatBytesBase10(watchMetric[field]) : undefined,
+    appClipValue: appClipTotal > 0 ? formatBytesBase10(appClipTotal) : undefined,
   };
 }
 

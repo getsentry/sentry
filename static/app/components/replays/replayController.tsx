@@ -2,7 +2,8 @@ import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -32,10 +33,10 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const {currentTime, setCurrentTime} = useReplayContext();
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <Button
         size="sm"
-        title={t('Rewind 10s')}
+        tooltipProps={{title: t('Rewind 10s')}}
         icon={<IconRewind10 size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
@@ -45,7 +46,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
       <Button
         disabled={isLoading}
         size="sm"
-        title={t('Next breadcrumb')}
+        tooltipProps={{title: t('Next breadcrumb')}}
         icon={<IconChevron size="sm" direction="right" />}
         onClick={() => {
           if (!replay) {
@@ -62,7 +63,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
         }}
         aria-label={t('Fast-forward to next breadcrumb')}
       />
-    </ButtonBar>
+    </Grid>
   );
 }
 
@@ -96,14 +97,14 @@ export default function ReplayController({
         <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
       </TimelineScaleContextProvider>
 
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <ReplayPreferenceDropdown
           isLoading={isLoading}
           speedOptions={speedOptions}
           hideFastForward={hideFastForward}
         />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-      </ButtonBar>
+      </Grid>
     </ButtonGrid>
   );
 }

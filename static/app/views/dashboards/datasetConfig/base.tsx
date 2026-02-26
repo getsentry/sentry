@@ -115,6 +115,10 @@ export type WidgetQueryParams = {
    * Skip adding parentheses around widget conditions when applying dashboard filters.
    */
   skipDashboardFilterParens?: boolean;
+  /**
+   * Optional user-selected interval override for timeseries queries.
+   */
+  widgetInterval?: string;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -161,6 +165,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Default field to use as the X-axis category for categorical bar charts.
+   * This should be a non-aggregate field name (e.g., 'transaction', 'browser').
+   */
+  defaultCategoryField?: string;
   /**
    * Default field to add to the widget query when adding a new field for series display type.
    */
@@ -229,7 +238,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getFieldHeaderMap?: (widgetQuery?: WidgetQuery) => Record<string, string>;
   /**
-   * Field options to display in the Group by selector.
+   * Field options to display in the Group by selector and the X axis selector
    */
   getGroupByFieldOptions?: (
     organization: Organization,

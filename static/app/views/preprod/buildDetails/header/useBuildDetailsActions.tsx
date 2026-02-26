@@ -7,28 +7,11 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getListBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
   projectId: string;
-}
-
-type ErrorDetail = string | {code?: string; message?: string} | null | undefined;
-
-function handleStaffPermissionError(responseDetail: ErrorDetail) {
-  if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
-    addErrorMessage(
-      t(
-        'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
-      )
-    );
-    setTimeout(() => {
-      window.location.href = '/_admin/';
-    }, 2000);
-    return;
-  }
-
-  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
 }
 
 export function useBuildDetailsActions({

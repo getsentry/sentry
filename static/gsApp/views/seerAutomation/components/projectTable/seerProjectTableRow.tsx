@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -19,6 +20,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -49,7 +51,7 @@ export default function SeerProjectTableRow({
   // If any other value is set, we treat it as 'medium'.
   const isAutoFixEnabled = Boolean(
     autofixSettings.autofixAutomationTuning &&
-      autofixSettings.autofixAutomationTuning !== 'off'
+    autofixSettings.autofixAutomationTuning !== 'off'
   );
 
   // We used to have multiple stopping points for PR Creation.
@@ -106,7 +108,9 @@ export default function SeerProjectTableRow({
           <Flex align="center" gap="sm">
             {'n/a'}
             <QuestionTooltip
-              title={t('This setting does not apply to background agents.')}
+              title={t(
+                'This setting does not apply when using an external coding agent.'
+              )}
               size="xs"
             />
           </Flex>
@@ -114,8 +118,10 @@ export default function SeerProjectTableRow({
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
-            disabled={!canWrite || !isAutoFixEnabled}
-            checked={isCreatePrEnabled}
+            disabled={
+              organization.enableSeerCoding === false || !canWrite || !isAutoFixEnabled
+            }
+            checked={organization.enableSeerCoding !== false && isCreatePrEnabled}
             onChange={e => {
               const automatedRunStoppingPoint = e.target.checked
                 ? 'open_pr'
@@ -155,8 +161,17 @@ export default function SeerProjectTableRow({
       <SimpleTable.RowCell justify="end">
         {isFetchingSettings ? (
           <Placeholder height="20px" width="36px" />
+        ) : autofixSettings.reposCount === 0 ? (
+          <Tooltip
+            title={t('Seer works best on projects with at least one connected repo.')}
+          >
+            <Flex align="center" gap="sm">
+              <IconWarning variant="warning" />
+              <Text tabular>{0}</Text>
+            </Flex>
+          </Tooltip>
         ) : (
-          <Text tabular>{autofixSettings.reposCount || 0}</Text>
+          <Text tabular>{autofixSettings.reposCount}</Text>
         )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>

@@ -6,8 +6,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from sentry.seer.models import SeerRepoDefinition
-
 # =============================================================================
 # Code Review Models (ported from Seer)
 # =============================================================================
@@ -44,6 +42,7 @@ class SeerCodeReviewRequestType(StrEnum):
 
 class SeerCodeReviewConfig(BaseModel):
     features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
+    github_rate_limit_sensitive: bool = False
     trigger: SeerCodeReviewTrigger
     trigger_comment_id: int | None = None
     trigger_comment_type: Literal["issue_comment"] | None = None
@@ -117,17 +116,6 @@ class SeerCodeReviewRepoForPrClosed(SeerCodeReviewRepoDefinition):
 # =============================================================================
 
 
-class SeerCodeReviewBaseRequest(BaseModel):
-    repo: SeerRepoDefinition
-    pr_id: int
-    more_readable_repos: list[SeerRepoDefinition] = Field(default_factory=list)
-
-
-class SeerCodeReviewRequest(SeerCodeReviewBaseRequest):
-    bug_prediction_specific_information: BugPredictionSpecificInformation
-    config: SeerCodeReviewConfig | None = None
-
-
 class SeerCodeReviewRequestForPrReview(BaseModel):
     """Request model for PR review with optional organization_id and integration_id."""
 
@@ -136,6 +124,7 @@ class SeerCodeReviewRequestForPrReview(BaseModel):
     more_readable_repos: list[SeerCodeReviewRepoForPrReview] = Field(default_factory=list)
     bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
+    experiment_enabled: bool = False
 
 
 class SeerCodeReviewRequestForPrClosed(BaseModel):
@@ -146,12 +135,6 @@ class SeerCodeReviewRequestForPrClosed(BaseModel):
     more_readable_repos: list[SeerCodeReviewRepoForPrClosed] = Field(default_factory=list)
     bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
-
-
-class SeerCodeReviewTaskRequest(BaseModel):
-    data: SeerCodeReviewRequest
-    external_owner_id: str
-    request_type: SeerCodeReviewRequestType
 
 
 class SeerCodeReviewTaskRequestForPrReview(BaseModel):

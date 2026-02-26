@@ -3,9 +3,11 @@ import {useQueries} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {GroupSubstatus} from 'sentry/types/group';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   useApiQuery,
@@ -13,7 +15,6 @@ import {
   type UseQueryResult,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {ClusterSummary} from './topIssuesDrawer';
 
@@ -139,7 +140,9 @@ export function useClusterStatsMap(clusters: ClusterSummary[]) {
 
     return queryChunks.map(
       (groupIdsChunk): ApiQueryKey => [
-        `/organizations/${organization.slug}/issues/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             group: groupIdsChunk,
@@ -216,7 +219,9 @@ export function useClusterStats(groupIds: number[]): ClusterStats {
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           group: groupIds,

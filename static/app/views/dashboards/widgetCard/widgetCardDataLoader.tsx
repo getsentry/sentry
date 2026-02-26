@@ -7,6 +7,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
+import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
@@ -51,6 +52,7 @@ type Props = {
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
+  widgetInterval?: string;
 };
 
 export function WidgetCardDataLoader({
@@ -62,7 +64,12 @@ export function WidgetCardDataLoader({
   onDataFetched,
   onWidgetSplitDecision,
   onDataFetchStart,
+  widgetInterval,
 }: Props) {
+  if (widgetFetchesOwnData(widget.displayType)) {
+    return children({loading: false});
+  }
+
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
@@ -72,6 +79,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
+        widgetInterval={widgetInterval}
       >
         {({
           tableResults,
@@ -103,6 +111,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
+        widgetInterval={widgetInterval}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
@@ -122,6 +131,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
+        widgetInterval={widgetInterval}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </SpansWidgetQueries>
@@ -137,6 +147,7 @@ export function WidgetCardDataLoader({
         onDataFetchStart={onDataFetchStart}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        widgetInterval={widgetInterval}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>
@@ -149,6 +160,7 @@ export function WidgetCardDataLoader({
         widget={widget}
         selection={selection}
         dashboardFilters={dashboardFilters}
+        widgetInterval={widgetInterval}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </MobileAppSizeWidgetQueries>
@@ -164,6 +176,7 @@ export function WidgetCardDataLoader({
       onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
       onWidgetSplitDecision={onWidgetSplitDecision}
+      widgetInterval={widgetInterval}
     >
       {({
         tableResults,

@@ -77,7 +77,9 @@ export default function OrganizationDataForwarding() {
                         });
                       }}
                       disabled={!hasAccess || !hasAvailability || !hasFeature}
-                      title={getCreateTooltip({hasAvailability, hasAccess, hasFeature})}
+                      tooltipProps={{
+                        title: getCreateTooltip({hasAvailability, hasAccess, hasFeature}),
+                      }}
                     >
                       {t('Setup a new Forwarder')}
                     </LinkButton>
@@ -101,7 +103,7 @@ export default function OrganizationDataForwarding() {
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
               <Heading as="h1">{t('Data Forwarding')}</Heading>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </Flex>
             <Text variant="muted">
               {tct(

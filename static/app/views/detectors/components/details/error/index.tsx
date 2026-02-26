@@ -1,7 +1,8 @@
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -70,6 +71,7 @@ function ResolveSection({project}: {project: Project}) {
 export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsProps) {
   const organization = useOrganization();
   const canEdit = useCanEditDetectorWorkflowConnections({projectId: project.id});
+  const {selection} = usePageFilters();
 
   return (
     <DetailLayout>
@@ -87,7 +89,10 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
             message={t('This monitor is disabled and not creating issues.')}
           />
           <DatePageFilter />
-          <DetectorDetailsOngoingIssues detector={detector} />
+          <DetectorDetailsOngoingIssues
+            detector={detector}
+            dateTimeSelection={selection.datetime}
+          />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

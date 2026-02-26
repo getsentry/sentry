@@ -21,9 +21,6 @@ export default function getConfiguration({
   const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const hasRevampedDataForwarding = organization?.features?.includes(
-    'data-forwarding-revamp-access'
-  );
   return [
     {
       id: 'settings-project',
@@ -61,11 +58,6 @@ export default function getConfiguration({
           description: t('Manage ownership rules for a project'),
         },
         {
-          path: `${pathPrefix}/data-forwarding/`,
-          title: t('Data Forwarding'),
-          show: () => !hasRevampedDataForwarding,
-        },
-        {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
           show: () => !organization?.hideAiFeatures,
@@ -78,7 +70,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
-          show: () => !!organization?.features?.includes('sentry-toolbar-ui'),
           badge: () => 'beta',
         },
       ],

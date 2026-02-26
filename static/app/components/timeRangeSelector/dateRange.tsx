@@ -20,7 +20,6 @@ import {
   isValidTime,
   setDateToTime,
 } from 'sentry/utils/dates';
-import {domId} from 'sentry/utils/domId';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -98,7 +97,8 @@ class BaseDateRange extends Component<Props, State> {
     hasEndErrors: false,
   };
 
-  private readonly utcInputId = domId('utc-picker-');
+  private readonly utcInputId =
+    'utc-picker-' + Math.random().toString(36).substring(2, 12);
 
   handleSelectDateRange = (range: Range) => {
     const {onChange} = this.props;

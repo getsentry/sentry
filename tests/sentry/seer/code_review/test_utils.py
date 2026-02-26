@@ -19,12 +19,13 @@ from sentry.seer.code_review.utils import (
     _get_trigger_metadata_for_issue_comment,
     _get_trigger_metadata_for_pull_request,
     convert_enum_keys_to_strings,
-    extract_github_info,
+    get_tags,
     is_org_enabled_for_code_review_experiments,
     transform_webhook_to_codegen_request,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
 from sentry.utils import json
 
@@ -414,16 +415,126 @@ class TestTransformWebhookToCodegenRequest:
         # This would fail if trigger_at is a datetime object instead of string
         json.dumps(result)  # Should not raise TypeError
 
+    @with_feature("organizations:code-review-experiments-enabled")
+    def test_pr_closed_does_not_include_experiment_enabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
 
-class TestExtractGithubInfo:
+        event_payload = {
+            "pull_request": {"number": 42},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "closed",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        assert result is not None
+        assert "experiment_enabled" not in result["data"]
+
+    @with_feature("organizations:code-review-experiments-enabled")
+    def test_issue_comment_includes_experiment_enabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "issue": {"number": 42},
+            "comment": {
+                "id": 12345,
+                "user": {"login": "commenter", "id": 99999},
+            },
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.ISSUE_COMMENT,
+            "created",
+            event_payload,
+            organization,
+            repo,
+            "def456sha",
+        )
+
+        assert result is not None
+        assert result["data"]["experiment_enabled"] is True
+
+    @with_feature("organizations:code-review-experiments-enabled")
+    def test_pr_review_includes_experiment_enabled_when_feature_enabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "pull_request": {"number": 42},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        assert result is not None
+        assert result["data"]["experiment_enabled"] is True
+
+    def test_pr_review_includes_experiment_enabled_false_when_feature_disabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "pull_request": {"number": 42},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        assert result is not None
+        assert result["data"]["experiment_enabled"] is False
+
+
+class TestExtractGithubInfo(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project,
+            name="test-owner/test-repo",
+            provider="integrations:github",
+        )
+        self.repo.integration_id = 99999
+        self.repo.save()
+
     def test_extract_from_pull_request_event(self) -> None:
         event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        result = extract_github_info(event, github_event="pull_request")
+        result = get_tags(
+            event,
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "baxterthehacker"
-        assert result["github_repo_name"] == "public-repo"
-        assert result["github_repo_full_name"] == "baxterthehacker/public-repo"
-        assert result["github_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
+        assert result["scm_owner"] == "baxterthehacker"
+        assert result["scm_repo_name"] == "public-repo"
+        assert result["scm_repo_full_name"] == "baxterthehacker/public-repo"
+        assert result["scm_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
         assert result["github_event"] == "pull_request"
         assert result["github_event_action"] == "opened"
         assert result["github_actor_login"] == "baxterthehacker"
@@ -431,12 +542,18 @@ class TestExtractGithubInfo:
 
     def test_extract_from_check_run_event(self) -> None:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        result = extract_github_info(event, github_event="check_run")
+        result = get_tags(
+            event,
+            github_event="check_run",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "getsentry"
-        assert result["github_repo_name"] == "sentry"
-        assert result["github_repo_full_name"] == "getsentry/sentry"
-        assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/4"
+        assert result["scm_owner"] == "getsentry"
+        assert result["scm_repo_name"] == "sentry"
+        assert result["scm_repo_full_name"] == "getsentry/sentry"
+        assert result["scm_event_url"] == "https://github.com/getsentry/sentry/runs/4"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "rerequested"
         assert result["github_actor_login"] == "test-user"
@@ -444,12 +561,18 @@ class TestExtractGithubInfo:
 
     def test_extract_from_check_run_completed_event(self) -> None:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
-        result = extract_github_info(event, github_event="check_run")
+        result = get_tags(
+            event,
+            github_event="check_run",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "getsentry"
-        assert result["github_repo_name"] == "sentry"
-        assert result["github_repo_full_name"] == "getsentry/sentry"
-        assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
+        assert result["scm_owner"] == "getsentry"
+        assert result["scm_repo_name"] == "sentry"
+        assert result["scm_repo_full_name"] == "getsentry/sentry"
+        assert result["scm_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "completed"
         assert result["github_actor_login"] == "test-user"
@@ -478,13 +601,19 @@ class TestExtractGithubInfo:
                 "id": 98765,
             },
         }
-        result = extract_github_info(event, github_event="issue_comment")
+        result = get_tags(
+            event,
+            github_event="issue_comment",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "comment-owner"
-        assert result["github_repo_name"] == "comment-repo"
-        assert result["github_repo_full_name"] == "comment-owner/comment-repo"
+        assert result["scm_owner"] == "comment-owner"
+        assert result["scm_repo_name"] == "comment-repo"
+        assert result["scm_repo_full_name"] == "comment-owner/comment-repo"
         assert (
-            result["github_event_url"]
+            result["scm_event_url"]
             == "https://github.com/comment-owner/comment-repo/pull/42#issuecomment-123456"
         )
         assert result["github_event"] == "issue_comment"
@@ -498,9 +627,15 @@ class TestExtractGithubInfo:
             "pull_request": {"html_url": "https://github.com/owner/repo/pull/1"},
             "comment": {"html_url": "https://github.com/owner/repo/pull/1#issuecomment-999"},
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="issue_comment",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
         assert result["github_event_action"] == "created"
 
     def test_check_run_url_takes_precedence_over_pr_url(self) -> None:
@@ -509,9 +644,15 @@ class TestExtractGithubInfo:
             "pull_request": {"html_url": "https://github.com/owner/repo/pull/1"},
             "check_run": {"html_url": "https://github.com/owner/repo/runs/123"},
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="check_run",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/runs/123"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/runs/123"
         assert result["github_event_action"] == "completed"
 
     def test_issue_pr_fallback_for_event_url(self) -> None:
@@ -519,9 +660,15 @@ class TestExtractGithubInfo:
             "action": "opened",
             "issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/5"}},
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/pull/5"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/pull/5"
         assert result["github_event_action"] == "opened"
 
     def test_issue_pr_does_not_override_existing_event_url(self) -> None:
@@ -530,32 +677,55 @@ class TestExtractGithubInfo:
             "check_run": {"html_url": "https://github.com/owner/repo/runs/999"},
             "issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/1"}},
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="check_run",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/runs/999"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/runs/999"
         assert result["github_event_action"] == "rerequested"
 
-    def test_empty_event_returns_all_none(self) -> None:
-        result = extract_github_info({})
+    def test_empty_event_returns_no_none_values(self) -> None:
+        result = get_tags(
+            {},
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] is None
-        assert result["github_repo_name"] is None
-        assert result["github_repo_full_name"] is None
-        assert result["github_event_url"] is None
-        assert result["github_event"] is None
-        assert result["github_event_action"] is None
-        assert result["github_actor_login"] is None
-        assert result["github_actor_id"] is None
+        # Event-derived keys are absent when event is empty
+        assert "scm_owner" not in result
+        assert "scm_repo_name" not in result
+        assert "scm_repo_full_name" not in result
+        assert "scm_event_url" not in result
+        assert "github_event_action" not in result
+        assert "github_actor_login" not in result
+        assert "github_actor_id" not in result
+        # Param-derived keys are present
+        assert result["github_event"] == "pull_request"
+        assert "sentry_organization_id" in result
+        assert "sentry_organization_slug" in result
+        assert "sentry_integration_id" in result
 
-    def test_missing_repository_owner_returns_none(self) -> None:
+    def test_missing_repository_owner_omits_owner_keys(self) -> None:
         event = {"repository": {"name": "repo-without-owner"}}
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] is None
-        assert result["github_repo_name"] == "repo-without-owner"
-        assert result["github_repo_full_name"] is None
+        assert "scm_owner" not in result
+        assert result["scm_repo_name"] == "repo-without-owner"
+        assert "scm_repo_full_name" not in result
 
-    def test_missing_html_urls_returns_none(self) -> None:
+    def test_missing_html_urls_omits_event_url(self) -> None:
         event = {
             "repository": {
                 "name": "test-repo",
@@ -565,11 +735,17 @@ class TestExtractGithubInfo:
             "check_run": {"id": 123},
             "comment": {"id": 456},
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "test-owner"
-        assert result["github_repo_name"] == "test-repo"
-        assert result["github_event_url"] is None
+        assert result["scm_owner"] == "test-owner"
+        assert result["scm_repo_name"] == "test-repo"
+        assert "scm_event_url" not in result
 
     def test_issue_without_pull_request_link_returns_comment_url(self) -> None:
         event = {
@@ -577,9 +753,15 @@ class TestExtractGithubInfo:
             "issue": {"number": 42},
             "comment": {"html_url": "https://github.com/owner/repo/issues/42#comment"},
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="issue_comment",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/issues/42#comment"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/issues/42#comment"
         assert result["github_event_action"] == "created"
 
     def test_repository_with_full_name(self) -> None:
@@ -590,11 +772,17 @@ class TestExtractGithubInfo:
                 "owner": {"login": "my-org"},
             }
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "my-org"
-        assert result["github_repo_name"] == "my-repo"
-        assert result["github_repo_full_name"] == "my-org/my-repo"
+        assert result["scm_owner"] == "my-org"
+        assert result["scm_repo_name"] == "my-repo"
+        assert result["scm_repo_full_name"] == "my-org/my-repo"
 
     def test_repository_without_full_name(self) -> None:
         event = {
@@ -603,11 +791,17 @@ class TestExtractGithubInfo:
                 "owner": {"login": "solo-owner"},
             }
         }
-        result = extract_github_info(event)
+        result = get_tags(
+            event,
+            github_event="pull_request",
+            organization_id=self.organization.id,
+            organization_slug=self.organization.slug,
+            integration_id=self.repo.integration_id,
+        )
 
-        assert result["github_owner"] == "solo-owner"
-        assert result["github_repo_name"] == "solo-repo"
-        assert result["github_repo_full_name"] is None
+        assert result["scm_owner"] == "solo-owner"
+        assert result["scm_repo_name"] == "solo-repo"
+        assert "scm_repo_full_name" not in result
 
 
 class TestConvertEnumKeysToStrings:
@@ -690,7 +884,6 @@ class TestConvertEnumKeysToStrings:
 
 
 class CodeReviewExperimentAssignmentTest(TestCase):
-
     def test_enabled(self) -> None:
         org = self.create_organization(slug="test-org")
         with self.feature("organizations:code-review-experiments-enabled"):

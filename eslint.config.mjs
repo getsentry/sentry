@@ -169,6 +169,10 @@ const restrictedImportPaths = [
     message:
       'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
   },
+  {
+    name: '@tanstack/react-form',
+    message: 'Use @sentry/scraps/form instead',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -454,7 +458,55 @@ export default typescript.config([
     rules: {
       '@sentry/scraps/no-core-import': 'error',
       '@sentry/scraps/no-token-import': 'error',
-      '@sentry/scraps/use-semantic-token': 'off',
+      '@sentry/scraps/use-semantic-token': [
+        'error',
+        {enabledCategories: ['background', 'border', 'content']},
+      ],
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'error',
+        {
+          slots: [
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuFooter'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.CTAButton',
+                    'MenuComponents.CTALinkButton',
+                    'MenuComponents.ApplyButton',
+                    'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
   },
   {

@@ -29,7 +29,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -872,6 +872,8 @@ function EAPSearchQueryBuilderWithContext({
     useTraceItemAttributes('number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemAttributes('string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,
@@ -879,10 +881,12 @@ function EAPSearchQueryBuilderWithContext({
     onSearch,
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
     itemType: traceItemType,
     projects: [parseInt(project.id, 10)],
     numberSecondaryAliases,
     stringSecondaryAliases,
+    booleanSecondaryAliases,
   };
 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;

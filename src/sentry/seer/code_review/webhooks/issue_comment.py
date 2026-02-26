@@ -50,8 +50,8 @@ def handle_issue_comment_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
-    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -64,7 +64,7 @@ def handle_issue_comment_event(
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
-        logger.info(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        logger.info(Log.UNSUPPORTED_ACTION.value)
         return
 
     comment = event.get("comment", {})
@@ -77,21 +77,21 @@ def handle_issue_comment_event(
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.NOT_PR_COMMENT
         )
-        logger.info(Log.NOT_PR_COMMENT.value, extra=extra)
+        logger.info(Log.NOT_PR_COMMENT.value)
         return
 
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.NOT_REVIEW_COMMAND
         )
-        logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
+        logger.info(Log.NOT_REVIEW_COMMAND.value)
         return
 
     if comment_id:
         # We shouldn't ever need to delete :eyes: from the PR description unless Seer fails to do so.
         # But if we're already deleting :tada: we might as well delete :eyes: if we come across it.
         reactions_to_delete = [GitHubReaction.HOORAY, GitHubReaction.EYES]
-        if is_github_rate_limit_sensitive(organization):
+        if is_github_rate_limit_sensitive(organization.slug):
             reactions_to_delete = []
 
         delete_existing_reactions_and_add_reaction(
@@ -104,7 +104,6 @@ def handle_issue_comment_event(
             comment_id=str(comment_id),
             reactions_to_delete=reactions_to_delete,
             reaction_to_add=GitHubReaction.EYES,
-            extra=extra,
         )
 
     target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
@@ -118,4 +117,5 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        tags=tags,
     )

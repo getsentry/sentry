@@ -1,3 +1,4 @@
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -52,7 +53,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.TIMESTAMP,
   SpanFields.TRANSACTION,
   SpanFields.TRACE,
-  SpanFields.IS_TRANSACTION, // boolean field but we can expose it as a string
+  SpanFields.IS_TRANSACTION, // boolean field but keep for non-boolean queries
   SpanFields.NORMALIZED_DESCRIPTION,
   SpanFields.RELEASE, // temporary as orgs with >1k keys still want releases
   SpanFields.PROJECT_ID,
@@ -67,6 +68,11 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
+
+export const SENTRY_SPAN_BOOLEAN_TAGS: string[] = [
+  // duplicating until we've fully rolled out boolean attributes
+  SpanFields.IS_TRANSACTION,
+];
 
 export const SENTRY_LOG_STRING_TAGS: string[] = [
   OurLogKnownFieldKey.TRACE_ID,
@@ -92,6 +98,8 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [];
+
+export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = [];
 
 export const HIDDEN_PREPROD_ATTRIBUTES = [
   'min_install_size',
@@ -119,4 +127,11 @@ export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
 
 export const SENTRY_TRACEMETRIC_NUMBER_TAGS: string[] = [];
 
+export const SENTRY_LOG_BOOLEAN_TAGS: string[] = [];
+
+export const SENTRY_TRACEMETRIC_BOOLEAN_TAGS: string[] = [];
+
 export const MAX_CROSS_EVENT_QUERIES = 2;
+// We want a maximum of 7 days for cross events to avoid overwhelming the backend.
+export const MAX_PERIOD_FOR_CROSS_EVENTS = '7d';
+export const MAX_DAYS_FOR_CROSS_EVENTS = statsPeriodToDays(MAX_PERIOD_FOR_CROSS_EVENTS);

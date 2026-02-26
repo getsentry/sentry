@@ -288,7 +288,7 @@ export function AutofixSummary({
                           size="xs"
                           text={card.copyText}
                           priority="transparent"
-                          title={card.copyTitle}
+                          tooltipProps={{title: card.copyTitle}}
                           onClick={e => {
                             e.stopPropagation();
                           }}
@@ -369,6 +369,7 @@ const InsightGrid = styled('div')`
     top: ${space(4)};
     bottom: ${space(2)};
     width: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }

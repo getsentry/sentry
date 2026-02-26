@@ -1,6 +1,7 @@
 import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -11,7 +12,6 @@ import type {UseApiQueryOptions, UseApiQueryResult} from 'sentry/utils/queryClie
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 export const BREAKDOWN_SLICES = 40;
 
@@ -59,8 +59,10 @@ interface TraceResults {
   meta: any;
 }
 
-interface UseTracesOptions
-  extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
+interface UseTracesOptions extends Pick<
+  UseApiQueryOptions<TraceResults>,
+  'refetchInterval'
+> {
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
   datetime?: PageFilters['datetime'];

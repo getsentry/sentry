@@ -1,11 +1,6 @@
-import calendar
 from unittest.mock import MagicMock, patch
 
-import orjson
-from django.utils import timezone
-
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.endpoints.group_autofix_setup_check import (
@@ -158,79 +153,13 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             },
             "githubWriteIntegration": None,
             "setupAcknowledgement": {
-                "orgHasAcknowledged": False,
-                "userHasAcknowledged": False,
+                "orgHasAcknowledged": True,
+                "userHasAcknowledged": True,
             },
             "billing": {
                 "hasAutofixQuota": True,
             },
             "seerReposLinked": True,
-        }
-
-    @patch(
-        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
-        return_value=True,
-    )
-    def test_current_user_acknowledged_setup(self, mock_has_repos: MagicMock) -> None:
-        """
-        Test when the current user has acknowledged the setup.
-        """
-        self._set_seat_based_tier_cache(True)
-
-        group = self.create_group()
-        feature = "seer_autofix_setup_acknowledged"
-        PromptsActivity.objects.create(
-            user_id=self.user.id,
-            feature=feature,
-            organization_id=self.organization.id,
-            project_id=0,
-            data=orjson.dumps(
-                {"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}
-            ).decode("utf-8"),
-        )
-
-        self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["setupAcknowledgement"] == {
-            "orgHasAcknowledged": True,
-            "userHasAcknowledged": True,
-        }
-
-    @patch(
-        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
-        return_value=True,
-    )
-    def test_org_acknowledged_not_user(self, mock_has_repos: MagicMock) -> None:
-        """
-        Test when another user in the org has acknowledged, but not the requesting user.
-        """
-        self._set_seat_based_tier_cache(True)
-
-        group = self.create_group()
-        other_user = self.create_user()
-        self.create_member(user=other_user, organization=self.organization, role="member")
-        feature = "seer_autofix_setup_acknowledged"
-        PromptsActivity.objects.create(
-            user_id=other_user.id,
-            feature=feature,
-            organization_id=self.organization.id,
-            project_id=0,
-            data=orjson.dumps(
-                {"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}
-            ).decode("utf-8"),
-        )
-
-        self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["setupAcknowledgement"] == {
-            "orgHasAcknowledged": True,
-            "userHasAcknowledged": False,
         }
 
     @patch(
@@ -282,8 +211,8 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 ],
             },
             "setupAcknowledgement": {
-                "orgHasAcknowledged": False,
-                "userHasAcknowledged": False,
+                "orgHasAcknowledged": True,
+                "userHasAcknowledged": True,
             },
             "billing": {
                 "hasAutofixQuota": True,
@@ -488,7 +417,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "repos": [],
         }
 
-    @patch("sentry.seer.endpoints.group_autofix_setup_check.requests.post")
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.make_signed_seer_api_request")
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
         return_value=[
@@ -500,9 +429,10 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_non_github_provider(self, mock_get_repos: MagicMock, mock_post: MagicMock) -> None:
+    def test_non_github_provider(self, mock_get_repos: MagicMock, mock_request: MagicMock) -> None:
         # Mock the response from the Seer service
-        mock_response = mock_post.return_value
+        mock_response = mock_request.return_value
+        mock_response.status = 200
         mock_response.json.return_value = {"has_access": True}
 
         group = self.create_group()
@@ -520,13 +450,12 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         ]
 
         # Verify the API call was made correctly
-        mock_post.assert_called_once()
-        call_kwargs = mock_post.call_args.kwargs
-        assert "data" in call_kwargs
-        assert "headers" in call_kwargs
-        assert "content-type" in call_kwargs["headers"]
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args[0]
+        assert call_args[1] == "/v1/automation/codebase/repo/check-access"
+        assert len(call_args[2]) > 0  # body is non-empty bytes
 
-    @patch("sentry.seer.endpoints.group_autofix_setup_check.requests.post")
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.make_signed_seer_api_request")
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
         return_value=[
@@ -538,9 +467,10 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_repo_without_access(self, mock_get_repos: MagicMock, mock_post: MagicMock) -> None:
+    def test_repo_without_access(self, mock_get_repos: MagicMock, mock_request: MagicMock) -> None:
         # Mock the response to indicate no access
-        mock_response = mock_post.return_value
+        mock_response = mock_request.return_value
+        mock_response.status = 200
         mock_response.json.return_value = {"has_access": False}
 
         group = self.create_group()

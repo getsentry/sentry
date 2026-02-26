@@ -1,9 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc} from '@sentry/scraps/layout';
+import {rc, type Responsive} from '@sentry/scraps/layout';
 
-import type {FontSize} from 'sentry/utils/theme';
+import type {HeadingSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 import {type BaseTextProps, type ExclusiveTextEllipsisProps} from './text';
@@ -17,6 +17,11 @@ export type HeadingProps = BaseHeadingProps & {
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   ref?: React.Ref<HTMLHeadingElement | null> | undefined;
+  /**
+   * The size of the text.
+   * @default md
+   */
+  size?: Responsive<HeadingSize>;
   /**
    * Deprecated in favor of the Text component API.
    * If you have an is an unsupported use-case, please contact design engineering for support.
@@ -82,7 +87,7 @@ export const Heading = styled(
   padding: 0;
 `;
 
-function getDefaultHeadingFontSize(as: HeadingProps['as']): FontSize {
+function getDefaultHeadingFontSize(as: HeadingProps['as']): HeadingSize {
   switch (as) {
     case 'h1':
       return '2xl';

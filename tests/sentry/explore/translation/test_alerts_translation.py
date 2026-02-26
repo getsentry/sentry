@@ -50,7 +50,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org)
 
     def test_snapshot_snuba_query_with_performance_metrics(self) -> None:
-
         snuba_query = create_snuba_query(
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.PerformanceMetrics,

@@ -3,9 +3,6 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,13 +12,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import PreferenceResponse, SeerProjectPreference
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
+from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -123,12 +122,8 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
             repo_data["organization_id"] = project.organization.id
 
-            repo_exists = Repository.objects.filter(
-                Q(provider=provider) | Q(provider=f"integrations:{provider}"),
-                organization_id=project.organization.id,
-                external_id=external_id,
-                name=f"{owner}/{name}",
-                status=ObjectStatus.ACTIVE,
+            repo_exists = filter_repo_by_provider(
+                project.organization.id, provider, external_id, owner, name
             ).exists()
 
             if not repo_exists:
@@ -147,16 +142,14 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         return Response(status=204)
 
@@ -168,16 +161,14 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         result = response.json()
 

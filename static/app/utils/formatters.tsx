@@ -32,13 +32,13 @@ export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
 
 const numberFormatSteps = [
-  [1_000_000_000, 'b'],
-  [1_000_000, 'm'],
-  [1_000, 'k'],
+  [1_000_000_000, 'B'],
+  [1_000_000, 'M'],
+  [1_000, 'K'],
 ] as const;
 
 /**
- * Formats a number with an abbreviation e.g. 1000 -> 1k.
+ * Formats a number with an abbreviation e.g. 1000 -> 1K.
  *
  * @param number the number to format
  * @param maximumSignificantDigits the number of significant digits to include
@@ -91,7 +91,7 @@ export function formatAbbreviatedNumber(
 /**
  * Formats a number with an abbreviation and rounds to 2
  * decimal digits without forcing trailing zeros.
- * e. g. 1000 -> 1k, 1234 -> 1.23k
+ * e. g. 1000 -> 1K, 1234 -> 1.23K
  */
 export function formatAbbreviatedNumberWithDynamicPrecision(
   value: number | string

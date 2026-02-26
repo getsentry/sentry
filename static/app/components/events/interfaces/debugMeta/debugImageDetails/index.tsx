@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -337,10 +338,12 @@ export function DebugImageDetails({
           </LinkButton>
           {debugFilesSettingsLink && (
             <LinkButton
-              title={t(
-                'Search for this debug file in all images for the %s project',
-                projSlug
-              )}
+              tooltipProps={{
+                title: t(
+                  'Search for this debug file in all images for the %s project',
+                  projSlug
+                ),
+              }}
               to={debugFilesSettingsLink}
             >
               {t('Open in Settings')}
@@ -372,7 +375,9 @@ const FileName = styled('span')`
   font-family: ${p => p.theme.font.family.mono};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   white-space: nowrap;
 `;
 

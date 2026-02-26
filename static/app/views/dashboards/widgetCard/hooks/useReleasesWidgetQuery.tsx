@@ -16,7 +16,9 @@ import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 import {getReleasesRequestData} from './utils/releases';
 
@@ -30,6 +32,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const api = useApi();
@@ -57,13 +60,13 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
         const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
         const includeTotals = query.columns.length > 0 ? 1 : 0;
-        const interval = getWidgetInterval(
-          filteredWidget,
-          {start, end, period},
-          '5m',
-          // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-          isCustomReleaseSorting ? 'medium' : undefined
-        );
+        // When custom release sorting is active the metrics API cannot handle
+        // high-fidelity series data for many rows, so always use medium fidelity
+        // regardless of any user-selected interval.
+        const interval = isCustomReleaseSorting
+          ? getWidgetInterval(filteredWidget, {start, end, period}, '5m', 'medium')
+          : (widgetInterval ??
+            getWidgetInterval(filteredWidget, {start, end, period}, '5m'));
 
         const requestData = getReleasesRequestData(
           1, // includeSeries
@@ -91,7 +94,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       // Return empty array to prevent queries from running
       return {queryKeys: [], validationError: errorMessage};
     }
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     (useSessionAPI: boolean) =>
@@ -130,7 +133,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
       queryFn: createQueryFn(useSessionAPI),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -140,6 +143,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -322,7 +326,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
       queryFn: createQueryFn(useSessionAPI),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -332,6 +336,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });

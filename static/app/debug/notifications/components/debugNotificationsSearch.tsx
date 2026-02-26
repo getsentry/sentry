@@ -15,7 +15,7 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -58,8 +58,10 @@ interface SearchItem {
   source: string;
 }
 
-interface SearchComboBoxProps<T extends SearchItem>
-  extends Omit<AriaComboBoxProps<T>, 'children'> {
+interface SearchComboBoxProps<T extends SearchItem> extends Omit<
+  AriaComboBoxProps<T>,
+  'children'
+> {
   children: CollectionChildren<T>;
   defaultItems: T[];
   inputRef: React.RefObject<HTMLInputElement | null>;

@@ -40,7 +40,7 @@ def should_sync_assignee_inbound(
     organization: Organization | RpcOrganization, provider: str
 ) -> bool:
     if provider == "github":
-        return features.has("organizations:integrations-github-project-management", organization)
+        return True
     elif provider == "github_enterprise":
         return features.has(
             "organizations:integrations-github_enterprise-project-management", organization
@@ -92,7 +92,6 @@ def _handle_assign(
     integration: RpcIntegration | Integration,
     users: list[RpcUser],
 ) -> list[Group]:
-
     groups_assigned: list[Group] = []
 
     users_by_id = {user.id: user for user in users}
@@ -139,7 +138,6 @@ def sync_group_assignee_inbound_by_external_actor(
     external_issue_key: str | None,
     assign: bool = True,
 ) -> QuerySet[Group] | list[Group]:
-
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     with ProjectManagementEvent(

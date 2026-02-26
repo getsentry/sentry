@@ -146,12 +146,16 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
@@ -242,6 +246,7 @@ export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultCategoryField: 'transaction',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
@@ -260,10 +265,12 @@ export const SpansConfig: DatasetConfig<
     DisplayType.AREA,
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
     DisplayType.DETAILS,
+    DisplayType.SERVER_TREE,
   ],
   useSeriesQuery: useSpansSeriesQuery,
   useTableQuery: useSpansTableQuery,
@@ -436,7 +443,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
     filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    filters.addFilterValue('http.method', data[SpanFields.REQUEST_METHOD]);
+    const isEap = organization.features.includes('performance-transaction-summary-eap');
+    filters.addFilterValue(
+      isEap ? 'request.method' : 'http.method',
+      data[SpanFields.REQUEST_METHOD]
+    );
   }
 
   const target = transactionSummaryRouteWithQuery({

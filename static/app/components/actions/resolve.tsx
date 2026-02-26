@@ -289,7 +289,7 @@ function ResolveActions({
         itemsHidden={shouldDisplayCta}
         items={items}
         trigger={(triggerProps, isOpen) => (
-          <DropdownTrigger
+          <Button
             {...triggerProps}
             size={size}
             priority={priority}
@@ -326,7 +326,7 @@ function ResolveActions({
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
-        projectSlug={projectSlug}
+        projectSlug={projectSlug!}
       />
     ));
   }
@@ -349,12 +349,15 @@ function ResolveActions({
 
   return (
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-      <ButtonBar merged gap="0">
-        <ResolveButton
+      <ButtonBar>
+        <Button
           priority={priority}
           size={size}
-          title={t("We'll nag you with a notification if another event is seen.")}
-          tooltipProps={{delay: 1000, disabled}}
+          tooltipProps={{
+            delay: 1000,
+            disabled,
+            title: t("We'll nag you with a notification if another event is seen."),
+          }}
           onClick={() =>
             openConfirmModal({
               bypass: !shouldConfirm,
@@ -371,7 +374,7 @@ function ResolveActions({
           disabled={disabled}
         >
           {t('Resolve')}
-        </ResolveButton>
+        </Button>
         {!disableResolveInRelease && renderDropdownMenu()}
       </ButtonBar>
     </Tooltip>
@@ -379,16 +382,6 @@ function ResolveActions({
 }
 
 export default ResolveActions;
-
-const ResolveButton = styled(Button)`
-  box-shadow: none;
-`;
-
-const DropdownTrigger = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  border-left: none;
-`;
 
 /**
  * Used to hide the list items when prompting to set up releases

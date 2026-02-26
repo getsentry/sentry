@@ -24,7 +24,6 @@ import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,7 +35,10 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  doesDisplayTypeSupportThresholds,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -53,6 +55,7 @@ import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -61,6 +64,7 @@ import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useI
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type WidgetBuilderSlideoutProps = {
@@ -73,7 +77,7 @@ type WidgetBuilderSlideoutProps = {
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
-  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
 };
 
@@ -132,6 +136,7 @@ function WidgetBuilderSlideout({
       ? t('Edit Widget')
       : t('Custom Widget Builder');
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
   const showQueryFilterBuilder = !(
@@ -141,14 +146,21 @@ function WidgetBuilderSlideout({
   // Group By is used by time-series chart widgets to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
+  // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   const showGroupBySelector = isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
+
+  // X-Axis selector is only for Categorical Bar widgets, other chart widgets
+  // always use time as the X-axis
+  const showXAxisSelector = isCategoricalBarWidget;
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
-  // Sort By step is shown for:
-  // - Time-series widgets with group by fields (Top N queries)
-  // - Table widgets (to control row ordering)
+  // Sort By controls the ordering of results.
+  // - Table: Always show to control row ordering
+  // - Line, Area, Bar (Time Series): Show to control which top N groups are displayed
+  // - Bar (Categorical): Show to control category ordering (like tables)
   const showSortByStep =
+    isCategoricalBarWidget ||
     (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
     state.displayType === DisplayType.TABLE;
 
@@ -399,6 +411,13 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
+
+                    {showXAxisSelector && (
+                      <Section>
+                        <WidgetBuilderXAxisSelector />
+                      </Section>
+                    )}
+
                     {showVisualizeSection && (
                       <Section>
                         <Visualize error={error} setError={setError} />
@@ -413,7 +432,7 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {state.displayType === DisplayType.BIG_NUMBER && (
+                    {doesDisplayTypeSupportThresholds(state.displayType) && (
                       <Section>
                         <ThresholdsSection
                           dataType={thresholdMetaState?.dataType}

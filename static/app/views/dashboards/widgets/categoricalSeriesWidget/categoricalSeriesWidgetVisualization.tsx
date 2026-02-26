@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import dompurify from 'dompurify';
@@ -22,17 +22,24 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
-import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {trimCommonAffixes} from 'sentry/utils/string/trimCommonAffixes';
+import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
+import {formatXAxisValue} from './formatters/formatXAxisValue';
 import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
-export interface CategoricalSeriesWidgetVisualizationProps {
+const TOTAL_CHARACTER_THRESHOLD = 40;
+const TRUNCATED_LABEL_MAX_LENGTH = 15;
+const ROTATION_CATEGORY_THRESHOLD = 10;
+const ROTATED_LABEL_ANGLE = 45;
+
+interface CategoricalSeriesWidgetVisualizationProps {
   /**
    * An array of `CategoricalPlottable` objects to render on the chart.
    */
@@ -74,7 +81,6 @@ export function CategoricalSeriesWidgetVisualization(
   }
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
   const theme = useTheme();
   const renderToString = useRenderToString();
 
@@ -88,8 +94,11 @@ export function CategoricalSeriesWidgetVisualization(
       ? units[0]
       : FALLBACK_UNIT_FOR_FIELD_TYPE[dataType as AggregationOutputType];
 
-  // Extract all unique categories from all plottables
-  const allCategories = uniq(props.plottables.flatMap(plottable => plottable.categories));
+  // Extract all unique categories from all plottables and convert to display strings
+  // for ECharts compatibility (xAxis.data expects string[])
+  const allCategories = uniq(
+    props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+  );
 
   // Configure the Y axis (value axis)
   const yAxis: YAXisComponentOption = {
@@ -111,6 +120,47 @@ export function CategoricalSeriesWidgetVisualization(
     },
   };
 
+  // Rotation is applied regardless of total length of all labels. It might be
+  // possible to improve this by coordinating rotation and truncation together.
+  const shouldRotate = allCategories.length > ROTATION_CATEGORY_THRESHOLD;
+
+  const formattedLabels = useMemo(() => {
+    const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
+    const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
+
+    // NOTE: This is somewhat naive. We decide if we should truncate based on
+    // how long the current categories are. In the next iteration, we should
+    // also take into account the width of the widget, but measuring performance
+    // negatively affects rendering performance.
+    // If the categories are long, attempt "smart" truncation
+    const trimmed = shouldTrimAffixes
+      ? trimCommonAffixes(allCategories, {separator: '/'})
+      : allCategories;
+
+    // If the categories are still too long after "smart" truncation, apply naive truncation
+    const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
+
+    let truncateLength: number | boolean;
+    if (typeof props.truncateCategoryLabels === 'number') {
+      truncateLength = props.truncateCategoryLabels;
+    } else if (trimmedTotal > TOTAL_CHARACTER_THRESHOLD) {
+      truncateLength = TRUNCATED_LABEL_MAX_LENGTH;
+    } else {
+      truncateLength = props.truncateCategoryLabels ?? true;
+    }
+
+    // NOTE: In the end, ECharts still applies its own legend overlap logic, and
+    // might choose to hide some labels. By doing our own truncation and
+    // rotation we're just trying to help it make the right decisions.
+    return new Map(
+      allCategories.map((cat, i) => [
+        cat,
+        truncationFormatter(trimmed[i]!, truncateLength, false),
+      ])
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allCategories.join(','), props.truncateCategoryLabels]);
+
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
     type: 'category',
@@ -122,8 +172,10 @@ export function CategoricalSeriesWidgetVisualization(
       showMaxLabel: null,
       // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
       showMinLabel: null,
-      formatter: (value: string) =>
-        truncationFormatter(value, props.truncateCategoryLabels ?? true, false),
+      rotate: shouldRotate ? ROTATED_LABEL_ANGLE : 0,
+      ...(shouldRotate ? {interval: 0} : {}),
+      hideOverlap: true,
+      formatter: (value: string) => formattedLabels.get(value) ?? value,
     },
     axisLine: {
       lineStyle: {
@@ -201,9 +253,14 @@ export function CategoricalSeriesWidgetVisualization(
     // Get the category name from the first param
     const categoryName = seriesParams[0]?.name ?? '';
 
-    // Build tooltip content using React components
+    // Filter null values from tooltip
     const filteredParams = seriesParams.filter(param => {
-      const value = extractValue(param.value);
+      // The incoming data is created by categorical plottables like
+      // `Bars`, which use a standard [category, value] format. Anything
+      // else is an error.
+
+      // @ts-expect-error ECharts types param.value as unknown, but we know it's [category, value] from our Bars plottable
+      const value = extractValue(param.value[1]);
       return value !== null;
     });
 
@@ -218,13 +275,20 @@ export function CategoricalSeriesWidgetVisualization(
               false
             );
 
-            const numericValue = extractValue(param.value);
+            let formattedValue: string = ECHARTS_MISSING_DATA_VALUE;
 
-            // Format the value based on the chart's data type
-            const formattedValue =
-              numericValue === null
-                ? ''
-                : formatTooltipValue(numericValue, dataType, dataUnit ?? undefined);
+            // Technically we've already filtered out invalid values in `filteredParams` above, but TypeScript isn't easy to appease.
+            if (Array.isArray(param.value)) {
+              const [_categoryName, value] = param.value;
+
+              if (defined(value) && typeof value === 'number') {
+                formattedValue = formatTooltipValue(
+                  value,
+                  dataType,
+                  dataUnit ?? undefined
+                );
+              }
+            }
 
             // param.marker is an HTML string with a colored circle, sanitize it
             const marker = typeof param.marker === 'string' ? param.marker : '';
@@ -302,13 +366,6 @@ export function CategoricalSeriesWidgetVisualization(
     [props.plottables]
   );
 
-  const handleChartReady = useCallback(
-    (instance: echarts.ECharts) => {
-      registerWithWidgetSyncContext(instance);
-    },
-    [registerWithWidgetSyncContext]
-  );
-
   // Legend visibility
   const showLegendProp = props.showLegend ?? 'auto';
   const showLegend =
@@ -349,7 +406,6 @@ export function CategoricalSeriesWidgetVisualization(
       }}
       xAxis={xAxis}
       yAxis={yAxis}
-      onChartReady={handleChartReady}
       onHighlight={handleHighlight}
       onDownplay={handleDownplay}
       onClick={handleClick}

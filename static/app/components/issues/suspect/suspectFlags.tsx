@@ -15,8 +15,10 @@ import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-interface Props
-  extends Pick<ReturnType<typeof useSuspectFlags>, 'isPending' | 'susFlags'> {}
+interface Props extends Pick<
+  ReturnType<typeof useSuspectFlags>,
+  'isPending' | 'susFlags'
+> {}
 
 const loadingLabels = [
   t('Crunching the numbers...'),

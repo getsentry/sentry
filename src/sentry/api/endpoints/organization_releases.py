@@ -446,7 +446,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             paginator_cls = ReleasesMergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
+                data_load_func=lambda offset,
+                limit: release_health.backend.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
@@ -618,7 +619,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
+                data_load_func=lambda offset,
+                limit: release_health.backend.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,

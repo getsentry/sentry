@@ -1032,42 +1032,46 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=4),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id,
-            tool_name="weather_api",
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=3),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id,
-            tool_name="calculator",
-        )
-
-        # Duplicate tool call should not create duplicate entry
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=2),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id,
-            tool_name="weather_api",
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id,
-            tool_name="search",
-        )
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=4),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                tool_name="weather_api",
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=3),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                tool_name="calculator",
+                store=False,
+            ),
+            # Duplicate tool call should not create duplicate entry
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=2),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                tool_name="weather_api",
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=1),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                tool_name="search",
+                store=False,
+            ),
+        ]
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],
@@ -1091,49 +1095,53 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Successful tool call
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=4),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            status="ok",
-            trace_id=trace_id,
-            tool_name="weather_api",
-        )
-
-        # Failed tool call
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=3),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            status="internal_error",
-            trace_id=trace_id,
-            tool_name="database_query",
-        )
-
-        # Another failed tool call
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=2),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            status="resource_exhausted",
-            trace_id=trace_id,
-            tool_name="external_api",
-        )
-
-        # Successful tool call
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            status="ok",
-            trace_id=trace_id,
-            tool_name="calculator",
-        )
+        spans = [
+            # Successful tool call
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=4),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                status="ok",
+                trace_id=trace_id,
+                tool_name="weather_api",
+                store=False,
+            ),
+            # Failed tool call
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=3),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                status="internal_error",
+                trace_id=trace_id,
+                tool_name="database_query",
+                store=False,
+            ),
+            # Another failed tool call
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=2),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                status="resource_exhausted",
+                trace_id=trace_id,
+                tool_name="external_api",
+                store=False,
+            ),
+            # Successful tool call
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=1),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                status="ok",
+                trace_id=trace_id,
+                tool_name="calculator",
+                store=False,
+            ),
+        ]
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],

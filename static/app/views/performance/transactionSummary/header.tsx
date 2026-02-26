@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -33,7 +33,6 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -169,8 +168,6 @@ function TransactionHeader({
     </TabList>
   );
 
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
-
   if (isInDomainView) {
     const headerProps = {
       headerTitle: (
@@ -202,7 +199,6 @@ function TransactionHeader({
           project: projectId,
         },
         view,
-        shouldUseOTelFriendlyUI,
       }),
       headerActions: (
         <Fragment>
@@ -278,7 +274,7 @@ function TransactionHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature &&
@@ -314,7 +310,7 @@ function TransactionHeader({
             />
           </GuideAnchor>
           <FeedbackButton />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
       <TabList
         outerWrapStyles={{

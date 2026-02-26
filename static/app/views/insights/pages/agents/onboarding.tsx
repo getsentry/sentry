@@ -11,6 +11,14 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -21,6 +29,7 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -41,7 +50,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
@@ -133,18 +141,25 @@ function WaitingIndicator({project}: {project: Project}) {
 function StepRenderer({
   project,
   step,
+  stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
+  stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      trailingItems={trailingItems}
     >
-      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -167,46 +182,50 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Monitor AI Agents')}</Title>
-                <SubTitle>
-                  {t(
-                    'Get comprehensive visibility into your AI agents and LLM applications to understand performance, costs, and user interactions.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
-                    {t('Track token usage, costs, and latency across all your LLM calls')}
-                  </li>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Monitor AI Agents')}</Title>
+                  <SubTitle>
                     {t(
-                      'Monitor agent conversations, tool usage, and decision-making processes'
+                      'Get comprehensive visibility into your AI agents and LLM applications to understand performance, costs, and user interactions.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug failed requests and optimize prompt performance with detailed traces'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Track token usage, costs, and latency across all your LLM calls'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Monitor agent conversations, tool usage, and decision-making processes'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug failed requests and optimize prompt performance with detailed traces'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -218,6 +237,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -323,7 +343,7 @@ export function Onboarding() {
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
-  ];
+  ].filter(s => !s.collapsible);
 
   return (
     <OnboardingPanel project={project}>
@@ -344,17 +364,24 @@ export function Onboarding() {
           });
         }}
       >
-        {steps
-          // Only show non-collapsible steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
-            <StepRenderer
-              key={step.title || step.type}
-              project={project}
-              step={step}
-              isLastStep={index === steps.length - 1}
-            />
-          ))}
+        {steps.map((step, index) => (
+          <StepRenderer
+            key={step.title || step.type}
+            project={project}
+            step={step}
+            stepIndex={index}
+            isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 && copyEnabled ? (
+                <OnboardingCopyMarkdownButton
+                  borderless
+                  steps={steps}
+                  source="agent_monitoring_onboarding"
+                />
+              ) : undefined
+            }
+          />
+        ))}
       </GuidedSteps>
     </OnboardingPanel>
   );
@@ -538,6 +565,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

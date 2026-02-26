@@ -32,6 +32,7 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
 import {
+  useTraceItemBooleanAttributes,
   useTraceItemNumberAttributes,
   useTraceItemStringAttributes,
 } from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
@@ -240,6 +241,10 @@ export function Visualize() {
     traceItemType,
     projectIds: [Number(projectId)],
   });
+  const {attributes: booleanSpanTags} = useTraceItemBooleanAttributes({
+    traceItemType,
+    projectIds: [Number(projectId)],
+  });
   const formContext = useContext(FormContext);
 
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
@@ -284,6 +289,12 @@ export function Visualize() {
               prettifyTagKey(tag.name),
             ])
           : []),
+        ...(isTypeAllowed(FieldValueType.BOOLEAN)
+          ? Object.values(booleanSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
       ];
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
@@ -296,7 +307,14 @@ export function Visualize() {
       )
       .map((option): [string, string] => [option.value.meta.name, option.value.meta.name])
       .sort((a, b) => a[1].localeCompare(b[1]));
-  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions, aggregate]);
+  }, [
+    aggregate,
+    aggregateOptions,
+    booleanSpanTags,
+    dataset,
+    numericSpanTags,
+    stringSpanTags,
+  ]);
 
   const fieldOptionsDropdown = useMemo(() => {
     return fieldOptions.map(([value, label]) => ({
@@ -378,7 +396,7 @@ export function Visualize() {
             </Tooltip>
           </div>
           <StyledAggregateSelect
-            searchable
+            search
             trigger={triggerProps => (
               <OverlayTrigger.Button {...triggerProps}>
                 {aggregate || t('Select aggregate')}
@@ -397,7 +415,7 @@ export function Visualize() {
             <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {lockedOption
@@ -418,7 +436,7 @@ export function Visualize() {
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {parameters[index] || param.defaultValue || t('Select value')}

@@ -4,8 +4,8 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
@@ -155,8 +155,10 @@ export interface TourRenderProps {
   className?: string;
 }
 
-export interface TourElementProps<T extends TourEnumType>
-  extends Omit<HTMLAttributes<HTMLElement>, 'id' | 'children' | 'title'> {
+export interface TourElementProps<T extends TourEnumType> extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'id' | 'children' | 'title'
+> {
   /**
    * Render function that receives tour props to apply to the element.
    * This allows the tour to work with any element without wrapping it in a div.
@@ -224,8 +226,10 @@ export function TourElement<T extends TourEnumType>({
   );
 }
 
-interface TourElementContentProps<T extends TourEnumType>
-  extends Omit<TourElementProps<T>, 'tourContext'> {
+interface TourElementContentProps<T extends TourEnumType> extends Omit<
+  TourElementProps<T>,
+  'tourContext'
+> {
   tourContextValue: TourContextType<T>;
 }
 
@@ -271,7 +275,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
@@ -297,7 +301,7 @@ export function TourElementContent<T extends TourEnumType>({
             {t('Finish tour')}
           </TourAction>
         )}
-      </ButtonBar>
+      </Grid>
     ),
     [
       hasPreviousStep,
@@ -342,8 +346,10 @@ export function TourElementContent<T extends TourEnumType>({
   );
 }
 
-interface TourGuideProps
-  extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id' | 'children'> {
+interface TourGuideProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'title' | 'id' | 'children'
+> {
   /**
    * Render function that receives tour props to apply to the element.
    */

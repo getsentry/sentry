@@ -4,8 +4,6 @@ from enum import StrEnum
 from typing import Any, TypedDict, TypeVar, cast
 
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
@@ -70,6 +68,13 @@ class Condition(StrEnum):
     # Migration Only
     EVERY_EVENT = "every_event"
 
+
+TRIGGER_CONDITIONS = [
+    Condition.FIRST_SEEN_EVENT,
+    Condition.ISSUE_RESOLVED_TRIGGER,
+    Condition.REAPPEARED_EVENT,
+    Condition.REGRESSION_EVENT,
+]
 
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
@@ -268,8 +273,3 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
         validate(data_condition.comparison, schema)
     except ValidationError as e:
         raise ValidationError(f"Invalid config: {e.message}")
-
-
-@receiver(pre_save, sender=DataCondition)
-def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
-    enforce_data_condition_json_schema(instance)

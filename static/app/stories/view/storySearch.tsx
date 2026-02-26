@@ -23,7 +23,7 @@ import {
   SECTION_ORDER,
   useStoryHierarchy,
 } from 'sentry/stories/view/storyTree';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -165,8 +165,10 @@ function SearchInput(
 
 type SearchComboBoxItem<T extends StoryTreeNode> = T | SearchSection;
 
-interface SearchComboBoxProps
-  extends Omit<AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>, 'children'> {
+interface SearchComboBoxProps extends Omit<
+  AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>,
+  'children'
+> {
   children: CollectionChildren<SearchComboBoxItem<StoryTreeNode>>;
   defaultItems: Array<SearchComboBoxItem<StoryTreeNode>>;
   inputRef: React.RefObject<HTMLInputElement | null>;
