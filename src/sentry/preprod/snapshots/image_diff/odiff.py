@@ -9,7 +9,6 @@ from pathlib import Path
 
 from sentry.preprod.snapshots.image_diff.types import OdiffResponse
 from sentry.utils import json
-from sentry.utils.json import JSONDecodeError
 
 ODIFF_PLATFORM_SUFFIXES = {
     ("arm64", "Darwin"): "macos-arm64",
@@ -54,17 +53,10 @@ class OdiffServer:
     def __exit__(self, *args: object) -> None:
         self.close()
 
-    def _read_json(self, line: bytes) -> dict[str, object]:
+    def _read_response(self, line: bytes) -> OdiffResponse:
         if not line:
             raise RuntimeError("odiff server exited unexpectedly")
-        try:
-            return json.loads(line)
-        except JSONDecodeError as e:
-            raise RuntimeError(f"odiff server returned invalid JSON: {line!r}") from e
-
-    def _read_response(self, line: bytes) -> OdiffResponse:
-        data = self._read_json(line)
-        return OdiffResponse.parse_obj(data)
+        return OdiffResponse.parse_obj(json.loads(line))
 
     def _kill_process(self) -> None:
         proc = self._process
@@ -91,7 +83,7 @@ class OdiffServer:
             if not readable:
                 raise RuntimeError("odiff server timed out waiting for ready message")
             line = proc.stdout.readline()  # type: ignore[union-attr]
-            ready = self._read_json(line)
+            ready = json.loads(line)
             if not ready.get("ready"):
                 raise RuntimeError("odiff server failed to start")
         except BaseException:
