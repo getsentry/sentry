@@ -130,13 +130,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
     ),
   },
-  'project-toolbar.sentry:toolbar_allowed_origins': {
-    name: 'sentry:toolbar_allowed_origins',
-    formId: 'project-toolbar',
-    route: '/settings/:orgId/projects/:projectId/toolbar/',
-    label: t('Allowed Origins'),
-    hintText: '',
-  },
   'project-user-feedback.feedback:branding': {
     name: 'feedback:branding',
     formId: 'project-user-feedback',
@@ -157,6 +150,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Spam Detection'),
+  },
+  'project-toolbar.sentry:toolbar_allowed_origins': {
+    name: 'sentry:toolbar_allowed_origins',
+    formId: 'project-toolbar',
+    route: '/settings/:orgId/projects/:projectId/toolbar/',
+    label: t('Allowed Origins'),
+    hintText: '',
   },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
