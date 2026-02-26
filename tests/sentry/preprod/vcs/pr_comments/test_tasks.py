@@ -102,7 +102,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
         artifact = self._create_artifact()
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
         mock_client.create_comment.assert_called_once_with(
@@ -155,7 +155,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(second.id)
 
         mock_client.update_comment.assert_called_once_with(
@@ -169,7 +169,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
     def test_skips_when_no_commit_comparison(self):
         artifact = self._create_artifact(with_commit_comparison=False)
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
         # No error — just returns early
@@ -177,19 +177,19 @@ class CreatePreprodPrCommentTaskTest(TestCase):
     def test_skips_when_no_pr_number(self):
         artifact = self._create_artifact(pr_number=None)
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
     def test_skips_when_not_github(self):
         artifact = self._create_artifact(provider="gitlab")
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
     def test_skips_when_not_installable(self):
         artifact = self._create_artifact(installable_app_file_id=None, build_number=None)
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
     def test_skips_when_feature_flag_disabled(self):
@@ -206,7 +206,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         mock_get_client.return_value = None
         artifact = self._create_artifact()
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
@@ -219,7 +219,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
         artifact = self._create_artifact()
 
-        with self.feature("organizations:preprod-build-distribution"):
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
             with pytest.raises(ApiError):
                 create_preprod_pr_comment_task(artifact.id)
 
