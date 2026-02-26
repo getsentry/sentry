@@ -51,9 +51,8 @@ export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
   theme: Theme;
-  row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
-  indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
-    new TraceRowWidthMeasurer();
+  row_measurer = new TraceRowWidthMeasurer<BaseNode>();
+  indicator_label_measurer = new TraceRowWidthMeasurer<TraceTree['indicators'][0]>();
   text_measurer: TraceTextMeasurer;
 
   resize_observer: ResizeObserver | null = null;

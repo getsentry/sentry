@@ -57,7 +57,7 @@ type RelocationArtifact = {
 };
 
 // A map of each expected relocation artifact to a user-legible description of what it is.
-const expectedRelocationArtifacts: Map<string, string> = new Map(
+const expectedRelocationArtifacts = new Map<string, string>(
   Object.entries({
     'conf/cloudbuild.yaml':
       'The execution script that Google CloudBuild will run when validating this relocation.',
