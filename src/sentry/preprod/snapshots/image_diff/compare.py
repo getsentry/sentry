@@ -14,12 +14,15 @@ from .types import DiffResult
 
 logger = logging.getLogger(__name__)
 
+# odiff pixel color distance threshold — ignores antialiasing artifacts
 BASE_THRESHOLD = 0.15
+# Lower threshold to catch subtle color shifts missed by base
 COLOR_SENSITIVE_THRESHOLD = 0.0225
+# Default scale factor for the public API threshold parameter
 DEFAULT_THRESHOLD_SCALE = 25
 
 
-def _to_pil_image(source: bytes | Image.Image) -> Image.Image:
+def _as_image(source: bytes | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
         img = Image.open(io.BytesIO(source))
         img.load()
@@ -77,20 +80,10 @@ def _compare_pairs(
     base_thresh: float,
     color_thresh: float,
 ) -> list[DiffResult | None]:
-    results: list[DiffResult | None] = []
-
-    for idx, (before, after) in enumerate(pairs):
-        try:
-            results.append(
-                _compare_single_pair(
-                    idx, before, after, server, tmpdir_path, base_thresh, color_thresh
-                )
-            )
-        except Exception:
-            logger.exception("Failed to compare image pair %d", idx)
-            results.append(None)
-
-    return results
+    return [
+        _compare_single_pair(idx, before, after, server, tmpdir_path, base_thresh, color_thresh)
+        for idx, (before, after) in enumerate(pairs)
+    ]
 
 
 def _compare_single_pair(
@@ -101,13 +94,13 @@ def _compare_single_pair(
     tmpdir_path: Path,
     base_thresh: float,
     color_thresh: float,
-) -> DiffResult:
+) -> DiffResult | None:
     before_img: Image.Image | None = None
     after_img: Image.Image | None = None
     diff_mask: Image.Image | None = None
     try:
-        before_img = _to_pil_image(before)
-        after_img = _to_pil_image(after)
+        before_img = _as_image(before)
+        after_img = _as_image(after)
         bw, bh = before_img.size
         aw, ah = after_img.size
         max_w = max(bw, aw)
@@ -182,6 +175,9 @@ def _compare_single_pair(
             after_width=aw,
             after_height=ah,
         )
+    except Exception:
+        logger.exception("Failed to compare image pair %d", idx)
+        return None
     finally:
         if before_img is not None and isinstance(before, bytes):
             before_img.close()

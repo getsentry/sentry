@@ -2,22 +2,9 @@ from __future__ import annotations
 
 import io
 
-import pytest
 from PIL import Image, ImageDraw
 
 from sentry.preprod.snapshots.image_diff.compare import compare_images, compare_images_batch
-from sentry.preprod.snapshots.image_diff.odiff import _find_odiff_binary
-
-
-def _odiff_available() -> bool:
-    try:
-        _find_odiff_binary()
-        return True
-    except FileNotFoundError:
-        return False
-
-
-pytestmark = pytest.mark.skipif(not _odiff_available(), reason="odiff binary not found")
 
 
 def _make_solid_image(width: int, height: int, color: tuple[int, int, int, int]) -> Image.Image:
