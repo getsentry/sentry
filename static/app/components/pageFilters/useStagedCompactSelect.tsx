@@ -239,11 +239,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     [shiftToggleRange, stagedValue, state, onToggle]
   );
 
-  const handleKeyDown = useCallback((e: any) => {
-    if (e.key === 'Escape') {
-      dispatch({type: 'remove staged'});
-    }
-  }, []);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<unknown>) => {
+      if (e.key === 'Escape') {
+        commit(stagedValue);
+      }
+    },
+
+    [commit, stagedValue]
+  );
 
   const sectionToggleWasPressed = useRef(false);
   const handleSectionToggle = useCallback(
