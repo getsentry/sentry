@@ -233,6 +233,13 @@ class SeerOperator[CachePayloadT]:
                         run_id=run_id,
                     )
             except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
                 lifecycle.record_failure(failure_reason=e)
                 return
 
