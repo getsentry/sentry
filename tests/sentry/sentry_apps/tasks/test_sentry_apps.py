@@ -1430,7 +1430,7 @@ class TestInstallationWebhook(TestCase):
     def test_gracefully_handles_missing_user(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
 
-        installation_webhook(self.install.id, 999)
+        installation_webhook(self.install.id, 2147483647)
         assert len(responses.calls) == 0
 
         # SLO assertions
@@ -1677,7 +1677,7 @@ class TestWorkflowNotification(TestCase):
 
 class TestWebhookRequests(TestCase):
     def setUp(self) -> None:
-        self.organization = self.create_organization(owner=self.user, id=1)
+        self.organization = self.create_organization(owner=self.user)
         self.sentry_app = self.create_sentry_app(
             name="Test App",
             organization=self.organization,

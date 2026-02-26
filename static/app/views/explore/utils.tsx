@@ -486,7 +486,7 @@ export function findSuggestedColumns(
   const oldFilters = oldSearch.filters;
   const newFilters = newSearch.filters;
 
-  const keys: Set<string> = new Set();
+  const keys = new Set<string>();
 
   for (const [key, value] of Object.entries(newFilters)) {
     if (key === 'has' || key === '!has') {

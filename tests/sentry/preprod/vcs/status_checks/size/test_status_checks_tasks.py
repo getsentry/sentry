@@ -1524,5 +1524,5 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(skipped.id)
 
             kwargs = mock_provider.create_status_check.call_args.kwargs
-            assert str(valid.id) in kwargs["target_url"]
-            assert str(skipped.id) not in kwargs["target_url"]
+            assert f"/size/{valid.id}" in kwargs["target_url"]
+            assert f"/size/{skipped.id}" not in kwargs["target_url"]
