@@ -14,10 +14,7 @@ from .types import DiffResult
 
 logger = logging.getLogger(__name__)
 
-# Nonzero threshold is intentional: threshold=0 means exact pixel matching
-# where font antialiasing, subpixel smoothing, and minor rendering engine
-# variance all flag as changes, making diffs unusably noisy for visual regression.
-DIFF_THRESHOLD = 0.02
+DIFF_THRESHOLD = 0
 
 
 def _as_image(source: bytes | Image.Image) -> Image.Image:
