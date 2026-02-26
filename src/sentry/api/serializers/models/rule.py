@@ -20,6 +20,7 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -30,6 +31,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
@@ -422,16 +424,23 @@ class WorkflowEngineRuleSerializer(Serializer):
         all_conditions: list[dict[str, Any]] = []
         all_filters: list[dict[str, Any]] = []
 
-        def update_condition_name(condition: dict[str, Any]) -> dict[str, Any]:
-            condition["name"] = generate_rule_label(project=project, rule=None, data=condition)
-            return condition
+        def update_condition_name(
+            condition_data: dict[str, Any], condition_type: str
+        ) -> dict[str, Any]:
+            try:
+                handler = condition_handler_registry.get(condition_type)
+            except NoRegistrationExistsError:
+                raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+
+            condition_data["name"] = handler.render_label(condition_data)
+            return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
             for cond in conditions:
                 condition, filters = translate_to_rule_condition_filters(cond, is_filter=is_filter)
                 if condition:
-                    all_conditions.append(update_condition_name(condition))
-                all_filters.extend([update_condition_name(f) for f in filters])
+                    all_conditions.append(update_condition_name(condition, cond.type))
+                all_filters.extend([update_condition_name(f, cond.type) for f in filters])
 
         trigger_conditions = (
             list(workflow.when_condition_group.conditions.all())

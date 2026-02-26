@@ -97,7 +97,6 @@ def create_tagged_event_condition(
         "value": data_condition.comparison.get("value", ""),
         "key": data_condition.comparison["key"],
     }
-
     if is_filter:
         return {}, [payload]
 

@@ -373,6 +373,10 @@ class DataConditionHandler(Generic[T]):
         """
         raise NotImplementedError
 
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]):
+        return cls.label_template.format(**condition_data)
+
 
 class DataConditionType(TypedDict):
     id: int | None
