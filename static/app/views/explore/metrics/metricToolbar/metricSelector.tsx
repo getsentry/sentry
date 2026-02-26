@@ -16,6 +16,8 @@ import {
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
 
+export const NONE_UNIT = 'none';
+
 interface MetricSelectOption extends SelectOption<string> {
   metricName: string;
   metricType: TraceMetricTypeValue;
@@ -38,12 +40,16 @@ export function MetricSelector({
       label: `${traceMetric.name}`,
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
-      metricUnit: traceMetric.unit,
+      metricUnit: traceMetric.unit ?? '-',
       metricName: traceMetric.name,
       trailingItems: () => (
         <Fragment>
-          {traceMetric.unit && <Tag variant="muted">{traceMetric.unit}</Tag>}
           <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+          {traceMetric.unit && traceMetric.unit !== '-' && (
+            <Tag variant={traceMetric.unit === NONE_UNIT ? 'muted' : 'promotion'}>
+              {traceMetric.unit ?? NONE_UNIT}
+            </Tag>
+          )}
         </Fragment>
       ),
     }),
@@ -58,7 +64,7 @@ export function MetricSelector({
           makeMetricSelectValue({
             name: option[TraceMetricKnownFieldKey.METRIC_NAME],
             type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
-            unit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
+            unit: option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT,
           }) === makeMetricSelectValue(traceMetric)
       );
     return [
@@ -68,17 +74,21 @@ export function MetricSelector({
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
-          unit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
+          unit: option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT,
         }),
         metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
         metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
-        metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
+        metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT,
         trailingItems: () => (
           <Fragment>
-            {option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
-              <Tag variant="muted">{option[TraceMetricKnownFieldKey.METRIC_UNIT]}</Tag>
-            )}
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+            <Tag
+              variant={
+                option[TraceMetricKnownFieldKey.METRIC_UNIT] ? 'promotion' : 'muted'
+              }
+            >
+              {option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT}
+            </Tag>
           </Fragment>
         ),
       })) ?? []),

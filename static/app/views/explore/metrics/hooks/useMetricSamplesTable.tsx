@@ -23,6 +23,7 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
@@ -99,8 +100,15 @@ function useMetricsQueryKey({
     if (traceMetric) {
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
-      if (traceMetric.unit) {
-        newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, traceMetric.unit);
+      if (traceMetric.unit && traceMetric.unit !== '-') {
+        if (traceMetric.unit !== NONE_UNIT) {
+          newSearch.addFilterValue(
+            TraceMetricKnownFieldKey.METRIC_UNIT,
+            traceMetric.unit
+          );
+        } else if (traceMetric.unit === NONE_UNIT) {
+          newSearch.addFilterValue('!has', TraceMetricKnownFieldKey.METRIC_UNIT);
+        }
       }
     }
 
