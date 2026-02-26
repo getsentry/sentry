@@ -59,6 +59,15 @@ export const mobile: PlatformKey[] = [
   'cocoa-swift',
 ];
 
+export const android: PlatformKey[] = ['android', 'java-android'];
+
+export const apple: PlatformKey[] = [
+  'apple-ios',
+  'apple-macos',
+  'cocoa-objc',
+  'cocoa-swift',
+];
+
 // Mirrors `BACKEND` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const backend: PlatformKey[] = [

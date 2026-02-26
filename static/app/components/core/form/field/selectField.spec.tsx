@@ -39,7 +39,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="fruit">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -102,7 +102,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -132,7 +132,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="tags">
               {field => (
                 <field.Select
@@ -163,7 +163,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="tags">
               {field => (
                 // @ts-expect-error value should be string[] when multiple is true
@@ -189,7 +189,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 // @ts-expect-error value should be string when multiple is false
@@ -214,7 +214,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -242,7 +242,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -544,7 +544,7 @@ function MultiTestForm({label, defaultValue = [], disabled}: MultiTestFormProps)
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="tags">
         {field => (
           <field.Layout.Row label={label}>

@@ -68,7 +68,7 @@ class MaybeEmitIssuesTest(TestCase):
             name="test-detector",
             project=self.project,
             type=PreprodSizeAnalysisGroupType.slug,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=condition_group,
         )
 

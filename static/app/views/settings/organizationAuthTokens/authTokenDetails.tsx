@@ -137,8 +137,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
+    <form.AppForm form={form}>
         <form.FieldGroup title={t('Organization Token Details')}>
           <form.AppField name="name">
             {field => (
@@ -170,7 +169,6 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
           <Button onClick={handleGoBack}>{t('Cancel')}</Button>
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
-      </form.FormWrapper>
     </form.AppForm>
   );
 }

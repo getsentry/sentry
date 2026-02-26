@@ -31,7 +31,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="bio">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>

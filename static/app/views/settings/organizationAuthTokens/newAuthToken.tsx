@@ -94,8 +94,7 @@ function AuthTokenCreateForm({
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
+    <form.AppForm form={form}>
         <form.FieldGroup title={t('Create New Organization Token')}>
           <form.AppField name="name">
             {field => (
@@ -123,7 +122,6 @@ function AuthTokenCreateForm({
           <Button onClick={handleGoBack}>{t('Cancel')}</Button>
           <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
         </Flex>
-      </form.FormWrapper>
     </form.AppForm>
   );
 }
