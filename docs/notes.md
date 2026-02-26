@@ -27,7 +27,7 @@ Scattering imports inside every method of a class (like the `Browser` class in s
 
 ## pytest-rerunfailures crash recovery under xdist
 
-The experiment branch disabled `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM`, claiming the socket-based crash recovery protocol deadlocks during heavy xdist startup due to connection timeouts. However, reading the actual source code (v15.0), the server thread (`ServerStatusDB`) calls `self.sock.accept()` in an infinite loop with no timeout, and the socket is set to `setblocking(1)` with no timeout on `recv(1)`. There is no connection window that workers can miss. The deadlock explanation from the experiment docs doesn't match the code. Skip this change and only revisit if we actually hit freezes when enabling xdist.
+The experiment branch was correct. The `run_connection` threads get `TimeoutError: timed out` on `conn.recv(1)` — the timeout is set on the accepted connection socket, not the listening socket (which is why reading the `__init__` code alone was misleading). During heavy xdist startup, workers take too long to send data, the connection threads die, and crash recovery breaks. Setting `HAS_PYTEST_HANDLECRASHITEM = False` disables crash recovery mode. Normal `--reruns` still works (each worker retries locally).
 
 ## Why hash-based sharding beats algorithmic LPT
 

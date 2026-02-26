@@ -71,9 +71,15 @@ Region name RNG is seeded with `PYTEST_XDIST_TESTRUNUID` so all workers generate
 
 ### 2e. xdist CI workflow
 
-**New file:** `.github/workflows/backend-xdist.yml` — copy of `backend.yml` with minimal changes: triggers on `mchen/tiered-xdist-v2` branch, adds `PYTHONHASHSEED=0`, `XDIST_PER_WORKER_SNUBA=1`, `SENTRY_SKIP_SELENIUM_PLUGIN=1`, per-worker Snuba bootstrap step, and runs pytest with `-n 3 --dist=loadfile` instead of `make test-python-ci`.
+**New file:** `.github/workflows/backend-xdist.yml` — copy of `backend.yml` with minimal changes: triggers on `mchen/tiered-xdist-v2` branch, adds `PYTHONHASHSEED=0`, `XDIST_PER_WORKER_SNUBA=1`, `SENTRY_SKIP_SELENIUM_PLUGIN=1`, per-worker Snuba bootstrap step, and runs pytest with `-n 3 --dist=loadfile` instead of `make test-python-ci`. Per-worker Snuba bootstrap runs all 3 instances in parallel (`&` + `wait`) — sequential bootstrap takes ~55s per worker (~165s total), parallel brings it down to ~55s.
 
-### 2f. Snowflake test fix
+### 2f. Disable rerunfailures crash recovery
+
+**Modified:** `tests/conftest.py`
+
+Sets `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False`. The socket-based crash recovery threads get `TimeoutError` on `recv(1)` during heavy xdist startup. Normal `--reruns` still works.
+
+### 2g. Snowflake test fix
 
 **Modified:** `tests/sentry/utils/test_snowflake.py`
 
