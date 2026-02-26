@@ -186,7 +186,9 @@ class PreprodSizeAnalysisDetectorHandler(
 
         platform = metadata["platform"] if metadata else "unknown"
 
-        evidence_data: dict[str, Any] = {}
+        evidence_data: dict[str, Any] = {
+            "detector_id": self.detector.id,
+        }
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
             evidence_data["base_artifact_id"] = metadata["base_artifact_id"]
