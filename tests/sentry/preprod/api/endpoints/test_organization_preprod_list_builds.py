@@ -761,6 +761,66 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         app_ids = {b["app_info"]["app_id"] for b in builds}
         assert "com.example.app" in app_ids
 
+    def test_list_builds_filter_by_distribution_error_code_string(self) -> None:
+        self.artifact1.installable_app_error_code = (
+            PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+        )
+        self.artifact1.installable_app_error_message = "Distribution quota exceeded"
+        self.artifact1.save()
+
+        self.artifact2.installable_app_error_code = (
+            PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        )
+        self.artifact2.installable_app_error_message = "Distribution not requested"
+        self.artifact2.save()
+
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&distribution_error_code=no_quota",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["app_id"] == "com.example.app"
+        assert builds[0]["distribution_info"]["error_code"] == "no_quota"
+
+    def test_list_builds_filter_by_distribution_error_code_int(self) -> None:
+        self.artifact1.installable_app_error_code = (
+            PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        )
+        self.artifact1.installable_app_error_message = "Distribution not requested"
+        self.artifact1.save()
+
+        error_code_int = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&distribution_error_code={error_code_int}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["app_info"]["app_id"] == "com.example.app"
+
+    def test_list_builds_filter_by_distribution_error_code_no_matches(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&distribution_error_code=no_quota",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 0
+
+    def test_list_builds_filter_by_distribution_error_code_invalid(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&distribution_error_code=invalid_code",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 400
+
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_list_builds.get_size_retention_cutoff"
     )

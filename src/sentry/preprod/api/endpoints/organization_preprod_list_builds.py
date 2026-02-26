@@ -53,6 +53,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         :qparam string build_configuration: (optional) filter by build configuration name
         :qparam string platform: (optional) filter by platform (ios, android, macos)
         :qparam string release_version: (optional) filter by release version (formats: "app_id@version+build_number" or "app_id@version")
+        :qparam string distribution_error_code: (optional) filter by distribution error code (unknown, no_quota, skipped, processing_error)
         :qparam string query: (optional) general search across app name, app ID, build version, and commit SHA
         :qparam int per_page: (optional) number of results per page (default 25, max 100)
         :qparam string cursor: (optional) cursor for pagination
@@ -155,6 +156,10 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         build_configuration = params.get("build_configuration")
         if build_configuration:
             queryset = queryset.filter(build_configuration__name__exact=build_configuration)
+
+        distribution_error_code = params.get("distribution_error_code")
+        if distribution_error_code is not None:
+            queryset = queryset.filter(installable_app_error_code=distribution_error_code)
 
         platform = params.get("platform")
         if platform:
