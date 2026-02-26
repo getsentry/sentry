@@ -84,18 +84,18 @@ class ApiApplicationTest(TestCase):
             "http://example.com/path/path/%25252e%25252e/%25252e%25252e/new/path"
         )
 
-    def test_is_valid_redirect_uri_backslash_traversal(self) -> None:
-        r"""Backslash path separators (e.g. '..\') must not bypass validation."""
+    def test_is_valid_redirect_uri_legitimate_prefix_match_with_guard(self) -> None:
+        """Clean sub-paths must still prefix-match after the double-encoding guard."""
         app = ApiApplication.objects.create(
             owner=self.user,
-            redirect_uris="http://example.com/path/path/",
+            redirect_uris="http://example.com/callback/",
             version=0,
         )
 
-        assert not app.is_valid_redirect_uri("http://example.com/path/path/..\\..\\new/path")
-
-        # Encoded backslash: %5c = '\'
-        assert not app.is_valid_redirect_uri("http://example.com/path/path/..%5c..%5cnew/path")
+        assert app.is_valid_redirect_uri("http://example.com/callback/")
+        assert app.is_valid_redirect_uri("http://example.com/callback/extra")
+        assert app.is_valid_redirect_uri("http://example.com/callback/deep/nested/path")
+        assert not app.is_valid_redirect_uri("http://example.com/other")
 
     def test_is_valid_redirect_uri_encoded_slash_traversal(self) -> None:
         """Encoded forward slash (%2f) in traversal sequences must be resolved."""
@@ -119,7 +119,6 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri(
             "http://example.com/path/path/%252e%252e/%252e%252e/new/path"
         )
-        assert not app.is_valid_redirect_uri("http://example.com/path/path/..\\..\\new/path")
 
     def test_is_valid_redirect_uri_strict_version(self) -> None:
         # In strict policy version, require exact matching (no prefix, no trailing-slash equivalence).

@@ -163,7 +163,7 @@ class ApiApplication(Model):
 
     def normalize_url(self, value):
         parts = urlparse(value)
-        decoded_path = unquote(parts.path).replace("\\", "/")
+        decoded_path = unquote(parts.path)
         normalized_path = posixpath.normpath(decoded_path)
         if normalized_path == ".":
             normalized_path = "/"
