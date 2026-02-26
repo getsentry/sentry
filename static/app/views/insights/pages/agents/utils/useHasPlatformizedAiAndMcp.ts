@@ -9,5 +9,8 @@ export default function useHasPlatformizedAiAndMcp() {
     return true;
   }
 
-  return organization.features.includes('insights-ai-and-mcp-dashboard-migration');
+  return (
+    organization.features.includes('insights-ai-and-mcp-dashboard-migration') &&
+    organization.features.includes('performance-view')
+  );
 }
