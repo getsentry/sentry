@@ -71,13 +71,14 @@ export function TransactionSelector({
       options={options}
       emptyMessage={t('No results')}
       loading={isPending}
-      searchable
-      menuTitle={t('Page')}
-      onSearch={newValue => {
-        if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(newValue);
-        }
+      search={{
+        onChange: newValue => {
+          if (!wasSearchSpaceExhausted) {
+            debouncedSetSearch(newValue);
+          }
+        },
       }}
+      menuTitle={t('Page')}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Page')} />
       )}

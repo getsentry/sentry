@@ -55,7 +55,7 @@ function BreadcrumbDropdown({
 
   return (
     <CompactSelect
-      searchable
+      search
       options={options.map(item => ({...item, hideCheck: true}))}
       onChange={selected => {
         onCrumbSelect(selected.value);

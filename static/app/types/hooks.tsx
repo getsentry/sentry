@@ -3,8 +3,6 @@ import type {SelectKey} from '@sentry/scraps/compactSelect';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {FormPanelProps} from 'sentry/components/forms/formPanel';
-import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -165,11 +163,8 @@ export type PartnershipAgreementProps = {
 };
 
 export type MembershipSettingsProps = {
-  forms: JsonFormObject[];
-  jsonFormSettings: Omit<
-    FormPanelProps,
-    'highlighted' | 'fields' | 'additionalFieldProps'
-  >;
+  onSave: (previous: Organization, updated: Organization) => void;
+  organization: Organization;
 };
 export type GithubInstallationInstallButtonProps = {
   handleSubmit: (e: React.MouseEvent) => void;

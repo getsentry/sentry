@@ -72,7 +72,7 @@ function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
           trackAnalytics('breadcrumbs.menu.opened', {organization: null});
         }
       }}
-      onSearch={onSearch}
+      search={{onChange: onSearch}}
       options={projects.map(project => ({
         value: project.slug,
         leadingItems: <ProjectAvatar project={project} size={20} />,

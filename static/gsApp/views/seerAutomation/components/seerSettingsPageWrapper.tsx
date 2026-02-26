@@ -1,12 +1,10 @@
 import {useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -57,7 +55,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       <SettingsPageHeader
         title={t('Seer')}
         subtitle={tct(
-          'Choose how Seer automatically triages and diagnoses incoming issues before you even notice them. Seer currently includes [rca:Root Cause Analysis], an agent that can root-cause issues and create pull requests, and [code_review:AI Code Review], an agent that will review your pull requests to detect issues before they happen.',
+          'Choose how Seer automatically triages and diagnoses incoming issues before you even notice them. Seer currently includes [rca:Root Cause Analysis], an agent that can root-cause issues and create pull requests, and [code_review:AI Code Review], an agent that will review your pull requests to detect issues before they happen. [read_the_docs:Learn what Seer can do from our docs]',
           {
             rca: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis" />
@@ -65,28 +63,11 @@ export default function SeerSettingsPageWrapper({children}: Props) {
             code_review: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
             ),
+            read_the_docs: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+            ),
           }
         )}
-        action={
-          <Flex gap="lg">
-            <FeedbackButton
-              size="md"
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make Seer better for you?'),
-                tags: {
-                  ['feedback.source']: 'seer-settings-org',
-                  ['feedback.owner']: 'coding-workflows',
-                },
-              }}
-            />
-            <LinkButton
-              href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities"
-              external
-            >
-              {t('Read the docs')}
-            </LinkButton>
-          </Flex>
-        }
       />
 
       <Stack gap="lg">

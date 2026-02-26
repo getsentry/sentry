@@ -512,7 +512,7 @@ class MergeGroupsTest(TestCase):
 
         assert len(call_args) == 3
         # Have to convert to ids because first argument is a queryset
-        assert [group.id for group in call_args[0]] == group_ids
+        assert sorted(group.id for group in call_args[0]) == sorted(group_ids)
         assert call_args[1] == {proj1.id: proj1}
         assert call_args[2] == self.user
 
@@ -535,7 +535,7 @@ class MergeGroupsTest(TestCase):
 
         assert len(call_args) == 3
         # Have to convert to ids because first argument is a queryset
-        assert [group.id for group in call_args[0]] == group_ids
+        assert sorted(group.id for group in call_args[0]) == sorted(group_ids)
         assert call_args[1] == {project.id: project}
         assert call_args[2] == self.user
 
@@ -569,7 +569,10 @@ class MergeGroupsTest(TestCase):
                     platform="javascript",
                     metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
                 ).id,
-                self.create_group(platform="javascript").id,
+                self.create_group(
+                    platform="javascript",
+                    metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+                ).id,
             ]
             project = self.project
 

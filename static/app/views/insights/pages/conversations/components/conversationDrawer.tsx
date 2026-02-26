@@ -264,7 +264,7 @@ function ConversationView({
           value={activeTab}
           onChange={key => handleTabChange(key as ConversationTab)}
         >
-          <Container padding="xs lg">
+          <Container paddingTop="lg" borderBottom="primary">
             <TabList>
               <TabList.Item key="messages">{t('Messages')}</TabList.Item>
               <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
@@ -280,7 +280,7 @@ function ConversationView({
                 />
               </TabPanels.Item>
               <TabPanels.Item key="trace">
-                <Container padding="md lg">
+                <Container padding="md lg md lg">
                   <AISpanList
                     nodes={nodes}
                     selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
@@ -333,6 +333,7 @@ const StyledTabs = styled(Tabs)`
 
 const FullWidthTabPanels = styled(TabPanels)`
   width: 100%;
+  padding: 0;
 
   > [role='tabpanel'] {
     width: 100%;
