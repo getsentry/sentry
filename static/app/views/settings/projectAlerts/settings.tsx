@@ -57,7 +57,7 @@ function getProjectMutationOptions(organizationSlug: string, projectSlug: string
         method: 'PUT',
         data,
       }),
-    onSuccess: (updatedProject: Project) => {
+    onSuccess: (updatedProject) => {
       ProjectsStore.onUpdateSuccess(updatedProject);
     },
   };
