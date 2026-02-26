@@ -61,13 +61,17 @@ export function CopyLLMPromptButton() {
   );
 }
 
-export const LLM_ONBOARDING_INSTRUCTIONS = `
-# Instrument Sentry AI Agent Monitoring
-
-> IMPORTANT: IF SETUP STEPS WERE PROVIDED ABOVE THIS SECTION AND YOU HAVE NOT YET FOLLOWED THEM, FOLLOW THEM FIRST.
+/**
+ * Contextual note prepended when the instructions follow onboarding setup
+ * steps so the LLM knows to complete those first.
+ */
+export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> IMPORTANT: FOLLOW THE SETUP STEPS PROVIDED ABOVE THIS SECTION FIRST.
 > They contain the correct DSN and project-specific SDK configuration. DO NOT SKIP THEM.
 > Then use the guide below to add Sentry manual instrumentation for AI Agent Monitoring.
-> Complete the verification step LAST.
+> Complete the verification step LAST.`;
+
+export const LLM_ONBOARDING_INSTRUCTIONS = `
+# Instrument Sentry AI Agent Monitoring
 
 Follow this decision tree to instrument AI Agent Monitoring.
 

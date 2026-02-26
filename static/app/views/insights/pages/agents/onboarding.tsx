@@ -57,6 +57,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
   LLM_ONBOARDING_INSTRUCTIONS,
+  LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -385,7 +386,9 @@ export function Onboarding() {
                   steps={steps}
                   source="agent_monitoring_onboarding"
                   postamble={
-                    isManualIntegration ? LLM_ONBOARDING_INSTRUCTIONS : undefined
+                    isManualIntegration
+                      ? `${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`
+                      : undefined
                   }
                   onCopy={
                     isManualIntegration
