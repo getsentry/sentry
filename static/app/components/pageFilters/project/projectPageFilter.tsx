@@ -6,8 +6,9 @@ import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {
+  MultipleSelectProps,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
@@ -20,14 +21,7 @@ import {Text} from '@sentry/scraps/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import type {
-  HybridFilterProps,
-  HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
-import {
-  HybridFilter,
-  useStagedCompactSelect,
-} from 'sentry/components/pageFilters/hybridFilter';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
@@ -44,22 +38,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export interface ProjectPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<number>,
-    | 'search'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onReset'
-    | 'onToggle'
-    | 'menuBody'
-    | 'menuFooter'
-    | 'shouldCloseOnInteractOutside'
-    | 'sizeLimitMessage'
-    | 'stagedSelect'
-  >
+  Omit<MultipleSelectProps<number>, 'onChange'>
 > {
   /**
    * Called when the selection changes
@@ -103,9 +82,12 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
-  const hybridFilterRef = useRef<HybridFilterRef<number>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: number) => void) | undefined>(undefined);
 
   // Track optimistically bookmarked projects to prevent star from disappearing
   // during API call when user bookmarks and quickly moves focus
@@ -288,9 +270,7 @@ export function ProjectPageFilter({
         leadingItems: ({isSelected}) => (
           <MenuComponents.Checkbox
             checked={isSelected}
-            onChange={() =>
-              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-            }
+            onChange={() => toggleOptionRef.current?.(parseInt(project.id, 10))}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />
@@ -433,7 +413,25 @@ export function ProjectPageFilter({
     disableCommit: selectionLimitExceeded,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
   const {dispatch} = stagedSelect;
+
+  // Merge the hook's onOpenChange (resets shift-click anchor) with the local
+  // snapshot logic (freezes the bookmark sort order while the menu is open).
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+        dispatch({type: 'reset anchor'});
+      }
+    },
+    [dispatch, optimisticallyBookmarkedProjects]
+  );
+
   const handleReset = useCallback(() => {
     dispatch({type: 'remove staged'});
     handleChange(defaultValue);
@@ -470,12 +468,11 @@ export function ProjectPageFilter({
   const hasProjectWrite = organization.access.includes('project:write');
 
   return (
-    <HybridFilter
-      ref={hybridFilterRef}
+    <CompactSelect
+      grid
+      multiple
       {...selectProps}
-      closeOnSelect
-      stagedSelect={stagedSelect}
-      options={options}
+      {...stagedSelect.compactSelectProps}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
@@ -497,9 +494,7 @@ export function ProjectPageFilter({
         )
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
-      onOpenChange={() => {
-        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-      }}
+      onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
         shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
       }

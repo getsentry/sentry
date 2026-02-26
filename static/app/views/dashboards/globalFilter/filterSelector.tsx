@@ -14,11 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {
-  HybridFilter,
-  useStagedCompactSelect,
-  type HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   modifyFilterOperatorQuery,
@@ -77,7 +73,10 @@ function FilterSelector({
   disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
-  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
 
   const {fieldDefinition, filterToken} = useMemo(() => {
     const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
@@ -219,7 +218,7 @@ function FilterSelector({
         option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
           <Checkbox
             checked={isSelected}
-            onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
+            onChange={() => toggleOptionRef.current?.(value)}
             aria-label={t('Select %s', value)}
             tabIndex={-1}
           />
@@ -313,6 +312,11 @@ function FilterSelector({
     hasExternalChanges: hasOperatorChanges,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
   const {dispatch} = stagedSelect;
   const hasStagedChanges =
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
@@ -379,16 +383,19 @@ function FilterSelector({
   }
 
   return (
-    <HybridFilter
+    <CompactSelect
+      grid
+      multiple
       closeOnSelect
-      ref={hybridFilterRef}
-      stagedSelect={stagedSelect}
+      {...stagedSelect.compactSelectProps}
       search={{
         placeholder: t('Search or enter a custom value...'),
-        onChange: setSearchQuery,
+        onChange: (searchValue: string) => {
+          dispatch({type: 'set search', search: searchValue});
+          setSearchQuery(searchValue);
+        },
       }}
       disabled={false}
-      options={translatedOptions}
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');

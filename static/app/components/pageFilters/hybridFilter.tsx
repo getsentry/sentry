@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useReducer,
-  useRef,
-} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef} from 'react';
 import {isAppleDevice, isMac} from '@react-aria/utils';
 
 import type {
@@ -15,12 +8,7 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
-
-export interface HybridFilterRef<Value extends SelectKey> {
-  toggleOption: (val: Value) => void;
-}
 
 interface StagedSelectState<Value extends SelectKey> {
   currentSearch: string;
@@ -135,8 +123,11 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
     | 'onChange'
     | 'onSectionToggle'
     | 'onInteractOutside'
+    | 'onOpenChange'
     | 'onKeyDown'
     | 'search'
+    | 'options'
+    | 'closeOnSelect'
   >;
   dispatch: React.Dispatch<StagedSelectAction<Value>>;
   toggleOption: (val: Value) => void;
@@ -319,74 +310,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     [commit, stagedValue, toggleOption, onReplace, multiple, shiftToggleRange]
   );
 
-  return {
-    compactSelectProps: {
-      value: stagedValue,
-      onChange: handleChange,
-      onSectionToggle: handleSectionToggle,
-      onInteractOutside: commitStagedChanges,
-      onKeyDown: handleKeyDown,
-      search: {
-        onChange: (searchValue: string) => {
-          dispatch({type: 'set search', search: searchValue});
-        },
-      },
-    },
-    dispatch,
-    value: stagedValue,
-    toggleOption,
-  };
-}
-
-export interface HybridFilterProps<Value extends SelectKey> extends Omit<
-  MultipleSelectProps<Value>,
-  'value' | 'onChange' | 'grid' | 'multiple'
-> {
-  /**
-   * The staged selection state manager from useStagedCompactSelect.
-   * This handles all the state management and provides props for CompactSelect.
-   */
-  stagedSelect: UseStagedCompactSelectReturn<Value>;
-  ref?: React.Ref<HybridFilterRef<Value>>;
-}
-
-/**
- * A special filter component with "hybrid" (both single and multiple) selection, made
- * specifically for page filters. Clicking on an option will select only that option
- * (single selection). Command/ctrl-clicking on an option or clicking on its checkbox
- * will add the option to the selection state (multiple selection).
- *
- * Note: this component is controlled only — changes must be handled via the `onChange`
- * callback.
- */
-export function HybridFilter<Value extends SelectKey>({
-  ref,
-  options,
-  stagedSelect,
-  search: searchProp,
-  onOpenChange: onOpenChangeProp,
-  ...selectProps
-}: HybridFilterProps<Value>) {
-  useImperativeHandle(ref, () => ({toggleOption: stagedSelect.toggleOption}), [
-    stagedSelect.toggleOption,
-  ]);
-
-  const searchConfig = typeof searchProp === 'object' ? searchProp : undefined;
-  const search = {
-    ...searchConfig,
-    onChange: (value: string) => {
-      stagedSelect.dispatch({type: 'set search', search: value});
-      searchConfig?.onChange?.(value);
-    },
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      stagedSelect.dispatch({type: 'reset anchor'});
-    }
-    onOpenChangeProp?.(open);
-  };
-
   const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
@@ -439,15 +362,28 @@ export function HybridFilter<Value extends SelectKey>({
     );
   }, [options]);
 
-  return (
-    <CompactSelect
-      grid
-      multiple
-      options={mappedOptions}
-      {...stagedSelect.compactSelectProps}
-      {...selectProps}
-      search={search}
-      onOpenChange={handleOpenChange}
-    />
-  );
+  return {
+    compactSelectProps: {
+      value: stagedValue,
+      closeOnSelect: true,
+      onChange: handleChange,
+      onSectionToggle: handleSectionToggle,
+      onInteractOutside: commitStagedChanges,
+      onKeyDown: handleKeyDown,
+      onOpenChange: (open: boolean) => {
+        if (open) {
+          dispatch({type: 'reset anchor'});
+        }
+      },
+      options: mappedOptions,
+      search: {
+        onChange: (searchValue: string) => {
+          dispatch({type: 'set search', search: searchValue});
+        },
+      },
+    },
+    dispatch,
+    value: stagedValue,
+    toggleOption,
+  };
 }

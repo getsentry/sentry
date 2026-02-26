@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
@@ -6,15 +6,11 @@ import xor from 'lodash/xor';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {
-  HybridFilter,
-  useStagedCompactSelect,
-  type HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,10 +21,12 @@ const MAX_SUITE_UI_LENGTH = 50;
 const MAX_RECORD_LENGTH = 40;
 
 export function TestSuiteDropdown() {
-  const [dropdownSearch, setDropdownSearch] = useState<string>('');
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const {data: testSuites} = useTestSuites();
-  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
 
   const handleChange = useCallback(
     (newTestSuites: string[]) => {
@@ -39,7 +37,6 @@ export function TestSuiteDropdown() {
       });
 
       setUrlSearchParams(urlSearchParams);
-      setDropdownSearch('');
     },
     [urlSearchParams, setUrlSearchParams]
   );
@@ -48,20 +45,14 @@ export function TestSuiteDropdown() {
     const selectedNames = urlSearchParams.getAll(TEST_SUITES);
     const selectedSet = new Set(selectedNames.map(name => name.toLowerCase()));
 
-    const filtered = testSuites.filter(suite => {
-      const matchesSearch =
-        !dropdownSearch || suite.toLowerCase().includes(dropdownSearch.toLowerCase());
-      return matchesSearch || selectedSet.has(suite.toLowerCase());
-    });
-
-    const mapped = filtered.map(suite => ({
+    const mapped = testSuites.map(suite => ({
       label: suite,
       value: suite,
       isSelected: selectedSet.has(suite.toLowerCase()),
       leadingItems: ({isSelected}: {isSelected: boolean}) => (
         <Checkbox
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption(suite)}
+          onChange={() => toggleOptionRef.current?.(suite)}
           aria-label={t('Select %s', suite)}
           tabIndex={-1}
         />
@@ -71,17 +62,10 @@ export function TestSuiteDropdown() {
     const sorted = sortBy(mapped, [option => !option.isSelected]);
 
     return sorted.slice(0, MAX_RECORD_LENGTH);
-  }, [testSuites, dropdownSearch, urlSearchParams]);
-
-  const handleOnSearch = (value: string) => {
-    setDropdownSearch(value);
-  };
+  }, [testSuites, urlSearchParams]);
 
   function getEmptyMessage() {
     if (!options.length) {
-      if (dropdownSearch?.length) {
-        return t('No test suites found. Please enter a different search term.');
-      }
       return t('No test suites found');
     }
     return undefined;
@@ -102,17 +86,21 @@ export function TestSuiteDropdown() {
     multiple: true,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
   const {dispatch} = stagedSelect;
   const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
   return (
-    <HybridFilter
+    <CompactSelect
+      grid
+      multiple
       closeOnSelect
-      ref={hybridFilterRef}
-      stagedSelect={stagedSelect}
-      search={{onChange: handleOnSearch}}
-      options={options}
+      {...stagedSelect.compactSelectProps}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={

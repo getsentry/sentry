@@ -4,7 +4,8 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
-import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -15,12 +16,7 @@ import {
   EnvironmentPageFilterTrigger,
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
-import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
-import {
-  HybridFilter,
-  useStagedCompactSelect,
-  type HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -31,22 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 export interface EnvironmentPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<string>,
-    | 'search'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onReset'
-    | 'onToggle'
-    | 'menuTitle'
-    | 'menuBody'
-    | 'shouldCloseOnInteractOutside'
-    | 'triggerProps'
-    | 'stagedSelect'
-  >
+  Omit<MultipleSelectProps<string>, 'onChange'>
 > {
   /**
    * Called when the selection changes
@@ -83,7 +64,10 @@ export function EnvironmentPageFilter({
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
   const organization = useOrganization();
-  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -190,7 +174,7 @@ export function EnvironmentPageFilter({
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
           <MenuComponents.Checkbox
             checked={isSelected}
-            onChange={() => hybridFilterRef.current?.toggleOption(env)}
+            onChange={() => toggleOptionRef.current?.(env)}
             aria-label={t('Select %s', env)}
             tabIndex={-1}
           />
@@ -225,6 +209,11 @@ export function EnvironmentPageFilter({
     multiple: true,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
   const {dispatch} = stagedSelect;
 
   const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
@@ -237,13 +226,13 @@ export function EnvironmentPageFilter({
   }, [dispatch, handleChange, onReset]);
 
   return (
-    <HybridFilter
+    <CompactSelect
+      grid
+      multiple
       {...selectProps}
-      ref={hybridFilterRef}
-      stagedSelect={stagedSelect}
+      {...stagedSelect.compactSelectProps}
       search
       closeOnSelect
-      options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
