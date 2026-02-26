@@ -244,7 +244,7 @@ export default function CustomerDetails() {
       subscription.planDetails.categories
         .filter(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
-          return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+          return categoryInfo?.freeEventsMultiple;
         })
         .map(category => {
           const reserved = subscription.categories?.[category]?.reserved;

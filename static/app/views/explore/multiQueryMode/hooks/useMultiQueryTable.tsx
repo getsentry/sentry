@@ -61,7 +61,7 @@ function useMultiQueryTableAggregateModeImpl({
   const {selection} = usePageFilters();
 
   const fields = useMemo(() => {
-    const allFields: Set<string> = new Set();
+    const allFields = new Set<string>();
 
     for (const groupBy of groupBys) {
       allFields.add(groupBy);
