@@ -18,7 +18,7 @@ import {
   setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
@@ -45,6 +45,7 @@ const baseUserSchema = z.object({
   notifications: z.boolean().optional(),
   volume: z.number().min(0).max(100).optional(),
   bio: z.string().optional(),
+  priority: z.string().optional(),
   tags: z.array(z.string()).optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
@@ -74,6 +75,7 @@ const userQuery = queryOptions({
       firstName: 'John',
       lastName: 'Doe',
       age: 23,
+      priority: 'medium',
       address: {
         street: '123 Main St',
         city: 'Anytown',
@@ -121,6 +123,7 @@ const userMutationOptions = (client: QueryClient) =>
         firstName: 'John',
         lastName: 'Doe',
         age: 23,
+        priority: 'medium',
         address: {
           street: '123 Main St',
           city: 'Anytown',
@@ -260,6 +263,30 @@ function AutoSaveExample() {
           </field.Layout.Stack>
         )}
       </AutoSaveField>
+
+      <AutoSaveField
+        name="priority"
+        schema={baseUserSchema}
+        initialValue={user.data?.priority ?? 'medium'}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Radio.Group
+            value={field.state.value ?? ''}
+            onChange={field.handleChange}
+          >
+            <field.Layout.Stack label="Priority:" hintText="Select issue priority">
+              <Flex gap="lg">
+                <field.Radio.Item value="low">Low</field.Radio.Item>
+                <field.Radio.Item value="medium">Medium</field.Radio.Item>
+                <field.Radio.Item value="high" description="Urgent issues">
+                  High
+                </field.Radio.Item>
+              </Flex>
+            </field.Layout.Stack>
+          </field.Radio.Group>
+        )}
+      </AutoSaveField>
     </FieldGroup>
   );
 }
@@ -352,6 +379,24 @@ function BasicForm() {
                   step={10}
                 />
               </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="priority">
+            {field => (
+              <field.Radio.Group
+                value={field.state.value ?? ''}
+                onChange={field.handleChange}
+              >
+                <field.Layout.Row label="Priority:" hintText="Select issue priority">
+                  <Stack gap="lg">
+                    <field.Radio.Item value="low">Low</field.Radio.Item>
+                    <field.Radio.Item value="medium">Medium</field.Radio.Item>
+                    <field.Radio.Item value="high" description="Urgent issues">
+                      High
+                    </field.Radio.Item>
+                  </Stack>
+                </field.Layout.Row>
+              </field.Radio.Group>
             )}
           </form.AppField>
           <form.AppField name="tags">

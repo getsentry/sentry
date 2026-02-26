@@ -224,6 +224,43 @@ All fields are accessed via the `field` render prop and follow consistent patter
 </form.AppField>
 ```
 
+### Radio Field
+
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` renders a `<fieldset>` and provides group context, so the layout's label automatically renders as a `<legend>` for proper accessibility semantics.
+
+> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context that makes the label render as a `<legend>` is provided by `Radio.Group`, so placing the layout outside will result in a plain `<label>` instead of the correct `<legend>` element.
+
+```tsx
+<form.AppField name="priority">
+  {field => (
+    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label="Priority">
+        <field.Radio.Item value="low">Low</field.Radio.Item>
+        <field.Radio.Item value="medium">Medium</field.Radio.Item>
+        <field.Radio.Item value="high" description="Urgent issues">
+          High
+        </field.Radio.Item>
+      </field.Layout.Stack>
+    </field.Radio.Group>
+  )}
+</form.AppField>
+```
+
+For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
+
+```tsx
+import {Flex} from '@sentry/scraps/layout';
+
+<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+  <field.Layout.Row label="Priority">
+    <Flex gap="lg">
+      <field.Radio.Item value="low">Low</field.Radio.Item>
+      <field.Radio.Item value="high">High</field.Radio.Item>
+    </Flex>
+  </field.Layout.Row>
+</field.Radio.Group>;
+```
+
 ---
 
 ## Layouts
@@ -509,6 +546,7 @@ function SettingsForm() {
 | Select (single)   | Immediately when selection changes                          |
 | Select (multiple) | When menu closes, or when X/clear clicked while menu closed |
 | Switch            | Immediately when toggled                                    |
+| Radio             | Immediately when selection changes                          |
 | Range             | When user releases the slider, or immediately with keyboard |
 
 ### Auto-Save Status Indicators

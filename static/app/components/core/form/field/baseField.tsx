@@ -67,6 +67,12 @@ export const useHintTextId = () => {
   return `${fieldId}-hint`;
 };
 
+export const useLabelId = () => {
+  const fieldId = useFieldId();
+
+  return `${fieldId}-label`;
+};
+
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     function handleHashChange() {
