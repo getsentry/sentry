@@ -34,6 +34,20 @@ const rule = {
       );
     }
 
+    /**
+     * Returns true if a CallExpression has any function arguments whose
+     * parameters lack explicit type annotations. These callbacks rely on
+     * contextual typing from the variable's annotation.
+     */
+    function hasUntypedCallbacks(callNode) {
+      return callNode.arguments.some(arg => {
+        if (arg.type !== 'ArrowFunctionExpression' && arg.type !== 'FunctionExpression') {
+          return false;
+        }
+        return arg.params.some(param => !param.typeAnnotation);
+      });
+    }
+
     return {
       VariableDeclarator(node) {
         // Only const declarations
@@ -55,18 +69,22 @@ const rule = {
           return;
         }
 
-        // Skip object and array literal initializers — a future `prefer-satisfies`
-        // rule will handle these. For literals, TypeScript contextually types the
-        // expression using the annotation, so the inferred type always matches.
-        // Also skip function expressions and arrow functions — the annotation
-        // provides contextual typing for parameters (e.g. `e` in event handlers).
-        // Without the annotation, parameters become implicitly `any`.
+        // Skip object/array literals — `prefer-satisfies-for-objects` handles these.
+        // Skip function expressions — the annotation provides contextual parameter
+        // types (e.g. `e` in event handlers). Without it, params become `any`.
         if (
           node.init.type === 'ObjectExpression' ||
           node.init.type === 'ArrayExpression' ||
           node.init.type === 'ArrowFunctionExpression' ||
           node.init.type === 'FunctionExpression'
         ) {
+          return;
+        }
+
+        // Skip call expressions that contain untyped callback arguments.
+        // The variable's type annotation provides contextual typing that flows
+        // through the call's generics into callback parameters (e.g. useCallback).
+        if (node.init.type === 'CallExpression' && hasUntypedCallbacks(node.init)) {
           return;
         }
 
@@ -77,13 +95,13 @@ const rule = {
         }
 
         const annotationType = checker.getTypeFromTypeNode(annotationTSNode);
-        const initType = checker.getTypeAtLocation(initTSNode);
+        const inferredType = checker.getTypeAtLocation(initTSNode);
 
-        if (isEscapeHatch(annotationType) || isEscapeHatch(initType)) {
+        if (isEscapeHatch(annotationType) || isEscapeHatch(inferredType)) {
           return;
         }
 
-        if (typesAreIdentical(annotationType, initType)) {
+        if (typesAreIdentical(annotationType, inferredType)) {
           context.report({
             node: node.id.typeAnnotation,
             messageId: 'unnecessary',

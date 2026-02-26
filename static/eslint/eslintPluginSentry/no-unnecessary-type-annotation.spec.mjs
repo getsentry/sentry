@@ -68,6 +68,13 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
       code: 'const fn: (x: number) => number = function(x) { return x; };',
       filename: 'valid.ts',
     },
+
+    // Call expression with untyped callback (excluded — annotation provides
+    // contextual typing that flows through the generic into callback params)
+    {
+      code: 'declare function useCallback<T>(fn: T): T;\ntype Reducer = (state: number, action: string) => number;\nconst reducer: Reducer = useCallback((state, action) => state, []);',
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
