@@ -98,74 +98,84 @@ def _compare_single_pair(
 ) -> DiffResult:
     before_img = _to_pil_image(before)
     after_img = _to_pil_image(after)
+    diff_mask: Image.Image | None = None
+    try:
+        bw, bh = before_img.size
+        aw, ah = after_img.size
+        max_w = max(bw, aw)
+        max_h = max(bh, ah)
 
-    bw, bh = before_img.size
-    aw, ah = after_img.size
-    max_w = max(bw, aw)
-    max_h = max(bh, ah)
+        before_path = tmpdir_path / f"before_{idx}.png"
+        after_path = tmpdir_path / f"after_{idx}.png"
+        before_img.save(before_path, "PNG")
+        after_img.save(after_path, "PNG")
 
-    before_path = tmpdir_path / f"before_{idx}.png"
-    after_path = tmpdir_path / f"after_{idx}.png"
-    before_img.save(before_path, "PNG")
-    after_img.save(after_path, "PNG")
+        base_output = tmpdir_path / f"diff_base_{idx}.png"
+        color_output = tmpdir_path / f"diff_color_{idx}.png"
 
-    base_output = tmpdir_path / f"diff_base_{idx}.png"
-    color_output = tmpdir_path / f"diff_color_{idx}.png"
+        base_resp = server.compare(
+            before_path,
+            after_path,
+            base_output,
+            threshold=base_thresh,
+            antialiasing=True,
+            outputDiffMask=True,
+        )
+        color_resp = server.compare(
+            before_path,
+            after_path,
+            color_output,
+            threshold=color_thresh,
+            antialiasing=True,
+            outputDiffMask=True,
+        )
 
-    base_resp = server.compare(
-        before_path,
-        after_path,
-        base_output,
-        threshold=base_thresh,
-        antialiasing=True,
-        outputDiffMask=True,
-    )
-    color_resp = server.compare(
-        before_path,
-        after_path,
-        color_output,
-        threshold=color_thresh,
-        antialiasing=True,
-        outputDiffMask=True,
-    )
+        base_count = base_resp.get("diffCount", 0)
+        color_count = color_resp.get("diffCount", 0)
+        base_pct = base_resp.get("diffPercentage", 0.0)
+        color_pct = color_resp.get("diffPercentage", 0.0)
 
-    base_count = base_resp.get("diffCount", 0)
-    color_count = color_resp.get("diffCount", 0)
-    base_pct = base_resp.get("diffPercentage", 0.0)
-    color_pct = color_resp.get("diffPercentage", 0.0)
+        if color_pct > base_pct:
+            chosen_output = color_output
+            changed_pixels = color_count
+            diff_pct = color_pct
+        else:
+            chosen_output = base_output
+            changed_pixels = base_count
+            diff_pct = base_pct
 
-    if color_pct > base_pct:
-        chosen_output = color_output
-        changed_pixels = color_count
-        diff_pct = color_pct
-    else:
-        chosen_output = base_output
-        changed_pixels = base_count
-        diff_pct = base_pct
+        total_pixels = max_w * max_h
+        diff_score = diff_pct / 100.0
 
-    total_pixels = max_w * max_h
-    diff_score = diff_pct / 100.0
+        if changed_pixels == 0:
+            diff_mask = Image.new("L", (max_w, max_h), 0)
+        elif not chosen_output.exists():
+            raise RuntimeError(f"odiff did not produce output file: {chosen_output}")
+        else:
+            diff_mask = _mask_from_diff_output(chosen_output)
+            if diff_mask.size != (max_w, max_h):
+                old_mask = diff_mask
+                diff_mask = diff_mask.resize((max_w, max_h), Image.NEAREST)
+                old_mask.close()
 
-    if changed_pixels == 0:
-        diff_mask = Image.new("L", (max_w, max_h), 0)
-    elif not chosen_output.exists():
-        raise RuntimeError(f"odiff did not produce output file: {chosen_output}")
-    else:
-        diff_mask = _mask_from_diff_output(chosen_output)
-        if diff_mask.size != (max_w, max_h):
-            diff_mask = diff_mask.resize((max_w, max_h), Image.NEAREST)
+        diff_mask_png = _encode_mask_png_base64(diff_mask)
 
-    diff_mask_png = _encode_mask_png_base64(diff_mask)
-
-    return DiffResult(
-        diff_mask_png=diff_mask_png,
-        diff_score=diff_score,
-        changed_pixels=changed_pixels,
-        total_pixels=total_pixels,
-        aligned_height=max_h,
-        width=max_w,
-        before_width=bw,
-        before_height=bh,
-        after_width=aw,
-        after_height=ah,
-    )
+        return DiffResult(
+            diff_mask_png=diff_mask_png,
+            diff_score=diff_score,
+            changed_pixels=changed_pixels,
+            total_pixels=total_pixels,
+            aligned_height=max_h,
+            width=max_w,
+            before_width=bw,
+            before_height=bh,
+            after_width=aw,
+            after_height=ah,
+        )
+    finally:
+        if isinstance(before, bytes):
+            before_img.close()
+        if isinstance(after, bytes):
+            after_img.close()
+        if diff_mask is not None:
+            diff_mask.close()
