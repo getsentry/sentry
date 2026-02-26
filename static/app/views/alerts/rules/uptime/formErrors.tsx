@@ -3,6 +3,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
+  isLeafOp,
+  leafOpsMatchByValue,
+} from 'sentry/views/alerts/rules/uptime/assertions/utils';
+import {
   CompilationErrorType,
   PreviewCheckErrorKind,
   PreviewCheckStatusReasonType,
@@ -89,43 +93,6 @@ export function mapPreviewCheckResultToMessage(
 
   const type = result.status_reason?.type;
   return type ? (PREVIEW_CHECK_STATUS_REASON_LABELS[type] ?? null) : null;
-}
-
-// TODO Abdullah Khan: Look into moving this to assertions/utils.
-// Causes circular imports for now.
-const isLeafOp = (op: UptimeOp) =>
-  op.op === UptimeOpType.STATUS_CODE_CHECK ||
-  op.op === UptimeOpType.JSON_PATH ||
-  op.op === UptimeOpType.HEADER_CHECK;
-
-function leafOpsMatchByValue(a: UptimeOp, b: UptimeOp): boolean {
-  if (a.op !== b.op) return false;
-
-  if (
-    a.op === UptimeOpType.STATUS_CODE_CHECK &&
-    b.op === UptimeOpType.STATUS_CODE_CHECK
-  ) {
-    return a.operator.cmp === b.operator.cmp && a.value === b.value;
-  }
-
-  if (a.op === UptimeOpType.JSON_PATH && b.op === UptimeOpType.JSON_PATH) {
-    return (
-      a.value === b.value &&
-      a.operator.cmp === b.operator.cmp &&
-      JSON.stringify(a.operand) === JSON.stringify(b.operand)
-    );
-  }
-
-  if (a.op === UptimeOpType.HEADER_CHECK && b.op === UptimeOpType.HEADER_CHECK) {
-    return (
-      a.key_op.cmp === b.key_op.cmp &&
-      JSON.stringify(a.key_operand) === JSON.stringify(b.key_operand) &&
-      a.value_op.cmp === b.value_op.cmp &&
-      JSON.stringify(a.value_operand) === JSON.stringify(b.value_operand)
-    );
-  }
-
-  return false;
 }
 
 // Matches a leaf op from the failure data op tree (pointing to the failing assertion)
