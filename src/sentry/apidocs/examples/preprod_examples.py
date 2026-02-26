@@ -113,6 +113,7 @@ class PreprodExamples:
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
         "downloadCount": 5,
         "releaseNotes": "Bug fixes and performance improvements.",
+        "installGroups": ["beta-testers"],
         "isCodeSignatureValid": None,
         "profileName": None,
         "codesigningType": None,
@@ -126,11 +127,10 @@ class PreprodExamples:
         "installUrl": None,
         "downloadCount": 0,
         "releaseNotes": None,
+        "installGroups": None,
         "isCodeSignatureValid": None,
         "profileName": None,
         "codesigningType": None,
-        "errorCode": None,
-        "errorMessage": None,
     }
 
     EXAMPLE_INSTALL_INFO_APPLE = {
@@ -144,6 +144,7 @@ class PreprodExamples:
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
         "downloadCount": 3,
         "releaseNotes": None,
+        "installGroups": None,
         "isCodeSignatureValid": True,
         "profileName": "iOS Team Provisioning Profile",
         "codesigningType": "development",
