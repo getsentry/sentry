@@ -13,9 +13,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -98,28 +95,29 @@ function AuthTokenCreateForm({
 
   return (
     <form.AppForm form={form}>
-      <form.AppField name="name">
-        {field => (
-          <field.Layout.Row
-            label={t('Name')}
-            hintText={t('A name to help you identify this token.')}
-            required
-          >
-            <field.Input value={field.state.value} onChange={field.handleChange} />
-          </field.Layout.Row>
-        )}
-      </form.AppField>
+      <form.FieldGroup title={t('Create New Organization Token')}>
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Row
+              label={t('Name')}
+              hintText={t('A name to help you identify this token.')}
+              required
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
 
-      <FieldGroup
-        label={t('Scopes')}
-        help={t('Organization tokens currently have a limited set of scopes.')}
-      >
-        <div>
-          <div>org:ci</div>
-          <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
-        </div>
-      </FieldGroup>
-
+        <FieldGroup
+          label={t('Scopes')}
+          help={t('Organization tokens currently have a limited set of scopes.')}
+        >
+          <div>
+            <div>org:ci</div>
+            <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
+          </div>
+        </FieldGroup>
+      </form.FieldGroup>
       <Flex justify="end" gap="md" padding="md">
         <Button onClick={handleGoBack}>{t('Cancel')}</Button>
         <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
@@ -155,16 +153,10 @@ export default function OrganizationAuthTokensNewAuthToken() {
           }
         )}
       </TextBlock>
-      <Panel>
-        <PanelHeader>{t('Create New Organization Token')}</PanelHeader>
-
-        <PanelBody>
-          <AuthTokenCreateForm
-            organization={organization}
-            onCreatedToken={token => displayNewToken(token.token, handleGoBack)}
-          />
-        </PanelBody>
-      </Panel>
+      <AuthTokenCreateForm
+        organization={organization}
+        onCreatedToken={token => displayNewToken(token.token, handleGoBack)}
+      />
     </div>
   );
 }

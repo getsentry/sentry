@@ -5,6 +5,9 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
+import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
@@ -49,10 +52,36 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
   }
 
   if (moduleName === ModuleName.RESOURCE) {
+    const isImage =
+      spanOp === ResourceSpanOps.IMAGE ||
+      IMAGE_FILE_EXTENSIONS.includes(
+        (spanDescription.split('?')[0] ?? '').split('.').pop()?.toLowerCase() ?? ''
+      );
+
+    if (isImage) {
+      const projectId = span[SpanFields.PROJECT_ID]
+        ? Number(span[SpanFields.PROJECT_ID])
+        : undefined;
+      return <ResourceImageVisualization spanGroup={spanGroup} projectId={projectId} />;
+    }
+
     return <Container padding="md xl">{spanDescription}</Container>;
   }
 
   return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
+}
+
+function ResourceImageVisualization(props: {
+  spanGroup: string;
+  projectId?: number;
+}): React.ReactNode {
+  const {spanGroup, projectId} = props;
+
+  return (
+    <Container padding="0 xl" overflow="auto" height="100%">
+      <SampleImages groupId={spanGroup} projectId={projectId} noVisualizationPadding />
+    </Container>
+  );
 }
 
 function HttpSpanVisualization(props: {
