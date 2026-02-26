@@ -25,6 +25,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.sessions-eap.rollout-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
+    "relay.objectstore-attachments.sample-rate",
 ]
 
 

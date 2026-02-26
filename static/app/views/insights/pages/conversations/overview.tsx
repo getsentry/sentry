@@ -45,7 +45,6 @@ import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conve
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
-const DEFAULT_QUERY = 'has:user.email';
 
 enum ViewMode {
   CONVERSATIONS = 'conversations',
@@ -118,13 +117,6 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
       organization,
     });
   }, [organization]);
-
-  useEffect(() => {
-    if (searchQuery === null) {
-      setSearchQuery(DEFAULT_QUERY);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const {tags: numberTags = [], isLoading: numberTagsLoading} =
     useTraceItemTags('number');

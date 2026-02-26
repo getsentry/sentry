@@ -97,35 +97,33 @@ function AuthTokenCreateForm({
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.AppField name="name">
-          {field => (
-            <field.Layout.Row
-              label={t('Name')}
-              hintText={t('A name to help you identify this token.')}
-              required
-            >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
+    <form.AppForm form={form}>
+      <form.AppField name="name">
+        {field => (
+          <field.Layout.Row
+            label={t('Name')}
+            hintText={t('A name to help you identify this token.')}
+            required
+          >
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
 
-        <FieldGroup
-          label={t('Scopes')}
-          help={t('Organization tokens currently have a limited set of scopes.')}
-        >
-          <div>
-            <div>org:ci</div>
-            <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
-          </div>
-        </FieldGroup>
+      <FieldGroup
+        label={t('Scopes')}
+        help={t('Organization tokens currently have a limited set of scopes.')}
+      >
+        <div>
+          <div>org:ci</div>
+          <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
+        </div>
+      </FieldGroup>
 
-        <Flex justify="end" gap="md" padding="md">
-          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-          <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+      <Flex justify="end" gap="md" padding="md">
+        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+        <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }
