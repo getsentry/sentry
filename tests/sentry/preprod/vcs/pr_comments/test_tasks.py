@@ -113,6 +113,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
         # Verify extras were updated
         artifact.refresh_from_db()
+        assert artifact.extras is not None
         pr_comments = artifact.extras["posted_pr_comments"]["build_distribution"]
         assert pr_comments["success"] is True
         assert pr_comments["comment_id"] == "99999"
@@ -223,6 +224,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
                 create_preprod_pr_comment_task(artifact.id)
 
         artifact.refresh_from_db()
+        assert artifact.extras is not None
         pr_comments = artifact.extras["posted_pr_comments"]["build_distribution"]
         assert pr_comments["success"] is False
         assert pr_comments["error_type"] == "api_error"
