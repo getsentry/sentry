@@ -13,12 +13,14 @@ class Lock {
   acquire(id: string) {
     if (this.acquiredBy.size === 0) {
       this.initialOverflow = this.container.style.overflow;
-      this.container.style.overflow = 'hidden';
-      // Compensate for the viewport scrollbar disappearing to prevent layout shift
-      if (this.container === document.body) {
+      if (this.container === document.documentElement) {
+        // Measure scrollbar width before hiding overflow removes it
         this.initialPaddingRight = this.container.style.paddingRight;
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        this.container.style.overflow = 'hidden';
         this.container.style.paddingRight = `${scrollbarWidth}px`;
+      } else {
+        this.container.style.overflow = 'hidden';
       }
     }
     this.acquiredBy.add(id);
