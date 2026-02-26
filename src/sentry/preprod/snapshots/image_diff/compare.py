@@ -120,6 +120,7 @@ def _compare_single_pair(
             threshold=base_thresh,
             antialiasing=True,
             outputDiffMask=True,
+            failOnLayoutDiff=False,
         )
         color_resp = server.compare(
             before_path,
@@ -128,6 +129,7 @@ def _compare_single_pair(
             threshold=color_thresh,
             antialiasing=True,
             outputDiffMask=True,
+            failOnLayoutDiff=False,
         )
 
         base_count = base_resp.get("diffCount", 0)
