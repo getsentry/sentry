@@ -1,7 +1,12 @@
 import {z} from 'zod';
 
+import {withFieldGroup} from '@sentry/scraps/form';
+
+import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/util/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
+import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export function getCreateTooltip(params: {
   hasAccess: boolean;
@@ -23,29 +28,44 @@ export function getCreateTooltip(params: {
 }
 
 /**
- * Combined schema for the setup and edit forms. Provider-specific fields are always
- * strings (initialized to '' when unused). Per-provider required-field validation is
- * enforced via superRefine in the consuming component.
+ * Base schema fields shared across all provider forms.
  */
-const dataForwarderFormSchema = z.object({
+export const baseDataForwarderSchema = z.object({
   is_enabled: z.boolean(),
   enroll_new_projects: z.boolean(),
   project_ids: z.array(z.string()),
-  // SQS
-  queue_url: z.string(),
-  region: z.string(),
-  access_key: z.string(),
-  secret_key: z.string(),
-  message_group_id: z.string(),
-  s3_bucket: z.string(),
-  // Segment
-  write_key: z.string(),
-  // Splunk
-  instance_url: z.string(),
-  token: z.string(),
-  index: z.string(),
-  source: z.string(),
 });
+
+/**
+ * Default values for the base fields when creating a new forwarder.
+ */
+export const baseFormSetupDefaults = {
+  is_enabled: true,
+  enroll_new_projects: false,
+  project_ids: [] as string[],
+};
+
+/**
+ * Builds base field defaults from an existing DataForwarder for edit forms.
+ */
+export function baseFormEditDefaults(dataForwarder: DataForwarder) {
+  return {
+    is_enabled: dataForwarder.isEnabled,
+    enroll_new_projects: dataForwarder.enrollNewProjects,
+    project_ids: dataForwarder.enrolledProjects.map(p => String(p.id)),
+  };
+}
+
+/**
+ * Builds the project options list for the project selector field.
+ */
+export function buildProjectOptions(projects: Project[]): Array<SelectValue<string>> {
+  return projects.map(project => ({
+    value: project.id,
+    label: project.slug,
+    leadingItems: <IdBadge project={project} avatarSize={16} disableLink hideName />,
+  }));
+}
 
 /**
  * Schema for per-project override forms. All provider-specific fields are strings
@@ -70,120 +90,78 @@ export const dataForwarderOverrideSchema = z.object({
 });
 
 /**
- * Builds a provider-specific validation schema by extending the base form schema
- * with required-field checks for the given provider.
+ * Reusable field group for the enablement toggle. Shared across all provider setup and
+ * edit forms via the TanStack withFieldGroup composition pattern.
+ *
+ * In setup mode (isSetup=true) the switch is locked because forwarding activates after
+ * initial configuration is complete.
  */
-export function buildDataForwardingProviderSchema(provider: DataForwarderProviderSlug) {
-  return dataForwarderFormSchema.superRefine((data, ctx) => {
-    if (provider === DataForwarderProviderSlug.SQS) {
-      if (!data.queue_url?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['queue_url'],
-          message: t('Queue URL is required'),
-        });
-      }
-      if (!data.region?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['region'],
-          message: t('Region is required'),
-        });
-      }
-      if (!data.access_key?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['access_key'],
-          message: t('Access key is required'),
-        });
-      }
-      if (!data.secret_key?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['secret_key'],
-          message: t('Secret key is required'),
-        });
-      }
-    } else if (provider === DataForwarderProviderSlug.SEGMENT) {
-      if (!data.write_key?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['write_key'],
-          message: t('Write key is required'),
-        });
-      }
-    } else if (provider === DataForwarderProviderSlug.SPLUNK) {
-      if (!data.instance_url?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['instance_url'],
-          message: t('Instance URL is required'),
-        });
-      }
-      if (!data.token?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['token'],
-          message: t('Token is required'),
-        });
-      }
-      if (!data.index?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['index'],
-          message: t('Index is required'),
-        });
-      }
-      if (!data.source?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['source'],
-          message: t('Source is required'),
-        });
-      }
-    }
-  });
-}
-
-type ProviderConfigFields = Pick<
-  z.infer<typeof dataForwarderFormSchema>,
-  | 'queue_url'
-  | 'region'
-  | 'access_key'
-  | 'secret_key'
-  | 'message_group_id'
-  | 's3_bucket'
-  | 'write_key'
-  | 'instance_url'
-  | 'token'
-  | 'index'
-  | 'source'
->;
+export const EnablementFields = withFieldGroup({
+  defaultValues: {is_enabled: false},
+  props: {disabled: false, isSetup: false},
+  render: ({group, disabled, isSetup}) => (
+    <group.FieldGroup title={t('Enablement')}>
+      <group.AppField name="is_enabled">
+        {field => (
+          <field.Layout.Row
+            label={t('Enable data forwarding')}
+            hintText={
+              isSetup
+                ? t('Will be enabled after the initial setup is complete.')
+                : t('Will override all projects to shut-off data forwarding altogether.')
+            }
+          >
+            <field.Switch
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={isSetup || disabled}
+            />
+          </field.Layout.Row>
+        )}
+      </group.AppField>
+    </group.FieldGroup>
+  ),
+});
 
 /**
- * Builds the provider-specific config object from form field values.
+ * Reusable field group for project enrollment configuration. Shared across all provider
+ * setup and edit forms via the TanStack withFieldGroup composition pattern.
  */
-export function buildDataForwardingProviderConfig(
-  provider: DataForwarderProviderSlug,
-  fields: ProviderConfigFields
-): Record<string, string | undefined> {
-  if (provider === DataForwarderProviderSlug.SQS) {
-    return {
-      queue_url: fields.queue_url,
-      region: fields.region,
-      access_key: fields.access_key,
-      secret_key: fields.secret_key,
-      message_group_id: fields.message_group_id || undefined,
-      s3_bucket: fields.s3_bucket || undefined,
-    };
-  }
-  if (provider === DataForwarderProviderSlug.SEGMENT) {
-    return {write_key: fields.write_key};
-  }
-  return {
-    instance_url: fields.instance_url,
-    token: fields.token,
-    index: fields.index,
-    source: fields.source,
-  };
-}
+export const ProjectConfigFields = withFieldGroup({
+  defaultValues: {enroll_new_projects: false, project_ids: [] as string[]},
+  props: {disabled: false, projectOptions: [] as Array<SelectValue<string>>},
+  render: ({group, disabled, projectOptions}) => (
+    <group.FieldGroup title={t('Project Configuration')}>
+      <group.AppField name="enroll_new_projects">
+        {field => (
+          <field.Layout.Row
+            label={t('Auto-enroll new projects')}
+            hintText={t('Should new projects automatically forward their data?')}
+          >
+            <field.Switch
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+            />
+          </field.Layout.Row>
+        )}
+      </group.AppField>
+      <group.AppField name="project_ids">
+        {field => (
+          <field.Layout.Row
+            label={t('Forwarding projects')}
+            hintText={t('Select the projects which should forward their data.')}
+          >
+            <field.Select
+              multiple
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={projectOptions}
+              disabled={disabled}
+            />
+          </field.Layout.Row>
+        )}
+      </group.AppField>
+    </group.FieldGroup>
+  ),
+});
