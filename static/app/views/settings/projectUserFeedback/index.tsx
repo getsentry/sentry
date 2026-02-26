@@ -100,7 +100,7 @@ export default function ProjectUserFeedback() {
         </TextBlock>
         <ProjectPermissionAlert project={project} />
 
-        <Access access={['project:write']}>
+        <Access access={['project:write']} project={project}>
           {({hasAccess}) => (
             <FieldGroup title={t('Settings')}>
               <AutoSaveField
