@@ -195,6 +195,7 @@ jobs:
           retention-days: 1
 
   calculate-shards:
+    # Use always() so this job runs even when prepare-selective-tests is skipped (master)
     if: >-
       always() &&
       !cancelled() &&
@@ -202,24 +203,15 @@ jobs:
     needs: [files-changed, prepare-selective-tests]
     name: calculate test shards
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && 5 || 1 }}
+    timeout-minutes: 5
     outputs:
-      shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
-      shard-indices: ${{ steps.static-shards.outputs.shard-indices || steps.calculate-shards.outputs.shard-indices }}
+      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
 
     steps:
-      - name: Use default shards (no selective testing)
-        id: static-shards
-        if: needs.prepare-selective-tests.outputs.has-selected-tests != 'true'
-        run: |
-          echo "shard-count=22" >> "$GITHUB_OUTPUT"
-          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
-
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
 
       - name: Setup sentry env
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
@@ -235,9 +227,8 @@ jobs:
 
       - name: Calculate test shards
         id: calculate-shards
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         env:
-          SELECTED_TESTS_FILE: '.artifacts/selected-tests.txt'
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
           SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count || '' }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
