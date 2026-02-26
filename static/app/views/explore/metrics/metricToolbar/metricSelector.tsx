@@ -9,6 +9,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
@@ -33,19 +34,23 @@ export function MetricSelector({
 }) {
   const [search, setSearch] = useState('');
   const {data: metricOptionsData, isFetching} = useMetricOptions({search});
+  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
-  const metricSelectValue = makeMetricSelectValue(traceMetric);
+  const metricSelectValue = makeMetricSelectValue(
+    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
+  );
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
       label: `${traceMetric.name}`,
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
-      metricUnit: traceMetric.unit ?? '-',
+      metricUnit: hasMetricUnitsUI ? (traceMetric.unit ?? '-') : undefined,
       metricName: traceMetric.name,
       trailingItems: () => (
         <Fragment>
           <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
-          {traceMetric.unit &&
+          {hasMetricUnitsUI &&
+            traceMetric.unit &&
             traceMetric.unit !== '-' &&
             traceMetric.unit !== NONE_UNIT && (
               <Tag variant="promotion">{traceMetric.unit}</Tag>
@@ -53,7 +58,13 @@ export function MetricSelector({
         </Fragment>
       ),
     }),
-    [metricSelectValue, traceMetric.name, traceMetric.type, traceMetric.unit]
+    [
+      metricSelectValue,
+      traceMetric.name,
+      traceMetric.type,
+      traceMetric.unit,
+      hasMetricUnitsUI,
+    ]
   );
 
   const metricOptions = useMemo((): MetricSelectOption[] => {
@@ -64,7 +75,9 @@ export function MetricSelector({
           makeMetricSelectValue({
             name: option[TraceMetricKnownFieldKey.METRIC_NAME],
             type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
-            unit: option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT,
+            unit: hasMetricUnitsUI
+              ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
+              : undefined,
           }) === makeMetricSelectValue(traceMetric)
       );
     return [
@@ -74,11 +87,15 @@ export function MetricSelector({
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
-          unit: option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT,
+          unit: hasMetricUnitsUI
+            ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
+            : undefined,
         }),
         metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
         metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
-        metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT,
+        metricUnit: hasMetricUnitsUI
+          ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
+          : undefined,
         trailingItems: () => (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
@@ -91,17 +108,17 @@ export function MetricSelector({
         ),
       })) ?? []),
     ];
-  }, [metricOptionsData, optionFromTraceMetric, traceMetric]);
+  }, [metricOptionsData, optionFromTraceMetric, traceMetric, hasMetricUnitsUI]);
 
   useEffect(() => {
     if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
       onChange({
         name: metricOptions[0].metricName,
         type: metricOptions[0].metricType,
-        unit: metricOptions[0].metricUnit,
+        unit: hasMetricUnitsUI ? metricOptions[0].metricUnit : undefined,
       });
     }
-  }, [metricOptions, onChange, traceMetric.name]);
+  }, [metricOptions, onChange, traceMetric.name, hasMetricUnitsUI]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(
@@ -128,7 +145,7 @@ export function MetricSelector({
           onChange({
             name: typedOption.metricName,
             type: typedOption.metricType,
-            unit: typedOption.metricUnit,
+            unit: hasMetricUnitsUI ? typedOption.metricUnit : undefined,
           });
         }
       }}
