@@ -11,24 +11,15 @@ from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
 
-def _find_repo_root() -> Path:
+def _find_odiff_binary() -> str:
+    candidates: list[Path] = []
     current = Path(__file__).resolve()
     for parent in current.parents:
         if (parent / "pyproject.toml").exists():
-            return parent
-    raise FileNotFoundError("Could not find repository root")
-
-
-_REPO_ROOT = _find_repo_root()
-
-_BINARY_CANDIDATES = [
-    _REPO_ROOT / "node_modules" / ".bin" / "odiff",
-    Path("/usr/local/bin/odiff"),
-]
-
-
-def _find_odiff_binary() -> str:
-    for candidate in _BINARY_CANDIDATES:
+            candidates.append(parent / "node_modules" / ".bin" / "odiff")
+            break
+    candidates.append(Path("/usr/local/bin/odiff"))
+    for candidate in candidates:
         if candidate.exists():
             return str(candidate)
     found = shutil.which("odiff")
