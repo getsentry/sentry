@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import select
 import shutil
 import subprocess
@@ -53,19 +52,9 @@ class OdiffServer:
     def __exit__(self, *args: object) -> None:
         self.close()
 
-    def _read_json(
-        self, line: bytes, process: subprocess.Popen[bytes] | None = None
-    ) -> dict[str, Any]:
+    def _read_json(self, line: bytes) -> dict[str, Any]:
         if not line:
-            proc = process or self._process
-            stderr = b""
-            if proc and proc.stderr:
-                readable, _, _ = select.select([proc.stderr], [], [], 5)
-                if readable:
-                    stderr = os.read(proc.stderr.fileno(), 4096)
-            raise RuntimeError(
-                f"odiff server exited unexpectedly: {stderr.decode(errors='replace')}"
-            )
+            raise RuntimeError("odiff server exited unexpectedly")
         try:
             return json.loads(line)
         except JSONDecodeError as e:
@@ -88,7 +77,7 @@ class OdiffServer:
             [binary, "--server"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
         try:
@@ -96,7 +85,7 @@ class OdiffServer:
             if not readable:
                 raise RuntimeError("odiff server timed out waiting for ready message")
             line = proc.stdout.readline()  # type: ignore[union-attr]
-            ready = self._read_json(line, proc)
+            ready = self._read_json(line)
             if not ready.get("ready"):
                 raise RuntimeError("odiff server failed to start")
         except BaseException:
