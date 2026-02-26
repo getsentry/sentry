@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,6 +16,7 @@ import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/att
 import {Chart} from 'sentry/views/explore/components/attributeBreakdowns/cohortComparisonChart';
 import {COHORT_2_COLOR} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {AttributeBreakdownsComponent} from 'sentry/views/explore/components/attributeBreakdowns/styles';
+import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -23,8 +24,6 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 const CHARTS_COLUMN_COUNT = 2;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 3; // 6 charts per page
-
-type SortingMethod = 'rrr';
 
 type AttributeComparisonSectionProps = {
   isOpenPeriodLoading: boolean;
@@ -53,36 +52,18 @@ export function AttributeComparisonSection({
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const sortingMethod: SortingMethod = 'rrr';
-  const [page, setPage] = useState(0);
-
-  const filteredRankedAttributes = useMemo(() => {
-    const attrs = data?.rankedAttributes;
-    if (!attrs) {
-      return [];
-    }
-
-    let filteredAttrs = attrs;
-    if (searchQuery.trim()) {
-      const searchFor = searchQuery.toLocaleLowerCase().trim();
-      filteredAttrs = attrs.filter(attr =>
-        attr.attributeName.toLocaleLowerCase().trim().includes(searchFor)
-      );
-    }
-
-    return [...filteredAttrs].sort((a, b) => {
-      const aOrder = a.order[sortingMethod];
-      const bOrder = b.order[sortingMethod];
-      if (aOrder === null && bOrder === null) return 0;
-      if (aOrder === null) return 1;
-      if (bOrder === null) return -1;
-      return aOrder - bOrder;
-    });
-  }, [searchQuery, data?.rankedAttributes, sortingMethod]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filteredRankedAttributes]);
+  const {
+    filteredRankedAttributes,
+    paginatedAttributes,
+    hasPrevious,
+    hasNext,
+    nextPage,
+    previousPage,
+  } = useFilteredRankedAttributes({
+    rankedAttributes: data?.rankedAttributes,
+    searchQuery,
+    pageSize: CHARTS_PER_PAGE,
+  });
 
   const exploreUrl = useMemo(() => {
     const openPeriodStartMs = new Date(openPeriodStart).getTime();
@@ -159,27 +140,23 @@ export function AttributeComparisonSection({
         ) : filteredRankedAttributes.length > 0 ? (
           <Fragment>
             <SidebarChartsGrid>
-              {filteredRankedAttributes
-                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                .map(attribute => (
-                  <Chart
-                    key={attribute.attributeName}
-                    attribute={attribute}
-                    theme={theme}
-                    cohort1Total={data?.cohort1Total ?? 0}
-                    cohort2Total={data?.cohort2Total ?? 0}
-                    query={snubaQuery.query}
-                  />
-                ))}
+              {paginatedAttributes.map(attribute => (
+                <Chart
+                  key={attribute.attributeName}
+                  attribute={attribute}
+                  theme={theme}
+                  cohort1Total={data?.cohort1Total ?? 0}
+                  cohort2Total={data?.cohort2Total ?? 0}
+                  query={snubaQuery.query}
+                />
+              ))}
             </SidebarChartsGrid>
             {filteredRankedAttributes.length > CHARTS_PER_PAGE && (
               <AttributeBreakdownsComponent.Pagination
-                isNextDisabled={
-                  page >= Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
-                }
-                isPrevDisabled={page === 0}
-                onNextClick={() => setPage(p => p + 1)}
-                onPrevClick={() => setPage(p => p - 1)}
+                isNextDisabled={!hasNext}
+                isPrevDisabled={!hasPrevious}
+                onNextClick={nextPage}
+                onPrevClick={previousPage}
               />
             )}
           </Fragment>
