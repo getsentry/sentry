@@ -26,7 +26,11 @@ DIFF_THRESHOLD = 0.02
 def _as_image(source: bytes | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
         img = Image.open(io.BytesIO(source))
-        img.load()
+        try:
+            img.load()
+        except Exception:
+            img.close()
+            raise
         return img
     return source
 
@@ -40,6 +44,8 @@ def _mask_from_diff_output(output_path: Path) -> Image.Image:
         mask = alpha.point(lambda px: 255 if px > 0 else 0)
         return mask
     finally:
+        for band in bands:
+            band.close()
         rgba.close()
 
 
