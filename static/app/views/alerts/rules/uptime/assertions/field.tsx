@@ -81,7 +81,7 @@ function createDefaultAssertionRoot(): UptimeAndOp {
 // XXX(epurkhiser): The types of the FormField render props are absolutely
 // abysmal, so we're leaving this untyped for now.
 
-function UptimeAssertionsControl({onChange, onBlur, value}: any) {
+function UptimeAssertionsControl({onChange, onBlur, value, trailingButtons}: any) {
   const previewCheckResult = usePreviewCheckResult();
 
   // value is an UptimeAssertion object from initialData or defaultValue.
@@ -103,11 +103,19 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
         onChange({root: op}, {});
         onBlur({root: op}, {});
       }}
+      trailingButtons={trailingButtons}
     />
   );
 }
 
-export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
+interface UptimeAssertionsFieldProps extends Omit<FormFieldProps, 'children'> {
+  trailingButtons?: React.ReactNode;
+}
+
+export function UptimeAssertionsField({
+  trailingButtons,
+  ...props
+}: UptimeAssertionsFieldProps) {
   return (
     <FormField
       defaultValue={{root: createDefaultAssertionRoot()}}
@@ -128,7 +136,9 @@ export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
         return {root: normalizeAssertion(value.root)};
       }}
     >
-      {({ref: _ref, ...fieldProps}) => <UptimeAssertionsControl {...fieldProps} />}
+      {({ref: _ref, ...fieldProps}) => (
+        <UptimeAssertionsControl {...fieldProps} trailingButtons={trailingButtons} />
+      )}
     </FormField>
   );
 }

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -34,6 +34,7 @@ interface AssertionOpGroupProps {
   erroredOp?: UptimeOp;
   onRemove?: () => void;
   root?: boolean;
+  trailingButtons?: React.ReactNode;
 }
 
 const GROUP_TYPE_OPTIONS: Array<SelectOption<UptimeOpType.AND | UptimeOpType.OR>> = [
@@ -48,6 +49,7 @@ export function AssertionOpGroup({
   root,
   disableDropping,
   erroredOp,
+  trailingButtons,
 }: AssertionOpGroupProps) {
   const isNegated = value.op === UptimeOpType.NOT;
 
@@ -190,13 +192,14 @@ export function AssertionOpGroup({
       <AssertionsDndContext>
         <Stack gap="md">
           {opList}
-          <div>
+          <Flex align="center" gap="md">
             <AddOpButton
               triggerProps={{icon: <IconAdd />}}
               triggerLabel={t('Add Assertion')}
               onAddOp={handleAddOp}
             />
-          </div>
+            {trailingButtons}
+          </Flex>
         </Stack>
         <DropHandler rootOp={value} onChange={onChange} />
         <DragOverlay dropAnimation={null} />
