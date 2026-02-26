@@ -83,7 +83,15 @@ Sets `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False`.
 
 Under xdist, the server spawns a `run_connection` thread per worker. Each thread blocks on `conn.recv(1)` waiting for the next message. If no message arrives within 5 seconds (e.g., during heavy Django/plugin initialization or between test batches), `recv` raises `TimeoutError`, the thread dies, and crash recovery for that worker is lost. With 3 workers, all 3 threads die during startup, producing the `Exception in thread Thread-N (run_connection)` errors.
 
+The 5s timeout is hit because the `ClientStatusDB` connects during `pytest_configure`, but doesn't send any data until a test actually runs. Between connection and first message, the worker does Django initialization (~10s) and test collection (~100s). The server's `run_connection` thread is waiting on `recv(1)` that entire time and dies after 5s. The client still has its socket open but the server side is gone.
+
 Normal `--reruns` is unaffected — each worker retries failed tests locally via `StatusDB` (in-memory, no sockets). Only segfault crash recovery (reassigning a dead worker's test to another worker) is lost, which is a rare edge case.
+
+## 3. Skip Redundant Test Collection in calculate-shards
+
+**Modified:** `.github/workflows/backend.yml`, `.github/workflows/backend-xdist.yml`
+
+The `calculate-shards` job now has a fast path: when selective testing isn't active (push to master/branch), it outputs static defaults (22 shards) without checkout, setup-sentry, or `pytest --collect-only`. Saves ~3 min on the critical path. When selective testing IS active (PR), the full collection pipeline still runs to compute the right shard count.
 
 ### 2g. Snowflake test fix
 
