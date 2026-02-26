@@ -115,7 +115,7 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   onToggle?: (selected: Value[]) => void;
 }
 
-export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
+interface UseStagedCompactSelectReturn<Value extends SelectKey> {
   // Props that can be spread directly into CompactSelect
   compactSelectProps: Pick<
     MultipleSelectProps<Value>,
