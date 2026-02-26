@@ -20,9 +20,6 @@ logger = logging.getLogger(__name__)
 DIFF_THRESHOLD = 0.02
 
 
-# PIL (Pillow) Image — the standard Python image manipulation library.
-# Used here to decode raw bytes into pixel data for saving as PNG files
-# that odiff can compare.
 def _as_image(source: bytes | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
         img = Image.open(io.BytesIO(source))
@@ -38,6 +35,7 @@ def _as_image(source: bytes | Image.Image) -> Image.Image:
 def _mask_from_diff_output(output_path: Path) -> Image.Image:
     with Image.open(output_path) as img:
         rgba = img.convert("RGBA")
+    bands: tuple[Image.Image, ...] = ()
     try:
         bands = rgba.split()
         alpha = bands[3]
