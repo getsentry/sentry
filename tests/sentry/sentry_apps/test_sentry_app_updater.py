@@ -155,7 +155,9 @@ class TestUpdater(TestCase):
             updater.run(self.user)
         assert sentry_app.events == expand_events(["issue"])
         with assume_test_silo_mode(SiloMode.REGION):
-            service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
+            service_hook = ServiceHook.objects.filter(
+                application_id=sentry_app.application_id
+            ).order_by("id")[0]
         assert service_hook.events == expand_events(["issue"])
 
     def test_updates_webhook_url(self) -> None:

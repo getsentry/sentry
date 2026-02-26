@@ -571,39 +571,45 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
     path = "/api/0/auth/"
 
     def setUp(self) -> None:
-        self.normal_user = self.create_user("foo@example.com", id=1)
-        self.readonly_user = self.create_user("bar@example.com", id=2)
+        self.normal_user = self.create_user("foo@example.com")
+        self.readonly_user = self.create_user("bar@example.com")
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_authenticate(self) -> None:
-        self.login_as(self.normal_user)
-        response = self.client.post(self.path)
-        assert response.status_code == 200
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.login_as(self.normal_user)
+            response = self.client.post(self.path)
+            assert response.status_code == 200
 
-        self.login_as(self.readonly_user)
-        response = self.client.post(self.path)
-        assert response.status_code == 403
+            self.login_as(self.readonly_user)
+            response = self.client.post(self.path)
+            assert response.status_code == 403
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_log_out_single_session(self) -> None:
-        self.login_as(self.normal_user)
-        response = self.client.delete(self.path)
-        assert response.status_code == 204
-        assert list(self.client.session.keys()) == []
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.login_as(self.normal_user)
+            response = self.client.delete(self.path)
+            assert response.status_code == 204
+            assert list(self.client.session.keys()) == []
 
-        self.login_as(self.readonly_user)
-        response = self.client.delete(self.path)
-        assert response.status_code == 204
-        assert list(self.client.session.keys()) == []
+            self.login_as(self.readonly_user)
+            response = self.client.delete(self.path)
+            assert response.status_code == 204
+            assert list(self.client.session.keys()) == []
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_log_out_all_sessions(self) -> None:
-        self.login_as(self.normal_user)
-        response = self.client.delete(self.path, {"all": True})
-        assert response.status_code == 204
-        assert list(self.client.session.keys()) == []
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.login_as(self.normal_user)
+            response = self.client.delete(self.path, {"all": True})
+            assert response.status_code == 204
+            assert list(self.client.session.keys()) == []
 
-        self.login_as(self.readonly_user)
-        response = self.client.delete(self.path, {"all": True})
-        assert response.status_code == 403
-        assert len(list(self.client.session.keys())) > 0
+            self.login_as(self.readonly_user)
+            response = self.client.delete(self.path, {"all": True})
+            assert response.status_code == 403
+            assert len(list(self.client.session.keys())) > 0

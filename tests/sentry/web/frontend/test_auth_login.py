@@ -539,37 +539,36 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.redirect_chain == []
         assert "Please enter a correct username and password" in resp.content.decode()
 
-    @override_options(
-        {
-            "demo-mode.enabled": True,
-            "demo-mode.users": [1],
-            "demo-mode.orgs": [1],
-        }
-    )
     def test_login_demo_mode_with_org(self) -> None:
         demo_user = self.create_user(
             is_staff=False,
-            id=1,
             email="readonly@example.com",
             password="foo",
         )
-        demo_org = self.create_organization(owner=demo_user, id=1)
+        demo_org = self.create_organization(owner=demo_user)
 
-        self.client.get(self.path)
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_org.id],
+            }
+        ):
+            self.client.get(self.path)
 
-        resp = self.client.post(
-            self.path,
-            # login with any password
-            {"username": demo_user.username, "password": "bar", "op": "login"},
-            follow=True,
-        )
+            resp = self.client.post(
+                self.path,
+                # login with any password
+                {"username": demo_user.username, "password": "bar", "op": "login"},
+                follow=True,
+            )
 
-        assert resp.status_code == 200
-        # successful login redirects to demo orgs issue stream
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{demo_org.slug}/issues/", 302),
-        ]
+            assert resp.status_code == 200
+            # successful login redirects to demo orgs issue stream
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                (f"/organizations/{demo_org.slug}/issues/", 302),
+            ]
 
 
 @pytest.mark.skipif(

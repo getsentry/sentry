@@ -1677,7 +1677,7 @@ class TestWorkflowNotification(TestCase):
 
 class TestWebhookRequests(TestCase):
     def setUp(self) -> None:
-        self.organization = self.create_organization(owner=self.user, id=1)
+        self.organization = self.create_organization(owner=self.user)
         self.sentry_app = self.create_sentry_app(
             name="Test App",
             organization=self.organization,
