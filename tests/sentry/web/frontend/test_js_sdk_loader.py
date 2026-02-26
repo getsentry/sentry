@@ -438,10 +438,10 @@ class JavaScriptSdkLoaderTest(TestCase):
             reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
             in self.projectkey.js_sdk_loader_cdn_url
         )
-        settings.JS_SDK_LOADER_CDN_URL = "https://js.sentry-cdn.com/"
-        assert (
-            "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
-        ) == self.projectkey.js_sdk_loader_cdn_url
+        with self.settings(JS_SDK_LOADER_CDN_URL="https://js.sentry-cdn.com/"):
+            assert (
+                "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
+            ) == self.projectkey.js_sdk_loader_cdn_url
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["10.0.0"])
     @mock.patch(

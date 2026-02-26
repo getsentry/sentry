@@ -17,8 +17,8 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import OldProjectDetails from 'sentry/views/settings/projectSeer/index';
 
+import AutofixAgent from 'getsentry/views/seerAutomation/components/projectDetails/autofixAgent';
 import AutofixRepositories from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
-import SeerSettingsContainer from 'getsentry/views/seerAutomation/components/projectDetails/seerSettingsContainer';
 
 export default function SeerProjectDetailsPage() {
   const organization = useOrganization();
@@ -95,7 +95,7 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-          <SeerSettingsContainer
+          <AutofixAgent
             canWrite={canWrite}
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
