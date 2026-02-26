@@ -174,12 +174,11 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         )
 
         edges = _query_service_dependencies(snuba_params)
+        nodes = _build_nodes(edges, projects)
 
-        if not edges:
-            logger.info("No service dependencies found", extra={"org_id": organization_id})
+        if not nodes:
+            logger.info("No service map data found", extra={"org_id": organization_id})
             return
-
-        nodes = _build_nodes(edges)
 
         _send_to_seer(organization_id, nodes, edges)
 

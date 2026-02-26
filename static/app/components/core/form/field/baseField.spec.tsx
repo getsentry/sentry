@@ -22,7 +22,7 @@ function TestForm({label, hintText, required, defaultValue, validator}: TestForm
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="testField">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -49,7 +49,7 @@ function CompactTestForm({label, hintText, layout = 'Row'}: CompactTestFormProps
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="testField">
         {field => {
           const LayoutComponent = field.Layout[layout];

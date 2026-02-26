@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Heading} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
@@ -15,6 +16,7 @@ import {
   IconClose,
   IconContract,
   IconExpand,
+  IconFix,
   IconLightning,
   IconSearch,
 } from 'sentry/icons';
@@ -137,6 +139,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     insightsAvailable,
   } = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
+  const renderToString = useRenderToString();
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
   const contextHeight = renderingContext?.height;
@@ -367,14 +370,50 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     seriesIndex: 0,
   };
 
+  function formatInsightRow(insight: string | FlaggedInsight, index: number): string {
+    const key = typeof insight === 'string' ? insight : insight.key;
+    const savings = typeof insight === 'string' ? 0 : insight.savings;
+    const savingsHtml =
+      savings > 0
+        ? `<span style="color: ${theme.tokens.content.secondary}; text-align: right; white-space: nowrap; min-width: 68px;">-${formatBytesBase10(savings)}</span>`
+        : '';
+    const bgColor = index % 2 === 0 ? theme.tokens.background.secondary : 'transparent';
+
+    return `<div style="display: flex; align-items: flex-start; justify-content: space-between; padding: 4px; border-radius: 2px; background-color: ${bgColor}; line-height: 1.2; height: 22px; box-sizing: border-box;">
+      <span style="color: ${theme.tokens.content.primary}; white-space: nowrap;">${getInsightConfig(key).name}</span>
+      ${savingsHtml}
+    </div>`;
+  }
+
+  function formatInsightsSection(insights: Array<string | FlaggedInsight>): string {
+    if (insights.length === 0) {
+      return '';
+    }
+
+    const rows = insights.map(formatInsightRow).join('');
+    // Must be called inside the formatter callback, not at render time.
+    // renderToString uses flushSync which React silently suppresses during render.
+    const iconFixHtml = renderToString(<IconFix size="xs" variant="muted" />);
+
+    return `<div style="border-top: 1px solid ${theme.tokens.border.secondary}; padding-top: 8px;">
+      <div style="display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-bottom: 6px;">
+        ${iconFixHtml}
+        <span style="font-size: 12px; color: ${theme.tokens.content.primary}; line-height: 1.4;">${t('Insights')}</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
+        ${rows}
+      </div>
+    </div>`;
+  }
+
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
     backgroundColor: theme.tokens.background.primary,
     hideDelay: 0,
     transitionDuration: 0,
-    padding: 12,
-    extraCssText: 'border-radius: 6px;',
+    padding: [12, 8, 8, 8],
+    extraCssText: `border-radius: 6px; border: 1px solid ${theme.tokens.border.secondary}; border-bottom-width: 2px;`,
     textStyle: {
       color: theme.tokens.content.primary,
       fontFamily: 'Rubik',
@@ -382,49 +421,36 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);
-      const pathElement = params.data?.path
-        ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
+      const pathHtml = params.data?.path
+        ? `<div style="font-size: 12px; color: ${theme.tokens.content.secondary}; line-height: 1.2;">${params.data.path}</div>`
         : '';
-      const scaleElement = params.data?.misc?.scale
+      const scaleHtml = params.data?.misc?.scale
         ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
         : '';
-      const flaggedInsights: Array<string | FlaggedInsight> =
-        params.data?.flagged_insights ?? [];
-      const renderInsightBadge = (insight: string | FlaggedInsight) => {
-        const key = typeof insight === 'string' ? insight : insight.key;
-        const savings = typeof insight === 'string' ? null : insight.savings;
-        const savingsHtml =
-          savings !== null && savings > 0
-            ? `<span style="margin-left: auto; font-size: 11px; color: ${theme.colors.red400}; white-space: nowrap;">-${formatBytesBase10(savings)}</span>`
-            : '';
 
-        return `<div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 11px; background-color: ${theme.colors.red100}; color: ${theme.colors.red400}; padding: 2px 6px; border-radius: 3px;">${getInsightConfig(key).name}</span>
-          ${savingsHtml}
-        </div>`;
-      };
-      const insightBadges = flaggedInsights.map(renderInsightBadge).join('');
-      const insightBadgesHtml = insightBadges
-        ? `<div style="display: flex; flex-direction: column; gap: 4px; padding-top: 8px;">${insightBadges}</div>`
-        : '';
+      const dotColor = params.data?.itemStyle?.borderColor ?? theme.tokens.border.primary;
+      const category = params.data?.category ?? 'Other';
+      const insightsHtml = formatInsightsSection(params.data?.flagged_insights ?? []);
 
       return `
-            <div style="font-family: Rubik;">
-              <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${theme.space.md}; gap: ${theme.space.md}">
-                <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.tokens.border.primary};"></div>
-                <span style="color: ${theme.tokens.content.primary}">${params.data?.category || 'Other'}</span>
-              </div>
-              <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 14px; font-weight: bold;">${params.name}</span>
-                  ${scaleElement}
-                </div>
-                ${pathElement}
-                <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
-              </div>
-              ${insightBadgesHtml}
+        <div style="font-family: Rubik; white-space: normal; line-height: 1.2; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 4px;">
+            <div style="display: flex; align-items: center; font-size: 12px; font-weight: 500; line-height: 1.2; gap: 4px;">
+              <span style="display: inline-block; flex: 0 0 6px; width: 6px; height: 6px; min-width: 6px; max-width: 6px; border-radius: 50%; background-color: ${dotColor};"></span>
+              <span style="color: ${theme.tokens.content.primary}; white-space: nowrap;">${category}</span>
             </div>
-          `.trim();
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 14px; font-weight: 500; line-height: 1.2; color: ${theme.tokens.content.primary};">${params.name}</span>
+                ${scaleHtml}
+              </div>
+              ${pathHtml}
+              <div style="font-size: 12px; color: ${theme.tokens.content.secondary}; line-height: 1.2;">${formatBytesBase10(value)} ( ${percent}% )</div>
+            </div>
+          </div>
+          ${insightsHtml}
+        </div>
+      `.trim();
     },
   };
 

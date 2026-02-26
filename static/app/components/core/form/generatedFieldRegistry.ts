@@ -135,6 +135,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Spam Detection'),
   },
+  'project-toolbar.sentry:toolbar_allowed_origins': {
+    name: 'sentry:toolbar_allowed_origins',
+    formId: 'project-toolbar',
+    route: '/settings/:orgId/projects/:projectId/toolbar/',
+    label: t('Allowed Origins'),
+    hintText: '',
+  },
   'organization-settings-form.replayAccessMembers': {
     name: 'replayAccessMembers',
     formId: 'organization-settings-form',
