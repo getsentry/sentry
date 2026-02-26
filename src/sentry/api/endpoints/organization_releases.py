@@ -393,9 +393,18 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            queryset = queryset.annotate_prerelease_column()
+            order_by_build_code = features.has(
+                "organizations:semver-ordering-with-build-code", organization
+            )
 
-            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            queryset = queryset.annotate_prerelease_column()
+            if order_by_build_code:
+                queryset = queryset.annotate_build_code_column()
+
+            semver_cols = (
+                Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+            )
+            order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
@@ -566,9 +575,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
+            order_by_build_code = features.has(
+                "organizations:semver-ordering-with-build-code", organization
+            )
             queryset = queryset.annotate_prerelease_column()
+            if order_by_build_code:
+                queryset = queryset.annotate_build_code_column()
 
-            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            semver_cols = (
+                Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+            )
+            order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.

@@ -63,12 +63,9 @@ def launch_coding_agents(
 
     Raises:
         NotFound: If integration not found
-        PermissionDenied: If feature not enabled for the organization
+        PermissionDenied: If GitHub Copilot is not enabled for the organization
         ValidationError: If integration is invalid
     """
-    if not features.has("organizations:seer-coding-agent-integrations", organization):
-        raise PermissionDenied("Feature not available")
-
     integration = None
     installation: CodingAgentIntegration | None = None
     client: CodingAgentClient | None = None

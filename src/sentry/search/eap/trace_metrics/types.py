@@ -5,10 +5,18 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
     TraceItemFilter,
 )
 
 TraceMetricType = Literal["counter", "gauge", "distribution"]
+
+# Represents "any unit" — no unit filter is applied
+ANY_UNIT = "-"
+
+# Represents "no unit" — only items with no unit are selected
+NONE_UNIT = "none"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -35,7 +43,16 @@ class TraceMetric:
             ),
         ]
 
-        if self.metric_unit:
+        if self.metric_unit == NONE_UNIT:
+            unit_key = AttributeKey(name="sentry.metric_unit", type=AttributeKey.Type.TYPE_STRING)
+            filters.append(
+                TraceItemFilter(
+                    not_filter=NotFilter(
+                        filters=[TraceItemFilter(exists_filter=ExistsFilter(key=unit_key))]
+                    )
+                )
+            )
+        elif self.metric_unit is not None and self.metric_unit != ANY_UNIT:
             filters.append(
                 TraceItemFilter(
                     comparison_filter=ComparisonFilter(

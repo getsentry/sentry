@@ -4,15 +4,15 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -95,6 +95,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(
@@ -188,14 +189,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
           <Body>
             <Setup>
               <SetupTitle project={project} />
-              <CopySetupInstructionsGate>
-                <Container paddingBottom="md">
-                  <OnboardingCopyMarkdownButton
-                    steps={steps}
-                    source="issues_onboarding"
-                  />
-                </Container>
-              </CopySetupInstructionsGate>
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}
                 onStepChange={step => {
@@ -212,7 +205,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   const title = step.title ?? StepTitles[step.type ?? 'install'];
                   const isLastStep = index === steps.length - 1;
                   return (
-                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                    <GuidedSteps.Step
+                      key={index}
+                      stepKey={title}
+                      title={title}
+                      trailingItems={
+                        index === 0 && copyEnabled ? (
+                          <OnboardingCopyMarkdownButton
+                            borderless
+                            steps={steps}
+                            source="issues_onboarding"
+                          />
+                        ) : undefined
+                      }
+                    >
                       <StepIndexProvider index={index}>
                         <ContentBlocksRenderer
                           contentBlocks={step.content}

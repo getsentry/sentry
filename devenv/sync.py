@@ -226,7 +226,7 @@ def main(context: dict[str, str]) -> int:
             repo,
             reporoot,
             venv_dir,
-            (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "install", "--frozen"), {}),),
+            (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "install"), {}),),
             verbose,
         ):
             print("⚠️  agent skills failed to install (non-fatal)")

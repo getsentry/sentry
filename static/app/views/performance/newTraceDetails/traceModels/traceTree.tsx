@@ -365,7 +365,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: RootNode = new RootNode(null, null, null);
 
-  vital_types: Set<'web' | 'mobile'> = new Set();
+  vital_types = new Set<'web' | 'mobile'>();
   vitals = new Map<BaseNode, TraceTree.CollectedVital[]>();
 
   profiled_events = new Set<BaseNode>();

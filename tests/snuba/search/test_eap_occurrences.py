@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytest
 
@@ -138,21 +137,12 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert result["data"][0]["count()"] == 5
 
     def test_eap_forwarding_rate_dual_write(self) -> None:
-        trace_id = uuid4().hex
-
-        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
-            event = self.store_event(
-                data={
-                    "message": "dual write test error",
-                    "fingerprint": ["dual-write-group"],
-                    "timestamp": before_now(minutes=1).timestamp(),
-                    "contexts": {"trace": {"trace_id": trace_id}},
-                    "tags": {"browser": "chrome"},
-                },
-                project_id=self.project.id,
-                assert_no_errors=False,
-            )
-
+        events = self.store_events_to_snuba_and_eap(
+            "dual-write-group",
+            timestamp=before_now(minutes=1).timestamp(),
+            extra_event_data={"tags": {"browser": "chrome"}},
+        )
+        event = events[0]
         assert event.group is not None
 
         result = self._query_occurrences(

@@ -4,6 +4,7 @@ import {deleteDashboard as deleteDashboardAction} from 'sentry/actionCreators/da
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -15,10 +16,11 @@ interface UseDeleteDashboardProps {
 export function useDeleteDashboard({onSuccess}: UseDeleteDashboardProps) {
   const api = useApi();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
 
   const deleteDashboard = useCallback(
     (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
-      deleteDashboardAction(api, organization.slug, dashboard.id)
+      deleteDashboardAction(api, dashboard.id, queryClient, organization)
         .then(() => {
           trackAnalytics('dashboards_manage.delete', {
             organization,
@@ -32,7 +34,7 @@ export function useDeleteDashboard({onSuccess}: UseDeleteDashboardProps) {
           addErrorMessage(t('Error deleting Dashboard'));
         });
     },
-    [api, organization, onSuccess]
+    [api, organization, queryClient, onSuccess]
   );
 
   return deleteDashboard;

@@ -89,6 +89,7 @@ class ProjectKeyTest(TestCase):
 
         assert self.model(project=self.project, status=ProjectKeyStatus.ACTIVE).is_active is True
 
+    @override_settings(JS_SDK_LOADER_CDN_URL="")
     def test_get_dsn(self) -> None:
         with self.options({"system.region-api-url-template": ""}):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
