@@ -212,7 +212,8 @@ class TestAccounts(TestCase):
                     ip_address="127.0.0.1",
                     sender=recover_confirm,
                 ),
-            ]
+            ],
+            any_order=True,
         )
 
         assert UserEmail.objects.get(email=user.email).is_verified

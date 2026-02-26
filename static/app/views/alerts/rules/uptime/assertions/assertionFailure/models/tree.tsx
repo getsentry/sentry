@@ -7,7 +7,7 @@ import {
   isOrOp,
   isStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/typeGuards';
-import type {Assertion, Op} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion, UptimeOp} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AndOpTreeNode} from './andOpTreeNode';
 import {HeaderCheckOpTreeNode} from './headerCheckOpTreeNode';
@@ -25,7 +25,7 @@ export class Tree {
     this.root = root;
   }
 
-  static FromAssertion(assertion: Assertion): Tree {
+  static FromAssertion(assertion: UptimeAssertion): Tree {
     const root = Tree.buildNode(assertion.root, null);
 
     const tree = new Tree(root);
@@ -34,7 +34,7 @@ export class Tree {
     return tree;
   }
 
-  private static nodeFromOp(op: Op, parent: TreeNode | null): TreeNode {
+  private static nodeFromOp(op: UptimeOp, parent: TreeNode | null): TreeNode {
     if (isAndOp(op)) {
       return new AndOpTreeNode(op, parent);
     }
@@ -58,7 +58,7 @@ export class Tree {
     throw new Error('Unknown uptime assertion op');
   }
 
-  private static buildNode(op: Op, parent: TreeNode | null): TreeNode {
+  private static buildNode(op: UptimeOp, parent: TreeNode | null): TreeNode {
     const node = Tree.nodeFromOp(op, parent);
 
     for (const nextOp of node.nextOps) {

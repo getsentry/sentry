@@ -12,11 +12,15 @@ import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
 
 import {Container} from '@sentry/scraps/layout';
 
-import {OpType, type LogicalOp, type Op} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeOpType,
+  type UptimeLogicalOp,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {isAfterOp, moveTo} from './utils';
 
-function isOp(data: unknown): data is Op {
+function isOp(data: unknown): data is UptimeOp {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -54,7 +58,7 @@ interface DroppableProps extends React.HTMLAttributes<HTMLDivElement> {
   disabled: boolean;
   groupId: string;
   idIndex: number;
-  op: Op;
+  op: UptimeOp;
   position: 'before' | 'after' | 'inside';
 }
 
@@ -76,7 +80,8 @@ export function DroppableHitbox(props: DroppableProps) {
     disabled: dropzoneDisabled,
   });
 
-  const isGroup = op.op === OpType.AND || op.op === OpType.OR || op.op === OpType.NOT;
+  const isGroup =
+    op.op === UptimeOpType.AND || op.op === UptimeOpType.OR || op.op === UptimeOpType.NOT;
 
   const offsetConfig = {
     before: {bottom: isGroup ? 'calc(100% - 10px)' : '50%'},
@@ -102,8 +107,8 @@ export function DroppableHitbox(props: DroppableProps) {
 }
 
 interface DropHandlerProps {
-  onChange: (op: LogicalOp) => void;
-  rootOp: LogicalOp;
+  onChange: (op: UptimeLogicalOp) => void;
+  rootOp: UptimeLogicalOp;
 }
 
 /**
@@ -117,7 +122,7 @@ export function DropHandler({rootOp, onChange}: DropHandlerProps) {
       const {active, over} = event;
 
       // the root op should ALWAYS be `and`, but the typing doesn't strictly enforce that
-      if (rootOp.op !== OpType.AND) {
+      if (rootOp.op !== UptimeOpType.AND) {
         return;
       }
 

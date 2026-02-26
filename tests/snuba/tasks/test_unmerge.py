@@ -177,7 +177,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("projects:similarity-indexing")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record) -> None:
-        now = before_now(minutes=5).replace(microsecond=0)
+        # Replace second=0 to ensure all 17 events (now+0s to now+17s)
+        # stay within the same hour bucket. Without this, if now is within
+        # 17 seconds of an hour boundary, events can cross into the next
+        # bucket causing count mismatches.
+        now = before_now(minutes=5).replace(second=0, microsecond=0)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
@@ -261,7 +265,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         events.setdefault(get_fingerprint(event), []).append(event)
 
-        merge_source, source, destination = list(Group.objects.all())
+        merge_source, source, destination = list(Group.objects.all().order_by("id"))
 
         assert len(events) == 3
         assert sum(len(x) for x in events.values()) == 17

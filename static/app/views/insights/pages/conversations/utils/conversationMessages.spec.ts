@@ -4,7 +4,6 @@ import {
   buildConversationTurns,
   extractMessagesFromNodes,
   extractTextFromMessage,
-  findToolCallsBetween,
   getNodeTimestamp,
   mergeEmptyTurns,
   parseAssistantContent,
@@ -344,77 +343,6 @@ describe('conversationMessages utilities', () => {
 
       expect(result.generationSpans).toHaveLength(1);
       expect(result.toolSpans).toHaveLength(0);
-    });
-  });
-
-  describe('findToolCallsBetween', () => {
-    it('finds tools between timestamps', () => {
-      const tool1 = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'search',
-        startTimestamp: 1500,
-      });
-      const tool2 = createMockToolNode({
-        id: 'tool-2',
-        toolName: 'calc',
-        startTimestamp: 1600,
-      });
-      const tool3 = createMockToolNode({
-        id: 'tool-3',
-        toolName: 'outside',
-        startTimestamp: 2500,
-      });
-
-      const result = findToolCallsBetween([tool1, tool2, tool3] as any, 1000, 2000);
-
-      expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toEqual(['search', 'calc']);
-    });
-
-    it('excludes tools at exact boundaries', () => {
-      const tool1 = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'at-start',
-        startTimestamp: 1000,
-      });
-      const tool2 = createMockToolNode({
-        id: 'tool-2',
-        toolName: 'at-end',
-        startTimestamp: 2000,
-      });
-      const tool3 = createMockToolNode({
-        id: 'tool-3',
-        toolName: 'inside',
-        startTimestamp: 1500,
-      });
-
-      const result = findToolCallsBetween([tool1, tool2, tool3] as any, 1000, 2000);
-
-      expect(result).toHaveLength(1);
-      expect(result[0]?.name).toBe('inside');
-    });
-
-    it('filters out tools without names', () => {
-      const toolWithName = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'named',
-        startTimestamp: 1500,
-      });
-      const toolWithoutName = {
-        id: 'tool-2',
-        value: {start_timestamp: 1600},
-        attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'tool'},
-        errors: new Set(),
-      };
-
-      const result = findToolCallsBetween(
-        [toolWithName, toolWithoutName] as any,
-        1000,
-        2000
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]?.name).toBe('named');
     });
   });
 
