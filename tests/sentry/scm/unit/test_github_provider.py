@@ -370,7 +370,7 @@ CLIENT_DELEGATION_TESTS: list[
                 "42",
                 {
                     "commit_id": "abc123",
-                    "event": "comment",
+                    "event": "COMMENT",
                     "comments": [{"path": "f.py", "body": "fix"}],
                 },
             ),
@@ -1178,7 +1178,7 @@ class TestCreateReviewEdgeCases:
             (
                 "test-org/test-repo",
                 "42",
-                {"commit_id": "abc123", "event": "approve", "comments": []},
+                {"commit_id": "abc123", "event": "APPROVE", "comments": []},
             ),
             {},
         ) in client.calls
@@ -1197,7 +1197,7 @@ class TestCreateReviewEdgeCases:
                 "42",
                 {
                     "commit_id": "abc123",
-                    "event": "comment",
+                    "event": "COMMENT",
                     "comments": [],
                     "body": "Overall looks good",
                 },
