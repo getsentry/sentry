@@ -101,84 +101,91 @@ export default function ProjectUserFeedback() {
         <ProjectPermissionAlert project={project} />
 
         <Access access={['project:write']}>
-          <FieldGroup title={t('Settings')}>
-            <AutoSaveField
-              name="feedback:branding"
-              schema={userFeedbackSchema}
-              initialValue={Boolean(options['feedback:branding'])}
-              mutationOptions={projectMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Show Sentry Branding in Crash Report Modal')}
-                  hintText={t(
-                    'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
-                  )}
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveField>
-
-            <AutoSaveField
-              name="sentry:feedback_user_report_notifications"
-              schema={userFeedbackSchema}
-              initialValue={Boolean(options['sentry:feedback_user_report_notifications'])}
-              mutationOptions={projectMutationOptions}
-            >
-              {field => (
-                <field.Layout.Stack label={t('Enable Crash Report Notifications')}>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                  <Text size="sm" variant="muted">
-                    {tct(
-                      'Get notified on feedback submissions from the [crashReportModalDocsLink:Crash Report Modal], [webApiEndpointLink:web endpoint], and JS SDK (pre-v8). [feedbackWidgetDocsLink:Feedback widget] notifications are not affected by this setting and are on by default.',
-                      {
-                        crashReportModalDocsLink: (
-                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
-                        ),
-                        feedbackWidgetDocsLink: (
-                          <ExternalLink href="https://docs.sentry.io/product/user-feedback/#user-feedback-widget" />
-                        ),
-                        webApiEndpointLink: (
-                          <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
-                        ),
-                      }
-                    )}
-                  </Text>
-                </field.Layout.Stack>
-              )}
-            </AutoSaveField>
-
-            {features.has('user-feedback-spam-ingest') && hasAiEnabled && (
+          {({hasAccess}) => (
+            <FieldGroup title={t('Settings')}>
               <AutoSaveField
-                name="sentry:feedback_ai_spam_detection"
+                name="feedback:branding"
                 schema={userFeedbackSchema}
-                initialValue={Boolean(options['sentry:feedback_ai_spam_detection'])}
+                initialValue={Boolean(options['feedback:branding'])}
                 mutationOptions={projectMutationOptions}
               >
                 {field => (
-                  <field.Layout.Stack label={t('Enable Spam Detection')}>
+                  <field.Layout.Row
+                    label={t('Show Sentry Branding in Crash Report Modal')}
+                    hintText={t(
+                      'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
+                    )}
+                  >
                     <field.Switch
                       checked={field.state.value}
                       onChange={field.handleChange}
+                      disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveField>
+
+              <AutoSaveField
+                name="sentry:feedback_user_report_notifications"
+                schema={userFeedbackSchema}
+                initialValue={Boolean(
+                  options['sentry:feedback_user_report_notifications']
+                )}
+                mutationOptions={projectMutationOptions}
+              >
+                {field => (
+                  <field.Layout.Stack label={t('Enable Crash Report Notifications')}>
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
                     />
                     <Text size="sm" variant="muted">
-                      {t(
-                        'Toggles whether or not to enable auto spam detection in User Feedback.'
+                      {tct(
+                        'Get notified on feedback submissions from the [crashReportModalDocsLink:Crash Report Modal], [webApiEndpointLink:web endpoint], and JS SDK (pre-v8). [feedbackWidgetDocsLink:Feedback widget] notifications are not affected by this setting and are on by default.',
+                        {
+                          crashReportModalDocsLink: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
+                          ),
+                          feedbackWidgetDocsLink: (
+                            <ExternalLink href="https://docs.sentry.io/product/user-feedback/#user-feedback-widget" />
+                          ),
+                          webApiEndpointLink: (
+                            <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+                          ),
+                        }
                       )}
                     </Text>
-                    <AiPrivacyNotice />
                   </field.Layout.Stack>
                 )}
               </AutoSaveField>
-            )}
-          </FieldGroup>
+
+              {features.has('user-feedback-spam-ingest') && hasAiEnabled && (
+                <AutoSaveField
+                  name="sentry:feedback_ai_spam_detection"
+                  schema={userFeedbackSchema}
+                  initialValue={Boolean(options['sentry:feedback_ai_spam_detection'])}
+                  mutationOptions={projectMutationOptions}
+                >
+                  {field => (
+                    <field.Layout.Stack label={t('Enable Spam Detection')}>
+                      <field.Switch
+                        checked={field.state.value}
+                        onChange={field.handleChange}
+                        disabled={!hasAccess}
+                      />
+                      <Text size="sm" variant="muted">
+                        {t(
+                          'Toggles whether or not to enable auto spam detection in User Feedback.'
+                        )}
+                      </Text>
+                      <AiPrivacyNotice />
+                    </field.Layout.Stack>
+                  )}
+                </AutoSaveField>
+              )}
+            </FieldGroup>
+          )}
         </Access>
       </SentryDocumentTitle>
     </FormSearch>
