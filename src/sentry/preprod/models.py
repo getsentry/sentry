@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Literal, Self
 
 import sentry_sdk
 from django.db import models
@@ -225,7 +225,7 @@ class PreprodArtifact(DefaultFieldsModel):
     installable_app_error_message = models.TextField(null=True)
 
     @property
-    def platform(self) -> str | None:
+    def platform(self) -> Literal["apple", "android"] | None:
         if self.artifact_type is None:
             return None
         match self.artifact_type:
