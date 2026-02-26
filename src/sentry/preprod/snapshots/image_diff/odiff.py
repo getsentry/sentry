@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 import select
 import shutil
 import subprocess
@@ -10,18 +11,28 @@ from typing import Any
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
+ODIFF_PLATFORM_SUFFIXES = {
+    ("arm64", "Darwin"): "macos-arm64",
+    ("aarch64", "Darwin"): "macos-arm64",
+    ("x86_64", "Darwin"): "macos-x64",
+    ("x86_64", "Linux"): "linux-x64",
+    ("aarch64", "Linux"): "linux-arm64",
+    ("arm64", "Linux"): "linux-arm64",
+}
+
 
 def _find_odiff_binary() -> str:
-    candidates: list[Path] = []
+    suffix = ODIFF_PLATFORM_SUFFIXES.get((platform.machine(), platform.system()))
+
     current = Path(__file__).resolve()
     for parent in current.parents:
         if (parent / "pyproject.toml").exists():
-            candidates.append(parent / "node_modules" / ".bin" / "odiff")
+            if suffix:
+                raw = parent / "node_modules" / "odiff-bin" / "raw_binaries" / f"odiff-{suffix}"
+                if raw.exists():
+                    return str(raw)
             break
-    candidates.append(Path("/usr/local/bin/odiff"))
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate)
+
     found = shutil.which("odiff")
     if found:
         return found
