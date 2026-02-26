@@ -7,7 +7,7 @@ import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useFieldStateIndicator} from './baseField';
+import {useFieldStateIndicator, useLabelId} from './baseField';
 import {GroupProvider} from './groupContext';
 
 // Context for Radio.Group -> Radio.Item communication
@@ -40,6 +40,7 @@ interface RadioGroupProps {
 
 function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   const field = useFieldContext();
+  const labelId = useLabelId();
   const autoSaveContext = useAutoSaveContext();
   const indicator = useFieldStateIndicator();
 
@@ -65,7 +66,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   const content = (
     <GroupProvider>
       <RadioContext value={contextValue}>
-        <Flex as="fieldset" gap="md" align="center">
+        <Flex role="radiogroup" aria-labelledby={labelId} gap="md" align="center">
           {children}
           {indicator}
         </Flex>

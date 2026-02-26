@@ -1,6 +1,6 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
+import {useFieldId, useHintTextId, useLabelId} from '@sentry/scraps/form/field/baseField';
 import {useGroupContext} from '@sentry/scraps/form/field/groupContext';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {InfoText} from '@sentry/scraps/info';
@@ -28,6 +28,7 @@ function Label(props: {
 }) {
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
+  const labelId = useLabelId();
   const isGroup = useGroupContext();
 
   const labelContent = props.description ? (
@@ -36,17 +37,22 @@ function Label(props: {
     props.children
   );
 
+  const labelProps = isGroup
+    ? {
+        as: 'span' as const,
+        cursor: 'default',
+        id: labelId,
+      }
+    : {
+        as: 'label' as const,
+        htmlFor: fieldId,
+      };
+
   return (
     <Container width="fit-content">
       {containerProps => (
         <Flex gap="xs">
-          <Text
-            {...containerProps}
-            as={isGroup ? 'legend' : 'label'}
-            htmlFor={isGroup ? undefined : fieldId}
-            bold={false}
-            style={isGroup ? legendStyles : undefined}
-          >
+          <Text {...containerProps} {...labelProps} bold={false}>
             {labelContent}
           </Text>
           {props.required ? <RequiredIndicator /> : null}
@@ -59,12 +65,6 @@ function Label(props: {
     </Container>
   );
 }
-
-const legendStyles: React.CSSProperties = {
-  /* Reset global legend styles */
-  fontSize: 'inherit',
-  border: 'none',
-};
 
 export function FieldMeta() {
   return null;

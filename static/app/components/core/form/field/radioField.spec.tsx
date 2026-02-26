@@ -91,7 +91,7 @@ describe('RadioField', () => {
     render(<TestForm label="Priority" />);
 
     expect(screen.getByText('Priority')).toBeInTheDocument();
-    expect(screen.getByRole('group')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup')).toBeInTheDocument();
     expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
@@ -122,11 +122,10 @@ describe('RadioField', () => {
     expect(screen.getByText('Urgent issues')).toBeInTheDocument();
   });
 
-  it('renders as fieldset with legend', () => {
+  it('renders as radiogroup with associated label as text', () => {
     render(<TestForm label="Priority" />);
 
-    expect(screen.getByRole('group')).toBeInTheDocument();
-    expect(screen.getByText('Priority').tagName).toBe('LEGEND');
+    expect(screen.getByRole('radiogroup', {name: 'Priority'})).toBeInTheDocument();
   });
 });
 
@@ -149,7 +148,7 @@ describe('RadioField disabled', () => {
     });
 
     // Hover on the radio group to trigger tooltip
-    await userEvent.hover(screen.getByRole('group'));
+    await userEvent.hover(screen.getByRole('radiogroup'));
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -214,10 +213,10 @@ describe('RadioField auto-save', () => {
 });
 
 describe('RadioField a11y', () => {
-  it('has fieldset with group role', () => {
+  it('has container with group role', () => {
     render(<TestForm label="Priority" />);
 
-    expect(screen.getByRole('group')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup')).toBeInTheDocument();
   });
 
   it('includes required text for screen readers when required is true', () => {
