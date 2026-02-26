@@ -213,7 +213,7 @@ export function ProjectPageFilter({
         count: newValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: true,
+        multi: newValue.length > 1,
       });
 
       // Wait for the menu to close before calling onChange
@@ -454,8 +454,14 @@ export function ProjectPageFilter({
         )
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
-      onOpenChange={() => {
+      onOpenChange={isOpen => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+        if (isOpen) {
+          trackAnalytics('projectselector.open', {
+            path: getRouteStringFromRoutes(routes),
+            organization,
+          });
+        }
       }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
@@ -489,11 +495,25 @@ export function ProjectPageFilter({
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
                   <MenuComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                    onClick={() => {
+                      trackAnalytics('projectselector.cancel', {
+                        path: getRouteStringFromRoutes(routes),
+                        organization,
+                      });
+                      stagedSelect.removeStagedChanges();
+                    }}
                   />
                   <MenuComponents.ApplyButton
                     disabled={stagedSelect.disableCommit}
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      trackAnalytics('projectselector.apply', {
+                        count: stagedSelect.stagedValue.length,
+                        multi: stagedSelect.stagedValue.length > 1,
+                        path: getRouteStringFromRoutes(routes),
+                        organization,
+                      });
+                      stagedSelect.commit(stagedSelect.stagedValue);
+                    }}
                   />
                 </Flex>
               ) : null}
