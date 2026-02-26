@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.testutils.pytest.sentry import TEST_REDIS_DB
+from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic, _get_xdist_redis_db
 
 _log = logging.getLogger(__name__)
 
@@ -21,8 +21,16 @@ _log = logging.getLogger(__name__)
 # This helps the Relay CI to specify the generated Docker build before it is published
 RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nightly")
 
+# Must match template/credentials.json — used by _ensure_relay_in_db().
+_RELAY_ID = "88888888-4444-4444-8444-cccccccccccc"
+_RELAY_PUBLIC_KEY = "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
+
 
 def _relay_server_container_name() -> str:
+    """Under xdist, each worker gets its own container to avoid Docker name conflicts."""
+    worker_id = environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return f"sentry_test_relay_server_{worker_id}"
     return "sentry_test_relay_server"
 
 
@@ -48,6 +56,21 @@ def _remove_container_if_exists(docker_client, container_name):
                 pass
 
 
+def _ensure_relay_in_db():
+    """Re-insert the Relay model row if missing.
+
+    TransactionTestCase flushes the DB between tests, deleting the Relay row
+    that was created on first container registration. Without it, Sentry returns
+    401 to Relay requests (relay_from_id() raises DoesNotExist).
+    """
+    from sentry.models.relay import Relay
+
+    Relay.objects.get_or_create(
+        relay_id=_RELAY_ID,
+        defaults={"public_key": _RELAY_PUBLIC_KEY, "is_internal": True},
+    )
+
+
 @pytest.fixture(scope="module")
 def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
@@ -66,9 +89,12 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
+    # Per-worker port offset to avoid collisions under xdist
+    worker_id = environ.get("PYTEST_XDIST_WORKER", "gw0")
+    worker_num = int(worker_id.replace("gw", ""))
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331 + worker_num * 100)
 
-    redis_db = TEST_REDIS_DB
+    redis_db = _get_xdist_redis_db()
 
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
@@ -84,6 +110,8 @@ def relay_server_setup(live_server, tmpdir_factory):
         "KAFKA_HOST": "kafka",
         "REDIS_HOST": "redis",
         "REDIS_DB": redis_db,
+        "KAFKA_TOPIC_EVENTS": _get_xdist_kafka_topic("ingest-events"),
+        "KAFKA_TOPIC_OUTCOMES": _get_xdist_kafka_topic("outcomes"),
     }
 
     for source in sources:
@@ -127,34 +155,52 @@ def relay_server_setup(live_server, tmpdir_factory):
             _remove_container_if_exists(docker_client, container_name)
 
 
-@pytest.fixture(scope="function")
-def relay_server(relay_server_setup, settings):
-    adjust_settings_for_relay_tests(settings)
+@pytest.fixture(scope="class")
+def _relay_container(relay_server_setup):
+    """Class-scoped: start Docker container once per test class.
+
+    Eliminates ~10s Docker lifecycle overhead per test. The per-test relay_server
+    fixture handles re-inserting the Relay model row after TransactionTestCase flushes.
+    """
     options = relay_server_setup["options"]
+    container_name = _relay_server_container_name()
+
     with get_docker_client() as docker_client:
-        container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
         container = docker_client.containers.run(**options)
 
-    _log.info("Waiting for Relay container to start")
+    _log.info("Waiting for Relay container to start (class-scoped)")
 
     url = relay_server_setup["url"]
-
-    for i in range(8):
+    for i in range(10):
         try:
             requests.get(url)
             break
         except Exception as ex:
-            if i == 7:
+            if i == 9:
                 _log.exception(str(ex))
                 raise ValueError(
-                    f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
+                    f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) "
+                    f"{url}:\n{container.logs().decode()}"
                 ) from ex
             time.sleep(0.1 * 2**i)
-    else:
-        raise ValueError("relay did not start in time")
 
-    yield {"url": relay_server_setup["url"]}
+    yield {"url": url}
+
+    with get_docker_client() as docker_client:
+        _remove_container_if_exists(docker_client, container_name)
+
+
+@pytest.fixture(scope="function")
+def relay_server(_relay_container, settings):
+    """Function-scoped: adjust settings and ensure Relay identity exists in DB.
+
+    The Docker container persists across tests in the class (via _relay_container).
+    This fixture re-inserts the Relay model row that TransactionTestCase deletes.
+    """
+    adjust_settings_for_relay_tests(settings)
+    _ensure_relay_in_db()
+    yield {"url": _relay_container["url"]}
 
 
 def adjust_settings_for_relay_tests(settings):

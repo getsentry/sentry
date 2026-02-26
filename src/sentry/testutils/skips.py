@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import socket
 
 import pytest
@@ -21,8 +22,20 @@ def _requires_service_message(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    # TODO: ability to ask devservices what port a service is on
-    if not _service_available("127.0.0.1", 1218):
+    # Per-worker Snuba uses ports 1230+N; read from SNUBA env var if set.
+    port = 1218
+    snuba_url = os.environ.get("SNUBA", "")
+    if snuba_url:
+        try:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(snuba_url)
+            if parsed.port:
+                port = parsed.port
+        except Exception:
+            pass
+
+    if not _service_available("127.0.0.1", port):
         pytest.fail(_requires_service_message("snuba"))
 
 
