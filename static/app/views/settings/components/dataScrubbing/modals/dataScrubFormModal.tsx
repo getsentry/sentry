@@ -59,25 +59,25 @@ type EventId = {
 
 const dataScrubSchema = z
   .object({
-    method: z.nativeEnum(MethodType),
+    method: z.enum(MethodType),
     pattern: z.string(),
     placeholder: z.string(),
     replaceCaptured: z.boolean(),
     source: z.string(),
-    type: z.nativeEnum(RuleType),
-    dataset: z.nativeEnum(AllowedDataScrubbingDatasets),
+    type: z.enum(RuleType),
+    dataset: z.enum(AllowedDataScrubbingDatasets),
   })
   .superRefine((data, ctx) => {
     if (data.type === RuleType.PATTERN && !data.pattern.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: t('Field Required'),
         path: ['pattern'],
       });
     }
     if (!data.source.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: t('Field Required'),
         path: ['source'],
       });
