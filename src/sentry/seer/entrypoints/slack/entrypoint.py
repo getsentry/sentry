@@ -37,19 +37,6 @@ class SlackThreadDetails(TypedDict):
     channel_id: str
 
 
-class SlackMessageLink(TypedDict):
-    url: str
-    link_type: str  # LinkType.value: "issues", "metric_alert", "discover"
-    args: dict[str, Any]
-
-
-class SlackThreadMessage(TypedDict):
-    text: str
-    slack_user_id: str
-    timestamp: str
-    links: list[SlackMessageLink]
-
-
 class SlackEntrypointCachePayload(TypedDict):
     organization_id: int
     project_id: int
