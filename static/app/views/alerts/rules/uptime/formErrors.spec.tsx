@@ -1,4 +1,7 @@
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import {
+  AssertionFormError,
   extractPreviewCheckError,
   mapPreviewCheckErrorToMessage,
   resolveErroredAssertionOp,
@@ -11,6 +14,7 @@ import {
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {makeAndOp, makeStatusCodeOp} from './assertions/testUtils';
+import * as PreviewCheckContext from './previewCheckContext';
 
 function makeContext({
   data = null,
@@ -146,5 +150,46 @@ describe('resolveErroredAssertionOp', () => {
     };
 
     expect(resolveErroredAssertionOp(makeContext({error}), rootOp)).toBeNull();
+  });
+});
+
+describe('AssertionFormError', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  function mockContext(ctx: ReturnType<typeof makeContext> | null) {
+    jest.spyOn(PreviewCheckContext, 'usePreviewCheckResult').mockReturnValue(ctx);
+  }
+
+  it('renders nothing when op ids do not match', () => {
+    mockContext(makeContext());
+    const op = makeStatusCodeOp();
+    const otherOp = makeStatusCodeOp();
+    const {container} = render(<AssertionFormError op={op} erroredOp={otherOp} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders the error tooltip for an assertion failure', async () => {
+    const data = {check_result: {assertion_failure_data: {root: makeAndOp()}}};
+    mockContext(makeContext({data}));
+    const op = makeStatusCodeOp();
+    render(<AssertionFormError op={op} erroredOp={op} />);
+    expect(await screen.findByText('Assertion Failed')).toBeInTheDocument();
+  });
+
+  it('renders the error tooltip for a compilation error', async () => {
+    const error: PreviewCheckError = {
+      assertion: {
+        error: PreviewCheckErrorKind.COMPILATION_ERROR,
+        compileError: {
+          type: CompilationErrorType.INVALID_JSON_PATH,
+          msg: 'bad path',
+          assertPath: [],
+        },
+      },
+    };
+    mockContext(makeContext({error}));
+    const op = makeStatusCodeOp();
+    render(<AssertionFormError op={op} erroredOp={op} />);
+    expect(await screen.findByText('Invalid JSON Path: bad path')).toBeInTheDocument();
   });
 });
