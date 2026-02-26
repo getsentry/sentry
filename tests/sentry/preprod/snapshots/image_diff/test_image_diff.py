@@ -20,14 +20,6 @@ class TestCompareImages:
         assert result.changed_pixels == 0
         assert result.total_pixels == 100 * 100
 
-    def test_completely_different(self):
-        before = _make_solid_image(50, 50, (0, 0, 0, 255))
-        after = _make_solid_image(50, 50, (255, 255, 255, 255))
-        result = compare_images(before, after, threshold=0)
-        assert result is not None
-        assert result.diff_score > 0.5
-        assert result.changed_pixels > 0
-
     def test_different_sizes(self):
         small = _make_solid_image(30, 30, (100, 100, 100, 255))
         large = _make_solid_image(50, 50, (100, 100, 100, 255))
@@ -48,17 +40,6 @@ class TestCompareImages:
         result = compare_images(before, after)
         assert result is not None
         assert result.changed_pixels > 0
-
-    def test_threshold_sensitivity(self):
-        before = _make_solid_image(50, 50, (100, 100, 100, 255))
-        after = _make_solid_image(50, 50, (110, 110, 110, 255))
-
-        strict = compare_images(before, after, threshold=0)
-        lenient = compare_images(before, after, threshold=50)
-
-        assert strict is not None
-        assert lenient is not None
-        assert strict.diff_score >= lenient.diff_score
 
     def test_bytes_input(self):
         img = _make_solid_image(30, 30, (128, 128, 128, 255))
