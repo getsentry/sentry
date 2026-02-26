@@ -431,7 +431,7 @@ function CopyInstructionsButton() {
   );
 }
 
-function UnsupportedPlatformOnboarding({
+export function UnsupportedPlatformOnboarding({
   project,
   platformName,
 }: {
@@ -477,7 +477,7 @@ function UnsupportedPlatformOnboarding({
   );
 }
 
-function NoDocsOnboarding({project}: {project: Project}) {
+export function NoDocsOnboarding({project}: {project: Project}) {
   const copyEnabled = useCopySetupInstructionsEnabled();
 
   return (
