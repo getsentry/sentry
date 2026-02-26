@@ -6,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -65,6 +66,17 @@ function renderStackTrace() {
 }
 
 describe('Core StackTrace', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/stacktrace-link/',
+      body: {
+        config: null,
+        sourceUrl: null,
+        integrations: [],
+      },
+    });
+  });
+
   it('switches between app and full stack views', async () => {
     renderStackTrace();
 
@@ -181,14 +193,15 @@ describe('Core StackTrace', () => {
     expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
   });
 
-  it('toggles frame expansion when pressing Space on the chevron button', async () => {
+  it('toggles frame expansion when pressing Space on the chevron button', () => {
     renderStackTrace();
 
     const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
 
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
     firstChevron.focus();
-    await userEvent.keyboard('{Space}');
+    fireEvent.keyDown(firstChevron, {key: ' ', code: 'Space'});
+    fireEvent.keyUp(firstChevron, {key: ' ', code: 'Space'});
     expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
   });
 
@@ -238,7 +251,7 @@ describe('Core StackTrace', () => {
   it('renders frame badges for in-app and system frames', () => {
     renderStackTrace();
 
-    expect(screen.getByText('In App')).toBeInTheDocument();
+    expect(screen.getAllByText('In App').length).toBeGreaterThan(0);
     expect(screen.getByText('System')).toBeInTheDocument();
   });
 

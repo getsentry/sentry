@@ -349,6 +349,17 @@ export function FrameHeader() {
               aria-expanded={isExpanded}
               data-test-id="core-stacktrace-chevron-toggle"
               data-stacktrace-interactive="true"
+              onKeyDown={keyboardEvent => {
+                if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
+                  keyboardEvent.preventDefault();
+                }
+              }}
+              onKeyUp={keyboardEvent => {
+                if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
+                  keyboardEvent.preventDefault();
+                  toggleExpansion();
+                }
+              }}
               onClick={() => toggleExpansion()}
             >
               <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />

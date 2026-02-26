@@ -1,7 +1,2 @@
-export {
-  StackTrace,
-  useStackTraceContext,
-  useStackTraceFrameContext,
-  type StackTraceView,
-} from './stackTrace';
+export {StackTrace, useStackTraceContext} from './stackTrace';
 export {StackTraceWithCoverageData} from './stackTraceWithCoverageData';

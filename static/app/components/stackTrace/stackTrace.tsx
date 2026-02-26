@@ -30,15 +30,12 @@ import {
   StackTraceContext,
   StackTraceFrameContext,
   useStackTraceContext,
-  useStackTraceFrameContext,
 } from './stackTraceContext';
 import type {
   StackTraceContextValue,
   StackTraceFrameContextValue,
 } from './stackTraceContext';
 import type {FrameRow, StackTraceRootProps, StackTraceView} from './types';
-
-export type {StackTraceView} from './types';
 
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
   const framePlatform = stacktrace.frames?.find(frame => !!frame.platform)?.platform;
@@ -445,4 +442,4 @@ export const StackTrace = Object.assign(Root, {
   ViewSwitcher,
 });
 
-export {useStackTraceContext, useStackTraceFrameContext};
+export {useStackTraceContext};

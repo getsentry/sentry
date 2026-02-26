@@ -11,9 +11,17 @@ import {StackTrace} from './stackTrace';
 import {useStackTraceContext} from './stackTraceContext';
 import type {StackTraceRootProps} from './types';
 
+type StackTraceFrame = NonNullable<StackTraceRootProps['stacktrace']['frames']>[number];
+
+function hasCoverageEligibleFrameData(
+  frame: StackTraceFrame | undefined
+): frame is StackTraceFrame {
+  return !!frame?.filename && frame.lineNo !== null && frame.lineNo !== undefined;
+}
+
 function getStacktraceCoverageQueryOptions(params: {
   event: StackTraceRootProps['event'];
-  frame: NonNullable<StackTraceRootProps['stacktrace']['frames']>[number];
+  frame: StackTraceFrame;
   organizationSlug: string;
   projectSlug: string;
 }) {
@@ -55,38 +63,33 @@ function CoverageDataLoader({
 }) {
   const {event, expandedFrames, frames} = useStackTraceContext();
 
-  const expandedFrameCoverageQueries = useMemo(
-    () =>
-      Object.entries(expandedFrames)
-        .filter(([_frameIndex, isExpanded]) => isExpanded)
-        .flatMap(([frameIndex]) => {
-          const frame = frames[Number(frameIndex)];
+  const expandedFrameCoverageQueries = useMemo(() => {
+    if (!hasCodecovAccess || !organizationSlug || !projectSlug) {
+      return [];
+    }
 
-          if (
-            !hasCodecovAccess ||
-            !organizationSlug ||
-            !projectSlug ||
-            !frame?.filename ||
-            !frame.lineNo ||
-            !frame.context?.length
-          ) {
-            return [];
-          }
+    return Object.entries(expandedFrames)
+      .filter(([_frameIndex, isExpanded]) => isExpanded)
+      .flatMap(([frameIndex]) => {
+        const frame = frames[Number(frameIndex)];
 
-          return [
-            {
-              frameIndex: Number(frameIndex),
-              queryOptions: getStacktraceCoverageQueryOptions({
-                event,
-                frame,
-                organizationSlug,
-                projectSlug,
-              }),
-            },
-          ];
-        }),
-    [event, expandedFrames, frames, hasCodecovAccess, organizationSlug, projectSlug]
-  );
+        if (!hasCoverageEligibleFrameData(frame) || !frame.context?.length) {
+          return [];
+        }
+
+        return [
+          {
+            frameIndex: Number(frameIndex),
+            queryOptions: getStacktraceCoverageQueryOptions({
+              event,
+              frame,
+              organizationSlug,
+              projectSlug,
+            }),
+          },
+        ];
+      });
+  }, [event, expandedFrames, frames, hasCodecovAccess, organizationSlug, projectSlug]);
 
   return expandedFrameCoverageQueries.map(({frameIndex, queryOptions}) => (
     <ExpandedFrameCoverageQuery key={frameIndex} queryOptions={queryOptions} />
@@ -111,12 +114,14 @@ export function StackTraceWithCoverageData({
     NonNullable<StackTraceRootProps['getFrameLineCoverage']>
   >(
     ({event, frame}) => {
+      const organizationSlug = organization?.slug;
+      const projectSlug = project?.slug;
+
       if (
         !organization?.codecovAccess ||
-        !organization.slug ||
-        !project?.slug ||
-        !frame.filename ||
-        !frame.lineNo ||
+        !organizationSlug ||
+        !projectSlug ||
+        !hasCoverageEligibleFrameData(frame) ||
         !frame.context?.length
       ) {
         return undefined;
@@ -125,8 +130,8 @@ export function StackTraceWithCoverageData({
       const queryOptions = getStacktraceCoverageQueryOptions({
         event,
         frame,
-        organizationSlug: organization.slug,
-        projectSlug: project.slug,
+        organizationSlug,
+        projectSlug,
       });
       const coverageResponse = queryClient.getQueryData<CodecovResponse>(
         queryOptions.queryKey
