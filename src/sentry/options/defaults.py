@@ -3970,7 +3970,7 @@ register(
 register(
     "consumer.shared_memory_spawn_process",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

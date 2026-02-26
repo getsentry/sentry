@@ -20,8 +20,6 @@ from arroyo.utils.metrics import Metrics
 from arroyo.utils.stuck_detector import stuck_detector
 from django.conf import settings
 
-from sentry import options
-
 if TYPE_CHECKING:
     from sentry.metrics.base import MetricsBackend
 
@@ -210,12 +208,9 @@ def run_task_with_multiprocessing(
     else:
         assert pool.pool is not None
 
-        spawn_shared_memory_process = options.get("consumer.shared_memory_spawn_process")
-
         return ArroyoRunTaskWithMultiprocessing(
             pool=pool.pool,
             function=function,
-            spawn_shared_memory_process=spawn_shared_memory_process,
             **kwargs,
         )
 
