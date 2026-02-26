@@ -15,10 +15,11 @@ import {
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {
+  extractPreviewCheckError,
   mapPreviewCheckErrorToMessage,
   mapPreviewCheckResultToMessage,
 } from './formErrors';
-import {extractCompilationError, usePreviewCheckResult} from './previewCheckContext';
+import {usePreviewCheckResult} from './previewCheckContext';
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -81,7 +82,7 @@ export function TestUptimeMonitorButton({
       }
     },
     onError: (error: RequestError) => {
-      const extractedError = extractCompilationError(error.responseJSON);
+      const extractedError = extractPreviewCheckError(error.responseJSON);
       previewCheckResult?.setPreviewCheckError(extractedError);
 
       if (onValidationError && error.status === 400 && error.responseJSON) {

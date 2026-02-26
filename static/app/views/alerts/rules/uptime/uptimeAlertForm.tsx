@@ -41,13 +41,9 @@ import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
-import {mapToFormErrors} from './formErrors';
+import {extractPreviewCheckError, mapToFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
-import {
-  extractCompilationError,
-  PreviewCheckResultProvider,
-  usePreviewCheckResult,
-} from './previewCheckContext';
+import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
 import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
@@ -223,7 +219,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={responseJson => {
-        const extractedError = extractCompilationError(responseJson);
+        const extractedError = extractPreviewCheckError(responseJson);
         previewCheckResult?.setPreviewCheckError(extractedError);
         return mapToFormErrors(extractedError);
       }}

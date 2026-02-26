@@ -5,8 +5,6 @@ import type {
   PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 
-export {extractPreviewCheckError as extractCompilationError} from 'sentry/views/alerts/rules/uptime/formErrors';
-
 type PreviewCheckResultState = {
   data: PreviewCheckResult | null;
   error: PreviewCheckError | null;
