@@ -40,6 +40,11 @@ function McpToolsLandingPage({datePageFilterProps}: McpToolsLandingPageProps) {
   const showOnboarding = useShowMCPOnboarding();
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  if (hasPlatformized) {
+    return <PlatformizedMcpToolsOverview />;
+  }
+
   return (
     <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
       <ModuleFeature moduleName={ModuleName.MCP_TOOLS}>
@@ -98,11 +103,6 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
-  if (hasPlatformized) {
-    return <PlatformizedMcpToolsOverview />;
-  }
 
   return (
     <ModulePageProviders

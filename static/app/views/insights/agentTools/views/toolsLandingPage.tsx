@@ -45,6 +45,11 @@ function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps
 
   useAgentMonitoringTrackPageView();
 
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  if (hasPlatformized) {
+    return <PlatformizedToolsOverview />;
+  }
+
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
       <ModuleFeature moduleName={ModuleName.AGENT_TOOLS}>
@@ -105,11 +110,6 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
-  if (hasPlatformized) {
-    return <PlatformizedToolsOverview />;
-  }
 
   return (
     <ModulePageProviders

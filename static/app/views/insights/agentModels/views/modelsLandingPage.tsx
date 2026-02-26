@@ -46,6 +46,11 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
 
   useAgentMonitoringTrackPageView();
 
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  if (hasPlatformized) {
+    return <PlatformizedModelsOverview />;
+  }
+
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
       <ModuleFeature moduleName={ModuleName.AGENT_MODELS}>
@@ -109,11 +114,6 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
-  if (hasPlatformized) {
-    return <PlatformizedModelsOverview />;
-  }
 
   return (
     <ModulePageProviders
