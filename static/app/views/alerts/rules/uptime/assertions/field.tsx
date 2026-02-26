@@ -1,7 +1,7 @@
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
-import {resolveErroredOp} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {resolveErroredAssertionOp} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {
   UptimeComparisonType,
@@ -91,7 +91,7 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
   }
 
   const rootOp: UptimeAndOp = value.root;
-  const erroredOp = resolveErroredOp(previewCheckResult, rootOp) ?? undefined;
+  const erroredOp = resolveErroredAssertionOp(previewCheckResult, rootOp) ?? undefined;
 
   return (
     <AssertionOpGroup

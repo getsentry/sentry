@@ -97,7 +97,7 @@ export function mapPreviewCheckResultToMessage(
 
 // Matches a leaf op from the failure data op tree (pointing to the failing assertion)
 // to an op from the form's assertion op tree.
-function matchFailureDataLeafOp(
+function matchAssertionFailureDataLeafOp(
   failureDataOp: UptimeOp,
   assertionOp: UptimeOp
 ): UptimeOp | null {
@@ -118,22 +118,22 @@ function matchFailureDataLeafOp(
         (isLeafOp(failingChild) ? leafOpsMatchByValue(failingChild, c) : true)
     );
     if (!match) return null;
-    return matchFailureDataLeafOp(failingChild, match);
+    return matchAssertionFailureDataLeafOp(failingChild, match);
   }
 
   // NOT wraps a group op in `operand`; descend into it for both sides
   if (failureDataOp.op === UptimeOpType.NOT && assertionOp.op === UptimeOpType.NOT) {
-    return matchFailureDataLeafOp(failureDataOp.operand, assertionOp.operand);
+    return matchAssertionFailureDataLeafOp(failureDataOp.operand, assertionOp.operand);
   }
 
   return null;
 }
 
-function resolveErroredOpFromFailureData(
+function resolveErroredOpFromAssertionFailureData(
   failureDataOp: UptimeAndOp,
   rootOp: UptimeAndOp
 ): UptimeOp | null {
-  return matchFailureDataLeafOp(failureDataOp, rootOp);
+  return matchAssertionFailureDataLeafOp(failureDataOp, rootOp);
 }
 
 // Maps the assert path to the op in the form's assertion op tree.
@@ -168,7 +168,7 @@ function resolveErroredOpFromAssertPath(
  * Given the preview check results state and the current assertion tree, returns
  * the specific Op that caused the failure, or null if one cannot be identified.
  */
-export function resolveErroredOp(
+export function resolveErroredAssertionOp(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>,
   rootOp: UptimeAndOp
 ): UptimeOp | null {
@@ -180,7 +180,10 @@ export function resolveErroredOp(
     if (!result) return null;
 
     if (result.assertion_failure_data) {
-      return resolveErroredOpFromFailureData(result.assertion_failure_data.root, rootOp);
+      return resolveErroredOpFromAssertionFailureData(
+        result.assertion_failure_data.root,
+        rootOp
+      );
     }
 
     // No failure data; fall back to status_reason details if they carry an assertPath
@@ -212,7 +215,7 @@ const ASSERTION_ERROR_TYPE_LABELS: Partial<Record<string, string>> = {
   [RuntimeErrorType.INVALID_TYPE_COMPARISON]: t('Invalid Type Comparison'),
 };
 
-function getFormErrorMessage(
+function getFormAssertionErrorMessage(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>
 ): string | null {
   if (!previewCheckResult) return null;
@@ -262,7 +265,7 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
     return null;
   }
 
-  const message = getFormErrorMessage(previewCheckResult);
+  const message = getFormAssertionErrorMessage(previewCheckResult);
   if (!message) {
     return null;
   }
