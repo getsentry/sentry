@@ -189,7 +189,7 @@ def compare_snapshots(
             base_manifest = SnapshotManifest(
                 **orjson.loads(session.get(base_manifest_key).payload.read())
             )
-        except (orjson.JSONDecodeError, RequestError, ValidationError):
+        except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
             logger.exception(
                 "compare_snapshots: failed to load or parse manifest",
                 extra={
