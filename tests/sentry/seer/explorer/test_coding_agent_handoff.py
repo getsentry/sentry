@@ -1,8 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
-from rest_framework.exceptions import PermissionDenied
-
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -16,27 +13,10 @@ class TestLaunchCodingAgents(TestCase):
         self.organization = self.create_organization()
         self.run_id = 12345
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_raises_permission_denied_without_feature(self, mock_features):
-        """Test that PermissionDenied is raised when feature flag is disabled."""
-        mock_features.return_value = False
-
-        with pytest.raises(PermissionDenied, match="Feature not available"):
-            launch_coding_agents(
-                organization=self.organization,
-                integration_id=1,
-                run_id=self.run_id,
-                prompt="Fix the bug",
-                repos=["owner/repo"],
-            )
-
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_successful_launch(self, mock_features, mock_validate, mock_store):
+    def test_successful_launch(self, mock_validate, mock_store):
         """Test successful coding agent launch."""
-        mock_features.return_value = True
-
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
         mock_installation = MagicMock()
@@ -61,10 +41,8 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_invalid_repo_format(self, mock_features, mock_validate, mock_store):
+    def test_invalid_repo_format(self, mock_validate, mock_store):
         """Test that invalid repo format is handled as failure."""
-        mock_features.return_value = True
         mock_integration = MagicMock()
         mock_installation = MagicMock()
         mock_validate.return_value = (mock_integration, mock_installation)
@@ -84,12 +62,10 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_multiple_repos_partial_failure(self, mock_features, mock_validate, mock_store):
+    def test_multiple_repos_partial_failure(self, mock_validate, mock_store):
         """Test handling of partial failures across multiple repos."""
         from requests import HTTPError
 
-        mock_features.return_value = True
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
         mock_installation = MagicMock()
@@ -115,10 +91,8 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_branch_name_is_sanitized(self, mock_features, mock_validate, mock_store):
+    def test_branch_name_is_sanitized(self, mock_validate, mock_store):
         """Test that branch name is sanitized before launch."""
-        mock_features.return_value = True
         mock_integration = MagicMock()
         mock_installation = MagicMock()
         mock_installation.launch.return_value = MagicMock(dict=lambda: {"id": "agent-1"})
@@ -141,14 +115,14 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.explorer.coding_agent_handoff.GithubCopilotAgentClient")
     @patch("sentry.seer.explorer.coding_agent_handoff.github_copilot_identity_service")
     @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_copilot_not_licensed_403_returns_generic_failure_type(
+    def test_copilot_not_licensed_403_returns_github_copilot_not_licensed_failure_type(
         self,
         mock_features,
         mock_identity_service,
         mock_copilot_client_class,
         mock_store,
     ):
-        """Test that Copilot 403 'not licensed' errors return generic failure_type.
+        """Test that Copilot 403 'not licensed' errors return github_copilot_not_licensed failure_type.
 
         When GitHub Copilot returns a 403 with "not licensed to use Copilot", the user's
         account lacks an active Copilot subscription. This is distinct from a GitHub App
@@ -176,8 +150,5 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["successes"]) == 0
         assert len(result["failures"]) == 1
         failure = result["failures"][0]
-        assert failure["failure_type"] == "generic"
-        assert (
-            "not licensed" in failure["error_message"]
-            or "Copilot license" in failure["error_message"]
-        )
+        assert failure["failure_type"] == "github_copilot_not_licensed"
+        assert "Copilot license" in failure["error_message"]

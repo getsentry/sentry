@@ -12,7 +12,7 @@ export enum UptimeMonitorMode {
 }
 
 export interface UptimeRule {
-  assertion: Assertion | null;
+  assertion: UptimeAssertion | null;
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
@@ -33,7 +33,7 @@ export interface UptimeRule {
 }
 
 export interface UptimeCheck {
-  assertionFailureData: Assertion | null;
+  assertionFailureData: UptimeAssertion | null;
   checkStatus: CheckStatus;
   checkStatusReason: CheckStatusReason | null;
   durationMs: number;
@@ -88,76 +88,92 @@ export type CheckStatusBucket = [timestamp: number, stats: StatsBucket];
 
 // Uptime Assertion Types (matching Rust types from uptime-checker)
 
-export interface Assertion {
+export interface UptimeAssertion {
   // XXX(epurkhiser): The uptime-checker would actually allow this to be any
-  // Op, but we're restricting it on the frontend to always be a AndOp.
-  root: AndOp;
+  // Op, but we're restricting it on the frontend to always be a UptimeAndOp.
+  root: UptimeAndOp;
 }
 
-export type Comparison =
-  | {cmp: 'always'}
-  | {cmp: 'never'}
-  | {cmp: 'less_than'}
-  | {cmp: 'greater_than'}
-  | {cmp: 'equals'}
-  | {cmp: 'not_equal'};
+export enum UptimeOpType {
+  AND = 'and',
+  OR = 'or',
+  NOT = 'not',
+  STATUS_CODE_CHECK = 'status_code_check',
+  JSON_PATH = 'json_path',
+  HEADER_CHECK = 'header_check',
+}
 
-export type HeaderOperand =
+export enum UptimeComparisonType {
+  EQUALS = 'equals',
+  NOT_EQUAL = 'not_equal',
+  LESS_THAN = 'less_than',
+  GREATER_THAN = 'greater_than',
+  ALWAYS = 'always',
+  NEVER = 'never',
+}
+
+export type UptimeComparison = {cmp: UptimeComparisonType};
+
+export type UptimeHeaderOperand =
   | {header_op: 'none'}
   | {header_op: 'literal'; value: string}
   | {header_op: 'glob'; pattern: {value: string}};
 
-export type JsonPathOperand =
+export type UptimeJsonPathOperand =
   | {jsonpath_op: 'none'}
   | {jsonpath_op: 'literal'; value: string}
   | {jsonpath_op: 'glob'; pattern: {value: string}};
 
-export interface AndOp {
-  children: Op[];
+export interface UptimeAndOp {
+  children: UptimeOp[];
   id: string;
-  op: 'and';
+  op: UptimeOpType.AND;
 }
 
-export interface OrOp {
-  children: Op[];
+export interface UptimeOrOp {
+  children: UptimeOp[];
   id: string;
-  op: 'or';
+  op: UptimeOpType.OR;
 }
 
-export interface NotOp {
+export interface UptimeNotOp {
   id: string;
-  op: 'not';
-  operand: Op;
+  op: UptimeOpType.NOT;
+  operand: UptimeOp;
 }
 
-export interface StatusCodeOp {
+export interface UptimeStatusCodeOp {
   id: string;
-  op: 'status_code_check';
-  operator: Comparison;
+  op: UptimeOpType.STATUS_CODE_CHECK;
+  operator: UptimeComparison;
   value: number;
 }
 
-export interface JsonPathOp {
+export interface UptimeJsonPathOp {
   id: string;
-  op: 'json_path';
-  operand: JsonPathOperand;
-  operator: Comparison;
+  op: UptimeOpType.JSON_PATH;
+  operand: UptimeJsonPathOperand;
+  operator: UptimeComparison;
   value: string;
 }
 
-export interface HeaderCheckOp {
+export interface UptimeHeaderCheckOp {
   id: string;
-  key_op: Comparison;
-  key_operand: HeaderOperand;
-  op: 'header_check';
-  value_op: Comparison;
-  value_operand: HeaderOperand;
+  key_op: UptimeComparison;
+  key_operand: UptimeHeaderOperand;
+  op: UptimeOpType.HEADER_CHECK;
+  value_op: UptimeComparison;
+  value_operand: UptimeHeaderOperand;
 }
 
-export type GroupOp = AndOp | OrOp;
-export type LogicalOp = GroupOp | NotOp;
+export type UptimeGroupOp = UptimeAndOp | UptimeOrOp;
+export type UptimeLogicalOp = UptimeGroupOp | UptimeNotOp;
 
-export type Op = LogicalOp | StatusCodeOp | JsonPathOp | HeaderCheckOp;
+export type UptimeOp =
+  | UptimeLogicalOp
+  | UptimeStatusCodeOp
+  | UptimeJsonPathOp
+  | UptimeHeaderCheckOp;
 
 // Preview Check Types (raw response from uptime-checker /execute_config endpoint)
 
@@ -213,7 +229,7 @@ export interface PreviewCheckResponse {
 export interface PreviewCheckPayload {
   timeoutMs: number;
   url: string;
-  assertion?: Assertion | null;
+  assertion?: UptimeAssertion | null;
   body?: string | null;
   headers?: Array<[string, string]>;
   method?: string;
@@ -221,10 +237,16 @@ export interface PreviewCheckPayload {
 
 // Assertion Suggestions Types (from Seer-powered endpoint)
 
-export interface AssertionSuggestion {
-  assertion_json: Op;
-  assertion_type: 'status_code' | 'json_path' | 'header';
-  comparison: 'equals' | 'not_equal' | 'less_than' | 'greater_than' | 'always';
+export enum UptimeAssertionType {
+  STATUS_CODE = 'status_code',
+  JSON_PATH = 'json_path',
+  HEADER = 'header',
+}
+
+export interface UptimeAssertionSuggestion {
+  assertion_json: UptimeOp;
+  assertion_type: UptimeAssertionType;
+  comparison: Exclude<UptimeComparisonType, UptimeComparisonType.NEVER>;
   confidence: number;
   expected_value: string;
   explanation: string;
@@ -232,8 +254,8 @@ export interface AssertionSuggestion {
   json_path: string | null;
 }
 
-export interface AssertionSuggestionsResponse {
+export interface UptimeAssertionSuggestionsResponse {
   preview_result: PreviewCheckResponse;
-  suggested_assertion: Assertion | null;
-  suggestions: AssertionSuggestion[] | null;
+  suggested_assertion: UptimeAssertion | null;
+  suggestions: UptimeAssertionSuggestion[] | null;
 }

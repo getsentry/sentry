@@ -275,7 +275,7 @@ export function ConfigureRootCauseAnalysisStep() {
                   <AddRepoRow>
                     <CompactSelect
                       size="sm"
-                      searchable
+                      search
                       value={undefined}
                       strategy="fixed"
                       trigger={triggerProps => (

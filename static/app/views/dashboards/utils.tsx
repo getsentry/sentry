@@ -641,6 +641,13 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
   ].includes(displayType);
 };
 
+export function doesDisplayTypeSupportThresholds(displayType?: DisplayType): boolean {
+  if (!displayType) {
+    return false;
+  }
+  return displayType === DisplayType.BIG_NUMBER || usesTimeSeriesData(displayType);
+}
+
 // Custom widgets that fetch their own data (and don't use genericWidgetQueries)
 // handle error state and loading state on their own
 export const widgetFetchesOwnData = (widgetType: DisplayType) => {
