@@ -14,6 +14,7 @@ import useApi from 'sentry/utils/useApi';
 import {
   ProviderLabels,
   type DataForwarder,
+  type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
@@ -61,7 +62,7 @@ export function useMutateDataForwarder({
   const [endpoint] = dataForwarderId
     ? makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})
     : listQueryKey;
-  return useMutation<DataForwarder, RequestError, DataForwarder>({
+  return useMutation<DataForwarder, RequestError, DataForwarderPayload>({
     mutationFn: data => api.requestPromise(endpoint, {method, data}),
     onSuccess: (dataForwarder: DataForwarder) => {
       addSuccessMessage(
