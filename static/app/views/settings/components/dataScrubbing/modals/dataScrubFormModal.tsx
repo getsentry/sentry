@@ -8,7 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -266,263 +266,280 @@ function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        {traceItemDatasetsEnabled && (
-          <form.AppField name="dataset">
-            {field => (
-              <field.Radio.Group
-                value={field.state.value}
-                onChange={value => {
-                  field.handleChange(value as AllowedDataScrubbingDatasets);
-                  setDataset(value as AllowedDataScrubbingDatasets);
-                  form.setFieldValue('source', '');
-                }}
-              >
-                <field.Layout.Stack
-                  label={t('Dataset')}
-                  hintText={t('The dataset targetted by the scrubbing rule')}
-                  variant="compact"
+        <Stack gap={{xs: 'md', sm: 'xl'}}>
+          {traceItemDatasetsEnabled && (
+            <form.AppField name="dataset">
+              {field => (
+                <field.Radio.Group
+                  value={field.state.value}
+                  onChange={value => {
+                    field.handleChange(value as AllowedDataScrubbingDatasets);
+                    setDataset(value as AllowedDataScrubbingDatasets);
+                    form.setFieldValue('source', '');
+                  }}
                 >
-                  <Flex gap="lg">
-                    {sortBy(Object.values(AllowedDataScrubbingDatasets)).map(value => (
-                      <field.Radio.Item key={value} value={value}>
-                        {getDatasetLabelLong(value)}
-                      </field.Radio.Item>
-                    ))}
-                  </Flex>
-                </field.Layout.Stack>
-              </field.Radio.Group>
-            )}
-          </form.AppField>
-        )}
-
-        <form.AppField
-          name="method"
-          listeners={{
-            onChange: ({value}) => {
-              if (value !== MethodType.REPLACE) {
-                form.setFieldValue('placeholder', '');
-              }
-            },
-          }}
-        >
-          {field => (
-            <form.AppField name="placeholder">
-              {placeholderField => (
-                <FieldContainer hasTwoColumns={field.state.value === MethodType.REPLACE}>
                   <field.Layout.Stack
-                    label={t('Method')}
-                    hintText={t('What to do')}
+                    label={t('Dataset')}
+                    hintText={t('The dataset targetted by the scrubbing rule')}
                     variant="compact"
                   >
-                    <field.Select
-                      placeholder={t('Select method')}
-                      options={methodOptions}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      isSearchable={false}
-                      openOnFocus
-                    />
+                    <Flex gap="lg">
+                      {sortBy(Object.values(AllowedDataScrubbingDatasets)).map(value => (
+                        <field.Radio.Item key={value} value={value}>
+                          {getDatasetLabelLong(value)}
+                        </field.Radio.Item>
+                      ))}
+                    </Flex>
                   </field.Layout.Stack>
-                  {field.state.value === MethodType.REPLACE && (
-                    <placeholderField.Layout.Stack
-                      label={t('Custom Placeholder (Optional)')}
-                      hintText={t('It will replace the default placeholder [Filtered]')}
+                </field.Radio.Group>
+              )}
+            </form.AppField>
+          )}
+
+          <form.AppField
+            name="method"
+            listeners={{
+              onChange: ({value}) => {
+                if (value !== MethodType.REPLACE) {
+                  form.setFieldValue('placeholder', '');
+                }
+              },
+            }}
+          >
+            {field => (
+              <form.AppField name="placeholder">
+                {placeholderField => (
+                  <Grid
+                    columns={
+                      field.state.value === MethodType.REPLACE
+                        ? {xs: '1fr', sm: '1fr 1fr'}
+                        : '1fr'
+                    }
+                    gap={{sm: 'md'}}
+                  >
+                    <field.Layout.Stack
+                      label={t('Method')}
+                      hintText={t('What to do')}
                       variant="compact"
                     >
-                      <placeholderField.Input
-                        type="text"
-                        placeholder={`[${t('Filtered')}]`}
-                        onChange={placeholderField.handleChange}
-                        value={placeholderField.state.value}
+                      <field.Select
+                        placeholder={t('Select method')}
+                        options={methodOptions}
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        isSearchable={false}
+                        openOnFocus
                       />
-                    </placeholderField.Layout.Stack>
-                  )}
-                </FieldContainer>
-              )}
-            </form.AppField>
-          )}
-        </form.AppField>
-
-        <form.AppField
-          name="type"
-          listeners={{
-            onChange: ({value}) => {
-              if (value !== RuleType.PATTERN) {
-                form.setFieldValue('pattern', '');
-                form.setFieldValue('replaceCaptured', false);
-              }
-            },
-          }}
-        >
-          {typeField => (
-            <form.AppField name="pattern">
-              {patternField => (
-                <form.AppField name="replaceCaptured">
-                  {replaceCapturedField => (
-                    <FieldContainer
-                      hasTwoColumns={typeField.state.value === RuleType.PATTERN}
-                    >
-                      <typeField.Layout.Stack
-                        label={t('Data Type')}
-                        hintText={t(
-                          'What to look for. Use an existing pattern or define your own using regular expressions.'
-                        )}
+                    </field.Layout.Stack>
+                    {field.state.value === MethodType.REPLACE && (
+                      <placeholderField.Layout.Stack
+                        label={t('Custom Placeholder (Optional)')}
+                        hintText={t('It will replace the default placeholder [Filtered]')}
                         variant="compact"
                       >
-                        <typeField.Select
-                          placeholder={t('Select type')}
-                          options={typeOptions}
-                          value={typeField.state.value}
-                          onChange={typeField.handleChange}
-                          isSearchable={false}
-                          openOnFocus
+                        <placeholderField.Input
+                          type="text"
+                          placeholder={`[${t('Filtered')}]`}
+                          onChange={placeholderField.handleChange}
+                          value={placeholderField.state.value}
                         />
-                      </typeField.Layout.Stack>
-                      {typeField.state.value === RuleType.PATTERN && (
-                        <patternField.Layout.Stack
-                          label={t('Regex matches')}
-                          hintText={t('Custom regular expression (see documentation)')}
+                      </placeholderField.Layout.Stack>
+                    )}
+                  </Grid>
+                )}
+              </form.AppField>
+            )}
+          </form.AppField>
+
+          <form.AppField
+            name="type"
+            listeners={{
+              onChange: ({value}) => {
+                if (value !== RuleType.PATTERN) {
+                  form.setFieldValue('pattern', '');
+                  form.setFieldValue('replaceCaptured', false);
+                }
+              },
+            }}
+          >
+            {typeField => (
+              <form.AppField name="pattern">
+                {patternField => (
+                  <form.AppField name="replaceCaptured">
+                    {replaceCapturedField => (
+                      <Grid
+                        columns={
+                          typeField.state.value === RuleType.PATTERN
+                            ? {xs: '1fr', sm: '1fr 1fr'}
+                            : '1fr'
+                        }
+                        gap={{sm: 'md'}}
+                      >
+                        <typeField.Layout.Stack
+                          label={t('Data Type')}
+                          hintText={t(
+                            'What to look for. Use an existing pattern or define your own using regular expressions.'
+                          )}
                           variant="compact"
-                          required
                         >
-                          <RegularExpressionWrapper>
-                            <patternField.Input
-                              type="text"
-                              placeholder={t('[a-zA-Z0-9]+')}
-                              onChange={patternField.handleChange}
-                              value={patternField.state.value}
-                            />
-                          </RegularExpressionWrapper>
-                          <ReplaceCapturedCheckbox
-                            pattern={patternField.state.value}
-                            checked={replaceCapturedField.state.value}
-                            onChange={val => replaceCapturedField.handleChange(val)}
+                          <typeField.Select
+                            placeholder={t('Select type')}
+                            options={typeOptions}
+                            value={typeField.state.value}
+                            onChange={typeField.handleChange}
+                            isSearchable={false}
+                            openOnFocus
                           />
-                        </patternField.Layout.Stack>
-                      )}
-                    </FieldContainer>
-                  )}
-                </form.AppField>
-              )}
-            </form.AppField>
-          )}
-        </form.AppField>
-
-        <form.AppField name="source">
-          {sourceField => {
-            const sourceValue = sourceField.state.value;
-            const sourceError = sourceField.state.meta.errors?.[0]?.message;
-
-            if (traceItemDatasetsEnabled) {
-              return (
-                <SourceGroup>
-                  {dataset === AllowedDataScrubbingDatasets.DEFAULT ? (
-                    <Fragment>
-                      <Flex justify="end">
-                        {displayEventId ? (
-                          <Toggle
-                            priority="link"
-                            onClick={() => setDisplayEventId(false)}
+                        </typeField.Layout.Stack>
+                        {typeField.state.value === RuleType.PATTERN && (
+                          <patternField.Layout.Stack
+                            label={t('Regex matches')}
+                            hintText={t('Custom regular expression (see documentation)')}
+                            variant="compact"
+                            required
                           >
-                            {t('Hide event ID field')}
-                            <IconChevron direction="up" size="xs" />
-                          </Toggle>
-                        ) : (
-                          <Toggle priority="link" onClick={() => setDisplayEventId(true)}>
-                            {t('Use event ID for auto-completion')}
-                            <IconChevron direction="down" size="xs" />
-                          </Toggle>
+                            <RegularExpressionWrapper>
+                              <patternField.Input
+                                type="text"
+                                placeholder={t('[a-zA-Z0-9]+')}
+                                onChange={patternField.handleChange}
+                                value={patternField.state.value}
+                              />
+                            </RegularExpressionWrapper>
+                            <ReplaceCapturedCheckbox
+                              pattern={patternField.state.value}
+                              checked={replaceCapturedField.state.value}
+                              onChange={val => replaceCapturedField.handleChange(val)}
+                            />
+                          </patternField.Layout.Stack>
                         )}
-                      </Flex>
-                      <SourceGroup isExpanded={displayEventId}>
-                        {displayEventId && (
-                          <EventIdField
-                            onUpdateEventId={handleUpdateEventId}
-                            eventId={eventId}
+                      </Grid>
+                    )}
+                  </form.AppField>
+                )}
+              </form.AppField>
+            )}
+          </form.AppField>
+
+          <form.AppField name="source">
+            {sourceField => {
+              const sourceValue = sourceField.state.value;
+              const sourceError = sourceField.state.meta.errors?.[0]?.message;
+
+              if (traceItemDatasetsEnabled) {
+                return (
+                  <SourceGroup>
+                    {dataset === AllowedDataScrubbingDatasets.DEFAULT ? (
+                      <Fragment>
+                        <Flex justify="end">
+                          {displayEventId ? (
+                            <Toggle
+                              priority="link"
+                              onClick={() => setDisplayEventId(false)}
+                            >
+                              {t('Hide event ID field')}
+                              <IconChevron direction="up" size="xs" />
+                            </Toggle>
+                          ) : (
+                            <Toggle
+                              priority="link"
+                              onClick={() => setDisplayEventId(true)}
+                            >
+                              {t('Use event ID for auto-completion')}
+                              <IconChevron direction="down" size="xs" />
+                            </Toggle>
+                          )}
+                        </Flex>
+                        <SourceGroup isExpanded={displayEventId}>
+                          {displayEventId && (
+                            <EventIdField
+                              onUpdateEventId={handleUpdateEventId}
+                              eventId={eventId}
+                            />
+                          )}
+                          <SourceField
+                            onChange={value => sourceField.handleChange(value)}
+                            value={sourceValue}
+                            error={sourceError}
+                            onBlur={sourceField.handleBlur}
+                            isRegExMatchesSelected={
+                              form.getFieldValue('type') === RuleType.PATTERN
+                            }
+                            suggestions={sourceSuggestions}
                           />
-                        )}
-                        <SourceField
-                          onChange={value => sourceField.handleChange(value)}
+                          {containsRootDeepWildcard(sourceValue) && (
+                            <Alert variant="warning" style={{marginTop: space(1)}}>
+                              {t(
+                                `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
+                              )}
+                            </Alert>
+                          )}
+                        </SourceGroup>
+                      </Fragment>
+                    ) : (
+                      <Fragment>
+                        <AttributeField
+                          dataset={dataset}
+                          onChange={value =>
+                            sourceField.handleChange(
+                              TraceItemFieldSelector.fromField(
+                                dataset,
+                                value
+                              )?.getSelector() ?? ''
+                            )
+                          }
                           value={sourceValue}
                           error={sourceError}
-                          onBlur={sourceField.handleBlur}
-                          isRegExMatchesSelected={
-                            form.getFieldValue('type') === RuleType.PATTERN
-                          }
-                          suggestions={sourceSuggestions}
+                          onBlur={(value, _event) => {
+                            handleValidateAttributeField(value);
+                            sourceField.handleBlur();
+                          }}
+                          projectId={projectId}
                         />
-                        {containsRootDeepWildcard(sourceValue) && (
-                          <Alert variant="warning" style={{marginTop: space(1)}}>
-                            {t(
-                              `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
-                            )}
-                          </Alert>
-                        )}
-                      </SourceGroup>
-                    </Fragment>
-                  ) : (
-                    <Fragment>
-                      <AttributeField
-                        dataset={dataset}
-                        onChange={value =>
-                          sourceField.handleChange(
-                            TraceItemFieldSelector.fromField(
-                              dataset,
-                              value
-                            )?.getSelector() ?? ''
-                          )
-                        }
-                        value={sourceValue}
-                        error={sourceError}
-                        onBlur={(value, _event) => {
-                          handleValidateAttributeField(value);
-                          sourceField.handleBlur();
-                        }}
-                        projectId={projectId}
-                      />
-                    </Fragment>
-                  )}
-                </SourceGroup>
-              );
-            }
+                      </Fragment>
+                    )}
+                  </SourceGroup>
+                );
+              }
 
-            return (
-              <Fragment>
-                <Flex justify="end">
-                  {displayEventId ? (
-                    <Toggle priority="link" onClick={() => setDisplayEventId(false)}>
-                      {t('Hide event ID field')}
-                      <IconChevron direction="up" size="xs" />
-                    </Toggle>
-                  ) : (
-                    <Toggle priority="link" onClick={() => setDisplayEventId(true)}>
-                      {t('Use event ID for auto-completion')}
-                      <IconChevron direction="down" size="xs" />
-                    </Toggle>
-                  )}
-                </Flex>
-                <SourceGroup isExpanded={displayEventId}>
-                  {displayEventId && (
-                    <EventIdField
-                      onUpdateEventId={handleUpdateEventId}
-                      eventId={eventId}
+              return (
+                <Fragment>
+                  <Flex justify="end">
+                    {displayEventId ? (
+                      <Toggle priority="link" onClick={() => setDisplayEventId(false)}>
+                        {t('Hide event ID field')}
+                        <IconChevron direction="up" size="xs" />
+                      </Toggle>
+                    ) : (
+                      <Toggle priority="link" onClick={() => setDisplayEventId(true)}>
+                        {t('Use event ID for auto-completion')}
+                        <IconChevron direction="down" size="xs" />
+                      </Toggle>
+                    )}
+                  </Flex>
+                  <SourceGroup isExpanded={displayEventId}>
+                    {displayEventId && (
+                      <EventIdField
+                        onUpdateEventId={handleUpdateEventId}
+                        eventId={eventId}
+                      />
+                    )}
+                    <SourceField
+                      onChange={value => sourceField.handleChange(value)}
+                      value={sourceValue}
+                      error={sourceError}
+                      onBlur={sourceField.handleBlur}
+                      isRegExMatchesSelected={
+                        form.getFieldValue('type') === RuleType.PATTERN
+                      }
+                      suggestions={sourceSuggestions}
                     />
-                  )}
-                  <SourceField
-                    onChange={value => sourceField.handleChange(value)}
-                    value={sourceValue}
-                    error={sourceError}
-                    onBlur={sourceField.handleBlur}
-                    isRegExMatchesSelected={
-                      form.getFieldValue('type') === RuleType.PATTERN
-                    }
-                    suggestions={sourceSuggestions}
-                  />
-                </SourceGroup>
-              </Fragment>
-            );
-          }}
-        </form.AppField>
+                  </SourceGroup>
+                </Fragment>
+              );
+            }}
+          </form.AppField>
+        </Stack>
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="lg">
@@ -568,16 +585,6 @@ function ReplaceCapturedCheckbox({
 }
 
 export default DataScrubFormModal;
-
-const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
-  display: grid;
-  margin-bottom: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${space(2)};
-    ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
-    margin-bottom: ${p => p.theme.space.xl};
-  }
-`;
 
 const SourceGroup = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
