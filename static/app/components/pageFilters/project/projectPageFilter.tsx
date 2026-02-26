@@ -6,7 +6,12 @@ import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+  SelectSection,
+} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -239,14 +244,14 @@ export function ProjectPageFilter({
   );
 
   const onToggle = useCallback(
-    (newValue: any) => {
+    (newValue: number[]) => {
       trackAnalytics('projectselector.toggle', {
-        action: newValue.length > value.length ? 'added' : 'removed',
+        action: newValue.length > stagedValue.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
         organization,
       });
     },
-    [value, routes, organization]
+    [stagedValue, routes, organization]
   );
 
   const onReplace = useCallback(() => {
@@ -263,6 +268,17 @@ export function ProjectPageFilter({
       organization,
     });
   }, [onReset, routes, organization]);
+
+  const handleSectionToggle = useCallback(
+    (section: SelectSection<SelectKey>) => {
+      trackAnalytics('projectselector.multi_button_clicked', {
+        button_type: section.key === 'my-projects' ? 'my' : 'all',
+        path: getRouteStringFromRoutes(routes),
+        organization,
+      });
+    },
+    [routes, organization]
+  );
 
   const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -420,6 +436,7 @@ export function ProjectPageFilter({
     onToggle,
     onReplace,
     onReset: handleReset,
+    onSectionToggle: handleSectionToggle,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });
