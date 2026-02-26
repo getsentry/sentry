@@ -133,6 +133,52 @@ def _configure_test_env_regions() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
+# ── G1: Skip irrelevant test files during collection ──────────────────
+# When SELECTED_TESTS_FILE is set, pytest_ignore_collect prevents pytest from
+# importing files that aren't in the selected list. This runs *before* module
+# import, avoiding the ~1m45s full-collection overhead on each shard.
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        sel_path = Path(selected_file)
+        if not sel_path.exists():
+            return None
+        with sel_path.open() as f:
+            _COLLECT_ALLOWED_FILES = frozenset(
+                line.strip().split("::")[0] for line in f if line.strip()
+            )
+
+    # Let directories through so pytest can descend into them.
+    if collection_path.is_dir():
+        return None
+
+    # Only gate .py files — let conftest, plugins, etc. through.
+    if collection_path.suffix != ".py":
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    # Don't skip conftest files — they set up fixtures needed by child tests.
+    if collection_path.name == "conftest.py":
+        return None
+
+    # Only filter files under tests/
+    if not rel.startswith("tests/"):
+        return None
+
+    return rel not in _COLLECT_ALLOWED_FILES
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
@@ -464,18 +510,26 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     keep, discard = [], []
 
-    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    # Filter by selected tests if SELECTED_TESTS_FILE is set.
+    # TIER_GRANULARITY controls matching: file (default), class, or test.
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
     if selected_tests_file:
         selected_path = Path(selected_tests_file)
         if selected_path.exists():
             with selected_path.open() as f:
-                selected_files = {line.strip() for line in f if line.strip()}
+                selected_ids = {line.strip() for line in f if line.strip()}
 
-            if selected_files:
+            if selected_ids:
+                granularity = os.environ.get("TIER_GRANULARITY", "file")
                 for item in items:
-                    test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    parts = item.nodeid.split("::")
+                    if granularity == "test":
+                        key = item.nodeid
+                    elif granularity == "class":
+                        key = "::".join(parts[:2])
+                    else:
+                        key = parts[0]
+                    if key in selected_ids:
                         keep.append(item)
                     else:
                         discard.append(item)
@@ -553,3 +607,31 @@ def _xdist_per_worker_snuba():
 def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _wait_for_services():
+    """Block until background services are ready (H1 overlapped startup).
+
+    With G1 (pytest_ignore_collect), test collection finishes ~50s faster,
+    which means tests can start executing before devservices has finished
+    starting. This fixture blocks on a sentinel file written by the background
+    service-startup script, ensuring all services are healthy before any test
+    runs. The collection phase still overlaps with service startup.
+    """
+    sentinel = os.environ.get("SERVICES_READY_FILE")
+    if not sentinel:
+        return
+    timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "180"))
+    start = time.time()
+    sentinel_path = Path(sentinel)
+    while not sentinel_path.exists():
+        if time.time() - start > timeout:
+            sys.stderr.write(
+                f"[services] WARNING: timed out after {timeout}s waiting for {sentinel}\n"
+            )
+            break
+        time.sleep(1)
+    elapsed = time.time() - start
+    if elapsed > 1:
+        sys.stderr.write(f"[services] waited {elapsed:.0f}s for services after collection\n")
