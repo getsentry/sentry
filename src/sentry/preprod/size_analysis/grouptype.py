@@ -118,7 +118,7 @@ class PreprodSizeAnalysisDetectorHandler(
     def extract_value(self, data_packet: SizeAnalysisDataPacket) -> SizeAnalysisEvaluation:
         threshold_type = self.detector.config["threshold_type"]
         match threshold_type:
-            case "absolute_threshold":
+            case "absolute":
                 return self._extract_head(data_packet)
             case "absolute_diff":
                 return self._extract_head(data_packet) - self._extract_base(data_packet)
@@ -192,7 +192,7 @@ class PreprodSizeAnalysisGroupType(GroupType):
             "properties": {
                 "threshold_type": {
                     "type": "string",
-                    "enum": ["absolute_diff", "absolute_threshold", "relative_diff"],
+                    "enum": ["absolute_diff", "absolute", "relative_diff"],
                     "description": "The type of threshold to apply",
                 },
                 "measurement": {
