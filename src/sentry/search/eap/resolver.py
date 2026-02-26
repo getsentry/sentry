@@ -46,6 +46,7 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     ColumnDefinitions,
     FormulaDefinition,
+    ResolvedArgument,
     ResolvedArguments,
     ResolvedAttribute,
     ResolvedColumn,
@@ -1123,6 +1124,7 @@ class SearchResolver:
 
         resolved_arguments: ResolvedArguments = []
         for parsed_arg in parsed_args:
+            resolved_argument: ResolvedArgument
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
                 search_type = function_definition.default_search_type
