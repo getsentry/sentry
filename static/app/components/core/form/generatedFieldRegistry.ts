@@ -114,13 +114,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
-  'config-form.tempestFetchScreenshots': {
-    name: 'tempestFetchScreenshots',
-    formId: 'config-form',
-    route: '/settings/:orgId/projects/:projectId/playstation/',
-    label: t('Attach Screenshots'),
-    hintText: t('Attach screenshots to issues.'),
-  },
   'organization-settings-form.replayAccessMembers': {
     name: 'replayAccessMembers',
     formId: 'organization-settings-form',

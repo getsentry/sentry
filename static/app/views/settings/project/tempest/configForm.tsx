@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -19,32 +19,30 @@ interface ConfigFormProps {
 
 export function ConfigForm({organization, project}: ConfigFormProps) {
   return (
-    <FormSearch route="/settings/:orgId/projects/:projectId/playstation/">
-      <FieldGroup title={t('General Settings')}>
-        <AutoSaveField
-          name="tempestFetchScreenshots"
-          schema={schema}
-          initialValue={project.tempestFetchScreenshots ?? false}
-          mutationOptions={{
-            mutationFn: data =>
-              fetchMutation<Project>({
-                url: `/projects/${organization.slug}/${project.slug}/`,
-                method: 'PUT',
-                data,
-              }),
-            onSuccess: response => ProjectsStore.onUpdateSuccess(response),
-          }}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Attach Screenshots')}
-              hintText={t('Attach screenshots to issues.')}
-            >
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
-      </FieldGroup>
-    </FormSearch>
+    <FieldGroup title={t('General Settings')}>
+      <AutoSaveField
+        name="tempestFetchScreenshots"
+        schema={schema}
+        initialValue={project.tempestFetchScreenshots ?? false}
+        mutationOptions={{
+          mutationFn: data =>
+            fetchMutation<Project>({
+              url: `/projects/${organization.slug}/${project.slug}/`,
+              method: 'PUT',
+              data,
+            }),
+          onSuccess: response => ProjectsStore.onUpdateSuccess(response),
+        }}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Attach Screenshots')}
+            hintText={t('Attach screenshots to issues.')}
+          >
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    </FieldGroup>
   );
 }
