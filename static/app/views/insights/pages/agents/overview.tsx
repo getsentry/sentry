@@ -21,6 +21,8 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -45,7 +47,6 @@ import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
-import {PlatformizedAgentsOverview} from 'sentry/views/insights/pages/agents/platformizedAgentsOverview';
 import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -65,7 +66,9 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const hasPlatformized = useHasPlatformizedAiAndMcp();
 
   if (hasPlatformized) {
-    return <PlatformizedAgentsOverview />;
+    return (
+      <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.AI_AGENTS_OVERVIEW} />
+    );
   }
 
   return (

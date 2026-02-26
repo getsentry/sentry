@@ -10,6 +10,8 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -19,7 +21,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {PlatformizedMcpToolsOverview} from 'sentry/views/insights/mcp-tools/views/platformizedMcpToolsOverview';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import McpToolDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpToolDurationWidget';
@@ -42,7 +43,7 @@ function McpToolsLandingPage({datePageFilterProps}: McpToolsLandingPageProps) {
 
   const hasPlatformized = useHasPlatformizedAiAndMcp();
   if (hasPlatformized) {
-    return <PlatformizedMcpToolsOverview />;
+    return <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.MCP_TOOLS} />;
   }
 
   return (

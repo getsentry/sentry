@@ -14,6 +14,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -35,7 +37,6 @@ import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
-import {PlatformizedMcpOverview} from 'sentry/views/insights/pages/mcp/platformizedMcpOverview';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
 interface McpOverviewPageProps {
@@ -59,7 +60,7 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   if (hasPlatformized) {
-    return <PlatformizedMcpOverview />;
+    return <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.MCP_OVERVIEW} />;
   }
 
   return (
