@@ -13,6 +13,7 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     ActionResult,
+    BranchName,
     BuildConclusion,
     BuildStatus,
     CheckRun,
@@ -20,6 +21,7 @@ from sentry.scm.types import (
     Comment,
     Commit,
     CommitComparison,
+    CommitSHA,
     FileContent,
     GitBlob,
     GitCommitObject,
@@ -30,6 +32,7 @@ from sentry.scm.types import (
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
+    PullRequestState,
     Reaction,
     ReactionResult,
     Referrer,
@@ -38,6 +41,7 @@ from sentry.scm.types import (
     Review,
     ReviewComment,
     ReviewCommentInput,
+    ReviewEvent,
     ReviewSide,
 )
 
@@ -212,11 +216,11 @@ class SourceCodeManager:
         """Get a branch reference."""
         return self._exec(lambda p: p.get_branch(branch))
 
-    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
+    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
         """Create a new branch pointing at the given SHA."""
         return self._exec(lambda p: p.create_branch(branch, sha))
 
-    def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
+    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda p: p.update_branch(branch, sha, force))
 
@@ -227,23 +231,25 @@ class SourceCodeManager:
     def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
         return self._exec(lambda p: p.get_file_content(path, ref))
 
-    def get_commit(self, sha: str) -> ActionResult[Commit]:
+    def get_commit(self, sha: CommitSHA) -> ActionResult[Commit]:
         return self._exec(lambda p: p.get_commit(sha))
 
     def get_commits(
         self,
-        sha: str | None = None,
+        sha: CommitSHA | None = None,
         path: str | None = None,
     ) -> ActionResult[list[Commit]]:
         return self._exec(lambda p: p.get_commits(sha=sha, path=path))
 
-    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
+    def compare_commits(
+        self, start_sha: CommitSHA, end_sha: CommitSHA
+    ) -> ActionResult[CommitComparison]:
         return self._exec(lambda p: p.compare_commits(start_sha, end_sha))
 
-    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
+    def get_tree(self, tree_sha: CommitSHA, recursive: bool = True) -> ActionResult[GitTree]:
         return self._exec(lambda p: p.get_tree(tree_sha, recursive=recursive))
 
-    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
+    def get_git_commit(self, sha: CommitSHA) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.get_git_commit(sha))
 
     def create_git_tree(
@@ -254,7 +260,7 @@ class SourceCodeManager:
         return self._exec(lambda p: p.create_git_tree(tree, base_tree=base_tree))
 
     def create_git_commit(
-        self, message: str, tree_sha: str, parent_shas: list[str]
+        self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.create_git_commit(message, tree_sha, parent_shas))
 
@@ -271,8 +277,8 @@ class SourceCodeManager:
 
     def get_pull_requests(
         self,
-        state: str = "open",
-        head: str | None = None,
+        state: PullRequestState = "open",
+        head: BranchName | None = None,
     ) -> ActionResult[list[PullRequest]]:
         return self._exec(lambda p: p.get_pull_requests(state, head))
 
@@ -280,8 +286,8 @@ class SourceCodeManager:
         self,
         title: str,
         body: str,
-        head: str,
-        base: str,
+        head: BranchName,
+        base: BranchName,
         draft: bool = False,
     ) -> ActionResult[PullRequest]:
         return self._exec(lambda p: p.create_pull_request(title, body, head, base, draft=draft))
@@ -291,7 +297,7 @@ class SourceCodeManager:
         pull_request_id: str,
         title: str | None = None,
         body: str | None = None,
-        state: str | None = None,
+        state: PullRequestState | None = None,
     ) -> ActionResult[PullRequest]:
         return self._exec(
             lambda p: p.update_pull_request(pull_request_id, title=title, body=body, state=state)
@@ -304,7 +310,7 @@ class SourceCodeManager:
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: str,
+        commit_sha: CommitSHA,
         path: str,
         line: int | None = None,
         side: ReviewSide | None = None,
@@ -327,8 +333,8 @@ class SourceCodeManager:
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: str,
-        event: str,
+        commit_sha: CommitSHA,
+        event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
     ) -> ActionResult[Review]:
@@ -339,7 +345,7 @@ class SourceCodeManager:
     def create_check_run(
         self,
         name: str,
-        head_sha: str,
+        head_sha: CommitSHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,

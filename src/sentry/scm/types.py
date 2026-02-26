@@ -100,6 +100,11 @@ type ReviewSide = Literal["LEFT", "RIGHT"]
 - RIGHT: the head (modified) side of the diff
 """
 
+type BranchName = str
+type CommitSHA = str
+type PullRequestState = Literal["open", "closed"]
+type ReviewEvent = Literal["approve", "change_request", "comment"]
+
 
 class Author(TypedDict):
     """Normalized author identity returned by all SCM providers."""
@@ -413,7 +418,7 @@ class Provider(Protocol):
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]: ...
 
     def get_pull_requests(
-        self, state: str = "open", head: str | None = None
+        self, state: PullRequestState = "open", head: str | None = None
     ) -> ActionResult[list[PullRequest]]: ...
 
     def create_pull_request(
@@ -430,7 +435,7 @@ class Provider(Protocol):
         pull_request_id: str,
         title: str | None = None,
         body: str | None = None,
-        state: str | None = None,
+        state: PullRequestState | None = None,
     ) -> ActionResult[PullRequest]: ...
 
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None: ...
@@ -451,7 +456,7 @@ class Provider(Protocol):
         self,
         pull_request_id: str,
         commit_sha: str,
-        event: str,
+        event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
     ) -> ActionResult[Review]: ...

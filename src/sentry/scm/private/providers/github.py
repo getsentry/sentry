@@ -36,6 +36,7 @@ from sentry.scm.types import (
     Review,
     ReviewComment,
     ReviewCommentInput,
+    ReviewEvent,
     ReviewSide,
     TreeEntry,
 )
@@ -95,6 +96,12 @@ REACTION_MAP = {
     "hooray": GitHubReaction.HOORAY,
     "rocket": GitHubReaction.ROCKET,
     "eyes": GitHubReaction.EYES,
+}
+
+GITHUB_REVIEW_EVENT_MAP: dict[ReviewEvent, str] = {
+    "approve": "APPROVE",
+    "change_request": "REQUEST_CHANGES",
+    "comment": "COMMENT",
 }
 
 
@@ -456,13 +463,13 @@ class GitHubProvider:
         self,
         pull_request_id: str,
         commit_sha: str,
-        event: str,
+        event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
     ) -> ActionResult[Review]:
         data: dict[str, Any] = {
             "commit_id": commit_sha,
-            "event": event,
+            "event": GITHUB_REVIEW_EVENT_MAP[event],
             "comments": comments,
         }
         if body is not None:

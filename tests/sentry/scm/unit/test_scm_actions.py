@@ -94,7 +94,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
         {
             "pull_request_id": "1",
             "commit_sha": "abc",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
     ),
@@ -530,7 +530,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         {
             "pull_request_id": "1",
             "commit_sha": "abc",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
         _check_review,

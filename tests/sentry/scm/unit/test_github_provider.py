@@ -105,7 +105,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
         {
             "pull_request_id": "42",
             "commit_sha": "abc",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
     ),
@@ -360,7 +360,7 @@ CLIENT_DELEGATION_TESTS: list[
         {
             "pull_request_id": "42",
             "commit_sha": "abc123",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [{"path": "f.py", "body": "fix"}],
         },
         (
@@ -370,7 +370,7 @@ CLIENT_DELEGATION_TESTS: list[
                 "42",
                 {
                     "commit_id": "abc123",
-                    "event": "COMMENT",
+                    "event": "comment",
                     "comments": [{"path": "f.py", "body": "fix"}],
                 },
             ),
@@ -851,7 +851,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {
             "pull_request_id": "42",
             "commit_sha": "abc123",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
         {"review_data": make_github_review()},
@@ -1171,14 +1171,14 @@ class TestCreateReviewEdgeCases:
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review("42", "abc123", "APPROVE", [])
+        provider.create_review("42", "abc123", "approve", [])
 
         assert (
             "create_review",
             (
                 "test-org/test-repo",
                 "42",
-                {"commit_id": "abc123", "event": "APPROVE", "comments": []},
+                {"commit_id": "abc123", "event": "approve", "comments": []},
             ),
             {},
         ) in client.calls
@@ -1188,7 +1188,7 @@ class TestCreateReviewEdgeCases:
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review("42", "abc123", "COMMENT", [], body="Overall looks good")
+        provider.create_review("42", "abc123", "comment", [], body="Overall looks good")
 
         assert (
             "create_review",
@@ -1197,7 +1197,7 @@ class TestCreateReviewEdgeCases:
                 "42",
                 {
                     "commit_id": "abc123",
-                    "event": "COMMENT",
+                    "event": "comment",
                     "comments": [],
                     "body": "Overall looks good",
                 },
