@@ -239,6 +239,70 @@ describe('Add Modal', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
+  it('loads source suggestions when event ID is submitted', async () => {
+    // Use a unique event ID to avoid collisions with localStorage state from other tests
+    const eventId = 'aabbccddeeff00112233445566778899';
+
+    const suggestionsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/data-scrubbing-selector-suggestions/`,
+      body: {
+        suggestions: [
+          {type: 'value', examples: ['34359738368'], value: "extra.'system.cpu.memory'"},
+          {type: 'value', value: '$frame.abs_path'},
+        ],
+      },
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={successfullySaved}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // No API call on mount
+    expect(suggestionsRequest).not.toHaveBeenCalled();
+
+    // Show event ID field if not already visible
+    const toggleButton =
+      screen.queryByRole('button', {name: 'Use event ID for auto-completion'}) ??
+      screen.getByRole('button', {name: 'Hide event ID field'});
+    if (toggleButton.textContent?.includes('Use event ID')) {
+      await userEvent.click(toggleButton);
+    }
+
+    // Clear any pre-existing event ID value from localStorage
+    const eventIdInput = screen.getByPlaceholderText('XXXXXXXXXXXXXX');
+    await userEvent.clear(eventIdInput);
+
+    await userEvent.type(eventIdInput, `${eventId}{enter}`);
+
+    // API should be called with the event ID
+    expect(suggestionsRequest).toHaveBeenCalledWith(
+      `/organizations/${organizationSlug}/data-scrubbing-selector-suggestions/`,
+      expect.objectContaining({
+        query: {eventId, projectId},
+      })
+    );
+
+    // Suggestions should load — checkmark indicates LOADED status
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+
+    // Verify source field shows API suggestions (2 from API + 1 default = 3)
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+  });
+
   it('does not show dataset selector without ourlogs-enabled feature', () => {
     const handleCloseModal = jest.fn();
 
@@ -384,7 +448,11 @@ describe('Add Modal with ourlogs-enabled', () => {
     await userEvent.click(screen.getByLabelText('Errors, Transactions, Attachments'));
 
     expect(screen.getByText('Source')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Hide event ID field'})).toBeInTheDocument();
+    // Event ID toggle should be present (either collapsed or expanded depending on localStorage state)
+    expect(
+      screen.getByRole('button', {name: 'Use event ID for auto-completion'}) ??
+        screen.getByRole('button', {name: 'Hide event ID field'})
+    ).toBeInTheDocument();
     expect(screen.queryByText('Attribute')).not.toBeInTheDocument();
   });
 

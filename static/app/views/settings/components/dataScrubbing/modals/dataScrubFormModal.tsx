@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
@@ -180,65 +180,53 @@ function DataScrubFormModal({
     },
   });
 
-  // Load source suggestions when eventId value changes (not on mount —
-  // the old class component only called this from componentDidUpdate)
-  const prevEventIdRef = useRef(eventId.value);
-
-  const loadSourceSuggestions = useCallback(async () => {
-    if (!eventId.value) {
-      setSourceSuggestions(valueSuggestions);
-      setEventId(prev => ({...prev, status: EventIdStatus.UNDEFINED}));
-      return;
-    }
-
-    setSourceSuggestions(valueSuggestions);
-    setEventId(prev => ({...prev, status: EventIdStatus.LOADING}));
-
-    try {
-      const query: {eventId: string; projectId?: string} = {eventId: eventId.value};
-      if (projectId) {
-        query.projectId = projectId;
-      }
-      const rawSuggestions = await api.requestPromise(
-        `/organizations/${orgSlug}/data-scrubbing-selector-suggestions/`,
-        {query}
-      );
-      const suggestions: SourceSuggestion[] = rawSuggestions.suggestions;
-
-      if (suggestions && suggestions.length > 0) {
-        setSourceSuggestions(suggestions);
-        setEventId(prev => ({...prev, status: EventIdStatus.LOADED}));
-        return;
-      }
-
-      setSourceSuggestions(valueSuggestions);
-      setEventId(prev => ({...prev, status: EventIdStatus.NOT_FOUND}));
-    } catch {
-      setEventId(prev => ({...prev, status: EventIdStatus.ERROR}));
-    }
-  }, [eventId.value, orgSlug, projectId, api]);
-
-  useEffect(() => {
-    if (prevEventIdRef.current === eventId.value) {
-      return;
-    }
-    prevEventIdRef.current = eventId.value;
-    loadSourceSuggestions();
-  }, [loadSourceSuggestions, eventId.value]);
-
-  // Persist to localStorage when eventId status changes
-  useEffect(() => {
-    saveToSourceGroupData(eventId, sourceSuggestions);
-  }, [eventId.status]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleUpdateEventId = useCallback(
-    (newEventId: string) => {
+    async (newEventId: string) => {
       if (newEventId === eventId.value) {
         return;
       }
-      setEventId({value: newEventId, status: EventIdStatus.UNDEFINED});
+
+      if (!newEventId) {
+        setSourceSuggestions(valueSuggestions);
+        const newState = {value: '', status: EventIdStatus.UNDEFINED};
+        setEventId(newState);
+        saveToSourceGroupData(newState, valueSuggestions);
+        return;
+      }
+
+      setSourceSuggestions(valueSuggestions);
+      setEventId({value: newEventId, status: EventIdStatus.LOADING});
+
+      try {
+        const query: {eventId: string; projectId?: string} = {eventId: newEventId};
+        if (projectId) {
+          query.projectId = projectId;
+        }
+        const rawSuggestions = await api.requestPromise(
+          `/organizations/${orgSlug}/data-scrubbing-selector-suggestions/`,
+          {query}
+        );
+        const suggestions: SourceSuggestion[] = rawSuggestions.suggestions;
+
+        if (suggestions && suggestions.length > 0) {
+          const newState = {value: newEventId, status: EventIdStatus.LOADED};
+          setSourceSuggestions(suggestions);
+          setEventId(newState);
+          saveToSourceGroupData(newState, suggestions);
+          return;
+        }
+
+        const newState = {value: newEventId, status: EventIdStatus.NOT_FOUND};
+        setSourceSuggestions(valueSuggestions);
+        setEventId(newState);
+        saveToSourceGroupData(newState, valueSuggestions);
+      } catch {
+        const newState = {value: newEventId, status: EventIdStatus.ERROR};
+        setEventId(newState);
+        saveToSourceGroupData(newState);
+      }
     },
-    [eventId.value]
+    [eventId.value, orgSlug, projectId, api, saveToSourceGroupData]
   );
 
   const handleValidateAttributeField = useCallback(
