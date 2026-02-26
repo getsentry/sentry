@@ -314,165 +314,163 @@ function BasicForm() {
   }
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.FieldGroup title="Peronal Information">
-          <form.AppField name="firstName">
-            {field => (
-              <field.Layout.Row label="First Name:" hintText="Your given name">
-                <field.Input
-                  value={field.state.value ?? ''}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="lastName">
-            {field => (
-              <field.Layout.Row label="Last Name:" hintText="Your family name" required>
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled="Can't touch this"
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="age">
-            {field => (
-              <field.Layout.Row label="Age:" hintText="Minimum 13" required>
-                <field.Number value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="notifications">
-            {field => (
-              <field.Layout.Row
-                label="Email Notifications:"
-                hintText="Receive email updates"
-              >
-                <field.Switch
-                  checked={field.state.value ?? false}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="bio">
-            {field => (
-              <field.Layout.Row label="Bio:" hintText="Tell us about yourself">
-                <field.TextArea
-                  value={field.state.value ?? ''}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="volume">
-            {field => (
-              <field.Layout.Row label="Volume:" hintText="Adjust the volume level">
-                <field.Range
-                  value={field.state.value ?? 50}
-                  onChange={field.handleChange}
-                  min={0}
-                  max={100}
-                  step={10}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="priority">
-            {field => (
-              <field.Radio.Group
+    <form.AppForm form={form}>
+      <form.FieldGroup title="Peronal Information">
+        <form.AppField name="firstName">
+          {field => (
+            <field.Layout.Row label="First Name:" hintText="Your given name">
+              <field.Input
                 value={field.state.value ?? ''}
                 onChange={field.handleChange}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="lastName">
+          {field => (
+            <field.Layout.Row label="Last Name:" hintText="Your family name" required>
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled="Can't touch this"
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="age">
+          {field => (
+            <field.Layout.Row label="Age:" hintText="Minimum 13" required>
+              <field.Number value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="notifications">
+          {field => (
+            <field.Layout.Row
+              label="Email Notifications:"
+              hintText="Receive email updates"
+            >
+              <field.Switch
+                checked={field.state.value ?? false}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="bio">
+          {field => (
+            <field.Layout.Row label="Bio:" hintText="Tell us about yourself">
+              <field.TextArea
+                value={field.state.value ?? ''}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="volume">
+          {field => (
+            <field.Layout.Row label="Volume:" hintText="Adjust the volume level">
+              <field.Range
+                value={field.state.value ?? 50}
+                onChange={field.handleChange}
+                min={0}
+                max={100}
+                step={10}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="priority">
+          {field => (
+            <field.Radio.Group
+              value={field.state.value ?? ''}
+              onChange={field.handleChange}
+            >
+              <field.Layout.Row label="Priority:" hintText="Select issue priority">
+                <Stack gap="lg">
+                  <field.Radio.Item value="low">Low</field.Radio.Item>
+                  <field.Radio.Item value="medium">Medium</field.Radio.Item>
+                  <field.Radio.Item value="high" description="Urgent issues">
+                    High
+                  </field.Radio.Item>
+                </Stack>
+              </field.Layout.Row>
+            </field.Radio.Group>
+          )}
+        </form.AppField>
+        <form.AppField name="tags">
+          {field => (
+            <field.Layout.Row label="Tags:" hintText="Select multiple tags">
+              <field.Select
+                multiple
+                value={field.state.value ?? []}
+                onChange={field.handleChange}
+                options={TAG_OPTIONS}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.Subscribe selector={state => state.values.age === 42}>
+          {showSecret =>
+            showSecret ? (
+              <form.AppField
+                name="secret"
+                validators={{
+                  onDynamic: z
+                    .string('Secret is required when age is 42')
+                    .min(1, 'Secret is required when age is 42'),
+                }}
               >
-                <field.Layout.Row label="Priority:" hintText="Select issue priority">
-                  <Stack gap="lg">
-                    <field.Radio.Item value="low">Low</field.Radio.Item>
-                    <field.Radio.Item value="medium">Medium</field.Radio.Item>
-                    <field.Radio.Item value="high" description="Urgent issues">
-                      High
-                    </field.Radio.Item>
-                  </Stack>
-                </field.Layout.Row>
-              </field.Radio.Group>
-            )}
-          </form.AppField>
-          <form.AppField name="tags">
-            {field => (
-              <field.Layout.Row label="Tags:" hintText="Select multiple tags">
-                <field.Select
-                  multiple
-                  value={field.state.value ?? []}
-                  onChange={field.handleChange}
-                  options={TAG_OPTIONS}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.Subscribe selector={state => state.values.age === 42}>
-            {showSecret =>
-              showSecret ? (
-                <form.AppField
-                  name="secret"
-                  validators={{
-                    onDynamic: z
-                      .string('Secret is required when age is 42')
-                      .min(1, 'Secret is required when age is 42'),
-                  }}
-                >
-                  {field => (
-                    <field.Layout.Row
-                      label="Secret:"
-                      hintText="Secret is required when age is 42"
-                      required
-                    >
-                      <field.Input
-                        value={field.state.value ?? ''}
-                        onChange={field.handleChange}
-                      />
-                    </field.Layout.Row>
-                  )}
-                </form.AppField>
-              ) : null
-            }
-          </form.Subscribe>
-        </form.FieldGroup>
+                {field => (
+                  <field.Layout.Row
+                    label="Secret:"
+                    hintText="Secret is required when age is 42"
+                    required
+                  >
+                    <field.Input
+                      value={field.state.value ?? ''}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+            ) : null
+          }
+        </form.Subscribe>
+      </form.FieldGroup>
 
-        <form.FieldGroup title="Address Information">
-          <form.AppField name="address.street">
-            {field => (
-              <field.Layout.Row label="Street:" required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="address.city">
-            {field => (
-              <field.Layout.Row label="City:" required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="address.country">
-            {field => (
-              <field.Layout.Row label="Country:" required>
-                <field.Select
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={COUNTRY_OPTIONS}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        </form.FieldGroup>
+      <form.FieldGroup title="Address Information">
+        <form.AppField name="address.street">
+          {field => (
+            <field.Layout.Row label="Street:" required>
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="address.city">
+          {field => (
+            <field.Layout.Row label="City:" required>
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="address.country">
+          {field => (
+            <field.Layout.Row label="Country:" required>
+              <field.Select
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={COUNTRY_OPTIONS}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+      </form.FieldGroup>
 
-        <Flex gap="md" justify="end">
-          <Button onClick={() => form.reset()}>Reset</Button>
-          <form.SubmitButton>Submit</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+      <Flex gap="md" justify="end">
+        <Button onClick={() => form.reset()}>Reset</Button>
+        <form.SubmitButton>Submit</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }
@@ -489,56 +487,54 @@ function CompactExample() {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <FieldGroup title="Row Layout">
-          <form.AppField name="field1">
-            {field => (
-              <field.Layout.Row
-                label="Default Variant"
-                hintText="This hint text appears below the label"
-              >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="field2">
-            {field => (
-              <field.Layout.Row
-                label="Compact Variant"
-                hintText="This hint text appears in a tooltip when hovering the label"
-                variant="compact"
-              >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        </FieldGroup>
+    <form.AppForm form={form}>
+      <FieldGroup title="Row Layout">
+        <form.AppField name="field1">
+          {field => (
+            <field.Layout.Row
+              label="Default Variant"
+              hintText="This hint text appears below the label"
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="field2">
+          {field => (
+            <field.Layout.Row
+              label="Compact Variant"
+              hintText="This hint text appears in a tooltip when hovering the label"
+              variant="compact"
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+      </FieldGroup>
 
-        <FieldGroup title="Stack Layout">
-          <form.AppField name="field3">
-            {field => (
-              <field.Layout.Stack
-                label="Default Variant"
-                hintText="This hint text appears below the input"
-              >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-          <form.AppField name="field4">
-            {field => (
-              <field.Layout.Stack
-                label="Compact Variant"
-                hintText="This hint text appears in a tooltip when hovering the label"
-                variant="compact"
-              >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        </FieldGroup>
-      </form.FormWrapper>
+      <FieldGroup title="Stack Layout">
+        <form.AppField name="field3">
+          {field => (
+            <field.Layout.Stack
+              label="Default Variant"
+              hintText="This hint text appears below the input"
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="field4">
+          {field => (
+            <field.Layout.Stack
+              label="Compact Variant"
+              hintText="This hint text appears in a tooltip when hovering the label"
+              variant="compact"
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </FieldGroup>
     </form.AppForm>
   );
 }

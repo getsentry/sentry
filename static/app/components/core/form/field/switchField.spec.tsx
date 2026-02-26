@@ -36,7 +36,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="enabled">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>

@@ -27,7 +27,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="priority">
         {field => (
           <field.Radio.Group

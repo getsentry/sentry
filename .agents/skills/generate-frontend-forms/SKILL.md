@@ -65,18 +65,16 @@ function MyForm() {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.AppField name="email">
-          {field => (
-            <field.Layout.Stack label="Email" required>
-              <field.Input value={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Stack>
-          )}
-        </form.AppField>
+    <form.AppForm form={form}>
+      <form.AppField name="email">
+        {field => (
+          <field.Layout.Stack label="Email" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
 
-        <form.SubmitButton>Submit</form.SubmitButton>
-      </form.FormWrapper>
+      <form.SubmitButton>Submit</form.SubmitButton>
     </form.AppForm>
   );
 }
@@ -86,16 +84,15 @@ function MyForm() {
 
 ### Returned Properties
 
-| Property         | Description                                    |
-| ---------------- | ---------------------------------------------- |
-| `AppForm`        | Root wrapper component (provides form context) |
-| `FormWrapper`    | Form element wrapper (handles submit)          |
-| `AppField`       | Field renderer component                       |
-| `FieldGroup`     | Section grouping with title                    |
-| `SubmitButton`   | Pre-wired submit button                        |
-| `Subscribe`      | Subscribe to form state changes                |
-| `reset()`        | Reset form to default values                   |
-| `handleSubmit()` | Manually trigger submission                    |
+| Property         | Description                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `AppForm`        | Root wrapper component (provides form context and renders `<form>` element). Must receive `form={form}` prop. |
+| `AppField`       | Field renderer component                                                                                      |
+| `FieldGroup`     | Section grouping with title                                                                                   |
+| `SubmitButton`   | Pre-wired submit button                                                                                       |
+| `Subscribe`      | Subscribe to form state changes                                                                               |
+| `reset()`        | Reset form to default values                                                                                  |
+| `handleSubmit()` | Manually trigger submission                                                                                   |
 
 ---
 
@@ -810,7 +807,7 @@ When creating a new form:
 - [ ] Use `useScrapsForm` with `...defaultFormOptions`
 - [ ] Set `defaultValues` matching schema shape
 - [ ] Set `validators: {onDynamic: schema}`
-- [ ] Wrap with `<form.AppForm>` and `<form.FormWrapper>`
+- [ ] Wrap with `<form.AppForm form={form}>`
 - [ ] Use `<form.AppField>` for each field
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] Handle server errors with `setFieldErrors`
