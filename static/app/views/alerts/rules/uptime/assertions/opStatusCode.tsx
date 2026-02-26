@@ -6,14 +6,17 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ComparisonType, type StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  type UptimeStatusCodeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
 
 interface AssertionOpStatusCodeProps {
-  onChange: (op: StatusCodeOp) => void;
+  onChange: (op: UptimeStatusCodeOp) => void;
   onRemove: () => void;
-  value: StatusCodeOp;
+  value: UptimeStatusCodeOp;
 }
 
 export function AssertionOpStatusCode({
@@ -25,7 +28,7 @@ export function AssertionOpStatusCode({
 
   // Filter out 'always' and 'never' which are not valid for status code checks
   const statusCodeOptions = COMPARISON_OPTIONS.filter(
-    opt => ![ComparisonType.ALWAYS, ComparisonType.NEVER].includes(opt.value)
+    opt => ![UptimeComparisonType.ALWAYS, UptimeComparisonType.NEVER].includes(opt.value)
   );
   const selectedOption = statusCodeOptions.find(opt => opt.value === value.operator.cmp);
 

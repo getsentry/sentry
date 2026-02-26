@@ -59,6 +59,50 @@ class AutofixPrWebhookTest(APITestCase):
                 project_id=2,
                 group_id=3,
                 run_id=1,
+                github_app="seer",
+            ),
+        )
+
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345", SENTRY_GITHUB_APP_USER_ID="67890")
+    @patch(
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
+        return_value=AutofixState(
+            run_id=1,
+            request={
+                "project_id": 2,
+                "organization_id": 4,
+                "issue": {"id": 3, "title": "Test issue"},
+                "repos": [
+                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
+                ],
+            },
+            updated_at=datetime.now(timezone.utc),
+            status=AutofixStatus.PROCESSING,
+            steps=[],
+        ),
+    )
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
+    def test_opened_sentry_app(
+        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+    ):
+        handle_github_pr_webhook_for_autofix(
+            self.organization,
+            "opened",
+            {"id": 1, "merged": False},
+            {"id": settings.SENTRY_GITHUB_APP_USER_ID},
+        )
+
+        mock_metrics_incr.assert_called_with("ai.autofix.pr.opened")
+        assert_last_analytics_event(
+            mock_analytics_record,
+            AiAutofixPrOpenedEvent(
+                organization_id=self.organization.id,
+                integration="github",
+                project_id=2,
+                group_id=3,
+                run_id=1,
+                github_app="sentry",
             ),
         )
 
@@ -101,6 +145,7 @@ class AutofixPrWebhookTest(APITestCase):
                 project_id=2,
                 group_id=3,
                 run_id=1,
+                github_app="seer",
             ),
         )
 
@@ -142,6 +187,7 @@ class AutofixPrWebhookTest(APITestCase):
                 project_id=2,
                 group_id=3,
                 run_id=1,
+                github_app="seer",
             ),
         )
 

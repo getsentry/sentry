@@ -1,14 +1,17 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+  SelectSection,
+} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -203,6 +206,8 @@ export function ProjectPageFilter({
     [mapURLValueToNormalValue]
   );
 
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+
   const handleChange = useCallback(
     async (newValue: number[]) => {
       if (isEqual(newValue, value)) {
@@ -215,7 +220,7 @@ export function ProjectPageFilter({
         count: newValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: true,
+        multi: newValue.length > 1,
       });
 
       // Wait for the menu to close before calling onChange
@@ -241,14 +246,14 @@ export function ProjectPageFilter({
   );
 
   const onToggle = useCallback(
-    (newValue: any) => {
+    (newValue: number[]) => {
       trackAnalytics('projectselector.toggle', {
-        action: newValue.length > value.length ? 'added' : 'removed',
+        action: newValue.length > stagedValue.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
         organization,
       });
     },
-    [value, routes, organization]
+    [stagedValue, routes, organization]
   );
 
   const onReplace = useCallback(() => {
@@ -265,6 +270,17 @@ export function ProjectPageFilter({
       organization,
     });
   }, [onReset, routes, organization]);
+
+  const handleSectionToggle = useCallback(
+    (section: SelectSection<SelectKey>) => {
+      trackAnalytics('projectselector.multi_button_clicked', {
+        button_type: section.key === 'my-projects' ? 'my' : 'all',
+        path: getRouteStringFromRoutes(routes),
+        organization,
+      });
+    },
+    [routes, organization]
+  );
 
   const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -407,7 +423,6 @@ export function ProjectPageFilter({
     return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
   }, [options]);
 
-  const [stagedValue, setStagedValue] = useState<number[]>(value);
   const selectionLimitExceeded = useMemo(() => {
     const mappedValue = mapNormalValueToURLValue(stagedValue);
     return mappedValue.length > SELECTION_COUNT_LIMIT;
@@ -422,6 +437,7 @@ export function ProjectPageFilter({
     onToggle,
     onReplace,
     onReset: handleReset,
+    onSectionToggle: handleSectionToggle,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });
@@ -468,17 +484,15 @@ export function ProjectPageFilter({
         selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
-              <CondensedAlert variant="warning" showIcon={false}>
-                <Text size="sm">
-                  {tct(
-                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
-                    {
-                      limit: SELECTION_COUNT_LIMIT,
-                      count: stagedValue.length,
-                    }
-                  )}
-                </Text>
-              </CondensedAlert>
+              <MenuComponents.Alert variant="warning">
+                {tct(
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  {
+                    limit: SELECTION_COUNT_LIMIT,
+                    count: stagedValue.length,
+                  }
+                )}
+              </MenuComponents.Alert>
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
@@ -493,11 +507,25 @@ export function ProjectPageFilter({
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
                   <MenuComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                    onClick={() => {
+                      trackAnalytics('projectselector.cancel', {
+                        path: getRouteStringFromRoutes(routes),
+                        organization,
+                      });
+                      stagedSelect.removeStagedChanges();
+                    }}
                   />
                   <MenuComponents.ApplyButton
                     disabled={stagedSelect.disableCommit}
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      trackAnalytics('projectselector.apply', {
+                        count: stagedSelect.stagedValue.length,
+                        multi: stagedSelect.stagedValue.length > 1,
+                        path: getRouteStringFromRoutes(routes),
+                        organization,
+                      });
+                      stagedSelect.commit(stagedSelect.stagedValue);
+                    }}
                   />
                 </Flex>
               ) : null}
@@ -521,11 +549,6 @@ export function ProjectPageFilter({
     />
   );
 }
-
-const CondensedAlert = styled(Alert)`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-  text-wrap: balance;
-`;
 
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
