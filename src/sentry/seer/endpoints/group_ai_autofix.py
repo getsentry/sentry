@@ -39,7 +39,10 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
-from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
+from sentry.seer.autofix.coding_agent import (
+    poll_claude_code_agents,
+    poll_github_copilot_agents,
+)
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
@@ -304,6 +307,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         if state.coding_agents and request.user.id:
             poll_github_copilot_agents(coding_agents=state.coding_agents, user_id=request.user.id)
+            poll_claude_code_agents(
+                coding_agents=state.coding_agents,
+                organization_id=group.organization.id,
+            )
 
         # Return the Explorer state directly - frontend will handle the format
         return Response(
@@ -354,6 +361,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         if autofix_state and autofix_state.coding_agents and request.user.id:
             poll_github_copilot_agents(autofix_state, user_id=request.user.id)
+            poll_claude_code_agents(autofix_state=autofix_state)
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout

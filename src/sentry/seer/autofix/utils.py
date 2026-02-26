@@ -12,7 +12,9 @@ from urllib3 import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import (
+    get_sorted_code_mapping_configs,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -89,13 +91,13 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
-    branch_name: str | None = None
     pr_url: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
+    CLAUDE_CODE_AGENT = "claude_code_agent"
 
 
 class CodingAgentState(BaseModel):
