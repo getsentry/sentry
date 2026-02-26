@@ -42,6 +42,13 @@ export function mapToFormErrors(responseJson: any) {
     };
   }
 
+  // Flatten dataSources fields to top level so FormModel can map them to
+  // the corresponding form fields (used by the detector forms endpoint).
+  if (responseJson.dataSources) {
+    const {dataSources, ...rest} = responseJson;
+    return {...rest, ...dataSources};
+  }
+
   return responseJson;
 }
 
