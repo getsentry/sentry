@@ -500,7 +500,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 action: action_to_handler[action].build_rule_action_blob(
                     action, workflow.organization_id
                 )
-                for action in actions
+                for action in list(action_to_handler.keys())  # skip over actions w/o handlers
             }
             sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
             if self.prepare_component_fields:
