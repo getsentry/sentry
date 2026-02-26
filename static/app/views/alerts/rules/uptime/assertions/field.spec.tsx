@@ -3,11 +3,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {
-  ComparisonType,
-  OpType,
-  type AndOp,
-  type Assertion,
-  type StatusCodeOp,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAndOp,
+  type UptimeAssertion,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {normalizeAssertion, UptimeAssertionsField} from './field';
@@ -50,36 +50,36 @@ describe('UptimeAssertionsField', () => {
     expect(await screen.findAllByRole('textbox')).toHaveLength(3);
 
     // Verify the model has been updated with the assertion structure
-    const fieldValue = model.fields.get('assertion') as unknown as Assertion;
+    const fieldValue = model.fields.get('assertion') as unknown as UptimeAssertion;
     expect(fieldValue).toMatchObject({
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
-          {op: OpType.STATUS_CODE_CHECK},
-          {op: OpType.STATUS_CODE_CHECK},
-          {op: OpType.STATUS_CODE_CHECK},
+          {op: UptimeOpType.STATUS_CODE_CHECK},
+          {op: UptimeOpType.STATUS_CODE_CHECK},
+          {op: UptimeOpType.STATUS_CODE_CHECK},
         ],
       },
     });
   });
 
   it('renders existing assertion from initialData', async () => {
-    const existingAssertion: Assertion = {
+    const existingAssertion: UptimeAssertion = {
       root: {
         id: 'root-1',
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'status-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
           {
             id: 'json-1',
-            op: OpType.JSON_PATH,
+            op: UptimeOpType.JSON_PATH,
             value: '$.data.status',
-            operator: {cmp: ComparisonType.EQUALS},
+            operator: {cmp: UptimeComparisonType.EQUALS},
             operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
@@ -130,18 +130,18 @@ describe('UptimeAssertionsField', () => {
     expect(transformedData.assertion).toMatchObject({
       root: {
         id: expect.any(String),
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: expect.any(String),
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.GREATER_THAN},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.GREATER_THAN},
             value: 199,
           },
           {
             id: expect.any(String),
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.LESS_THAN},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.LESS_THAN},
             value: 300,
           },
         ],
@@ -151,15 +151,15 @@ describe('UptimeAssertionsField', () => {
 
   it('normalizes NaN values to 200 via getValue on form submission', async () => {
     // Set up assertion with NaN value (simulating cleared input submitted without blur)
-    const assertionWithNaN: Assertion = {
+    const assertionWithNaN: UptimeAssertion = {
       root: {
         id: 'root-1',
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'status-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: NaN,
           },
         ],
@@ -182,31 +182,31 @@ describe('UptimeAssertionsField', () => {
     });
 
     // Raw field value should still have NaN
-    const rawValue = model.fields.get('assertion') as unknown as Assertion;
+    const rawValue = model.fields.get('assertion') as unknown as UptimeAssertion;
     expect(rawValue.root.children[0]).toMatchObject({
-      op: OpType.STATUS_CODE_CHECK,
+      op: UptimeOpType.STATUS_CODE_CHECK,
       value: NaN,
     });
 
     // getTransformedData (used by saveForm) should normalize via getValue
     const transformedData = model.getTransformedData();
-    const transformedAssertion = transformedData.assertion as Assertion;
+    const transformedAssertion = transformedData.assertion as UptimeAssertion;
     expect(transformedAssertion.root.children[0]).toMatchObject({
-      op: OpType.STATUS_CODE_CHECK,
+      op: UptimeOpType.STATUS_CODE_CHECK,
       value: 200, // NaN normalized to 200
     });
   });
 
   it('clamps values below minimum to 100 via getValue on form submission', async () => {
-    const assertionWithInvalidValues: Assertion = {
+    const assertionWithInvalidValues: UptimeAssertion = {
       root: {
         id: 'root-1',
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'status-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 50, // Below valid range (100-599)
           },
         ],
@@ -230,23 +230,23 @@ describe('UptimeAssertionsField', () => {
 
     // getTransformedData should clamp to valid range
     const transformedData = model.getTransformedData();
-    const transformedAssertion = transformedData.assertion as Assertion;
+    const transformedAssertion = transformedData.assertion as UptimeAssertion;
     expect(transformedAssertion.root.children[0]).toMatchObject({
-      op: OpType.STATUS_CODE_CHECK,
+      op: UptimeOpType.STATUS_CODE_CHECK,
       value: 100, // Clamped to minimum
     });
   });
 
   it('clamps values above maximum to 599 via getValue on form submission', async () => {
-    const assertionWithInvalidValues: Assertion = {
+    const assertionWithInvalidValues: UptimeAssertion = {
       root: {
         id: 'root-1',
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'status-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 700, // Above valid range (100-599)
           },
         ],
@@ -268,9 +268,9 @@ describe('UptimeAssertionsField', () => {
     });
 
     const transformedData = model.getTransformedData();
-    const transformedAssertion = transformedData.assertion as Assertion;
+    const transformedAssertion = transformedData.assertion as UptimeAssertion;
     expect(transformedAssertion.root.children[0]).toMatchObject({
-      op: OpType.STATUS_CODE_CHECK,
+      op: UptimeOpType.STATUS_CODE_CHECK,
       value: 599, // Clamped to maximum
     });
   });
@@ -278,10 +278,10 @@ describe('UptimeAssertionsField', () => {
   it('shows empty UI when editing monitor with no assertions', () => {
     // When editing a monitor that has no assertions, pass empty assertion structure
     // (FormField converts null to '' so we can't use null directly)
-    const emptyAssertion: Assertion = {
+    const emptyAssertion: UptimeAssertion = {
       root: {
         id: 'empty',
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [],
       },
     };
@@ -305,10 +305,10 @@ describe('UptimeAssertionsField', () => {
 
   it('allows adding assertions when editing monitor with no assertions', async () => {
     // When editing a monitor that has no assertions, user should be able to add new ones
-    const emptyAssertion: Assertion = {
+    const emptyAssertion: UptimeAssertion = {
       root: {
         id: 'empty',
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [],
       },
     };
@@ -336,8 +336,8 @@ describe('UptimeAssertionsField', () => {
     const transformedData = model.getTransformedData();
     expect(transformedData.assertion).toMatchObject({
       root: {
-        op: OpType.AND,
-        children: [{op: OpType.STATUS_CODE_CHECK}],
+        op: UptimeOpType.AND,
+        children: [{op: UptimeOpType.STATUS_CODE_CHECK}],
       },
     });
   });
@@ -377,73 +377,73 @@ describe('UptimeAssertionsField', () => {
 
 describe('normalizeAssertion', () => {
   it('handles NaN status code value by defaulting to 200', () => {
-    const op: StatusCodeOp = {
+    const op: UptimeStatusCodeOp = {
       id: 'test-1',
-      op: OpType.STATUS_CODE_CHECK,
-      operator: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: NaN,
     };
 
     expect(normalizeAssertion(op)).toEqual({
       id: 'test-1',
-      op: OpType.STATUS_CODE_CHECK,
-      operator: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
   });
 
   it('clamps status code values to valid HTTP range', () => {
-    const tooLow: StatusCodeOp = {
+    const tooLow: UptimeStatusCodeOp = {
       id: 'test-1',
-      op: OpType.STATUS_CODE_CHECK,
-      operator: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 50,
     };
 
-    const tooHigh: StatusCodeOp = {
+    const tooHigh: UptimeStatusCodeOp = {
       id: 'test-2',
-      op: OpType.STATUS_CODE_CHECK,
-      operator: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 700,
     };
 
-    expect((normalizeAssertion(tooLow) as StatusCodeOp).value).toBe(100);
-    expect((normalizeAssertion(tooHigh) as StatusCodeOp).value).toBe(599);
+    expect((normalizeAssertion(tooLow) as UptimeStatusCodeOp).value).toBe(100);
+    expect((normalizeAssertion(tooHigh) as UptimeStatusCodeOp).value).toBe(599);
   });
 
   it('preserves valid status code values', () => {
-    const valid: StatusCodeOp = {
+    const valid: UptimeStatusCodeOp = {
       id: 'test-1',
-      op: OpType.STATUS_CODE_CHECK,
-      operator: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 404,
     };
 
-    expect((normalizeAssertion(valid) as StatusCodeOp).value).toBe(404);
+    expect((normalizeAssertion(valid) as UptimeStatusCodeOp).value).toBe(404);
   });
 
   it('recursively normalizes nested assertions in and/or groups', () => {
-    const nested: AndOp = {
+    const nested: UptimeAndOp = {
       id: 'group-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'test-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: NaN,
         },
         {
           id: 'test-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 800,
         },
       ],
     };
 
-    const result = normalizeAssertion(nested) as AndOp;
-    expect((result.children[0] as StatusCodeOp).value).toBe(200);
-    expect((result.children[1] as StatusCodeOp).value).toBe(599);
+    const result = normalizeAssertion(nested) as UptimeAndOp;
+    expect((result.children[0] as UptimeStatusCodeOp).value).toBe(200);
+    expect((result.children[1] as UptimeStatusCodeOp).value).toBe(599);
   });
 });

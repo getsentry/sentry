@@ -2,11 +2,11 @@ import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
 import {
-  ComparisonType,
-  OpType,
-  type AndOp,
-  type Assertion,
-  type Op,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAndOp,
+  type UptimeAssertion,
+  type UptimeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionOpGroup} from './opGroup';
@@ -15,21 +15,21 @@ import {AssertionOpGroup} from './opGroup';
  * Recursively normalizes assertion values to ensure they are valid before submission.
  * Handles NaN values (from cleared inputs) and clamps to valid HTTP status code range.
  */
-export function normalizeAssertion(op: Op): Op {
+export function normalizeAssertion(op: UptimeOp): UptimeOp {
   switch (op.op) {
-    case OpType.STATUS_CODE_CHECK:
+    case UptimeOpType.STATUS_CODE_CHECK:
       return {
         ...op,
         // Default to 200 if NaN (e.g., user cleared input and submitted without blur)
         value: isNaN(op.value) ? 200 : Math.max(100, Math.min(599, op.value)),
       };
-    case OpType.AND:
-    case OpType.OR:
+    case UptimeOpType.AND:
+    case UptimeOpType.OR:
       return {
         ...op,
         children: op.children.map(normalizeAssertion),
       };
-    case OpType.NOT:
+    case UptimeOpType.NOT:
       return {
         ...op,
         operand: normalizeAssertion(op.operand),
@@ -44,9 +44,9 @@ export function normalizeAssertion(op: Op): Op {
  * Used when editing monitors that have no assertions - empty children signals
  * "edit with no assertions" vs the default assertions for new monitors.
  */
-export function createEmptyAssertionRoot(): AndOp {
+export function createEmptyAssertionRoot(): UptimeAndOp {
   return {
-    op: OpType.AND,
+    op: UptimeOpType.AND,
     id: uniqueId(),
     children: [],
   };
@@ -55,21 +55,21 @@ export function createEmptyAssertionRoot(): AndOp {
 /**
  * Creates a default assertion root that validates 2xx status codes (>199 AND <300)
  */
-function createDefaultAssertionRoot(): AndOp {
+function createDefaultAssertionRoot(): UptimeAndOp {
   return {
-    op: OpType.AND,
+    op: UptimeOpType.AND,
     id: uniqueId(),
     children: [
       {
-        op: OpType.STATUS_CODE_CHECK,
+        op: UptimeOpType.STATUS_CODE_CHECK,
         id: uniqueId(),
-        operator: {cmp: ComparisonType.GREATER_THAN},
+        operator: {cmp: UptimeComparisonType.GREATER_THAN},
         value: 199,
       },
       {
-        op: OpType.STATUS_CODE_CHECK,
+        op: UptimeOpType.STATUS_CODE_CHECK,
         id: uniqueId(),
-        operator: {cmp: ComparisonType.LESS_THAN},
+        operator: {cmp: UptimeComparisonType.LESS_THAN},
         value: 300,
       },
     ],
@@ -80,12 +80,12 @@ function createDefaultAssertionRoot(): AndOp {
 // abysmal, so we're leaving this untyped for now.
 
 function UptimeAssertionsControl({onChange, onBlur, value}: any) {
-  // value is an Assertion object from initialData or defaultValue.
+  // value is an UptimeAssertion object from initialData or defaultValue.
   // During initial render, value may briefly be undefined before FormField processes defaultValue.
   if (!value?.root) {
     return null;
   }
-  const rootOp: AndOp = value.root;
+  const rootOp: UptimeAndOp = value.root;
 
   return (
     <AssertionOpGroup
@@ -108,7 +108,7 @@ export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
       // Use getValue (not getData) to transform field value at submission time.
       // getData only works for save-on-blur; getValue is used by getTransformedData()
       // which is called during full form submission via saveForm().
-      getValue={(value: Assertion) => {
+      getValue={(value: UptimeAssertion) => {
         // Handle edge cases where FormField may pass undefined/null/empty string
         if (!value?.root) {
           return null;

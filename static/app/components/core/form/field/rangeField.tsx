@@ -5,9 +5,13 @@ import type {DistributedOmit} from 'type-fest';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
+import {
+  BaseField,
+  FieldStatus,
+  useAutoSaveIndicator,
+  type BaseFieldProps,
+} from './baseField';
 
 export function RangeField({
   onChange,
@@ -21,39 +25,31 @@ export function RangeField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useFieldStateIndicator();
+  const indicator = useAutoSaveIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   return (
     <BaseField>
-      {fieldProps => {
-        const slider = (
-          <Flex gap="sm" align="center">
-            <Slider
-              {...fieldProps}
-              {...props}
-              ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
-              disabled={isDisabled}
-              value={value}
-              onChange={onChange}
-              onPointerUp={e => {
-                props.onPointerUp?.(e);
-                if (autoSaveContext) {
-                  fieldProps.onBlur();
-                }
-              }}
-            />
-            {indicator ?? <Flex width="14px" flexShrink={0} />}
-          </Flex>
-        );
-
-        if (disabledReason) {
-          return <Tooltip title={disabledReason}>{slider}</Tooltip>;
-        }
-
-        return slider;
-      }}
+      {fieldProps => (
+        <Flex gap="sm" align="center">
+          <Slider
+            {...fieldProps}
+            {...props}
+            ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
+            disabled={isDisabled}
+            value={value}
+            onChange={onChange}
+            onPointerUp={e => {
+              props.onPointerUp?.(e);
+              if (autoSaveContext) {
+                fieldProps.onBlur();
+              }
+            }}
+          />
+          {indicator ?? <Flex width="14px" flexShrink={0} />}
+          <FieldStatus disabled={disabled} />
+        </Flex>
+      )}
     </BaseField>
   );
 }

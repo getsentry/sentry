@@ -17,7 +17,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
@@ -212,7 +212,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": before_now(seconds=1).isoformat(),
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -279,6 +279,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert not event_from_nodestore.group_id
         assert not event_from_nodestore.group
 
+    @freeze_time()
     def test_snuba_data_transaction(self) -> None:
         self.store_event(
             data={
@@ -690,6 +691,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id
 
+    @freeze_time()
     def test_datetime_uses_timestamp_ms_from_snuba(self) -> None:
         second_before_now = before_now(seconds=1)
         second_before_now_str = second_before_now.isoformat()
