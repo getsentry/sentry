@@ -269,7 +269,6 @@ class ProjectOwnership(Model):
             return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
-
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -422,7 +421,6 @@ def process_resource_change(instance, change, **kwargs):
         instance if change == "updated" else None,
         READ_CACHE_DURATION,
     )
-    GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.set_project_ownership_version(instance.project_id)
 
 

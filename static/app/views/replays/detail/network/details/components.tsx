@@ -2,7 +2,9 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,9 +15,9 @@ export const Indent = styled('div')`
   padding-right: ${space(1)};
 `;
 
-export const InspectorMargin = styled('div')`
-  padding: ${space(1)};
-`;
+export function InspectorMargin(props: ContainerProps<'div'>) {
+  return <Container padding="md" {...props} />;
+}
 
 const NotFoundText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
@@ -64,7 +66,11 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
           key={key}
           keyName={key}
           type={type}
-          value={<ValueContainer>{value}</ValueContainer>}
+          value={
+            <Container as="span" overflow="auto">
+              {value}
+            </Container>
+          }
         />
       ))}
     </StyledKeyValueTable>
@@ -74,10 +80,6 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
     </Indent>
   );
 }
-
-const ValueContainer = styled('span')`
-  overflow: auto;
-`;
 
 const SectionTitle = styled('dt')``;
 

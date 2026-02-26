@@ -6,6 +6,7 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   OPTIONS_BY_TYPE,
@@ -18,6 +19,7 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -47,8 +49,15 @@ export function MultiMetricsQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
 
+  const organization = useOrganization();
+  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
+
   const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
+    const metricQueries = getMultiMetricsQueryParamsFromLocation(
+      location,
+      allowUpTo,
+      hasMultiVisualize
+    );
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
@@ -153,7 +162,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [location, navigate, allowUpTo]);
+  }, [allowUpTo, hasMultiVisualize, location, navigate]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -164,11 +173,14 @@ export function MultiMetricsQueryParamsProvider({
 
 function getMultiMetricsQueryParamsFromLocation(
   location: Location,
-  limit?: number
+  limit?: number,
+  multiVisualize = false
 ): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
-  const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
+  const metricQueries = rawQueryParams
+    .map(value => decodeMetricsQueryParams(value, multiVisualize))
+    .filter(defined);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 

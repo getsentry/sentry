@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
   makeTraceItemAttributeKeysQueryOptions,

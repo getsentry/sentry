@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from django.utils import timezone
 from pydantic import BaseModel
@@ -22,8 +22,10 @@ from sentry.seer.autofix.prompts import (
     triage_prompt,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -42,6 +44,25 @@ class AutofixStep(StrEnum):
     CODE_CHANGES = "code_changes"
     IMPACT_ASSESSMENT = "impact_assessment"
     TRIAGE = "triage"
+
+    @staticmethod
+    def from_autofix_stopping_point(
+        autofix_stopping_point: AutofixStoppingPoint,
+    ) -> AutofixStep:
+        match autofix_stopping_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return AutofixStep.ROOT_CAUSE
+            case AutofixStoppingPoint.SOLUTION:
+                return AutofixStep.SOLUTION
+            case AutofixStoppingPoint.CODE_CHANGES:
+                return AutofixStep.CODE_CHANGES
+            case AutofixStoppingPoint.OPEN_PR:
+                # This depends on the last step being
+                # code changes and we should look for
+                # the PR elsewhere in the explorer results
+                return AutofixStep.CODE_CHANGES
+            case _:
+                raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
 
 
 class StepConfig:
@@ -100,6 +121,7 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
+        artifact_key=step.value,
     )
 
 
@@ -134,6 +156,7 @@ def trigger_autofix_explorer(
     step: AutofixStep,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
+    intelligence_level: Literal["low", "medium", "high"] = "low",
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -154,53 +177,84 @@ def trigger_autofix_explorer(
     config = STEP_CONFIGS[step]
     client = SeerExplorerClient(
         organization=group.organization,
+        project=group.project,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
-        intelligence_level="high",
+        intelligence_level=intelligence_level,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=config.enable_coding,
     )
 
     prompt = build_step_prompt(step, group)
+    prompt_metadata = {"step": step.value}
+    artifact_key = step.value if config.artifact_schema else None
+    artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = None
+        metadata = {"group_id": group.id}
         if stopping_point:
-            metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
+            metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
             prompt=prompt,
-            artifact_key=step.value if config.artifact_schema else None,
-            artifact_schema=config.artifact_schema,
+            prompt_metadata=prompt_metadata,
+            artifact_key=artifact_key,
+            artifact_schema=artifact_schema,
             metadata=metadata,
         )
     else:
         client.continue_run(
             run_id=run_id,
             prompt=prompt,
-            artifact_key=step.value if config.artifact_schema else None,
-            artifact_schema=config.artifact_schema,
+            prompt_metadata=prompt_metadata,
+            artifact_key=artifact_key,
+            artifact_schema=artifact_schema,
         )
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # Send "started" webhook after we have the run_id
+    payload = {
+        "run_id": run_id,
+        "group_id": group.id,
+    }
+
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
+    event_name = webhook_action_type.value
+
+    event_type = f"seer.{event_name}"
+    try:
+        sentry_app_event_type = SentryAppEventType(event_type)
+        if SeerOperator.has_access(organization=group.organization):
+            process_autofix_updates.apply_async(
+                kwargs={
+                    "event_type": sentry_app_event_type,
+                    "event_payload": payload,
+                    "organization_id": group.organization.id,
+                }
+            )
+    except ValueError:
+        logger.exception(
+            "autofix.trigger.webhook_invalid_event_type",
+            extra={"event_type": event_type},
+        )
+
+    # Send "started" webhook after we have the run_id
     try:
         broadcast_webhooks_for_organization.delay(
             resource_name="seer",
-            event_name=webhook_action_type.value,
+            event_name=event_name,
             organization_id=group.organization.id,
-            payload={"run_id": run_id},
+            payload=payload,
         )
     except Exception:
         logger.exception(
-            "autofix.trigger_webhook_failed",
+            "autofix.trigger.webhook_failed",
             extra={
                 "organization_id": group.organization.id,
-                "webhook_event": webhook_action_type.value,
+                "webhook_event": event_name,
                 "step": step.value,
                 "run_id": run_id,
+                "group_id": group.id,
             },
         )
 
@@ -286,7 +340,9 @@ def generate_autofix_handoff_prompt(
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
-    integration_id: int,
+    integration_id: int | None = None,
+    provider: str | None = None,
+    user_id: int | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing Explorer-based autofix run.
@@ -298,6 +354,8 @@ def trigger_coding_agent_handoff(
         group: The Sentry group (issue)
         run_id: The existing Explorer run ID
         integration_id: The coding agent integration ID (e.g., Cursor)
+        provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
+        user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -344,6 +402,8 @@ def trigger_coding_agent_handoff(
     return client.launch_coding_agents(
         run_id=run_id,
         integration_id=integration_id,
+        provider=provider,
+        user_id=user_id,
         prompt=prompt,
         repos=repos,
         branch_name_base=group.title or "seer",

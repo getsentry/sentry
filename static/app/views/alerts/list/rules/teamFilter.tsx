@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
+import {TeamAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {Badge} from 'sentry/components/core/badge';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -82,7 +82,7 @@ function TeamFilter({
     <CompactSelect
       multiple
       clearable
-      searchable
+      search={{onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}}
       disabled={isDemoModeActive()}
       loading={fetching}
       menuTitle={t('Filter teams')}
@@ -100,7 +100,6 @@ function TeamFilter({
           : [{value: '_teams', label: t('Other Teams'), options: otherTeamOptions}]),
       ]}
       value={selectedTeams}
-      onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       onChange={opts => {
         // Compact select type inference does not work - onChange type is actually T | null.
         if (!opts) {

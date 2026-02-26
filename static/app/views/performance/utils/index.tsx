@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

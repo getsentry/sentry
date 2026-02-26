@@ -1,8 +1,10 @@
 import chunk from 'lodash/chunk';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -13,7 +15,6 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
 export function useReleases(
@@ -29,7 +30,9 @@ export function useReleases(
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
   const releaseResults = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: projects,
@@ -62,7 +65,9 @@ export function useReleases(
       };
       const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
       const queryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             ...eventView.getEventsAPIPayload(location),

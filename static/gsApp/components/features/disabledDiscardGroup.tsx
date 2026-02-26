@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconBusiness, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

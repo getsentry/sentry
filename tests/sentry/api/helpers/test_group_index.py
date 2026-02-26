@@ -18,6 +18,7 @@ from sentry.api.helpers.group_index.update import (
     handle_is_bookmarked,
     handle_is_public,
     handle_is_subscribed,
+    most_recent_release,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
@@ -34,6 +35,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -301,6 +303,41 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.RESOLVED
         assert send_robust.called
 
+    def test_get_group_list_filters_by_project_access(self) -> None:
+        """
+        Test that get_group_list properly filters groups by project access when using qualified short IDs.
+        This prevents IDOR vulnerabilities where a user could access groups from projects they don't have access to.
+        """
+        # Create a second project in the same organization
+        project2 = self.create_project(organization=self.organization, name="Project 2")
+
+        # Create groups in both projects
+        group1 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(project=project2, status=GroupStatus.UNRESOLVED)
+
+        # User only has access to self.project, not project2
+        # When requesting group2 using qualified short ID, it should be filtered out
+        group_list = get_group_list(
+            self.organization.id, [self.project], [group2.qualified_short_id]
+        )
+
+        # The group from the inaccessible project should be filtered out
+        assert group_list == []
+
+        # But when requesting a group from an accessible project, it should work
+        group_list = get_group_list(
+            self.organization.id, [self.project], [group1.qualified_short_id]
+        )
+        assert group_list == [group1]
+
+        # When user has access to both projects, both groups should be returned
+        group_list = get_group_list(
+            self.organization.id,
+            [self.project, project2],
+            [group1.qualified_short_id, group2.qualified_short_id],
+        )
+        assert set(group_list) == {group1, group2}
+
     def test_unresolve_clears_commit_resolution_links(self) -> None:
         """
         Test that when an issue is unresolved, commit resolution links are deleted
@@ -363,6 +400,48 @@ class UpdateGroupsTest(TestCase):
         assert serialized["status"] == "resolved"
         assert "inCommit" not in serialized["statusDetails"]
         assert serialized["statusDetails"] == {}
+
+    def test_resolve_in_next_release(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolvedInNextRelease"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    def test_resolve_in_next_release_ignores_archived_releases(self) -> None:
+        open_release = self.create_release(
+            project=self.project,
+            version="test@1.0.0.0",
+            date_added=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        self.create_release(
+            project=self.project,
+            version="test@2.0.0.0",
+            date_added=datetime(2024, 1, 2, tzinfo=UTC),
+            status=ReleaseStatus.ARCHIVED,
+        )
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolvedInNextRelease"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        resolution = group.groupresolution_set.get()
+        assert resolution.release == open_release
 
 
 class MergeGroupsTest(TestCase):
@@ -434,7 +513,7 @@ class MergeGroupsTest(TestCase):
 
         assert len(call_args) == 3
         # Have to convert to ids because first argument is a queryset
-        assert [group.id for group in call_args[0]] == group_ids
+        assert sorted(group.id for group in call_args[0]) == sorted(group_ids)
         assert call_args[1] == {proj1.id: proj1}
         assert call_args[2] == self.user
 
@@ -457,7 +536,7 @@ class MergeGroupsTest(TestCase):
 
         assert len(call_args) == 3
         # Have to convert to ids because first argument is a queryset
-        assert [group.id for group in call_args[0]] == group_ids
+        assert sorted(group.id for group in call_args[0]) == sorted(group_ids)
         assert call_args[1] == {project.id: project}
         assert call_args[2] == self.user
 
@@ -491,7 +570,10 @@ class MergeGroupsTest(TestCase):
                     platform="javascript",
                     metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
                 ).id,
-                self.create_group(platform="javascript").id,
+                self.create_group(
+                    platform="javascript",
+                    metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+                ).id,
             ]
             project = self.project
 
@@ -1250,3 +1332,30 @@ class GetSemverReleasesTest(TestCase):
             assert greatest is not None
             assert greatest.id == release_with_highest_build.id
             assert greatest.version == "test@1.0+100"
+
+
+class TestHandleReleases(TestCase):
+    def test_excludes_archived_releases_from_helpers(self) -> None:
+        """archived releases should not be selected as the most recent release."""
+        open_release = self.create_release(
+            project=self.project,
+            version="test@1.0.0.0",
+            date_added=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        self.create_release(
+            project=self.project,
+            version="test@1.1.0.0",
+            date_added=datetime(2024, 1, 2, tzinfo=UTC),
+            status=ReleaseStatus.ARCHIVED,
+        )
+
+        assert most_recent_release(self.project) == open_release
+        assert greatest_semver_release(self.project) == open_release
+
+        new_release = self.create_release(
+            project=self.project,
+            version="test@1.2.0.0",
+            date_added=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+        assert most_recent_release(self.project) == new_release
+        assert greatest_semver_release(self.project) == new_release

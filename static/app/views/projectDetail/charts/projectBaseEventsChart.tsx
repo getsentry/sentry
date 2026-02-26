@@ -1,12 +1,12 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -28,10 +28,6 @@ type Props = Omit<
 };
 
 class ProjectBaseEventsChart extends Component<Props> {
-  defaultProps = {
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
-  };
-
   componentDidMount() {
     this.fetchTotalCount();
   }
@@ -43,8 +39,14 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, selection, onTotalValuesChange, query, dataset} =
-      this.props;
+    const {
+      api,
+      organization,
+      selection,
+      onTotalValuesChange,
+      query,
+      dataset = DiscoverDatasets.METRICS_ENHANCED,
+    } = this.props;
     const {projects, environments, datetime} = selection;
 
     try {
@@ -74,7 +76,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       field,
       title,
       help,
-      dataset,
+      dataset = DiscoverDatasets.METRICS_ENHANCED,
       ...eventsChartProps
     } = this.props;
     const {projects, environments, datetime} = selection;
@@ -123,6 +125,34 @@ class ProjectBaseEventsChart extends Component<Props> {
       fixed: `${title} Chart`,
     });
   }
+}
+
+/**
+ * Compare the non-utc values of two selections.
+ * Useful when re-fetching data based on page filters changing.
+ *
+ * utc is not compared as there is a problem somewhere in the selection
+ * data flow that results in it being undefined | null | boolean instead of null | boolean.
+ * The additional undefined state makes this function just as unreliable as isEqual(selection, other)
+ */
+function isSelectionEqual(selection: PageFilters, other: PageFilters): boolean {
+  if (
+    !isEqual(selection.projects, other.projects) ||
+    !isEqual(selection.environments, other.environments)
+  ) {
+    return false;
+  }
+
+  // Use string comparison as we aren't interested in the identity of the datetimes.
+  if (
+    selection.datetime.period !== other.datetime.period ||
+    selection.datetime.start?.toString() !== other.datetime.start?.toString() ||
+    selection.datetime.end?.toString() !== other.datetime.end?.toString()
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 export default withPageFilters(ProjectBaseEventsChart);

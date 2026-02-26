@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';

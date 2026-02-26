@@ -13,9 +13,7 @@ def extract_slug_path_params(path: str) -> list[str]:
     return re.findall(r"<(\w+_slug)>", path)
 
 
-def extract_all_url_patterns(
-    urlpatterns, base: str = ""
-) -> Generator[Any | tuple[str, Any], Any, None]:
+def extract_all_url_patterns(urlpatterns, base: str = "") -> Generator[Any | tuple[str, Any], Any]:
     for pattern in urlpatterns:
         if isinstance(pattern, URLResolver):
             yield from extract_all_url_patterns(pattern.url_patterns, base + str(pattern.pattern))
@@ -28,7 +26,6 @@ def extract_all_url_patterns(
 
 @no_silo_test
 class TestPathParams(TestCase):
-
     IGNORE_CLASS_PREFIXES = (
         "sentry.web",
         "sentry.integrations.web",

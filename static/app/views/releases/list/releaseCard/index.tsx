@@ -6,14 +6,14 @@ import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Collapsible from 'sentry/components/collapsible';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -122,26 +122,29 @@ function ReleaseCard({
       <ReleaseInfo>
         {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
-          <GlobalSelectionLink
+          <Link
             to={{
               pathname: makeReleasesPathname({
                 organization,
                 path: `/${encodeURIComponent(version)}/`,
               }),
-              query: {project: getReleaseProjectId(release, selection)},
+              query: {
+                ...extractSelectionParameters(location.query),
+                project: getReleaseProjectId(release, selection),
+              },
             }}
           >
             <Flex align="center">
               <StyledVersion version={version} tooltipRawVersion anchor={false} />
             </Flex>
-          </GlobalSelectionLink>
+          </Link>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
           )}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
           <Flex justify="between" flex="1 1 auto" height="100%">
-            <PackageContainer>
+            <Container flex="1" marginRight="md" minWidth="0" overflow="hidden">
               <PackageName>
                 {versionInfo?.package && (
                   <TextOverflow ellipsisDirection="right">
@@ -155,7 +158,7 @@ function ReleaseCard({
               />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
-            </PackageContainer>
+            </Container>
             <FinalizeWrapper>
               {release.dateReleased ? (
                 <Tooltip
@@ -229,7 +232,7 @@ function ReleaseCard({
           </ReleaseProjectsLayout>
         </ReleaseProjectsHeader>
 
-        <ProjectRows>
+        <Container position="relative">
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
               <ExpandButtonWrapper>
@@ -266,7 +269,7 @@ function ReleaseCard({
               );
             })}
           </Collapsible>
-        </ProjectRows>
+        </Container>
 
         {projectsToHide.length > 0 && (
           <HiddenProjectsMessage data-test-id="hidden-projects">
@@ -348,13 +351,6 @@ const PackageName = styled('div')`
   max-width: 100%;
 `;
 
-const PackageContainer = styled('div')`
-  overflow: hidden;
-  flex: 1;
-  min-width: 0;
-  margin-right: ${space(1)};
-`;
-
 const ReleaseProjects = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   flex-grow: 1;
@@ -377,10 +373,6 @@ const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
   padding: ${space(1.5)} ${space(2)};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const ProjectRows = styled('div')`
-  position: relative;
 `;
 
 const ExpandButtonWrapper = styled('div')`

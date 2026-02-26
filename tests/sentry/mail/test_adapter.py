@@ -411,9 +411,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ]
         for checked_value in checked_values:
             assert isinstance(msg.alternatives[0][0], str)
-            assert (
-                checked_value in msg.alternatives[0][0]
-            ), f"{checked_value} not present in message"
+            assert checked_value in msg.alternatives[0][0], (
+                f"{checked_value} not present in message"
+            )
 
     def test_simple_notification_generic_no_evidence(self) -> None:
         """Test that an issue with no evidence that is neither error nor performance type renders a generic email template"""
@@ -487,9 +487,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ]
         for checked_value in checked_values:
             assert isinstance(msg.alternatives[0][0], str)
-            assert (
-                checked_value in msg.alternatives[0][0]
-            ), f"{checked_value} not present in message"
+            assert checked_value in msg.alternatives[0][0], (
+                f"{checked_value} not present in message"
+            )
         assert "notification_uuid" in msg.body
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
@@ -764,18 +764,20 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
 
-    def test_notify_users_with_their_timezones(self) -> None:
+    def test_notify_users_with_their_time_preferences(self) -> None:
         """
-        Test that ensures that datetime in issue alert email is in the user's timezone
+        Test that ensures that datetime in issue alert email is in the user's timezone, and their
+        preferred clock format (24h or 12h)
         """
         from django.template.defaultfilters import date
 
         timestamp = timezone.now()
         local_timestamp_s = timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
-        local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
+        local_timestamp_24h = date(local_timestamp_s, "N j, Y, H:i:s e")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
+            UserOption.objects.create(user=self.user, key="clock_24_hours", value=True)
 
         event = self.store_event(
             data={"message": "foobar", "level": "error", "timestamp": timestamp.isoformat()},
@@ -795,7 +797,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
-        assert local_timestamp in str(msg.alternatives)
+        assert local_timestamp_24h in str(msg.alternatives)
+
+        alert_notification = AlertRuleNotification(notification, ActionTargetType.ISSUE_OWNERS)
+        recipient_context = alert_notification.get_recipient_context(
+            Actor.from_orm_user(self.user), {}
+        )
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
+        assert recipient_context["clock_24_hours"] is True
 
     def _test_invalid_timezone(self, s: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -816,6 +825,17 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     def test_context_invalid_timezone_garbage_value(self) -> None:
         self._test_invalid_timezone("not/a/real/timezone")
+
+    def test_recipient_context_clock_24_hours_false_by_default(self) -> None:
+        event = self.store_event(
+            data={"message": "foobar", "level": "error"},
+            project_id=self.project.id,
+        )
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["clock_24_hours"] is False
 
     def test_notify_with_suspect_commits(self) -> None:
         repo = Repository.objects.create(
@@ -1444,7 +1464,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=project.id,
         )
 
-        rule = project.rule_set.all()[0]
+        rule = project.rule_set.all().order_by("id")[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1500,7 +1520,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             )
         )
 
-        rule = project.rule_set.all()[0]
+        rule = project.rule_set.all().order_by("id")[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1538,7 +1558,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=project.id,
         )
 
-        rule = project.rule_set.all()[0]
+        rule = project.rule_set.all().order_by("id")[0]
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
@@ -1572,7 +1592,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=project.id,
         )
 
-        rule = project.rule_set.all()[0]
+        rule = project.rule_set.all().order_by("id")[0]
         rule2 = self.create_project_rule(
             project=project
         )  # mute the first rule only for self.user, not user2
@@ -1622,7 +1642,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=project.id,
         )
 
-        rule = project.rule_set.all()[0]
+        rule = project.rule_set.all().order_by("id")[0]
         rule2 = self.create_project_rule(project=project)
         # mute the rules for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
@@ -1667,7 +1687,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=project.id,
         )
 
-        rule = project.rule_set.all()[0]
+        rule = project.rule_set.all().order_by("id")[0]
         rule2 = self.create_project_rule(project=project)
         # mute the first rule for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
@@ -1699,7 +1719,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = self.project.rule_set.all()[0]
+        rule = self.project.rule_set.all().order_by("id")[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))
         self.adapter.notify_digest(
@@ -1726,7 +1746,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=self.project.id,
         )
 
-        rule = self.project.rule_set.all()[0]
+        rule = self.project.rule_set.all().order_by("id")[0]
 
         digest = build_digest(
             self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))

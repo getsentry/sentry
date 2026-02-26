@@ -1,9 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -82,38 +84,30 @@ class SimilarToolbar extends Component<Props, State> {
 
     return (
       <PanelHeader hasButtons>
-        <ButtonPanel>
+        <Flex gap="md">
           <Confirm
             disabled={mergeCount === 0}
             message={t('Are you sure you want to merge these issues?')}
             onConfirm={onMerge}
           >
-            <Button size="xs" title={t('Merging %s issues', mergeCount)}>
+            <Button size="xs" tooltipProps={{title: t('Merging %s issues', mergeCount)}}>
               {t('Merge %s', `(${mergeCount || 0})`)}
             </Button>
           </Confirm>
-        </ButtonPanel>
+        </Flex>
 
-        <Columns>
+        <Flex align="center" flexShrink={0} width="325px" minWidth="325px">
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
           <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
           {!hasSimilarityEmbeddingsFeature && (
             <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
           )}
-        </Columns>
+        </Flex>
       </PanelHeader>
     );
   }
 }
 export default SimilarToolbar;
-
-const Columns = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  min-width: 325px;
-  width: 325px;
-`;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
@@ -121,10 +115,4 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   display: flex;
   justify-content: center;
   padding: ${space(0.5)} 0;
-`;
-
-const ButtonPanel = styled('div')`
-  display: flex;
-  align-items: left;
-  gap: ${space(1)};
 `;

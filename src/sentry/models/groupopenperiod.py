@@ -58,7 +58,6 @@ class GroupOpenPeriod(DefaultFieldsModel):
     date_ended = models.DateTimeField(null=True)
 
     data = models.JSONField(default=dict)
-    event_id = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -143,7 +142,6 @@ def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
     query_end: datetime | None = None,
-    limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod]:
     """
     Get open periods for a group that overlap with the query time range.
@@ -173,15 +171,13 @@ def get_open_periods_for_group(
     ended_after_query_starts = Q(date_ended__gte=query_start)
     still_open = Q(date_ended__isnull=True)
 
-    group_open_periods = (
+    return (
         GroupOpenPeriod.objects.filter(
             group=group,
         )
         .filter(started_before_query_ends & (ended_after_query_starts | still_open))
         .order_by("-date_started")
     )
-
-    return group_open_periods[:limit]
 
 
 def create_open_period(group: Group, start_time: datetime, event_id: str | None = None) -> None:
@@ -209,7 +205,6 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
-            event_id=event_id,
         )
 
         # If we care about this group's activity, create activity entry
@@ -219,6 +214,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
                 group_open_period=open_period,
                 type=OpenPeriodActivityType.OPENED,
                 value=group.priority,
+                event_id=event_id,
             )
 
 

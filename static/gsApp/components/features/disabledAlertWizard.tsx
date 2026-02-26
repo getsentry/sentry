@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -18,7 +17,7 @@ function DisabledAlertWizard({organization}: Props) {
   return (
     <Flex justify="between" align="center" wrap="wrap">
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           onClick={() =>
             openUpsellModal({
@@ -32,7 +31,7 @@ function DisabledAlertWizard({organization}: Props) {
         <Button priority="primary" disabled>
           {t('Set Conditions')}
         </Button>
-      </ButtonBar>
+      </Grid>
     </Flex>
   );
 }

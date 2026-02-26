@@ -2,19 +2,19 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
-
-import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
+import {ActorAvatar} from '@sentry/scraps/avatar';
 import {
   CompactSelect,
+  MenuComponents,
   type SelectOption,
   type SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -520,7 +520,11 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <AssigneeTrigger borderless data-test-id="assignee-selector" {...props}>
+          <AssigneeTrigger
+            priority="transparent"
+            data-test-id="assignee-selector"
+            {...props}
+          >
             {avatarElement}
           </AssigneeTrigger>
         )}
@@ -529,28 +533,10 @@ export default function AssigneeSelectorDropdown({
     );
   };
 
-  const footerInviteButton = (
-    <Flex align="center" gap="md">
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd />}
-      >
-        {t('Invite Member')}
-      </Button>
-      {additionalMenuFooterItems}
-    </Flex>
-  );
-
   return (
     <AssigneeWrapper>
       <CompactSelect
-        searchable
+        search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
         menuWidth={275}
@@ -562,12 +548,25 @@ export default function AssigneeSelectorDropdown({
             : ''
         }
         menuTitle={t('Assignee')}
-        searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={footerInviteButton}
+        menuFooter={
+          <Flex gap="md">
+            <MenuComponents.CTAButton
+              disabled={loading}
+              onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                event.preventDefault();
+                openInviteMembersModal({source: 'assignee_selector'});
+              }}
+              icon={<IconAdd />}
+            >
+              {t('Invite Member')}
+            </MenuComponents.CTAButton>
+            {additionalMenuFooterItems}
+          </Flex>
+        }
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"

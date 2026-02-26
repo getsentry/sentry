@@ -8,14 +8,22 @@ export const canUseMetricsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) && organization.features.includes('tracemetrics-stats')
-  );
+  return canUseMetricsUI(organization);
 };
 
 export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
+  return canUseMetricsUI(organization);
+};
+
+export const canUseMetricsAlertsUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) && organization.features.includes('tracemetrics-alerts')
+  );
+};
+
+export const canUseMetricsMultiAggregateUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-saved-queries')
+    organization.features.includes('tracemetrics-overlay-charts-ui')
   );
 };

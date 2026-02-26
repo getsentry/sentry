@@ -21,6 +21,13 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
     method = "post"
     features: dict[str, bool] = {"organizations:uptime-runtime-assertions": True}
 
+    def setUp(self) -> None:
+        super().setUp()
+        self.context = {
+            "organization": self.organization,
+            "user": self.user,
+        }
+
     def test_bad_config(self) -> None:
         with self.feature(self.features):
             response = self.get_error_response(

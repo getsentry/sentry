@@ -1,15 +1,14 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
@@ -229,7 +228,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
           </Container>
         </OffsetBody>
         <Footer>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               onClick={() => {
                 this.props.closeModal();
@@ -240,7 +239,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
             <Button priority="primary" onClick={this.handleSave}>
               {t('Save')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Footer>
       </Fragment>
     );

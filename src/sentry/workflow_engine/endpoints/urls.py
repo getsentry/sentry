@@ -1,5 +1,9 @@
 from django.urls import re_path
 
+from sentry.workflow_engine.endpoints.organization_deduplicate_workflows import (
+    OrganizationDeduplicateWorkflowsEndpoint,
+)
+
 from .organization_alertrule_detector_index import OrganizationAlertRuleDetectorIndexEndpoint
 from .organization_alertrule_workflow_index import OrganizationAlertRuleWorkflowIndexEndpoint
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
@@ -18,17 +22,6 @@ from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
-
-# TODO @saponifi3d - Add the remaining API endpoints
-
-# Remaining Detector Endpoints
-#   - GET /detector w/ filters
-
-# Remaining Workflows Endpoints
-# - GET /workflow w/ filters
-# - POST /workflow
-# - PUT /workflow/:id
-# - DELETE /workflow/:id
 
 organization_urlpatterns = [
     re_path(
@@ -55,6 +48,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/count/$",
         OrganizationDetectorCountEndpoint.as_view(),
         name="sentry-api-0-organization-detector-count",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/deduplicate/$",
+        OrganizationDeduplicateWorkflowsEndpoint.as_view(),
+        name="sentry-api-0-organization-deduplicate-workflows",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/$",

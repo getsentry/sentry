@@ -7,8 +7,7 @@ import type {BaseChartProps} from './baseChart';
 import BaseChart from './baseChart';
 
 export interface AreaChartSeries
-  extends Omit<LineSeriesOption, 'data' | 'areaStyle' | 'color' | 'id'>,
-    Series {}
+  extends Omit<LineSeriesOption, 'data' | 'areaStyle' | 'color' | 'id'>, Series {}
 
 export interface AreaChartProps extends Omit<BaseChartProps, 'series'> {
   series: AreaChartSeries[];

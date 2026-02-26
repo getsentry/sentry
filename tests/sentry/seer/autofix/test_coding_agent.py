@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
-    GithubCopilotTaskStatusResponse,
+    GithubCopilotTask,
 )
 from sentry.seer.autofix.coding_agent import _launch_agents_for_repos, poll_github_copilot_agents
 from sentry.seer.autofix.utils import (
@@ -314,10 +314,10 @@ class TestLaunchAgentsForRepos(TestCase):
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
     @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_short_id_passed_to_prompt_when_auto_create_pr_enabled(
+    def test_short_id_passed_to_prompt(
         self, mock_get_preferences, mock_get_prompt, mock_store_states
     ):
-        """Test that short_id is passed to get_coding_agent_prompt when auto_create_pr is True."""
+        """Test that short_id is passed to get_coding_agent_prompt."""
         from sentry.seer.models import (
             AutofixHandoffPoint,
             PreferenceResponse,
@@ -325,7 +325,6 @@ class TestLaunchAgentsForRepos(TestCase):
             SeerProjectPreference,
         )
 
-        # Add short_id to the autofix state
         self.autofix_state.request.issue["short_id"] = "AIML-2301"
 
         # Setup: Mock preferences with auto_create_pr=True
@@ -344,7 +343,7 @@ class TestLaunchAgentsForRepos(TestCase):
                 handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
                 target="cursor_background_agent",
                 integration_id=123,
-                auto_create_pr=True,
+                auto_create_pr=False,
             ),
         )
         mock_get_preferences.return_value = PreferenceResponse(
@@ -371,44 +370,6 @@ class TestLaunchAgentsForRepos(TestCase):
         mock_get_prompt.assert_called_once()
         call_args = mock_get_prompt.call_args
         assert call_args[0][3] == "AIML-2301"
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_short_id_not_passed_when_auto_create_pr_disabled(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
-    ):
-        """Test that short_id is None when auto_create_pr is False."""
-        from sentry.seer.models import PreferenceResponse
-
-        # Add short_id to the autofix state
-        self.autofix_state.request.issue["short_id"] = "AIML-2301"
-
-        # Setup: Mock preferences with auto_create_pr=False (default)
-        mock_get_preferences.return_value = PreferenceResponse(
-            preference=None, code_mapping_repos=[]
-        )
-
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = {
-            "url": "https://example.com/agent",
-            "id": "agent-123",
-        }
-
-        _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        # Assert: Verify get_coding_agent_prompt was called with short_id=None
-        mock_get_prompt.assert_called_once()
-        call_args = mock_get_prompt.call_args
-        assert call_args[0][3] is None  # Fourth positional arg is short_id
 
 
 class TestPollGithubCopilotAgents(TestCase):
@@ -513,7 +474,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_client = MagicMock()
-        mock_client.get_task_status.return_value = GithubCopilotTaskStatusResponse(
+        mock_client.get_task_status.return_value = GithubCopilotTask(
             id="task-123",
             status="completed",
             artifacts=[
@@ -572,7 +533,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(
-            return_value=GithubCopilotTaskStatusResponse(
+            return_value=GithubCopilotTask(
                 id="task-123",
                 status="failed",
             )
@@ -609,7 +570,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(
-            return_value=GithubCopilotTaskStatusResponse(
+            return_value=GithubCopilotTask(
                 id="task-123",
                 status="running",
                 artifacts=[

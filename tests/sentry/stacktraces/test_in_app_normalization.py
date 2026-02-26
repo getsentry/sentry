@@ -121,9 +121,9 @@ class NormalizeInApptest(TestCase):
             normalize_stacktraces_for_grouping(event_data)
 
             computed_frame_mix = event_data["metadata"]["in_app_frame_mix"]
-            assert (
-                computed_frame_mix == expected_frame_mix
-            ), f"Expected {expected_frame_mix}, got {computed_frame_mix} with `in_app` values {frame_0_in_app}, {frame_1_in_app}"
+            assert computed_frame_mix == expected_frame_mix, (
+                f"Expected {expected_frame_mix}, got {computed_frame_mix} with `in_app` values {frame_0_in_app}, {frame_1_in_app}"
+            )
 
     def test_detects_frame_mix_correctly_with_multiple_stacktraces(self) -> None:
         # Each case is `(stacktrace1_in_app_values, stacktrace2_in_app_values, expected_result)`
@@ -153,9 +153,9 @@ class NormalizeInApptest(TestCase):
             normalize_stacktraces_for_grouping(event_data)
 
             frame_mix = event_data["metadata"]["in_app_frame_mix"]
-            assert (
-                frame_mix == expected_frame_mix
-            ), f"Expected {expected_frame_mix}, got {frame_mix} with stacktrace `in-app` values {stacktrace_0_mix}, {stacktrace_1_mix}"
+            assert frame_mix == expected_frame_mix, (
+                f"Expected {expected_frame_mix}, got {frame_mix} with stacktrace `in-app` values {stacktrace_0_mix}, {stacktrace_1_mix}"
+            )
 
 
 class MacOSInAppDetectionTest(TestCase):

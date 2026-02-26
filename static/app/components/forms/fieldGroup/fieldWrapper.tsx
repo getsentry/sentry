@@ -5,11 +5,10 @@ import {space} from 'sentry/styles/space';
 
 import type {FieldGroupProps} from './types';
 
-interface FieldWrapperProps
-  extends Pick<
-    FieldGroupProps,
-    'hasControlState' | 'highlighted' | 'inline' | 'stacked'
-  > {}
+interface FieldWrapperProps extends Pick<
+  FieldGroupProps,
+  'hasControlState' | 'highlighted' | 'inline' | 'stacked'
+> {}
 
 const inlineStyle = (p: FieldWrapperProps) =>
   p.inline

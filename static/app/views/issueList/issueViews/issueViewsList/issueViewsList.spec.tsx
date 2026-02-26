@@ -61,10 +61,6 @@ describe('IssueViewsList', () => {
         }),
       ],
     });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/prompts-activity/',
-    });
   });
 
   it('displays views from myself and others', async () => {

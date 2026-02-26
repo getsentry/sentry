@@ -1,21 +1,26 @@
 import logging
+import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
 from django.core.exceptions import BadRequest
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, features, quotas
+from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
+from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    query_attribute_distributions,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
@@ -32,9 +37,13 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.explorer.utils import (
+    _convert_profile_to_execution_tree,
+    fetch_profile_data,
+    get_group_date_range,
+    get_retention_boundary,
+)
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -126,8 +135,6 @@ def execute_table_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -176,7 +183,10 @@ def execute_table_query(
             path=f"/organizations/{organization.slug}/events/",
             params=params,
         )
-        return {"data": resp.data["data"]}
+        return {
+            "data": resp.data["data"],
+            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
+        }
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
@@ -216,7 +226,6 @@ def execute_timeseries_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -314,10 +323,6 @@ def execute_trace_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
         Start/end params take precedence over stats_period. Default time range is the last 24 hours.
     """
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="24h"
-    )
-
     organization = Organization.objects.get(id=organization_id)
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -350,7 +355,10 @@ def execute_trace_table_query(
             path=f"/organizations/{organization.slug}/traces/",
             params=params,
         )
-        return {"data": resp.data["data"]}
+        return {
+            "data": resp.data["data"],
+            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
+        }
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
@@ -530,8 +538,8 @@ def rpc_get_profile_flamegraph(
                 "span_description": span_description,
                 "query_string": query_string,
                 "data": data,
-                "window_start": window_start.isoformat(),
-                "window_end": window_end.isoformat(),
+                "window_start": window_start,
+                "window_end": window_end,
             },
         )
         if data:
@@ -548,8 +556,8 @@ def rpc_get_profile_flamegraph(
                     "profile_id": profile_id,
                     "organization_id": organization_id,
                     "data": data,
-                    "window_start": window_start.isoformat(),
-                    "window_end": window_end.isoformat(),
+                    "window_start": window_start,
+                    "window_end": window_end,
                     "full_profile_id": full_profile_id,
                     "full_profiler_id": full_profiler_id,
                     "project_id": project_id,
@@ -721,46 +729,63 @@ EVENT_TIMESERIES_RESOLUTIONS = (
 
 def _get_issue_event_timeseries(
     *,
+    group: Group,
     organization: Organization,
-    project_id: int,
-    issue_short_id: str,
-    first_seen_delta: timedelta,
-    issue_category: GroupCategory,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
-    a stats period and interval based on the issue's first seen date and EVENT_TIMESERIES_RESOLUTIONS.
+    an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
+    start, end = get_group_date_range(group, organization, start, end)
+    logger.info(
+        "get_issue_and_event_details_v2: Querying event timeseries",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+        },
+    )
 
-    stats_period, interval = None, None
+    # Round up to nearest supported period
+    delta = end - start
+    selected_period, selected_delta, interval = None, None, None
     for p, i in EVENT_TIMESERIES_RESOLUTIONS:
-        delta = parse_stats_period(p)
-        if delta and first_seen_delta <= delta:
-            stats_period, interval = p, i
+        d = parse_stats_period(p)
+        if d and delta <= d:
+            selected_period, selected_delta, interval = p, d, i
             break
-    stats_period = stats_period or "90d"
+    selected_period = selected_period or "90d"
+    selected_delta = selected_delta or timedelta(days=90)
     interval = interval or "3d"
+
+    # Adjust range to equal period
+    end = start + selected_delta
 
     # Use the correct dataset based on issue category
     # Error issues are stored in the "events" dataset, while issue platform issues
     # (performance, etc.) are stored in "issuePlatform" (search_issues)
-    dataset = "errors" if issue_category == GroupCategory.ERROR else "issuePlatform"
+    dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
 
     data = execute_timeseries_query(
         org_id=organization.id,
         dataset=dataset,
         y_axes=["count()"],
         group_by=[],
-        query=f"issue:{issue_short_id}",
-        stats_period=stats_period,
+        query=f"issue:{group.qualified_short_id}",
+        start=start.isoformat(),
+        end=end.isoformat(),
         interval=interval,
-        project_ids=[project_id],
+        project_ids=[group.project_id],
         partial=True,
     )
 
     if data is None:
         return None
-    return data, stats_period, interval
+    return data, selected_period, interval
 
 
 def _get_recommended_event(
@@ -774,61 +799,95 @@ def _get_recommended_event(
     Time range defaults to the group's first and last seen times.
     If multiple events are valid, return the one with highest RECOMMENDED ordering.
     If no events are valid, return the highest recommended event.
+
+    Also falls back to the regular recommended event in case of query failures or custom timeout.
     """
-    if start is None:
-        start = group.first_seen
-    if end is None:
-        end = group.last_seen + timedelta(seconds=5)
+    start_time = time.time()
 
-    # Clamp start to retention boundary to avoid QueryOutsideRetentionError
-    retention_days = quotas.backend.get_event_retention(organization=organization) or 90
-    now = datetime.now(UTC) if start.tzinfo else datetime.now(UTC).replace(tzinfo=None)
-    retention_boundary = now - timedelta(days=retention_days)
-    start = max(start, retention_boundary)
+    # Config
+    max_date_range = timedelta(days=14)  # Clamp date range as the query loop can be very expensive.
+    timeout = 50  # Sentry API timeout is 60s - 10s buffer.
+    event_query_limit = 50  # Events/trace IDs to query in each window.
+    window_size = timedelta(days=3)
 
-    if start >= end:
-        logger.warning(
-            "_get_recommended_event: Time range outside retention",
-            extra={
-                "group_id": group.id,
-                "organization_id": organization.id,
-                "start": start,
-                "end": end,
-                "retention_days": retention_days,
-            },
-        )
-        return None
+    start, end = get_group_date_range(group, organization, start, end)
+    unclamped_start = start
+    start = max(start, end - max_date_range)
+    retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
+    window_start = max(end - window_size, start)
+    window_end = end
+    # Fallback to first event we find (most recommended in most recent window).
+    fallback_event: GroupEvent | None = None
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    w_size = timedelta(days=3)
-    w_start = max(end - w_size, start)
-    w_end = end
-    event_query_limit = 100
-    fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
+    def get_latest_event() -> GroupEvent | None:
+        """If no events are found in the clamped range, use this query to return most recent event in the full range."""
+        return group.get_latest_event(start=unclamped_start, end=end)
 
-    while w_start >= start:
+    logger.info(
+        "_get_recommended_event: starting query loop",
+        extra={
+            "organization_id": organization.id,
+            "project_id": group.project.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+            "dataset": dataset.value,
+        },
+    )
+
+    while window_start >= start:
+        if time.time() - start_time > timeout:
+            logger.warning(
+                "_get_recommended_event: timeout reached",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": group.project.id,
+                    "issue_id": group.id,
+                    "timedelta": end - start,
+                    "start": start,
+                    "end": end,
+                    "dataset": dataset.value,
+                    "timeout": timeout,
+                },
+            )
+            return fallback_event or get_latest_event()
+
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
-        events: list[Event] = eventstore.backend.get_events_snql(
-            organization_id=organization.id,
-            group_id=group.id,
-            start=w_start,
-            end=w_end,
-            conditions=[
-                Condition(Column("project_id"), Op.IN, [group.project.id]),
-                Condition(Column("group_id"), Op.IN, [group.id]),
-            ],
-            limit=event_query_limit,
-            orderby=EventOrdering.RECOMMENDED.value,
-            referrer=Referrer.SEER_EXPLORER_TOOLS,
-            dataset=dataset,
-            tenant_ids={"organization_id": group.project.organization_id},
-            inner_limit=1000,
-        )
+        try:
+            events: list[Event] = eventstore.backend.get_events_snql(
+                organization_id=organization.id,
+                group_id=group.id,
+                start=window_start,
+                end=window_end,
+                conditions=[
+                    Condition(Column("project_id"), Op.IN, [group.project.id]),
+                    Condition(Column("group_id"), Op.IN, [group.id]),
+                ],
+                limit=event_query_limit,
+                orderby=EventOrdering.RECOMMENDED.value,
+                referrer=Referrer.SEER_EXPLORER_TOOLS,
+                dataset=dataset,
+                tenant_ids={"organization_id": group.project.organization_id},
+                inner_limit=1000,
+            )
+        except Exception:
+            logger.exception(
+                "_get_recommended_event: eventstore query failed",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": group.project.id,
+                    "issue_id": group.id,
+                    "dataset": dataset.value,
+                },
+            )
+            return fallback_event or get_latest_event()
 
         if events and not fallback_event:
             fallback_event = events[0].for_group(group)
@@ -839,19 +898,31 @@ def _get_recommended_event(
             # Query EAP to get the span count of each trace.
             # Extend the time range by +-1 day to account for min/max trace start/end times.
             # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
-            spans_start = max(w_start - timedelta(days=1), retention_boundary)
-            spans_end = w_end + timedelta(days=1)
-
+            spans_start = max(window_start - timedelta(days=1), retention_boundary)
+            spans_end = window_end + timedelta(days=1)
             count_field = "count(span.duration)"
-            result = execute_table_query(
-                org_id=organization.id,
-                dataset="spans",
-                per_page=len(trace_ids),
-                fields=["trace", count_field],
-                query=f"trace:[{','.join(trace_ids)}]",
-                start=spans_start.isoformat(),
-                end=spans_end.isoformat(),
-            )
+
+            try:
+                result = execute_table_query(
+                    org_id=organization.id,
+                    dataset="spans",
+                    per_page=len(trace_ids),
+                    fields=["trace", count_field],
+                    query=f"trace:[{','.join(trace_ids)}]",
+                    start=spans_start.isoformat(),
+                    end=spans_end.isoformat(),
+                )
+            except Exception:
+                logger.exception(
+                    "_get_recommended_event: spans query failed",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": group.project.id,
+                        "issue_id": group.id,
+                        "num_trace_ids": len(trace_ids),
+                    },
+                )
+                return fallback_event or get_latest_event()
 
             if result and result.get("data"):
                 # Return the first event with a span count greater than 0.
@@ -865,22 +936,26 @@ def _get_recommended_event(
                     if e.trace_id in traces_with_spans:
                         return e.for_group(group)
 
-        if w_start == start:
+        if window_start == start:
             break
 
-        w_end = w_start
-        w_start = max(w_start - w_size, start)
+        window_end = window_start
+        window_start = max(window_start - window_size, start)
 
     logger.warning(
-        "_get_recommended_event: No event with a span found",
+        "_get_recommended_event: no event with a span found",
         extra={
-            "group_id": group.id,
+            "issue_id": group.id,
             "organization_id": organization.id,
+            "project_id": group.project.id,
             "start": start,
             "end": end,
+            "timedelta": end - start,
+            "dataset": dataset.value,
+            "has_fallback_event": bool(fallback_event),
         },
     )
-    return fallback_event
+    return fallback_event or get_latest_event()
 
 
 # Activity types to include in issue details for Seer Explorer (manual actions only)
@@ -896,7 +971,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 
 
 def get_issue_and_event_response(
-    event: Event | GroupEvent, group: Group | None, organization: Organization
+    event: Event | GroupEvent,
+    group: Group | None,
+    organization: Organization,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> dict[str, Any]:
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
 
@@ -914,22 +993,50 @@ def get_issue_and_event_response(
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
+        logger.info(
+            "get_issue_and_event_details_v2: Querying for tags overview",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "timedelta": (end - start) if start and end else None,
+                "start": start,
+                "end": end,
+            },
+        )
+
         try:
-            tags_overview = get_all_tags_overview(group)
+            tags_overview = get_all_tags_overview(group, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",
-                extra={"organization_id": organization.id, "issue_id": group.id},
+                extra={
+                    "organization_id": organization.id,
+                    "issue_id": group.id,
+                    "start": start,
+                    "end": end,
+                },
             )
             tags_overview = None
 
-        ts_result = _get_issue_event_timeseries(
-            organization=organization,
-            project_id=group.project_id,
-            issue_short_id=group.qualified_short_id,
-            first_seen_delta=datetime.now(UTC) - group.first_seen,
-            issue_category=group.issue_category,
-        )
+        try:
+            ts_result = _get_issue_event_timeseries(
+                group=group,
+                organization=organization,
+                start=start,
+                end=end,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to get issue event timeseries",
+                extra={
+                    "organization_id": organization.id,
+                    "issue_id": group.id,
+                    "start": start,
+                    "end": end,
+                },
+            )
+            ts_result = None
+
         if ts_result:
             timeseries, timeseries_stats_period, timeseries_interval = ts_result
         else:
@@ -974,11 +1081,10 @@ def get_issue_and_event_details_v2(
     project_slug: str | None = None,
     include_issue: bool = True,
 ) -> dict[str, Any] | None:
-
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
-    validate_date_params(None, start, end, allow_none=True)
+    start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
 
@@ -1003,8 +1109,6 @@ def get_issue_and_event_details_v2(
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
-        start_dt = datetime.fromisoformat(start) if start else None
-        end_dt = datetime.fromisoformat(end) if end else None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
@@ -1017,18 +1121,30 @@ def get_issue_and_event_details_v2(
                 tenant_ids={"organization_id": organization_id},
             )
         else:
-            events_result = eventstore.backend.get_events(
-                filter=eventstore.Filter(
-                    event_ids=[event_id],
-                    organization_id=organization_id,
-                    project_ids=project_ids,
-                ),
-                limit=1,
-                tenant_ids={"organization_id": organization_id},
-            )
-            event = events_result[0] if events_result else None
+            # Error events live in Events, occurrence events in IssuePlatform;
+            # we don't know which dataset holds this event_id until we query.
+            event = None
+            for dataset in (Dataset.Events, Dataset.IssuePlatform):
+                events_result = eventstore.backend.get_events(
+                    filter=eventstore.Filter(
+                        event_ids=[event_id],
+                        organization_id=organization_id,
+                        project_ids=project_ids,
+                    ),
+                    limit=1,
+                    tenant_ids={"organization_id": organization_id},
+                    dataset=dataset,
+                )
+                if events_result:
+                    event = events_result[0]
+                    break
 
         group = event.group if event else None
+
+    # Convert Event to GroupEvent so the occurrence (if any) can be lazy-loaded
+    # from nodestore via the occurrence_id in snuba_data during serialization.
+    if event is not None and group is not None and isinstance(event, Event):
+        event = event.for_group(group)
 
     if group is None:
         logger.warning(
@@ -1057,9 +1173,9 @@ def get_issue_and_event_details_v2(
         return None
 
     if include_issue:
-        return get_issue_and_event_response(event, group, organization)
+        return get_issue_and_event_response(event, group, organization, start_dt, end_dt)
 
-    return get_issue_and_event_response(event, None, organization)
+    return get_issue_and_event_response(event, None, organization, start_dt, end_dt)
 
 
 def get_replay_metadata(
@@ -1369,7 +1485,10 @@ def get_log_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=MAX_STATS_PERIOD,
+    )
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1386,9 +1505,8 @@ def get_log_attributes_for_trace(
     )
 
     snuba_params = SnubaParams(
-        start=datetime.fromisoformat(start) if start else None,
-        end=datetime.fromisoformat(end) if end else None,
-        stats_period=stats_period,
+        start=start_dt,
+        end=end_dt,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
@@ -1444,7 +1562,10 @@ def get_metric_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=MAX_STATS_PERIOD,
+    )
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1461,9 +1582,8 @@ def get_metric_attributes_for_trace(
     )
 
     snuba_params = SnubaParams(
-        start=datetime.fromisoformat(start) if start else None,
-        end=datetime.fromisoformat(end) if end else None,
-        stats_period=stats_period,
+        start=start_dt,
+        end=end_dt,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
@@ -1516,31 +1636,32 @@ def get_baseline_tag_distribution(
         project_id: The project ID
         group_id: The issue group ID to exclude from baseline
         tag_keys: List of tag keys to fetch (from the issue's tags_overview)
-        stats_period: Stats period for the time range (e.g. "7d"). Defaults to "7d" if no time params provided.
+        stats_period: Stats period for the time range (optional and mutually exclusive with start and end)
         start: ISO timestamp for start of time range (optional)
         end: ISO timestamp for end of time range (optional)
+
+        If no date params are provided, we use the issue's first_seen to last_seen range.
 
     Returns:
         Dict with "baseline_tag_distribution" containing list of
         {"tag_key": str, "tag_value": str, "count": int} entries.
     """
 
+    group = Group.objects.get(id=group_id, project_id=project_id)
+    organization = group.organization
+    if organization.id != organization_id:
+        raise BadRequest("Group does not belong to the specified organization")
+
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        optional=True,
+    )
+
     if not tag_keys:
         return {"baseline_tag_distribution": []}
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
-
-    if stats_period:
-        period_delta = parse_stats_period(stats_period)
-        assert period_delta is not None  # Already validated
-        end_dt = datetime.now(timezone.utc)
-        start_dt = end_dt - period_delta
-    else:
-        assert start and end
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+    # Use first/last seen if date params are not provided.
+    start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
 
     # Query both error events and issue platform occurrences for a comprehensive baseline.
     # "events" contains error issues, "search_issues" contains performance and other issue types.
@@ -1614,3 +1735,95 @@ def get_baseline_tag_distribution(
     ]
 
     return {"baseline_tag_distribution": baseline_distribution}
+
+
+def get_comparative_attribute_distributions(
+    *,
+    organization_id: int,
+    range_start: str,
+    range_end: str,
+    start: str | None = None,
+    end: str | None = None,
+    stats_period: str | None = None,
+    aggregate_function: str = "count(span.duration)",
+    above: bool = True,
+    query: str | None = "",
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+) -> dict[str, Any] | None:
+    """
+    Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
+    The selected range should be smaller and within the larger range. This is not validated.
+
+    Optional args unique to this endpoint:
+    - aggregate_function: An aggregate function to used to filter the outlier cohort
+    - above: Whether to filter above or below the function value (above for spikes, below for dips)
+    - query: Additional base query to filter both cohorts
+
+    Outputs attribute distribution data (list of (attribute_name, label, value) tuples) for Seer analysis.
+    """
+    # Parse inner date filter (outlier cohort)
+    range_start_dt, range_end_dt = get_date_range_from_params(
+        {"start": range_start, "end": range_end}
+    )
+    if (range_start_dt.timestamp() // 60) >= (range_end_dt.timestamp() // 60):
+        raise ValueError("range_start must be before range_end (minute precision)")
+
+    # Parse outer date filter (baseline cohort)
+    # Default to [range_start - 1 minute, now] (explicit filter is recommended)
+    default_stats_period = (
+        datetime.now(range_start_dt.tzinfo) - range_start_dt + timedelta(minutes=1)
+    )
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=default_stats_period,
+    )
+
+    organization = Organization.objects.get(id=organization_id)
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"id__in": project_ids} if bool(project_ids) else {}),
+            **({"slug__in": project_slugs} if bool(project_slugs) else {}),
+        )
+    )
+    if not projects:
+        raise NotFound("No projects found for this organization and the given project filters")
+
+    # Build the cohort queries by adding a time filter for cohort 1 (minute precision).
+    base_query = (query or "").strip()
+    range_start_str = range_start_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    range_end_str = range_end_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    query_1 = (
+        f"{base_query} timestamp:>={range_start_str} timestamp:<={range_end_str}"
+        if base_query
+        else f"timestamp:>={range_start_str} timestamp:<={range_end_str}"
+    )
+    query_2 = base_query
+
+    # Query for and compute the two attribute distributions.
+    snuba_params = SnubaParams(
+        start=start_dt,
+        end=end_dt,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+
+    distributions_result = query_attribute_distributions(
+        snuba_params=snuba_params,
+        function_string=aggregate_function,
+        above=above,
+        query_1=query_1,
+        query_2=query_2,
+    )
+
+    return {
+        "baseline_distribution": distributions_result["cohort_2_distribution"],
+        "total_baseline": distributions_result["total_cohort_2"],
+        "outliers_distribution": distributions_result["cohort_1_distribution"],
+        "total_outliers": distributions_result["total_cohort_1"],
+        "outliers_function_value": distributions_result["cohort_1_function_value"],
+    }

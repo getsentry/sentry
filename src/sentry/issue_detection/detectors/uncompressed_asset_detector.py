@@ -33,8 +33,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type = DetectorType.UNCOMPRESSED_ASSETS
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.any_compression = False
 
@@ -44,7 +50,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         if not op:
             return
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
+        allowed_span_ops = self.settings["allowed_span_ops"]
         if op not in allowed_span_ops:
             return
 
@@ -76,7 +82,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets that aren't big enough to worry about.
-        size_threshold_bytes = self.settings.get("size_threshold_bytes")
+        size_threshold_bytes = self.settings["size_threshold_bytes"]
         if encoded_body_size < size_threshold_bytes:
             return
 
@@ -87,9 +93,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets under a certain duration threshold
-        if get_span_duration(span).total_seconds() * 1000 <= self.settings.get(
-            "duration_threshold"
-        ):
+        if get_span_duration(span).total_seconds() * 1000 <= self.settings["duration_threshold"]:
             return
 
         fingerprint = self._fingerprint(span)
@@ -101,6 +105,19 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             )
             return
         if fingerprint and span_id:
+            evidence_data = {
+                "op": op,
+                "parent_span_ids": [],
+                "cause_span_ids": [],
+                "offender_span_ids": [span_id],
+                "transaction_name": self._event.get("description", ""),
+                "repeating_spans": get_span_evidence_value(span),
+                "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                "num_repeating_spans": str(len(span_id)),
+            }
+            if self.detector_id is not None:
+                evidence_data["detector_id"] = self.detector_id
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op=op,
@@ -109,16 +126,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 type=PerformanceUncompressedAssetsGroupType,
                 cause_span_ids=[],
                 offender_span_ids=[span_id],
-                evidence_data={
-                    "op": op,
-                    "parent_span_ids": [],
-                    "cause_span_ids": [],
-                    "offender_span_ids": [span_id],
-                    "transaction_name": self._event.get("description", ""),
-                    "repeating_spans": get_span_evidence_value(span),
-                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
-                    "num_repeating_spans": str(len(span_id)),
-                },
+                evidence_data=evidence_data,
                 evidence_display=[
                     IssueEvidence(
                         name="Offending Spans",

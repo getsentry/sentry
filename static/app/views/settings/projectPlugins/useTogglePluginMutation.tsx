@@ -6,6 +6,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,
@@ -30,7 +31,12 @@ export function useTogglePluginMutation({
 }: UseTogglePluginMutationOptions) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const pluginsQueryKey = `/projects/${organization.slug}/${projectSlug}/plugins/`;
+  const pluginsQueryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+    }
+  );
 
   return useMutation({
     mutationFn: ({pluginId, shouldEnable}: TogglePluginParams) => {
@@ -51,7 +57,16 @@ export function useTogglePluginMutation({
       );
 
       // Optimistically update the plugin details cache
-      const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectSlug}/plugins/${pluginId}/`;
+      const pluginDetailsQueryKey = getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            pluginId,
+          },
+        }
+      );
       setApiQueryData<Plugin>(queryClient, [pluginDetailsQueryKey], plugin =>
         plugin ? {...plugin, enabled: shouldEnable} : plugin
       );

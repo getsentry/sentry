@@ -25,9 +25,9 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
         assert self.organization, "Organization must exist to get slug"
         org_slug = self.organization.slug
 
-        assert isinstance(
-            self.provider, IntegrationProvider
-        ), "Must be an IntegrationProvider to get integration key"
+        assert isinstance(self.provider, IntegrationProvider), (
+            "Must be an IntegrationProvider to get integration key"
+        )
         provider = self.provider.integration_key
 
         integration_id = self.integration.id
@@ -50,9 +50,8 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
-            configure_uri = "/extensions/{}/configure/?{}".format(
-                self.provider,
-                urlencode(request.GET.dict()),
+            configure_uri = (
+                f"/extensions/{self.provider}/configure/?{urlencode(request.GET.dict())}"
             )
 
             redirect_uri = "{}?{}".format(

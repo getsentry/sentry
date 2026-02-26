@@ -3,14 +3,14 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import WebVitalMetersWithIssues, {
   type ProjectData,
 } from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('WebVitalMetersWithIssues', () => {
   const organization = OrganizationFixture();

@@ -1,4 +1,5 @@
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';

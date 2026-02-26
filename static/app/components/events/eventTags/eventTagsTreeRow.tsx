@@ -2,14 +2,16 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
@@ -153,6 +155,7 @@ function EventTagsTreeRowDropdown({
       key: escapeIssueTagKey(originalTag.key),
     }
   );
+  const globalSelectionParams = extractSelectionParameters(location.query);
 
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
@@ -177,7 +180,7 @@ function EventTagsTreeRowDropdown({
       hidden: !event.groupID || isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -186,7 +189,7 @@ function EventTagsTreeRowDropdown({
       hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -195,7 +198,7 @@ function EventTagsTreeRowDropdown({
       hidden: !isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/feedback/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {

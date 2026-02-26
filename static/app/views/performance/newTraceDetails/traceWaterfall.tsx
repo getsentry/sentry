@@ -13,8 +13,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -31,7 +33,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
@@ -71,12 +72,14 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
+export type TraceWaterfallSource = 'issues' | 'performance' | 'replay' | 'trace_view';
+
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
   rootEventResults: TraceRootEventQueryResults;
-  source: string;
+  source: TraceWaterfallSource;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
@@ -671,6 +674,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         <TraceOpenInExploreButton
           trace_id={props.traceSlug}
           traceEventView={props.traceEventView}
+          source={props.source}
+          replayId={props.replay?.id}
         />
         <TraceResetZoomButton
           viewManager={viewManager}
@@ -697,18 +702,24 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
           )}
         >
-          <Trace
-            trace={props.tree}
-            rerender={rerender}
-            trace_id={props.traceSlug}
-            onRowClick={onRowClick}
-            onTraceSearch={onTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            scheduler={traceScheduler}
-            forceRerender={forceRender}
-            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
-          />
+          {tourProps => (
+            <div {...tourProps}>
+              <Trace
+                trace={props.tree}
+                rerender={rerender}
+                trace_id={props.traceSlug}
+                onRowClick={onRowClick}
+                onTraceSearch={onTraceSearch}
+                previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+                manager={viewManager}
+                scheduler={traceScheduler}
+                forceRerender={forceRender}
+                isLoading={
+                  props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+                }
+              />
+            </div>
+          )}
         </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (

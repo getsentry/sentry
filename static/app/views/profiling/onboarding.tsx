@@ -2,11 +2,20 @@ import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
@@ -16,6 +25,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
@@ -34,7 +44,6 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 function useOnboardingProject() {
@@ -88,19 +97,29 @@ function WaitingIndicator({
 function StepRenderer({
   project,
   step,
+  stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
+  stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   const {type, title} = step;
   const api = useApi();
   const organization = useOrganization();
 
   return (
-    <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
-      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+    <GuidedSteps.Step
+      stepKey={type || title}
+      title={title || (type && StepTitles[type])}
+      trailingItems={trailingItems}
+    >
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -134,48 +153,50 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Find Slow Code')}</Title>
-                <SubTitle>
-                  {t(
-                    'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Find Slow Code')}</Title>
+                  <SubTitle>
                     {t(
-                      'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Augment traces & spans with function-level visibility into the code that is causing increased latency'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Augment traces & spans with function-level visibility into the code that is causing increased latency'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -187,6 +208,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -286,7 +308,7 @@ export function Onboarding() {
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
     ...profilingDocs.verify(docParams),
-  ];
+  ].filter(s => !s.collapsible);
 
   return (
     <OnboardingPanel project={project}>
@@ -294,17 +316,24 @@ export function Onboarding() {
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
       <GuidedSteps>
-        {steps
-          // Only show non-optional steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
-            <StepRenderer
-              key={index}
-              project={project}
-              step={step}
-              isLastStep={index === steps.length - 1}
-            />
-          ))}
+        {steps.map((step, index) => (
+          <StepRenderer
+            key={index}
+            project={project}
+            step={step}
+            stepIndex={index}
+            isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 && copyEnabled ? (
+                <OnboardingCopyMarkdownButton
+                  borderless
+                  steps={steps}
+                  source="profiling_onboarding"
+                />
+              ) : undefined
+            }
+          />
+        ))}
       </GuidedSteps>
     </OnboardingPanel>
   );
@@ -414,6 +443,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

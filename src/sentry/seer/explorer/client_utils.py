@@ -12,24 +12,30 @@ import time
 from typing import Any
 
 import orjson
-import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.users.models.user import User as SentryUser
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 
 logger = logging.getLogger(__name__)
+
+explorer_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
 
 
 def has_seer_explorer_access_with_detail(
@@ -64,7 +70,9 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | AnonymousUser | None, organization: Organization
+    user: SentryUser | AnonymousUser | None,
+    organization: Organization,
+    request: Request | None = None,
 ) -> dict[str, Any]:
     """Collect user and organization context for a new Explorer run."""
     all_projects = Project.objects.filter(
@@ -75,12 +83,6 @@ def collect_user_org_context(
     if user is None or isinstance(user, AnonymousUser):
         return {
             "org_slug": organization.slug,
-            "user_id": None,
-            "user_name": None,
-            "user_email": None,
-            "user_timezone": None,
-            "user_teams": [],
-            "user_projects": [],
             "all_org_projects": all_org_projects,
         }
 
@@ -106,9 +108,13 @@ def collect_user_org_context(
     user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
     user_timezone = get_option_from_list(user_options, key="timezone")
 
+    # Get IP address from http request, if provided
+    user_ip: str | None = request.META.get("REMOTE_ADDR") if request else None
+
     return {
         "org_slug": organization.slug,
         "user_id": user.id,
+        "user_ip": user_ip,
         "user_name": user_name,
         "user_email": user.email,
         "user_timezone": user_timezone,
@@ -130,16 +136,14 @@ def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        explorer_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     data = response.json()
 
     session = data.get("session")

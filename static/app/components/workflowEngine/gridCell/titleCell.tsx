@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconSentry, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
@@ -53,7 +54,11 @@ export function TitleCell({
             </Tooltip>
           </Fragment>
         )}
-        {disabled && <DisabledText>&mdash; Disabled</DisabledText>}
+        {disabled && (
+          <Container as="span" flexShrink={0}>
+            &mdash; Disabled
+          </Container>
+        )}
       </Name>
       {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
     </Fragment>
@@ -110,10 +115,6 @@ const NameText = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   width: fit-content;
-`;
-
-const DisabledText = styled('span')`
-  flex-shrink: 0;
 `;
 
 const CreatedBySentryIcon = styled(IconSentry)`

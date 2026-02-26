@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Badge} from 'sentry/components/core/badge';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
@@ -54,7 +54,7 @@ export function OwnershipOwnerFilter({
     <CompactSelect
       multiple
       clearable
-      searchable
+      search
       menuTitle={t('Filter owners')}
       options={actorOptions}
       value={selectedTeams}

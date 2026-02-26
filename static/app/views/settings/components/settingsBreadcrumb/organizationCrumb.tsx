@@ -1,6 +1,7 @@
 import sortBy from 'lodash/sortBy';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -82,7 +83,7 @@ export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbP
       hasMenu={hasMenu}
       route={route}
       value={organization.slug}
-      searchPlaceholder={t('Search Organizations')}
+      search={{placeholder: t('Search Organizations')}}
       options={sortBy(organizations, ['name'])
         .filter(org => org.status.id === 'active')
         .map(org => ({

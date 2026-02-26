@@ -571,7 +571,6 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         assert has_shape(results4, {1: 1})
 
     def test_calculated_limit(self) -> None:
-
         with patch("sentry.tsdb.snuba.raw_snql_query") as snuba:
             # 24h test
             rollup = 3600

@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import {Alert} from 'sentry/components/core/alert';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';

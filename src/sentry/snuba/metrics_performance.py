@@ -47,14 +47,12 @@ def query(
     transform_alias_to_input_format: bool = False,
     sample: float | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     skip_tag_resolution: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
     *,
     referrer: str,
 ) -> EventsResponse:
@@ -78,7 +76,6 @@ def query(
                 # Auto fields will add things like id back in if enabled
                 auto_fields=False,
                 transform_alias_to_input_format=transform_alias_to_input_format,
-                use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 parser_config_overrides={"allow_not_has_filter": False},
@@ -92,7 +89,7 @@ def query(
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
-        if debug:
+        if snuba_params.debug:
             results["meta"]["debug_info"] = {"query": str(metrics_query.get_snql_query().query)}
         sentry_sdk.set_tag("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
@@ -110,7 +107,6 @@ def bulk_timeseries_query(
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
@@ -132,7 +128,6 @@ def bulk_timeseries_query(
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
@@ -152,7 +147,6 @@ def bulk_timeseries_query(
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
@@ -185,7 +179,6 @@ def bulk_timeseries_query(
                     config=QueryBuilderConfig(
                         functions_acl=functions_acl,
                         allow_metric_aggregates=allow_metric_aggregates,
-                        use_metrics_layer=use_metrics_layer,
                         parser_config_overrides={"allow_not_has_filter": False},
                     ),
                 )
@@ -263,7 +256,6 @@ def timeseries_query(
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
@@ -293,7 +285,6 @@ def timeseries_query(
                 config=QueryBuilderConfig(
                     functions_acl=functions_acl,
                     allow_metric_aggregates=allow_metric_aggregates,
-                    use_metrics_layer=use_metrics_layer,
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
                     transform_alias_to_input_format=transform_alias_to_input_format,
@@ -425,7 +416,6 @@ def top_events_timeseries(
     *,
     referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
-
     if top_events is None:
         top_events = query(
             selected_columns,
@@ -570,7 +560,6 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
-    use_metrics_layer=True,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
@@ -631,9 +620,7 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
-        config=QueryBuilderConfig(
-            use_metrics_layer=use_metrics_layer,
-        ),
+        config=QueryBuilderConfig(),
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)

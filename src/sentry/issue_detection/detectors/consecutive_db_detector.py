@@ -58,8 +58,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.consecutive_db_spans: list[Span] = []
         self.independent_db_spans: list[Span] = []
@@ -79,15 +85,15 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if not len(self.independent_db_spans):
             return
 
-        exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
-            "consecutive_count_threshold"
+        exceeds_count_threshold = (
+            len(self.consecutive_db_spans) >= self.settings["consecutive_count_threshold"]
         )
         if not exceeds_count_threshold:
             return
 
         exceeds_span_duration_threshold = all(
             get_span_duration(span).total_seconds() * 1000
-            > self.settings.get("span_duration_threshold")
+            > self.settings["span_duration_threshold"]
             for span in self.independent_db_spans
         )
         if not exceeds_span_duration_threshold:
@@ -95,14 +101,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         time_saved = self._calculate_time_saved(self.independent_db_spans)
         total_time = get_total_span_duration(self.consecutive_db_spans)
-        exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
+        exceeds_time_saved_threshold = time_saved >= self.settings["min_time_saved"]
         if not exceeds_time_saved_threshold:
             return
 
         exceeds_time_saved_threshold_ratio = False
         if total_time > 0:
-            exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
-                "min_time_saved_ratio"
+            exceeds_time_saved_threshold_ratio = (
+                time_saved / total_time >= self.settings["min_time_saved_ratio"]
             )
         if not exceeds_time_saved_threshold_ratio:
             return
@@ -115,6 +121,31 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         cause_span_ids = [span["span_id"] for span in self.consecutive_db_spans]
         query: str = self.independent_db_spans[0].get("description", "")
 
+        evidence_data = {
+            "op": "db",
+            "cause_span_ids": cause_span_ids,
+            "parent_span_ids": None,
+            "offender_span_ids": offender_span_ids,
+            "transaction_name": self._event.get("transaction", ""),
+            "span_evidence_key_value": [
+                {"key": str(_("Transaction")), "value": self._event.get("transaction", "")},
+                {"key": str(_("Starting Span")), "value": self._get_starting_span()},
+                {
+                    "key": str(_("Parallelizable Spans")),
+                    "value": self._get_parallelizable_spans(),
+                    "is_multi_value": True,
+                },
+            ],
+            "transaction_duration": self._get_duration(self._event),
+            "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
+            "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
+            "repeating_spans_compact": get_span_evidence_value(
+                self.independent_db_spans[0], include_op=False
+            ),
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op="db",
@@ -123,28 +154,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_data={
-                "op": "db",
-                "cause_span_ids": cause_span_ids,
-                "parent_span_ids": None,
-                "offender_span_ids": offender_span_ids,
-                "transaction_name": self._event.get("transaction", ""),
-                "span_evidence_key_value": [
-                    {"key": str(_("Transaction")), "value": self._event.get("transaction", "")},
-                    {"key": str(_("Starting Span")), "value": self._get_starting_span()},
-                    {
-                        "key": str(_("Parallelizable Spans")),
-                        "value": self._get_parallelizable_spans(),
-                        "is_multi_value": True,
-                    },
-                ],
-                "transaction_duration": self._get_duration(self._event),
-                "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
-                "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(
-                    self.independent_db_spans[0], include_op=False
-                ),
-            },
+            evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",

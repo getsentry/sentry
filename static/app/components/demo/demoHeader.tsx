@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {logout} from 'sentry/actionCreators/account';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -116,7 +116,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-right: auto;
   width: 130px;
   height: 30px;
-  fill: ${p => p.theme.tokens.content.primary};
+  fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
 `;
 
 const FreeTrialTextShort = styled('span')`

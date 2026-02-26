@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import type {ApiResult} from 'sentry/api';
@@ -9,6 +8,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -30,18 +30,16 @@ import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
@@ -49,41 +47,6 @@ type SpansSeriesResponse =
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type SpansTableResponse = TableData | EventsTableData;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  // Apply dashboard filters if provided
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  // Clean widget to remove empty/invalid fields before API request
-  return cleanWidgetForRequest(processedWidget);
-}
 
 /**
  * Hook for fetching Spans widget series data (charts) using React Query.
@@ -104,6 +67,7 @@ export function useSpansSeriesQuery(
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -112,7 +76,8 @@ export function useSpansSeriesQuery(
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -125,7 +90,8 @@ export function useSpansSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.SPANS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       // Add sampling mode if provided
@@ -159,7 +125,9 @@ export function useSpansSeriesQuery(
 
       // Build the API query key for events-stats endpoint
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -167,7 +135,7 @@ export function useSpansSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   // Create stable queryFn that uses queue from ref
   const createQueryFn = useCallback(
@@ -178,14 +146,8 @@ export function useSpansSeriesQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<SpansSeriesResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<SpansSeriesResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -196,13 +158,26 @@ export function useSpansSeriesQuery(
       },
     [queue]
   );
+
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
+      retryDelay: getRetryDelay,
       // Keep data from previous query keys while fetching new data
       placeholderData: (previousData: unknown) => previousData,
     })),
@@ -318,7 +293,8 @@ export function useSpansTableQuery(
 
   const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -369,7 +345,9 @@ export function useSpansTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -391,15 +369,8 @@ export function useSpansTableQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result =
-                    await fetchDataQuery<SpansTableResponse>(modifiedContext);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<SpansTableResponse>(modifiedContext).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -409,15 +380,27 @@ export function useSpansTableQuery(
     [queue]
   );
 
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
+      retryDelay: getRetryDelay,
     })),
   });
 

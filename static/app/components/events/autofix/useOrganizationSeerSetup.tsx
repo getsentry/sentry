@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -11,14 +12,14 @@ interface OrganizationSeerSetupResponse {
     hasAutofixQuota: boolean;
     hasScannerQuota: boolean;
   };
-  setupAcknowledgement: {
-    orgHasAcknowledged: boolean;
-    userHasAcknowledged: boolean;
-  };
 }
 
 export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
-  return [`/organizations/${orgSlug}/seer/setup-check/`];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/seer/setup-check/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ];
 }
 
 export function useOrganizationSeerSetup(
@@ -48,10 +49,5 @@ export function useOrganizationSeerSetup(
       hasScannerQuota: Boolean(queryData.data?.billing?.hasScannerQuota),
     },
     areAiFeaturesAllowed,
-    setupAcknowledgement: {
-      orgHasAcknowledged: Boolean(
-        queryData.data?.setupAcknowledgement?.orgHasAcknowledged
-      ),
-    },
   };
 }

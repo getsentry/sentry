@@ -1,6 +1,6 @@
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {
   getDefaultOrderBy,
   getSelectionType,
@@ -41,7 +41,7 @@ export default function FeatureFlagSort({
           aria-label={t('Sort Flags')}
           size="xs"
           icon={<IconSort />}
-          title={t('Sort Flags')}
+          tooltipProps={{title: t('Sort Flags')}}
         />
       )}
     >

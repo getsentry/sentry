@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from typing import Any
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
@@ -239,14 +241,15 @@ def _launch_agents_for_repos(
 
     # Repos that were in the repos but not in the autofix state
     repos_not_found = repos - autofix_state_repos
-    logger.warning(
-        "coding_agent.post.repos_not_found",
-        extra={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "repos_not_found": repos_not_found,
-        },
-    )
+    if repos_not_found:
+        logger.warning(
+            "coding_agent.post.repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "repos_not_found": repos_not_found,
+            },
+        )
 
     validated_repos = repos - repos_not_found
 
@@ -258,7 +261,7 @@ def _launch_agents_for_repos(
         )
 
     short_id = None
-    if autofix_state and auto_create_pr:
+    if autofix_state:
         short_id = autofix_state.request.issue.get("short_id")
 
     prompt = get_coding_agent_prompt(run_id, trigger_source, instruction, short_id)
@@ -292,6 +295,7 @@ def _launch_agents_for_repos(
                 {
                     "repo_name": repo_name,
                     "error_message": f"Repository {repo_name} not found in autofix state",
+                    "failure_type": "generic",
                 }
             )
             continue
@@ -320,19 +324,39 @@ def _launch_agents_for_repos(
                 },
             )
             error_message = str(e)
+            failure_type = "generic"
+            github_installation_id: str | None = None
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
-                if e.code == 401:
+                if e.code == 403 and client is not None:
+                    if e.text and "not licensed" in e.text.lower():
+                        failure_type = "github_copilot_not_licensed"
+                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                    else:
+                        failure_type = "github_app_permissions"
+                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                        if repo and repo.integration_id:
+                            try:
+                                sentry_integration = integration_service.get_integration(
+                                    integration_id=int(repo.integration_id)
+                                )
+                                if sentry_integration:
+                                    github_installation_id = sentry_integration.external_id
+                            except Exception:
+                                sentry_sdk.capture_exception(level="warning")
+                elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:
                     error_message = f"Failed to make request to coding agent{url_part}. {e.code} Error: {e.text}"
 
-            failures.append(
-                {
-                    "repo_name": repo_name,
-                    "error_message": error_message,
-                }
-            )
+            failure: dict = {
+                "repo_name": repo_name,
+                "error_message": error_message,
+                "failure_type": failure_type,
+            }
+            if github_installation_id:
+                failure["github_installation_id"] = github_installation_id
+            failures.append(failure)
             continue
 
         states_to_store.append(coding_agent_state)
@@ -385,7 +409,7 @@ def launch_coding_agents_for_run(
 
     Raises:
         NotFound: If organization, integration, autofix state, or repos are not found
-        PermissionDenied: If feature is not enabled for the organization
+        PermissionDenied: If GitHub Copilot is not enabled for the organization
         ValidationError: If integration is invalid
         APIException: If there's an error launching agents
     """
@@ -393,9 +417,6 @@ def launch_coding_agents_for_run(
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         raise NotFound("Organization not found")
-
-    if not features.has("organizations:seer-coding-agent-integrations", organization):
-        raise PermissionDenied("Feature not available")
 
     integration = None
     installation: CodingAgentIntegration | None = None
@@ -465,15 +486,17 @@ def launch_coding_agents_for_run(
 
 
 def poll_github_copilot_agents(
-    autofix_state: AutofixState,
-    user_id: int,
+    autofix_state: AutofixState | None = None,
+    user_id: int = 0,
+    coding_agents: dict[str, Any] | None = None,
 ) -> None:
-    if not autofix_state.coding_agents:
+    agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
+    if not agents:
         return
 
     user_access_token: str | None = None
 
-    for agent_id, agent_state in autofix_state.coding_agents.items():
+    for agent_id, agent_state in agents.items():
         if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
             continue
 
@@ -505,12 +528,14 @@ def poll_github_copilot_agents(
             client = GithubCopilotAgentClient(user_access_token)
             task_status = client.get_task_status(owner, repo, task_id)
 
+            # Find PR in artifacts - look for artifact with data.type == 'pull'
             pr_artifact = next(
-                (a for a in (task_status.artifacts or []) if a.data.type == "pull"),
+                (a for a in (task_status.artifacts or []) if a.data and a.data.type == "pull"),
                 None,
             )
 
-            if pr_artifact:
+            if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
+                # Get PR info from GraphQL using the global_id
                 pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
                 if pr_info:
                     pr_url = pr_info.url
@@ -523,7 +548,8 @@ def poll_github_copilot_agents(
                         pr_url=pr_url,
                     )
 
-                    is_task_done = task_status.status in ("completed", "succeeded")
+                    # Status: queued, in_progress, completed, failed, timed_out
+                    is_task_done = task_status.status == "completed"
                     new_status = (
                         CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
                     )
@@ -544,7 +570,7 @@ def poll_github_copilot_agents(
                         },
                     )
 
-            elif task_status.status in ("failed", "error"):
+            elif task_status.status in ("failed", "timed_out"):
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=CodingAgentStatus.FAILED,

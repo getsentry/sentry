@@ -225,7 +225,7 @@ class IssueAlertMigratorTest(TestCase):
     def test_run(self) -> None:
         self.assert_issue_alert_migrated(self.issue_alert)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -250,7 +250,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -266,7 +266,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -280,7 +280,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -298,7 +298,7 @@ class IssueAlertMigratorTest(TestCase):
 
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -316,7 +316,7 @@ class IssueAlertMigratorTest(TestCase):
 
         self.assert_issue_alert_migrated(issue_alert, is_enabled=True)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 

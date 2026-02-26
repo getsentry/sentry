@@ -484,7 +484,7 @@ def cli_import_then_export(
 ) -> None:
     with TemporaryDirectory() as tmp_dir:
         tmp_in_findings = Path(tmp_dir).joinpath(
-            f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+            f"{''.join(choice(ascii_letters) for _ in range(6))}.json"
         )
         rv = CliRunner().invoke(
             import_,
@@ -504,7 +504,7 @@ def cli_import_then_export(
             assert len(findings) == 0
 
         tmp_out_findings = Path(tmp_dir).joinpath(
-            f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+            f"{''.join(choice(ascii_letters) for _ in range(6))}.json"
         )
         tmp_out_path = Path(tmp_dir).joinpath("good.json")
         rv = CliRunner().invoke(
@@ -566,7 +566,7 @@ class GoodImportExportCommandTests(TransactionTestCase):
 
         with TemporaryDirectory() as tmp_dir:
             tmp_findings_file_path = Path(tmp_dir).joinpath(
-                f"{''.join(choice(ascii_letters)for _ in range(6))}.txt"
+                f"{''.join(choice(ascii_letters) for _ in range(6))}.txt"
             )
             with open(tmp_findings_file_path, "w") as f:
                 f.write(
@@ -741,7 +741,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
     ) -> str:
         with TemporaryDirectory() as tmp_dir:
             tmp_in_findings = Path(tmp_dir).joinpath(
-                f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+                f"{''.join(choice(ascii_letters) for _ in range(6))}.json"
             )
             rv = CliRunner().invoke(
                 import_,

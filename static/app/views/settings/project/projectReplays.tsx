@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';

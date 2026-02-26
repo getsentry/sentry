@@ -1,14 +1,17 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -28,6 +31,8 @@ import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 interface AgentToolsLandingPageProps {
@@ -41,6 +46,17 @@ function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps
   const agentSpanSearchProps = useAgentSpanSearchProps();
 
   useAgentMonitoringTrackPageView();
+
+  const {view} = useDomainViewFilters();
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  if (hasPlatformized) {
+    return (
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.AI_AGENTS_TOOLS}
+        storageNamespace={view}
+      />
+    );
+  }
 
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -59,9 +59,9 @@ export function AutomationStatsChart({
   return (
     <Panel>
       <StyledPanelBody withPadding>
-        <ChartHeader>
+        <Container marginBottom="2xl">
           <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
-        </ChartHeader>
+        </Container>
         {isPending && <Placeholder height="200px" />}
         {isError && <LoadingError />}
         {fireHistory && (
@@ -106,10 +106,6 @@ export function AutomationStatsChart({
     </Panel>
   );
 }
-
-const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
-`;
 
 const ChartFooter = styled(PanelFooter)`
   display: flex;

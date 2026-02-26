@@ -17,9 +17,15 @@ from sentry.search.events.builder.errors import (
 )
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import OTHER_KEY, TOP_KEYS_DEFAULT_LIMIT, FacetResult, create_result_key
+from sentry.snuba.discover import (
+    OTHER_KEY,
+    TOP_KEYS_DEFAULT_LIMIT,
+    FacetResult,
+    create_result_key,
+    transform_tips,
+    zerofill,
+)
 from sentry.snuba.discover import get_facets as get_discover_facets
-from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
@@ -50,7 +56,6 @@ def query(
     transform_alias_to_input_format: bool = False,
     sample: float | None = None,
     has_metrics: bool = False,
-    use_metrics_layer: bool = False,
     skip_tag_resolution: bool = False,
     extra_columns: list[Column] | None = None,
     on_demand_metrics_enabled: bool = False,
@@ -58,7 +63,6 @@ def query(
     dataset: Dataset = Dataset.Events,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
     *,
     referrer: str,
 ) -> EventsResponse:
@@ -92,7 +96,7 @@ def query(
         builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
-    if debug:
+    if snuba_params.debug:
         result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     return result
 
@@ -107,7 +111,6 @@ def timeseries_query(
     functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
-    use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
@@ -116,7 +119,6 @@ def timeseries_query(
     *,
     referrer: str,
 ):
-
     with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(

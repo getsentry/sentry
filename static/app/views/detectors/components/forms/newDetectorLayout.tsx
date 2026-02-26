@@ -1,8 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import type {
   BaseDetectorUpdatePayload,
@@ -23,6 +25,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
   environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
+  extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
@@ -37,6 +40,7 @@ export function NewDetectorLayout<
   disabledCreate,
   mapFormErrors,
   environment,
+  extraFooterButton,
   previewChart,
   detectorType,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
@@ -49,6 +53,9 @@ export function NewDetectorLayout<
     detectorType,
     formDataToEndpointPayload,
   });
+
+  const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const initialData = useMemo(() => {
     return {
@@ -68,8 +75,10 @@ export function NewDetectorLayout<
   ]);
 
   const formProps: FormProps = {
+    model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
+    onFieldChange,
     mapFormErrors,
   };
 
@@ -92,7 +101,11 @@ export function NewDetectorLayout<
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <NewDetectorFooter maxWidth={maxWidth} disabledCreate={disabledCreate} />
+      <NewDetectorFooter
+        maxWidth={maxWidth}
+        disabledCreate={disabledCreate}
+        extras={extraFooterButton}
+      />
     </EditLayout>
   );
 }

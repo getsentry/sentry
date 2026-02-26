@@ -337,8 +337,10 @@ interface EntryRequestDataDefault {
   query?: Array<[key: string, value: string] | null> | string;
 }
 
-export interface EntryRequestDataGraphQl
-  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+export interface EntryRequestDataGraphQl extends Omit<
+  EntryRequestDataDefault,
+  'apiTarget' | 'data'
+> {
   apiTarget: 'graphql';
   data: {
     query: string;
@@ -436,8 +438,7 @@ export enum DeviceContextKey {
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
 export interface DeviceContext
-  extends Partial<Record<DeviceContextKey, unknown>>,
-    BaseContext {
+  extends Partial<Record<DeviceContextKey, unknown>>, BaseContext {
   type: 'device';
   [DeviceContextKey.NAME]: string;
   [DeviceContextKey.ARCH]?: string;
@@ -493,8 +494,7 @@ enum RuntimeContextKey {
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
 interface RuntimeContext
-  extends Partial<Record<RuntimeContextKey, unknown>>,
-    BaseContext {
+  extends Partial<Record<RuntimeContextKey, unknown>>, BaseContext {
   type: 'runtime';
   [RuntimeContextKey.BUILD]?: string;
   [RuntimeContextKey.NAME]?: string;
@@ -798,8 +798,10 @@ interface TraceEventContexts extends EventContexts {
   profile?: ProfileContext;
 }
 
-export interface EventTransaction
-  extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
+export interface EventTransaction extends Omit<
+  EventBase,
+  'entries' | 'type' | 'contexts'
+> {
   contexts: TraceEventContexts;
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
@@ -812,28 +814,27 @@ export interface EventTransaction
   perfProblem?: PerformanceDetectorData;
 }
 
-export interface AggregateEventTransaction
-  extends Omit<
-    EventTransaction,
-    | 'crashFile'
-    | 'culprit'
-    | 'dist'
-    | 'dateReceived'
-    | 'errors'
-    | 'location'
-    | 'metadata'
-    | 'message'
-    | 'occurrence'
-    | 'type'
-    | 'size'
-    | 'user'
-    | 'eventID'
-    | 'fingerprints'
-    | 'id'
-    | 'projectID'
-    | 'tags'
-    | 'title'
-  > {
+export interface AggregateEventTransaction extends Omit<
+  EventTransaction,
+  | 'crashFile'
+  | 'culprit'
+  | 'dist'
+  | 'dateReceived'
+  | 'errors'
+  | 'location'
+  | 'metadata'
+  | 'message'
+  | 'occurrence'
+  | 'type'
+  | 'size'
+  | 'user'
+  | 'eventID'
+  | 'fingerprints'
+  | 'id'
+  | 'projectID'
+  | 'tags'
+  | 'title'
+> {
   count: number;
   frequency: number;
   total: number;

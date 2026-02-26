@@ -197,6 +197,18 @@ export function isDateToken(token: TokenResult<Token.FILTER>) {
   );
 }
 
+export function isNumericFilterToken(token: TokenResult<Token.FILTER>): boolean {
+  return [
+    FilterType.NUMERIC,
+    FilterType.DURATION,
+    FilterType.SIZE,
+    FilterType.AGGREGATE_NUMERIC,
+    FilterType.AGGREGATE_PERCENTAGE,
+    FilterType.AGGREGATE_DURATION,
+    FilterType.AGGREGATE_SIZE,
+  ].includes(token.filter);
+}
+
 export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
   switch (type) {
     case SavedSearchType.ISSUE:

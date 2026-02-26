@@ -29,10 +29,9 @@ from django.core.cache import cache
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
-from django.test import override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -51,7 +50,10 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckStatus,
     CheckStatusReason,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    TRACE_ITEM_TYPE_OCCURRENCE,
+    TraceItemType,
+)
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -63,7 +65,9 @@ from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
-from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.providers.saml2.activedirectory.apps import (
+    ACTIVE_DIRECTORY_PROVIDER_NAME,
+)
 from sentry.auth.staff import COOKIE_DOMAIN as STAFF_COOKIE_DOMAIN
 from sentry.auth.staff import COOKIE_NAME as STAFF_COOKIE_NAME
 from sentry.auth.staff import COOKIE_PATH as STAFF_COOKIE_PATH
@@ -78,6 +82,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
+from sentry.eventstream.item_helpers import _build_occurrence_attributes
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -109,8 +114,12 @@ from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.new_migrations.monkey.state import SentryProjectState
-from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
-from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.models.notificationsettingoption import (
+    NotificationSettingOption,
+)
+from sentry.notifications.models.notificationsettingprovider import (
+    NotificationSettingProvider,
+)
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -143,6 +152,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -1095,9 +1105,9 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert (
-                False
-            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
+            assert False, (
+                f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
+            )
 
     def build_session(self, **kwargs):
         session = {
@@ -1138,30 +1148,21 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span, is_eap=False):
-        self.store_spans([span], is_eap=is_eap)
+    def store_span(self, span):
+        self.store_spans([span])
 
-    def store_spans(self, spans, is_eap=False):
-        if is_eap:
-            files = {}
-            for i, span in enumerate(spans):
-                trace_item = span_to_trace_item(span)
-                files[f"item_{i}"] = trace_item.SerializeToString()
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                    files=files,
-                ).status_code
-                == 200
-            )
-        else:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
+    def store_spans(self, spans):
+        files = {}
+        for i, span in enumerate(spans):
+            trace_item = span_to_trace_item(span)
+            files[f"item_{i}"] = trace_item.SerializeToString()
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files=files,
+            ).status_code
+            == 200
+        )
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
@@ -1170,6 +1171,51 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+    def store_occurrences(self, occurrences: Sequence[TraceItem]):
+        files = {
+            f"occurrence_{i}": occurrence.SerializeToString()
+            for i, occurrence in enumerate(occurrences)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_events_to_snuba_and_eap(
+        self,
+        fingerprint: str,
+        count: int = 1,
+        timestamp: float | None = None,
+        trace_id: str | None = None,
+        message: str | None = None,
+        project_id: int | None = None,
+        extra_event_data: dict[str, Any] | None = None,
+    ) -> list[Event]:
+        """
+        Store occurrences in both legacy Snuba and EAP via the production dual-write path.
+        """
+        events: list[Event] = []
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            for _ in range(count):
+                data: dict[str, Any] = {
+                    "message": message or f"error in {fingerprint}",
+                    "fingerprint": [fingerprint],
+                    "event_id": uuid4().hex,
+                    "contexts": {"trace": {"trace_id": trace_id or uuid4().hex}},
+                }
+                if timestamp is not None:
+                    data["timestamp"] = timestamp
+                if extra_event_data:
+                    data.update(extra_event_data)
+                event = self.store_event(
+                    data=data,
+                    project_id=project_id or self.project.id,
+                    assert_no_errors=False,
+                )
+                events.append(event)
+        return events
 
     def store_trace_metrics(self, trace_metrics):
         files = {
@@ -1292,6 +1338,7 @@ class BaseSpansTestCase(SnubaTestCase):
         parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
+        name: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
         tags: dict[str, str] | None = None,
@@ -1302,7 +1349,6 @@ class BaseSpansTestCase(SnubaTestCase):
         status: str | None = None,
         environment: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1320,6 +1366,8 @@ class BaseSpansTestCase(SnubaTestCase):
             sentry_tags["status"] = status
         if environment is not None:
             sentry_tags["environment"] = environment
+        if name is not None:
+            sentry_tags["name"] = name
 
         payload = {
             "project_id": project_id,
@@ -1355,7 +1403,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
 
-        self.store_span(payload, is_eap=is_eap)
+        self.store_span(payload)
 
     def store_indexed_span(
         self,
@@ -1376,7 +1424,6 @@ class BaseSpansTestCase(SnubaTestCase):
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1427,7 +1474,7 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self.store_span(payload, is_eap=is_eap)
+            self.store_span(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2077,9 +2124,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             time.sleep(0.05)
 
         if attempt == attempts:
-            assert (
-                False
-            ), f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
+            assert False, (
+                f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
+            )
 
 
 class BaseIncidentsTest(SnubaTestCase):
@@ -2265,30 +2312,21 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
-    def store_span(self, span, is_eap=False):
-        self.store_spans([span], is_eap=is_eap)
+    def store_span(self, span):
+        self.store_spans([span])
 
-    def store_spans(self, spans, is_eap=False):
-        if is_eap:
-            files = {}
-            for i, span in enumerate(spans):
-                trace_item = span_to_trace_item(span)
-                files[f"item_{i}"] = trace_item.SerializeToString()
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                    files=files,
-                ).status_code
-                == 200
-            )
-        else:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
+    def store_spans(self, spans):
+        files = {}
+        for i, span in enumerate(spans):
+            trace_item = span_to_trace_item(span)
+            files[f"item_{i}"] = trace_item.SerializeToString()
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files=files,
+            ).status_code
+            == 200
+        )
 
 
 @pytest.mark.snuba
@@ -2404,9 +2442,9 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replays):
-        assert (
-            len(replays) >= 2
-        ), "You need to store at least 2 replay events for the replay to be considered valid"
+        assert len(replays) >= 2, (
+            "You need to store at least 2 replay events for the replay to be considered valid"
+        )
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
         )
@@ -2614,7 +2652,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["selectedAggregate"] == widget_data_source.selected_aggregate
 
     def get_widgets(self, dashboard_id):
-        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
+        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order", "id")
 
     def assert_serialized_widget(self, data, expected_widget):
         if "id" in data:
@@ -3183,19 +3221,22 @@ class UptimeTestCaseMixin:
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
+        guid: str | None = None,
         status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
         uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
+        if guid is None:
+            guid = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
         optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
-            "guid": uuid.uuid4().hex,
+            "guid": guid,
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {
@@ -3208,6 +3249,7 @@ class UptimeTestCaseMixin:
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+            "assertion_failure_data": MOCK_ASSERTION_FAILURE_DATA,
             **optional_fields,
         }
 
@@ -3394,14 +3436,8 @@ def span_to_trace_item(span) -> TraceItem:
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            if field == "is_segment":
-                is_segment = span["is_segment"]
-                attributes["sentry.is_segment"] = AnyValue(
-                    double_value=float(is_segment),
-                )
-            else:
-                value = scalar_to_any_value(span[field])
-                attributes[f"sentry.{field}"] = value
+            value = scalar_to_any_value(span[field])
+            attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 
@@ -3503,6 +3539,68 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
+    def create_eap_occurrence(
+        self,
+        *,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        group_id: int | None = None,
+        event_id: str | None = None,
+        trace_id: str | None = None,
+        timestamp: datetime | None = None,
+        level: str = "error",
+        environment: str | None = None,
+        title: str = "some error",
+        transaction: str | None = None,
+        occurrence_type: str = "error",
+        tags: dict[str, str] | None = None,
+        attributes: dict[str, Any] | None = None,
+        retention_days: int = 90,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+        if event_id is None:
+            event_id = uuid4().hex
+        if trace_id is None:
+            trace_id = uuid4().hex
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        data: dict[str, Any] = {
+            "level": level,
+            "title": title,
+            "type": occurrence_type,
+        }
+        if group_id is not None:
+            data["group_id"] = group_id
+        if environment is not None:
+            data["environment"] = environment
+        if transaction is not None:
+            data["transaction"] = transaction
+        if attributes:
+            data.update(attributes)
+
+        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TRACE_ITEM_TYPE_OCCURRENCE,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=hex_to_item_id(event_id),
+            received=timestamp_proto,
+            retention_days=retention_days,
             attributes=attributes_proto,
         )
 
@@ -3688,7 +3786,6 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
-        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3768,7 +3865,7 @@ class TraceTestCase(SpanTestCase):
                             )
                         )
                 spans_to_store.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans_to_store, is_eap=is_eap)
+                self.store_spans(spans_to_store)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -4007,6 +4104,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         send_request_duration_us=None,
         receive_response_duration_us=None,
         request_body_size_bytes=None,
+        assertion_failure_data=None,
         response_body_size_bytes=None,
         status_reason_type=None,
         status_reason_description=None,
@@ -4046,6 +4144,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
             "check_duration_us": check_duration_us,
             "request_duration_us": request_duration_us,
             "span_id": span_id,
+            "assertion_failure_data": assertion_failure_data,
         }
 
         if check_id is not None:
@@ -4070,6 +4169,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
         if status_reason_description is not None:
             attributes_data["status_reason_description"] = status_reason_description
 
+        if assertion_failure_data is not None:
+            attributes_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
         if incident_status is not None:
             attributes_data["incident_status"] = incident_status.value
 

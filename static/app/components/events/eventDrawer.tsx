@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {space} from 'sentry/styles/space';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
@@ -57,6 +57,7 @@ export const EventNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
 `;
 

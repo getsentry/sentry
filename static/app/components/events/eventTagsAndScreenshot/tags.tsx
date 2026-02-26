@@ -1,10 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,
@@ -68,7 +69,7 @@ export function EventTagsDataSection({
   }, [event.tags]);
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {additionalActions}
       <SegmentedControl
         size="xs"
@@ -80,7 +81,7 @@ export function EventTagsDataSection({
           <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
-    </ButtonBar>
+    </Grid>
   );
 
   return (

@@ -2,13 +2,15 @@ import type React from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-interface BaseAlertLinkProps
-  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'variant'> {}
+import {IconChevron} from 'sentry/icons';
+
+interface BaseAlertLinkProps extends Pick<
+  AlertProps,
+  'system' | 'children' | 'trailingItems' | 'variant'
+> {}
 
 interface ExternalAlertLinkProps extends BaseAlertLinkProps {
   href: string;
@@ -139,7 +141,7 @@ function textDecorationStyles({
  */
 const Container = styled('div')`
   > a {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 

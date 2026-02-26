@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -104,7 +103,7 @@ function FlamegraphOptionsMenu({
           size="xs"
           icon={<IconChevron direction="left" />}
           aria-label={t('View Previous 30 Minutes')}
-          title={t('View Previous 30 Minutes')}
+          tooltipProps={{title: t('View Previous 30 Minutes')}}
         />
       ) : null}
       {continuousLocationDescriptor ? (
@@ -121,7 +120,7 @@ function FlamegraphOptionsMenu({
           size="xs"
           icon={<IconChevron direction="right" />}
           aria-label={t('View Next 30 Minutes')}
-          title={t('View Next 30 Minutes')}
+          tooltipProps={{title: t('View Next 30 Minutes')}}
         />
       ) : null}
     </Fragment>

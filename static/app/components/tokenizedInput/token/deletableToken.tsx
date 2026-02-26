@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
@@ -99,6 +100,7 @@ const FloatingCloseButton = styled('button')`
   border: none;
   color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;
@@ -116,7 +118,7 @@ const FloatingCloseButton = styled('button')`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
@@ -167,6 +169,6 @@ const HoverFocusBorder = styled('div')`
 
   &:focus-within,
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;

@@ -1,6 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -11,9 +15,6 @@ import {
   fetchOrganizationByMember,
   fetchOrganizations,
 } from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -32,6 +33,7 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {generateOrgSlugUrl} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -115,12 +117,12 @@ const getFields = ({
       ...(hasSentCode ? [{...form[1]!, required: true}] : []),
       () => (
         <Actions key="sms-footer">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasSentCode && <Button onClick={onSmsReset}>{t('Start Over')}</Button>}
             <Button priority="primary" type="submit">
               {hasSentCode ? t('Confirm') : t('Send Code')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Actions>
       ),
     ];
@@ -150,15 +152,19 @@ const getFields = ({
  */
 export default function AccountSecurityEnroll() {
   const api = useApi();
-  const {authId} = useParams();
+  const {authId} = useParams<{authId: string}>();
   const navigate = useNavigate();
 
   const [hasSentCode, setHasSentCode] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [isMutationPending, setIsMutationPending] = useState(false);
 
-  const authenticatorEndpoint = `/users/me/authenticators/${authId}/`;
-  const enrollEndpoint = `${authenticatorEndpoint}enroll/`;
+  const authenticatorEndpoint = getApiUrl(`/users/$userId/authenticators/$authId/`, {
+    path: {userId: 'me', authId},
+  });
+  const enrollEndpoint = getApiUrl(`/users/$userId/authenticators/$interfaceId/enroll/`, {
+    path: {userId: 'me', interfaceId: authId},
+  });
 
   const formModel = useMemo(() => new FormModel(), []);
   const pendingInvitation = useMemo(getPendingInvite, []);

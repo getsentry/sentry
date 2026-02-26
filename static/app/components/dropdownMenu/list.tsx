@@ -39,7 +39,8 @@ interface DropdownMenuContextValue {
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
-  extends Omit<
+  extends
+    Omit<
       AriaMenuOptions<MenuItemProps>,
       | 'selectionMode'
       | 'selectedKeys'
@@ -278,6 +279,7 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
 `;

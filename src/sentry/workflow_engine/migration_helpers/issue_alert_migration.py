@@ -148,7 +148,7 @@ class IssueAlertMigrator:
         conditions: list[dict[str, Any]],
         dcg: DataConditionGroup,
         filters: list[dict[str, Any]] | None = None,
-    ):
+    ) -> list[DataCondition]:
         dcg_conditions: list[DataCondition] = []
 
         for condition in conditions:
@@ -202,7 +202,7 @@ class IssueAlertMigrator:
     def _create_when_dcg(
         self,
         action_match: str,
-    ):
+    ) -> DataConditionGroup:
         if action_match == "any":
             logic_type = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
         else:

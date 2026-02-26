@@ -1,9 +1,10 @@
 import {useCallback} from 'react';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import ConfigStore from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
@@ -50,9 +51,11 @@ export default function Broadcasts() {
       <PageHeader title="Broadcasts">
         <Button
           disabled={!hasPermission}
-          title={
-            hasPermission ? undefined : "You don't have the broadcasts.admin permission"
-          }
+          tooltipProps={{
+            title: hasPermission
+              ? undefined
+              : "You don't have the broadcasts.admin permission",
+          }}
           onClick={handleNewBroadcast}
           priority="primary"
           size="sm"

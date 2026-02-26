@@ -74,6 +74,19 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_VITALS_SCREEN_LOADS = 10
     MOBILE_VITALS_SCREEN_RENDERING = 11
     BACKEND_OVERVIEW = 12
+    MOBILE_SESSION_HEALTH = 13
+    FRONTEND_OVERVIEW = 14
+    NEXTJS_FRONTEND_OVERVIEW = 15
+    AI_AGENTS_OVERVIEW = 16
+    AI_AGENTS_MODELS = 17
+    AI_AGENTS_TOOLS = 18
+    MCP_OVERVIEW = 19
+    MCP_TOOLS = 20
+    MCP_RESOURCES = 21
+    MCP_PROMPTS = 22
+    LARAVEL_OVERVIEW = 23
+    FRONTEND_ASSETS = 24
+    FRONTEND_ASSETS_SUMMARY = 25
 
 
 class PrebuiltDashboard(TypedDict):
@@ -125,19 +138,71 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
-        "title": "App Starts",
+        "title": "Mobile Vitals App Starts",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
-        "title": "Screen Loads",
+        "title": "Mobile Vitals Screen Loads",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
-        "title": "Screen Rendering",
+        "title": "Mobile Vitals Screen Rendering",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
         "title": "Backend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
+        "title": "Mobile Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        "title": "Frontend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
+        "title": "Next.js Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
+        "title": "AI Agents Models",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
+        "title": "AI Agents Tools",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
+        "title": "MCP Tools",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
+        "title": "MCP Resources",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
+        "title": "MCP Prompts",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        "title": "AI Agents Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
+        "title": "MCP Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
+        "title": "Laravel Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS,
+        "title": "Frontend Assets",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+        "title": "Frontend Assets Summary",
     },
 ]
 
@@ -544,7 +609,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard_create_lock.acquire(),
                 transaction.atomic(router.db_for_write(Dashboard)),
             ):
-
                 dashboard_count = Dashboard.objects.filter(
                     organization=organization, prebuilt_id=None
                 ).count()
@@ -574,9 +638,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.data.get("duplicate", False)
-
-            if not duplicate or retry >= MAX_RETRIES:
+            if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
 
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])

@@ -288,12 +288,22 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
         event_handler = handler()
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event, host=host, github_event=github_event)
+
+        # Create a new transaction for each webhook event to ensure separate traces
+        transaction_name = f"github_enterprise.webhook.{github_event}"
+        with sentry_sdk.start_transaction(
+            op="webhook",
+            name=transaction_name,
+            source="component",
+        ) as transaction:
+            transaction.set_tag("github_event", github_event)
+
+            with IntegrationWebhookEvent(
+                interaction_type=event_handler.event_type,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key=event_handler.provider,
+            ).capture():
+                event_handler(event, host=host, github_event=github_event)
 
         return HttpResponse(status=204)
 

@@ -308,8 +308,6 @@ class WorkflowEngineExamples:
                 },
                 "config": {"detectionType": "static"},
                 "enabled": True,
-                "alertRuleId": None,
-                "ruleId": None,
                 "latestGroup": {
                     "id": "123456789",
                     "title": "Test monitor",
