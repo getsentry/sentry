@@ -158,7 +158,7 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
-  # ─── Tier 2: Full Snuba stack (backend-ci mode) ──────────────────
+  # ─── Tier 2: Full Snuba stack with per-worker isolation + H1 ───────
   tier2:
     needs: split-tiers
     name: 'tier2 (${{ matrix.instance }})'
@@ -250,16 +250,12 @@ jobs:
               done
             done
             echo "[services] All ready in $(($(date +%s) - SERVICE_START))s"
-            touch /tmp/services-ready
           ) 2>&1 &
           SERVICES_PID=$!
 
           # ── Foreground: pytest starts immediately ──
-          # Collection overlaps with service startup. The _wait_for_services
-          # session fixture blocks on /tmp/services-ready before running tests.
           echo "=== Tier 2: $(wc -l < /tmp/tier2-tests.txt) scopes, shard ${{ matrix.instance }}/17 ==="
           PYTEST_EXIT=0
-          SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
@@ -287,7 +283,7 @@ jobs:
           done
           devservices logs 2>/dev/null || true
 
-      - name: Collect test data (tier2)
+      - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
         with:
