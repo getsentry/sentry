@@ -57,17 +57,16 @@ export class Thresholds implements Plottable {
     const thresholdUnit = thresholds.unit;
 
     // Normalize threshold values to the base unit (e.g., milliseconds for duration)
-    // so they align with the chart's y-axis values.
-    // Percentage types have no unit selector but still need normalization (×100).
-    if ((thresholdUnit || dataType === 'percentage') && dataType) {
+    // so they align with the chart's y-axis values
+    if (thresholdUnit && dataType) {
       this.thresholds = {
         ...thresholds,
         max_values: {
           max1: thresholds.max_values.max1
-            ? normalizeUnit(thresholds.max_values.max1, thresholdUnit ?? '', dataType)
+            ? normalizeUnit(thresholds.max_values.max1, thresholdUnit, dataType)
             : thresholds.max_values.max1,
           max2: thresholds.max_values.max2
-            ? normalizeUnit(thresholds.max_values.max2, thresholdUnit ?? '', dataType)
+            ? normalizeUnit(thresholds.max_values.max2, thresholdUnit, dataType)
             : thresholds.max_values.max2,
         },
       };
