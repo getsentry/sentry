@@ -1,4 +1,3 @@
-import base64
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
@@ -8,15 +7,6 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.requests import make_request
-from tests.sentry.utils.test_jwt import RS256_KEY
-
-RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
-CONDUIT_SETTINGS = {
-    "CONDUIT_GATEWAY_PRIVATE_KEY": RS256_KEY_B64,
-    "CONDUIT_GATEWAY_JWT_ISSUER": "sentry",
-    "CONDUIT_GATEWAY_JWT_AUDIENCE": "conduit",
-    "CONDUIT_GATEWAY_URL": "https://conduit.example.com",
-}
 
 
 @with_feature("organizations:seer-explorer")
