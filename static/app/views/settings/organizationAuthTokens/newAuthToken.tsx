@@ -102,6 +102,7 @@ function AuthTokenCreateForm({
         <form.AppField name="name">
           {field => (
             <field.Layout.Row
+              padding="xl"
               label={t('Name')}
               hintText={t('A name to help you identify this token.')}
               required
