@@ -35,7 +35,6 @@ export type SearchEventParameters = {
   'projectselector.multi_button_clicked': ProjectSelectorEvent & {
     button_type: 'all' | 'my';
   };
-  'projectselector.open': ProjectSelectorEvent;
   'projectselector.toggle': ProjectSelectorEvent & {
     action: 'added' | 'removed';
   };
@@ -131,7 +130,6 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'settings_search.query': 'settings_search Query',
   'command_palette.query': 'command_palette Query',
   'sidebar_help.query': 'sidebar_help Query',
-  'projectselector.open': 'Project Selector: Opened',
   'projectselector.apply': 'Project Selector: Applied',
   'projectselector.cancel': 'Project Selector: Cancelled',
   'projectselector.direct_selection': 'Project Selector: Direct Selection',

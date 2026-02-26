@@ -454,14 +454,8 @@ export function ProjectPageFilter({
         )
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
-      onOpenChange={isOpen => {
+      onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-        if (isOpen) {
-          trackAnalytics('projectselector.open', {
-            path: getRouteStringFromRoutes(routes),
-            organization,
-          });
-        }
       }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
