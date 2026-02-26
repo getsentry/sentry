@@ -54,7 +54,9 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
   if (moduleName === ModuleName.RESOURCE) {
     const isImage =
       spanOp === ResourceSpanOps.IMAGE ||
-      IMAGE_FILE_EXTENSIONS.includes(spanDescription.split('.').pop() ?? '');
+      IMAGE_FILE_EXTENSIONS.includes(
+        (spanDescription.split('?')[0] ?? '').split('.').pop()?.toLowerCase() ?? ''
+      );
 
     if (isImage) {
       const projectId = span[SpanFields.PROJECT_ID]
