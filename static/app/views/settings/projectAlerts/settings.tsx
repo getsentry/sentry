@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 import {z} from 'zod';
 
-import {AlertLink} from '@sentry/scraps/alert';
+import {Alert, AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelAlert from 'sentry/components/panels/panelAlert';
 import PluginList from 'sentry/components/pluginList';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail} from 'sentry/icons';
@@ -57,7 +56,7 @@ function getProjectMutationOptions(organizationSlug: string, projectSlug: string
         method: 'PUT',
         data,
       }),
-    onSuccess: (updatedProject) => {
+    onSuccess: (updatedProject: Project) => {
       ProjectsStore.onUpdateSuccess(updatedProject);
     },
   };
@@ -150,12 +149,14 @@ export default function ProjectAlertSettings() {
             </AutoSaveField>
           </FieldGroup>
 
-          <FieldGroup title={t('Digests')}>
-            <PanelAlert variant="info">
+          <Alert.Container>
+            <Alert variant="info">
               {t(
                 'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
               )}
-            </PanelAlert>
+            </Alert>
+          </Alert.Container>
+          <FieldGroup title={t('Digests')}>
             <AutoSaveField
               name="digestsMinDelay"
               schema={alertsSchema}
