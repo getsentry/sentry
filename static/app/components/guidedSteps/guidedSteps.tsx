@@ -116,14 +116,18 @@ function useGuidedStepsContentValue({
   // of available steps (e.g. the guidedStep URL param persists from a
   // project with more steps), reset to step 1.
   useEffect(() => {
+    // Wait for steps to register before running initialization
+    if (totalSteps === 0) {
+      return;
+    }
     if (defined(initialStep)) {
-      if (totalSteps > 0 && initialStep > totalSteps) {
+      if (initialStep > totalSteps) {
         handleSetCurrentStep(1);
       }
       return;
     }
     const firstIncompleteStep = getFirstIncompleteStep();
-    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
+    handleSetCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
   }, [getFirstIncompleteStep, initialStep, totalSteps, handleSetCurrentStep]);
 
   return useMemo(
