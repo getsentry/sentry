@@ -79,19 +79,19 @@ export default function ProjectTeams() {
     <SentryDocumentTitle title={routeTitleGen(t('Project Teams'), project.slug, false)}>
       <div>
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
-        <Stack gap="2xl">
-          <Text as="div" density="comfortable">
+        <Stack gap="2xl" paddingBottom="2xl">
+          <Text density="comfortable">
             {t(
               'These teams and their members have access to this project. They can be assigned to issues and alerts created in it.'
             )}
           </Text>
-          <Text as="div" density="comfortable">
+          <Text density="comfortable">
             {t(
               'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
             )}
           </Text>
+          <ProjectPermissionAlert project={project} />
         </Stack>
-        <ProjectPermissionAlert project={project} />
 
         <TeamSelectForProject
           disabled={!hasWriteAccess}

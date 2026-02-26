@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -125,23 +126,25 @@ export function RelayWrapper() {
           </AutoSaveField>
         </FieldGroup>
       )}
-      <Text as="div" density="comfortable">
-        {tct(
-          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+      <Stack gap="2xl">
+        <Text as="div" density="comfortable">
+          {tct(
+            'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+            {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+          )}
+        </Text>
+        {relays.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <RelayUsageList
+            orgSlug={organization.slug}
+            disabled={disabled}
+            relays={relays}
+            api={api}
+            onRelaysChange={setRelays}
+          />
         )}
-      </Text>
-      {relays.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <RelayUsageList
-          orgSlug={organization.slug}
-          disabled={disabled}
-          relays={relays}
-          api={api}
-          onRelaysChange={setRelays}
-        />
-      )}
+      </Stack>
     </SentryDocumentTitle>
   );
 }

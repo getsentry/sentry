@@ -175,7 +175,7 @@ export function OrganizationAuthTokensIndex({
           />
           <SettingsPageHeader title={t('Organization Tokens')} action={createNewToken} />
 
-          <Stack gap="2xl">
+          <Stack gap="lg">
             <Text as="div" density="comfortable">
               {t(
                 'Organization Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
@@ -190,6 +190,7 @@ export function OrganizationAuthTokensIndex({
               )}
             </Text>
           </Stack>
+          <Stack gap="lg" />
 
           <ResponsivePanelTable
             isLoading={isPending || isError}
