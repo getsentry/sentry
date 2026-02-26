@@ -3,6 +3,10 @@
     "sentry": {
       "type": "http",
       "url": "https://mcp.sentry.dev/mcp/sentry?experimental=1"
+    },
+    "al-devinfra-mcp": {
+      "type": "http",
+      "url": "https://server-941971168213.us-west1.run.app/mcp"
     }
   }
 }

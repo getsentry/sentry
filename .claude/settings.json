@@ -60,6 +60,9 @@
       "Bash(uv pip list:*)",
       "Bash(uv tree:*)",
       "Bash(wc:*)",
+      "mcp__al-devinfra-mcp__list_docs",
+      "mcp__al-devinfra-mcp__read_doc",
+      "mcp__al-devinfra-mcp__search_docs",
       "mcp__sentry__analyze_issue_with_seer",
       "mcp__sentry__find_organizations",
       "mcp__sentry__find_projects",
@@ -91,5 +94,5 @@
   },
   "enableAllProjectMcpServers": true,
   "includeCoAuthoredBy": false,
-  "enabledMcpjsonServers": ["sentry"]
+  "enabledMcpjsonServers": ["sentry", "al-devinfra-mcp"]
 }

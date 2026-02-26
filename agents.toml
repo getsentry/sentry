@@ -18,3 +18,7 @@ source = "getsentry/warden"
 [[skills]]
 name = "warden"
 source = "getsentry/warden"
+
+[[mcp]]
+name = "al-devinfra-mcp"
+url = "https://server-941971168213.us-west1.run.app/mcp"
