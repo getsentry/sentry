@@ -713,6 +713,25 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    def test_partial_update_without_threshold_type(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        original_threshold_type = serialized_alert_rule.pop("thresholdType")
+        serialized_alert_rule["name"] = "updated without threshold type"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert resp.data["name"] == "updated without threshold type"
+        assert resp.data["thresholdType"] == original_threshold_type
+
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_update_to_count_converts_internally_but_shows_count_on_upsampled_project(
         self, mock_are_any_projects_error_upsampled
