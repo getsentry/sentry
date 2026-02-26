@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -9,7 +10,6 @@ import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -135,13 +135,13 @@ function UsageAlert({subscription, usage}: Props) {
             <IconStats size="md" variant="accent" />
             <div>
               <h3>{t('Projected Overage')}</h3>
-              <Description>
+              <Text as="div" density="comfortable" variant="muted">
                 {tct(
                   `Based on your previous usage, we predict your organization will need at least [totals].`,
                   {totals: oxfordizeArray(projectedOverages)}
                 )}{' '}
                 {getActionSentence()}
-              </Description>
+              </Text>
             </div>
           </UsageInfo>
           {renderPrimaryCTA('projected-overage')}
@@ -163,7 +163,7 @@ function UsageAlert({subscription, usage}: Props) {
             <IconWarning size="md" variant="warning" />
             <div>
               <h3>{t('Grace Period')}</h3>
-              <Description>
+              <Text as="div" density="comfortable" variant="muted">
                 {tct(
                   `Your organization has depleted its error capacity for the current usage period.
                   We've put your account into a one time grace period, which will continue to accept errors at a limited rate.
@@ -171,7 +171,7 @@ function UsageAlert({subscription, usage}: Props) {
                   {gracePeriodEnd: moment(subscription.gracePeriodEnd).format('ll')}
                 )}{' '}
                 {getActionSentence()}
-              </Description>
+              </Text>
             </div>
           </UsageInfo>
           {renderPrimaryCTA('grace-period')}
@@ -222,13 +222,13 @@ function UsageAlert({subscription, usage}: Props) {
             <IconFire size="md" variant="danger" />
             <div>
               <h3>{t('Usage Exceeded')}</h3>
-              <Description>
+              <Text as="div" density="comfortable" variant="muted">
                 {tct(
                   `Your organization has depleted its [quotasExceeded] capacity for the current usage period.`,
                   {quotasExceeded}
                 )}{' '}
                 {getActionSentence()}
-              </Description>
+              </Text>
             </div>
           </UsageInfo>
           {renderPrimaryCTA('exceded-quota')}
@@ -312,10 +312,4 @@ const UsageInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
   gap: ${space(1)};
-`;
-
-const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-bottom: 0;
 `;

@@ -1,12 +1,9 @@
-import styled from '@emotion/styled';
-
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Subscription} from 'getsentry/types';
@@ -54,11 +51,11 @@ function TrialAlert({organization, subscription}: Props) {
             <StyledHeading>{trialName}</StyledHeading>
             <TrialBadge subscription={subscription} organization={organization} />
           </Flex>
-          <StyledSubText>
+          <Text as="div" density="comfortable" variant="muted">
             {tct("With your trial you have access to Sentry's [featuresName] features.", {
               featuresName,
             })}
-          </StyledSubText>
+          </Text>
         </TrialInfo>
 
         {subscription.canSelfServe && (
@@ -86,11 +83,6 @@ const TrialInfo = styled('div')`
 const StyledHeading = styled('span')`
   font-weight: 400;
   font-size: ${p => p.theme.font.size.xl};
-`;
-
-const StyledSubText = styled(TextBlock)`
-  color: ${p => p.theme.tokens.content.secondary};
-  margin: 0;
 `;
 
 export default TrialAlert;

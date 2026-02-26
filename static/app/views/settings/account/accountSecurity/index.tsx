@@ -4,6 +4,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
@@ -26,7 +27,6 @@ import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/compone
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 /**
  * Lists 2fa devices + password change form
@@ -168,7 +168,9 @@ export default function AccountSecurity() {
                         <Tag variant="info">{t('requires 2FA')}</Tag>
                       )}
                     </AuthenticatorTitle>
-                    <AuthenticatorDescription>{description}</AuthenticatorDescription>
+                    <AuthenticatorDescription as="div" density="comfortable">
+                      {description}
+                    </AuthenticatorDescription>
                   </AuthenticatorDetails>
                   <Grid flow="column" align="center" gap="md">
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
@@ -259,7 +261,6 @@ const AuthenticatorTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const AuthenticatorDescription = styled(TextBlock)`
+const AuthenticatorDescription = styled(Text)`
   grid-column: 2;
-  margin: 0;
 `;

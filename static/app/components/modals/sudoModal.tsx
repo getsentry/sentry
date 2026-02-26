@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -21,7 +21,6 @@ import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
@@ -30,7 +29,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface WebAuthnParams {
   challenge: string;
@@ -277,13 +275,13 @@ function SudoModal({
     ) {
       return (
         <Fragment>
-          <StyledTextBlock>
+          <Text as="div" density="comfortable">
             {isSuperuser
               ? t(
                   'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
                 )
               : t('You will need to reauthenticate to continue')}
-          </StyledTextBlock>
+          </Text>
           {error && <Alert variant="danger">{errorType}</Alert>}
           {isSuperuser ? (
             <Form
@@ -331,13 +329,13 @@ function SudoModal({
 
     return (
       <Fragment>
-        <StyledTextBlock>
+        <Text as="div" density="comfortable">
           {isSuperuser
             ? t(
                 'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
               )
             : t('Help us keep your account safe by confirming your identity.')}
-        </StyledTextBlock>
+        </Text>
 
         {error && <Alert variant="danger">{errorType}</Alert>}
 
@@ -383,7 +381,3 @@ function SudoModal({
 }
 
 export default SudoModal;
-
-const StyledTextBlock = styled(TextBlock)`
-  margin-bottom: ${space(1)};
-`;

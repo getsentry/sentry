@@ -8,6 +8,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
@@ -29,7 +30,6 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',
@@ -284,7 +284,9 @@ export function FrameworkSuggestionModal({
       <Body>
         <TopFrameworksImage frameworks={listEntries} />
         <Heading>{t('Do you use a framework?')}</Heading>
-        <Description>{languageDescriptions[selectedPlatform.key]}</Description>
+        <Text as="div" density="comfortable" align="center">
+          {languageDescriptions[selectedPlatform.key]}
+        </Text>
         <ProjectCreationErrorAlert error={createProjectAndRulesError} />
         <StyledPanel>
           <StyledPanelBody>
@@ -426,11 +428,6 @@ const TopFrameworksImageWrapper = styled('div')`
 
 const Heading = styled('h6')`
   margin-bottom: ${space(1)};
-  text-align: center;
-`;
-
-const Description = styled(TextBlock)`
-  margin-bottom: ${space(2)};
   text-align: center;
 `;
 
