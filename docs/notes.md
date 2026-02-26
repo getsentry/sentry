@@ -33,6 +33,12 @@ Verified empirically: `socket.setdefaulttimeout(5)` → listening socket `.getti
 
 This is a subtle interaction: `pytest-rerunfailures` assumes sockets block indefinitely, but Sentry's global timeout silently changes that contract on accepted connections only.
 
+## configure_split_db shallow copy bug
+
+`configure_split_db()` used `.copy()` (shallow) to create `control` and `secondary` from `default`. The `TEST` dict inside each was the **same Python object**. When pytest-django's `_set_suffix_to_test_databases` iterated databases and set `TEST.NAME` for each, the last write overwrote all three. All workers ended up using the same Postgres database instead of per-worker isolation (`test_region_gw0`, `test_control_gw0`, etc.). Fixed with `copy.deepcopy()`.
+
+This bug was latent on master (no xdist, no TEST.NAME collision) and only manifested under xdist where per-worker DB names are required.
+
 ## Why hash-based sharding beats algorithmic LPT
 
 With 17+ shards and ~32K tests, the law of large numbers gives hash-based (`sha256(nodeid) % N`) sharding good-enough balance (~90-130s spread). LPT algorithms failed because:

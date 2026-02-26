@@ -93,7 +93,13 @@ Normal `--reruns` is unaffected — each worker retries failed tests locally via
 
 The `calculate-shards` job now has a fast path: when selective testing isn't active (push to master/branch), it outputs static defaults (22 shards) without checkout, setup-sentry, or `pytest --collect-only`. Saves ~3 min on the critical path. When selective testing IS active (PR), the full collection pipeline still runs to compute the right shard count.
 
-### 2g. Snowflake test fix
+### 2g. Fix shared TEST dict in configure_split_db
+
+**Modified:** `src/sentry/testutils/pytest/sentry.py` (`configure_split_db`)
+
+Changed `.copy()` to `copy.deepcopy()` when creating `control` and `secondary` database configs. The shallow copy caused all three databases to share the same `TEST` dict object. When pytest-django's xdist suffix fixture set `TEST.NAME` for each database, the last write won — all three databases got the same test DB name. Workers shared a single Postgres database instead of getting isolated `test_region_gw0`, `test_control_gw0`, etc.
+
+### 2h. Snowflake test fix
 
 **Modified:** `tests/sentry/utils/test_snowflake.py`
 

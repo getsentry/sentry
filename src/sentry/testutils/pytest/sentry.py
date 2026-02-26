@@ -42,16 +42,14 @@ def configure_split_db() -> None:
     if already_configured or _use_monolith_dbs():
         return
 
-    # Add connections for the region & control silo databases.
-    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
+    import copy
+
+    settings.DATABASES["control"] = copy.deepcopy(settings.DATABASES["default"])
     settings.DATABASES["control"]["NAME"] = "control"
 
-    # Use the region database in the default connection as region
-    # silo database is the 'default' elsewhere in application logic.
     settings.DATABASES["default"]["NAME"] = "region"
 
-    # Add a connection for the secondary db
-    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["secondary"] = copy.deepcopy(settings.DATABASES["default"])
     settings.DATABASES["secondary"]["NAME"] = "secondary"
 
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
