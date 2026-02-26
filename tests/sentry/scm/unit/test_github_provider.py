@@ -312,6 +312,11 @@ CLIENT_DELEGATION_TESTS: list[
         ("list_pull_requests", ("test-org/test-repo", "closed", "org:branch"), {}),
     ),
     (
+        "get_pull_requests",
+        {"state": None},
+        ("list_pull_requests", ("test-org/test-repo", "all", None), {}),
+    ),
+    (
         "create_pull_request",
         {"title": "T", "body": "B", "head": "h", "base": "b"},
         (

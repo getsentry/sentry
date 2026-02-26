@@ -38,6 +38,7 @@ from sentry.scm.types import (
     Referrer,
     Repository,
     RepositoryId,
+    ResourceId,
     Review,
     ReviewComment,
     ReviewCommentInput,
@@ -212,7 +213,7 @@ class SourceCodeManager:
         """Delete a reaction on a pull request."""
         return self._exec(lambda p: p.delete_pull_request_reaction(pull_request_id, reaction_id))
 
-    def get_branch(self, branch: str) -> ActionResult[GitRef]:
+    def get_branch(self, branch: BranchName) -> ActionResult[GitRef]:
         """Get a branch reference."""
         return self._exec(lambda p: p.get_branch(branch))
 
@@ -255,7 +256,7 @@ class SourceCodeManager:
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
-        base_tree: str | None = None,
+        base_tree: CommitSHA | None = None,
     ) -> ActionResult[GitTree]:
         return self._exec(lambda p: p.create_git_tree(tree, base_tree=base_tree))
 
@@ -277,7 +278,7 @@ class SourceCodeManager:
 
     def get_pull_requests(
         self,
-        state: PullRequestState = "open",
+        state: PullRequestState | None = "open",
         head: BranchName | None = None,
     ) -> ActionResult[list[PullRequest]]:
         return self._exec(lambda p: p.get_pull_requests(state, head))
@@ -366,12 +367,12 @@ class SourceCodeManager:
             )
         )
 
-    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
+    def get_check_run(self, check_run_id: ResourceId) -> ActionResult[CheckRun]:
         return self._exec(lambda p: p.get_check_run(check_run_id))
 
     def update_check_run(
         self,
-        check_run_id: str,
+        check_run_id: ResourceId,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,

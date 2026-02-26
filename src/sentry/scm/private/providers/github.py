@@ -8,6 +8,7 @@ from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     ActionResult,
     Author,
+    BranchName,
     BuildConclusion,
     BuildStatus,
     CheckRun,
@@ -17,6 +18,7 @@ from sentry.scm.types import (
     CommitAuthor,
     CommitComparison,
     CommitFile,
+    CommitSHA,
     FileContent,
     FileStatus,
     GitBlob,
@@ -29,10 +31,12 @@ from sentry.scm.types import (
     PullRequestBranch,
     PullRequestCommit,
     PullRequestFile,
+    PullRequestState,
     Reaction,
     ReactionResult,
     Referrer,
     Repository,
+    ResourceId,
     Review,
     ReviewComment,
     ReviewCommentInput,
@@ -261,19 +265,19 @@ class GitHubProvider:
         return self.delete_issue_reaction(pull_request_id, reaction_id)
 
     @catch_provider_exception
-    def get_branch(self, branch: str) -> ActionResult[GitRef]:
+    def get_branch(self, branch: BranchName) -> ActionResult[GitRef]:
         raw = self.client.get_branch(self.repository["name"], branch)
         return map_action(raw, map_git_ref)
 
     @catch_provider_exception
-    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
+    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
         raw = self.client.create_git_ref(
             self.repository["name"], {"ref": f"refs/heads/{branch}", "sha": sha}
         )
         return map_action(raw, map_git_ref)
 
     @catch_provider_exception
-    def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
+    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
         self.client.update_git_ref(self.repository["name"], branch, {"sha": sha, "force": force})
 
     @catch_provider_exception
@@ -288,14 +292,14 @@ class GitHubProvider:
         return map_action(raw, map_file_content)
 
     @catch_provider_exception
-    def get_commit(self, sha: str) -> ActionResult[Commit]:
+    def get_commit(self, sha: CommitSHA) -> ActionResult[Commit]:
         raw = self.client.get_commit(self.repository["name"], sha)
         return map_action(raw, map_commit)
 
     @catch_provider_exception
     def get_commits(
         self,
-        sha: str | None = None,
+        sha: CommitSHA | None = None,
         path: str | None = None,
     ) -> ActionResult[list[Commit]]:
         raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
@@ -306,17 +310,19 @@ class GitHubProvider:
         )
 
     @catch_provider_exception
-    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
+    def compare_commits(
+        self, start_sha: CommitSHA, end_sha: CommitSHA
+    ) -> ActionResult[CommitComparison]:
         raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
         return map_action(raw, map_commit_comparison)  # type: ignore[arg-type]
 
     @catch_provider_exception
-    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
+    def get_tree(self, tree_sha: CommitSHA, recursive: bool = True) -> ActionResult[GitTree]:
         raw = self.client.get_tree_full(self.repository["name"], tree_sha, recursive=recursive)
         return map_action(raw, map_git_tree)
 
     @catch_provider_exception
-    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
+    def get_git_commit(self, sha: CommitSHA) -> ActionResult[GitCommitObject]:
         raw = self.client.get_git_commit(self.repository["name"], sha)
         return map_action(raw, map_git_commit_object)
 
@@ -324,7 +330,7 @@ class GitHubProvider:
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
-        base_tree: str | None = None,
+        base_tree: CommitSHA | None = None,
     ) -> ActionResult[GitTree]:
         data: dict[str, Any] = {"tree": tree}
         if base_tree is not None:
@@ -336,8 +342,8 @@ class GitHubProvider:
     def create_git_commit(
         self,
         message: str,
-        tree_sha: str,
-        parent_shas: list[str],
+        tree_sha: CommitSHA,
+        parent_shas: list[CommitSHA],
     ) -> ActionResult[GitCommitObject]:
         data: dict[str, Any] = {
             "message": message,
@@ -378,9 +384,10 @@ class GitHubProvider:
 
     @catch_provider_exception
     def get_pull_requests(
-        self, state: str = "open", head: str | None = None
+        self, state: PullRequestState | None = "open", head: BranchName | None = None
     ) -> ActionResult[list[PullRequest]]:
-        raw_prs = self.client.list_pull_requests(self.repository["name"], state, head)
+        github_state = state if state is not None else "all"
+        raw_prs = self.client.list_pull_requests(self.repository["name"], github_state, head)
         return ActionResult(
             data=[map_pull_request(pr) for pr in raw_prs],
             type="github",
@@ -412,7 +419,7 @@ class GitHubProvider:
         pull_request_id: str,
         title: str | None = None,
         body: str | None = None,
-        state: str | None = None,
+        state: PullRequestState | None = None,
     ) -> ActionResult[PullRequest]:
         data: dict[str, Any] = {}
         if title is not None:
@@ -435,7 +442,7 @@ class GitHubProvider:
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: str,
+        commit_sha: CommitSHA,
         path: str,
         line: int | None = None,
         side: ReviewSide | None = None,
@@ -462,7 +469,7 @@ class GitHubProvider:
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: str,
+        commit_sha: CommitSHA,
         event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
@@ -481,7 +488,7 @@ class GitHubProvider:
     def create_check_run(
         self,
         name: str,
-        head_sha: str,
+        head_sha: CommitSHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
@@ -509,14 +516,14 @@ class GitHubProvider:
         return map_action(raw, map_check_run)
 
     @catch_provider_exception
-    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
+    def get_check_run(self, check_run_id: ResourceId) -> ActionResult[CheckRun]:
         raw = self.client.get_check_run(self.repository["name"], int(check_run_id))
         return map_action(raw, map_check_run)
 
     @catch_provider_exception
     def update_check_run(
         self,
-        check_run_id: str,
+        check_run_id: ResourceId,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,

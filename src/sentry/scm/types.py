@@ -109,14 +109,14 @@ type ReviewEvent = Literal["approve", "change_request", "comment"]
 class Author(TypedDict):
     """Normalized author identity returned by all SCM providers."""
 
-    id: str
+    id: ResourceId
     username: str
 
 
 class Comment(TypedDict):
     """Provider-agnostic representation of an issue or pull-request comment."""
 
-    id: str
+    id: ResourceId
     body: str | None
     author: Author | None
 
@@ -124,7 +124,7 @@ class Comment(TypedDict):
 class ReactionResult(TypedDict):
     """Provider-agnostic representation of a reaction on an issue, comment, or pull request."""
 
-    id: str
+    id: ResourceId
     content: Reaction
     author: Author | None
 
@@ -132,8 +132,8 @@ class ReactionResult(TypedDict):
 class PullRequestBranch(TypedDict):
     """A branch reference within a pull request (head or base)."""
 
-    sha: str
-    ref: str
+    sha: CommitSHA
+    ref: BranchName
 
 
 class PullRequest(TypedDict):
@@ -143,7 +143,7 @@ class PullRequest(TypedDict):
     number: int
     title: str
     body: str | None
-    state: Literal["open", "closed"]
+    state: PullRequestState
     merged: bool
     url: str
     html_url: str
@@ -176,17 +176,17 @@ class Repository(TypedDict):
 class GitRef(TypedDict):
     """A git reference (branch pointer)."""
 
-    ref: str
-    sha: str
+    ref: BranchName
+    sha: CommitSHA
 
 
 class GitBlob(TypedDict):
-    sha: str
+    sha: CommitSHA
 
 
 class FileContent(TypedDict):
     path: str
-    sha: str
+    sha: CommitSHA
     content: str  # base64-encoded
     encoding: str
     size: int
@@ -205,7 +205,7 @@ class CommitFile(TypedDict):
 
 
 class Commit(TypedDict):
-    id: str
+    id: CommitSHA
     message: str
     author: CommitAuthor | None
     files: list[CommitFile]
@@ -221,7 +221,7 @@ class TreeEntry(TypedDict):
     path: str
     mode: TreeEntryMode
     type: TreeEntryType
-    sha: str
+    sha: CommitSHA
     size: int | None
 
 
@@ -229,21 +229,21 @@ class InputTreeEntry(TypedDict):
     path: str
     mode: TreeEntryMode
     type: TreeEntryType
-    sha: str | None  # None for deletions
+    sha: CommitSHA | None  # None for deletions
 
 
 class GitTree(TypedDict):
-    sha: str
+    sha: CommitSHA
     tree: list[TreeEntry]
     truncated: bool
 
 
 class GitCommitTree(TypedDict):
-    sha: str
+    sha: CommitSHA
 
 
 class GitCommitObject(TypedDict):
-    sha: str
+    sha: CommitSHA
     tree: GitCommitTree
     message: str
 
@@ -253,12 +253,12 @@ class PullRequestFile(TypedDict):
     status: FileStatus
     patch: str | None
     changes: int
-    sha: str
+    sha: CommitSHA
     previous_filename: str | None
 
 
 class PullRequestCommit(TypedDict):
-    sha: str
+    sha: CommitSHA
     message: str
     author: CommitAuthor | None
 
@@ -377,34 +377,36 @@ class Provider(Protocol):
 
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None: ...
 
-    def get_branch(self, branch: str) -> ActionResult[GitRef]: ...
+    def get_branch(self, branch: BranchName) -> ActionResult[GitRef]: ...
 
-    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]: ...
+    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]: ...
 
-    def update_branch(self, branch: str, sha: str, force: bool = False) -> None: ...
+    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None: ...
 
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]: ...
 
     def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]: ...
 
-    def get_commit(self, sha: str) -> ActionResult[Commit]: ...
+    def get_commit(self, sha: CommitSHA) -> ActionResult[Commit]: ...
 
     def get_commits(
-        self, sha: str | None = None, path: str | None = None
+        self, sha: CommitSHA | None = None, path: str | None = None
     ) -> ActionResult[list[Commit]]: ...
 
-    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]: ...
+    def compare_commits(
+        self, start_sha: CommitSHA, end_sha: CommitSHA
+    ) -> ActionResult[CommitComparison]: ...
 
-    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]: ...
+    def get_tree(self, tree_sha: CommitSHA, recursive: bool = True) -> ActionResult[GitTree]: ...
 
-    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]: ...
+    def get_git_commit(self, sha: CommitSHA) -> ActionResult[GitCommitObject]: ...
 
     def create_git_tree(
-        self, tree: list[InputTreeEntry], base_tree: str | None = None
+        self, tree: list[InputTreeEntry], base_tree: CommitSHA | None = None
     ) -> ActionResult[GitTree]: ...
 
     def create_git_commit(
-        self, message: str, tree_sha: str, parent_shas: list[str]
+        self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
     ) -> ActionResult[GitCommitObject]: ...
 
     def get_pull_request_files(
@@ -418,15 +420,15 @@ class Provider(Protocol):
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]: ...
 
     def get_pull_requests(
-        self, state: PullRequestState = "open", head: str | None = None
+        self, state: PullRequestState | None = "open", head: BranchName | None = None
     ) -> ActionResult[list[PullRequest]]: ...
 
     def create_pull_request(
         self,
         title: str,
         body: str,
-        head: str,
-        base: str,
+        head: BranchName,
+        base: BranchName,
         draft: bool = False,
     ) -> ActionResult[PullRequest]: ...
 
@@ -444,7 +446,7 @@ class Provider(Protocol):
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: str,
+        commit_sha: CommitSHA,
         path: str,
         line: int | None = None,
         side: ReviewSide | None = None,
@@ -455,7 +457,7 @@ class Provider(Protocol):
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: str,
+        commit_sha: CommitSHA,
         event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
@@ -464,7 +466,7 @@ class Provider(Protocol):
     def create_check_run(
         self,
         name: str,
-        head_sha: str,
+        head_sha: CommitSHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
@@ -473,11 +475,11 @@ class Provider(Protocol):
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]: ...
 
-    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]: ...
+    def get_check_run(self, check_run_id: ResourceId) -> ActionResult[CheckRun]: ...
 
     def update_check_run(
         self,
-        check_run_id: str,
+        check_run_id: ResourceId,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
