@@ -70,8 +70,7 @@ export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> IMPORTANT: FOLLOW THE SET
 > Then use the guide below to add Sentry manual instrumentation for AI Agent Monitoring.
 > Complete the verification step LAST.`;
 
-export const LLM_ONBOARDING_INSTRUCTIONS = `
-# Instrument Sentry AI Agent Monitoring
+export const LLM_ONBOARDING_INSTRUCTIONS = `# Instrument Sentry AI Agent Monitoring
 
 Follow this decision tree to instrument AI Agent Monitoring.
 
