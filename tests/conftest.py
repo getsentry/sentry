@@ -7,7 +7,7 @@ import psutil
 import pytest
 import pytest_rerunfailures
 
-pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False
+pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False  # type: ignore[attr-defined]
 import responses
 import sentry_sdk
 from django.core.cache import cache
