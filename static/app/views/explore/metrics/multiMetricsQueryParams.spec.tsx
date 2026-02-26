@@ -169,7 +169,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
   describe('with tracemetrics-overlay-charts-ui feature', () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     it('parses multiple visualizes from URL params', () => {

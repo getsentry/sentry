@@ -195,6 +195,7 @@ export function ListBox<T extends ObjectLike>({
         height="100%"
         overflowY="auto"
         className={className}
+        style={{scrollbarGutter: 'stable'}}
       >
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
@@ -256,6 +257,13 @@ const heightEstimations = {
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
 
+/**
+ * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
+ * Passed to the virtualizer's wrapper to account for the padding,
+ * preventing a tiny scrollbar when few items remain after filtering.
+ */
+const listPaddingVertical = 4;
+
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualized = false,
@@ -293,7 +301,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize(),
+          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
           width: '100%',
           position: 'relative',
         },

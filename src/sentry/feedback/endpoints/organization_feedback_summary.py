@@ -6,7 +6,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -90,9 +89,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        if not features.has(
-            "organizations:user-feedback-ai-summaries", organization, actor=request.user
-        ) or not has_seer_access(organization, actor=request.user):
+        if not has_seer_access(organization, actor=request.user):
             return Response(
                 {"detail": "AI summaries are not available for this organization."}, status=403
             )
@@ -113,22 +110,18 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         project_ids = [str(project_id) for project_id in numeric_project_ids]
         hashed_project_ids = hash_from_values(project_ids)
 
-        has_cache = features.has(
-            "organizations:user-feedback-ai-summaries-cache", organization, actor=request.user
-        )
         summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
 
-        if has_cache:
-            # Hour granularity date range.
-            summary_cache = cache.get(summary_cache_key)
-            if summary_cache:
-                return Response(
-                    {
-                        "summary": summary_cache["summary"],
-                        "success": True,
-                        "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
-                    }
-                )
+        # Hour granularity date range.
+        summary_cache = cache.get(summary_cache_key)
+        if summary_cache:
+            return Response(
+                {
+                    "summary": summary_cache["summary"],
+                    "success": True,
+                    "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
+                }
+            )
 
         filters = {
             "type": FeedbackGroup.type_id,
@@ -172,12 +165,11 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
             )
 
-        if has_cache:
-            cache.set(
-                summary_cache_key,
-                {"summary": summary, "numFeedbacksUsed": len(feedback_msgs)},
-                timeout=SUMMARY_CACHE_TIMEOUT,
-            )
+        cache.set(
+            summary_cache_key,
+            {"summary": summary, "numFeedbacksUsed": len(feedback_msgs)},
+            timeout=SUMMARY_CACHE_TIMEOUT,
+        )
 
         return Response(
             {

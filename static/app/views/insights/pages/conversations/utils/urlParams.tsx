@@ -39,9 +39,7 @@ export function getConversationsUrl(
   conversationId: number | string
 ): string {
   const basePath = `/organizations/${organizationSlug}/${DOMAIN_VIEW_BASE_URL}/${CONVERSATIONS_LANDING_SUB_PATH}/`;
-  const searchQuery = encodeURIComponent(
-    `has:user.email gen_ai.conversation.id:${conversationId}`
-  );
+  const searchQuery = encodeURIComponent(`gen_ai.conversation.id:${conversationId}`);
   const queryParams = `?query=${searchQuery}&${ConversationDrawerUrlParams.SELECTED_CONVERSATION}=${conversationId}`;
   return `${window.location.origin}${normalizeUrl(basePath)}${queryParams}`;
 }

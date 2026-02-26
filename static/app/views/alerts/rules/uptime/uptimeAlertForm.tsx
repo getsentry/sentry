@@ -37,7 +37,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {mapAssertionFormErrors} from './assertionFormErrors';
@@ -217,7 +217,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         // When runtime assertions are disabled, the assertions field is not mounted,
         // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
         if (!hasRuntimeAssertions) {
-          const assertion = formModel.getValue<Assertion | null>('assertion');
+          const assertion = formModel.getValue<UptimeAssertion | null>('assertion');
           if (!assertion?.root || assertion.root.children?.length === 0) {
             formModel.setValue('assertion', null);
           }
@@ -252,7 +252,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                 };
               }}
               getCurrentAssertion={() =>
-                formModel.getValue<Assertion | null>('assertion')
+                formModel.getValue<UptimeAssertion | null>('assertion')
               }
               onApplySuggestion={newAssertion => {
                 // Cast to any to satisfy FormModel's FieldValue type

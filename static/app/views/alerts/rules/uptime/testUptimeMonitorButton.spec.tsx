@@ -4,7 +4,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
-import {PreviewCheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  PreviewCheckStatus,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAssertion,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 describe('TestUptimeMonitorButton', () => {
   const organization = OrganizationFixture();
@@ -373,15 +378,15 @@ describe('TestUptimeMonitorButton', () => {
   });
 
   it('sends assertion data to the preview endpoint', async () => {
-    const mockAssertion = {
+    const mockAssertion: UptimeAssertion = {
       root: {
         id: 'root',
-        op: 'and' as const,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'status-check',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],

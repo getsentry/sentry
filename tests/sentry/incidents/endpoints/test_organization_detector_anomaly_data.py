@@ -3,7 +3,6 @@ from unittest.mock import patch
 from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import DataSourceDetector
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -39,7 +38,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             data_source=self.data_source, detector=self.detector
         )
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_missing_parameters(self):
         response = self.get_error_response(
             self.organization.slug, self.detector.id, end="1729179000.0", status_code=400
@@ -51,7 +49,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         )
         assert response.data["detail"] == "start and end parameters are required"
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_invalid_parameters(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -62,7 +59,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         )
         assert response.data["detail"] == "start and end must be valid timestamps"
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_no_subscription_found(self):
         # Delete the data source to simulate missing subscription
         DataSourceDetector.objects.filter(detector=self.detector).delete()
@@ -75,7 +71,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         )
         assert response.data["detail"] == "Could not find query subscription for detector"
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
@@ -91,7 +86,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         )
         assert response.data["detail"] == "Unable to fetch anomaly detection threshold data"
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
@@ -118,7 +112,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         assert mock_get_data.call_args.kwargs["start"] == 1729178100.0
         assert mock_get_data.call_args.kwargs["end"] == 1729179000.0
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_permission_denied(self):
         self.login_as(self.create_user())
 
@@ -130,17 +123,6 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             status_code=403,
         )
 
-    def test_feature_flag_disabled(self):
-        """Test that endpoint returns 404 when feature flag is disabled"""
-        self.get_error_response(
-            self.organization.slug,
-            self.detector.id,
-            start="1729178100.0",
-            end="1729179000.0",
-            status_code=404,
-        )
-
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_invalid_detector_id(self):
         """Test that non-numeric detector IDs return 404"""
         self.get_error_response(
@@ -177,7 +159,6 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
             self.alert_rule.snuba_query = self.snuba_query
             self.alert_rule.save()
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
@@ -208,7 +189,6 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
         # Verify the subscription passed to seer is the one linked to the alert rule
         assert mock_get_data.call_args.kwargs["subscription"] == self.subscription
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_legacy_alert_not_found(self):
         """Test that non-existent alert rule ID returns 404."""
         self.get_error_response(
@@ -220,7 +200,6 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
             status_code=404,
         )
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_legacy_alert_missing_subscription(self):
         """Test error when alert rule has no query subscription."""
         # Delete the subscription to simulate missing subscription
@@ -236,7 +215,6 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
         )
         assert response.data["detail"] == "Could not find query subscription for alert rule"
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
@@ -254,7 +232,6 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
         )
         assert response.data["detail"] == "Unable to fetch anomaly detection threshold data"
 
-    @with_feature("organizations:anomaly-detection-threshold-data")
     def test_legacy_alert_permission_denied(self):
         """Test that users without access get 403."""
         self.login_as(self.create_user())
@@ -266,15 +243,4 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
             start="1729178100.0",
             end="1729179000.0",
             status_code=403,
-        )
-
-    def test_legacy_alert_feature_flag_disabled(self):
-        """Test that endpoint returns 404 when feature flag is disabled."""
-        self.get_error_response(
-            self.organization.slug,
-            self.alert_rule.id,
-            legacy_alert="true",
-            start="1729178100.0",
-            end="1729179000.0",
-            status_code=404,
         )

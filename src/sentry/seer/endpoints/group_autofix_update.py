@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -16,11 +15,13 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
-
-from rest_framework.request import Request
 
 
 @region_silo_endpoint
@@ -60,16 +61,14 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         group.update(seer_autofix_last_triggered=timezone.now())
 
