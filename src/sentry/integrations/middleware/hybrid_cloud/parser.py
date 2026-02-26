@@ -191,7 +191,7 @@ class BaseRequestParser(ABC):
             for region in regions
         ]
         if payloads:
-            maybe_trigger_drain(payloads[0].mailbox_name, payloads[0].id)
+            maybe_trigger_drain(payloads[0].mailbox_name)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 

@@ -101,14 +101,14 @@ def _drain_lock_key(mailbox_name: str) -> str:
     return f"wh:drain_active:{mailbox_name}"
 
 
-def maybe_trigger_drain(mailbox_name: str, payload_id: int) -> None:
+def maybe_trigger_drain(mailbox_name: str) -> None:
     """Trigger an immediate drain if one isn't already in-flight for this mailbox.
 
-    Uses Redis SETNX with a 15-second TTL for deduplication. Only the first
-    webhook to an idle mailbox triggers a drain; subsequent webhooks within the
-    TTL window are picked up by the already-enqueued drain task.
+    Uses cache.add (atomic SETNX-style) with a 15-second TTL for deduplication.
+    Only the first webhook to an idle mailbox triggers a drain; subsequent webhooks
+    within the TTL window are picked up by the already-enqueued drain task.
 
-    Falls back gracefully if Redis is unavailable — the scheduler handles delivery.
+    Falls back gracefully if the cache backend is unavailable — the scheduler handles delivery.
     """
     if not options.get("hybridcloud.webhookpayload.push_drain_trigger"):
         return
