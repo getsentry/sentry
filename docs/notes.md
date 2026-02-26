@@ -27,7 +27,11 @@ Scattering imports inside every method of a class (like the `Browser` class in s
 
 ## pytest-rerunfailures crash recovery under xdist
 
-The experiment branch was correct. The `run_connection` threads get `TimeoutError: timed out` on `conn.recv(1)` — the timeout is set on the accepted connection socket, not the listening socket (which is why reading the `__init__` code alone was misleading). During heavy xdist startup, workers take too long to send data, the connection threads die, and crash recovery breaks. Setting `HAS_PYTEST_HANDLECRASHITEM = False` disables crash recovery mode. Normal `--reruns` still works (each worker retries locally).
+**Root cause:** `sentry/conf/server.py:40` sets `socket.setdefaulttimeout(5)`. The `pytest-rerunfailures` `ServerStatusDB` creates a listening socket with `setblocking(1)` (no timeout), but `socket.accept()` returns a *new* socket whose timeout comes from `socket.getdefaulttimeout()` (5s), not from the listening socket. Each `run_connection` thread blocks on `conn.recv(1)` and dies after 5s of inactivity.
+
+Verified empirically: `socket.setdefaulttimeout(5)` → listening socket `.gettimeout()` is `None` (overridden by `setblocking(1)`) → accepted socket `.gettimeout()` is `5.0` (from global default).
+
+This is a subtle interaction: `pytest-rerunfailures` assumes sockets block indefinitely, but Sentry's global timeout silently changes that contract on accepted connections only.
 
 ## Why hash-based sharding beats algorithmic LPT
 

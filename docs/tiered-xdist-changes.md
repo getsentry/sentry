@@ -77,7 +77,13 @@ Region name RNG is seeded with `PYTEST_XDIST_TESTRUNUID` so all workers generate
 
 **Modified:** `tests/conftest.py`
 
-Sets `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False`. The socket-based crash recovery threads get `TimeoutError` on `recv(1)` during heavy xdist startup. Normal `--reruns` still works.
+Sets `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False`.
+
+**Root cause:** `sentry/conf/server.py` line 40 sets `socket.setdefaulttimeout(5)`, a global default for all newly created sockets. When `pytest-rerunfailures` creates its crash recovery server, it calls `setblocking(1)` on the listening socket (overriding the default to no timeout). But `socket.accept()` creates a *new* socket for each accepted connection, and Python docs specify that new sockets inherit their timeout from `socket.getdefaulttimeout()`, not from the listening socket. So each accepted connection has a 5-second timeout.
+
+Under xdist, the server spawns a `run_connection` thread per worker. Each thread blocks on `conn.recv(1)` waiting for the next message. If no message arrives within 5 seconds (e.g., during heavy Django/plugin initialization or between test batches), `recv` raises `TimeoutError`, the thread dies, and crash recovery for that worker is lost. With 3 workers, all 3 threads die during startup, producing the `Exception in thread Thread-N (run_connection)` errors.
+
+Normal `--reruns` is unaffected — each worker retries failed tests locally via `StatusDB` (in-memory, no sockets). Only segfault crash recovery (reassigning a dead worker's test to another worker) is lost, which is a rare edge case.
 
 ### 2g. Snowflake test fix
 
