@@ -59,7 +59,7 @@ function mapActionsToCompactSelect(
 function DropdownActions({actions, label}: Props) {
   return (
     <CompactSelect
-      searchable
+      search
       options={mapActionsToCompactSelect(actions)}
       value={undefined}
       onChange={option => {

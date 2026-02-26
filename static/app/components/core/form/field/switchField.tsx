@@ -1,3 +1,6 @@
+import type {Ref} from 'react';
+import {mergeRefs} from '@react-aria/utils';
+
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch, type SwitchProps} from '@sentry/scraps/switch';
@@ -14,7 +17,7 @@ export function SwitchField({
   disabled,
   ...props
 }: BaseFieldProps &
-  Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled'> & {
+  Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     checked: boolean;
     onChange: (value: boolean) => void;
     disabled?: boolean | string;
@@ -31,6 +34,7 @@ export function SwitchField({
             size="lg"
             {...fieldProps}
             {...props}
+            ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
             disabled={isDisabled}
             onChange={e => {
               onChange(e.target.checked);

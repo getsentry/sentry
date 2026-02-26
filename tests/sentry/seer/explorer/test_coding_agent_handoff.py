@@ -1,8 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
-from rest_framework.exceptions import PermissionDenied
-
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -16,27 +13,10 @@ class TestLaunchCodingAgents(TestCase):
         self.organization = self.create_organization()
         self.run_id = 12345
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_raises_permission_denied_without_feature(self, mock_features):
-        """Test that PermissionDenied is raised when feature flag is disabled."""
-        mock_features.return_value = False
-
-        with pytest.raises(PermissionDenied, match="Feature not available"):
-            launch_coding_agents(
-                organization=self.organization,
-                integration_id=1,
-                run_id=self.run_id,
-                prompt="Fix the bug",
-                repos=["owner/repo"],
-            )
-
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_successful_launch(self, mock_features, mock_validate, mock_store):
+    def test_successful_launch(self, mock_validate, mock_store):
         """Test successful coding agent launch."""
-        mock_features.return_value = True
-
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
         mock_installation = MagicMock()
@@ -61,10 +41,8 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_invalid_repo_format(self, mock_features, mock_validate, mock_store):
+    def test_invalid_repo_format(self, mock_validate, mock_store):
         """Test that invalid repo format is handled as failure."""
-        mock_features.return_value = True
         mock_integration = MagicMock()
         mock_installation = MagicMock()
         mock_validate.return_value = (mock_integration, mock_installation)
@@ -84,12 +62,10 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_multiple_repos_partial_failure(self, mock_features, mock_validate, mock_store):
+    def test_multiple_repos_partial_failure(self, mock_validate, mock_store):
         """Test handling of partial failures across multiple repos."""
         from requests import HTTPError
 
-        mock_features.return_value = True
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
         mock_installation = MagicMock()
@@ -115,10 +91,8 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_branch_name_is_sanitized(self, mock_features, mock_validate, mock_store):
+    def test_branch_name_is_sanitized(self, mock_validate, mock_store):
         """Test that branch name is sanitized before launch."""
-        mock_features.return_value = True
         mock_integration = MagicMock()
         mock_installation = MagicMock()
         mock_installation.launch.return_value = MagicMock(dict=lambda: {"id": "agent-1"})

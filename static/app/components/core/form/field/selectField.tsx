@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -18,9 +18,15 @@ function SelectInput({
   selectProps,
   ...props
 }: React.ComponentProps<typeof components.Input> & {
-  selectProps: {'aria-invalid': boolean};
+  selectProps: {'aria-invalid': boolean; inputRef: Ref<{input: HTMLInputElement}>};
 }) {
-  return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
+  return (
+    <components.Input
+      {...props}
+      {...{ref: selectProps.inputRef}}
+      aria-invalid={selectProps['aria-invalid']}
+    />
+  );
 }
 
 function SelectIndicatorsContainer({
@@ -39,7 +45,14 @@ function SelectIndicatorsContainer({
 type BaseSelectFieldProps = BaseFieldProps &
   Omit<
     React.ComponentProps<typeof Select>,
-    'value' | 'onChange' | 'onBlur' | 'disabled' | 'multiple' | 'multi' | 'clearable'
+    | 'value'
+    | 'onChange'
+    | 'onBlur'
+    | 'disabled'
+    | 'multiple'
+    | 'multi'
+    | 'clearable'
+    | 'id'
   > & {
     disabled?: boolean | string;
   };
@@ -76,6 +89,21 @@ export type SelectFieldProps<TValue = string> =
   | SingleClearableSelectFieldProps<TValue>
   | MultipleSelectFieldProps<TValue>;
 
+// HACK: react-select types are bad, ref is a custom StateManager
+// This converts the `ref` value of SelectInput into a format
+// that works for BaseField, which expects `fieldProps.ref: Ref<HTMLElement>`
+const applyInputToRef =
+  (ref: Ref<HTMLElement>) =>
+  (instance: null | {input: HTMLInputElement}): void => {
+    if (instance) {
+      if (typeof ref === 'function') {
+        ref(instance.input);
+      } else if (ref) {
+        ref.current = instance.input;
+      }
+    }
+  };
+
 export function SelectField<TValue = string>({
   onChange,
   disabled,
@@ -91,7 +119,7 @@ export function SelectField<TValue = string>({
 
   return (
     <BaseField>
-      {({id, ...fieldProps}) => (
+      {({id, ref, ...fieldProps}) => (
         <Flex gap="sm" align="center">
           <Container flex={1} minWidth={0}>
             <Select
@@ -101,6 +129,7 @@ export function SelectField<TValue = string>({
               disabled={isDisabled}
               multiple={multiple}
               value={value}
+              inputRef={applyInputToRef(ref)}
               components={{
                 ...props.components,
                 Input: SelectInput,

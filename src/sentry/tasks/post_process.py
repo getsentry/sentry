@@ -1180,14 +1180,7 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 
 
 def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
-    # Feature flag check for expanded sentry apps webhooks
-    has_expanded_sentry_apps_webhooks = features.has(
-        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
-    )
     group_category = job["event"].group.issue_category
-
-    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
-        return False
 
     supported_group_categories = [
         GroupCategory(category)
@@ -1283,6 +1276,24 @@ def fire_error_processed(job: PostProcessJob):
         project=event.project,
         event=event,
     )
+
+
+def process_processing_errors_eap(job: PostProcessJob):
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:processing-errors-eap", event.project.organization):
+        return
+
+    processing_errors = event.data.get("errors", [])
+    if not processing_errors:
+        return
+
+    from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
+
+    produce_processing_errors_to_eap(event.project, event.data, processing_errors)
 
 
 def sdk_crash_monitoring(job: PostProcessJob):
@@ -1655,6 +1666,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         link_event_to_user_report,
         detect_base_urls_for_uptime,
         check_if_flags_sent,
+        process_processing_errors_eap,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
