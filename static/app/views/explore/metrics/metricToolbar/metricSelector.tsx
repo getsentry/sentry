@@ -115,7 +115,7 @@ export function MetricSelector({
       onChange({
         name: metricOptions[0].metricName,
         type: metricOptions[0].metricType,
-        unit: hasMetricUnitsUI ? metricOptions[0].metricUnit : undefined,
+        unit: hasMetricUnitsUI ? (metricOptions[0].metricUnit ?? NONE_UNIT) : undefined,
       });
     }
   }, [metricOptions, onChange, traceMetric.name, hasMetricUnitsUI]);
@@ -128,7 +128,9 @@ export function MetricSelector({
     [setSearch]
   );
 
-  const traceMetricSelectValue = makeMetricSelectValue(traceMetric);
+  const traceMetricSelectValue = makeMetricSelectValue(
+    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
+  );
   const previousOptions = usePrevious(metricOptions ?? []);
 
   return (
