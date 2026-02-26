@@ -183,7 +183,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
 
         def on_results(results: list[PreprodArtifact]) -> list[InstallableBuildResponseDict]:
             return [
-                create_installable_build_dict(artifact, artifact.download_count)
+                create_installable_build_dict(artifact, artifact.download_count)  # type: ignore[attr-defined]
                 for artifact in results
             ]
 
