@@ -4,11 +4,6 @@ import type {ECharts, TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  useAddSearchFilter,
-  useSetQueryParamsGroupBys,
-} from 'sentry/views/explore/queryParams/context';
 
 const TOOLTIP_POSITION_X_OFFSET = 20;
 const TOOLTIP_POSITION_Y_OFFSET = -10;
@@ -30,6 +25,16 @@ type Params = {
    * The function to render the HTML for the tooltip actions. The actions are rendered on click, anywhere on the chart.
    */
   actionsHtmlRenderer?: (value: string) => string;
+  /**
+   * Callback to add a search filter. Used by tooltip actions.
+   * When not provided, the "Add to filter" and "Exclude from filter" actions are no-ops.
+   */
+  onAddSearchFilter?: (params: {key: string; value: string; negated?: boolean}) => void;
+  /**
+   * Callback to set group bys. Used by tooltip actions.
+   * When not provided, the "Group by" action is a no-op.
+   */
+  onSetGroupBys?: (groupBys: string[], mode: string) => void;
 };
 
 export enum Actions {
@@ -48,13 +53,13 @@ export function useAttributeBreakdownsTooltip({
   formatter,
   chartWidth,
   actionsHtmlRenderer,
+  onAddSearchFilter,
+  onSetGroupBys,
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
   const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
 
-  const addSearchFilter = useAddSearchFilter();
   const copyToClipboard = useCopyToClipboard();
-  const setGroupBys = useSetQueryParamsGroupBys();
 
   // This effect runs on load and when the frozen position changes.
   // - If frozen position is set, trigger a re-render of the tooltip with frozen position to show the
@@ -131,16 +136,16 @@ export function useAttributeBreakdownsTooltip({
       if (action && value && key) {
         switch (action) {
           case Actions.GROUP_BY:
-            setGroupBys([key], Mode.AGGREGATE);
+            onSetGroupBys?.([key], 'aggregate');
             break;
           case Actions.ADD_TO_FILTER:
-            addSearchFilter({
+            onAddSearchFilter?.({
               key,
               value,
             });
             break;
           case Actions.EXCLUDE_FROM_FILTER:
-            addSearchFilter({
+            onAddSearchFilter?.({
               key,
               value,
               negated: true,
@@ -185,7 +190,7 @@ export function useAttributeBreakdownsTooltip({
       document.removeEventListener('mouseover', handleMouseOver);
       document.removeEventListener('mouseout', handleMouseOut);
     };
-  }, [frozenPosition, copyToClipboard, addSearchFilter, setGroupBys]);
+  }, [frozenPosition, copyToClipboard, onAddSearchFilter, onSetGroupBys]);
 
   const tooltipConfig: TooltipOption = useMemo(
     () => ({
@@ -205,7 +210,8 @@ export function useAttributeBreakdownsTooltip({
         if (!frozenPosition) {
           tooltipParamsRef.current = params;
 
-          const actionsPlaceholder = `
+          const actionsPlaceholder = actionsHtmlRenderer
+            ? `
           <div
             class="tooltip-footer"
             style="
@@ -217,7 +223,8 @@ export function useAttributeBreakdownsTooltip({
           >
             Click for actions
           </div>
-        `.trim();
+        `.trim()
+            : '';
 
           return wrapContent(formatter(params) + actionsPlaceholder);
         }

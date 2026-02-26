@@ -11,7 +11,6 @@ import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 
 import {
   CHART_BASELINE_SERIES_NAME,
@@ -33,13 +32,18 @@ export function Chart({
   theme,
   cohort1Total,
   cohort2Total,
+  query,
+  onAddSearchFilter,
+  onSetGroupBys,
 }: {
   attribute: AttributeBreakdownsComparison['rankedAttributes'][number];
   cohort1Total: number;
   cohort2Total: number;
+  query: string;
   theme: Theme;
+  onAddSearchFilter?: (params: {key: string; value: string; negated?: boolean}) => void;
+  onSetGroupBys?: (groupBys: string[], mode: string) => void;
 }) {
-  const query = useQueryParamsQuery();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
 
@@ -96,11 +100,15 @@ export function Chart({
     [attribute.attributeName, theme]
   );
 
+  const hasActions = !!(onAddSearchFilter || onSetGroupBys);
+
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: toolTipFormatter,
     chartWidth,
-    actionsHtmlRenderer,
+    actionsHtmlRenderer: hasActions ? actionsHtmlRenderer : undefined,
+    onAddSearchFilter,
+    onSetGroupBys,
   });
 
   useLayoutEffect(() => {

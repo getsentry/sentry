@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -15,13 +15,18 @@ import {getUserTimezone} from 'sentry/utils/dates';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
+import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
+import {
+  useAddSearchFilter,
+  useQueryParamsQuery,
+  useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
+} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 import {Chart} from './cohortComparisonChart';
 import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
-
-type SortingMethod = 'rrr';
 
 export function CohortComparison({
   selection,
@@ -31,6 +36,16 @@ export function CohortComparison({
   selection: Selection;
 }) {
   const visualizes = useQueryParamsVisualizes();
+  const query = useQueryParamsQuery();
+  const addSearchFilter = useAddSearchFilter();
+  const setGroupBys = useSetQueryParamsGroupBys();
+
+  const onSetGroupBys = useCallback(
+    (groupBys: string[], _mode: string) => {
+      setGroupBys(groupBys, Mode.AGGREGATE);
+    },
+    [setGroupBys]
+  );
 
   const yAxis = visualizes[chartIndex]?.yAxis ?? '';
 
@@ -41,46 +56,23 @@ export function CohortComparison({
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
-  const sortingMethod: SortingMethod = 'rrr';
-  const [page, setPage] = useState(0);
   const theme = useTheme();
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
-  const filteredRankedAttributes = useMemo(() => {
-    const attrs = data?.rankedAttributes;
-    if (!attrs) {
-      return [];
-    }
-
-    let filteredAttrs = attrs;
-    if (debouncedSearchQuery.trim()) {
-      const searchFor = debouncedSearchQuery.toLocaleLowerCase().trim();
-      filteredAttrs = attrs.filter(attr =>
-        attr.attributeName.toLocaleLowerCase().trim().includes(searchFor)
-      );
-    }
-
-    const sortedAttrs = [...filteredAttrs].sort((a, b) => {
-      const aOrder = a.order[sortingMethod];
-      const bOrder = b.order[sortingMethod];
-
-      if (aOrder === null && bOrder === null) return 0;
-      if (aOrder === null) return 1;
-      if (bOrder === null) return -1;
-
-      return aOrder - bOrder;
-    });
-
-    return sortedAttrs;
-  }, [debouncedSearchQuery, data?.rankedAttributes, sortingMethod]);
-
-  useEffect(() => {
-    // Ensure that we are on the first page whenever filtered attributes change.
-    setPage(0);
-  }, [filteredRankedAttributes]);
+  const {
+    filteredRankedAttributes,
+    paginatedAttributes,
+    hasPrevious,
+    hasNext,
+    nextPage,
+    previousPage,
+  } = useFilteredRankedAttributes({
+    rankedAttributes: data?.rankedAttributes,
+    searchQuery: debouncedSearchQuery,
+    pageSize: CHARTS_PER_PAGE,
+  });
 
   const selectedRangeToDates = useMemo(() => {
     if (!selection) {
@@ -109,8 +101,8 @@ export function CohortComparison({
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
-            onChange={query => {
-              setSearchQuery(query);
+            onChange={value => {
+              setSearchQuery(value);
             }}
             query={debouncedSearchQuery}
             size="sm"
@@ -140,30 +132,24 @@ export function CohortComparison({
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
                 <AttributeBreakdownsComponent.ChartsGrid>
-                  {filteredRankedAttributes
-                    .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                    .map(attribute => (
-                      <Chart
-                        key={attribute.attributeName}
-                        attribute={attribute}
-                        theme={theme}
-                        cohort1Total={data?.cohort1Total ?? 0}
-                        cohort2Total={data?.cohort2Total ?? 0}
-                      />
-                    ))}
+                  {paginatedAttributes.map(attribute => (
+                    <Chart
+                      key={attribute.attributeName}
+                      attribute={attribute}
+                      theme={theme}
+                      cohort1Total={data?.cohort1Total ?? 0}
+                      cohort2Total={data?.cohort2Total ?? 0}
+                      query={query}
+                      onAddSearchFilter={addSearchFilter}
+                      onSetGroupBys={onSetGroupBys}
+                    />
+                  ))}
                 </AttributeBreakdownsComponent.ChartsGrid>
                 <AttributeBreakdownsComponent.Pagination
-                  isNextDisabled={
-                    page ===
-                    Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
-                  }
-                  isPrevDisabled={page === 0}
-                  onNextClick={() => {
-                    setPage(page + 1);
-                  }}
-                  onPrevClick={() => {
-                    setPage(page - 1);
-                  }}
+                  isNextDisabled={!hasNext}
+                  isPrevDisabled={!hasPrevious}
+                  onNextClick={nextPage}
+                  onPrevClick={previousPage}
                 />
               </Fragment>
             ) : (
