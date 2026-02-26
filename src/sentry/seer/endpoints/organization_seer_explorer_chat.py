@@ -130,6 +130,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 enable_coding=enable_coding,
             )
             if run_id:
+                # Continue existing conversation
                 result_run_id = client.continue_run(
                     run_id=int(run_id),
                     prompt=query,
@@ -137,6 +138,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     on_page_context=on_page_context,
                 )
             else:
+                # Start new conversation
                 result_run_id = client.start_run(
                     prompt=query,
                     on_page_context=on_page_context,
