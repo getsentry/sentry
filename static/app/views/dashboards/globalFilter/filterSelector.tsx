@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import xor from 'lodash/xor';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -305,13 +306,16 @@ function FilterSelector({
 
   const stagedSelect = useStagedCompactSelect({
     value: activeFilterValues,
-    defaultValue: [],
     options,
     onChange: handleChange,
     onStagedValueChange: setStagedFilterValues,
     multiple: true,
     hasExternalChanges: hasOperatorChanges,
   });
+
+  const {dispatch} = stagedSelect;
+  const hasStagedChanges =
+    xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
   const renderFilterSelectorTrigger = (filterValues: string[]) => (
     <FilterSelectorTrigger
@@ -396,13 +400,16 @@ function FilterSelector({
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
       menuFooter={
-        stagedSelect.hasStagedChanges ? (
+        hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
-              onClick={() => stagedSelect.removeStagedChanges()}
+              onClick={() => dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
-              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+              onClick={() => {
+                dispatch({type: 'remove staged'});
+                handleChange(stagedSelect.value);
+              }}
             />
           </Flex>
         ) : null

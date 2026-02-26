@@ -62,7 +62,7 @@ describe('HybridFilter', () => {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const value: string[] = [];
-      const onChange = () => {};
+      const onChange = (_value: string[]) => {};
       const stagedSelect = useStagedCompactSelect({
         value,
         options,
@@ -90,7 +90,7 @@ describe('HybridFilter', () => {
             xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  disabled={xor(stagedSelect.value, value).length === 0}
                   onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
@@ -150,7 +150,7 @@ describe('HybridFilter', () => {
             xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  disabled={xor(stagedSelect.value, value).length === 0}
                   onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
@@ -220,7 +220,7 @@ describe('HybridFilter', () => {
             xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  disabled={xor(stagedSelect.value, value).length === 0}
                   onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
@@ -299,7 +299,7 @@ describe('HybridFilter', () => {
             xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  disabled={xor(stagedSelect.value, value).length === 0}
                   onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
@@ -346,7 +346,6 @@ describe('HybridFilter', () => {
       };
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue,
         options,
         onChange: handleChange,
         multiple: true,
@@ -373,7 +372,7 @@ describe('HybridFilter', () => {
             xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  disabled={xor(stagedSelect.value, value).length === 0}
                   onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
@@ -445,7 +444,7 @@ describe('HybridFilter', () => {
             xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  disabled={xor(stagedSelect.value, value).length === 0}
                   onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton

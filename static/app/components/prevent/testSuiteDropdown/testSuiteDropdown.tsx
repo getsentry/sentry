@@ -2,6 +2,7 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import xor from 'lodash/xor';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -96,11 +97,14 @@ export function TestSuiteDropdown() {
 
   const stagedSelect = useStagedCompactSelect({
     value,
-    defaultValue: [],
     options,
     onChange: handleChange,
     multiple: true,
   });
+
+  const {dispatch} = stagedSelect;
+  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const shouldShowReset = stagedSelect.value.length > 0;
 
   return (
     <HybridFilter
@@ -112,18 +116,26 @@ export function TestSuiteDropdown() {
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+        shouldShowReset ? (
+          <MenuComponents.ResetButton
+            onClick={() => {
+              dispatch({type: 'remove staged'});
+              handleChange([]);
+            }}
+          />
         ) : null
       }
       menuFooter={
-        stagedSelect.hasStagedChanges ? (
+        hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
-              onClick={() => stagedSelect.removeStagedChanges()}
+              onClick={() => dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
-              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+              onClick={() => {
+                dispatch({type: 'remove staged'});
+                handleChange(stagedSelect.value);
+              }}
             />
           </Flex>
         ) : null
