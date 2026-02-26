@@ -1,0 +1,122 @@
+import {createContext, useContext, useId} from 'react';
+
+import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {useFieldStateIndicator, useLabelId} from './baseField';
+import {GroupProvider} from './groupContext';
+
+// Context for Radio.Group -> Radio.Item communication
+interface RadioContextValue {
+  'aria-invalid': boolean;
+  disabled: boolean;
+  name: string;
+  onBlur: () => void;
+  onChange: (value: string) => void;
+  selectedValue: string;
+}
+
+const RadioContext = createContext<RadioContextValue | null>(null);
+
+function useRadioContext() {
+  const ctx = useContext(RadioContext);
+  if (!ctx) {
+    throw new Error('Radio.Item must be used within Radio.Group');
+  }
+  return ctx;
+}
+
+// Radio.Group component
+interface RadioGroupProps {
+  children: React.ReactNode;
+  onChange: (value: string) => void;
+  value: string;
+  disabled?: boolean | string;
+}
+
+function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
+  const field = useFieldContext();
+  const labelId = useLabelId();
+  const autoSaveContext = useAutoSaveContext();
+  const indicator = useFieldStateIndicator();
+
+  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
+  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
+
+  const contextValue: RadioContextValue = {
+    name: field.name,
+    selectedValue: value,
+    onChange: (newValue: string) => {
+      onChange(newValue);
+      if (autoSaveContext) {
+        // Radios should reset to previous value on error
+        autoSaveContext.resetOnErrorRef.current = true;
+        field.handleBlur();
+      }
+    },
+    onBlur: field.handleBlur,
+    disabled: isDisabled,
+    'aria-invalid': !field.state.meta.isValid,
+  };
+
+  const content = (
+    <GroupProvider>
+      <RadioContext value={contextValue}>
+        <Flex role="radiogroup" aria-labelledby={labelId} gap="md" align="center">
+          {children}
+          {indicator}
+        </Flex>
+      </RadioContext>
+    </GroupProvider>
+  );
+
+  if (disabledReason) {
+    return <Tooltip title={disabledReason}>{content}</Tooltip>;
+  }
+
+  return content;
+}
+
+// Radio.Item component
+interface RadioItemProps {
+  children: React.ReactNode;
+  value: string;
+  description?: React.ReactNode;
+}
+
+function RadioItem({children, value, description}: RadioItemProps) {
+  const {selectedValue, onChange, ...fieldProps} = useRadioContext();
+  const descriptionId = useId();
+
+  return (
+    <Flex as="label" gap="sm" align="start" margin="0">
+      <Radio
+        {...fieldProps}
+        aria-describedby={description ? descriptionId : undefined}
+        value={value}
+        checked={selectedValue === value}
+        onChange={() => onChange(value)}
+      />
+      <Flex direction="column" gap="xs" paddingTop="xs">
+        <Text>{children}</Text>
+        {description && (
+          <Text size="sm" variant="muted" id={descriptionId}>
+            {description}
+          </Text>
+        )}
+      </Flex>
+    </Flex>
+  );
+}
+
+// Export as namespace
+export function RadioField() {
+  return null;
+}
+
+RadioField.Group = RadioGroup;
+RadioField.Item = RadioItem;
