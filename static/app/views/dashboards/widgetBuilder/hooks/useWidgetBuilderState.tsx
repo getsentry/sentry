@@ -30,7 +30,7 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -62,7 +62,7 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 export const MAX_NUM_Y_AXES = 3;
 
 export type WidgetBuilderStateQueryParams = {
-  axisRange?: string;
+  axisRange?: AxisRange;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -136,7 +136,7 @@ type WidgetAction =
       type: typeof BuilderStateAction.DELETE_AGGREGATE;
     }
   | {
-      payload: 'auto' | 'dataMin' | undefined;
+      payload: AxisRange | undefined;
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
     };
 type WidgetBuilderStateActionOptions = {
@@ -144,7 +144,7 @@ type WidgetBuilderStateActionOptions = {
 };
 
 export interface WidgetBuilderState {
-  axisRange?: 'auto' | 'dataMin';
+  axisRange?: AxisRange;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -345,7 +345,7 @@ function useWidgetBuilderState(): {
     deserializer: deserializeTraceMetric,
     serializer: serializeTraceMetric,
   });
-  const [axisRange, setAxisRange] = useQueryParamState<'auto' | 'dataMin' | undefined>({
+  const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
     fieldName: 'axisRange',
     decoder: decodeScalar,
     deserializer: getAxisRange,

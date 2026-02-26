@@ -34,7 +34,7 @@ import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
@@ -67,7 +67,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
    * Default: `auto`
    */
-  axisRange?: 'auto' | 'dataMin';
+  axisRange?: AxisRange;
 
   /**
    * Reference to the chart instance
