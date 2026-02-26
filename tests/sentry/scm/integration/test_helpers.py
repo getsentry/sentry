@@ -60,7 +60,7 @@ class TestFetchRepository(TestCase):
         RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="github",
+            provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
         )

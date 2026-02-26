@@ -104,7 +104,7 @@ def fetch_repository(
         else:
             repo = RepositoryModel.objects.get(
                 organization_id=organization_id,
-                provider=repository_id[0],
+                provider=f"integrations:{repository_id[0]}",
                 external_id=repository_id[1],
             )
     except RepositoryModel.DoesNotExist:
