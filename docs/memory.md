@@ -190,7 +190,7 @@ New file: `.github/workflows/classify-services.yml`
 
 `workflow_dispatch` only. Runs the classifier across 22 shards, merges per-shard reports into one artifact.
 
-### Phase 5: Collection Optimization (G1)
+### Phase 5: Collection Optimization (G1) + H1 Overlapped Startup Support
 
 **`pytest_ignore_collect` hook** in `sentry.py`:
 
@@ -206,9 +206,15 @@ Guards:
 
 Blocks until `/tmp/services-ready` sentinel file exists (created by background service-startup script). Needed because G1 makes collection finish ~50s faster, potentially before services are ready.
 
+**`_requires_snuba` polling** in `skips.py`: Add `_wait_for_service()` polling controlled by `SNUBA_WAIT_TIMEOUT` env var. With H1 overlapped startup, Snuba may not be up when pytest starts. The polling waits instead of failing immediately.
+
 **Two-layer filtering note**: Both G1 (`pytest_ignore_collect`) and `pytest_collection_modifyitems` filter by `SELECTED_TESTS_FILE`. G1 prevents import; `modifyitems` deselects after import. G1 is the performance win; `modifyitems` handles class/test granularity filtering and shard assignment.
 
-### Phase 6: Tiered Workflow
+### Phase 6: Performance Optimizations
+
+**Relay container lifecycle**: Broaden `relay_server_setup` and `_relay_container` from function/module scope to session scope. `live_server` is already session-scoped, so this is safe. One Docker container per worker session instead of per test. Only ~6 relay test classes exist, saving ~50-60s. Add `_relay_container` session-scoped fixture, make `relay_server` a thin wrapper calling `_ensure_relay_in_db()` + `adjust_settings_for_relay_tests()`.
+
+### Phase 7: Tiered Workflow
 
 **`backend-xdist-split-poc.yml`**: The full CI workflow.
 
