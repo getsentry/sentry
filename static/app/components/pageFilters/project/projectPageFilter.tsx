@@ -7,13 +7,7 @@ import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import type {
-  MultipleSelectProps,
-  SelectKey,
-  SelectOption,
-  SelectOptionOrSection,
-  SelectSection,
-} from '@sentry/scraps/compactSelect';
+import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -246,23 +240,7 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const handleSectionToggle = useCallback(
-    (section: SelectSection<SelectKey>) => {
-      trackAnalytics('projectselector.multi_button_clicked', {
-        button_type: section.key === 'my-projects' ? 'my' : 'all',
-        path: getRouteStringFromRoutes(routes),
-        organization,
-      });
-    },
-    [routes, organization]
-  );
-
-  const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
-    const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
-    if (!hasProjects) {
-      return [];
-    }
-
+  const options = useMemo(() => {
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
@@ -338,7 +316,7 @@ export function ProjectPageFilter({
             </Flex>
           );
         },
-      } satisfies SelectOptionOrSection<number>;
+      } satisfies SelectOption<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
@@ -347,42 +325,27 @@ export function ProjectPageFilter({
         ? [
             !lastSelected.includes(parseInt(project.id, 10)),
             !bookmarkedSnapshotRef.current.has(project.id),
+            project.isMember,
             project.slug,
           ]
-        : [!lastSelected.includes(parseInt(project.id, 10)), project.slug];
+        : [
+            !lastSelected.includes(parseInt(project.id, 10)),
+            project.isMember,
+            project.slug,
+          ];
 
-    return nonMemberProjects.length > 0
-      ? [
-          {
-            key: 'my-projects',
-            label: t('My Projects'),
-            options: sortBy(memberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: true,
-          },
-          {
-            key: 'no-membership-header',
-            label:
-              memberProjects.length > 0 ? t('Other') : t("Projects I Don't Belong To"),
-            options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
-          },
-        ]
-      : sortBy(memberProjects, listSort).map(getProjectItem);
+    return sortBy(projects, listSort).map(getProjectItem);
   }, [
     organization,
-    memberProjects,
-    nonMemberProjects,
+    projects,
     mapURLValueToNormalValue,
     optimisticallyBookmarkedProjects,
     pageFilterValue,
   ]);
 
   const defaultMenuWidth = useMemo(() => {
-    const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
-      'options' in item ? item.options : [item]
-    );
-
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions.slice(0, 25).reduce((acc, cur) => {
+    const longestSlugLength = options.slice(0, 25).reduce((acc, cur) => {
       const length = cur.textValue?.length ?? 0;
       return length > acc ? length : acc;
     }, 0);
@@ -408,7 +371,6 @@ export function ProjectPageFilter({
     onStagedValueChange: setStagedValue,
     onToggle,
     onReplace,
-    onSectionToggle: handleSectionToggle,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });
@@ -471,10 +433,11 @@ export function ProjectPageFilter({
     <CompactSelect
       grid
       multiple
+      virtualized
       {...selectProps}
       {...stagedSelect.compactSelectProps}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      sizeLimit={sizeLimit ?? 25}
+      sizeLimit={sizeLimit}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={
         menuTitle ?? (

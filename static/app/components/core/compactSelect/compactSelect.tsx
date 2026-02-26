@@ -123,7 +123,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !grid && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
