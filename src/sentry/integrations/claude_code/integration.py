@@ -185,6 +185,7 @@ class ClaudeCodeEnvironmentPipelineView(CodingAgentPipelineView):
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         api_key = pipeline.fetch_state("api_key")
         if not api_key:
+            pipeline.state.step_index = 0
             return pipeline.current_step()
         return super().dispatch(request, pipeline)
 
@@ -312,9 +313,8 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         if "environment_id" in data:
             metadata.environment_id = data["environment_id"] or None
 
-        workspace_name = data.get("workspace_name")
-        if workspace_name:
-            metadata.workspace_name = workspace_name
+        if "workspace_name" in data:
+            metadata.workspace_name = data["workspace_name"] or None
 
         self._persist_metadata(metadata)
         super().update_organization_config({})

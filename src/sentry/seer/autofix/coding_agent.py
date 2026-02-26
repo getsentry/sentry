@@ -19,7 +19,6 @@ from sentry.integrations.claude_code.integration import (
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
 )
-from sentry.integrations.claude_code.utils import map_session_status
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -663,6 +662,8 @@ def poll_claude_code_agents(
         try:
             session_status = client.get_session_status(agent_id)
             claude_status = session_status.status
+            from sentry.integrations.claude_code.utils import map_session_status
+
             new_status = CodingAgentStatus(map_session_status(claude_status))
 
             # Log the full session status for debugging

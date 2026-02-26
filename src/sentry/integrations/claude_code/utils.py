@@ -6,10 +6,13 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.services.integration import integration_service
+from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +75,18 @@ def get_github_token_for_repo(
         return None
 
     installation = integration.get_installation(organization_id=organization_id)
-    client = installation.get_client()
+    try:
+        client = installation.get_client()
+    except (OrganizationIntegrationNotFound, IntegrationError):
+        logger.warning(
+            "claude_code.get_github_token.client_unavailable",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "repo": f"{repo_owner}/{repo_name}",
+            },
+        )
+        return None
 
     if not isinstance(client, GitHubBaseClient):
         logger.warning(
@@ -110,17 +124,13 @@ def parse_github_repo_url(repo_url: str) -> tuple[str, str] | None:
     repo_url = repo_url.strip()
 
     if repo_url.startswith("git@github.com:"):
-        # SSH format: git@github.com:owner/repo.git
-        path = repo_url.replace("git@github.com:", "")
-        path = path.rstrip(".git")
-    elif "github.com" in repo_url:
-        # HTTPS format
-        parts = repo_url.split("github.com/")
-        if len(parts) != 2:
-            return None
-        path = parts[1].rstrip("/").rstrip(".git")
+        path = repo_url.removeprefix("git@github.com:")
+        path = path.removesuffix(".git")
     else:
-        return None
+        parsed = urlparse(repo_url)
+        if parsed.scheme not in ("http", "https") or parsed.hostname != "github.com":
+            return None
+        path = parsed.path.strip("/").removesuffix(".git")
 
     parts = path.split("/")
     if len(parts) < 2:
@@ -145,4 +155,4 @@ def map_session_status(claude_status: str) -> str:
         "idle": "completed",
         "closed": "completed",
     }
-    return status_mapping.get(claude_status.lower(), "unknown")
+    return status_mapping.get(claude_status.lower(), "running")
