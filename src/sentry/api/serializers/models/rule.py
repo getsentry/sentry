@@ -495,12 +495,12 @@ class WorkflowEngineRuleSerializer(Serializer):
                     action_to_handler[action] = handler
                 except Exception:
                     continue  # just keep iterating through the actions in case we have valid ones in there
-
+            actions_with_handlers = list(action_to_handler.keys())
             action_to_action_data = {
                 action: action_to_handler[action].build_rule_action_blob(
                     action, workflow.organization_id
                 )
-                for action in list(action_to_handler.keys())  # skip over actions w/o handlers
+                for action in actions_with_handlers  # skip over actions w/o handlers
             }
             sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
             if self.prepare_component_fields:
@@ -508,7 +508,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                     sentry_app_uuid
                     for sentry_app_uuid in (
                         action_to_action_data[action].get("sentryAppInstallationUuid")
-                        for action in actions
+                        for action in actions_with_handlers
                     )
                     if sentry_app_uuid is not None
                 ]
@@ -523,7 +523,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             serialized_actions = []
             errors = []
-            for action in list(action_to_handler.keys()):
+            for action in actions_with_handlers:
                 action_data = action_to_action_data[action]
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data
