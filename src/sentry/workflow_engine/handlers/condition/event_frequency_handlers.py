@@ -22,6 +22,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionResu
 class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
+    label_template = "The issue is seen more than {value} times in {interval}"
 
     comparison_json_schema = {
         "type": "object",
@@ -54,6 +55,7 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
 class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
+    label_template = "The issue is seen more than {value} times in {interval}"
 
     comparison_json_schema = {
         "type": "object",
@@ -87,6 +89,7 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
 class PercentSessionsCountHandler(EventFrequencyCountHandler):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
+    label_template = "The issue affects more than {value} percent of sessions in {interval}"
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -112,6 +115,7 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
 class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
+    label_template = "The issue affects more than {value} percent of sessions in {interval}"
     comparison_json_schema = {
         "type": "object",
         "properties": {

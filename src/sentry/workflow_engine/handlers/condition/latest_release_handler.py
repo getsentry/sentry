@@ -124,6 +124,7 @@ class LatestReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     comparison_json_schema = {"type": "boolean"}
+    label_template = "The event is from the latest release"
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:

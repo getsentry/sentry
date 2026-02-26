@@ -326,6 +326,8 @@ slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHan
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    label_template = "The issue is seen more than {value} times in {interval}"
+
     def batch_query(
         self,
         groups: list[GroupValues],
@@ -372,6 +374,8 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    label_template = "The issue is seen by more than {value} users in {interval}"
+
     def batch_query(
         self,
         groups: list[GroupValues],
@@ -415,6 +419,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
 class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = PERCENT_INTERVALS
+    label_template = "The issue affects more than {value} percent of sessions in {interval}"
 
     def get_session_count(
         self, project_id: int, environment_id: int | None, start: datetime, end: datetime
