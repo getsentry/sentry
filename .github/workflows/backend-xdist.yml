@@ -356,6 +356,7 @@ jobs:
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           artifact_path: .artifacts/pytest.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
