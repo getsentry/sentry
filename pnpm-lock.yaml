@@ -670,6 +670,9 @@ importers:
       knip:
         specifier: 5.83.1
         version: 5.83.1(@types/node@22.15.21)(typescript@5.9.3)
+      odiff-bin:
+        specifier: ^4.3.2
+        version: 4.3.2
       postcss-styled-syntax:
         specifier: 0.7.0
         version: 0.7.0(postcss@8.5.3)
@@ -7334,6 +7337,10 @@ packages:
 
   obuf@1.1.2:
     resolution: {integrity: sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==}
+
+  odiff-bin@4.3.2:
+    resolution: {integrity: sha512-irdWCW/b/b4aQiEfwNolbS0ZYUe2PAK6BKPt9Orzz3mGlko7ZqmEB1oDwCTAd2TQe3RmTpnePyd77xJzvWJHYQ==}
+    hasBin: true
 
   on-finished@2.4.1:
     resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
@@ -17643,6 +17650,8 @@ snapshots:
       es-object-atoms: 1.0.0
 
   obuf@1.1.2: {}
+
+  odiff-bin@4.3.2: {}
 
   on-finished@2.4.1:
     dependencies:
