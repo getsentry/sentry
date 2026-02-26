@@ -357,9 +357,12 @@ class UserDetailsEndpoint(UserEndpoint):
 
             if is_updating_superuser or is_updating_staff:
                 if not user_can_elevate(user):
+                    # Revoke superuser/staff privileges if the user is not a member of the default organization.
+                    # Just do this all the time as a precaution.
+                    serializer.save(is_superuser=False, is_staff=False)
                     return Response(
                         {
-                            "detail": "User must be a member to the default organization to enable SuperUser mode."
+                            "detail": "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
                         },
                         status=status.HTTP_403_FORBIDDEN,
                     )
