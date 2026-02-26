@@ -398,7 +398,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     return `<div style="border-top: 1px solid ${theme.tokens.border.secondary}; padding-top: 8px;">
       <div style="display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-bottom: 6px;">
         ${iconFixHtml}
-        <span style="font-size: 12px; color: ${theme.tokens.content.primary}; line-height: 1.4;">Insights</span>
+        <span style="font-size: 12px; color: ${theme.tokens.content.primary}; line-height: 1.4;">${t('Insights')}</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
         ${rows}
