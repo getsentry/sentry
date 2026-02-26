@@ -14,9 +14,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
-from sentry.preprod.api.models.project_preprod_build_details_models import (
-    platform_from_artifact_type,
-)
 from sentry.preprod.build_distribution_utils import (
     get_artifact_install_info,
     get_download_count_for_artifact,
@@ -65,7 +62,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
                             if head_artifact.extras
                             else []
                         ),
-                        "platform": platform_from_artifact_type(head_artifact.artifact_type),
+                        "platform": head_artifact.platform,
                     }
                 )
 
@@ -77,7 +74,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
 
         response_data: dict[str, Any] = {
             "install_url": installable_url,
-            "platform": platform_from_artifact_type(head_artifact.artifact_type),
+            "platform": head_artifact.platform,
             "download_count": total_download_count,
             "release_notes": info.release_notes,
             "install_groups": info.install_groups,

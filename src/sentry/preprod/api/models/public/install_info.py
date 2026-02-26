@@ -5,7 +5,6 @@ from typing import TypedDict
 from sentry.preprod.api.models.public.shared import (
     AppInfoResponseDict,
     create_app_info_dict,
-    platform_from_artifact_type,
 )
 from sentry.preprod.build_distribution_utils import get_artifact_install_info
 from sentry.preprod.models import PreprodArtifact
@@ -31,7 +30,7 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
     return {
         "buildId": str(artifact.id),
         "appInfo": create_app_info_dict(artifact),
-        "platform": platform_from_artifact_type(artifact.artifact_type),
+        "platform": artifact.platform,
         "isInstallable": info.is_installable,
         "installUrl": info.install_url,
         "downloadCount": info.download_count,

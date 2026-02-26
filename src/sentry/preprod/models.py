@@ -224,6 +224,18 @@ class PreprodArtifact(DefaultFieldsModel):
     )
     installable_app_error_message = models.TextField(null=True)
 
+    @property
+    def platform(self) -> str | None:
+        if self.artifact_type is None:
+            return None
+        match self.artifact_type:
+            case self.ArtifactType.XCARCHIVE:
+                return "apple"
+            case self.ArtifactType.AAB | self.ArtifactType.APK:
+                return "android"
+            case _:
+                raise ValueError(f"Unknown artifact type: {self.artifact_type}")
+
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
         Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type, build_configuration_id).

@@ -182,7 +182,10 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         )
 
         def on_results(results: list[PreprodArtifact]) -> list[InstallableBuildResponseDict]:
-            return [create_installable_build_dict(artifact) for artifact in results]
+            return [
+                create_installable_build_dict(artifact, artifact.download_count)
+                for artifact in results
+            ]
 
         return self.paginate(
             request=request,

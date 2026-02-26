@@ -155,24 +155,9 @@ class BuildDetailsApiResponse(BaseModel):
     base_build_info: BuildDetailsAppInfo | None = None
 
 
-def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
-    match artifact_type:
-        case PreprodArtifact.ArtifactType.XCARCHIVE:
-            return Platform.APPLE
-        case PreprodArtifact.ArtifactType.AAB:
-            return Platform.ANDROID
-        case PreprodArtifact.ArtifactType.APK:
-            return Platform.ANDROID
-        case _:
-            raise ValueError(f"Unknown artifact type: {artifact_type}")
-
-
 def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
     """Factory function to create BuildDetailsAppInfo from a PreprodArtifact."""
-    platform = None
-    # artifact_type can be null before preprocessing has completed
-    if artifact.artifact_type is not None:
-        platform = platform_from_artifact_type(artifact.artifact_type)
+    platform = artifact.platform
 
     apple_app_info = None
     if platform == Platform.APPLE:
