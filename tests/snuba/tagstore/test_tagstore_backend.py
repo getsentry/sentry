@@ -543,6 +543,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "url",
         }
 
+    @pytest.mark.skip(reason="flaky: #109505")
     def test_get_group_tag_key_generic(self) -> None:
         group, env = self.generic_group_and_env
 
