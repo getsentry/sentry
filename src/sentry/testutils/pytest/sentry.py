@@ -1,7 +1,16 @@
 from __future__ import annotations
 
-import collections
 import os
+
+# Per-worker Snuba routing for pytest-xdist. Each worker gets its own Snuba
+# instance on port 1230+N, pointing to ClickHouse database default_gwN.
+# Must be set before Django settings load (SENTRY_SNUBA reads os.environ["SNUBA"]).
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
+    _worker_num = int(_xdist_worker.replace("gw", ""))
+    os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
+
+import collections
 import random
 import shutil
 import string
@@ -33,6 +42,22 @@ TEST_ROOT = os.path.normpath(
 )
 
 TEST_REDIS_DB = 9
+
+
+def _get_xdist_redis_db() -> int:
+    """Per-worker Redis DB to prevent flushdb() cross-contamination under xdist."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return TEST_REDIS_DB + int(worker_id.replace("gw", ""))
+    return TEST_REDIS_DB
+
+
+def _get_xdist_kafka_topic(base_name: str) -> str:
+    """Per-worker Kafka topic to prevent event cross-contamination under xdist."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return f"{base_name}-{worker_id}"
+    return base_name
 
 
 def _use_monolith_dbs() -> bool:
@@ -69,10 +94,22 @@ def _configure_test_env_regions() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on region attributes, use `override_regions` in your test case.
-    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+    # Under xdist, seed deterministically so all workers generate the same name
+    # (divergent names break xdist's requirement for identical test collection).
+    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    r = random.Random(xdist_uid) if xdist_uid else random
+    region_name = "testregion" + "".join(r.choices(string.digits, k=6))
+
+    # Under xdist, each worker gets a unique snowflake_id so that snowflake-based
+    # model IDs (Project, Organization, Team) don't collide across workers.
+    xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+    region_snowflake_id = int(xdist_worker.replace("gw", "")) + 1 if xdist_worker else 0
 
     default_region = Region(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -94,6 +131,52 @@ def _configure_test_env_regions() -> None:
     settings.APIGATEWAY_PROXY_SKIP_RELAY = True
 
     monkey_patch_single_process_silo_mode_state()
+
+
+# ── G1: Skip irrelevant test files during collection ──────────────────
+# When SELECTED_TESTS_FILE is set, pytest_ignore_collect prevents pytest from
+# importing files that aren't in the selected list. This runs *before* module
+# import, avoiding the ~1m45s full-collection overhead on each shard.
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        sel_path = Path(selected_file)
+        if not sel_path.exists():
+            return None
+        with sel_path.open() as f:
+            _COLLECT_ALLOWED_FILES = frozenset(
+                line.strip().split("::")[0] for line in f if line.strip()
+            )
+
+    # Let directories through so pytest can descend into them.
+    if collection_path.is_dir():
+        return None
+
+    # Only gate .py files — let conftest, plugins, etc. through.
+    if collection_path.suffix != ".py":
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    # Don't skip conftest files — they set up fixtures needed by child tests.
+    if collection_path.name == "conftest.py":
+        return None
+
+    # Only filter files under tests/
+    if not rel.startswith("tests/"):
+        return None
+
+    return rel not in _COLLECT_ALLOWED_FILES
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -131,6 +214,13 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.utils import integrationdocs
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
+
+    # Allow CI to route postgres through a Unix domain socket for lower-latency
+    # connections. Must be set before configure_split_db() so the HOST override
+    # propagates to the control and secondary database copies.
+    if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+        settings.DATABASES["default"]["HOST"] = _pg_socket
+        settings.DATABASES["default"]["PORT"] = ""
 
     configure_split_db()
 
@@ -203,7 +293,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": _get_xdist_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -369,10 +459,15 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
     from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    try:
+        with clusters.get("default").all() as client:
+            client.flushdb()
+    except RedisConnectionError:
+        pass
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
@@ -427,18 +522,26 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     keep, discard = [], []
 
-    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    # Filter by selected tests if SELECTED_TESTS_FILE is set.
+    # TIER_GRANULARITY controls matching: file (default), class, or test.
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
     if selected_tests_file:
         selected_path = Path(selected_tests_file)
         if selected_path.exists():
             with selected_path.open() as f:
-                selected_files = {line.strip() for line in f if line.strip()}
+                selected_ids = {line.strip() for line in f if line.strip()}
 
-            if selected_files:
+            if selected_ids:
+                granularity = os.environ.get("TIER_GRANULARITY", "file")
                 for item in items:
-                    test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    parts = item.nodeid.split("::")
+                    if granularity == "test":
+                        key = item.nodeid
+                    elif granularity == "class":
+                        key = "::".join(parts[:2])
+                    else:
+                        key = parts[0]
+                    if key in selected_ids:
                         keep.append(item)
                     else:
                         discard.append(item)
@@ -451,14 +554,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
-    # Determine shuffle seed early to incorporate into shard distribution
-    shuffle_enabled = bool(os.environ.get("SENTRY_SHUFFLE_TESTS"))
-    seed = None
-    if shuffle_enabled:
-        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
-        seed = int(seed_env) if seed_env else int(time.time())
-        config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
-
     # Reset keep/discard for sharding logic
     keep, discard = [], []
 
@@ -470,11 +565,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if grouping_strategy == "scope"
             else item.nodeid.encode()
         )
-
-        # Incorporate seed into shard assignment to redistribute tests across shards
-        if shuffle_enabled and seed is not None:
-            to_hash = to_hash + str(seed).encode()
-
         item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups
@@ -487,7 +577,10 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     items[:] = keep
 
-    if shuffle_enabled:
+    if os.environ.get("SENTRY_SHUFFLE_TESTS"):
+        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
+        seed = int(seed_env) if seed_env else int(time.time())
+        config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
         _shuffle(items, random.Random(seed))
 
     # This only needs to be done if there are items to be de-selected
@@ -495,6 +588,62 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.hook.pytest_deselected(items=discard)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _xdist_per_worker_snuba():
+    """Patch Snuba connection pool to use per-worker Snuba instance.
+
+    Belt-and-suspenders with the module-level os.environ["SNUBA"] set above:
+    the env var covers settings load, this fixture patches _snuba_pool in case
+    it was already created before the env var took effect.
+    """
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if not worker_id or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
+        return
+
+    worker_num = int(worker_id.replace("gw", ""))
+    worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+
+    settings.SENTRY_SNUBA = worker_snuba_url
+
+    from sentry.net.http import connection_from_url
+    from sentry.utils import snuba as _snuba_mod
+
+    _snuba_mod._snuba_pool = connection_from_url(
+        worker_snuba_url,
+        retries=False,
+        timeout=settings.SENTRY_SNUBA_TIMEOUT,
+        maxsize=10,
+    )
+
+
 def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _wait_for_services():
+    """Block until background services are ready (H1 overlapped startup).
+
+    With G1 (pytest_ignore_collect), test collection finishes ~50s faster,
+    which means tests can start executing before devservices has finished
+    starting. This fixture blocks on a sentinel file written by the background
+    service-startup script, ensuring all services are healthy before any test
+    runs. The collection phase still overlaps with service startup.
+    """
+    sentinel = os.environ.get("SERVICES_READY_FILE")
+    if not sentinel:
+        return
+    timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "180"))
+    start = time.time()
+    sentinel_path = Path(sentinel)
+    while not sentinel_path.exists():
+        if time.time() - start > timeout:
+            sys.stderr.write(
+                f"[services] WARNING: timed out after {timeout}s waiting for {sentinel}\n"
+            )
+            break
+        time.sleep(1)
+    elapsed = time.time() - start
+    if elapsed > 1:
+        sys.stderr.write(f"[services] waited {elapsed:.0f}s for services after collection\n")
