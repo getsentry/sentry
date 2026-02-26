@@ -40,7 +40,7 @@ function Label(props: {
   const labelProps = isGroup
     ? {
         as: 'span' as const,
-        cursor: 'default',
+        cursor: 'default' as const,
         id: labelId,
       }
     : {
