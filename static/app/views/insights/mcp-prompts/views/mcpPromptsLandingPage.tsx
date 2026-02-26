@@ -31,6 +31,7 @@ import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 interface McpPromptsLandingPageProps {
@@ -41,9 +42,15 @@ function McpPromptsLandingPage({datePageFilterProps}: McpPromptsLandingPageProps
   const showOnboarding = useShowMCPOnboarding();
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
+  const {view} = useDomainViewFilters();
   const hasPlatformized = useHasPlatformizedAiAndMcp();
   if (hasPlatformized) {
-    return <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.MCP_PROMPTS} />;
+    return (
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.MCP_PROMPTS}
+        storageNamespace={view}
+      />
+    );
   }
 
   return (

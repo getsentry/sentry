@@ -55,6 +55,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
 import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
 interface AgentsOverviewPageProps {
@@ -63,11 +64,15 @@ interface AgentsOverviewPageProps {
 
 function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
   const hasPlatformized = useHasPlatformizedAiAndMcp();
 
   if (hasPlatformized) {
     return (
-      <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.AI_AGENTS_OVERVIEW} />
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.AI_AGENTS_OVERVIEW}
+        storageNamespace={view}
+      />
     );
   }
 

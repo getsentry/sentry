@@ -37,6 +37,7 @@ import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
 interface McpOverviewPageProps {
@@ -45,6 +46,7 @@ interface McpOverviewPageProps {
 
 function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
   const hasPlatformized = useHasPlatformizedAiAndMcp();
   const showOnboarding = useShowMCPOnboarding();
 
@@ -60,7 +62,12 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   if (hasPlatformized) {
-    return <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.MCP_OVERVIEW} />;
+    return (
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.MCP_OVERVIEW}
+        storageNamespace={view}
+      />
+    );
   }
 
   return (

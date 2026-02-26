@@ -33,6 +33,7 @@ import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/u
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 interface AgentModelsLandingPageProps {
@@ -47,10 +48,14 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
 
   useAgentMonitoringTrackPageView();
 
+  const {view} = useDomainViewFilters();
   const hasPlatformized = useHasPlatformizedAiAndMcp();
   if (hasPlatformized) {
     return (
-      <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.AI_AGENTS_MODELS} />
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.AI_AGENTS_MODELS}
+        storageNamespace={view}
+      />
     );
   }
 
