@@ -98,9 +98,8 @@ function NewUptimeDetectorFormContent() {
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        const extractedError = extractPreviewCheckError(responseJson);
-        previewCheckResult?.setPreviewCheckError(extractedError);
-        return mapToFormErrors(extractedError);
+        previewCheckResult?.setPreviewCheckError(extractPreviewCheckError(responseJson));
+        return mapToFormErrors(responseJson);
       }}
     >
       <UptimeDetectorForm />

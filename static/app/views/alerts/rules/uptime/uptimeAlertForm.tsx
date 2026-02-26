@@ -219,9 +219,8 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={responseJson => {
-        const extractedError = extractPreviewCheckError(responseJson);
-        previewCheckResult?.setPreviewCheckError(extractedError);
-        return mapToFormErrors(extractedError);
+        previewCheckResult?.setPreviewCheckError(extractPreviewCheckError(responseJson));
+        return mapToFormErrors(responseJson);
       }}
       onFieldChange={onFieldChange}
       onPreSubmit={() => {

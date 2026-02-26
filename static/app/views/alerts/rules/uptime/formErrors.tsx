@@ -30,15 +30,19 @@ export function mapPreviewCheckErrorToMessage(
     : t('Assertion Serialization Error');
 }
 
-export function mapToFormErrors(error: PreviewCheckError | null): any {
-  if (!error) return null;
+export function mapToFormErrors(responseJson: any) {
+  const error = extractPreviewCheckError(responseJson);
 
-  const trailingMessage = mapPreviewCheckErrorToMessage(error);
-  return {
-    nonFieldErrors: [
-      t('Failed to create monitor %s', trailingMessage ? `(${trailingMessage})` : ''),
-    ],
-  };
+  if (error) {
+    const trailingMessage = mapPreviewCheckErrorToMessage(error);
+    return {
+      nonFieldErrors: [
+        t('Failed to create monitor %s', trailingMessage ? `(${trailingMessage})` : ''),
+      ],
+    };
+  }
+
+  return responseJson;
 }
 
 function isPreviewCheckError(value: any): value is PreviewCheckError {
