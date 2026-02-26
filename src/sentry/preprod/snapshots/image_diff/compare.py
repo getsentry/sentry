@@ -96,10 +96,12 @@ def _compare_single_pair(
     base_thresh: float,
     color_thresh: float,
 ) -> DiffResult:
-    before_img = _to_pil_image(before)
-    after_img = _to_pil_image(after)
+    before_img: Image.Image | None = None
+    after_img: Image.Image | None = None
     diff_mask: Image.Image | None = None
     try:
+        before_img = _to_pil_image(before)
+        after_img = _to_pil_image(after)
         bw, bh = before_img.size
         aw, ah = after_img.size
         max_w = max(bw, aw)
@@ -175,9 +177,9 @@ def _compare_single_pair(
             after_height=ah,
         )
     finally:
-        if isinstance(before, bytes):
+        if before_img is not None and isinstance(before, bytes):
             before_img.close()
-        if isinstance(after, bytes):
+        if after_img is not None and isinstance(after, bytes):
             after_img.close()
         if diff_mask is not None:
             diff_mask.close()
