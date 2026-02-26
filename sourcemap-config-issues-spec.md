@@ -120,8 +120,8 @@ Configuration issues differ from runtime errors in how their lifecycle should be
 **Metric/Uptime/Crons Style** (e.g., uptime monitors, metric alerts)
 
 - Detector monitors for a condition (e.g., "site is down", "error rate > threshold")
-- When condition is met -> issue is created/unresolved
-- When condition clears -> issue is auto-resolved
+- When condition is met → issue is created/unresolved
+- When condition clears → issue is auto-resolved
 - Users have less control over lifecycle; the system reflects current state
 - Works well for: problems with clear "fixed" vs "broken" states
 
@@ -138,20 +138,23 @@ Sourcemap issues are closer to metric/uptime/crons style because:
 **Option A: X successful events processed**
 
 - Auto-resolve after seeing N events with successful sourcemap processing
-- Pros: Clear positive signal that sourcemaps are working
-- Cons: May take time to resolve if project has low traffic. If there are still failures, this might falsely resolve just because we have partial success.
+- Pros:
+  - Clear positive signal that sourcemaps are working
+- Cons:
+  - May take time to resolve if project has low traffic
+  - If there are still failures, this might falsely resolve just because we have partial success
 
 **Option B: 0 failures in time window (Recommended)**
 
 - Auto-resolve if no sourcemap failures occur within a time window
-- Pros: Catches edge cases, doesn't require positive signal. Easy to query in EAP.
-- Cons: Could resolve prematurely during low traffic periods.
+- Pros: Catches edge cases, doesn't require positive signal. Easy to query in EAP
+- Cons: Could resolve prematurely during low traffic periods
 
 **Option C: X successes AND 0 failures**
 
 - Auto-resolve after N successful events AND no failures in a time window
-- Pros: Most robust - requires positive evidence while avoiding premature resolution
-- Cons: More complex to implement. We'd need to query that events had come through in the same time period we should resolve.
+- Pros: Most robust—requires positive evidence while avoiding premature resolution
+- Cons: More complex to implement. We'd need to query that events had come through in the same time period we should resolve
 
 **Error type transitions**
 
@@ -295,7 +298,15 @@ If the issue is resolved and errors return, a new incident is created and the is
 
 **Recommendation: Option B.** The ingest-driven approach is cheaper at scale, lower latency, and follows the established `MonitorIncident` pattern. The periodic query approach doesn't make sense when we're already processing these errors at ingest time.
 
----
+### Configurable Ignore Rules (deferred)
+
+For MVP, no user-configurable ignore rules. Future iteration could allow users to ignore:
+
+- Specific error types (e.g., don't alert on `scraping_disabled`)
+- Specific URLs or file patterns (e.g., ignore `/vendor.js`)
+- Specific domains (e.g., ignore third-party CDNs)
+
+## This would require adding `url`/`source` fields to EAP storage (see above).
 
 ## Implementation & Rollout
 
@@ -308,6 +319,8 @@ If the issue is resolved and errors return, a new incident is created and the is
 - Store event_id in evidence data so the issue detail UI can link to the existing wizard
 - For the issue detail UI, we can potentially reuse or adapt the existing wizard experience
 - Feature flag: `organizations:processing-issues-detection`
+
+---
 
 ### Rollout Strategy
 
@@ -410,3 +423,21 @@ These errors may be transient (server issues) rather than configuration problems
 - `FETCH_TIMEOUT` - request timed out
 - `FETCH_TOO_LARGE` - file too large to fetch
 - `JS_TOO_MANY_REMOTE_SOURCES` - hit rate limit on fetching
+
+- Notes from sync (Feb 10, 2026)
+  **See Gemini Notes:**
+  https://docs.google.com/document/d/1NsTyADzqhP6dOGxCTt4HDiPujmtBMYngAXdTytyTFbU/edit?usp=sharing
+  - Alerting: no alerting on by default
+  - _No_ “Error Count” for Configuration Issue
+    - All broken processing types are shown for the same Config Issue for a project
+      - Stacked chart visual in Issue Details
+  - Follow “Chart” design from Metric Issue Alert - Details Page
+  - What triggers Config Issue creation?
+    - We _can_ start with just one occurrence seen, but up to us to decide and experiment with what’s best
+    - OR - only look at processing errors from the most recent release; compare as %, for this release (% of processing errors out of all traditional errors)
+  - For mobile - can look at ‘adopted’ release concept in Session Health
+  - Metric Issue Alerts - run a query every 10 minutes, get back results, and compare to a threshold.
+    - For Config Issue, we can do auto-resolve.
+    - No option for manual resolve (all system controlled)
+  - We need to decide conditions for ‘auto-resolve’ state
+  - Monitors UI should handle turning off these issues altogether
