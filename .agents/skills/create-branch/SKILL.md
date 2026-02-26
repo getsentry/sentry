@@ -1,6 +1,6 @@
 ---
 name: create-branch
-description: Create a git branch following Sentry naming conventions. Use when asked to "create a branch", "new branch", "start a branch", "make a branch", "switch to a new branch", or when starting new work on main/master.
+description: Create a git branch following Sentry naming conventions. Use when asked to "create a branch", "new branch", "start a branch", "make a branch", "switch to a new branch", or when starting new work on the default branch.
 argument-hint: '[optional description of the work]'
 ---
 
@@ -35,22 +35,22 @@ git status --short
 
 Pick the type from this table based on the description:
 
-| Type      | Use when                                            |
-| --------- | --------------------------------------------------- |
-| `feat`    | New user-facing functionality                       |
-| `fix`     | Broken behavior now works                           |
-| `ref`     | Same behavior, different structure                  |
-| `chore`   | Deps, config, tooling, version bumps — no app logic |
-| `perf`    | Same behavior, faster                               |
-| `style`   | CSS, formatting, visual-only                        |
-| `docs`    | Documentation only                                  |
-| `test`    | Tests only                                          |
-| `ci`      | CI/CD config                                        |
-| `build`   | Build system                                        |
-| `meta`    | Repo metadata changes                               |
-| `license` | License changes                                     |
+| Type      | Use when                                                              |
+| --------- | --------------------------------------------------------------------- |
+| `feat`    | New user-facing functionality                                         |
+| `fix`     | Broken behavior now works                                             |
+| `ref`     | Same behavior, different structure                                    |
+| `chore`   | Deps, config, version bumps, updating existing tooling — no new logic |
+| `perf`    | Same behavior, faster                                                 |
+| `style`   | CSS, formatting, visual-only                                          |
+| `docs`    | Documentation only                                                    |
+| `test`    | Tests only                                                            |
+| `ci`      | CI/CD config                                                          |
+| `build`   | Build system                                                          |
+| `meta`    | Repo metadata changes                                                 |
+| `license` | License changes                                                       |
 
-When unsure: `feat` for new things, `ref` for restructuring existing things.
+When unsure: `feat` for new things (including new scripts, skills, or tools), `ref` for restructuring existing things, `chore` only when updating/maintaining something that already exists.
 
 ## Step 4: Generate and Propose
 
@@ -73,6 +73,7 @@ Present it to the user and ask if they want to use it, modify it, or change the 
 | Restructuring drawer components            | `priscila/ref/simplify-drawer-components`   |
 | Updating test fixtures                     | `priscila/chore/update-test-fixtures`       |
 | Bumping @sentry/react to latest version    | `priscila/chore/bump-sentry-react`          |
+| Adding a new agent skill                   | `priscila/feat/add-create-branch-skill`     |
 
 ## Step 5: Create the Branch
 
@@ -82,7 +83,15 @@ Once confirmed:
 git checkout -b <branch-name>
 ```
 
-If already on a non-main branch, warn the user and ask whether to branch from here or from `master` first.
+If already on a non-default branch, warn the user and ask whether to branch from here or from the default branch first.
+
+To detect the default branch:
+
+```bash
+git symbolic-ref refs/remotes/origin/HEAD | sed 's|refs/remotes/origin/||'
+```
+
+If that fails, fall back to checking whether `main` or `master` exists locally.
 
 ## References
 
