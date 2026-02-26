@@ -18,7 +18,6 @@ import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 const TEST_SUITES = 'testSuites';
 const MAX_SUITE_UI_LENGTH = 50;
-const MAX_RECORD_LENGTH = 40;
 
 export function TestSuiteDropdown() {
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
@@ -59,9 +58,7 @@ export function TestSuiteDropdown() {
       ),
     }));
 
-    const sorted = sortBy(mapped, [option => !option.isSelected]);
-
-    return sorted.slice(0, MAX_RECORD_LENGTH);
+    return sortBy(mapped, [option => !option.isSelected]);
   }, [testSuites, urlSearchParams]);
 
   function getEmptyMessage() {

@@ -3,12 +3,15 @@ import {isAppleDevice, isMac} from '@react-aria/utils';
 
 import type {
   MultipleSelectProps,
+  SearchMatchResult,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
+
+import {fzf} from 'sentry/utils/search/fzf';
 
 interface StagedSelectState<Value extends SelectKey> {
   currentSearch: string;
@@ -35,6 +38,25 @@ function getFlatOptions<Value extends SelectKey>(
   return opts.flatMap(item => ('options' in item ? item.options : [item]));
 }
 
+function searchMatcher<Value extends SelectKey>(
+  option: SelectOption<Value>,
+  search: string
+): SearchMatchResult {
+  const text = option.textValue ?? (typeof option.label === 'string' ? option.label : '');
+  if (!text) {
+    return {score: 0};
+  }
+  const result = fzf(text, search.toLowerCase(), false);
+  // fzf returns end=-1 when no subsequence match exists (score is also 0).
+  // For valid matches fzf may return negative scores due to gap penalties, so we
+  // cannot rely on score > 0 to detect a match. Use end !== -1 instead and clamp
+  // the score so getHiddenOptions always sees score > 0 for any real match.
+  if (result.end === -1) {
+    return {score: 0};
+  }
+  return {score: Math.max(1, result.score)};
+}
+
 function stagingReducer<Value extends SelectKey>(
   state: StagedSelectState<Value>,
   action: StagedSelectAction<Value>
@@ -54,12 +76,14 @@ function stagingReducer<Value extends SelectKey>(
 
       // Only include options visible in the current filtered state so that
       // shift+click after a search doesn't select hidden items
-      const flatOptions = getFlatOptions(action.options).filter(opt => {
-        if (!state.currentSearch) return true;
-        const searchableText =
-          opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
-        return searchableText.toLowerCase().includes(state.currentSearch.toLowerCase());
-      });
+      const flatOptions = getFlatOptions(action.options)
+        .map(opt => {
+          return [opt, searchMatcher(opt, state.currentSearch)] as const;
+        })
+        .filter(([_opt, result]) => result && result.score > 0)
+        .sort((a, b) => b[1].score - a[1].score)
+        .map(([opt]) => opt);
+
       const lastIdx = flatOptions.findIndex(opt => opt.value === state.lastSelected);
       const currentIdx = flatOptions.findIndex(opt => opt.value === action.val);
 
@@ -384,6 +408,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       },
       options: mappedOptions,
       search: {
+        filter: searchMatcher,
         onChange: (searchValue: string) => {
           dispatch({type: 'set search', search: searchValue});
         },

@@ -32,12 +32,14 @@ export type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSectionWithKey,
+  SearchMatchResult,
 } from './types';
 
 export {
   getItemsWithKeys,
   getDisabledOptions,
   getHiddenOptions,
+  getSortedItems,
   itemIsSectionWithKey,
   SectionToggle,
   getEscapedKey,
