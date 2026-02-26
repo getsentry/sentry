@@ -84,29 +84,27 @@ function AccountEmails() {
       <SettingsPageHeader title={t('Email Addresses')} />
       <EmailAddresses />
       <FormSearch route="/settings/account/emails/">
-        <form.AppForm>
-          <form.FormWrapper>
-            <form.FieldGroup title={t('Add Secondary Emails')}>
-              <form.AppField name="email">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Additional Email')}
-                    hintText={t('Designate an alternative email for this account')}
-                  >
-                    <field.Input
-                      type="email"
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder={t('e.g. secondary@example.com')}
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
-            </form.FieldGroup>
-            <Flex justify="end">
-              <form.SubmitButton>{t('Add email')}</form.SubmitButton>
-            </Flex>
-          </form.FormWrapper>
+        <form.AppForm form={form}>
+          <form.FieldGroup title={t('Add Secondary Emails')}>
+            <form.AppField name="email">
+              {field => (
+                <field.Layout.Row
+                  label={t('Additional Email')}
+                  hintText={t('Designate an alternative email for this account')}
+                >
+                  <field.Input
+                    type="email"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('e.g. secondary@example.com')}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          </form.FieldGroup>
+          <Flex justify="end">
+            <form.SubmitButton>{t('Add email')}</form.SubmitButton>
+          </Flex>
         </form.AppForm>
       </FormSearch>
 

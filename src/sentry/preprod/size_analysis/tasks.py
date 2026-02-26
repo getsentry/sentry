@@ -9,6 +9,9 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.models.files.file import File
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    platform_from_artifact_type,
+)
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -18,6 +21,7 @@ from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
@@ -536,6 +540,15 @@ def maybe_emit_issues(
         logger.exception("Error emitting issues")
 
 
+def _get_platform(artifact_type: PreprodArtifact.ArtifactType | None) -> str:
+    if artifact_type is None:
+        return "unknown"
+    try:
+        return platform_from_artifact_type(artifact_type)
+    except ValueError:
+        return "unknown"
+
+
 def _maybe_emit_issues(
     comparison_results: ComparisonResults,
     head_metric: PreprodArtifactSizeMetrics,
@@ -570,11 +583,25 @@ def _maybe_emit_issues(
         return
 
     diff = comparison_results.size_metric_diff_item
+    head_artifact = head_metric.preprod_artifact
+    base_artifact = base_metric.preprod_artifact
+
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact.artifact_type),
+        "head_metric_id": head_metric.id,
+        "base_metric_id": base_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "base_artifact_id": base_artifact.id,
+        "head_artifact": head_artifact,
+        "base_artifact": base_artifact,
+    }
+
     size_data: SizeAnalysisValue = {
         "head_install_size_bytes": diff.head_install_size,
         "head_download_size_bytes": diff.head_download_size,
         "base_install_size_bytes": diff.base_install_size,
         "base_download_size_bytes": diff.base_download_size,
+        "metadata": metadata,
     }
 
     data_packet: SizeAnalysisDataPacket = DataPacket(

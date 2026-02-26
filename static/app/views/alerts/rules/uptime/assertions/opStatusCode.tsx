@@ -7,18 +7,18 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {
-  ComparisonType,
-  type Op,
-  type StatusCodeOp,
+  UptimeComparisonType,
+  type UptimeOp,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
 
 interface AssertionOpStatusCodeProps {
-  onChange: (op: StatusCodeOp) => void;
+  onChange: (op: UptimeStatusCodeOp) => void;
   onRemove: () => void;
-  value: StatusCodeOp;
-  erroredOp?: Op;
+  value: UptimeStatusCodeOp;
+  erroredOp?: UptimeOp;
 }
 
 export function AssertionOpStatusCode({
@@ -31,7 +31,7 @@ export function AssertionOpStatusCode({
 
   // Filter out 'always' and 'never' which are not valid for status code checks
   const statusCodeOptions = COMPARISON_OPTIONS.filter(
-    opt => ![ComparisonType.ALWAYS, ComparisonType.NEVER].includes(opt.value)
+    opt => ![UptimeComparisonType.ALWAYS, UptimeComparisonType.NEVER].includes(opt.value)
   );
   const selectedOption = statusCodeOptions.find(opt => opt.value === value.operator.cmp);
 

@@ -2,23 +2,16 @@ import datetime
 import time
 import uuid
 from typing import TypedDict
-from unittest import mock
-
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
-    TraceItemColumnValues,
-    TraceItemTableResponse,
-)
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.issues.suspect_flags import (
     _query_error_counts_eap,
+    _query_error_counts_snuba,
     get_suspect_flag_scores,
     query_baseline_set,
-    query_error_counts,
     query_selection_set,
 )
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class _FlagResult(TypedDict):
@@ -154,137 +147,56 @@ class SnubaTest(TestCase, SnubaTestCase):
         ]
 
 
-class QueryErrorCountsTest(TestCase):
-    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
+    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
 
-        mock_response = TraceItemTableResponse(
-            column_values=[
-                TraceItemColumnValues(
-                    attribute_name="count()",
-                    results=[AttributeValue(val_double=42.0)],
-                )
-            ]
+    def _query_both(self, group_id: int | None = None) -> tuple[int, int]:
+        start = self.FROZEN_TIME - datetime.timedelta(hours=1)
+        end = self.FROZEN_TIME + datetime.timedelta(hours=1)
+
+        snuba_count = _query_error_counts_snuba(
+            self.organization.id, self.project.id, start, end, [], group_id
         )
-        mock_table_rpc.return_value = [mock_response]
-
-        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
-        end = datetime.datetime.now(tz=datetime.UTC)
-
-        result = _query_error_counts_eap(
-            organization_id=organization.id,
-            project_id=project.id,
-            start=start,
-            end=end,
-            environment_names=[],
-            group_id=123,
+        eap_count = _query_error_counts_eap(
+            self.organization.id, self.project.id, start, end, [], group_id
         )
+        return snuba_count, eap_count
 
-        assert result == 42
-        mock_table_rpc.assert_called_once()
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_counts_match_with_group(self) -> None:
+        events = self.store_events_to_snuba_and_eap(
+            "flags-group-a", count=5, timestamp=self.FROZEN_TIME.timestamp()
+        )
+        group_id = events[0].group_id
 
-    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_eap_returns_zero_on_empty_response(self, mock_table_rpc: mock.MagicMock) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+        snuba_count, eap_count = self._query_both(group_id=group_id)
 
-        mock_response = TraceItemTableResponse(column_values=[])
-        mock_table_rpc.return_value = [mock_response]
+        assert snuba_count == eap_count == 5
 
-        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
-        end = datetime.datetime.now(tz=datetime.UTC)
-
-        result = _query_error_counts_eap(
-            organization_id=organization.id,
-            project_id=project.id,
-            start=start,
-            end=end,
-            environment_names=[],
-            group_id=123,
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_counts_match_without_group(self) -> None:
+        self.store_events_to_snuba_and_eap(
+            "flags-no-group-a", count=3, timestamp=self.FROZEN_TIME.timestamp()
+        )
+        self.store_events_to_snuba_and_eap(
+            "flags-no-group-b", count=4, timestamp=self.FROZEN_TIME.timestamp()
         )
 
-        assert result == 0
+        snuba_count, eap_count = self._query_both(group_id=None)
 
-    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_eap_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+        assert snuba_count == eap_count == 7
 
-        mock_table_rpc.side_effect = Exception("RPC failed")
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_counts_isolate_groups(self) -> None:
+        group_a = self.store_events_to_snuba_and_eap(
+            "flags-isolate-a", count=2, timestamp=self.FROZEN_TIME.timestamp()
+        )[0].group_id
+        group_b = self.store_events_to_snuba_and_eap(
+            "flags-isolate-b", count=6, timestamp=self.FROZEN_TIME.timestamp()
+        )[0].group_id
 
-        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
-        end = datetime.datetime.now(tz=datetime.UTC)
+        snuba_a, eap_a = self._query_both(group_id=group_a)
+        snuba_b, eap_b = self._query_both(group_id=group_b)
 
-        result = _query_error_counts_eap(
-            organization_id=organization.id,
-            project_id=project.id,
-            start=start,
-            end=end,
-            environment_names=[],
-            group_id=123,
-        )
-
-        assert result == 0
-
-    @mock.patch("sentry.issues.suspect_flags._query_error_counts_eap")
-    @mock.patch("sentry.issues.suspect_flags._query_error_counts_snuba")
-    def test_uses_snuba_as_source_of_truth(
-        self,
-        mock_snuba: mock.MagicMock,
-        mock_eap: mock.MagicMock,
-    ) -> None:
-        mock_snuba.return_value = 100
-        mock_eap.return_value = 50
-
-        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
-        end = datetime.datetime.now(tz=datetime.UTC)
-
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
-            result = query_error_counts(
-                organization_id=1,
-                project_id=1,
-                start=start,
-                end=end,
-                environments=[],
-                group_id=123,
-            )
-
-        assert result == 100
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
-
-    @mock.patch("sentry.issues.suspect_flags._query_error_counts_eap")
-    @mock.patch("sentry.issues.suspect_flags._query_error_counts_snuba")
-    def test_uses_eap_as_source_of_truth(
-        self,
-        mock_snuba: mock.MagicMock,
-        mock_eap: mock.MagicMock,
-    ) -> None:
-        mock_snuba.return_value = 100
-        mock_eap.return_value = 50
-
-        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
-        end = datetime.datetime.now(tz=datetime.UTC)
-
-        with self.options(
-            {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "issues.suspect_flags.query_error_counts"
-                ],
-            }
-        ):
-            result = query_error_counts(
-                organization_id=1,
-                project_id=1,
-                start=start,
-                end=end,
-                environments=[],
-                group_id=123,
-            )
-
-        assert result == 50
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
+        assert snuba_a == eap_a == 2
+        assert snuba_b == eap_b == 6

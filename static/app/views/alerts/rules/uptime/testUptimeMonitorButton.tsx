@@ -9,12 +9,16 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   PreviewCheckStatus,
-  type Assertion,
   type PreviewCheckPayload,
   type PreviewCheckResult,
+  type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
-import { extractCompilationError, usePreviewCheckResult } from './previewCheckContext';
-import { mapPreviewCheckErrorToMessage, mapPreviewCheckResultToMessage } from './formErrors';
+
+import {
+  mapPreviewCheckErrorToMessage,
+  mapPreviewCheckResultToMessage,
+} from './formErrors';
+import {extractCompilationError, usePreviewCheckResult} from './previewCheckContext';
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -22,7 +26,7 @@ interface TestUptimeMonitorButtonProps {
    * The caller is responsible for providing fallback values appropriate to their context.
    */
   getFormData: () => {
-    assertion: Assertion | null;
+    assertion: UptimeAssertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     method: string;
@@ -71,7 +75,9 @@ export function TestUptimeMonitorButton({
         addSuccessMessage(t('Uptime check passed successfully'));
       } else {
         const trailingMessage = mapPreviewCheckResultToMessage(response);
-        addErrorMessage(t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : ''));
+        addErrorMessage(
+          t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
+        );
       }
     },
     onError: (error: RequestError) => {
@@ -82,7 +88,9 @@ export function TestUptimeMonitorButton({
         onValidationError(error.responseJSON);
       } else {
         const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
-        addErrorMessage(t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : ''));
+        addErrorMessage(
+          t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
+        );
       }
     },
   });

@@ -3,20 +3,24 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
-  PreviewCheckErrorKind,
+  isLeafOp,
+  leafOpsMatchByValue,
+} from 'sentry/views/alerts/rules/uptime/assertions/utils';
+import {
   CompilationErrorType,
-  OpType,
+  PreviewCheckErrorKind,
   PreviewCheckStatusReasonType,
   RuntimeErrorType,
-  type AndOp,
-  type GroupOp,
-  type NotOp,
-  type Op,
+  UptimeOpType,
   type PreviewCheckError,
   type PreviewCheckResult,
+  type UptimeAndOp,
+  type UptimeGroupOp,
+  type UptimeNotOp,
+  type UptimeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
-import {isLeafOp, leafOpsMatchByValue} from 'sentry/views/alerts/rules/uptime/assertions/utils';
-import { usePreviewCheckResult } from './previewCheckContext';
+
+import {usePreviewCheckResult} from './previewCheckContext';
 
 export function mapPreviewCheckErrorToMessage(
   error: PreviewCheckError | null
@@ -32,7 +36,11 @@ export function mapToFormErrors(error: PreviewCheckError | null): any {
   if (!error) return null;
 
   const trailingMessage = mapPreviewCheckErrorToMessage(error);
-  return {nonFieldErrors: [t('Failed to create monitor %s', trailingMessage ? `(${trailingMessage})` : '')]};
+  return {
+    nonFieldErrors: [
+      t('Failed to create monitor %s', trailingMessage ? `(${trailingMessage})` : ''),
+    ],
+  };
 }
 
 function isPreviewCheckError(value: any): value is PreviewCheckError {
@@ -53,30 +61,27 @@ function isPreviewCheckError(value: any): value is PreviewCheckError {
  *
  * 2. Nested format: {dataSources: {...PreviewCheckError}}
  */
-export function extractPreviewCheckError(
-  responseJson: any
-): PreviewCheckError | null {
+export function extractPreviewCheckError(responseJson: any): PreviewCheckError | null {
   const candidates = [responseJson?.dataSources, responseJson];
   return candidates.find(isPreviewCheckError) ?? null;
 }
 
-const PREVIEW_CHECK_STATUS_REASON_LABELS: Record<PreviewCheckStatusReasonType, string> =
-  {
-    [PreviewCheckStatusReasonType.TIMEOUT]: t('Timeout'),
-    [PreviewCheckStatusReasonType.DNS_ERROR]: t('DNS Error'),
-    [PreviewCheckStatusReasonType.TLS_ERROR]: t('TLS Error'),
-    [PreviewCheckStatusReasonType.CONNECTION_ERROR]: t('Connection Error'),
-    [PreviewCheckStatusReasonType.REDIRECT_ERROR]: t('Redirect Error'),
-    [PreviewCheckStatusReasonType.FAILURE]: t('Failure'),
-    [PreviewCheckStatusReasonType.MISS_PRODUCED]: t('Missed Window'),
-    [PreviewCheckStatusReasonType.MISS_BACKFILL]: t('Missed Window'),
-    [PreviewCheckStatusReasonType.ASSERTION_COMPILATION_ERROR]: t(
-      'Assertion Compilation Error'
-    ),
-    [PreviewCheckStatusReasonType.ASSERTION_EVALUATION_ERROR]: t(
-      'Assertion Evaluation Error'
-    ),
-  };
+const PREVIEW_CHECK_STATUS_REASON_LABELS: Record<PreviewCheckStatusReasonType, string> = {
+  [PreviewCheckStatusReasonType.TIMEOUT]: t('Timeout'),
+  [PreviewCheckStatusReasonType.DNS_ERROR]: t('DNS Error'),
+  [PreviewCheckStatusReasonType.TLS_ERROR]: t('TLS Error'),
+  [PreviewCheckStatusReasonType.CONNECTION_ERROR]: t('Connection Error'),
+  [PreviewCheckStatusReasonType.REDIRECT_ERROR]: t('Redirect Error'),
+  [PreviewCheckStatusReasonType.FAILURE]: t('Failure'),
+  [PreviewCheckStatusReasonType.MISS_PRODUCED]: t('Missed Window'),
+  [PreviewCheckStatusReasonType.MISS_BACKFILL]: t('Missed Window'),
+  [PreviewCheckStatusReasonType.ASSERTION_COMPILATION_ERROR]: t(
+    'Assertion Compilation Error'
+  ),
+  [PreviewCheckStatusReasonType.ASSERTION_EVALUATION_ERROR]: t(
+    'Assertion Evaluation Error'
+  ),
+};
 
 export function mapPreviewCheckResultToMessage(
   response: PreviewCheckResult
@@ -94,19 +99,22 @@ export function mapPreviewCheckResultToMessage(
 
 // Matches a leaf op from the failure data op tree (pointing to the failing assertion)
 // to an op from the form's assertion op tree.
-function matchFailureDataLeafOp(failureDataOp: Op, assertionOp: Op): Op | null {
+function matchFailureDataLeafOp(
+  failureDataOp: UptimeOp,
+  assertionOp: UptimeOp
+): UptimeOp | null {
   if (isLeafOp(failureDataOp)) {
     return assertionOp;
   }
 
   if (
-    (failureDataOp.op === OpType.AND || failureDataOp.op === OpType.OR) &&
-    (assertionOp.op === OpType.AND || assertionOp.op === OpType.OR)
+    (failureDataOp.op === UptimeOpType.AND || failureDataOp.op === UptimeOpType.OR) &&
+    (assertionOp.op === UptimeOpType.AND || assertionOp.op === UptimeOpType.OR)
   ) {
-    const [failingChild] = (failureDataOp as GroupOp).children;
+    const [failingChild] = (failureDataOp as UptimeGroupOp).children;
     if (!failingChild) return null;
     // For leaves, also match by value to distinguish siblings of the same op type.
-    const match = (assertionOp as GroupOp).children.find(
+    const match = (assertionOp as UptimeGroupOp).children.find(
       c =>
         c.op === failingChild.op &&
         (isLeafOp(failingChild) ? leafOpsMatchByValue(failingChild, c) : true)
@@ -116,33 +124,42 @@ function matchFailureDataLeafOp(failureDataOp: Op, assertionOp: Op): Op | null {
   }
 
   // NOT wraps a group op in `operand`; descend into it for both sides
-  if (failureDataOp.op === OpType.NOT && assertionOp.op === OpType.NOT) {
-    return matchFailureDataLeafOp((failureDataOp as NotOp).operand, (assertionOp as NotOp).operand);
+  if (failureDataOp.op === UptimeOpType.NOT && assertionOp.op === UptimeOpType.NOT) {
+    return matchFailureDataLeafOp(
+      (failureDataOp as UptimeNotOp).operand,
+      (assertionOp as UptimeNotOp).operand
+    );
   }
 
   return null;
 }
 
-function resolveErroredOpFromFailureData(failureDataOp: AndOp, rootOp: AndOp): Op | null {
+function resolveErroredOpFromFailureData(
+  failureDataOp: UptimeAndOp,
+  rootOp: UptimeAndOp
+): UptimeOp | null {
   return matchFailureDataLeafOp(failureDataOp, rootOp);
 }
 
 // Maps the assert path to the op in the form's assertion op tree.
 // Examples: assertPath = ["0", "0", "1"] points to:
 // first child of root: call it A -> first child of A: call it B -> second child of B
-function resolveErroredOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null {
-  let current: Op = rootOp;
+function resolveErroredOpFromAssertPath(
+  assertPath: string[],
+  rootOp: UptimeAndOp
+): UptimeOp | null {
+  let current: UptimeOp = rootOp;
 
   for (const segment of assertPath.slice(1)) {
-    const index = Number.parseInt(segment);
+    const index = Number.parseInt(segment, 10);
     if (isNaN(index)) return null;
 
-    if (current.op === OpType.AND || current.op === OpType.OR) {
-      const next: Op | undefined = (current as GroupOp).children[index];
+    if (current.op === UptimeOpType.AND || current.op === UptimeOpType.OR) {
+      const next: UptimeOp | undefined = (current as UptimeGroupOp).children[index];
       if (!next) return null;
       current = next;
-    } else if (current.op === OpType.NOT) {
-      current = (current as NotOp).operand;
+    } else if (current.op === UptimeOpType.NOT) {
+      current = (current as UptimeNotOp).operand;
     } else {
       // At a leaf op; return it as the errored op.
       return current;
@@ -158,8 +175,8 @@ function resolveErroredOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op
  */
 export function resolveErroredOp(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>,
-  rootOp: AndOp
-): Op | null {
+  rootOp: UptimeAndOp
+): UptimeOp | null {
   if (!previewCheckResult) return null;
   const {data, error} = previewCheckResult;
 
@@ -216,10 +233,7 @@ function getFormErrorMessage(
 
     const details = result.status_reason?.details;
     if (details) {
-      const label =
-        ASSERTION_ERROR_TYPE_LABELS[
-          details.type
-        ] ?? details.type;
+      const label = ASSERTION_ERROR_TYPE_LABELS[details.type] ?? details.type;
       return 'msg' in details ? `${label}: ${details.msg}` : label;
     }
 
@@ -232,7 +246,8 @@ function getFormErrorMessage(
       const {compileError} = assertion;
       const label = ASSERTION_ERROR_TYPE_LABELS[compileError.type] ?? compileError.type;
       return 'msg' in compileError ? `${label}: ${compileError.msg}` : label;
-    } else if (assertion.error === PreviewCheckErrorKind.SERIALIZATION_ERROR) {
+    }
+    if (assertion.error === PreviewCheckErrorKind.SERIALIZATION_ERROR) {
       return t('Serialization Error: %s', assertion.details);
     }
   }
@@ -241,8 +256,8 @@ function getFormErrorMessage(
 }
 
 interface AssertionFormErrorProps {
-  erroredOp: Op | undefined;
-  op: Op;
+  erroredOp: UptimeOp | undefined;
+  op: UptimeOp;
 }
 
 export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
@@ -259,7 +274,7 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
 
   return (
     <span style={{display: 'inline-flex', marginTop: 4}}>
-      <Tooltip title={message} isHoverable forceVisible overlayStyle={{zIndex:1}}>
+      <Tooltip title={message} isHoverable forceVisible overlayStyle={{zIndex: 1}}>
         <IconWarning variant="danger" size="sm" />
       </Tooltip>
     </span>

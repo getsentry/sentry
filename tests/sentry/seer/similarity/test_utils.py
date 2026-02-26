@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant
+from sentry.seer.similarity.types import GroupingVersion
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     IGNORED_FILENAMES,
@@ -974,9 +975,10 @@ class StacktraceExceedsLimitsTest(TestCase):
             # Should return False because it's not grouped on stacktrace
             assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
 
-    def test_bypassed_platforms_always_pass(self) -> None:
+    def test_bypassed_platforms_always_pass_for_v1(self) -> None:
         """
-        Test that bypassed platforms (python, javascript, etc.) always pass regardless of length.
+        Test that bypassed platforms (python, javascript, etc.) always pass regardless of length
+        when using V1 model (or no model version specified).
         """
         for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
             self.event.data["platform"] = platform
@@ -987,9 +989,39 @@ class StacktraceExceedsLimitsTest(TestCase):
             with self.options({"seer.similarity.max_token_count": 100}):
                 variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-                # Bypassed platforms should always pass, even with long stacktraces
+                # Bypassed platforms should always pass for V1
+                assert (
+                    stacktrace_exceeds_limits(
+                        self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    )
+                    is False
+                )
+                # Also passes when no model version is specified (backward compat)
                 assert (
                     stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+                )
+
+    def test_bypassed_platforms_are_checked_for_v2(self) -> None:
+        """
+        Test that V2 model applies length checks to all platforms, including those
+        that are bypassed for V1.
+        """
+        for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
+            self.event.data["platform"] = platform
+            # Create a stacktrace that will exceed the token limit (repetitive chars compress
+            # well in BPE, so we need varied content to generate enough tokens)
+            long_stacktrace = "VeryLongError: " + ("a" * 10000) + "\n" + ("  File 'x.py'\n" * 100)
+            self.event.data["stacktrace_string"] = long_stacktrace
+
+            with self.options({"seer.similarity.max_token_count": 100}):
+                variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+                # V2 should enforce length checks on bypassed platforms
+                assert (
+                    stacktrace_exceeds_limits(
+                        self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2
+                    )
+                    is True
                 )
 
 

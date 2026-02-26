@@ -122,6 +122,7 @@ export type ContainerElement =
   | 'aside'
   | 'blockquote'
   | 'div'
+  | 'fieldset'
   | 'figure'
   | 'footer'
   | 'header'

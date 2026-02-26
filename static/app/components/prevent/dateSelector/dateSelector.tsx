@@ -40,7 +40,6 @@ export function DateSelector() {
 
   return (
     <CompactSelect
-      disableSearchFilter
       options={options}
       value={preventPeriod ?? ''}
       onChange={handleChange}
