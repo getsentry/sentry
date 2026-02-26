@@ -49,9 +49,9 @@ import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
 // eslint-disable-next-line boundaries/element-types
-import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.js';
 // eslint-disable-next-line boundaries/element-types
-import * as sentryPlugin from './static/eslint/eslintPluginSentry/index.mjs';
+import * as sentryPlugin from './static/eslint/eslintPluginSentry/index.js';
 
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
@@ -238,7 +238,7 @@ export default typescript.config([
     name: 'eslint/global/files',
     // Default file selection
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
-    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
+    files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
   // Global ignores
   // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
@@ -407,7 +407,6 @@ export default typescript.config([
           block: {exceptions: ['*'], balanced: true},
         },
       ],
-      strict: 'error',
       'vars-on-top': 'off',
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
@@ -432,7 +431,7 @@ export default typescript.config([
       'import/no-duplicates': 'error',
       'import/no-extraneous-dependencies': [
         'error',
-        {includeTypes: true, devDependencies: ['!eslint.config.mjs']},
+        {includeTypes: true, devDependencies: ['!eslint.config.js']},
       ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
@@ -849,10 +848,7 @@ export default typescript.config([
     name: 'files/*.config.*',
     files: ['**/*.config.*'],
     languageOptions: {
-      globals: {
-        ...globals.commonjs,
-        ...globals.node,
-      },
+      globals: globals.node,
     },
 
     rules: {
@@ -861,11 +857,9 @@ export default typescript.config([
   },
   {
     name: 'eslint',
-    files: ['static/eslint/**/*.mjs'],
+    files: ['static/eslint/**/*.js'],
     languageOptions: {
-      globals: {
-        ...globals.node,
-      },
+      globals: globals.node,
     },
 
     rules: {
@@ -877,11 +871,8 @@ export default typescript.config([
     name: 'files/scripts',
     files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
     languageOptions: {
-      sourceType: 'commonjs',
-      globals: {
-        ...globals.commonjs,
-        ...globals.node,
-      },
+      sourceType: 'module',
+      globals: globals.node,
     },
     rules: {
       'no-console': 'off',
@@ -898,10 +889,8 @@ export default typescript.config([
       'tests/js/setup.ts',
     ],
     languageOptions: {
-      sourceType: 'commonjs',
-      globals: {
-        ...globals.commonjs,
-      },
+      sourceType: 'module',
+      globals: globals.node,
     },
     rules: {
       'import/no-nodejs-modules': 'off',

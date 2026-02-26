@@ -13,7 +13,7 @@ const productionEntryPoints = [
   'static/app/utils/statics-setup.tsx',
   'static/app/views/integrationPipeline/index.tsx',
   // very dynamically imported
-  'static/app/gettingStartedDocs/**/*.{js,mjs,ts,tsx}',
+  'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
@@ -24,14 +24,14 @@ const productionEntryPoints = [
   // Prevent exception until we build out coverage
   'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
-  'static/app/icons/**/*.{js,mjs,ts,tsx}',
+  'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
-  'static/app/chartcuterie/**/*.{js,mjs,ts,tsx}',
+  'static/app/chartcuterie/**/*.{js,ts,tsx}',
 ];
 
 const testingEntryPoints = [
-  'static/**/*.spec.{js,mjs,ts,tsx}',
-  'tests/js/**/*.spec.{js,mjs,ts,tsx}',
+  'static/**/*.spec.{js,ts,tsx}',
+  'tests/js/**/*.spec.{js,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
@@ -40,7 +40,7 @@ const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
   'static/app/stories/playground/*.tsx',
-  'static/**/*.stories.{js,mjs,ts,tsx}',
+  'static/**/*.stories.{js,ts,tsx}',
   'static/**/*.mdx',
 ];
 
@@ -49,23 +49,23 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
-    'static/eslint/**/index.mjs',
+    'static/eslint/**/index.js',
     // figma code connect files - consumed by Figma CLI
     'static/**/*.figma.{tsx,jsx}',
   ],
   project: [
-    'static/**/*.{js,mjs,ts,tsx}!',
+    'static/**/*.{js,ts,tsx}!',
     'config/**/*.ts',
-    'tests/js/**/*.{js,mjs,ts,tsx}',
+    'tests/js/**/*.{js,ts,tsx}',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
     // helper files for tests - it's fine that they are only used in tests
-    '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
+    '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
     // helper files for stories - it's fine that they are only used in tests
-    '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
-    '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    '!static/app/**/__stories__/*.{js,ts,tsx}!',
+    '!static/app/stories/**/*.{js,ts,tsx}!',
     // ignore eslint plugins in production
-    '!static/eslint/**/*.mjs!',
+    '!static/eslint/**/*.js!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

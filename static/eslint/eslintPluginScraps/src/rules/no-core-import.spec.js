@@ -1,6 +1,6 @@
 import {RuleTester} from 'eslint';
 
-import {noCoreImport} from './no-core-import.mjs';
+import {noCoreImport} from './no-core-import.js';
 
 const ruleTester = new RuleTester();
 
