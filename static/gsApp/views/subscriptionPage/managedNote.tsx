@@ -1,8 +1,8 @@
 import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import PanelBody from 'sentry/components/panels/panelBody';
 import {tct} from 'sentry/locale';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import type {Subscription} from 'getsentry/types';
 import {BillingType} from 'getsentry/types';
@@ -91,7 +91,7 @@ function ManagedNote({subscription}: Props) {
       radius="md"
     >
       <PanelBody withPadding>
-        <TextBlock noMargin>
+        <Text as="div" density="comfortable">
           {isSalesAccount
             ? // Sales-managed accounts are directed to the sales team
               SALES_MESSAGE
@@ -100,7 +100,7 @@ function ManagedNote({subscription}: Props) {
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 PARTNER_MESSAGES[subscription.partner?.partnership.id]) ??
               DEFAULT_MESSAGE)}
-        </TextBlock>
+        </Text>
       </PanelBody>
     </Container>
   );

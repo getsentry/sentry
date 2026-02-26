@@ -2,7 +2,9 @@ import {useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -45,7 +47,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -163,16 +164,16 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             priority="danger"
             confirmText={t('Remove Project')}
             message={
-              <div>
-                <TextBlock>
+              <Stack gap="2xl">
+                <Text as="div" density="comfortable">
                   <strong>
                     {t('Removing this project is permanent and cannot be undone!')}
                   </strong>
-                </TextBlock>
-                <TextBlock>
+                </Text>
+                <Text as="div" density="comfortable">
                   {t('This will also remove all associated event data.')}
-                </TextBlock>
-              </div>
+                </Text>
+              </Stack>
             }
           >
             <div>
@@ -218,16 +219,18 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             confirmText={t('Transfer project')}
             renderMessage={({confirm}) => (
               <div>
-                <TextBlock>
-                  <strong>
-                    {t('Transferring this project is permanent and cannot be undone!')}
-                  </strong>
-                </TextBlock>
-                <TextBlock>
-                  {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
-                  )}
-                </TextBlock>
+                <Stack gap="2xl">
+                  <Text as="div" density="comfortable">
+                    <strong>
+                      {t('Transferring this project is permanent and cannot be undone!')}
+                    </strong>
+                  </Text>
+                  <Text as="div" density="comfortable">
+                    {t(
+                      'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
+                    )}
+                  </Text>
+                </Stack>
                 <Panel>
                   <Form
                     hideFooter
@@ -371,7 +374,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           ]}
           renderHeader={() => (
             <PanelAlert variant="info">
-              <TextBlock noMargin>
+              <Text as="div" density="comfortable">
                 {tct(
                   'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
                   {
@@ -388,7 +391,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                     code: <code />,
                   }
                 )}
-              </TextBlock>
+              </Text>
             </PanelAlert>
           )}
         />

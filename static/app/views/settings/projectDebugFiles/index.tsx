@@ -2,6 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -31,7 +32,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -169,13 +169,13 @@ export default function ProjectDebugSymbols() {
     <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), project.slug, false)}>
       <SettingsPageHeader title={t('Debug Information Files')} />
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(`
           Debug information files are used to convert addresses and minified
           function names from native crash reports into function names and
           locations.
         `)}
-      </TextBlock>
+      </Text>
 
       {organization.features.includes('symbol-sources') && (
         <Fragment>
@@ -216,7 +216,9 @@ export default function ProjectDebugSymbols() {
       ) : (
         <Fragment>
           <Wrapper>
-            <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
+            <Text as="div" density="comfortable">
+              {t('Uploaded debug information files')}
+            </Text>
             <Filters>
               <Label>
                 <Checkbox

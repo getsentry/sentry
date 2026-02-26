@@ -2,6 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -11,7 +12,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OrgRole} from 'sentry/types/organization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
   display: flex;
@@ -66,9 +66,9 @@ class OrganizationRoleSelect extends Component<Props> {
                   <Radio id={id} value={name} checked={id === roleSelected} readOnly />
                   <div style={{flex: 1, padding: '0 16px'}}>
                     {name}
-                    <TextBlock noMargin>
+                    <Text as="div" density="comfortable">
                       <div className="help-block">{desc}</div>
-                    </TextBlock>
+                    </Text>
                   </div>
                 </Label>
               </PanelItem>
