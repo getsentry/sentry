@@ -5,14 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Final, get_type_hints
 
-import sentry_sdk
-
 from sentry.models.organization import Organization
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
     NotificationInteractionType,
 )
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.notifications.platform.provider import NotificationProvider, SendResult, SendStatus
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.target import NotificationTargetDto
@@ -25,7 +23,6 @@ from sentry.notifications.platform.types import (
     NotificationTemplate,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
@@ -48,7 +45,7 @@ class NotificationService[T: NotificationData]:
     ) -> bool:
         return NotificationRolloutService(organization=organization).should_notify(source=source)
 
-    def notify_target(self, *, target: NotificationTarget) -> None:
+    def notify_target(self, *, target: NotificationTarget) -> SendResult:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -83,16 +80,17 @@ class NotificationService[T: NotificationData]:
             )
 
             # Step 3: Send the notification
-            try:
-                provider.send(target=target, renderable=renderable)
-            except IntegrationConfigurationError as e:
-                lifecycle.record_halt(halt_reason=e, create_issue=False)
-                raise
-            except Exception as e:
-                lifecycle.record_failure(failure_reason=e, create_issue=True)
-                raise
+            result = provider.send(target=target, renderable=renderable)
 
-            return None
+            match result.status:
+                case SendStatus.HALT:
+                    lifecycle.record_halt(halt_reason=result.error_message, create_issue=False)
+                case SendStatus.FAILURE:
+                    lifecycle.record_failure(
+                        failure_reason=result.error_message, create_issue=False
+                    )
+
+            return result
 
     @classmethod
     def render_template[RenderableT](
@@ -130,18 +128,15 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-    ) -> Mapping[NotificationProviderKey, list[str]]:
+    ) -> Mapping[NotificationProviderKey, list[SendResult]]:
         self._validate_strategy_and_targets(strategy=strategy, targets=targets)
         targets = self._get_targets(strategy=strategy, targets=targets)
 
-        errors = defaultdict(list)
+        errors: dict[NotificationProviderKey, list[SendResult]] = defaultdict(list)
         for target in targets:
-            try:
-                self.notify_target(target=target)
-            except IntegrationConfigurationError as e:
-                errors[target.provider_key].append(str(e))
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            result = self.notify_target(target=target)
+            if result.status != SendStatus.SUCCESS:
+                errors[target.provider_key].append(result)
 
         return errors
 
@@ -226,12 +221,13 @@ def notify_target_async(
         )
 
         # Step 4: Send the notification
-        try:
-            provider.send(target=target, renderable=renderable)
-        except IntegrationConfigurationError as e:
-            lifecycle.record_halt(halt_reason=e, create_issue=False)
-        except Exception as e:
-            lifecycle.record_failure(failure_reason=e, create_issue=True)
+        result = provider.send(target=target, renderable=renderable)
+
+        match result.status:
+            case SendStatus.HALT:
+                lifecycle.record_halt(halt_reason=result.error_message, create_issue=False)
+            case SendStatus.FAILURE:
+                lifecycle.record_failure(failure_reason=result.error_message, create_issue=False)
 
 
 @dataclass

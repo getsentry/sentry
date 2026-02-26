@@ -20,6 +20,7 @@ from sentry.notifications.platform.provider import (
     NotificationProviderError,
     ProviderThreadingContext,
     SendResult,
+    integration_error_result,
 )
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -163,7 +164,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 slack_target=slack_target, renderable=renderable, thread_context=thread_context
             )
 
-        slack_target.integration_installation.send_notification(target=target, payload=renderable)
+        try:
+            slack_target.integration_installation.send_notification(
+                target=target, payload=renderable
+            )
+        except IntegrationError as e:
+            return integration_error_result(e)
+
         return SendResult()
 
     @classmethod
@@ -184,9 +191,6 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 payload=renderable,
                 threading_context=provider_threading_ctx,
             )
-            return SendResult(provider_message_id=response.get("ts"))
+            return SendResult(provider_message_id=response.get("ts"), is_threaded=True)
         except IntegrationError as e:
-            return SendResult(
-                error_code=e.error_code,
-                error_details={"msg": e.message},
-            )
+            return integration_error_result(e, is_threaded=True)

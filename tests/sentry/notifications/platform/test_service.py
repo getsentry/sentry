@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
+from sentry.notifications.platform.provider import SendResult, SendStatus
 from sentry.notifications.platform.service import (
     NotificationDataDto,
     NotificationService,
@@ -20,7 +21,6 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
@@ -91,13 +91,18 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
-        mock_send.side_effect = IntegrationConfigurationError("Provider error", 400)
+        mock_send.return_value = SendResult(
+            status=SendStatus.HALT,
+            error_message="Provider error",
+            error_code=400,
+        )
 
         service = NotificationService(data=MockNotification(message="test"))
         errors = service.notify_sync(targets=[self.target])
 
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
-        assert "Provider error" in errors[NotificationProviderKey.EMAIL][0]
+        assert errors[NotificationProviderKey.EMAIL][0].status == SendStatus.HALT
+        assert errors[NotificationProviderKey.EMAIL][0].error_message == "Provider error"
 
     def test_render_template_classmethod(self) -> None:
         data = MockNotification(message="test")
@@ -121,10 +126,14 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_notify_target_async_with_api_error(
+    def test_notify_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.side_effect = ApiError("API request failed", 400)
+        mock_send.return_value = SendResult(
+            status=SendStatus.FAILURE,
+            error_message="API request failed",
+            error_code=400,
+        )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
             service.notify_async(targets=[self.target])
@@ -148,10 +157,14 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_notify_integration_target_async_with_api_error(
+    def test_notify_integration_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.side_effect = ApiError("Slack API request failed", 400)
+        mock_send.return_value = SendResult(
+            status=SendStatus.FAILURE,
+            error_message="Slack API request failed",
+            error_code=400,
+        )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
             service.notify_async(targets=[self.integration_target])

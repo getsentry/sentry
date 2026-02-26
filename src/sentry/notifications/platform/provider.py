@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Protocol
+
+import sentry_sdk
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
@@ -14,10 +17,19 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 
 
 class NotificationProviderError(Exception):
     pass
+
+
+class SendStatus(Enum):
+    SUCCESS = "success"
+    HALT = "halt"
+    """A known configuration or access issue — not actionable by our team."""
+    FAILURE = "failure"
+    """An unexpected error — should be investigated."""
 
 
 @dataclass(frozen=True)
@@ -34,14 +46,41 @@ class ProviderThreadingContext:
 class SendResult:
     """Structured return type from provider.send() that captures both success and failure outcomes."""
 
+    status: SendStatus = SendStatus.SUCCESS
+    """The result of the send operation. To distinguish between failures, halts and successes."""
+
     provider_message_id: str | None = None
     """Provider-specific message identifier (e.g., Slack's `ts`). None on failure."""
+
+    is_threaded: bool = False
+    """Whether the notification was sent with threading."""
+
+    error_message: str | None = None
+    """Human-readable error summary for lifecycle recording."""
 
     error_code: int | None = None
     """HTTP status code or provider error code on failure."""
 
     error_details: dict[str, Any] | None = None
-    """Additional error context (message, response data, URL, etc.)."""
+    """Extra debugging context — logged, not used for control flow."""
+
+
+def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) -> SendResult:
+    """Maps an IntegrationError to a SendResult with the appropriate status.
+
+    Shared by all integration-backed notification providers.
+    """
+    if isinstance(e, IntegrationConfigurationError):
+        status = SendStatus.HALT
+    else:
+        status = SendStatus.FAILURE
+        sentry_sdk.capture_exception(e)
+    return SendResult(
+        status=status,
+        error_message=e.message,
+        error_code=e.error_code,
+        is_threaded=is_threaded,
+    )
 
 
 class IntegrationNotificationClient[RenderableT](Protocol):
