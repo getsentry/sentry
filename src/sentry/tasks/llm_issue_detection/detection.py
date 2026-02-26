@@ -190,6 +190,11 @@ def create_issue_occurrence_from_detection(
                 "type": "trace",
             }
         },
+        "metadata": {
+            "trace_id": trace_id,
+            "category": detected_issue.category,
+            "subcategory": detected_issue.subcategory,
+        },
     }
 
     produce_occurrence_to_kafka(

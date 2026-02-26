@@ -13,7 +13,11 @@ from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    LLMDetectedExperimentalGroupTypeV2,
+    PerformanceSlowDBQueryGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     EventLookupError,
@@ -607,6 +611,35 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message = deepcopy(get_test_message(self.project.id))
         message["event"].pop("received", None)
         self.run_test(message)
+
+    def test_preserves_event_metadata_for_llm_detected_issues(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["type"] = LLMDetectedExperimentalGroupTypeV2.type_id
+        message["event"]["metadata"] = {
+            "category": "Database",
+            "subcategory": "N+1 Query",
+            "trace_id": "abc123",
+        }
+        kwargs = _get_kwargs(message)
+
+        # Title should always be set from occurrence
+        assert kwargs["event_data"]["metadata"]["title"] == message["issue_title"]
+        # Custom metadata should be preserved for LLM issues
+        assert kwargs["event_data"]["metadata"]["category"] == "Database"
+        assert kwargs["event_data"]["metadata"]["subcategory"] == "N+1 Query"
+        assert kwargs["event_data"]["metadata"]["trace_id"] == "abc123"
+
+    def test_does_not_preserve_event_metadata_for_other_issue_types(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["metadata"] = {
+            "category": "Database",
+        }
+        kwargs = _get_kwargs(message)
+
+        # Title should be set
+        assert kwargs["event_data"]["metadata"]["title"] == message["issue_title"]
+        # Custom metadata should NOT be preserved for non-LLM issues
+        assert "category" not in kwargs["event_data"]["metadata"]
 
     @freeze_time("2024-07-11 00:00:00")
     def test_missing_received_fills_with_current_time(self) -> None:

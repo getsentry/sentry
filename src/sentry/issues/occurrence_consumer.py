@@ -21,7 +21,11 @@ from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry import nodestore, options
 from sentry.event_manager import GroupInfo
-from sentry.issues.grouptype import InvalidGroupTypeError, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    InvalidGroupTypeError,
+    LLMDetectedExperimentalGroupTypeV2,
+    get_group_type_by_type_id,
+)
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
@@ -302,10 +306,15 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         )
                         raise
 
-                event_data["metadata"] = {
-                    # This allows us to show the title consistently in discover
-                    "title": occurrence_data["issue_title"],
-                }
+                if occurrence_data["type"] == LLMDetectedExperimentalGroupTypeV2.type_id:
+                    event_data["metadata"] = {
+                        **event_payload.get("metadata", {}),
+                        "title": occurrence_data["issue_title"],
+                    }
+                else:
+                    event_data["metadata"] = {
+                        "title": occurrence_data["issue_title"],
+                    }
 
                 return {
                     "occurrence_data": occurrence_data,
