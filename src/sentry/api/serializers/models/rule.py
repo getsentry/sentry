@@ -528,10 +528,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data
                 )
-
-                install_context = sentry_app_installations_by_uuid.get(
-                    action_data.get("sentryAppInstallationUuid")
-                )
+                installation_uuid = action_data.get("sentryAppInstallationUuid")
+                install_context = None
+                if installation_uuid:
+                    install_context = sentry_app_installations_by_uuid.get(installation_uuid)
                 if install_context:
                     rpc_install = install_context.installation
                     rpc_component = install_context.component
