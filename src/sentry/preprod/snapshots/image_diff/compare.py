@@ -14,16 +14,10 @@ from .types import DiffResult
 
 logger = logging.getLogger(__name__)
 
-# Nonzero defaults are intentional: threshold=0 means exact pixel matching where
-# font antialiasing, subpixel smoothing, and minor rendering engine variance all
-# flag as changes, making diffs unusably noisy for visual regression.
-#
-# odiff pixel color distance threshold — ignores antialiasing artifacts
-BASE_THRESHOLD = 0.15
-# Lower threshold to catch subtle color shifts missed by base
-COLOR_SENSITIVE_THRESHOLD = 0.0225
-# Default scale factor for the public API threshold parameter
-DEFAULT_THRESHOLD_SCALE = 25
+# Nonzero threshold is intentional: threshold=0 means exact pixel matching
+# where font antialiasing, subpixel smoothing, and minor rendering engine
+# variance all flag as changes, making diffs unusably noisy for visual regression.
+DIFF_THRESHOLD = 0.02
 
 
 # PIL (Pillow) Image — the standard Python image manipulation library.
@@ -58,37 +52,29 @@ def _encode_mask_png_base64(mask: Image.Image) -> str:
 def compare_images(
     before: bytes | Image.Image,
     after: bytes | Image.Image,
-    threshold: int = DEFAULT_THRESHOLD_SCALE,
 ) -> DiffResult | None:
-    return compare_images_batch([(before, after)], threshold)[0]
+    return compare_images_batch([(before, after)])[0]
 
 
 def compare_images_batch(
     pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
-    threshold: int = DEFAULT_THRESHOLD_SCALE,
     server: OdiffServer | None = None,
 ) -> list[DiffResult | None]:
-    scale = threshold / DEFAULT_THRESHOLD_SCALE
-    base_thresh = BASE_THRESHOLD * scale
-    color_thresh = COLOR_SENSITIVE_THRESHOLD * scale
-
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         if server is not None:
-            return _compare_pairs(pairs, server, tmpdir_path, base_thresh, color_thresh)
+            return _compare_pairs(pairs, server, tmpdir_path)
         with OdiffServer() as new_server:
-            return _compare_pairs(pairs, new_server, tmpdir_path, base_thresh, color_thresh)
+            return _compare_pairs(pairs, new_server, tmpdir_path)
 
 
 def _compare_pairs(
     pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
     server: OdiffServer,
     tmpdir_path: Path,
-    base_thresh: float,
-    color_thresh: float,
 ) -> list[DiffResult | None]:
     return [
-        _compare_single_pair(idx, before, after, server, tmpdir_path, base_thresh, color_thresh)
+        _compare_single_pair(idx, before, after, server, tmpdir_path)
         for idx, (before, after) in enumerate(pairs)
     ]
 
@@ -99,8 +85,6 @@ def _compare_single_pair(
     after: bytes | Image.Image,
     server: OdiffServer,
     tmpdir_path: Path,
-    base_thresh: float,
-    color_thresh: float,
 ) -> DiffResult | None:
     before_img: Image.Image | None = None
     after_img: Image.Image | None = None
@@ -118,58 +102,28 @@ def _compare_single_pair(
         before_img.save(before_path, "PNG")
         after_img.save(after_path, "PNG")
 
-        base_output = tmpdir_path / f"diff_base_{idx}.png"
-        color_output = tmpdir_path / f"diff_color_{idx}.png"
-
-        # Two-pass comparison strategy:
-        # Pass 1 uses a higher threshold to ignore antialiasing, subpixel
-        # smoothing, and font rendering noise — only real layout/content
-        # changes survive. Pass 2 uses a lower threshold to catch subtle
-        # color shifts that pass 1 misses. We take whichever pass reports
-        # a higher diff percentage, avoiding both false positives (noisy
-        # antialiasing diffs) and false negatives (missed color changes).
-        base_resp = server.compare(
+        output_path = tmpdir_path / f"diff_{idx}.png"
+        resp = server.compare(
             before_path,
             after_path,
-            base_output,
-            threshold=base_thresh,
+            output_path,
+            threshold=DIFF_THRESHOLD,
             antialiasing=True,
             outputDiffMask=True,
             failOnLayoutDiff=False,
         )
-        color_resp = server.compare(
-            before_path,
-            after_path,
-            color_output,
-            threshold=color_thresh,
-            antialiasing=True,
-            outputDiffMask=True,
-            failOnLayoutDiff=False,
-        )
-
-        base_count = base_resp.diffCount or 0
-        color_count = color_resp.diffCount or 0
-        base_pct = base_resp.diffPercentage or 0.0
-        color_pct = color_resp.diffPercentage or 0.0
-
-        if color_pct > base_pct:
-            chosen_output = color_output
-            changed_pixels = color_count
-            diff_pct = color_pct
-        else:
-            chosen_output = base_output
-            changed_pixels = base_count
-            diff_pct = base_pct
+        changed_pixels = resp.diffCount or 0
+        diff_pct = resp.diffPercentage or 0.0
 
         total_pixels = max_w * max_h
         diff_score = diff_pct / 100.0
 
         if changed_pixels == 0:
             diff_mask = Image.new("L", (max_w, max_h), 0)
-        elif not chosen_output.exists():
-            raise RuntimeError(f"odiff did not produce output file: {chosen_output}")
+        elif not output_path.exists():
+            raise RuntimeError(f"odiff did not produce output file: {output_path}")
         else:
-            diff_mask = _mask_from_diff_output(chosen_output)
+            diff_mask = _mask_from_diff_output(output_path)
             if diff_mask.size != (max_w, max_h):
                 old_mask = diff_mask
                 diff_mask = diff_mask.resize((max_w, max_h), Image.NEAREST)
