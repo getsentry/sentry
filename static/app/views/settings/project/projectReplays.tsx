@@ -49,7 +49,7 @@ export default function ProjectReplaySettings() {
         method: 'PUT',
         data: {options: data},
       }),
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
+    onSuccess: (response) => ProjectsStore.onUpdateSuccess(response),
   };
 
   const {getParamValue, setParamValue} = useUrlParams(
