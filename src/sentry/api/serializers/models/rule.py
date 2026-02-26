@@ -486,47 +486,72 @@ class WorkflowEngineRuleSerializer(Serializer):
             workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
-            serialized_actions = []
-            errors = []
-            for action in self._fetch_actions(workflow_dcg.condition_group):
+            # build up actions data
+            actions = self._fetch_actions(workflow_dcg.condition_group)
+            action_to_handler = {}
+            for action in actions:
                 try:
                     handler = issue_alert_handler_registry.get(action.type)
+                    action_to_handler[action] = handler
                 except Exception:
-                    # just keep iterating through the actions in case we have valid ones in there
-                    continue
+                    continue  # just keep iterating through the actions in case we have valid ones in there
 
-                action_data = handler.build_rule_action_blob(action, workflow.organization_id)
-                action_data["name"] = handler.render_label(workflow.organization_id, action_data)
-
-                # Handle component fields
-                sentry_app_uuid = action_data.get("sentryAppInstallationUuid")
-                if self.prepare_component_fields and sentry_app_uuid:
-                    install_contexts = app_service.get_component_contexts(
-                        filter={"uuids": [sentry_app_uuid]}, component_type="alert-rule-action"
+            action_to_action_data = {
+                action: action_to_handler[action].build_rule_action_blob(
+                    action, workflow.organization_id
+                )
+                for action in actions
+            }
+            sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
+            if self.prepare_component_fields:
+                sentry_app_uuids = [
+                    sentry_app_uuid
+                    for sentry_app_uuid in (
+                        action_to_action_data[action].get("sentryAppInstallationUuid")
+                        for action in actions
                     )
-                    if install_contexts:
-                        rpc_install = install_contexts[0].installation
-                        rpc_component = install_contexts[0].component
-                        rpc_app = rpc_install.sentry_app
+                    if sentry_app_uuid is not None
+                ]
+                install_contexts = app_service.get_component_contexts(
+                    filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
+                    component_type="alert-rule-action",
+                )
+                sentry_app_installations_by_uuid = {
+                    install_context.installation.uuid: install_context
+                    for install_context in install_contexts
+                }
 
-                        component = (
-                            prepare_ui_component(
-                                rpc_install,
-                                rpc_component,
-                                self.project_slug,
-                                action.data.get("settings"),
-                            )
-                            if rpc_component
-                            else None
+            serialized_actions = []
+            errors = []
+            for action in actions:
+                action_data = action_to_action_data[action]
+                action_data["name"] = action_to_handler[action].render_label(
+                    workflow.organization_id, action_data
+                )
+
+                install_context = sentry_app_installations_by_uuid.get(
+                    action_data.get("sentryAppInstallationUuid")
+                )
+                if install_context:
+                    rpc_install = install_context.installation
+                    rpc_component = install_context.component
+                    rpc_app = rpc_install.sentry_app
+                    component = (
+                        prepare_ui_component(
+                            rpc_install,
+                            rpc_component,
+                            self.project_slug,
+                            action.data.get("settings"),
                         )
-                        if component is None:
-                            errors.append(
-                                {"detail": f"Could not fetch details from {rpc_app.name}"}
-                            )
-                            action_data["disabled"] = True
-                            continue
+                        if rpc_component
+                        else None
+                    )
+                    if component is None:
+                        errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
+                        action_data["disabled"] = True
+                        continue
 
-                        action_data["formFields"] = component.app_schema.get("settings", {})
+                    action_data["formFields"] = component.app_schema.get("settings", {})
 
                 # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
 
