@@ -103,16 +103,6 @@ function useGuidedStepsContentValue({
     }
   }, [getFirstIncompleteStep]);
 
-  // On initial load, set the current step to the first incomplete step
-  // if the initial step is not defined.
-  useEffect(() => {
-    if (defined(initialStep)) {
-      return;
-    }
-    const firstIncompleteStep = getFirstIncompleteStep();
-    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep, initialStep]);
-
   const handleSetCurrentStep = useCallback(
     (step: number) => {
       setCurrentStep(step);
@@ -121,14 +111,20 @@ function useGuidedStepsContentValue({
     [onStepChange]
   );
 
-  // Reset to the first step when currentStep exceeds totalSteps (e.g. when
-  // switching between projects that have different numbers of steps while the
-  // guidedStep URL param persists from the previous project).
+  // On initial load, set the current step to the first incomplete step
+  // if the initial step is not defined. If initialStep exceeds the number
+  // of available steps (e.g. the guidedStep URL param persists from a
+  // project with more steps), reset to step 1.
   useEffect(() => {
-    if (totalSteps > 0 && currentStep > totalSteps) {
-      handleSetCurrentStep(1);
+    if (defined(initialStep)) {
+      if (totalSteps > 0 && initialStep > totalSteps) {
+        handleSetCurrentStep(1);
+      }
+      return;
     }
-  }, [totalSteps, currentStep, handleSetCurrentStep]);
+    const firstIncompleteStep = getFirstIncompleteStep();
+    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
+  }, [getFirstIncompleteStep, initialStep, totalSteps, handleSetCurrentStep]);
 
   return useMemo(
     () => ({
