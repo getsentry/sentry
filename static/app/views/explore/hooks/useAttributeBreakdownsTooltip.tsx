@@ -22,19 +22,18 @@ type Params = {
    */
   formatter: (params: TooltipComponentFormatterCallbackParams) => string;
   /**
-   * The function to render the HTML for the tooltip actions. The actions are rendered on click, anywhere on the chart.
+   * Action handlers and renderer for the tooltip. When provided, the tooltip will show
+   * clickable actions on click. When null, no actions are shown.
    */
-  actionsHtmlRenderer?: (value: string) => string;
-  /**
-   * Callback to add a search filter. Used by tooltip actions.
-   * When not provided, the "Add to filter" and "Exclude from filter" actions are no-ops.
-   */
-  onAddSearchFilter?: (params: {key: string; value: string; negated?: boolean}) => void;
-  /**
-   * Callback to set group bys. Used by tooltip actions.
-   * When not provided, the "Group by" action is a no-op.
-   */
-  onSetGroupBys?: (groupBys: string[], mode: string) => void;
+  actions?: {
+    htmlRenderer: (value: string) => string;
+    handleAddSearchFilter?: (params: {
+      key: string;
+      value: string;
+      negated?: boolean;
+    }) => void;
+    handleSetGroupBys?: (groupBys: string[], mode: string) => void;
+  } | null;
 };
 
 export enum Actions {
@@ -52,9 +51,7 @@ export function useAttributeBreakdownsTooltip({
   chartRef,
   formatter,
   chartWidth,
-  actionsHtmlRenderer,
-  onAddSearchFilter,
-  onSetGroupBys,
+  actions,
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
   const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
@@ -136,16 +133,16 @@ export function useAttributeBreakdownsTooltip({
       if (action && value && key) {
         switch (action) {
           case Actions.GROUP_BY:
-            onSetGroupBys?.([key], 'aggregate');
+            actions?.handleSetGroupBys?.([key], 'aggregate');
             break;
           case Actions.ADD_TO_FILTER:
-            onAddSearchFilter?.({
+            actions?.handleAddSearchFilter?.({
               key,
               value,
             });
             break;
           case Actions.EXCLUDE_FROM_FILTER:
-            onAddSearchFilter?.({
+            actions?.handleAddSearchFilter?.({
               key,
               value,
               negated: true,
@@ -190,7 +187,7 @@ export function useAttributeBreakdownsTooltip({
       document.removeEventListener('mouseover', handleMouseOver);
       document.removeEventListener('mouseout', handleMouseOut);
     };
-  }, [frozenPosition, copyToClipboard, onAddSearchFilter, onSetGroupBys]);
+  }, [frozenPosition, copyToClipboard, actions]);
 
   const tooltipConfig: TooltipOption = useMemo(
     () => ({
@@ -210,7 +207,7 @@ export function useAttributeBreakdownsTooltip({
         if (!frozenPosition) {
           tooltipParamsRef.current = params;
 
-          const actionsPlaceholder = actionsHtmlRenderer
+          const actionsPlaceholder = actions?.htmlRenderer
             ? `
           <div
             class="tooltip-footer"
@@ -237,7 +234,7 @@ export function useAttributeBreakdownsTooltip({
         // return the formatted content, including the tooltip actions.
         const p = tooltipParamsRef.current;
         const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return wrapContent(formatter(p) + (actionsHtmlRenderer?.(value) ?? ''));
+        return wrapContent(formatter(p) + (actions?.htmlRenderer(value) ?? ''));
       },
       position(
         point: [number, number],
@@ -259,7 +256,7 @@ export function useAttributeBreakdownsTooltip({
         return [x, y];
       },
     }),
-    [frozenPosition, chartWidth, formatter, actionsHtmlRenderer, tooltipParamsRef]
+    [frozenPosition, chartWidth, formatter, actions, tooltipParamsRef]
   );
 
   return tooltipConfig;

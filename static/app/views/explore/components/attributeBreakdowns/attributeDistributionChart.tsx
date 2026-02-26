@@ -73,9 +73,13 @@ export function Chart({
     chartRef,
     formatter: formatSingleModeTooltip,
     chartWidth,
-    actionsHtmlRenderer: hasActions ? actionsHtmlRenderer : undefined,
-    onAddSearchFilter,
-    onSetGroupBys,
+    actions: hasActions
+      ? {
+          htmlRenderer: actionsHtmlRenderer,
+          handleAddSearchFilter: onAddSearchFilter,
+          handleSetGroupBys: onSetGroupBys,
+        }
+      : null,
   });
 
   useLayoutEffect(() => {

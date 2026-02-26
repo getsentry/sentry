@@ -106,9 +106,13 @@ export function Chart({
     chartRef,
     formatter: toolTipFormatter,
     chartWidth,
-    actionsHtmlRenderer: hasActions ? actionsHtmlRenderer : undefined,
-    onAddSearchFilter,
-    onSetGroupBys,
+    actions: hasActions
+      ? {
+          htmlRenderer: actionsHtmlRenderer,
+          handleAddSearchFilter: onAddSearchFilter,
+          handleSetGroupBys: onSetGroupBys,
+        }
+      : null,
   });
 
   useLayoutEffect(() => {
