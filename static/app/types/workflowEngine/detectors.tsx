@@ -16,6 +16,12 @@ import type {
   UptimeMonitorMode,
 } from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
+import type {
+  MetricType as PreprodMeasurement,
+  MeasurementType as PreprodThresholdType,
+} from 'sentry/views/settings/project/preprod/types';
+
+export type {PreprodMeasurement, PreprodThresholdType};
 
 /**
  * See SnubaQuerySerializer
@@ -84,7 +90,8 @@ export type DetectorType =
   | 'metric_issue'
   | 'monitor_check_in_failure'
   | 'uptime_domain_failure'
-  | 'issue_stream';
+  | 'issue_stream'
+  | 'preprod_size_analysis';
 
 /**
  * Configuration for static/threshold-based detection
@@ -165,12 +172,27 @@ export interface IssueStreamDetector extends BaseDetector {
   readonly type: 'issue_stream';
 }
 
+/**
+ * Configuration for preprod/mobile builds detection
+ */
+interface PreprodDetectorConfig {
+  measurement: PreprodMeasurement;
+  thresholdType: PreprodThresholdType;
+}
+
+export interface PreprodDetector extends BaseDetector {
+  readonly conditionGroup: MetricConditionGroup | null;
+  readonly config: PreprodDetectorConfig;
+  readonly type: 'preprod_size_analysis';
+}
+
 export type Detector =
   | MetricDetector
   | UptimeDetector
   | CronDetector
   | ErrorDetector
-  | IssueStreamDetector;
+  | IssueStreamDetector
+  | PreprodDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<MetricCondition, 'id'>>;
@@ -228,6 +250,15 @@ export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
     name: string;
   }>;
   type: 'monitor_check_in_failure';
+}
+
+export interface PreprodDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  conditionGroup: UpdateConditionGroupPayload;
+  config: {
+    measurement: PreprodMeasurement;
+    thresholdType: PreprodThresholdType;
+  };
+  type: 'preprod_size_analysis';
 }
 
 export interface MetricConditionGroup {
