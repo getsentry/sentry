@@ -35,7 +35,6 @@ describe('useActiveNavGroup', () => {
       [PrimaryNavGroup.DASHBOARDS, '/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/settings/foo/'],
-      [PrimaryNavGroup.PREVENT, '/prevent/foo/'],
     ])('correctly matches %s nav group', async (navGroup, path) => {
       render(<TestComponent />, {
         initialRouterConfig: {
@@ -58,7 +57,6 @@ describe('useActiveNavGroup', () => {
       [PrimaryNavGroup.INSIGHTS, '/organizations/org-slug/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
       [PrimaryNavGroup.SETTINGS, '/settings/account/details/'],
-      [PrimaryNavGroup.PREVENT, '/organizations/org-slug/prevent/foo/'],
     ])('correctly matches %s nav group', async (navGroup, path) => {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {

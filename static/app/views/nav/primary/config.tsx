@@ -36,10 +36,6 @@ export const PRIMARY_NAV_GROUP_CONFIG: PrimaryNavGroupConfig = {
     basePaths: ['settings'],
     label: t('Settings'),
   },
-  [PrimaryNavGroup.PREVENT]: {
-    basePaths: ['prevent'],
-    label: t('Prevent'),
-  },
   [PrimaryNavGroup.ADMIN]: {
     basePaths: ['manage'],
     label: t('Admin'),
