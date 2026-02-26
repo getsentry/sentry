@@ -514,7 +514,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         ]
 
         for i, span_status in enumerate(statuses):
-            extra_kwargs = {}
+            extra_kwargs: dict[str, Any] = {}
             if i == 0:
                 extra_kwargs["messages"] = [{"role": "user", "content": "test"}]
                 extra_kwargs["response_text"] = "test response"
