@@ -3,6 +3,7 @@ import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
+import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -263,14 +264,6 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const handleReset = useCallback(() => {
-    onReset?.();
-    trackAnalytics('projectselector.clear', {
-      path: getRouteStringFromRoutes(routes),
-      organization,
-    });
-  }, [onReset, routes, organization]);
-
   const handleSectionToggle = useCallback(
     (section: SelectSection<SelectKey>) => {
       trackAnalytics('projectselector.multi_button_clicked', {
@@ -430,25 +423,57 @@ export function ProjectPageFilter({
 
   const stagedSelect = useStagedCompactSelect({
     value,
-    defaultValue,
     options,
     onChange: handleChange,
     onStagedValueChange: setStagedValue,
     onToggle,
     onReplace,
-    onReset: handleReset,
     onSectionToggle: handleSectionToggle,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });
 
+  const {dispatch} = stagedSelect;
+  const handleReset = useCallback(() => {
+    dispatch({type: 'remove staged'});
+    handleChange(defaultValue);
+    onReset?.();
+
+    trackAnalytics('projectselector.clear', {
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+  }, [dispatch, handleChange, defaultValue, onReset, routes, organization]);
+
+  const handleCancel = useCallback(() => {
+    trackAnalytics('projectselector.cancel', {
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+    dispatch({type: 'remove staged'});
+  }, [dispatch, routes, organization]);
+
+  const handleApply = useCallback(() => {
+    trackAnalytics('projectselector.apply', {
+      count: stagedValue.length,
+      multi: stagedValue.length > 1,
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+    dispatch({type: 'remove staged'});
+    handleChange(stagedSelect.value);
+  }, [dispatch, handleChange, routes, organization, stagedSelect.value, stagedValue]);
+
+  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const shouldShowReset = xor(stagedSelect.value, defaultValue).length > 0;
+
   const hasProjectWrite = organization.access.includes('project:write');
 
   return (
     <HybridFilter
-      search
       ref={hybridFilterRef}
       {...selectProps}
+      closeOnSelect
       stagedSelect={stagedSelect}
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
@@ -476,12 +501,10 @@ export function ProjectPageFilter({
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
       }}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
-        ) : null
+        shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
       }
       menuFooter={
-        selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
+        selectionLimitExceeded || hasProjectWrite || hasStagedChanges ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
               <MenuComponents.Alert variant="warning">
@@ -499,33 +522,17 @@ export function ProjectPageFilter({
                 <MenuComponents.CTALinkButton
                   icon={<IconAdd />}
                   to={makeProjectsPathname({path: '/new/', organization})}
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={handleApply}
                 >
                   {t('Create Project')}
                 </MenuComponents.CTALinkButton>
               ) : undefined}
-              {stagedSelect.hasStagedChanges ? (
+              {hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
-                  <MenuComponents.CancelButton
-                    onClick={() => {
-                      trackAnalytics('projectselector.cancel', {
-                        path: getRouteStringFromRoutes(routes),
-                        organization,
-                      });
-                      stagedSelect.removeStagedChanges();
-                    }}
-                  />
+                  <MenuComponents.CancelButton onClick={handleCancel} />
                   <MenuComponents.ApplyButton
-                    disabled={stagedSelect.disableCommit}
-                    onClick={() => {
-                      trackAnalytics('projectselector.apply', {
-                        count: stagedSelect.stagedValue.length,
-                        multi: stagedSelect.stagedValue.length > 1,
-                        path: getRouteStringFromRoutes(routes),
-                        organization,
-                      });
-                      stagedSelect.commit(stagedSelect.stagedValue);
-                    }}
+                    disabled={selectionLimitExceeded}
+                    onClick={handleApply}
                   />
                 </Flex>
               ) : null}

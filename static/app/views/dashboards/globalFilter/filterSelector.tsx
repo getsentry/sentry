@@ -376,6 +376,7 @@ function FilterSelector({
 
   return (
     <HybridFilter
+      closeOnSelect
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
       search={{

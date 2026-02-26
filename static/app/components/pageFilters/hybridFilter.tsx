@@ -3,11 +3,10 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import {isAppleDevice, isMac} from '@react-aria/utils';
-import xor from 'lodash/xor';
 
 import type {
   MultipleSelectProps,
@@ -19,14 +18,103 @@ import type {
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
-import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
-
 export interface HybridFilterRef<Value extends SelectKey> {
   toggleOption: (val: Value) => void;
 }
 
+interface StagedSelectState<Value extends SelectKey> {
+  currentSearch: string;
+  lastSelected: Value | null;
+  stagedValue: Value[] | null;
+}
+
+type StagedSelectAction<Value extends SelectKey> =
+  | {currentStaged: Value[]; type: 'toggle'; val: Value}
+  | {
+      currentStaged: Value[];
+      options: Array<SelectOptionOrSection<Value>>;
+      type: 'toggle range';
+      val: Value;
+    }
+  | {type: 'remove staged'}
+  | {type: 'clear anchor'}
+  | {search: string; type: 'set search'}
+  | {type: 'reset anchor'};
+
+function getFlatOptions<Value extends SelectKey>(
+  opts: Array<SelectOptionOrSection<Value>>
+): Array<SelectOption<Value>> {
+  return opts.flatMap(item => ('options' in item ? item.options : [item]));
+}
+
+function stagingReducer<Value extends SelectKey>(
+  state: StagedSelectState<Value>,
+  action: StagedSelectAction<Value>
+): StagedSelectState<Value> {
+  switch (action.type) {
+    case 'toggle': {
+      const newSet = new Set(action.currentStaged);
+      newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
+      return {...state, stagedValue: [...newSet], lastSelected: action.val};
+    }
+    case 'toggle range': {
+      if (state.lastSelected === null) {
+        const newSet = new Set(action.currentStaged);
+        newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
+        return {...state, stagedValue: [...newSet], lastSelected: action.val};
+      }
+
+      // Only include options visible in the current filtered state so that
+      // shift+click after a search doesn't select hidden items
+      const flatOptions = getFlatOptions(action.options).filter(opt => {
+        if (!state.currentSearch) return true;
+        const searchableText =
+          opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+        return searchableText.toLowerCase().includes(state.currentSearch.toLowerCase());
+      });
+      const lastIdx = flatOptions.findIndex(opt => opt.value === state.lastSelected);
+      const currentIdx = flatOptions.findIndex(opt => opt.value === action.val);
+
+      if (lastIdx === -1 || currentIdx === -1) {
+        // Anchor or clicked item not visible — fall back to single toggle
+        const newSet = new Set(action.currentStaged);
+        newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
+        return {...state, stagedValue: [...newSet], lastSelected: action.val};
+      }
+
+      const targetState = !action.currentStaged.includes(action.val);
+      const startIdx = Math.min(lastIdx, currentIdx);
+      const endIdx = Math.max(lastIdx, currentIdx);
+      const rangeValues = flatOptions.slice(startIdx, endIdx + 1).map(opt => opt.value);
+
+      const newValueSet = new Set(action.currentStaged);
+      rangeValues.forEach(val => {
+        targetState ? newValueSet.add(val) : newValueSet.delete(val);
+      });
+
+      // Sort by original option order
+      const sortedValue = [...newValueSet].sort((a, b) => {
+        const aIdx = flatOptions.findIndex(opt => opt.value === a);
+        const bIdx = flatOptions.findIndex(opt => opt.value === b);
+        return aIdx - bIdx;
+      });
+
+      return {...state, stagedValue: sortedValue, lastSelected: action.val};
+    }
+    case 'remove staged':
+      return {...state, stagedValue: null};
+    case 'clear anchor':
+      return {...state, lastSelected: null};
+    case 'set search':
+      return {...state, currentSearch: action.search, lastSelected: null};
+    case 'reset anchor':
+      return {...state, lastSelected: null, currentSearch: ''};
+    default:
+      return state;
+  }
+}
+
 interface UseStagedCompactSelectOptions<Value extends SelectKey> {
-  defaultValue: Value[];
   onChange: (selected: Value[]) => void;
   options: Array<SelectOptionOrSection<Value>>;
   value: Value[];
@@ -34,33 +122,25 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   hasExternalChanges?: boolean;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
-  onReset?: () => void;
   onSectionToggle?: (section: SelectSection<SelectKey>) => void;
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
 }
 
 export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
-  // Additional state and utilities
-  commit: (val: Value[]) => void;
   // Props that can be spread directly into CompactSelect
   compactSelectProps: Pick<
     MultipleSelectProps<Value>,
-    'value' | 'onChange' | 'onSectionToggle' | 'onInteractOutside' | 'onKeyDown'
-  > & {
-    closeOnSelect: boolean;
-  };
-  defaultValue: Value[];
-  handleReset: () => void;
-  handleSearch: (value: string) => void;
-  hasStagedChanges: boolean;
-  modifierKeyPressed: boolean;
-  removeStagedChanges: () => void;
-  resetAnchor: () => void;
-  shouldShowReset: boolean;
-  stagedValue: Value[];
+    | 'value'
+    | 'onChange'
+    | 'onSectionToggle'
+    | 'onInteractOutside'
+    | 'onKeyDown'
+    | 'search'
+  >;
+  dispatch: React.Dispatch<StagedSelectAction<Value>>;
   toggleOption: (val: Value) => void;
-  disableCommit?: boolean;
+  value: Value[];
 }
 
 /**
@@ -70,13 +150,11 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
  */
 export function useStagedCompactSelect<Value extends SelectKey>({
   value,
-  defaultValue,
   onChange,
   options,
   onStagedValueChange,
   onToggle,
   onReplace,
-  onReset,
   onSectionToggle,
   multiple,
   disableCommit,
@@ -89,181 +167,33 @@ export function useStagedCompactSelect<Value extends SelectKey>({
    * that can be reset by clicking "Cancel" or committed by clicking "Apply".
    *
    * When null, there are no uncommitted changes and we use the prop `value` directly.
+   *
+   * Also tracks the shift-click anchor (lastSelected) and current search value
+   * (currentSearch) as part of the state machine.
    */
-  const [uncommittedStagedValue, setUncommittedStagedValue] = useState<Value[] | null>(
-    null
+  const [state, dispatch] = useReducer(
+    stagingReducer as React.Reducer<StagedSelectState<Value>, StagedSelectAction<Value>>,
+    {stagedValue: null, lastSelected: null, currentSearch: ''}
   );
-
-  // Track anchor point for shift-click range selection (ref to avoid re-renders)
-  const lastSelectedRef = useRef<Value | null>(null);
-  // Track current search value so range selection only spans visible (filtered) options
-  const currentSearchRef = useRef<string>('');
 
   /**
    * The actual staged value to display. This is derived from:
-   * - uncommittedStagedValue (if the user has made uncommitted changes)
+   * - stagedValue (if the user has made uncommitted changes)
    * - value prop (if there are no uncommitted changes)
    */
-  const stagedValue = uncommittedStagedValue ?? value;
+  const stagedValue = state.stagedValue ?? value;
 
   useEffect(() => {
     onStagedValueChange?.(stagedValue);
   }, [onStagedValueChange, stagedValue]);
 
-  /**
-   * Whether there are staged, uncommitted changes, or external changes. Used to determine
-   * whether we should show the "Cancel"/"Apply" buttons.
-   */
-  const hasStagedChanges =
-    stagedValue.length !== value.length ||
-    !stagedValue.every(val => value.includes(val)) ||
-    hasExternalChanges;
-
-  const commit = useCallback(
-    (val: Value[]) => {
-      setUncommittedStagedValue(null);
-      onChange?.(val);
-    },
-    [onChange]
-  );
-
-  const removeStagedChanges = useCallback(() => setUncommittedStagedValue(null), []);
-
-  const commitStagedChanges = useCallback(() => {
-    if (disableCommit) {
-      removeStagedChanges();
-      return;
-    }
-
-    commit(stagedValue);
-  }, [disableCommit, removeStagedChanges, commit, stagedValue]);
-
-  // Use refs so callbacks always read the current key state without stale closures.
-  // window listeners are required (not onKeyDown on the CompactSelect wrapper) because
-  // the dropdown overlay is rendered in a portal — keyboard events there don't bubble
-  // back up to the outer wrapper div.
-  const shiftKeyRef = useRef(false);
-  const modifierKeyRef = useRef(false);
-  // State is still needed for the reactive closeOnSelect prop.
-  const [modifierActive, setModifierActive] = useState(false);
-
-  const getFlatOptions = useCallback(
-    (opts: Array<SelectOptionOrSection<Value>>): Array<SelectOption<Value>> => {
-      return opts.flatMap(item => ('options' in item ? item.options : [item]));
-    },
-    []
-  );
-
-  const performSingleToggle = useCallback(
-    (val: Value) => {
-      const newSet = new Set(stagedValue);
-      if (newSet.has(val)) {
-        newSet.delete(val);
-      } else {
-        newSet.add(val);
-      }
-      const newValue = [...newSet];
-      setUncommittedStagedValue(newValue);
-      onToggle?.(newValue);
-      lastSelectedRef.current = val;
-    },
-    [stagedValue, onToggle]
-  );
-
-  const shiftToggleRange = useCallback(
-    (clickedValue: Value) => {
-      if (lastSelectedRef.current === null) {
-        performSingleToggle(clickedValue);
-        return;
-      }
-
-      // Only include options visible in the current filtered state so that
-      // shift+click after a search doesn't select hidden items
-      const search = currentSearchRef.current;
-      const flatOptions = getFlatOptions(options).filter(opt => {
-        if (!search) return true;
-        const searchableText =
-          opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
-        return searchableText.toLowerCase().includes(search.toLowerCase());
-      });
-      const lastIdx = flatOptions.findIndex(opt => opt.value === lastSelectedRef.current);
-      const currentIdx = flatOptions.findIndex(opt => opt.value === clickedValue);
-
-      if (lastIdx === -1 || currentIdx === -1) {
-        performSingleToggle(clickedValue);
-        return;
-      }
-
-      const currentlySelected = stagedValue.includes(clickedValue);
-      const targetState = !currentlySelected;
-
-      const startIdx = Math.min(lastIdx, currentIdx);
-      const endIdx = Math.max(lastIdx, currentIdx);
-      const rangeValues = flatOptions.slice(startIdx, endIdx + 1).map(opt => opt.value);
-
-      const newValueSet = new Set(stagedValue);
-      rangeValues.forEach(val => {
-        targetState ? newValueSet.add(val) : newValueSet.delete(val);
-      });
-
-      // Sort by original option order
-      const sortedValue = [...newValueSet].sort((a, b) => {
-        const aIdx = flatOptions.findIndex(opt => opt.value === a);
-        const bIdx = flatOptions.findIndex(opt => opt.value === b);
-        return aIdx - bIdx;
-      });
-
-      setUncommittedStagedValue(sortedValue);
-      onToggle?.(sortedValue);
-      lastSelectedRef.current = clickedValue;
-    },
-    [stagedValue, onToggle, getFlatOptions, options, performSingleToggle]
-  );
-
-  const toggleOption = useCallback(
-    (val: Value) => {
-      if (shiftKeyRef.current) {
-        shiftToggleRange(val);
-        return;
-      }
-
-      performSingleToggle(val);
-    },
-    [shiftToggleRange, performSingleToggle]
-  );
-
-  // When the search/filter changes, clear the shift-click anchor so the next
-  // shift+click starts a fresh range from the visible filtered list.
-  const handleSearch = useCallback((searchValue: string) => {
-    if (searchValue !== currentSearchRef.current) {
-      currentSearchRef.current = searchValue;
-      lastSelectedRef.current = null;
-    }
-  }, []);
-
-  // Clear the shift-click anchor when the menu opens so every new session
-  // starts fresh — prevents a stale anchor from a previous open/close cycle
-  // from unexpectedly triggering range selection.
-  const resetAnchor = useCallback(() => {
-    lastSelectedRef.current = null;
-    currentSearchRef.current = '';
-  }, []);
-
-  const handleKeyDown = useCallback(
-    (e: any) => {
-      if (e.key === 'Escape') {
-        commitStagedChanges();
-      }
-    },
-    [commitStagedChanges]
-  );
-
   useEffect(() => {
     const onKeyChange = (e: KeyboardEvent) => {
-      shiftKeyRef.current = e.shiftKey;
-      modifierKeyRef.current =
-        (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey);
-      setModifierActive(isModifierKeyPressed(e));
+      keyRef.current = e.shiftKey
+        ? 'shift'
+        : (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey)
+          ? 'modifier'
+          : null;
     };
     window.addEventListener('keydown', onKeyChange);
     window.addEventListener('keyup', onKeyChange);
@@ -274,10 +204,71 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   }, []);
 
   useEffect(() => {
-    if (uncommittedStagedValue === null && hasExternalChanges) {
-      lastSelectedRef.current = null;
+    if (state.stagedValue === null && hasExternalChanges) {
+      dispatch({type: 'clear anchor'});
     }
-  }, [hasExternalChanges, uncommittedStagedValue]);
+  }, [hasExternalChanges, state.stagedValue]);
+
+  /**
+   * Whether there are staged, uncommitted changes, or external changes. Used to determine
+   * whether we should show the "Cancel"/"Apply" buttons.
+   */
+  const commit = useCallback(
+    (val: Value[]) => {
+      dispatch({type: 'remove staged'});
+      onChange?.(val);
+    },
+    [onChange]
+  );
+
+  const commitStagedChanges = useCallback(() => {
+    if (disableCommit) {
+      dispatch({type: 'remove staged'});
+      return;
+    }
+
+    commit(stagedValue);
+  }, [disableCommit, commit, stagedValue]);
+
+  // Use refs so callbacks always read the current key state without stale closures.
+  // window listeners are required (not onKeyDown on the CompactSelect wrapper) because
+  // the dropdown overlay is rendered in a portal — keyboard events there don't bubble
+  // back up to the outer wrapper div.
+  const keyRef = useRef<'shift' | 'modifier' | null>(null);
+
+  const shiftToggleRange = useCallback(
+    (clickedValue: Value) => {
+      const action = {
+        type: 'toggle range' as const,
+        val: clickedValue,
+        currentStaged: stagedValue,
+        options,
+      };
+      onToggle?.(stagingReducer(state, action).stagedValue!);
+      dispatch(action);
+    },
+    [stagedValue, state, options, onToggle]
+  );
+
+  const toggleOption = useCallback(
+    (val: Value) => {
+      if (keyRef.current === 'shift') {
+        shiftToggleRange(val);
+        return;
+      }
+
+      const action = {type: 'toggle' as const, val, currentStaged: stagedValue};
+      onToggle?.(stagingReducer(state, action).stagedValue!);
+      dispatch(action);
+    },
+    [shiftToggleRange, stagedValue, state, onToggle]
+  );
+
+  const handleKeyDown = useCallback((e: any) => {
+    if (e.key === 'Escape') {
+      dispatch({type: 'remove staged'});
+    }
+  }, []);
 
   const sectionToggleWasPressed = useRef(false);
   const handleSectionToggle = useCallback(
@@ -290,9 +281,9 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const handleChange = useCallback(
     (selectedOptions: Array<SelectOption<Value>>) => {
-      const oldValue = stagedValue;
       const newValue = selectedOptions.map(op => op.value);
-      const oldValueSet = new Set(oldValue);
+
+      const oldValueSet = new Set(stagedValue);
       const newValueSet = new Set(newValue);
 
       newValueSet.forEach(val => {
@@ -309,30 +300,23 @@ export function useStagedCompactSelect<Value extends SelectKey>({
         return;
       }
 
-      if (multiple && shiftKeyRef.current) {
-        shiftToggleRange(diff[0]!);
-        return;
-      }
+      if (multiple) {
+        if (keyRef.current === 'shift') {
+          shiftToggleRange(diff[0]!);
+          return;
+        }
 
-      if (multiple && modifierKeyRef.current) {
-        toggleOption(diff[0]!);
-        return;
+        if (keyRef.current === 'modifier') {
+          toggleOption(diff[0]!);
+          return;
+        }
       }
 
       onReplace?.(diff[0]!);
       commit(diff);
-      lastSelectedRef.current = diff[0]!;
     },
     [commit, stagedValue, toggleOption, onReplace, multiple, shiftToggleRange]
   );
-
-  // Don't show reset button if current value is already equal to the default one.
-  const shouldShowReset = xor(stagedValue, defaultValue).length > 0;
-
-  const handleReset = useCallback(() => {
-    commit(defaultValue);
-    onReset?.();
-  }, [commit, defaultValue, onReset]);
 
   return {
     compactSelectProps: {
@@ -341,20 +325,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       onSectionToggle: handleSectionToggle,
       onInteractOutside: commitStagedChanges,
       onKeyDown: handleKeyDown,
-      closeOnSelect: !(multiple && modifierActive),
+      search: {
+        onChange: (searchValue: string) => {
+          dispatch({type: 'set search', search: searchValue});
+        },
+      },
     },
-    defaultValue,
-    handleReset,
-    handleSearch,
-    resetAnchor,
-    stagedValue,
-    hasStagedChanges,
-    modifierKeyPressed: modifierActive,
-    commit,
-    removeStagedChanges,
-    shouldShowReset,
+    dispatch,
+    value: stagedValue,
     toggleOption,
-    disableCommit,
   };
 }
 
@@ -395,14 +374,14 @@ export function HybridFilter<Value extends SelectKey>({
   const search = {
     ...searchConfig,
     onChange: (value: string) => {
-      stagedSelect.handleSearch(value);
+      stagedSelect.dispatch({type: 'set search', search: value});
       searchConfig?.onChange?.(value);
     },
   };
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      stagedSelect.resetAnchor();
+      stagedSelect.dispatch({type: 'reset anchor'});
     }
     onOpenChangeProp?.(open);
   };

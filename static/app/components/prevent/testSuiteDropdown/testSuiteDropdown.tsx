@@ -104,6 +104,7 @@ export function TestSuiteDropdown() {
 
   return (
     <HybridFilter
+      closeOnSelect
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
       search={{onChange: handleOnSearch}}

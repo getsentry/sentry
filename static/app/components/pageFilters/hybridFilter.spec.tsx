@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+import xor from 'lodash/xor';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -60,11 +61,12 @@ describe('HybridFilter', () => {
     function TestComponent() {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const value: string[] = [];
+      const onChange = () => {};
       const stagedSelect = useStagedCompactSelect({
-        value: [] as string[],
-        defaultValue: [],
+        value,
         options,
-        onChange: () => {},
+        onChange,
         multiple: true,
       });
 
@@ -75,19 +77,27 @@ describe('HybridFilter', () => {
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
+            xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
               </div>
             ) : null
@@ -114,7 +124,6 @@ describe('HybridFilter', () => {
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue: [],
         options,
         onChange,
         multiple: true,
@@ -123,23 +132,32 @@ describe('HybridFilter', () => {
       return (
         <HybridFilter
           search
+          closeOnSelect
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
+            xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
               </div>
             ) : null
@@ -171,14 +189,14 @@ describe('HybridFilter', () => {
       const [value, setValue] = useState<string[]>([]);
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const handleChange = (newValue: string[]) => {
+        onChange(newValue);
+        setValue(newValue);
+      };
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue: [],
         options,
-        onChange: newValue => {
-          onChange(newValue);
-          setValue(newValue);
-        },
+        onChange: handleChange,
         multiple: true,
       });
 
@@ -189,19 +207,27 @@ describe('HybridFilter', () => {
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  handleChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
+            xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    handleChange(stagedSelect.value);
+                  }}
                 />
               </div>
             ) : null
@@ -245,9 +271,9 @@ describe('HybridFilter', () => {
     function TestComponent() {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const value: string[] = [];
       const stagedSelect = useStagedCompactSelect({
-        value: [] as string[],
-        defaultValue: [],
+        value,
         options,
         onChange,
         multiple: true,
@@ -260,19 +286,27 @@ describe('HybridFilter', () => {
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
+            xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
               </div>
             ) : null
@@ -302,18 +336,19 @@ describe('HybridFilter', () => {
     const onReset = jest.fn();
 
     function TestComponent() {
-      const [value, setValue] = useState<string[]>(['one']);
+      const defaultValue = ['one'] as string[];
+      const [value, setValue] = useState<string[]>(defaultValue);
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const handleChange = (newValue: string[]) => {
+        onChange(newValue);
+        setValue(newValue);
+      };
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue: ['one'] as string[],
+        defaultValue,
         options,
-        onChange: newValue => {
-          onChange(newValue);
-          setValue(newValue);
-        },
-        onReset,
+        onChange: handleChange,
         multiple: true,
       });
 
@@ -324,19 +359,28 @@ describe('HybridFilter', () => {
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            xor(stagedSelect.value, defaultValue).length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  handleChange(defaultValue);
+                  onReset();
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
+            xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    handleChange(stagedSelect.value);
+                  }}
                 />
               </div>
             ) : null
@@ -373,9 +417,9 @@ describe('HybridFilter', () => {
     function TestComponent() {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const value: string[] = [];
       const stagedSelect = useStagedCompactSelect({
-        value: [] as string[],
-        defaultValue: [],
+        value,
         options,
         onChange,
         multiple: true,
@@ -388,19 +432,27 @@ describe('HybridFilter', () => {
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
+            xor(stagedSelect.value, value).length > 0 ? (
               <div>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={!xor(stagedSelect.value, value).length > 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
               </div>
             ) : null
@@ -446,14 +498,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -464,13 +516,16 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                    onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                   />
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -508,14 +563,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -526,10 +581,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -567,14 +625,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -585,10 +643,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -621,14 +682,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>(['one', 'two', 'three']);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -639,10 +700,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -680,7 +744,6 @@ describe('HybridFilter', () => {
         const options = useTestOptions(hybridFilterRef);
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
           onChange: setValue,
           multiple: true,
@@ -693,10 +756,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      setValue(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -733,14 +799,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -751,10 +817,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -792,14 +861,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -810,10 +879,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -851,14 +923,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -869,10 +941,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -912,14 +987,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -930,10 +1005,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null
@@ -975,14 +1053,14 @@ describe('HybridFilter', () => {
         const [value, setValue] = useState<string[]>([]);
         const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
         const options = useTestOptions(hybridFilterRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
 
@@ -993,10 +1071,13 @@ describe('HybridFilter', () => {
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
+              xor(stagedSelect.value, value).length > 0 ? (
                 <div>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
                 </div>
               ) : null

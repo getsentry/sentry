@@ -2,6 +2,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
+import xor from 'lodash/xor';
 
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
@@ -217,14 +218,23 @@ export function EnvironmentPageFilter({
 
   const stagedSelect = useStagedCompactSelect({
     value,
-    defaultValue: [],
     options,
     onChange: handleChange,
     onToggle,
     onReplace,
-    onReset,
     multiple: true,
   });
+
+  const {dispatch: stagedSelectDispatch} = stagedSelect;
+
+  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const shouldShowReset = stagedSelect.value.length > 0;
+
+  const handleReset = useCallback(() => {
+    stagedSelectDispatch({type: 'remove staged'});
+    handleChange([]);
+    onReset?.();
+  }, [stagedSelectDispatch, handleChange, onReset]);
 
   return (
     <HybridFilter
@@ -232,6 +242,7 @@ export function EnvironmentPageFilter({
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
       search
+      closeOnSelect
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
@@ -254,19 +265,20 @@ export function EnvironmentPageFilter({
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
-        ) : null
+        shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
       }
       menuFooter={
-        stagedSelect.hasStagedChanges ? (
+        hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
-              disabled={!stagedSelect.hasStagedChanges}
-              onClick={() => stagedSelect.removeStagedChanges()}
+              disabled={!hasStagedChanges}
+              onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
-              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+              onClick={() => {
+                stagedSelect.dispatch({type: 'remove staged'});
+                handleChange(stagedSelect.value);
+              }}
             />
           </Flex>
         ) : null
