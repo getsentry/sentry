@@ -3,6 +3,7 @@ import {
   createFormHook,
   formOptions,
   revalidateLogic,
+  type AnyFormApi,
   type DeepKeys,
 } from '@tanstack/react-form';
 
@@ -55,7 +56,7 @@ const {useAppForm} = createFormHook({
   formComponents: {
     FieldGroup,
     SubmitButton,
-    FormWrapper,
+    AppForm,
   },
   fieldContext,
   formContext,
@@ -75,6 +76,14 @@ function SubmitButton(props: ButtonProps) {
         />
       )}
     </form.Subscribe>
+  );
+}
+
+function AppForm({children, form}: {children: React.ReactNode; form: AnyFormApi}) {
+  return (
+    <formContext.Provider value={form}>
+      <FormWrapper>{children}</FormWrapper>
+    </formContext.Provider>
   );
 }
 
