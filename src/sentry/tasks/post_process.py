@@ -1278,6 +1278,24 @@ def fire_error_processed(job: PostProcessJob):
     )
 
 
+def process_processing_errors_eap(job: PostProcessJob):
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:processing-errors-eap", event.project.organization):
+        return
+
+    processing_errors = event.data.get("errors", [])
+    if not processing_errors:
+        return
+
+    from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
+
+    produce_processing_errors_to_eap(event.project, event.data, processing_errors)
+
+
 def sdk_crash_monitoring(job: PostProcessJob):
     from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 
@@ -1648,6 +1666,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         link_event_to_user_report,
         detect_base_urls_for_uptime,
         check_if_flags_sent,
+        process_processing_errors_eap,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
