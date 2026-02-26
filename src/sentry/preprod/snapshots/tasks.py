@@ -199,7 +199,7 @@ def compare_snapshots(
             )
             comparison.state = PreprodSnapshotComparison.State.FAILED
             comparison.error_code = PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR
-            comparison.save(update_fields=["state", "error_code"])
+            comparison.save(update_fields=["state", "error_code", "date_updated"])
             return
 
         head_images = head_manifest.images
@@ -427,6 +427,7 @@ def compare_snapshots(
         )
 
         comparison.state = PreprodSnapshotComparison.State.SUCCESS
+        comparison.error_code = None
         comparison.images_changed = changed_count
         comparison.images_unchanged = unchanged_count
         comparison.images_added = len(added)
@@ -438,11 +439,13 @@ def compare_snapshots(
         comparison.save(
             update_fields=[
                 "state",
+                "error_code",
                 "images_changed",
                 "images_unchanged",
                 "images_added",
                 "images_removed",
                 "extras",
+                "date_updated",
             ]
         )
 
@@ -471,7 +474,7 @@ def compare_snapshots(
             try:
                 comparison.state = PreprodSnapshotComparison.State.FAILED
                 comparison.error_code = PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR
-                comparison.save(update_fields=["state", "error_code"])
+                comparison.save(update_fields=["state", "error_code", "date_updated"])
             except Exception:
                 logger.exception(
                     "Failed to save FAILED state for comparison",
