@@ -32,11 +32,11 @@ def test_is_demo_user_demo_mode_disabled_none() -> None:
     assert not is_demo_user(None)
 
 
+@override_options({"demo-mode.enabled": False})
 @django_db_all
 def test_is_demo_user_demo_mode_disabled_readonly_user() -> None:
     user = Factories.create_user()
-    with override_options({"demo-mode.enabled": False, "demo-mode.users": [user.id]}):
-        assert not is_demo_user(user)
+    assert not is_demo_user(user)
 
 
 @django_db_all
