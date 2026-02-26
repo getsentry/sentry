@@ -225,16 +225,16 @@ export function EnvironmentPageFilter({
     multiple: true,
   });
 
-  const {dispatch: stagedSelectDispatch} = stagedSelect;
+  const {dispatch} = stagedSelect;
 
   const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
   const handleReset = useCallback(() => {
-    stagedSelectDispatch({type: 'remove staged'});
+    dispatch({type: 'remove staged'});
     handleChange([]);
     onReset?.();
-  }, [stagedSelectDispatch, handleChange, onReset]);
+  }, [dispatch, handleChange, onReset]);
 
   return (
     <HybridFilter
@@ -272,11 +272,11 @@ export function EnvironmentPageFilter({
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
               disabled={!hasStagedChanges}
-              onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
+              onClick={() => dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
               onClick={() => {
-                stagedSelect.dispatch({type: 'remove staged'});
+                dispatch({type: 'remove staged'});
                 handleChange(stagedSelect.value);
               }}
             />
