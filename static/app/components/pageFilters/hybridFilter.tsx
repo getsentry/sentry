@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useReducer, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {isAppleDevice, isMac} from '@react-aria/utils';
 
 import type {
@@ -362,10 +362,29 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     );
   }, [options]);
 
+  const [modifierActive, setModifierActive] = useState(false);
+
+  useEffect(() => {
+    const onKeyChange = (e: KeyboardEvent) => {
+      keyRef.current = e.shiftKey
+        ? 'shift'
+        : (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey)
+          ? 'modifier'
+          : null;
+      setModifierActive(!!keyRef.current);
+    };
+    window.addEventListener('keydown', onKeyChange);
+    window.addEventListener('keyup', onKeyChange);
+    return () => {
+      window.removeEventListener('keydown', onKeyChange);
+      window.removeEventListener('keyup', onKeyChange);
+    };
+  }, []);
+
   return {
     compactSelectProps: {
       value: stagedValue,
-      closeOnSelect: true,
+      closeOnSelect: !modifierActive,
       onChange: handleChange,
       onSectionToggle: handleSectionToggle,
       onInteractOutside: commitStagedChanges,
