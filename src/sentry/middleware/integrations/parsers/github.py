@@ -140,8 +140,12 @@ class GithubRequestParser(BaseRequestParser):
         allowlist = options.get("github.webhook.drop-unprocessed-events.mailbox-allowlist") or ()
         mailbox_in_allowlist = any(mailbox_name == m for m in allowlist)
 
+        # Only drop when we have a known unprocessed event type. Missing or empty
+        # X-GitHub-Event is malformed; let the request be forwarded so the region
+        # returns 400 and GitHub is notified of the delivery failure.
         if (
-            github_event not in REGION_PROCESSED_GITHUB_EVENTS
+            github_event
+            and github_event not in REGION_PROCESSED_GITHUB_EVENTS
             and options.get("github.webhook.drop-unprocessed-events.enabled")
             and mailbox_in_allowlist
         ):

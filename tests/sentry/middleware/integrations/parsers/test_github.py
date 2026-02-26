@@ -550,6 +550,37 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
             region_names=[region.name],
         )
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    @responses.activate
+    def test_missing_x_github_event_not_dropped_forwards_to_region(self) -> None:
+        """Missing X-GitHub-Event is not dropped; request is forwarded so region returns 400."""
+        integration = self.get_integration()
+        with override_options(
+            {
+                "github.webhook.drop-unprocessed-events.enabled": True,
+                "github.webhook.drop-unprocessed-events.mailbox-allowlist": [
+                    f"github:{integration.id}"
+                ],
+            }
+        ):
+            request = self.factory.post(
+                self.path,
+                data={"installation": {"id": "1"}, "repository": {"id": 123}},
+                content_type="application/json",
+                # No X-GitHub-Event header
+            )
+            parser = GithubRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+        )
+
 
 @control_silo_test
 class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
