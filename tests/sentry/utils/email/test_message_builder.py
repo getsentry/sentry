@@ -254,7 +254,9 @@ class MessageBuilderTest(TestCase):
 
         # Our new GroupEmailThread row was added
         assert GroupEmailThread.objects.count() == 1, "Should not have added a new row"
-        assert GroupEmailThread.objects.order_by("id")[0].msgid == "abc123", "msgid should not have changed"
+        assert GroupEmailThread.objects.order_by("id")[0].msgid == "abc123", (
+            "msgid should not have changed"
+        )
 
     def test_get_built_messages(self) -> None:
         msg = MessageBuilder(
