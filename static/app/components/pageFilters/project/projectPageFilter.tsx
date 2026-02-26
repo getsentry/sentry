@@ -206,6 +206,8 @@ export function ProjectPageFilter({
     [mapURLValueToNormalValue]
   );
 
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+
   const handleChange = useCallback(
     async (newValue: number[]) => {
       if (isEqual(newValue, value)) {
@@ -421,7 +423,6 @@ export function ProjectPageFilter({
     return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
   }, [options]);
 
-  const [stagedValue, setStagedValue] = useState<number[]>(value);
   const selectionLimitExceeded = useMemo(() => {
     const mappedValue = mapNormalValueToURLValue(stagedValue);
     return mappedValue.length > SELECTION_COUNT_LIMIT;
