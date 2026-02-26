@@ -44,7 +44,7 @@ class PreprodSizeAnalysisDetectorValidatorTest(TestCase):
                 ],
             },
             "config": {
-                "threshold_type": "absolute_threshold",
+                "threshold_type": "absolute",
                 "measurement": "install_size",
             },
         }
@@ -72,7 +72,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
             project=self.project,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=self.condition_group,
         )
 
@@ -96,7 +96,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
             project=self.project,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=self.condition_group,
         )
 
@@ -132,7 +132,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
             project=self.project,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=condition_group,
         )
 
@@ -170,7 +170,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
             project=self.project,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=condition_group,
         )
 
@@ -193,7 +193,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
             project=self.project,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
         )
 
         data_packet: SizeAnalysisDataPacket = DataPacket(
@@ -390,7 +390,7 @@ class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
             project=self.project,
-            config={"threshold_type": "absolute_threshold", "measurement": "install_size"},
+            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=condition_group,
         )
 
