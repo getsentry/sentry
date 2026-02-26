@@ -10,6 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
@@ -289,6 +290,11 @@ class SeerExplorerClient:
         if metadata:
             payload["metadata"] = metadata
 
+        if features.has(
+            "organizations:seer-explorer-context-engine", self.organization, actor=self.user
+        ):
+            payload["is_context_engine_enabled"] = True
+
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
         response = make_signed_seer_api_request(
@@ -352,6 +358,13 @@ class SeerExplorerClient:
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if features.has(
+            "organizations:seer-explorer-context-engine",
+            self.organization,
+            actor=self.user,
+        ):
+            payload["is_context_engine_enabled"] = True
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
