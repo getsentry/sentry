@@ -557,6 +557,8 @@ The form system automatically shows:
 - **Checkmark** on success (fades after 2s)
 - **Warning icon** on validation error (with tooltip)
 
+> **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
+
 ### Confirmation Dialogs
 
 For dangerous operations (security settings, permissions), use the `confirm` prop to show a confirmation modal before saving. The `confirm` prop accepts either a string or a function.
@@ -744,6 +746,27 @@ z.string().min(1);
 
 // ✅ Provide helpful, specific error messages
 z.string().min(1, 'Email address is required');
+```
+
+### Auto-Save Feedback
+
+```tsx
+// ❌ Don't use toasts for auto-save status
+mutationOptions={{
+  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: () => {
+    addSuccessMessage('Saved!'); // ❌ noisy and disruptive
+  },
+}}
+
+// ✅ Rely on built-in inline indicators (spinner, checkmark, warning icon)
+mutationOptions={{
+  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: (data) => {
+    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+    // No toast needed - AutoSaveField shows a checkmark automatically
+  },
+}}
 ```
 
 ### Auto-Save Cache Updates
