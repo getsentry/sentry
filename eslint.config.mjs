@@ -596,6 +596,7 @@ export default typescript.config([
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
+          '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
   },
