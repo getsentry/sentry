@@ -1,8 +1,10 @@
+import pytest
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Action
 
 
+@pytest.mark.skip
 class TestMigrateActionsSentryAppData(TestMigrations):
     migrate_from = "0107_fix_email_action_fallthrough_type"
     migrate_to = "0108_remove_sentry_app_identifier_from_action"

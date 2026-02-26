@@ -72,6 +72,7 @@ function SubmitButton(props: ButtonProps) {
           {...props}
           priority="primary"
           type="submit"
+          form={form.formId}
           disabled={isDisabled || props.disabled}
         />
       )}

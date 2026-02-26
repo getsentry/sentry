@@ -114,6 +114,7 @@ from .rulefirehistory import *  # NOQA
 from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
+from sentry.seer.models import *  # NOQA
 from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA

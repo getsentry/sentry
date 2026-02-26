@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Literal
+from datetime import datetime
+from typing import Any, Literal, overload
 
 import orjson
 from django.contrib.auth.models import AnonymousUser
@@ -11,7 +12,7 @@ from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
+from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
     explorer_connection_pool,
@@ -365,10 +366,6 @@ class SeerExplorerClient:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
 
-        if self.category_key and self.category_value:
-            payload["category_key"] = self.category_key
-            payload["category_value"] = self.category_value
-
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:
             payload["conduit_channel_id"] = conduit_channel_id
@@ -417,27 +414,60 @@ class SeerExplorerClient:
 
         return state
 
+    @overload
+    def get_runs(
+        self,
+        category_key: str | None = ...,
+        category_value: str | None = ...,
+        offset: int | None = ...,
+        limit: int | None = ...,
+        project_ids: list[int] | None = ...,
+        expand: Literal["prs"] = ...,
+        only_current_user: bool = ...,
+        start: datetime | None = ...,
+        end: datetime | None = ...,
+    ) -> list[ExplorerRunWithPrs]: ...
+
+    @overload
+    def get_runs(
+        self,
+        category_key: str | None = ...,
+        category_value: str | None = ...,
+        offset: int | None = ...,
+        limit: int | None = ...,
+        project_ids: list[int] | None = ...,
+        expand: None = ...,
+        only_current_user: bool = ...,
+        start: datetime | None = ...,
+        end: datetime | None = ...,
+    ) -> list[ExplorerRun]: ...
+
     def get_runs(
         self,
         category_key: str | None = None,
         category_value: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-    ) -> list[ExplorerRun]:
+        project_ids: list[int] | None = None,
+        expand: Literal["prs"] | None = None,
+        only_current_user: bool = True,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> list[ExplorerRunWithPrs] | list[ExplorerRun]:
         """
         Get a list of Seer Explorer runs for the organization with optional filters.
-
-        This function supports flexible filtering by user_id (from client), category_key,
-        or category_value. At least one filter should be provided to avoid returning all runs.
 
         Args:
             category_key: Optional category key to filter by (e.g., "bug-fixer")
             category_value: Optional category value to filter by (e.g., "issue-123")
             offset: Optional offset for pagination
             limit: Optional limit for pagination
+            expand: Optional string to include additional fields
+            only_current_user: Optional to filter runs by current user
 
         Returns:
-            list[ExplorerRun]: List of runs matching the filters, sorted by most recent first
+            List of runs matching the filters, sorted by most recent first.
+            Returns ExplorerRunWithPrs when expand="prs", ExplorerRun otherwise.
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -449,7 +479,7 @@ class SeerExplorerClient:
         }
 
         # Add optional filters
-        if self.user and hasattr(self.user, "id"):
+        if only_current_user and self.user and hasattr(self.user, "id"):
             payload["user_id"] = self.user.id
         if category_key is not None:
             payload["category_key"] = category_key
@@ -457,8 +487,16 @@ class SeerExplorerClient:
             payload["category_value"] = category_value
         if offset is not None:
             payload["offset"] = offset
+        if project_ids is not None:
+            payload["project_ids"] = project_ids
         if limit is not None:
             payload["limit"] = limit
+        if expand is not None:
+            payload["expand"] = expand
+        if start is not None:
+            payload["start"] = start
+        if end is not None:
+            payload["end"] = end
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -472,7 +510,8 @@ class SeerExplorerClient:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
 
-        runs = [ExplorerRun(**run) for run in result.get("data", [])]
+        Model = ExplorerRunWithPrs if expand == "prs" else ExplorerRun
+        runs = [Model(**run) for run in result.get("data", [])]
         return runs
 
     def push_changes(

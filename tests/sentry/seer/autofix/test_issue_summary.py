@@ -1149,7 +1149,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify group was updated with the new score
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.85
-        mock_generate.assert_called_once_with(self.group, summary=None)
+        mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_force_generate_regenerates_existing_score(self, mock_generate):
@@ -1172,11 +1172,11 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify the score was updated
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.90
-        mock_generate.assert_called_once_with(self.group, summary=None)
+        mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    def test_passes_summary_in_api_payload(self, mock_request):
-        """Test that summary is included in the API payload sent to Seer."""
+    def test_reads_summary_from_cache_and_passes_to_seer(self, mock_request):
+        """Test that summary is read from cache and included in the API payload sent to Seer."""
         mock_response = Mock()
         mock_response.status = 200
         mock_response.data = orjson.dumps(
@@ -1191,17 +1191,21 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         )
         mock_request.return_value = mock_response
 
-        summary = {
-            "group_id": self.group.id,
-            "headline": "Test Headline",
-            "whats_wrong": "Test whats wrong",
-            "trace": "Test trace",
-            "possible_cause": "Test cause",
-        }
+        # Populate the cache with a summary (snake_case, as stored by _generate_summary)
+        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+        from sentry.utils.cache import cache
 
-        result = get_and_update_group_fixability_score(
-            self.group, force_generate=True, summary=summary
+        cache.set(
+            get_issue_summary_cache_key(self.group.id),
+            {
+                "headline": "Test Headline",
+                "whats_wrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possible_cause": "Test cause",
+            },
         )
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
 
         assert result == 0.80
         mock_request.assert_called_once()
@@ -1216,11 +1220,38 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify summary structure matches Seer's SummarizeIssueResponse
         assert "summary" in payload
         summary_payload = payload["summary"]
-        assert summary_payload["group_id"] == self.group.id  # Must match outer group_id
+        assert summary_payload["group_id"] == self.group.id
         assert summary_payload["headline"] == "Test Headline"
         assert summary_payload["whats_wrong"] == "Test whats wrong"
         assert summary_payload["trace"] == "Test trace"
         assert summary_payload["possible_cause"] == "Test cause"
+
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_no_summary_in_cache_calls_seer_without_summary(self, mock_request):
+        """Test that when cache is empty, fixability is called without summary (Seer DB fallback)."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.data = orjson.dumps(
+            {
+                "group_id": str(self.group.id),
+                "headline": "Test",
+                "whats_wrong": "Something",
+                "trace": "Trace",
+                "possible_cause": "Cause",
+                "scores": {"fixability_score": 0.70},
+            }
+        )
+        mock_request.return_value = mock_response
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
+
+        assert result == 0.70
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args
+        payload = orjson.loads(call_args.kwargs["body"])
+
+        # Summary should NOT be in payload when cache is empty
+        assert "summary" not in payload
 
 
 @with_feature("organizations:gen-ai-features")

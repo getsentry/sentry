@@ -24,7 +24,6 @@ import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {NewWelcomeSeerExtra} from 'sentry/views/onboarding/components/newWelcomeSeerExtra';
 import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
@@ -124,7 +123,6 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
     footer: <NewWelcomeSeerFlag />,
     badge: <FeatureBadge type="new" tooltipProps={{disabled: true}} />,
-    extra: <NewWelcomeSeerExtra />,
   },
 ];
 

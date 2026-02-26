@@ -2430,12 +2430,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp so the window is exactly
+        # 2 minutes, avoiding drift from separate before_now() calls in setUp.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).isoformat()
+        end = (self.ten_mins_ago + timedelta(minutes=1)).isoformat()
+
         query = {
             "field": ["transaction", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start,
+            "end": end,
         }
         response = self.do_request(query)
 
@@ -5628,7 +5633,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
-    @pytest.mark.skip(reason="flaky: #96444")
     def test_floored_epm(self) -> None:
         for _ in range(5):
             data = self.load_data(
@@ -5638,12 +5642,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["transaction"] = "/aggregates/1"
             event1 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp to ensure an exact
+        # 2-minute window, avoiding flakiness from separate before_now() calls.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).replace(microsecond=0)
+        end = (self.ten_mins_ago + timedelta(minutes=1)).replace(microsecond=0)
         query = {
             "field": ["transaction", "floored_epm()", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
         }
         response = self.do_request(query)
 
@@ -5663,12 +5671,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["transaction"] = "/aggregates/1"
             event1 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp to ensure an exact
+        # 2-minute window, avoiding flakiness from separate before_now() calls.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).replace(microsecond=0)
+        end = (self.ten_mins_ago + timedelta(minutes=1)).replace(microsecond=0)
         query = {
             "field": ["transaction", "floored_epm()", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
         }
         response = self.do_request(query)
 

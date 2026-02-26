@@ -10,7 +10,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import jwt
@@ -185,7 +184,6 @@ class TestSentryAppAuthorizations(APITestCase):
         }
         return jwt.encode(payload, client_secret, algorithm="HS256")
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_exchange_success(self) -> None:
         # First exchange the grant for a token
         self.get_success_response()
@@ -207,7 +205,6 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.data["refreshToken"] is not None
         assert response.data["expiresAt"] > timezone.now()
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_deletes_old_token(self) -> None:
         # First exchange the grant for a token
         initial_response = self.get_success_response()
@@ -230,7 +227,6 @@ class TestSentryAppAuthorizations(APITestCase):
         new_token = ApiToken.objects.filter(token=response.data["token"])
         assert new_token.exists()
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_missing_authorization_header(self) -> None:
         # First exchange the grant for a token
         self.get_success_response()
@@ -243,7 +239,6 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert "Header is in invalid form" in response.data["detail"]
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_expired_token(self) -> None:
         # First exchange the grant for a token
         self.get_success_response()
@@ -265,7 +260,6 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert "Could not validate JWT" in response.data["detail"]
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_invalid_signature(self) -> None:
         # First exchange the grant for a token
         self.get_success_response()
@@ -282,7 +276,6 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert "Could not validate JWT" in response.data["detail"]
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_wrong_client_id(self) -> None:
         # First exchange the grant for a token
         self.get_success_response()
@@ -298,7 +291,6 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert "JWT is not valid for this application" in response.data["detail"]
 
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_requires_existing_token(self) -> None:
         # CLIENT_SECRET_JWT should only be used to refresh existing tokens
         # Attempting to use it without first exchanging the grant should fail
@@ -316,25 +308,6 @@ class TestSentryAppAuthorizations(APITestCase):
         # Should fail because there's no existing token to refresh
         assert response.data["detail"] == "Installation does not have a token"
 
-    def test_client_secret_jwt_requires_feature_flag(self) -> None:
-        self.get_success_response()
-
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
-
-        response = self.get_error_response(
-            self.install.uuid,
-            grant_type=GrantTypes.CLIENT_SECRET_JWT,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
-            status_code=403,
-        )
-
-        assert (
-            response.data["detail"] == "Manual token refresh is not enabled for this organization"
-        )
-
-    @with_feature("organizations:sentry-app-manual-token-refresh")
     def test_client_secret_jwt_request_with_new_token(self) -> None:
         # First exchange the grant for a token
         self.get_success_response()
