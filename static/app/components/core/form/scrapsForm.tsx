@@ -50,7 +50,7 @@ const fieldComponents = {
 
 export type BoundFieldComponents = typeof fieldComponents;
 
-const {useAppForm} = createFormHook({
+const {useAppForm, withFieldGroup} = createFormHook({
   fieldComponents,
   formComponents: {
     FieldGroup,
@@ -96,6 +96,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 }
 
 export const useScrapsForm = useAppForm;
+export {withFieldGroup};
 
 /**
  * Type for field errors that can be set after form submission (e.g., from backend validation).
