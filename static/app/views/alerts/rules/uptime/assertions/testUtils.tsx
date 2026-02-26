@@ -1,77 +1,79 @@
 import {uniqueId} from 'sentry/utils/guid';
-import type {
-  AndOp,
-  HeaderCheckOp,
-  JsonPathOp,
-  NotOp,
-  OrOp,
-  StatusCodeOp,
+import {
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAndOp,
+  type UptimeHeaderCheckOp,
+  type UptimeJsonPathOp,
+  type UptimeNotOp,
+  type UptimeOrOp,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
-export function makeAndOp(overrides: Omit<Partial<AndOp>, 'op'> = {}): AndOp {
+export function makeAndOp(overrides: Omit<Partial<UptimeAndOp>, 'op'> = {}): UptimeAndOp {
   const {children, ...rest} = overrides;
   return {
     id: uniqueId(),
-    op: 'and',
+    op: UptimeOpType.AND,
     children: children ?? [],
     ...rest,
   };
 }
 
-export function makeOrOp(overrides: Omit<Partial<OrOp>, 'op'> = {}): OrOp {
+export function makeOrOp(overrides: Omit<Partial<UptimeOrOp>, 'op'> = {}): UptimeOrOp {
   const {children, ...rest} = overrides;
   return {
     id: uniqueId(),
-    op: 'or',
+    op: UptimeOpType.OR,
     children: children ?? [],
     ...rest,
   };
 }
 
-export function makeNotOp(overrides: Omit<Partial<NotOp>, 'op'> = {}): NotOp {
+export function makeNotOp(overrides: Omit<Partial<UptimeNotOp>, 'op'> = {}): UptimeNotOp {
   const {operand, ...rest} = overrides;
   return {
     id: uniqueId(),
-    op: 'not',
+    op: UptimeOpType.NOT,
     operand: operand ?? makeAndOp({children: [makeStatusCodeOp()]}),
     ...rest,
   };
 }
 
 export function makeStatusCodeOp(
-  overrides: Omit<Partial<StatusCodeOp>, 'op'> = {}
-): StatusCodeOp {
+  overrides: Omit<Partial<UptimeStatusCodeOp>, 'op'> = {}
+): UptimeStatusCodeOp {
   return {
     id: uniqueId(),
-    op: 'status_code_check',
-    operator: {cmp: 'equals'},
+    op: UptimeOpType.STATUS_CODE_CHECK,
+    operator: {cmp: UptimeComparisonType.EQUALS},
     value: 200,
     ...overrides,
   };
 }
 
 export function makeJsonPathOp(
-  overrides: Omit<Partial<JsonPathOp>, 'op'> = {}
-): JsonPathOp {
+  overrides: Omit<Partial<UptimeJsonPathOp>, 'op'> = {}
+): UptimeJsonPathOp {
   return {
     id: uniqueId(),
-    op: 'json_path',
+    op: UptimeOpType.JSON_PATH,
     value: '$.status',
-    operator: {cmp: 'equals'},
+    operator: {cmp: UptimeComparisonType.EQUALS},
     operand: {jsonpath_op: 'literal', value: 'ok'},
     ...overrides,
   };
 }
 
 export function makeHeaderCheckOp(
-  overrides: Omit<Partial<HeaderCheckOp>, 'op'> = {}
-): HeaderCheckOp {
+  overrides: Omit<Partial<UptimeHeaderCheckOp>, 'op'> = {}
+): UptimeHeaderCheckOp {
   return {
     id: uniqueId(),
-    op: 'header_check',
-    key_op: {cmp: 'equals'},
+    op: UptimeOpType.HEADER_CHECK,
+    key_op: {cmp: UptimeComparisonType.EQUALS},
     key_operand: {header_op: 'literal', value: 'content-type'},
-    value_op: {cmp: 'equals'},
+    value_op: {cmp: UptimeComparisonType.EQUALS},
     value_operand: {header_op: 'literal', value: 'application/json'},
     ...overrides,
   };

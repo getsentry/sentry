@@ -1,6 +1,7 @@
 import dataclasses
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
@@ -16,8 +17,16 @@ from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
     GetTracesResponse,
     TraceAttribute,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    RequestMeta,
+    TraceItemType,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    IntArray,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -229,15 +238,51 @@ class TracesExecutor:
 
         all_projects = self.get_all_projects()
 
-        rpc_request = self.get_traces_rpc(all_projects)
-
-        rpc_response = get_traces_rpc(rpc_request)
-
-        if not rpc_response.traces:
-            return []
-
         projects_map: dict[int, str] = {project.id: project.slug for project in all_projects}
-        traces = [format_trace_result(trace, projects_map) for trace in rpc_response.traces]
+
+        all_project_request = self.get_traces_rpc(all_projects)
+        # because of sampling if we search all projects we can hit the downsampled tables, getting far less results than
+        # expected if the selected project list is smaller, in these cases we want to run a second query in parallel for
+        # selected projects only
+        # We only do this on the first page, since if there are enough results to paginate the sampling is likely not an
+        # issue
+        if len(self.snuba_params.projects) < len(all_projects) and self.offset == 0:
+            selected_project_request = self.get_traces_rpc(list(self.snuba_params.projects))
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__, max_workers=2
+            ) as query_thread_pool:
+                all_project_future = query_thread_pool.submit(get_traces_rpc, all_project_request)
+                selected_project_future = query_thread_pool.submit(
+                    get_traces_rpc, selected_project_request
+                )
+            all_project_response = all_project_future.result()
+            selected_project_response = selected_project_future.result()
+
+            # Zip the results back together and remove duplicates
+            traces = [
+                format_trace_result(trace, projects_map) for trace in all_project_response.traces
+            ]
+            trace_ids = [trace["trace"] for trace in traces]
+            for trace in selected_project_response.traces:
+                formatted_trace = format_trace_result(trace, projects_map)
+                if formatted_trace["trace"] not in trace_ids:
+                    traces.append(formatted_trace)
+
+            # Sort the results again
+            if self.sort == "timestamp":
+                traces.sort(key=lambda x: x["start"])
+            elif self.sort == "-timestamp":
+                traces.sort(key=lambda x: x["start"])
+                traces.reverse()
+            traces = traces[: self.limit]
+        else:
+            all_project_response = get_traces_rpc(all_project_request)
+            traces = [
+                format_trace_result(trace, projects_map) for trace in all_project_response.traces
+            ]
+
+        if not traces:
+            return []
 
         with handle_span_query_errors():
             snuba_params = self.params_with_all_projects()

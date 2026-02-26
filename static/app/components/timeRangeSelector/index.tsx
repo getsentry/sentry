@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
@@ -62,8 +62,7 @@ export type ChangeData = {
 export interface TimeRangeSelectorProps extends Omit<
   SingleSelectProps<string>,
   | 'multiple'
-  | 'searchable'
-  | 'disableSearchFilter'
+  | 'search'
   | 'options'
   | 'hideOptions'
   | 'value'
@@ -105,6 +104,10 @@ export interface TimeRangeSelectorProps extends Omit<
   menuFooterMessage?: React.ReactNode;
   onChange?: (data: ChangeData) => void;
   /**
+   * Called when the search input's value changes.
+   */
+  onSearch?: (value: string) => void;
+  /**
    * Relative date value
    */
   relative?: string | null;
@@ -119,6 +122,10 @@ export interface TimeRangeSelectorProps extends Omit<
         arbitraryOptions: Record<string, React.ReactNode>;
         defaultOptions: Record<string, React.ReactNode>;
       }) => Record<string, React.ReactNode>);
+  /**
+   * Placeholder text for the search input.
+   */
+  searchPlaceholder?: string;
   /**
    * Show absolute date selectors
    */
@@ -322,16 +329,20 @@ export function TimeRangeSelector({
       {items => (
         <CompactSelect
           {...selectProps}
-          searchable={!showAbsoluteSelector}
-          disableSearchFilter
-          onSearch={s => {
-            onSearch?.(s);
-            setSearch(s);
-          }}
-          searchPlaceholder={
-            (searchPlaceholder ?? disallowArbitraryRelativeRanges)
-              ? (searchPlaceholder ?? t('Search…'))
-              : t('Custom range: 2h, 4d, 8w…')
+          search={
+            showAbsoluteSelector
+              ? undefined
+              : {
+                  filter: false,
+                  onChange: s => {
+                    onSearch?.(s);
+                    setSearch(s);
+                  },
+                  placeholder:
+                    (searchPlaceholder ?? disallowArbitraryRelativeRanges)
+                      ? (searchPlaceholder ?? t('Search…'))
+                      : t('Custom range: 2h, 4d, 8w…'),
+                }
           }
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
@@ -436,7 +447,7 @@ export function TimeRangeSelector({
           }
           menuFooter={
             menuFooter || menuFooterMessage || showAbsoluteSelector
-              ? ({closeOverlay}) => (
+              ? () => (
                   <Fragment>
                     {menuFooterMessage && (
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
@@ -455,17 +466,10 @@ export function TimeRangeSelector({
                               {t('Back')}
                             </Button>
                           )}
-                          <Button
-                            size="xs"
-                            priority="primary"
+                          <MenuComponents.ApplyButton
                             disabled={!hasChanges || hasDateRangeErrors}
-                            onClick={() => {
-                              commitChanges();
-                              closeOverlay();
-                            }}
-                          >
-                            {t('Apply')}
-                          </Button>
+                            onClick={commitChanges}
+                          />
                         </Flex>
                       )}
                     </FooterWrap>

@@ -1190,10 +1190,6 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   hasSpikeProtection: boolean;
   /**
-   * The maximum number of free events that can be gifted
-   */
-  maxAdminGift: number;
-  /**
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';

@@ -78,18 +78,15 @@ describe('AddGiftEventsAction', () => {
     expect(screen.getByTestId('confirm-button')).toBeDisabled();
   });
 
-  it('disallows gifts greater than max gift limit', async () => {
-    const billedCategoryInfo = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN];
-    const maxValue =
-      billedCategoryInfo.maxAdminGift / billedCategoryInfo.freeEventsMultiple;
+  it('allows gifts of any size', async () => {
     triggerGiftModal();
     renderGlobalModal();
 
     const input = getInput();
 
-    await setNumEvents(`${maxValue + 5}`);
-    expect(input).toHaveValue(maxValue.toString());
-    expect(input).toHaveAccessibleDescription('Total: 1,000,000,000');
+    await setNumEvents('50000');
+    expect(input).toHaveValue('50000');
+    expect(input).toHaveAccessibleDescription('Total: 5,000,000,000');
   });
 
   it('renders label and help text with hours for continuous profiling categories', async () => {

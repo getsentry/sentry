@@ -71,6 +71,7 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -90,6 +91,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -517,6 +519,17 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                               ...(series?.length > 0
                                 ? (modifiedReleaseSeriesResults ?? [])
                                 : []),
+                              ...(defined(widget.thresholds?.max_values.max1) ||
+                              defined(widget.thresholds?.max_values.max2)
+                                ? new ThresholdsPlottable({
+                                    thresholds: {
+                                      ...widget.thresholds,
+                                      preferredPolarity:
+                                        widget.thresholds?.preferredPolarity ?? '-',
+                                    },
+                                    dataType: outputType,
+                                  }).toSeries({theme})
+                                : []),
                             ],
                             onLegendSelectChanged: handleLegendSelectChange,
                             onChartReady: handleChartReady,
@@ -753,7 +766,20 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+  // When multiple aggregates exist, only plot the selected one (radio selection).
+  // This mirrors Big Number behavior — all aggregates are queried, but only
+  // one is rendered at a time.
+  const selectedIndex = getSelectedAggregateIndex(
+    query.selectedAggregate,
+    query.aggregates.length
+  );
+  const selectedAggregate = query.aggregates[selectedIndex];
+  // Filter query to only the selected aggregate.
+  const filteredQuery = selectedAggregate
+    ? {...query, aggregates: [selectedAggregate]}
+    : query;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
     meta: {
       fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],

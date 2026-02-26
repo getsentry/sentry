@@ -1,16 +1,14 @@
 import {useMemo} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Count from 'sentry/components/count';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChat, IconFire, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -78,9 +76,7 @@ export function ConversationSummary({
 }: ConversationSummaryProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const theme = useTheme();
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
 
   const baseQuery = `gen_ai.conversation.id:${conversationId}`;
 
@@ -105,40 +101,28 @@ export function ConversationSummary({
   return (
     <Flex align="center" gap="lg" flex={1}>
       <Flex align="center" gap="sm" flexShrink={0}>
-        <Text size="lg" bold>
+        <Text size="sm" bold>
           {t('Conversation')}
         </Text>
-        <Text variant="muted" monospace>
+        <ConversationId size="sm" variant="muted" monospace>
           {conversationId.slice(0, 8)}
-        </Text>
-        <CopyToClipboardButton
-          aria-label={t('Copy conversation ID')}
-          priority="transparent"
-          size="zero"
-          text={conversationId}
-        />
+        </ConversationId>
       </Flex>
       <Divider />
       <Flex align="center" gap="sm" wrap="wrap">
         <AggregateItem
-          icon={<IconChat size="sm" />}
-          iconColor={colors[2]}
           label={t('LLM Calls')}
           value={<Count value={aggregates.llmCalls} />}
           to={aggregates.llmCalls > 0 ? llmCallsUrl : undefined}
           isLoading={isLoading}
         />
         <AggregateItem
-          icon={<IconFix size="sm" />}
-          iconColor={colors[5]}
           label={t('Tool Calls')}
           value={<Count value={aggregates.toolCalls} />}
           to={aggregates.toolCalls > 0 ? toolCallsUrl : undefined}
           isLoading={isLoading}
         />
         <AggregateItem
-          icon={<IconFire size="sm" />}
-          iconColor={theme.tokens.graphics.danger.vibrant}
           label={t('Errors')}
           value={<Count value={aggregates.errorCount} />}
           to={aggregates.errorCount > 0 ? errorsUrl : undefined}
@@ -160,8 +144,6 @@ export function ConversationSummary({
 }
 
 function AggregateItem({
-  icon,
-  iconColor,
   label,
   value,
   to,
@@ -169,8 +151,6 @@ function AggregateItem({
 }: {
   label: string;
   value: React.ReactNode;
-  icon?: React.ReactNode;
-  iconColor?: string;
   isLoading?: boolean;
   to?: string;
 }) {
@@ -178,12 +158,9 @@ function AggregateItem({
 
   const content = (
     <AggregateItemContainer align="center" gap="xs" isInteractive={isInteractive}>
-      {icon && (
-        <Flex as="span" style={{color: iconColor}}>
-          {icon}
-        </Flex>
-      )}
-      <Text variant="muted">{label}</Text>
+      <Text bold size="sm">
+        {label}
+      </Text>
       {isLoading ? (
         <Placeholder width="20px" height="16px" />
       ) : (
@@ -198,6 +175,12 @@ function AggregateItem({
 
   return content;
 }
+
+// Monospace font has different baseline metrics, nudge up to visually align
+const ConversationId = styled(Text)`
+  position: relative;
+  top: -1px;
+`;
 
 const Divider = styled('div')`
   width: 1px;

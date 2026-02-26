@@ -93,8 +93,8 @@ const StepsContainer = styled('div')`
     right: 0;
     height: 12px;
     width: 2px;
-    border-radius: ${p => p.theme.radius.lg};
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    border-radius: ${p => p.theme.radius.xs};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
   }
 `;
 
@@ -109,11 +109,11 @@ const StepMark = styled('span')<{filled?: boolean}>`
     position: absolute;
     height: 12px;
     width: 2px;
-    border-radius: ${p => p.theme.radius.lg};
+    border-radius: ${p => p.theme.radius.xs};
     background: ${p =>
       p.filled
-        ? p.theme.tokens.interactive.chonky.debossed.accent.background
-        : p.theme.tokens.interactive.chonky.debossed.neutral.background};
+        ? p.theme.tokens.background.accent.vibrant
+        : p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
   }
 `;
 
@@ -176,9 +176,8 @@ const StyledSlider = styled('input')`
     min-width: calc(${p => p.theme.radius['2xs']} * 6);
     width: var(--p, 50%);
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
-    border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
-    border-radius: ${p => p.theme.radius['2xs']};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
+    border-radius: ${p => p.theme.radius.xs};
   }
 
   /* Chrome styling */
@@ -187,7 +186,7 @@ const StyledSlider = styled('input')`
     height: 4px;
     background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-    border-radius: ${p => p.theme.radius['2xs']};
+    border-radius: ${p => p.theme.radius.xs};
   }
 
   &::-webkit-slider-thumb {
@@ -209,7 +208,7 @@ const StyledSlider = styled('input')`
     height: 4px;
     background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-    border-radius: ${p => p.theme.radius['2xs']};
+    border-radius: ${p => p.theme.radius.xs};
   }
 
   &::-moz-range-thumb {
@@ -251,8 +250,8 @@ const SliderOutput = styled('output')`
   opacity: var(--o);
   transform: translate(var(--tx), var(--ty));
   transition:
-    opacity ${p => p.theme.motion.exit.fast},
-    transform ${p => p.theme.motion.smooth.fast};
+    opacity linear,
+    transform linear;
 `;
 
 const SliderLabel = styled('span')`
@@ -263,9 +262,9 @@ const SliderLabel = styled('span')`
   width: min-content;
   text-align: center;
   background: ${p => p.theme.tokens.background.accent.vibrant};
-  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
+  border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
   color: ${p => p.theme.tokens.content.onVibrant.light};
-  border-radius: ${p => p.theme.radius['2xs']};
+  border-radius: ${p => p.theme.radius.xs};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 

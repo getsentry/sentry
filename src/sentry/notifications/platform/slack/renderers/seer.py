@@ -27,7 +27,10 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixTrigger,
     SeerAutofixUpdate,
 )
-from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationRenderedTemplate,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 
 if TYPE_CHECKING:
@@ -154,8 +157,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(RichTextBlock(elements=[list_element]))
         if data.changes:
             for change in data.changes[:MAX_CHANGES]:
-                change_mrkdwn = f"_In {change['repo_name']}_:\n*{change['title']}*\n{change['description']}\n```\n{change['diff']}```"
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=change_mrkdwn)))
+                change_mrkdwn = [f"_In {change['repo_name']}_:"]
+                if change.get("title"):
+                    change_mrkdwn.append(f"*{change['title']}*")
+
+                if change.get("description"):
+                    change_mrkdwn.append(f"{change['description']}")
+                if change.get("diff"):
+                    change_mrkdwn.append(f"```{change['diff']}```")
+                blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
         if data.pull_requests:
             action_id = encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
@@ -179,7 +189,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_link_button(
-        cls, *, organization_id: int, project_id: int, group_link: str, text: str = "View in Sentry"
+        cls,
+        *,
+        organization_id: int,
+        project_id: int,
+        group_link: str,
+        text: str = "View in Sentry",
     ) -> LinkButtonElement:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction

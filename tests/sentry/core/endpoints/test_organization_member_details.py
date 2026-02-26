@@ -517,7 +517,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
         )
-        self.get_success_response(self.organization.slug, member_om.id, teams=[foo.slug, bar.slug])
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug, member_om.id, teams=[foo.slug, bar.slug]
+            )
 
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
         team_ids = list(map(lambda x: x.team_id, member_teams))
@@ -529,6 +532,11 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert foo.slug in teams
         assert bar.slug in teams
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+        )
 
     @with_feature("organizations:team-roles")
     def test_can_update_teams_with_feature_flag(self) -> None:

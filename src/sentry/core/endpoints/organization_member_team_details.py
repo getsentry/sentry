@@ -422,6 +422,20 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
             self._change_team_member_role(omt, new_role)
 
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=omt.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_EDIT"),
+                data={
+                    "email": member.get_email(),
+                    "role": member.role,
+                    "team_slug": team.slug,
+                    "team_role": new_role_id,
+                },
+            )
+
         return Response(
             serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
         )

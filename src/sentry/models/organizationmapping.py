@@ -38,6 +38,7 @@ class OrganizationMapping(Model):
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(max_length=REGION_NAME_LENGTH)
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 

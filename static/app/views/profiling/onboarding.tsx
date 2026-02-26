@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -100,18 +99,24 @@ function StepRenderer({
   step,
   stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   const {type, title} = step;
   const api = useApi();
   const organization = useOrganization();
 
   return (
-    <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
+    <GuidedSteps.Step
+      stepKey={type || title}
+      title={title || (type && StepTitles[type])}
+      trailingItems={trailingItems}
+    >
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
       </StepIndexProvider>
@@ -203,6 +208,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -309,11 +315,6 @@ export function Onboarding() {
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton steps={steps} source="profiling_onboarding" />
-        </Container>
-      </CopySetupInstructionsGate>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
@@ -322,6 +323,15 @@ export function Onboarding() {
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 && copyEnabled ? (
+                <OnboardingCopyMarkdownButton
+                  borderless
+                  steps={steps}
+                  source="profiling_onboarding"
+                />
+              ) : undefined
+            }
           />
         ))}
       </GuidedSteps>
