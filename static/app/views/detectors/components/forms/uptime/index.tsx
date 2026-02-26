@@ -5,9 +5,11 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {mapToFormErrors} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
-  extractCompilationError,
+  extractPreviewCheckError,
+  mapToFormErrors,
+} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {
   PreviewCheckResultProvider,
   usePreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/previewCheckContext';
@@ -96,7 +98,7 @@ function NewUptimeDetectorFormContent() {
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        const extractedError = extractCompilationError(responseJson);
+        const extractedError = extractPreviewCheckError(responseJson);
         previewCheckResult?.setPreviewCheckError(extractedError);
         return mapToFormErrors(extractedError);
       }}
@@ -114,11 +116,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
   );
 }
 
-function EditExistingUptimeDetectorFormContent({
-  detector,
-}: {
-  detector: UptimeDetector;
-}) {
+function EditExistingUptimeDetectorFormContent({detector}: {detector: UptimeDetector}) {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
 
@@ -139,7 +137,7 @@ function EditExistingUptimeDetectorFormContent({
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        const extractedError = extractCompilationError(responseJson);
+        const extractedError = extractPreviewCheckError(responseJson);
         previewCheckResult?.setPreviewCheckError(extractedError);
         return mapToFormErrors(extractedError);
       }}
