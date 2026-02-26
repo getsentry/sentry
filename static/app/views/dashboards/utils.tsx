@@ -133,7 +133,9 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
         : dataType === 'size'
           ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             SIZE_UNIT_MULTIPLIERS[unit]
-          : 1;
+          : dataType === 'percentage'
+            ? 100
+            : 1;
   return value * multiplier;
 }
 
