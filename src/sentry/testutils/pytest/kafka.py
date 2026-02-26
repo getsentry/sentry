@@ -1,10 +1,9 @@
 import logging
 import time
 from collections.abc import MutableMapping
+from typing import Any
 
 import pytest
-from confluent_kafka import Consumer, Producer
-from confluent_kafka.admin import AdminClient
 
 from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic
 
@@ -16,6 +15,8 @@ MAX_SECONDS_WAITING_FOR_EVENT = 16
 @pytest.fixture
 def kafka_producer():
     def inner(settings):
+        from confluent_kafka import Producer
+
         producer = Producer(
             {"bootstrap.servers": settings.KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"]}
         )
@@ -26,6 +27,8 @@ def kafka_producer():
 
 class _KafkaAdminWrapper:
     def __init__(self, request, settings):
+        from confluent_kafka.admin import AdminClient
+
         self.test_name = request.node.name
 
         kafka_config = {}
@@ -72,7 +75,7 @@ def scope_consumers():
     be created once per test session).
 
     """
-    all_consumers: MutableMapping[str, Consumer | None] = {
+    all_consumers: MutableMapping[str, Any] = {
         # Relay is configured to use this topic for all ingest messages. See
         # `template/config.yml`. Per-worker under xdist.
         _get_xdist_kafka_topic("ingest-events"): None,
@@ -87,7 +90,7 @@ def scope_consumers():
                 # stop the consumer
                 consumer.signal_shutdown()
                 consumer.run()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 _log.warning("Failed to cleanup consumer %s", consumer_name)
 
 
