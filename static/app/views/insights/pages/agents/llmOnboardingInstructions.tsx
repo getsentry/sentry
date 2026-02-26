@@ -13,9 +13,13 @@ export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode
   const copyEnabled = useCopySetupInstructionsEnabled();
 
   if (copyEnabled) {
-    return tct(
-      'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-      {link: docsLink, bold: <strong />}
+    return (
+      <p>
+        {tct(
+          'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+          {link: docsLink, bold: <strong />}
+        )}
+      </p>
     );
   }
 
