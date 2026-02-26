@@ -94,12 +94,12 @@ export default function ProjectTableHeader({
   return (
     <Fragment>
       <TableHeader>
-        <SimpleTable.HeaderCell>
+        {/* <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderCell> */}
         {COLUMNS.map(({title, key, sortKey}) => (
           <SimpleTable.HeaderCell
             key={key}
