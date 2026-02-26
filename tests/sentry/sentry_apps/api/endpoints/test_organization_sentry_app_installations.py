@@ -53,7 +53,11 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert response.data == [
             {
-                "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
+                "app": {
+                    "slug": self.unpublished_app.slug,
+                    "uuid": self.unpublished_app.uuid,
+                    "sentryAppId": self.unpublished_app.id,
+                },
                 "organization": {"slug": self.org.slug, "id": self.org.id},
                 "uuid": self.installation2.uuid,
                 "code": self.installation2.api_grant.code,
@@ -65,7 +69,11 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert response.data == [
             {
-                "app": {"slug": self.published_app.slug, "uuid": self.published_app.uuid},
+                "app": {
+                    "slug": self.published_app.slug,
+                    "uuid": self.published_app.uuid,
+                    "sentryAppId": self.published_app.id,
+                },
                 "organization": {"slug": self.super_org.slug, "id": self.super_org.id},
                 "uuid": self.installation.uuid,
                 "code": self.installation.api_grant.code,
@@ -97,7 +105,11 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert response.data == [
             {
-                "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
+                "app": {
+                    "slug": self.unpublished_app.slug,
+                    "uuid": self.unpublished_app.uuid,
+                    "sentryAppId": self.unpublished_app.id,
+                },
                 "organization": {"slug": self.org.slug, "id": self.org.id},
                 "uuid": self.installation2.uuid,
                 "code": self.installation2.api_grant.code,
