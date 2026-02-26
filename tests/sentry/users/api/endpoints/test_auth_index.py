@@ -575,7 +575,9 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
         self.readonly_user = self.create_user("bar@example.com")
 
     def test_authenticate(self) -> None:
-        with override_options({"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}):
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
             self.login_as(self.normal_user)
             response = self.client.post(self.path)
             assert response.status_code == 200
@@ -585,7 +587,9 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
             assert response.status_code == 403
 
     def test_log_out_single_session(self) -> None:
-        with override_options({"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}):
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
             self.login_as(self.normal_user)
             response = self.client.delete(self.path)
             assert response.status_code == 204
@@ -597,7 +601,9 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
             assert list(self.client.session.keys()) == []
 
     def test_log_out_all_sessions(self) -> None:
-        with override_options({"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}):
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
             self.login_as(self.normal_user)
             response = self.client.delete(self.path, {"all": True})
             assert response.status_code == 204

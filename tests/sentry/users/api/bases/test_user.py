@@ -70,15 +70,11 @@ class UserPermissionTest(DRFPermissionTestCase):
 
         with self.settings(SUPERUSER_ORG_ID=org.id):
             request = self.make_request(user=self.superuser, is_superuser=True, method="GET")
-            assert self.user_permission.has_object_permission(
-                request, APIView(), self.normal_user
-            )
+            assert self.user_permission.has_object_permission(request, APIView(), self.normal_user)
 
             # superuser write can hit POST
             request.method = "POST"
-            assert self.user_permission.has_object_permission(
-                request, APIView(), self.normal_user
-            )
+            assert self.user_permission.has_object_permission(request, APIView(), self.normal_user)
 
     def test_rejects_active_staff(self) -> None:
         # The user passed in and the user on the request must be different to
