@@ -561,6 +561,8 @@ class SpansBuffer:
                     has_root_span,
                     len(segment),
                     shard,
+                    queue_key,
+                    now,
                 )
             except Exception:
                 logger.exception("flush_segments: Failed to log debug trace flush info")
