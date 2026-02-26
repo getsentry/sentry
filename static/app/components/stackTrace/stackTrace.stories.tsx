@@ -2,7 +2,9 @@ import Panel from 'sentry/components/panels/panel';
 import {StackTrace, useStackTraceContext} from 'sentry/components/stackTrace';
 import * as Storybook from 'sentry/stories';
 import {EventOrGroupType, type Event, type Frame} from 'sentry/types/event';
+import {Coverage} from 'sentry/types/integrations';
 import type {
+  LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
@@ -325,6 +327,56 @@ function makeRegistersAndAssemblyStackTraceData(): StackTraceStoryData {
   };
 }
 
+function makeCoverageStackTraceData(): StackTraceStoryData {
+  const {event, stacktrace} = makeStackTraceData();
+
+  return {
+    event,
+    stacktrace: {
+      ...stacktrace,
+      frames: stacktrace.frames.map((frame, frameIndex) => {
+        const activeLineNo = frame.lineNo ?? 100 + frameIndex * 10;
+        const context = Array.from({length: 9}, (_value, contextIndex) => {
+          const lineNo = activeLineNo - 4 + contextIndex;
+          const isActiveLine = lineNo === activeLineNo;
+          const lineText = isActiveLine
+            ? `    // frame ${frameIndex + 1} active line`
+            : `    // frame ${frameIndex + 1} context line ${contextIndex + 1}`;
+          return [lineNo, lineText] as [number, string];
+        });
+
+        return {
+          ...frame,
+          context,
+          lineNo: activeLineNo,
+        };
+      }),
+    } as StacktraceWithFrames,
+  };
+}
+
+function makeFrameCoverageResolver(
+  stacktrace: StacktraceWithFrames
+): ({frameIndex}: {frameIndex: number}) => LineCoverage[] | undefined {
+  const coveragePattern = [Coverage.COVERED, Coverage.PARTIAL, Coverage.NOT_COVERED];
+
+  return ({frameIndex}: {frameIndex: number}) => {
+    const frame = stacktrace.frames[frameIndex];
+    const context = frame?.context ?? [];
+
+    if (context.length === 0) {
+      return undefined;
+    }
+
+    return context.map(
+      ([lineNo], index): LineCoverage => [
+        lineNo,
+        coveragePattern[index % coveragePattern.length]!,
+      ]
+    );
+  };
+}
+
 export default Storybook.story('Core/StackTrace', story => {
   story('Interactive', () => {
     const {event, stacktrace} = makeStackTraceData();
@@ -431,6 +483,21 @@ export default Storybook.story('Core/StackTrace', story => {
 
     return (
       <StackTrace event={event} stacktrace={stacktrace}>
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTrace>
+    );
+  });
+
+  story('With Coverage (Multiple Frames)', () => {
+    const {event, stacktrace} = makeCoverageStackTraceData();
+
+    return (
+      <StackTrace
+        event={event}
+        stacktrace={stacktrace}
+        getFrameLineCoverage={makeFrameCoverageResolver(stacktrace)}
+      >
         <StackTrace.Toolbar />
         <StackTrace.Content />
       </StackTrace>

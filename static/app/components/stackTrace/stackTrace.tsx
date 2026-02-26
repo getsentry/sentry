@@ -48,13 +48,20 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 function Root({
   children,
   components: componentsProp,
+  defaultIsMinified = false,
   event,
+  frameSourceMapDebuggerData,
+  getFrameLineCoverage,
+  hideSourceMapDebugger = false,
+  lockAddress,
+  minifiedStacktrace,
   stacktrace,
   defaultView = 'app',
   defaultIsNewestFirst = true,
   maxDepth,
   meta,
   platform: platformProp,
+  threadId,
 }: StackTraceRootProps) {
   const storeComponents = useSentryAppComponentsStore({componentType: 'stacktrace-link'});
   const storeStacktraceLinkComponents = useMemo(
@@ -66,7 +73,13 @@ function Root({
       ),
     [storeComponents]
   );
-  const frames = useMemo(() => stacktrace.frames ?? [], [stacktrace.frames]);
+  const [isMinified, setIsMinified] = useState(
+    () => !!minifiedStacktrace && defaultIsMinified
+  );
+  const hasMinifiedStacktrace = !!minifiedStacktrace;
+  const activeStacktrace =
+    isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
+  const frames = useMemo(() => activeStacktrace.frames ?? [], [activeStacktrace.frames]);
   const components = useMemo(
     () => componentsProp ?? storeStacktraceLinkComponents,
     [componentsProp, storeStacktraceLinkComponents]
@@ -88,7 +101,7 @@ function Root({
     return expandedMap;
   });
 
-  const platform = platformProp ?? getDefaultPlatform(stacktrace, event);
+  const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
 
   useEffect(() => {
@@ -110,7 +123,7 @@ function Root({
         hiddenFrameToggleMap,
         frameCountMap,
         newestFirst: isNewestFirst,
-        framesOmitted: stacktrace.framesOmitted,
+        framesOmitted: activeStacktrace.framesOmitted,
         maxDepth,
       }),
     [
@@ -120,7 +133,7 @@ function Root({
       isNewestFirst,
       maxDepth,
       shouldIncludeSystemFrames,
-      stacktrace.framesOmitted,
+      activeStacktrace.framesOmitted,
     ]
   );
 
@@ -129,17 +142,24 @@ function Root({
       components,
       event,
       platform,
-      stacktrace,
+      stacktrace: activeStacktrace,
+      frameSourceMapDebuggerData,
       frames,
+      getFrameLineCoverage,
+      hideSourceMapDebugger,
       rows,
       meta,
       view,
       setView,
+      hasMinifiedStacktrace,
+      isMinified,
+      setIsMinified,
       isNewestFirst,
       setIsNewestFirst,
       expandedFrames,
       hiddenFrameToggleMap,
       lastFrameIndex: getLastFrameIndex(frames),
+      lockAddress,
       toggleFrameExpansion: (frameIndex: number) => {
         setExpandedFrames(prevState => ({
           ...prevState,
@@ -152,18 +172,26 @@ function Root({
           [frameIndex]: !prevState[frameIndex],
         }));
       },
+      threadId,
     }),
     [
       components,
       event,
       expandedFrames,
+      frameSourceMapDebuggerData,
       frames,
+      getFrameLineCoverage,
+      hasMinifiedStacktrace,
+      hideSourceMapDebugger,
       hiddenFrameToggleMap,
+      isMinified,
       isNewestFirst,
+      lockAddress,
       meta,
       platform,
       rows,
-      stacktrace,
+      activeStacktrace,
+      threadId,
       view,
     ]
   );
@@ -217,11 +245,32 @@ function OrderToggle() {
   );
 }
 
+function MinifiedToggle() {
+  const {hasMinifiedStacktrace, isMinified, setIsMinified} = useStackTraceContext();
+
+  if (!hasMinifiedStacktrace) {
+    return null;
+  }
+
+  return (
+    <Button
+      size="sm"
+      priority={isMinified ? 'primary' : 'default'}
+      onClick={() => setIsMinified(currentValue => !currentValue)}
+    >
+      {t('Minified')}
+    </Button>
+  );
+}
+
 function Toolbar() {
   return (
     <Flex justify="between" align="center" gap="sm" wrap="wrap" marginBottom="sm">
       <ViewSwitcher />
-      <OrderToggle />
+      <Flex align="center" gap="sm">
+        <MinifiedToggle />
+        <OrderToggle />
+      </Flex>
     </Flex>
   );
 }
@@ -390,6 +439,7 @@ const Frame = Object.assign(FrameRoot, {
 export const StackTrace = Object.assign(Root, {
   Content,
   Frame,
+  MinifiedToggle,
   OrderToggle,
   Toolbar,
   ViewSwitcher,

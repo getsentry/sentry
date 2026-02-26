@@ -1,5 +1,6 @@
 import {createContext, useContext} from 'react';
 
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -8,22 +9,35 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
-import type {Row, StackTraceMeta, StackTraceView} from './types';
+import type {
+  FrameLineCoverageResolver,
+  Row,
+  StackTraceMeta,
+  StackTraceView,
+} from './types';
 
 export interface StackTraceContextValue {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   expandedFrames: Record<number, boolean>;
+  frameSourceMapDebuggerData: FrameSourceMapDebuggerData[] | undefined;
   frames: Frame[];
+  getFrameLineCoverage: FrameLineCoverageResolver | undefined;
+  hasMinifiedStacktrace: boolean;
   hiddenFrameToggleMap: Record<number, boolean>;
+  hideSourceMapDebugger: boolean;
+  isMinified: boolean;
   isNewestFirst: boolean;
   lastFrameIndex: number;
+  lockAddress: string | undefined;
   meta: StackTraceMeta | undefined;
   platform: PlatformKey;
   rows: Row[];
+  setIsMinified: React.Dispatch<React.SetStateAction<boolean>>;
   setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
   setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
   stacktrace: StacktraceType;
+  threadId: number | undefined;
   toggleFrameExpansion: (frameIndex: number) => void;
   toggleHiddenFrames: (frameIndex: number) => void;
   view: StackTraceView;

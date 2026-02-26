@@ -8,6 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
@@ -16,19 +18,33 @@ import {
   isDotnet,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
+import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconChevron, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconFix, IconQuestion, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 const LONG_PATH_BREAK_THRESHOLD = 80;
 const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(160px, 18vw, 220px)';
 const HOVER_ACTIONS_SLOT_HEIGHT = 24;
+const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.jsbundle',
+  '.bundle',
+  '.hbc',
+  '.js.gz',
+];
 const STACKTRACE_INTERACTIVE_SELECTOR = '[data-stacktrace-interactive="true"]';
 
 function isInteractiveClickTarget(target: EventTarget | null): boolean {
@@ -59,6 +75,7 @@ export function FrameHeader() {
     event,
     frame,
     frameContextId,
+    frameIndex,
     hiddenFrameCount,
     hiddenFramesExpanded,
     isExpandable,
@@ -69,7 +86,14 @@ export function FrameHeader() {
     toggleExpansion,
     toggleHiddenFrames,
   } = useStackTraceFrameContext();
-  const {components} = useStackTraceContext();
+  const {
+    components,
+    frameSourceMapDebuggerData,
+    hideSourceMapDebugger,
+    lockAddress,
+    threadId,
+  } = useStackTraceContext();
+  const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(candidate => candidate.id === event.projectID),
@@ -87,12 +111,41 @@ export function FrameHeader() {
     (hasFrameFunction || frame.lineNo !== undefined || showPackage);
   const framePathTooltip =
     frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
+  const sourceMapInfoText = (frame.mapUrl ?? frame.map) as string | undefined;
+  const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
   const contextLine = frame.context?.find(([lineNumber]) => lineNumber === frame.lineNo);
+  const frameSourceResolutionResults = frameSourceMapDebuggerData?.[frameIndex];
+  const frameHasValidFileEndingForSourceMapDebugger =
+    VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
+      ending =>
+        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
+    );
+  const shouldShowSourceMapDebuggerButton =
+    !(frame.context?.length ?? 0) &&
+    !hideSourceMapDebugger &&
+    frame.inApp &&
+    frameHasValidFileEndingForSourceMapDebugger &&
+    !!frameSourceResolutionResults &&
+    !frameSourceResolutionResults.frameIsResolved;
+  const sourceMapDebuggerAnalytics = {
+    organization: organization ?? null,
+    project_id: event.projectID,
+    event_id: event.id,
+    event_platform: event.platform,
+    sdk_name: event.sdk?.name,
+    sdk_version: event.sdk?.version,
+  };
   const frameCanShowActions =
     !!frame.filename && (frame.inApp || event.platform === 'csharp');
   const canShowFrameActions = frameCanShowActions && (isExpanded || isHovering);
-  const showCodeMappingLink = canShowFrameActions && !!project;
+  const showCodeMappingLink =
+    canShowFrameActions && !!project && !shouldShowSourceMapDebuggerButton;
   const showSentryAppStacktraceLink = canShowFrameActions && components.length > 0;
+  const mechanism =
+    platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
+  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const anrCulprit =
+    isANR && analyzeFrameForRootCause(frame, getThreadById(event, threadId), lockAddress);
 
   return (
     <FrameHeaderContainer
@@ -125,6 +178,24 @@ export function FrameHeader() {
               <span>{frameDisplayPath}</span>
             </FrameTitleFilename>
           </Tooltip>
+          {shouldShowSourceMapInfo ? (
+            <Tooltip
+              title={
+                <SourceMapTooltipContent>
+                  <strong>{t('Source Map')}</strong>
+                  <span>{sourceMapInfoText}</span>
+                </SourceMapTooltipContent>
+              }
+              maxWidth={400}
+            >
+              <SourceMapInfoTrigger
+                data-test-id="core-stacktrace-source-map-info"
+                data-stacktrace-interactive="true"
+              >
+                <IconQuestion size="xs" />
+              </SourceMapInfoTrigger>
+            </Tooltip>
+          ) : null}
           <FrameTitleMeta
             data-test-id="core-stacktrace-frame-meta"
             data-force-newline={shouldBreakFrameMetaLine}
@@ -165,6 +236,20 @@ export function FrameHeader() {
       <FrameHeaderRight gap="xs" align="center">
         {frame.inApp ? null : <Tag variant="muted">{t('System')}</Tag>}
         <RepeatsIndicator timesRepeated={timesRepeated} />
+        {anrCulprit ? (
+          <Tag
+            variant="warning"
+            data-stacktrace-interactive="true"
+            onClick={mouseEvent => {
+              mouseEvent.stopPropagation();
+              document
+                .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
+                ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+            }}
+          >
+            {t('Suspect Frame')}
+          </Tag>
+        ) : null}
 
         <FrameHeaderTrailing
           data-test-id="core-stacktrace-frame-trailing"
@@ -196,6 +281,50 @@ export function FrameHeader() {
               </span>
             ) : null}
           </FrameActions>
+
+          {shouldShowSourceMapDebuggerButton && frameSourceResolutionResults ? (
+            <Button
+              size="zero"
+              priority="default"
+              data-stacktrace-interactive="true"
+              onClick={mouseEvent => {
+                mouseEvent.stopPropagation();
+                trackAnalytics(
+                  'source_map_debug_blue_thunder.modal_opened',
+                  sourceMapDebuggerAnalytics
+                );
+
+                openModal(
+                  modalProps => (
+                    <SourceMapsDebuggerModal
+                      analyticsParams={sourceMapDebuggerAnalytics}
+                      sourceResolutionResults={frameSourceResolutionResults}
+                      organization={organization ?? undefined}
+                      projectId={event.projectID}
+                      {...modalProps}
+                    />
+                  ),
+                  {
+                    modalCss: css`
+                      max-width: 800px;
+                      width: 100%;
+                    `,
+                    onClose: () => {
+                      trackAnalytics(
+                        'source_map_debug_blue_thunder.modal_closed',
+                        sourceMapDebuggerAnalytics
+                      );
+                    },
+                  }
+                );
+              }}
+            >
+              <UnminifyActionContent>
+                <IconFix size="xs" />
+                <span>{t('Unminify Code')}</span>
+              </UnminifyActionContent>
+            </Button>
+          ) : null}
 
           {hiddenFrameCount ? (
             <Button
@@ -384,7 +513,7 @@ const FrameTitleMeta = styled('span')<{forceNewLine: boolean}>`
       display: flex;
       width: 100%;
       margin-left: 0;
-      margin-top: 0;
+      margin-top: -1px;
     `}
 `;
 
@@ -441,4 +570,24 @@ const FrameTitleFilename = styled(FrameTitleName)<{truncateLeft: boolean}>`
       direction: rtl;
       text-align: left;
     `}
+`;
+
+const SourceMapTooltipContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  word-break: break-all;
+`;
+
+const SourceMapInfoTrigger = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  margin-left: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const UnminifyActionContent = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
 `;

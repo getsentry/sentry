@@ -5,12 +5,20 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StackTrace} from 'sentry/components/stackTrace';
+import {StackTrace, StackTraceWithCoverageData} from 'sentry/components/stackTrace';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {
+  LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
@@ -86,6 +94,43 @@ describe('Core StackTrace', () => {
 
     expect(screen.getByText(/File "raven\/scripts\/runner.py"/)).toBeInTheDocument();
     expect(screen.queryByTestId('core-stacktrace-frame-list')).not.toBeInTheDocument();
+  });
+
+  it('toggles minified stacktrace frames when minified data is provided', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const minifiedStacktrace = {
+      ...stacktrace,
+      frames: stacktrace.frames.map((frame, index) => ({
+        ...frame,
+        filename: `minified/${index}.js`,
+        function: frame.rawFunction ?? `raw_fn_${index}`,
+      })),
+    };
+
+    render(
+      <StackTrace
+        event={event}
+        stacktrace={stacktrace}
+        minifiedStacktrace={minifiedStacktrace}
+      >
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTrace>
+    );
+
+    expect(screen.getAllByTestId('filename')[0]).toHaveTextContent(
+      'raven/scripts/runner.py'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Minified'}));
+
+    expect(screen.getAllByTestId('filename')[0]).toHaveTextContent('minified/4.js');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Minified'}));
+
+    expect(screen.getAllByTestId('filename')[0]).toHaveTextContent(
+      'raven/scripts/runner.py'
+    );
   });
 
   it('toggles frame expansion', async () => {
@@ -204,6 +249,101 @@ describe('Core StackTrace', () => {
     expect(screen.getAllByTestId('core-stacktrace-vars-row').length).toBeGreaterThan(0);
     expect(screen.getByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();
+  });
+
+  it('renders coverage tooltip from injected frame coverage resolver', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    render(
+      <StackTrace
+        event={event}
+        stacktrace={stacktrace}
+        getFrameLineCoverage={({frameIndex}): LineCoverage[] | undefined =>
+          frameIndex === stacktrace.frames.length - 1
+            ? [
+                [110, Coverage.COVERED],
+                [111, Coverage.PARTIAL],
+                [112, Coverage.NOT_COVERED],
+              ]
+            : undefined
+        }
+      >
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTrace>
+    );
+
+    const activeLine = screen
+      .getAllByTestId('core-stacktrace-frame-line-number')
+      .find(node => node.textContent?.includes('112'));
+    expect(activeLine).toBeDefined();
+
+    await userEvent.hover(activeLine!);
+
+    expect(await screen.findByText('Line uncovered by tests')).toBeInTheDocument();
+  });
+
+  it('fetches coverage only for expanded frames and reuses cached results', async () => {
+    const organization = OrganizationFixture({
+      codecovAccess: true,
+      features: ['codecov-integration'],
+    });
+    const project = ProjectFixture({id: '1'});
+    const {event, stacktrace} = makeStackTraceData();
+
+    ProjectsStore.loadInitialData([project]);
+
+    const stacktraceCoverageMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
+    });
+
+    const framesWithSourceContext = stacktrace.frames.map((frame, index) => {
+      const lineNo = frame.lineNo ?? 100 + index;
+      return {
+        ...frame,
+        inApp: false,
+        filename: frame.filename ?? `frame-${index}.py`,
+        lineNo,
+        context: [
+          [lineNo - 1, `frame ${index} context previous`],
+          [lineNo, `frame ${index} context current`],
+          [lineNo + 1, `frame ${index} context next`],
+        ] as Array<[number, string]>,
+      };
+    });
+
+    render(
+      <StackTraceWithCoverageData
+        event={{...event, projectID: project.id}}
+        stacktrace={{...stacktrace, frames: framesWithSourceContext}}
+        defaultView="full"
+      >
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTraceWithCoverageData>,
+      {
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(stacktraceCoverageMock).toHaveBeenCalledTimes(1);
+    });
+
+    const frameTitles = screen.getAllByTestId('core-stacktrace-frame-title');
+    await userEvent.click(frameTitles[1]!);
+
+    await waitFor(() => {
+      expect(stacktraceCoverageMock).toHaveBeenCalledTimes(2);
+    });
+
+    await userEvent.click(frameTitles[1]!);
+    await userEvent.click(frameTitles[1]!);
+
+    await waitFor(() => {
+      expect(stacktraceCoverageMock).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('renders variable redaction metadata like legacy frame variables', async () => {
@@ -346,6 +486,108 @@ describe('Core StackTrace', () => {
       'href',
       'https://github.com/getsentry/sentry/blob/main/raven/scripts/runner.py#L112'
     );
+  });
+
+  it('renders source map info tooltip when frame map metadata exists', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <StackTrace
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              inApp: true,
+              origAbsPath: '/home/ubuntu/raven/scripts/runner.min.js',
+              mapUrl: 'https://cdn.example.com/runner.min.js.map',
+            },
+          ],
+        }}
+      >
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTrace>
+    );
+
+    await userEvent.hover(screen.getByTestId('core-stacktrace-source-map-info'));
+
+    expect(await screen.findByText('Source Map')).toBeInTheDocument();
+    expect(
+      await screen.findByText('https://cdn.example.com/runner.min.js.map')
+    ).toBeInTheDocument();
+  });
+
+  it('renders unminify action when frame source map debugger data is unresolved', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <StackTrace
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'runner.min.js',
+              absPath: '/home/ubuntu/runner.min.js',
+              context: [],
+              inApp: true,
+            },
+          ],
+        }}
+        frameSourceMapDebuggerData={[{frameIsResolved: false} as any]}
+      >
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTrace>
+    );
+
+    expect(screen.getByRole('button', {name: 'Unminify Code'})).toBeInTheDocument();
+  });
+
+  it('renders suspect frame badge for ANR root-cause frame matches', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <StackTrace
+        event={{
+          ...event,
+          platform: 'java',
+          tags: [...event.tags, {key: 'mechanism', value: 'ANR'}],
+          entries: [
+            ...event.entries,
+            {
+              type: 'threads',
+              data: {
+                values: [{id: 7, current: true, state: 'RUNNABLE'}],
+              },
+            } as any,
+          ],
+        }}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              module: 'libcore.io.Linux',
+              function: 'read',
+              inApp: false,
+            },
+          ],
+        }}
+        threadId={7}
+      >
+        <StackTrace.Toolbar />
+        <StackTrace.Content />
+      </StackTrace>
+    );
+
+    expect(screen.getByText('Suspect Frame')).toBeInTheDocument();
   });
 
   it('renders sentry app frame links with line context', async () => {
