@@ -79,6 +79,13 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 location="query",
             ),
             OpenApiParameter(
+                name="installGroup",
+                description="Filter by install group name (exact match).",
+                required=False,
+                type=str,
+                location="query",
+            ),
+            OpenApiParameter(
                 name="perPage",
                 description="Number of results per page (default 25, max 100).",
                 required=False,
@@ -165,6 +172,10 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 commit_comparison__pr_number=pr_number,
                 commit_comparison__organization_id=project.organization_id,
             )
+
+        install_group = params.get("installGroup")
+        if install_group:
+            queryset = queryset.filter(extras__install_groups__contains=[install_group])
 
         annotated_queryset = queryset.annotate_download_count().order_by(  # type: ignore[attr-defined]
             "-date_added"

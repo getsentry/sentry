@@ -22,6 +22,7 @@ class InstallableBuildResponseDict(TypedDict):
     projectSlug: str
     buildConfiguration: str | None
     downloadCount: int
+    releaseNotes: str | None
 
 
 def create_installable_build_dict(artifact: PreprodArtifact) -> InstallableBuildResponseDict:
@@ -39,4 +40,5 @@ def create_installable_build_dict(artifact: PreprodArtifact) -> InstallableBuild
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
         "downloadCount": download_count,
+        "releaseNotes": (artifact.extras or {}).get("release_notes"),
     }

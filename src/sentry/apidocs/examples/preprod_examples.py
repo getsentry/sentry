@@ -181,6 +181,7 @@ class PreprodExamples:
         "projectSlug": "my-project",
         "buildConfiguration": "release",
         "downloadCount": 5,
+        "releaseNotes": "Bug fixes and performance improvements.",
     }
 
     GET_BUILDS = [

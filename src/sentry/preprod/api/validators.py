@@ -104,6 +104,9 @@ class PreprodPublicBuildsValidator(serializers.Serializer[Any]):
         required=False, help_text="Filter by build configuration name"
     )
     prNumber = serializers.IntegerField(required=False, help_text="Filter by PR number")
+    installGroup = serializers.CharField(
+        required=False, help_text="Filter by install group name (exact match)"
+    )
     perPage = serializers.IntegerField(
         default=25,
         min_value=1,
