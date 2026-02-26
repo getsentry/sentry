@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {isAppleDevice} from '@react-aria/utils';
-import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
@@ -19,7 +18,13 @@ import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/pr
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
+import {
+  IconAdd,
+  IconAllProjects,
+  IconMyProjects,
+  IconOpen,
+  IconSettings,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -58,6 +63,13 @@ export interface ProjectPageFilterProps extends Partial<
  * does not apply to special values like "My Projects" and "All Projects".
  */
 const SELECTION_COUNT_LIMIT = 50;
+
+/**
+ * Sentinel value for the "My Projects" quick-select option. Must be negative to avoid
+ * collision with real project IDs. ALL_ACCESS_PROJECTS (-1) is already used for
+ * "All Projects".
+ */
+const MY_PROJECTS_VALUE = -2;
 
 export function ProjectPageFilter({
   onChange,
@@ -128,6 +140,10 @@ export function ProjectPageFilter({
    */
   const mapNormalValueToURLValue = useCallback(
     (val: number[]) => {
+      if (val.includes(ALL_ACCESS_PROJECTS)) {
+        return [ALL_ACCESS_PROJECTS];
+      }
+
       const memberProjectsSelected = memberProjects.every(p =>
         val.includes(parseInt(p.id, 10))
       );
@@ -187,23 +203,27 @@ export function ProjectPageFilter({
 
   const handleChange = useCallback(
     async (newValue: number[]) => {
-      if (isEqual(newValue, value)) {
-        return;
+      // Translate sentinel values to their actual project ID lists
+      let resolvedValue = newValue;
+      if (newValue.includes(ALL_ACCESS_PROJECTS)) {
+        resolvedValue = [];
+      } else if (newValue.includes(MY_PROJECTS_VALUE)) {
+        resolvedValue = defaultValue;
       }
 
-      onChange?.(newValue);
+      onChange?.(resolvedValue);
 
       trackAnalytics('projectselector.update', {
-        count: newValue.length,
+        count: resolvedValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: newValue.length > 1,
+        multi: resolvedValue.length > 1,
       });
 
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      updateProjects(mapNormalValueToURLValue(newValue), router, {
+      updateProjects(mapNormalValueToURLValue(resolvedValue), router, {
         save: true,
         resetParams: resetParamsOnChange,
         environments: [], // Clear environments when switching projects
@@ -211,7 +231,7 @@ export function ProjectPageFilter({
       });
     },
     [
-      value,
+      defaultValue,
       resetParamsOnChange,
       router,
       organization,
@@ -240,7 +260,7 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const options = useMemo(() => {
+  const options = useMemo<Array<SelectOption<number>>>(() => {
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
@@ -319,25 +339,67 @@ export function ProjectPageFilter({
       } satisfies SelectOption<number>;
     };
 
+    const isAllProjectsMode = pageFilterValue.includes(ALL_ACCESS_PROJECTS);
+    const isMyProjectsMode = pageFilterValue.length === 0;
+
+    const specialItems: Array<SelectOption<number>> = [
+      {
+        value: ALL_ACCESS_PROJECTS,
+        label: t('All Projects'),
+        textValue: '',
+        leadingItems: () => (
+          <Fragment>
+            <MenuComponents.Checkbox
+              checked={isAllProjectsMode}
+              onChange={() => toggleOptionRef.current?.(ALL_ACCESS_PROJECTS)}
+              aria-label={t('Select All Projects')}
+              tabIndex={-1}
+            />
+            <IconAllProjects size="sm" variant="muted" />
+          </Fragment>
+        ),
+      },
+      {
+        value: MY_PROJECTS_VALUE,
+        label: t('My Projects'),
+        textValue: '',
+        leadingItems: () => (
+          <Fragment>
+            <MenuComponents.Checkbox
+              checked={isMyProjectsMode}
+              onChange={() => toggleOptionRef.current?.(MY_PROJECTS_VALUE)}
+              aria-label={t('Select My Projects')}
+              tabIndex={-1}
+            />
+            <IconMyProjects size="sm" variant="muted" />
+          </Fragment>
+        ),
+      },
+    ];
+
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
     const listSort = (project: Project) =>
       bookmarkedSnapshotRef.current
         ? [
             !lastSelected.includes(parseInt(project.id, 10)),
+            !project.isMember,
             !bookmarkedSnapshotRef.current.has(project.id),
-            project.isMember,
             project.slug,
           ]
         : [
             !lastSelected.includes(parseInt(project.id, 10)),
-            project.isMember,
+            !project.isMember,
             project.slug,
           ];
 
-    return sortBy(projects, listSort).map(getProjectItem);
+    return [
+      ...specialItems,
+      ...sortBy([...memberProjects, ...nonMemberProjects], listSort).map(getProjectItem),
+    ];
   }, [
     organization,
-    projects,
+    memberProjects,
+    nonMemberProjects,
     mapURLValueToNormalValue,
     optimisticallyBookmarkedProjects,
     pageFilterValue,
@@ -345,7 +407,7 @@ export function ProjectPageFilter({
 
   const defaultMenuWidth = useMemo(() => {
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = options.slice(0, 25).reduce((acc, cur) => {
+    const longestSlugLength = options.reduce((acc, cur) => {
       const length = cur.textValue?.length ?? 0;
       return length > acc ? length : acc;
     }, 0);
@@ -360,7 +422,10 @@ export function ProjectPageFilter({
   }, [options]);
 
   const selectionLimitExceeded = useMemo(() => {
-    const mappedValue = mapNormalValueToURLValue(stagedValue);
+    const realStagedValue = stagedValue.filter(
+      v => v !== ALL_ACCESS_PROJECTS && v !== MY_PROJECTS_VALUE
+    );
+    const mappedValue = mapNormalValueToURLValue(realStagedValue);
     return mappedValue.length > SELECTION_COUNT_LIMIT;
   }, [stagedValue, mapNormalValueToURLValue]);
 
@@ -433,7 +498,6 @@ export function ProjectPageFilter({
     <CompactSelect
       grid
       multiple
-      virtualized
       {...selectProps}
       {...stagedSelect.compactSelectProps}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}

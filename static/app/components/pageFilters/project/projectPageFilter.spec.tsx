@@ -52,10 +52,6 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
-    // There are 2 option groups
-    expect(screen.getByRole('rowgroup', {name: 'My Projects'})).toBeInTheDocument();
-    expect(screen.getByRole('rowgroup', {name: 'Other'})).toBeInTheDocument();
-
     // Select only project-1
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
 
@@ -109,7 +105,9 @@ describe('ProjectPageFilter', () => {
       expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
     });
 
-    // Move focus to Option One
+    // Move focus past the two special items ("All Projects", "My Projects") to project-1
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{ArrowDown}');
     const optionOne = screen.getByRole('row', {name: 'project-1'});
     expect(optionOne).toHaveFocus();
@@ -239,8 +237,9 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
-    // Get all project rows (they're in a flat list when all are member projects)
-    const projectRows = screen.getAllByRole('row');
+    // Get all project rows — first 2 are special items ("All Projects", "My Projects")
+    const allRows = screen.getAllByRole('row');
+    const projectRows = allRows.slice(2);
 
     // Verify sort order:
     // 1. Selected project (selected-project)
@@ -291,8 +290,8 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
-    // Verify initial sort order
-    let projectRows = screen.getAllByRole('row');
+    // Verify initial sort order (skip first 2 special items)
+    let projectRows = screen.getAllByRole('row').slice(2);
     expect(projectRows).toHaveLength(4);
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
@@ -316,7 +315,7 @@ describe('ProjectPageFilter', () => {
     );
 
     // Verify sort order DOES NOT change while menu is still open (stable sorting)
-    projectRows = screen.getAllByRole('row');
+    projectRows = screen.getAllByRole('row').slice(2);
 
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
@@ -350,7 +349,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
     // Verify new sort order with bookmarked projects grouped together
-    projectRows = screen.getAllByRole('row');
+    projectRows = screen.getAllByRole('row').slice(2);
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
     expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
