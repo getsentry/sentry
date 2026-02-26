@@ -155,6 +155,8 @@ class PreprodArtifact(DefaultFieldsModel):
         """No quota available for distribution."""
         SKIPPED = 2
         """Distribution was not requested on this build."""
+        PROCESSING_ERROR = 3
+        """Distribution failed due to a processing error."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -162,6 +164,7 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.UNKNOWN, "unknown"),
                 (cls.NO_QUOTA, "no_quota"),
                 (cls.SKIPPED, "skipped"),
+                (cls.PROCESSING_ERROR, "processing_error"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded

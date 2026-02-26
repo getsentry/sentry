@@ -130,6 +130,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
     ),
   },
+  'project-toolbar.sentry:toolbar_allowed_origins': {
+    name: 'sentry:toolbar_allowed_origins',
+    formId: 'project-toolbar',
+    route: '/settings/:orgId/projects/:projectId/toolbar/',
+    label: t('Allowed Origins'),
+    hintText: '',
+  },
   'organization-settings-form.replayAccessMembers': {
     name: 'replayAccessMembers',
     formId: 'organization-settings-form',

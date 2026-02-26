@@ -1,6 +1,7 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
+import {useFieldId, useHintTextId, useLabelId} from '@sentry/scraps/form/field/baseField';
+import {useGroupContext} from '@sentry/scraps/form/field/groupContext';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -27,6 +28,8 @@ function Label(props: {
 }) {
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
+  const labelId = useLabelId();
+  const isGroup = useGroupContext();
 
   const labelContent = props.description ? (
     <InfoText title={props.description}>{props.children}</InfoText>
@@ -34,11 +37,22 @@ function Label(props: {
     props.children
   );
 
+  const labelProps = isGroup
+    ? {
+        as: 'span' as const,
+        cursor: 'default' as const,
+        id: labelId,
+      }
+    : {
+        as: 'label' as const,
+        htmlFor: fieldId,
+      };
+
   return (
     <Container width="fit-content">
       {containerProps => (
         <Flex gap="xs">
-          <Text {...containerProps} as="label" htmlFor={fieldId} bold={false}>
+          <Text {...containerProps} {...labelProps} bold={false}>
             {labelContent}
           </Text>
           {props.required ? <RequiredIndicator /> : null}

@@ -16,49 +16,23 @@ interface Props {
   project: Project;
 }
 
-/**
- * Toggle for allowing PR auto creation within the Seer Agent section.
- * This is disabled when an external coding agent is configured.
- */
-export default function SeerAgentSection({canWrite, project, preference}: Props) {
+export default function SeerAgentSettings({canWrite, preference, project}: Props) {
   const organization = useOrganization();
+
+  const disabledReason = canWrite
+    ? organization.enableSeerCoding === false
+      ? t('Turn on [settings:"Enable Code Generation"] to use this feature.', {
+          settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+        })
+      : null
+    : t('You do not have permission to update this setting.');
+
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-
-  const isAutoFixEnabled = Boolean(
-    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
-  );
-  const isCreatePrEnabled = Boolean(
-    preference?.automated_run_stopping_point &&
-    preference.automated_run_stopping_point !== 'code_changes'
-  );
-  const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
-
-  const isDisabled =
-    organization.enableSeerCoding === false ||
-    !canWrite ||
-    !isAutoFixEnabled ||
-    isBackgroundAgentEnabled;
-
-  let disabledReason: string | null = null;
-  if (organization.enableSeerCoding === false) {
-    disabledReason = t(
-      'Turn on [settings:"Enable Code Generation"] to use this feature.',
-      {
-        settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
-      }
-    );
-  } else if (!isAutoFixEnabled) {
-    disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
-  } else if (isBackgroundAgentEnabled) {
-    disabledReason = t(
-      'This setting is not available when using an external coding agent.'
-    );
-  }
 
   return (
     <BooleanField
-      disabled={isDisabled}
-      disabledReason={disabledReason ?? undefined}
+      disabled={Boolean(disabledReason)}
+      disabledReason={disabledReason}
       name="automated_run_stopping_point"
       label={t('Allow PR Auto Creation')}
       help={
@@ -87,7 +61,13 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
           )}
         </Stack>
       }
-      value={organization.enableSeerCoding !== false && isCreatePrEnabled}
+      value={
+        organization.enableSeerCoding !== false &&
+        Boolean(
+          preference?.automated_run_stopping_point &&
+          preference.automated_run_stopping_point !== 'code_changes'
+        )
+      }
       onChange={value => {
         const newValue: ProjectSeerPreferences['automated_run_stopping_point'] = value
           ? 'open_pr'
@@ -95,8 +75,8 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
-            automated_run_stopping_point: newValue,
-            automation_handoff: preference?.automation_handoff,
+            automated_run_stopping_point: newValue, // Seer Agent "Create PR" setting
+            automation_handoff: preference?.automation_handoff, // External coding agent "Create PR" setting is in here
           },
           {
             onSuccess: () =>
