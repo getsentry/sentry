@@ -346,7 +346,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
   const sdkDeprecationResults = useSDKDeprecations();
 
   const sdkDeprecations = useMemo(() => {
-    const sdks: Map<string, SDKDeprecation> = new Map();
+    const sdks = new Map<string, SDKDeprecation>();
 
     for (const sdk of sdkDeprecationResults.data?.data ?? []) {
       const key = `${sdk.sdkName}:${sdk.sdkVersion}`;
