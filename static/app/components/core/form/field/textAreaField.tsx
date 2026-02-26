@@ -3,10 +3,15 @@ import {mergeRefs} from '@react-aria/utils';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Flex} from '@sentry/scraps/layout';
 import {type TextAreaProps} from '@sentry/scraps/textarea';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
+import {
+  BaseField,
+  FieldStatus,
+  useAutoSaveIndicator,
+  type BaseFieldProps,
+} from './baseField';
 
 export function TextAreaField({
   onChange,
@@ -19,37 +24,26 @@ export function TextAreaField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useFieldStateIndicator();
+  const indicator = useAutoSaveIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   return (
     <BaseField>
-      {fieldProps => {
-        const textarea = (
-          <InputGroup>
+      {fieldProps => (
+        <Flex gap="sm" align="center">
+          <InputGroup style={{flex: 1}}>
             <InputGroup.TextArea
               {...fieldProps}
               {...props}
               ref={mergeRefs(fieldProps.ref as Ref<HTMLTextAreaElement>, props.ref)}
-              aria-disabled={isDisabled}
-              readOnly={isDisabled}
+              disabled={isDisabled}
               onChange={e => onChange(e.target.value)}
             />
             <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
           </InputGroup>
-        );
-
-        if (disabledReason) {
-          return (
-            <Tooltip skipWrapper title={disabledReason}>
-              {textarea}
-            </Tooltip>
-          );
-        }
-
-        return textarea;
-      }}
+          <FieldStatus disabled={disabled} />
+        </Flex>
+      )}
     </BaseField>
   );
 }
