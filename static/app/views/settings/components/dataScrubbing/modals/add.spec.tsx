@@ -338,6 +338,7 @@ describe('Add Modal with ourlogs-enabled', () => {
   const mockAttributeResults = defaultAttributeResults;
 
   beforeEach(() => {
+    localStorage.clear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/trace-items/attributes/`,
@@ -448,10 +449,9 @@ describe('Add Modal with ourlogs-enabled', () => {
     await userEvent.click(screen.getByLabelText('Errors, Transactions, Attachments'));
 
     expect(screen.getByText('Source')).toBeInTheDocument();
-    // Event ID toggle should be present (either collapsed or expanded depending on localStorage state)
+    // Event ID toggle should be present
     expect(
-      screen.getByRole('button', {name: 'Use event ID for auto-completion'}) ??
-        screen.getByRole('button', {name: 'Hide event ID field'})
+      screen.getByRole('button', {name: 'Use event ID for auto-completion'})
     ).toBeInTheDocument();
     expect(screen.queryByText('Attribute')).not.toBeInTheDocument();
   });

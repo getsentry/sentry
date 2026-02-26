@@ -64,8 +64,7 @@ describe('Edit Modal', () => {
 
     // Method Field
     expect(screen.getByText('Method')).toBeInTheDocument();
-    await userEvent.hover(screen.getAllByTestId('more-information')[0]!);
-    expect(await screen.findByText('What to do')).toBeInTheDocument();
+    expect(screen.getByText('What to do')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Replace'));
 
     Object.values(MethodType)
@@ -76,17 +75,15 @@ describe('Edit Modal', () => {
 
     // Placeholder Field
     expect(screen.getByText('Custom Placeholder (Optional)')).toBeInTheDocument();
-    await userEvent.hover(screen.getAllByTestId('more-information')[1]!);
     expect(
-      await screen.findByText('It will replace the default placeholder [Filtered]')
+      screen.getByText('It will replace the default placeholder [Filtered]')
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
 
     // Type Field
     expect(screen.getByText('Data Type')).toBeInTheDocument();
-    await userEvent.hover(screen.getAllByTestId('more-information')[2]!);
     expect(
-      await screen.findByText(
+      screen.getByText(
         'What to look for. Use an existing pattern or define your own using regular expressions.'
       )
     ).toBeInTheDocument();
@@ -102,14 +99,10 @@ describe('Edit Modal', () => {
 
     // Regex matches Field
     expect(screen.getAllByText('Regex matches')).toHaveLength(2);
-    await userEvent.hover(screen.getAllByTestId('more-information')[3]!);
     expect(
-      await screen.findByText('Custom regular expression (see documentation)')
+      screen.getByText('Custom regular expression (see documentation)')
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Regex matches'})).toHaveAttribute(
-      'placeholder',
-      '[a-zA-Z0-9]+'
-    );
+    expect(screen.getByPlaceholderText('[a-zA-Z0-9]+')).toBeInTheDocument();
 
     // Event ID
     expect(
@@ -118,12 +111,6 @@ describe('Edit Modal', () => {
 
     // Source Field
     expect(screen.getByText('Source')).toBeInTheDocument();
-    await userEvent.hover(screen.getAllByTestId('more-information')[4]!);
-    expect(
-      await screen.findByText(
-        'Where to look. In the simplest case this can be an attribute name.'
-      )
-    ).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Source'})).toHaveAttribute(
       'placeholder',
       'Enter a custom attribute, variable or header name'

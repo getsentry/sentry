@@ -8,16 +8,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import RadioField from 'sentry/components/forms/fields/radioField';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -273,27 +269,28 @@ function DataScrubFormModal({
         {traceItemDatasetsEnabled && (
           <form.AppField name="dataset">
             {field => (
-              <FieldGroup
-                label={t('Dataset')}
-                help={t('The dataset targetted by the scrubbing rule')}
-                inline={false}
-                flexibleControlStateSize
-                stacked
-                showHelpInTooltip
+              <field.Radio.Group
+                value={field.state.value}
+                onChange={value => {
+                  field.handleChange(value as AllowedDataScrubbingDatasets);
+                  setDataset(value as AllowedDataScrubbingDatasets);
+                  form.setFieldValue('source', '');
+                }}
               >
-                <DatasetRadioField
-                  name="dataset"
-                  choices={sortBy(Object.values(AllowedDataScrubbingDatasets)).map(
-                    value => [value, getDatasetLabelLong(value)]
-                  )}
-                  value={field.state.value}
-                  onChange={value => {
-                    field.handleChange(value);
-                    setDataset(value);
-                    form.setFieldValue('source', '');
-                  }}
-                />
-              </FieldGroup>
+                <field.Layout.Stack
+                  label={t('Dataset')}
+                  hintText={t('The dataset targetted by the scrubbing rule')}
+                  variant="compact"
+                >
+                  <Flex gap="lg">
+                    {sortBy(Object.values(AllowedDataScrubbingDatasets)).map(value => (
+                      <field.Radio.Item key={value} value={value}>
+                        {getDatasetLabelLong(value)}
+                      </field.Radio.Item>
+                    ))}
+                  </Flex>
+                </field.Layout.Stack>
+              </field.Radio.Group>
             )}
           </form.AppField>
         )}
@@ -312,45 +309,33 @@ function DataScrubFormModal({
             <form.AppField name="placeholder">
               {placeholderField => (
                 <FieldContainer hasTwoColumns={field.state.value === MethodType.REPLACE}>
-                  <FieldGroup
+                  <field.Layout.Stack
                     label={t('Method')}
-                    help={t('What to do')}
-                    inline={false}
-                    flexibleControlStateSize
-                    stacked
-                    showHelpInTooltip
+                    hintText={t('What to do')}
+                    variant="compact"
                   >
-                    <Select
+                    <field.Select
                       placeholder={t('Select method')}
-                      name="method"
                       options={methodOptions}
                       value={field.state.value}
-                      onChange={(opt: {value: MethodType} | null) => {
-                        if (opt?.value) {
-                          field.handleChange(opt.value);
-                        }
-                      }}
+                      onChange={field.handleChange}
                       isSearchable={false}
                       openOnFocus
                     />
-                  </FieldGroup>
+                  </field.Layout.Stack>
                   {field.state.value === MethodType.REPLACE && (
-                    <FieldGroup
+                    <placeholderField.Layout.Stack
                       label={t('Custom Placeholder (Optional)')}
-                      help={t('It will replace the default placeholder [Filtered]')}
-                      inline={false}
-                      flexibleControlStateSize
-                      stacked
-                      showHelpInTooltip
+                      hintText={t('It will replace the default placeholder [Filtered]')}
+                      variant="compact"
                     >
-                      <Input
+                      <placeholderField.Input
                         type="text"
-                        name="placeholder"
                         placeholder={`[${t('Filtered')}]`}
-                        onChange={e => placeholderField.handleChange(e.target.value)}
+                        onChange={placeholderField.handleChange}
                         value={placeholderField.state.value}
                       />
-                    </FieldGroup>
+                    </placeholderField.Layout.Stack>
                   )}
                 </FieldContainer>
               )}
@@ -377,58 +362,43 @@ function DataScrubFormModal({
                     <FieldContainer
                       hasTwoColumns={typeField.state.value === RuleType.PATTERN}
                     >
-                      <FieldGroup
-                        data-test-id="type-field"
+                      <typeField.Layout.Stack
                         label={t('Data Type')}
-                        help={t(
+                        hintText={t(
                           'What to look for. Use an existing pattern or define your own using regular expressions.'
                         )}
-                        inline={false}
-                        flexibleControlStateSize
-                        stacked
-                        showHelpInTooltip
+                        variant="compact"
                       >
-                        <Select
+                        <typeField.Select
                           placeholder={t('Select type')}
-                          name="type"
                           options={typeOptions}
                           value={typeField.state.value}
-                          onChange={(opt: {value: RuleType} | null) => {
-                            if (opt?.value) {
-                              typeField.handleChange(opt.value);
-                            }
-                          }}
+                          onChange={typeField.handleChange}
                           isSearchable={false}
                           openOnFocus
                         />
-                      </FieldGroup>
+                      </typeField.Layout.Stack>
                       {typeField.state.value === RuleType.PATTERN && (
-                        <FieldGroup
+                        <patternField.Layout.Stack
                           label={t('Regex matches')}
-                          help={t('Custom regular expression (see documentation)')}
-                          inline={false}
-                          id="regex-matches"
-                          error={patternField.state.meta.errors?.[0]?.message}
-                          flexibleControlStateSize
-                          stacked
+                          hintText={t('Custom regular expression (see documentation)')}
+                          variant="compact"
                           required
-                          showHelpInTooltip
                         >
-                          <RegularExpression
-                            type="text"
-                            name="pattern"
-                            placeholder={t('[a-zA-Z0-9]+')}
-                            onChange={e => patternField.handleChange(e.target.value)}
-                            value={patternField.state.value}
-                            onBlur={patternField.handleBlur}
-                            id="regex-matches"
-                          />
+                          <RegularExpressionWrapper>
+                            <patternField.Input
+                              type="text"
+                              placeholder={t('[a-zA-Z0-9]+')}
+                              onChange={patternField.handleChange}
+                              value={patternField.state.value}
+                            />
+                          </RegularExpressionWrapper>
                           <ReplaceCapturedCheckbox
                             pattern={patternField.state.value}
                             checked={replaceCapturedField.state.value}
                             onChange={val => replaceCapturedField.handleChange(val)}
                           />
-                        </FieldGroup>
+                        </patternField.Layout.Stack>
                       )}
                     </FieldContainer>
                   )}
@@ -623,16 +593,11 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
     `}
 `;
 
-const RegularExpression = styled(Input)`
-  font-family: ${p => p.theme.font.family.mono};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const DatasetRadioField = styled(RadioField)`
-  padding: 0px;
-  #dataset {
-    flex-direction: row;
+const RegularExpressionWrapper = styled('div')`
+  input {
+    font-family: ${p => p.theme.font.family.mono};
   }
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Toggle = styled(Button)`
