@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class DiffResult:
+class DiffResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     diff_mask_png: str
     diff_score: float
     changed_pixels: int
@@ -15,3 +16,14 @@ class DiffResult:
     before_height: int
     after_width: int
     after_height: int
+
+
+class OdiffResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    requestId: int
+    exitCode: int
+    result: str
+    diffCount: int | None = None
+    diffPercentage: float | None = None
+    error: str | None = None

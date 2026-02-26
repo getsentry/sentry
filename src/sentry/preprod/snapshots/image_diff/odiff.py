@@ -6,8 +6,8 @@ import shutil
 import subprocess
 import threading
 from pathlib import Path
-from typing import Any
 
+from sentry.preprod.snapshots.image_diff.types import OdiffResponse
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
@@ -54,13 +54,17 @@ class OdiffServer:
     def __exit__(self, *args: object) -> None:
         self.close()
 
-    def _read_json(self, line: bytes) -> dict[str, Any]:
+    def _read_json(self, line: bytes) -> dict[str, object]:
         if not line:
             raise RuntimeError("odiff server exited unexpectedly")
         try:
             return json.loads(line)
         except JSONDecodeError as e:
             raise RuntimeError(f"odiff server returned invalid JSON: {line!r}") from e
+
+    def _read_response(self, line: bytes) -> OdiffResponse:
+        data = self._read_json(line)
+        return OdiffResponse.parse_obj(data)
 
     def _kill_process(self) -> None:
         proc = self._process
@@ -105,7 +109,7 @@ class OdiffServer:
         compare_path: str | Path,
         output_path: str | Path,
         **options: object,
-    ) -> dict[str, Any]:
+    ) -> OdiffResponse:
         with self._lock:
             if self._process is None:
                 self._start()
@@ -136,13 +140,13 @@ class OdiffServer:
                 raise RuntimeError("odiff server timed out after 30s")
             line = process.stdout.readline()
             try:
-                response = self._read_json(line)
+                response = self._read_response(line)
             except RuntimeError:
                 self._kill_process()
                 raise
 
-        if "error" in response:
-            raise RuntimeError(f"odiff error: {response['error']}")
+        if response.error:
+            raise RuntimeError(f"odiff error: {response.error}")
 
         return response
 
