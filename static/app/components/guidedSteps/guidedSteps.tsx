@@ -121,6 +121,15 @@ function useGuidedStepsContentValue({
     [onStepChange]
   );
 
+  // Reset to the first step when currentStep exceeds totalSteps (e.g. when
+  // switching between projects that have different numbers of steps while the
+  // guidedStep URL param persists from the previous project).
+  useEffect(() => {
+    if (totalSteps > 0 && currentStep > totalSteps) {
+      handleSetCurrentStep(1);
+    }
+  }, [totalSteps, currentStep, handleSetCurrentStep]);
+
   return useMemo(
     () => ({
       currentStep,
