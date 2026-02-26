@@ -98,7 +98,7 @@ class SynapsePaginator:
 
         next_cursor = (
             Cursor(
-                updated_at=int(getattr(results[-1], self.timestamp_field).timestamp()),
+                updated_at=int(getattr(results[-1], _TRUNC_ANNOTATION).timestamp()),
                 id=int(getattr(results[-1], self.id_field)),
             ).encode()
             if results
