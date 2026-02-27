@@ -70,6 +70,10 @@ class InvalidFilter(Exception):
 class BaseEventFrequencyQueryHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
 
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]):
+        return cls.label_template.format(**condition_data)
+
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query.
@@ -374,7 +378,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
-    label_template = "The issue is seen by more than {value} users in {interval}"
+    label_template = "The issue is seen by more than {value} users in {interval} with conditions"
 
     def batch_query(
         self,

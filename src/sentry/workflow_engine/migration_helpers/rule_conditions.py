@@ -201,7 +201,9 @@ def create_base_event_frequency_condition(
     payload = {
         "id": id,
         "comparisonType": (
-            ComparisonType.COUNT if data_condition.type == count_type else ComparisonType.PERCENT
+            ComparisonType.COUNT.value
+            if data_condition.type == count_type
+            else ComparisonType.PERCENT.value
         ),
         "interval": data_condition.comparison["interval"],
         "value": data_condition.comparison["value"],
@@ -239,13 +241,13 @@ def create_event_unique_user_frequency_condition(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
     filters: list[dict[str, Any]] = []
-    if data_condition.comparison.get("filters"):
+    if data_condition.comparison.get("filters") is not None:
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
             "comparisonType": (
-                ComparisonType.COUNT
+                ComparisonType.COUNT.value
                 if data_condition.type == Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-                else ComparisonType.PERCENT
+                else ComparisonType.PERCENT.value
             ),
             "interval": data_condition.comparison["interval"],
             "value": data_condition.comparison["value"],

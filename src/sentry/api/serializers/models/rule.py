@@ -29,6 +29,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -425,12 +426,26 @@ class WorkflowEngineRuleSerializer(Serializer):
         all_filters: list[dict[str, Any]] = []
 
         def update_condition_name(
-            condition_data: dict[str, Any], condition_type: str
+            condition_data: dict[str, Any], condition: DataCondition
         ) -> dict[str, Any]:
-            try:
-                handler = condition_handler_registry.get(condition_type)
-            except NoRegistrationExistsError:
-                raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+            from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+                slow_condition_query_handler_registry,
+            )
+
+            # TODO - I think I need to map the condition_data["id"] e.g. 'sentry.rules.filters.tagged_event.TaggedEventFilter'
+            # or 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions' to the condition type
+            # to look up the registry
+
+            if is_slow_condition(condition):
+                try:
+                    handler = slow_condition_query_handler_registry.get(condition.type)
+                except NoRegistrationExistsError:
+                    raise serializers.ValidationError(f"Invalid condition type: {condition.type}")
+            else:
+                try:
+                    handler = condition_handler_registry.get(condition.type)
+                except NoRegistrationExistsError:
+                    raise serializers.ValidationError(f"Invalid condition type: {condition.type}")
 
             condition_data["name"] = handler.render_label(condition_data)
             return condition_data
@@ -439,8 +454,8 @@ class WorkflowEngineRuleSerializer(Serializer):
             for cond in conditions:
                 condition, filters = translate_to_rule_condition_filters(cond, is_filter=is_filter)
                 if condition:
-                    all_conditions.append(update_condition_name(condition, cond.type))
-                all_filters.extend([update_condition_name(f, cond.type) for f in filters])
+                    all_conditions.append(update_condition_name(condition, cond))
+                all_filters.extend([update_condition_name(f, cond) for f in filters])
 
         trigger_conditions = (
             list(workflow.when_condition_group.conditions.all())
