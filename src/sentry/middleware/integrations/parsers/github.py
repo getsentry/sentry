@@ -136,19 +136,24 @@ class GithubRequestParser(BaseRequestParser):
                 self.try_forward_to_codecov(event=event)
 
         github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
-        if isinstance(github_event, str):
-            github_event = github_event.strip() or None
+        mailbox_name = f"{self.provider}:{self.get_mailbox_identifier(integration, event)}"
+        allowlist = options.get("github.webhook.drop-unprocessed-events.mailbox-allowlist") or ()
+        mailbox_in_allowlist = any(mailbox_name == m for m in allowlist)
 
-        # When the drop option is on, do not store payloads that region silos do not
-        # process: known unprocessed event types (e.g. status, check_suite) and
-        # missing/empty X-GitHub-Event. Return 202 so GitHub considers delivery successful.
-        if options.get("github.webhook.drop-unprocessed-events.enabled"):
-            if not github_event or github_event not in REGION_PROCESSED_GITHUB_EVENTS:
-                metrics.incr(
-                    "github.webhook.drop_unprocessed_event",
-                    tags={"event_type": github_event or "missing"},
-                )
-                return HttpResponse(status=202)
+        # Only drop when we have a known unprocessed event type. Missing or empty
+        # X-GitHub-Event is malformed; let the request be forwarded so the region
+        # returns 400 and GitHub is notified of the delivery failure.
+        if (
+            github_event
+            and github_event not in REGION_PROCESSED_GITHUB_EVENTS
+            and options.get("github.webhook.drop-unprocessed-events.enabled")
+            and mailbox_in_allowlist
+        ):
+            metrics.incr(
+                "github.webhook.drop_unprocessed_event",
+                tags={"event_type": github_event or "unknown"},
+            )
+            return HttpResponse(status=202)
 
         response = self.get_response_from_webhookpayload(
             regions=regions,
