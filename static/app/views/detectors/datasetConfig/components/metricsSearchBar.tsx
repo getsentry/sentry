@@ -37,7 +37,13 @@ export function MetricsDetectorSearchBar({
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
-  const {traceMetric} = parseMetricAggregate(aggregateFunction);
+
+  let traceMetric: {name: string; type: string} = {name: '', type: ''};
+  try {
+    ({traceMetric} = parseMetricAggregate(aggregateFunction ?? ''));
+  } catch {
+    // aggregateFunction may be unset during form init / dataset switching
+  }
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const hasBooleanFilters = organization.features.includes(

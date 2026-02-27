@@ -158,23 +158,6 @@ export function MetricsVisualize() {
     [updateFormAggregate]
   );
 
-  // Auto-select the first metric when options load and none is selected
-  useEffect(() => {
-    if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
-      const firstMetric = metricOptions[0];
-      const metricType = firstMetric.metricType?.toLowerCase() ?? '';
-      const validOperations = OPTIONS_BY_TYPE[metricType] ?? [];
-      const firstOperation = validOperations[0]?.value ?? 'avg';
-
-      updateFormAggregate(
-        makeMetricsAggregate({
-          aggregate: firstOperation,
-          traceMetric: {name: firstMetric.metricName, type: firstMetric.metricType},
-        })
-      );
-    }
-  }, [metricOptions, updateFormAggregate, traceMetric.name]);
-
   const traceMetricSelectValue = makeMetricSelectValue(traceMetric);
   const previousOptions = usePrevious(metricOptions ?? []);
   const hasNoMetrics = isMetricOptionsEmpty && !search;
@@ -191,25 +174,30 @@ export function MetricsVisualize() {
               <SectionLabel>{t('Metric')}</SectionLabel>
             </Tooltip>
           </div>
-          <StyledSelect
-            searchable
-            options={isFetching ? previousOptions : (metricOptions ?? [])}
-            value={traceMetricSelectValue}
-            loading={isFetching}
-            onSearch={debouncedSetSearch}
-            menuTitle={t('Metrics')}
-            onChange={(option: SelectOption<SelectKey>) => {
-              if ('metricType' in option) {
-                handleMetricChange(option as MetricSelectOption);
-              }
-            }}
-            disabled={hasNoMetrics}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps}>
-                {traceMetric.name || t('Select a metric')}
-              </OverlayTrigger.Button>
-            )}
-          />
+          <Tooltip
+            title={t('No metrics found for this project')}
+            disabled={!hasNoMetrics}
+          >
+            <StyledSelect
+              searchable
+              options={isFetching ? previousOptions : (metricOptions ?? [])}
+              value={traceMetricSelectValue}
+              loading={isFetching}
+              onSearch={debouncedSetSearch}
+              menuTitle={t('Metrics')}
+              onChange={(option: SelectOption<SelectKey>) => {
+                if ('metricType' in option) {
+                  handleMetricChange(option as MetricSelectOption);
+                }
+              }}
+              disabled={hasNoMetrics}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps}>
+                  {traceMetric.name || t('Select a metric')}
+                </OverlayTrigger.Button>
+              )}
+            />
+          </Tooltip>
         </Stack>
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>

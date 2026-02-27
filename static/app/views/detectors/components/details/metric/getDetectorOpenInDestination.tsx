@@ -184,7 +184,7 @@ function getDetectorMetricsUrl({
   const interval = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
   const numericProjectId = Number(projectId);
 
-  const {traceMetric} = parseMetricAggregate(snubaQuery.aggregate);
+  const {traceMetric} = parseMetricAggregate(snubaQuery.aggregate ?? '');
 
   const metricQuery = defaultMetricQuery();
   metricQuery.metric = traceMetric;
