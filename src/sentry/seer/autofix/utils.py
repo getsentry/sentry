@@ -9,6 +9,7 @@ from django.conf import settings
 from pydantic import BaseModel
 from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
@@ -189,12 +190,14 @@ def make_get_project_preference_request(
     body: GetProjectPreferenceRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    retries: Retry | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/project-preference",
         body=orjson.dumps(body),
         timeout=timeout,
+        retries=retries,
     )
 
 
@@ -365,6 +368,7 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     response = make_get_project_preference_request(
         GetProjectPreferenceRequest(project_id=project_id),
         timeout=5,
+        retries=Retry(total=2, backoff_factor=0.5),
     )
 
     if response.status == 200:
