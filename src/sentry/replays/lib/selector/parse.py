@@ -52,6 +52,7 @@ def visit_selector_tree(query: QueryType, selector: SelectorType) -> None:
 
         Attrib -> Class -> Hash -> Class -> Attrib -> Element
     """
+    raise Exception("hi")
     if isinstance(selector, Attrib):
         visit_attribute(query, selector)
         visit_selector_tree(query, selector.selector)
