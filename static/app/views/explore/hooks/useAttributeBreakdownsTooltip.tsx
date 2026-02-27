@@ -3,7 +3,6 @@ import type {ECharts, TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 const TOOLTIP_POSITION_X_OFFSET = 20;
 const TOOLTIP_POSITION_Y_OFFSET = -10;
@@ -25,15 +24,12 @@ type Params = {
    * Action handlers and renderer for the tooltip. When provided, the tooltip will show
    * clickable actions on click. When null, no actions are shown.
    */
-  actions?: {
-    htmlRenderer: (value: string) => string;
-    handleAddSearchFilter?: (params: {
-      key: string;
-      value: string;
-      negated?: boolean;
-    }) => void;
-    handleSetGroupBys?: (groupBys: string[], mode: string) => void;
-  } | null;
+  actions?: TooltipActions | null;
+};
+
+export type TooltipActions = {
+  htmlRenderer: (value: string) => string;
+  onAction: (params: {action: string; key: string; value: string}) => void;
 };
 
 export enum Actions {
@@ -55,8 +51,6 @@ export function useAttributeBreakdownsTooltip({
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
   const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
-
-  const copyToClipboard = useCopyToClipboard();
 
   // This effect runs on load and when the frozen position changes.
   // - If frozen position is set, trigger a re-render of the tooltip with frozen position to show the
@@ -120,8 +114,6 @@ export function useAttributeBreakdownsTooltip({
   useEffect(() => {
     if (!frozenPosition) return;
 
-    // TODO Abdullah Khan: Take the actions in as a prop to the hook, to allow other
-    // product areas to use the component feature. This is explore specific for now.
     const handleClickActions = (event: MouseEvent) => {
       event.preventDefault();
 
@@ -131,29 +123,7 @@ export function useAttributeBreakdownsTooltip({
       const value = target.getAttribute('data-tooltip-action-value');
 
       if (action && value && key) {
-        switch (action) {
-          case Actions.GROUP_BY:
-            actions?.handleSetGroupBys?.([key], 'aggregate');
-            break;
-          case Actions.ADD_TO_FILTER:
-            actions?.handleAddSearchFilter?.({
-              key,
-              value,
-            });
-            break;
-          case Actions.EXCLUDE_FROM_FILTER:
-            actions?.handleAddSearchFilter?.({
-              key,
-              value,
-              negated: true,
-            });
-            break;
-          case Actions.COPY_TO_CLIPBOARD:
-            copyToClipboard.copy(value);
-            break;
-          default:
-            throw new Error(`Unknown attribute breakdowns tooltip action: ${action}`);
-        }
+        actions?.onAction({action, key, value});
       }
     };
 
@@ -187,7 +157,7 @@ export function useAttributeBreakdownsTooltip({
       document.removeEventListener('mouseover', handleMouseOver);
       document.removeEventListener('mouseout', handleMouseOut);
     };
-  }, [frozenPosition, copyToClipboard, actions]);
+  }, [frozenPosition, actions]);
 
   const tooltipConfig: TooltipOption = useMemo(
     () => ({

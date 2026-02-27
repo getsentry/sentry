@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,6 +9,7 @@ import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
 import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {TooltipActions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
@@ -19,7 +20,6 @@ import {
   calculateAttributePopulationPercentage,
   distributionToSeriesData,
   percentageFormatter,
-  tooltipActionsHtmlRenderer,
 } from './utils';
 
 export function Chart({
@@ -27,15 +27,13 @@ export function Chart({
   theme,
   cohortCount,
   query,
-  onAddSearchFilter,
-  onSetGroupBys,
+  actions,
 }: {
   attributeDistribution: AttributeDistribution[number];
   cohortCount: number;
   query: string;
   theme: Theme;
-  onAddSearchFilter?: (params: {key: string; value: string; negated?: boolean}) => void;
-  onSetGroupBys?: (groupBys: string[], mode: string) => void;
+  actions?: TooltipActions | null;
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
@@ -61,25 +59,11 @@ export function Chart({
     [attributeDistribution.values, cohortCount]
   );
 
-  const actionsHtmlRenderer = useCallback(
-    (value: string) =>
-      tooltipActionsHtmlRenderer(value, attributeDistribution.attributeName, theme),
-    [attributeDistribution.attributeName, theme]
-  );
-
-  const hasActions = !!(onAddSearchFilter || onSetGroupBys);
-
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: formatSingleModeTooltip,
     chartWidth,
-    actions: hasActions
-      ? {
-          htmlRenderer: actionsHtmlRenderer,
-          handleAddSearchFilter: onAddSearchFilter,
-          handleSetGroupBys: onSetGroupBys,
-        }
-      : null,
+    actions,
   });
 
   useLayoutEffect(() => {

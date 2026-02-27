@@ -13,8 +13,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
 import {
   useAddSearchFilter,
@@ -27,6 +29,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {Chart} from './cohortComparisonChart';
 import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
+import {tooltipActionsHtmlRenderer} from './utils';
 
 export function CohortComparison({
   selection,
@@ -39,12 +42,28 @@ export function CohortComparison({
   const query = useQueryParamsQuery();
   const addSearchFilter = useAddSearchFilter();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const copyToClipboard = useCopyToClipboard();
 
-  const onSetGroupBys = useCallback(
-    (groupBys: string[], _mode: string) => {
-      setGroupBys(groupBys, Mode.AGGREGATE);
+  const onAction = useCallback(
+    ({action, key, value}: {action: string; key: string; value: string}) => {
+      switch (action) {
+        case Actions.GROUP_BY:
+          setGroupBys([key], Mode.AGGREGATE);
+          break;
+        case Actions.ADD_TO_FILTER:
+          addSearchFilter({key, value});
+          break;
+        case Actions.EXCLUDE_FROM_FILTER:
+          addSearchFilter({key, value, negated: true});
+          break;
+        case Actions.COPY_TO_CLIPBOARD:
+          copyToClipboard.copy(value);
+          break;
+        default:
+          break;
+      }
     },
-    [setGroupBys]
+    [addSearchFilter, setGroupBys, copyToClipboard]
   );
 
   const yAxis = visualizes[chartIndex]?.yAxis ?? '';
@@ -140,8 +159,15 @@ export function CohortComparison({
                       cohort1Total={data?.cohort1Total ?? 0}
                       cohort2Total={data?.cohort2Total ?? 0}
                       query={query}
-                      onAddSearchFilter={addSearchFilter}
-                      onSetGroupBys={onSetGroupBys}
+                      actions={{
+                        htmlRenderer: (value: string) =>
+                          tooltipActionsHtmlRenderer(
+                            value,
+                            attribute.attributeName,
+                            theme
+                          ),
+                        onAction,
+                      }}
                     />
                   ))}
                 </AttributeBreakdownsComponent.ChartsGrid>

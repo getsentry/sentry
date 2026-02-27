@@ -15,12 +15,14 @@ import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useAddSearchFilter,
@@ -33,6 +35,7 @@ import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {Chart} from './attributeDistributionChart';
 import {CHART_SELECTION_ALERT_KEY, CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
+import {tooltipActionsHtmlRenderer} from './utils';
 
 export type AttributeDistribution = Array<{
   attributeName: string;
@@ -60,12 +63,28 @@ export function AttributeDistribution() {
   const query = useQueryParamsQuery();
   const addSearchFilter = useAddSearchFilter();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const copyToClipboard = useCopyToClipboard();
 
-  const onSetGroupBys = useCallback(
-    (groupBys: string[], _mode: string) => {
-      setGroupBys(groupBys, Mode.AGGREGATE);
+  const onAction = useCallback(
+    ({action, key, value}: {action: string; key: string; value: string}) => {
+      switch (action) {
+        case Actions.GROUP_BY:
+          setGroupBys([key], Mode.AGGREGATE);
+          break;
+        case Actions.ADD_TO_FILTER:
+          addSearchFilter({key, value});
+          break;
+        case Actions.EXCLUDE_FROM_FILTER:
+          addSearchFilter({key, value, negated: true});
+          break;
+        case Actions.COPY_TO_CLIPBOARD:
+          copyToClipboard.copy(value);
+          break;
+        default:
+          break;
+      }
     },
-    [setGroupBys]
+    [addSearchFilter, setGroupBys, copyToClipboard]
   );
 
   const dataset = useSpansDataset();
@@ -202,8 +221,15 @@ export function AttributeDistribution() {
                     cohortCount={cohortCount}
                     theme={theme}
                     query={query}
-                    onAddSearchFilter={addSearchFilter}
-                    onSetGroupBys={onSetGroupBys}
+                    actions={{
+                      htmlRenderer: (value: string) =>
+                        tooltipActionsHtmlRenderer(
+                          value,
+                          distribution.attributeName,
+                          theme
+                        ),
+                      onAction,
+                    }}
                   />
                 ))}
             </AttributeBreakdownsComponent.ChartsGrid>
