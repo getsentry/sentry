@@ -290,7 +290,7 @@ interface AssertionFormErrorProps {
 export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
   const previewCheckResult = usePreviewCheckResult();
 
-  if (!previewCheckResult || !erroredOp || erroredOp.id !== op.id) {
+  if (!previewCheckResult || erroredOp?.id !== op.id) {
     return null;
   }
 
