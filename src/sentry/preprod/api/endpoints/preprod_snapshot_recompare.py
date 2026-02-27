@@ -45,6 +45,7 @@ class PreprodSnapshotRecompareEndpoint(OrganizationEndpoint):
                 "base_snapshot_metrics",
             )
             .filter(head_snapshot_metrics=snapshot_metrics)
+            .order_by("-id")
             .first()
         )
 
@@ -76,7 +77,11 @@ class PreprodSnapshotRecompareEndpoint(OrganizationEndpoint):
                 base_artifact = (
                     PreprodArtifact.objects.filter(
                         commit_comparison=base_commit_comparison,
-                        project__organization_id=organization.id,
+                        project=artifact.project,
+                        app_id=artifact.app_id,
+                        artifact_type=artifact.artifact_type,
+                        build_configuration=artifact.build_configuration,
+                        preprodsnapshotmetrics__isnull=False,
                     )
                     .order_by("-date_added")
                     .first()
