@@ -1,5 +1,5 @@
 import {readdirSync, readFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {basename, dirname, join} from 'node:path';
 
 const MAX_FAILURES = 30;
 const MAX_TRACEBACK_LINES = 50;
@@ -21,6 +21,8 @@ export function parseFailures(files, core) {
       continue;
     }
 
+    const artifactDir = basename(dirname(file));
+
     for (const test of data.tests) {
       if (test.outcome !== 'failed') {
         continue;
@@ -30,11 +32,49 @@ export function parseFailures(files, core) {
       const call = test.call || test.setup || test.teardown || {};
       const longrepr = call.longrepr || '';
 
-      failures.push({nodeid, longrepr});
+      failures.push({nodeid, longrepr, artifactDir});
     }
   }
 
   return failures;
+}
+
+async function getJobUrls(failures, github, context) {
+  const dirToUrl = {};
+  const uniqueDirs = [...new Set(failures.map(f => f.artifactDir))];
+  if (uniqueDirs.length === 0) return dirToUrl;
+
+  const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    run_id: context.runId,
+  });
+
+  for (const dir of uniqueDirs) {
+    // pytest-results-backend-{runId}-{N} → "backend-test (N)"
+    const backendMatch = dir.match(/^pytest-results-backend-\d+-(\d+)$/);
+    if (backendMatch) {
+      const shard = parseInt(backendMatch[1], 10);
+      const job = jobs.find(j => {
+        const m = j.name.match(/^backend-test \((\d+)\)$/);
+        return m && parseInt(m[1], 10) === shard;
+      });
+      if (job) dirToUrl[dir] = job.html_url;
+      continue;
+    }
+    // pytest-results-migration-{runId} → "backend-migration-tests"
+    if (/^pytest-results-migration-\d+$/.test(dir)) {
+      const job = jobs.find(j => j.name.includes('backend-migration-tests'));
+      if (job) dirToUrl[dir] = job.html_url;
+      continue;
+    }
+    // pytest-results-monolith-dbs-{runId} → "monolith-dbs"
+    if (/^pytest-results-monolith-dbs-\d+$/.test(dir)) {
+      const job = jobs.find(j => j.name.includes('monolith-dbs'));
+      if (job) dirToUrl[dir] = job.html_url;
+    }
+  }
+  return dirToUrl;
 }
 
 export function buildCommentBody(failures, runUrl) {
@@ -52,7 +92,8 @@ export function buildCommentBody(failures, runUrl) {
           `\n... (${lines.length - MAX_TRACEBACK_LINES} more lines)`;
       }
     }
-    body += `<details><summary><code>${t.nodeid}</code></summary>\n\n`;
+    const logLink = t.jobUrl ? ` — [log](${t.jobUrl})` : '';
+    body += `<details><summary><code>${t.nodeid}</code>${logLink}</summary>\n\n`;
     body += `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`;
   }
 
@@ -88,9 +129,17 @@ export async function report({github, context, core}) {
     return;
   }
 
+  let jobUrls = {};
+  try {
+    jobUrls = await getJobUrls(failures, github, context);
+  } catch (e) {
+    core.warning(`Could not fetch job URLs: ${e.message}`);
+  }
+  const enrichedFailures = failures.map(f => ({...f, jobUrl: jobUrls[f.artifactDir]}));
+
   const prNumber = context.payload.pull_request.number;
   const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-  const body = buildCommentBody(failures, runUrl);
+  const body = buildCommentBody(enrichedFailures, runUrl);
 
   // Find existing comment to update instead of creating a duplicate.
   // Use paginate to search all comments, not just the first page.
