@@ -12,9 +12,13 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+)
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -138,6 +142,7 @@ class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
+    sort = serializers.CharField(required=False)
 
     def validate(self, attrs: Any) -> Any:
         if attrs.get("item_type") is None and attrs.get("dataset") is None:
@@ -240,6 +245,16 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        serialized = serializer.validated_data
+        sort = serialized.get("sort")
+        if sort is not None:
+            stripped_sort = sort.lstrip("-")
+            if stripped_sort != "count()":
+                return Response(
+                    {"detail": "Can only order by count() or -count()"},
+                    status=400,
+                )
+
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -256,7 +271,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         sentry_sdk.set_tag("feature.use_sentry_conventions", use_sentry_conventions)
 
-        serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_type = serialized.get("attribute_type")
@@ -294,6 +308,19 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         )
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
+        resolved_order_by = None
+        if sort is not None:
+            resolved_count, _ = resolver.resolve_column("count()")
+            count_proto = resolved_count.proto_definition
+            if isinstance(count_proto, AttributeAggregation):
+                count_column = Column(aggregation=count_proto, label="count()")
+            else:
+                count_column = Column(key=count_proto, label="count()")
+            resolved_order_by = TraceItemTableRequest.OrderBy(
+                column=count_column,
+                descending=sort.startswith("-"),
+            )
+
         def data_fn(offset: int, limit: int):
             with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
                 all_aliased_attributes = []
@@ -320,8 +347,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                         type=attr_type,
                         value_substring_match=value_substring_match,
                         intersecting_attributes_filter=query_filter,
+                        order_by=resolved_order_by,
                     )
-
                     with handle_query_errors():
                         rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
                 else:

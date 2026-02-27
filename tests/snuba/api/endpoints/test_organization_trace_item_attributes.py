@@ -897,6 +897,35 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tag.op" in keys
         assert "tag.op2" in keys
 
+    def test_sort_invalid(self) -> None:
+        response = self.do_request(query={"sort": "timestamp"})
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Can only order by count() or -count()"}
+
+    def test_sort_count(self) -> None:
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:16],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                tags={tag: tag},
+            )
+
+        response = self.do_request(query={"attributeType": "string", "sort": "count()"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) > 0
+
+        response = self.do_request(query={"attributeType": "string", "sort": "-count()"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) > 0
+
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
     OrganizationTraceItemAttributesEndpointTestBase, TraceMetricsTestCase
