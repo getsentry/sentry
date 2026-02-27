@@ -154,7 +154,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
     platform = artifact.platform
 
     apple_app_info = None
-    if platform == "apple":
+    if platform == Platform.APPLE:
         legacy_missing_dsym_binaries = (
             artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
         )
@@ -167,7 +167,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
 
     android_app_info = None
-    if platform == "android":
+    if platform == Platform.ANDROID:
         android_app_info = AndroidAppInfo(
             has_proguard_mapping=(
                 artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
