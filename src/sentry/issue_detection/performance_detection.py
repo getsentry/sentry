@@ -10,7 +10,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
