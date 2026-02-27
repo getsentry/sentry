@@ -7,12 +7,7 @@ import {Select} from '@sentry/scraps/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
-import {
-  BaseField,
-  FieldStatus,
-  useAutoSaveIndicator,
-  type BaseFieldProps,
-} from './baseField';
+import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
 function SelectInput({
   selectProps,
@@ -112,70 +107,65 @@ export function SelectField<TValue = string>({
   ...props
 }: SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
-  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
 
   return (
-    <BaseField>
+    <BaseField disabled={disabled}>
       {({id, ref, ...fieldProps}) => (
-        <Flex gap="sm" align="center">
-          <Container flex={1} minWidth={0}>
-            <Select
-              {...fieldProps}
-              {...props}
-              inputId={id}
-              disabled={isDisabled}
-              multiple={multiple}
-              value={value}
-              inputRef={applyInputToRef(ref)}
-              components={{
-                ...props.components,
-                Input: SelectInput,
-                IndicatorsContainer: SelectIndicatorsContainer,
-              }}
-              onMenuOpen={() => {
-                isMenuOpenRef.current = true;
-                props.onMenuOpen?.();
-              }}
-              onMenuClose={() => {
-                isMenuOpenRef.current = false;
-                props.onMenuClose?.();
-                // For multi-select in auto-save context, trigger save when menu closes
-                if (multiple && autoSaveContext) {
+        <Container flex={1} minWidth={0}>
+          <Select
+            {...fieldProps}
+            {...props}
+            inputId={id}
+            multiple={multiple}
+            value={value}
+            inputRef={applyInputToRef(ref)}
+            components={{
+              ...props.components,
+              Input: SelectInput,
+              IndicatorsContainer: SelectIndicatorsContainer,
+            }}
+            onMenuOpen={() => {
+              isMenuOpenRef.current = true;
+              props.onMenuOpen?.();
+            }}
+            onMenuClose={() => {
+              isMenuOpenRef.current = false;
+              props.onMenuClose?.();
+              // For multi-select in auto-save context, trigger save when menu closes
+              if (multiple && autoSaveContext) {
+                fieldProps.onBlur();
+              }
+            }}
+            onChange={(
+              option: SelectValue<TValue> | Array<SelectValue<TValue>> | null
+            ) => {
+              if (multiple) {
+                // For multi-select, option is an array
+                (onChange as (value: TValue[]) => void)(
+                  Array.isArray(option) ? option.map(o => o.value) : []
+                );
+                // For multi-select in auto-save context, trigger save when menu is closed
+                // (e.g., clicking X on a tag or clear all while menu is not open)
+                if (autoSaveContext && !isMenuOpenRef.current) {
                   fieldProps.onBlur();
                 }
-              }}
-              onChange={(
-                option: SelectValue<TValue> | Array<SelectValue<TValue>> | null
-              ) => {
-                if (multiple) {
-                  // For multi-select, option is an array
-                  (onChange as (value: TValue[]) => void)(
-                    Array.isArray(option) ? option.map(o => o.value) : []
-                  );
-                  // For multi-select in auto-save context, trigger save when menu is closed
-                  // (e.g., clicking X on a tag or clear all while menu is not open)
-                  if (autoSaveContext && !isMenuOpenRef.current) {
-                    fieldProps.onBlur();
-                  }
-                } else {
-                  if (!option) {
-                    // Clearable single select - type system allows null via discriminated union
-                    (onChange as (value: TValue | null) => void)(null);
-                    return;
-                  }
-                  // For single-select, option is a single value
-                  (onChange as (value: TValue) => void)(
-                    (option as SelectValue<TValue>).value
-                  );
+              } else {
+                if (!option) {
+                  // Clearable single select - type system allows null via discriminated union
+                  (onChange as (value: TValue | null) => void)(null);
+                  return;
                 }
-              }}
-            />
-          </Container>
-          <FieldStatus disabled={disabled} />
-        </Flex>
+                // For single-select, option is a single value
+                (onChange as (value: TValue) => void)(
+                  (option as SelectValue<TValue>).value
+                );
+              }
+            }}
+          />
+        </Container>
       )}
     </BaseField>
   );

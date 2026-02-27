@@ -1,4 +1,4 @@
-import type {Ref} from 'react';
+import {Fragment, type Ref} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 import type {DistributedOmit} from 'type-fest';
 
@@ -6,12 +6,7 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {
-  BaseField,
-  FieldStatus,
-  useAutoSaveIndicator,
-  type BaseFieldProps,
-} from './baseField';
+import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
 export function RangeField({
   onChange,
@@ -26,17 +21,15 @@ export function RangeField({
   }) {
   const autoSaveContext = useAutoSaveContext();
   const indicator = useAutoSaveIndicator();
-  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
   return (
-    <BaseField>
+    <BaseField disabled={disabled}>
       {fieldProps => (
-        <Flex gap="sm" align="center">
+        <Fragment>
           <Slider
             {...fieldProps}
             {...props}
             ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
-            disabled={isDisabled}
             value={value}
             onChange={onChange}
             onPointerUp={e => {
@@ -47,8 +40,7 @@ export function RangeField({
             }}
           />
           {indicator ?? <Flex width="14px" flexShrink={0} />}
-          <FieldStatus disabled={disabled} />
-        </Flex>
+        </Fragment>
       )}
     </BaseField>
   );

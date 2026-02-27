@@ -2,15 +2,19 @@ import {useEffect, useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
-import {DisabledTip} from '@sentry/scraps/info';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Checkmark, Spinner} from '@sentry/scraps/form/icons';
+import {Flex} from '@sentry/scraps/layout';
 
-export type BaseFieldProps = Record<never, unknown>;
+import {FieldMeta} from './meta';
+
+export type BaseFieldProps = {
+  disabled?: boolean | string;
+};
 
 type FieldChildrenProps = {
   'aria-describedby': string;
   'aria-invalid': boolean;
+  disabled: boolean;
   id: string;
   name: string;
   onBlur: () => void;
@@ -33,27 +37,6 @@ export const useAutoSaveIndicator = () => {
 
   return null;
 };
-
-export function FieldStatus({disabled}: {disabled?: boolean | string}) {
-  const field = useFieldContext();
-
-  if (!field.state.meta.isValid) {
-    const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
-    return (
-      <Tooltip position="bottom" title={errorMessage} forceVisible skipWrapper>
-        <Warning variant="danger" size="sm" />
-      </Tooltip>
-    );
-  }
-
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
-
-  if (disabledReason) {
-    return <DisabledTip title={disabledReason} size="sm" />;
-  }
-
-  return null;
-}
 
 export const useFieldId = () => {
   const field = useFieldContext();
@@ -100,20 +83,27 @@ export function BaseField(
     children: (props: FieldChildrenProps) => React.ReactNode;
   }
 ) {
+  const autoSaveContext = useAutoSaveContext();
   const field = useFieldContext();
   const ref = useRef<HTMLElement>(null);
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
   useScrollToHash(field.name, ref);
 
-  return props.children({
-    ref,
-    'aria-invalid': !field.state.meta.isValid,
-    'aria-describedby': hintTextId,
-    onBlur: field.handleBlur,
-    name: field.name,
-    id: fieldId,
-  });
+  return (
+    <Flex gap="sm" align="center">
+      {props.children({
+        ref,
+        disabled: !!props.disabled || autoSaveContext?.status === 'pending',
+        'aria-invalid': !field.state.meta.isValid,
+        'aria-describedby': hintTextId,
+        onBlur: field.handleBlur,
+        name: field.name,
+        id: fieldId,
+      })}
+      <FieldMeta.Status disabled={props.disabled} />
+    </Flex>
+  );
 }
 
 function animateRowHighlight(node: HTMLElement | null) {

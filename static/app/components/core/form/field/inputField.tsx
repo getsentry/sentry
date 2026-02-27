@@ -1,17 +1,10 @@
 import type {Ref} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Flex} from '@sentry/scraps/layout';
 
-import {
-  BaseField,
-  FieldStatus,
-  useAutoSaveIndicator,
-  type BaseFieldProps,
-} from './baseField';
+import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
 export interface InputFieldProps
   extends
@@ -25,29 +18,23 @@ export interface InputFieldProps
 
 export function InputField(props: InputFieldProps) {
   const {onChange, disabled, trailingItems, ...rest} = props;
-  const autoSaveContext = useAutoSaveContext();
   const indicator = useAutoSaveIndicator();
-  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
   return (
-    <BaseField>
+    <BaseField disabled={disabled}>
       {fieldProps => (
-        <Flex gap="sm" align="center">
-          <InputGroup style={{flex: 1}}>
-            <InputGroup.Input
-              {...fieldProps}
-              {...rest}
-              ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, rest.ref)}
-              disabled={isDisabled}
-              onChange={e => onChange(e.target.value)}
-            />
-            <InputGroup.TrailingItems>
-              {trailingItems}
-              {indicator}
-            </InputGroup.TrailingItems>
-          </InputGroup>
-          <FieldStatus disabled={disabled} />
-        </Flex>
+        <InputGroup style={{flex: 1}}>
+          <InputGroup.Input
+            {...fieldProps}
+            {...rest}
+            ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, rest.ref)}
+            onChange={e => onChange(e.target.value)}
+          />
+          <InputGroup.TrailingItems>
+            {trailingItems}
+            {indicator}
+          </InputGroup.TrailingItems>
+        </InputGroup>
       )}
     </BaseField>
   );
