@@ -54,6 +54,7 @@ class OrganizationRegionTest(APITestCase):
 
         assert response.status_code == 200
         us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
         assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
     def test_non_org_member_has_no_access(self) -> None:
@@ -70,6 +71,7 @@ class OrganizationRegionTest(APITestCase):
         response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
         us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
         assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
         assert response.status_code == 200
 
@@ -102,6 +104,7 @@ class OrganizationRegionTest(APITestCase):
 
         assert response.status_code == 200
         us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
         assert response.data == {"name": us_locality.name, "url": us_locality.to_url("")}
 
     def test_integration_token_with_invalid_scopes(self) -> None:
@@ -130,6 +133,7 @@ class OrganizationRegionTest(APITestCase):
 
         assert response.status_code == 200
         us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
         assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
     def test_user_auth_token_for_member(self) -> None:
@@ -144,6 +148,7 @@ class OrganizationRegionTest(APITestCase):
 
         assert response.status_code == 200
         us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
         assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
     def test_user_auth_token_for_non_member(self) -> None:
