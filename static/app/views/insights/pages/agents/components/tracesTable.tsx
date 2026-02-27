@@ -104,7 +104,7 @@ export function TracesTable({
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns:
       // If table widths are provided, use them to override the default column widths
-      tableWidths && tableWidths.length === defaultColumnOrder.length
+      tableWidths?.length === defaultColumnOrder.length
         ? defaultColumnOrder.map((column, index) => ({
             ...column,
             width: tableWidths[index],
