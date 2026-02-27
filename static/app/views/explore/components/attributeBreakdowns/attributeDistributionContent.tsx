@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,21 +15,15 @@ import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
-import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
+import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
-  useAddSearchFilter,
-  useQueryParamsQuery,
-  useSetQueryParamsGroupBys,
-} from 'sentry/views/explore/queryParams/context';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
@@ -61,31 +55,7 @@ export function AttributeDistribution() {
   });
 
   const query = useQueryParamsQuery();
-  const addSearchFilter = useAddSearchFilter();
-  const setGroupBys = useSetQueryParamsGroupBys();
-  const copyToClipboard = useCopyToClipboard();
-
-  const onAction = useCallback(
-    ({action, key, value}: {action: string; key: string; value: string}) => {
-      switch (action) {
-        case Actions.GROUP_BY:
-          setGroupBys([key], Mode.AGGREGATE);
-          break;
-        case Actions.ADD_TO_FILTER:
-          addSearchFilter({key, value});
-          break;
-        case Actions.EXCLUDE_FROM_FILTER:
-          addSearchFilter({key, value, negated: true});
-          break;
-        case Actions.COPY_TO_CLIPBOARD:
-          copyToClipboard.copy(value);
-          break;
-        default:
-          break;
-      }
-    },
-    [addSearchFilter, setGroupBys, copyToClipboard]
-  );
+  const onAction = useAttributeBreakdownsTooltipAction();
 
   const dataset = useSpansDataset();
   const {selection} = usePageFilters();

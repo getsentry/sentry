@@ -1,8 +1,14 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {ECharts, TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {
+  useAddSearchFilter,
+  useSetQueryParamsGroupBys,
+} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 const TOOLTIP_POSITION_X_OFFSET = 20;
 const TOOLTIP_POSITION_Y_OFFSET = -10;
@@ -37,6 +43,34 @@ export enum Actions {
   ADD_TO_FILTER = 'add_value_to_filter',
   EXCLUDE_FROM_FILTER = 'exclude_value_from_filter',
   COPY_TO_CLIPBOARD = 'copy_value_to_clipboard',
+}
+
+export function useAttributeBreakdownsTooltipAction(): TooltipActions['onAction'] {
+  const addSearchFilter = useAddSearchFilter();
+  const setGroupBys = useSetQueryParamsGroupBys();
+  const copyToClipboard = useCopyToClipboard();
+
+  return useCallback(
+    ({action, key, value}: {action: string; key: string; value: string}) => {
+      switch (action) {
+        case Actions.GROUP_BY:
+          setGroupBys([key], Mode.AGGREGATE);
+          break;
+        case Actions.ADD_TO_FILTER:
+          addSearchFilter({key, value});
+          break;
+        case Actions.EXCLUDE_FROM_FILTER:
+          addSearchFilter({key, value, negated: true});
+          break;
+        case Actions.COPY_TO_CLIPBOARD:
+          copyToClipboard.copy(value);
+          break;
+        default:
+          break;
+      }
+    },
+    [addSearchFilter, setGroupBys, copyToClipboard]
+  );
 }
 
 // This hook creates a tooltip configuration for attribute breakdowns charts.

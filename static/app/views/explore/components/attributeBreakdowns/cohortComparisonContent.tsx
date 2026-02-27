@@ -16,6 +16,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
 
 import {Chart} from './cohortComparisonChart';
@@ -29,7 +30,6 @@ interface CohortComparisonProps {
   yAxis: string;
   dataset?: DiscoverDatasets;
   extrapolate?: string;
-  onAction?: (action: {action: string; key: string; value: string}) => void;
 }
 
 export function CohortComparison({
@@ -38,8 +38,9 @@ export function CohortComparison({
   query,
   dataset,
   extrapolate,
-  onAction,
 }: CohortComparisonProps) {
+  const onAction = useAttributeBreakdownsTooltipAction();
+
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
     range: selection.range,
