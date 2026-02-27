@@ -39,7 +39,6 @@ export {
   getItemsWithKeys,
   getDisabledOptions,
   getHiddenOptions,
-  getSortedItems,
   itemIsSectionWithKey,
   SectionToggle,
   getEscapedKey,

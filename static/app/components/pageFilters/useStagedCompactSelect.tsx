@@ -266,11 +266,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<unknown>) => {
       if (e.key === 'Escape') {
+        if (disableCommit) {
+          dispatch({type: 'remove staged'});
+          return;
+        }
         commit(stagedValue);
       }
     },
 
-    [commit, stagedValue]
+    [commit, stagedValue, disableCommit]
   );
 
   const sectionToggleWasPressed = useRef(false);
