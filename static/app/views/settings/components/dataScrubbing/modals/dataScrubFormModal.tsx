@@ -236,27 +236,25 @@ function DataScrubFormModal({
             </form.AppField>
           )}
 
-          <form.AppField
-            name="method"
-            listeners={{
-              onChange: ({value}) => {
-                if (value !== MethodType.REPLACE) {
-                  form.setFieldValue('placeholder', '');
+          <form.Subscribe selector={state => state.values.method}>
+            {method => (
+              <Grid
+                columns={
+                  method === MethodType.REPLACE ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'
                 }
-              },
-            }}
-          >
-            {methodField => (
-              <form.AppField name="placeholder">
-                {placeholderField => (
-                  <Grid
-                    columns={
-                      methodField.state.value === MethodType.REPLACE
-                        ? {xs: '1fr', sm: '1fr 1fr'}
-                        : '1fr'
-                    }
-                    gap={{sm: 'md'}}
-                  >
+                gap={{sm: 'md'}}
+              >
+                <form.AppField
+                  name="method"
+                  listeners={{
+                    onChange: ({value}) => {
+                      if (value !== MethodType.REPLACE) {
+                        form.setFieldValue('placeholder', '');
+                      }
+                    },
+                  }}
+                >
+                  {methodField => (
                     <methodField.Layout.Stack
                       label={t('Method')}
                       hintText={t('What to do')}
@@ -271,7 +269,11 @@ function DataScrubFormModal({
                         openOnFocus
                       />
                     </methodField.Layout.Stack>
-                    {methodField.state.value === MethodType.REPLACE && (
+                  )}
+                </form.AppField>
+                {method === MethodType.REPLACE && (
+                  <form.AppField name="placeholder">
+                    {placeholderField => (
                       <placeholderField.Layout.Stack
                         label={t('Custom Placeholder (Optional)')}
                         hintText={t('It will replace the default placeholder [Filtered]')}
@@ -285,81 +287,81 @@ function DataScrubFormModal({
                         />
                       </placeholderField.Layout.Stack>
                     )}
-                  </Grid>
+                  </form.AppField>
                 )}
-              </form.AppField>
+              </Grid>
             )}
-          </form.AppField>
+          </form.Subscribe>
 
-          <form.AppField
-            name="type"
-            listeners={{
-              onChange: ({value}) => {
-                if (value !== RuleType.PATTERN) {
-                  form.setFieldValue('pattern', '');
-                  form.setFieldValue('replaceCaptured', false);
-                }
-              },
-            }}
-          >
-            {typeField => (
-              <form.AppField name="pattern">
-                {patternField => (
-                  <form.AppField name="replaceCaptured">
-                    {replaceCapturedField => (
-                      <Grid
-                        columns={
-                          typeField.state.value === RuleType.PATTERN
-                            ? {xs: '1fr', sm: '1fr 1fr'}
-                            : '1fr'
-                        }
-                        gap={{sm: 'md'}}
+          <form.Subscribe selector={state => state.values.type}>
+            {type => (
+              <Grid
+                columns={type === RuleType.PATTERN ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'}
+                gap={{sm: 'md'}}
+              >
+                <form.AppField
+                  name="type"
+                  listeners={{
+                    onChange: ({value}) => {
+                      if (value !== RuleType.PATTERN) {
+                        form.setFieldValue('pattern', '');
+                        form.setFieldValue('replaceCaptured', false);
+                      }
+                    },
+                  }}
+                >
+                  {typeField => (
+                    <typeField.Layout.Stack
+                      label={t('Data Type')}
+                      hintText={t(
+                        'What to look for. Use an existing pattern or define your own using regular expressions.'
+                      )}
+                      variant="compact"
+                    >
+                      <typeField.Select
+                        placeholder={t('Select type')}
+                        options={typeOptions}
+                        value={typeField.state.value}
+                        onChange={typeField.handleChange}
+                        isSearchable={false}
+                        openOnFocus
+                      />
+                    </typeField.Layout.Stack>
+                  )}
+                </form.AppField>
+                {type === RuleType.PATTERN && (
+                  <form.AppField name="pattern">
+                    {patternField => (
+                      <patternField.Layout.Stack
+                        label={t('Regex matches')}
+                        hintText={t('Custom regular expression (see documentation)')}
+                        variant="compact"
+                        required
                       >
-                        <typeField.Layout.Stack
-                          label={t('Data Type')}
-                          hintText={t(
-                            'What to look for. Use an existing pattern or define your own using regular expressions.'
-                          )}
-                          variant="compact"
-                        >
-                          <typeField.Select
-                            placeholder={t('Select type')}
-                            options={typeOptions}
-                            value={typeField.state.value}
-                            onChange={typeField.handleChange}
-                            isSearchable={false}
-                            openOnFocus
+                        <RegularExpressionWrapper>
+                          <patternField.Input
+                            type="text"
+                            placeholder={t('[a-zA-Z0-9]+')}
+                            onChange={patternField.handleChange}
+                            value={patternField.state.value}
                           />
-                        </typeField.Layout.Stack>
-                        {typeField.state.value === RuleType.PATTERN && (
-                          <patternField.Layout.Stack
-                            label={t('Regex matches')}
-                            hintText={t('Custom regular expression (see documentation)')}
-                            variant="compact"
-                            required
-                          >
-                            <RegularExpressionWrapper>
-                              <patternField.Input
-                                type="text"
-                                placeholder={t('[a-zA-Z0-9]+')}
-                                onChange={patternField.handleChange}
-                                value={patternField.state.value}
-                              />
-                            </RegularExpressionWrapper>
+                        </RegularExpressionWrapper>
+                        <form.AppField name="replaceCaptured">
+                          {replaceCapturedField => (
                             <ReplaceCapturedCheckbox
                               pattern={patternField.state.value}
                               checked={replaceCapturedField.state.value}
                               onChange={val => replaceCapturedField.handleChange(val)}
                             />
-                          </patternField.Layout.Stack>
-                        )}
-                      </Grid>
+                          )}
+                        </form.AppField>
+                      </patternField.Layout.Stack>
                     )}
                   </form.AppField>
                 )}
-              </form.AppField>
+              </Grid>
             )}
-          </form.AppField>
+          </form.Subscribe>
 
           <form.AppField name="source">
             {sourceField => {
