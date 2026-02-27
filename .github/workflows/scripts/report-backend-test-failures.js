@@ -87,6 +87,7 @@ function buildCommentBody(failures) {
     for (const t of tests) {
       const shortName = t.nodeid.split('::').pop();
       const escapedMsg = t.message
+        .replace(/\\/g, '\\\\')
         .replace(/\|/g, '\\|')
         .replace(/\n/g, ' ')
         .slice(0, 200);

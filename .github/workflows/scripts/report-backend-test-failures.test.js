@@ -298,18 +298,18 @@ describe('buildCommentBody', () => {
     assert.ok(backendIdx < migrationIdx, 'backend section should come before migration');
   });
 
-  it('escapes pipe characters in error messages', () => {
+  it('escapes pipe and backslash characters in error messages', () => {
     const failures = [
       {
         label: 'backend',
         nodeid: 'a::b::c',
-        message: 'expected foo | bar',
+        message: 'expected foo | bar \\ baz',
         longrepr: '',
       },
     ];
 
     const body = buildCommentBody(failures);
-    assert.ok(body.includes('expected foo \\| bar'));
+    assert.ok(body.includes('expected foo \\| bar \\\\ baz'));
   });
 
   it('truncates long tracebacks', () => {
