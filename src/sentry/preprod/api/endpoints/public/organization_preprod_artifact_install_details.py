@@ -14,7 +14,7 @@ from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.preprod.api.models.public.install_info import (
+from sentry.preprod.api.models.public.installable_builds import (
     InstallInfoResponseDict,
     create_install_info_dict,
 )
