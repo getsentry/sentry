@@ -290,6 +290,25 @@ def test_fallback_to_database(default_project, redis_mock) -> None:
 
 
 @django_db_all
+def test_increment_project_counter_in_cache_empty_pipeline_result(default_project, redis_mock):
+    """When Redis pipeline returns an empty list (e.g. during cluster failover),
+    fall back to the database path instead of crashing with ValueError."""
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        pipeline_mock.execute.return_value = []
+        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+            with patch(
+                "sentry.models.counter.increment_project_counter_in_database", return_value=42
+            ) as mock_db:
+                result = increment_project_counter_in_cache(default_project, using="default")
+                assert result == 42
+                mock_db.assert_called_once_with(default_project, using="default")
+                mock_refill.assert_called_once()
+
+
+@django_db_all
 def test_preallocation_end_to_end(default_project) -> None:
     # The first increment should trigger a refill
     with TaskRunner():

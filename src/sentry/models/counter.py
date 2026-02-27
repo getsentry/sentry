@@ -60,8 +60,14 @@ def increment_project_counter_in_cache(project, using="default") -> int:
     with redis.pipeline() as pipe:
         pipe.lpop(redis_key)
         pipe.llen(redis_key)
-        short_id_from_redis, remaining = pipe.execute()
-        short_id_from_redis = int(short_id_from_redis) if short_id_from_redis is not None else None
+        result = pipe.execute()
+
+    if len(result) == 2:
+        short_id_from_redis = int(result[0]) if result[0] is not None else None
+        remaining = result[1]
+    else:
+        short_id_from_redis = None
+        remaining = 0
 
     if short_id_from_redis is None:  # fallback if not populated in Redis
         metrics.incr("counter.increment_project_counter_in_cache.fallback")
