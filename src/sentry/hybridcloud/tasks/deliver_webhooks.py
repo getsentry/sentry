@@ -311,7 +311,7 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 # Refresh the lock on each delivery so a slow HTTP response in the
                 # inner loop (up to 30s timeout × 100 records) cannot outlast the
                 # 15s TTL and let the key expire mid-batch.
-                if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+                if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                     _refresh_drain_lock(payload.mailbox_name)
                 try:
                     deliver_message(record)
