@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -12,65 +12,40 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
-import {
-  useAddSearchFilter,
-  useQueryParamsQuery,
-  useQueryParamsVisualizes,
-  useSetQueryParamsGroupBys,
-} from 'sentry/views/explore/queryParams/context';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 import {Chart} from './cohortComparisonChart';
 import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 import {tooltipActionsHtmlRenderer} from './utils';
 
+interface CohortComparisonProps {
+  query: string;
+  selection: Selection;
+  yAxis: string;
+  dataset?: DiscoverDatasets;
+  extrapolate?: string;
+  onAction?: (action: {action: string; key: string; value: string}) => void;
+}
+
 export function CohortComparison({
   selection,
-  chartIndex,
-}: {
-  chartIndex: number;
-  selection: Selection;
-}) {
-  const visualizes = useQueryParamsVisualizes();
-  const query = useQueryParamsQuery();
-  const addSearchFilter = useAddSearchFilter();
-  const setGroupBys = useSetQueryParamsGroupBys();
-  const copyToClipboard = useCopyToClipboard();
-
-  const onAction = useCallback(
-    ({action, key, value}: {action: string; key: string; value: string}) => {
-      switch (action) {
-        case Actions.GROUP_BY:
-          setGroupBys([key], Mode.AGGREGATE);
-          break;
-        case Actions.ADD_TO_FILTER:
-          addSearchFilter({key, value});
-          break;
-        case Actions.EXCLUDE_FROM_FILTER:
-          addSearchFilter({key, value, negated: true});
-          break;
-        case Actions.COPY_TO_CLIPBOARD:
-          copyToClipboard.copy(value);
-          break;
-        default:
-          break;
-      }
-    },
-    [addSearchFilter, setGroupBys, copyToClipboard]
-  );
-
-  const yAxis = visualizes[chartIndex]?.yAxis ?? '';
-
+  yAxis,
+  query,
+  dataset,
+  extrapolate,
+  onAction,
+}: CohortComparisonProps) {
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
     range: selection.range,
+    query,
+    dataset,
+    extrapolate,
   });
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
