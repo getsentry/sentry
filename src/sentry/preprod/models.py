@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from typing import ClassVar, Literal, Self
+from typing import ClassVar, Literal, Self, assert_never
 
 import sentry_sdk
 from django.db import models
@@ -234,7 +234,7 @@ class PreprodArtifact(DefaultFieldsModel):
             case self.ArtifactType.AAB | self.ArtifactType.APK:
                 return "android"
             case _:
-                raise ValueError(f"Unknown artifact type: {self.artifact_type}")
+                assert_never(self.artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
