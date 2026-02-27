@@ -321,11 +321,20 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          mode: migrations
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
+          python3 -b -m pytest \
+            tests/sentry/migrations \
+            tests/sentry/monitors/migrations \
+            tests/sentry/workflow_engine/migrations \
+            tests/sentry/uptime/migrations \
+            tests/sentry/preprod/migrations \
+            --migrations \
+            --reruns 0 \
+            --fail-slow=120s \
+            --reuse-db
 
       - name: Inspect failure
         if: failure()
