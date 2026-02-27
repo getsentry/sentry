@@ -89,9 +89,6 @@ function mockGithub({existingComments = []} = {}) {
         updateComment: async params => {
           calls.push({method: 'updateComment', params});
         },
-        deleteComment: async params => {
-          calls.push({method: 'deleteComment', params});
-        },
       },
     },
   };
@@ -336,24 +333,6 @@ describe('report (integration)', () => {
     assert.ok(!github.calls.some(c => c.method === 'createComment'));
   });
 
-  it('deletes existing comment when all tests pass', async () => {
-    createArtifactDir(
-      'pytest-results-backend-111-0',
-      'pytest.json',
-      makePytestJson([PASSED_TEST])
-    );
-
-    const github = mockGithub({
-      existingComments: [{id: 888, body: `${COMMENT_MARKER}\nold failures`}],
-    });
-
-    await report({github, context: mockContext(), core: mockCore()});
-
-    const del = github.calls.find(c => c.method === 'deleteComment');
-    assert.ok(del, 'should have called deleteComment');
-    assert.equal(del.params.comment_id, 888);
-  });
-
   it('does nothing when no artifacts exist', async () => {
     const github = mockGithub();
     const core = mockCore();
@@ -364,7 +343,7 @@ describe('report (integration)', () => {
     assert.ok(core.logs.info.some(m => m.includes('No pytest result files')));
   });
 
-  it('does not delete when all pass and no prior comment', async () => {
+  it('does nothing when all tests pass', async () => {
     createArtifactDir(
       'pytest-results-backend-111-0',
       'pytest.json',
@@ -376,7 +355,8 @@ describe('report (integration)', () => {
 
     await report({github, context: mockContext(), core});
 
-    assert.ok(!github.calls.some(c => c.method === 'deleteComment'));
     assert.ok(!github.calls.some(c => c.method === 'createComment'));
+    assert.ok(!github.calls.some(c => c.method === 'updateComment'));
+    assert.ok(!github.calls.some(c => c.method === 'deleteComment'));
   });
 });

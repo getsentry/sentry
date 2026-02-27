@@ -104,30 +104,22 @@ module.exports = {
     }
 
     const failures = parseFailures(jsonFiles, core);
-    const prNumber = context.payload.pull_request.number;
 
-    // Find existing comment
+    if (failures.length === 0) {
+      core.info('No test failures found.');
+      return;
+    }
+
+    const prNumber = context.payload.pull_request.number;
+    const body = buildCommentBody(failures);
+
+    // Find existing comment to update instead of creating a duplicate
     const {data: comments} = await github.rest.issues.listComments({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: prNumber,
     });
     const existing = comments.find(c => c.body?.includes(COMMENT_MARKER));
-
-    if (failures.length === 0) {
-      core.info('No test failures found.');
-      if (existing) {
-        await github.rest.issues.deleteComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          comment_id: existing.id,
-        });
-        core.info('Deleted previous failure comment.');
-      }
-      return;
-    }
-
-    const body = buildCommentBody(failures);
 
     if (existing) {
       await github.rest.issues.updateComment({
