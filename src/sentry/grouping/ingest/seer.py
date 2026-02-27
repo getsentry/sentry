@@ -19,7 +19,7 @@ from sentry.models.project import Project
 from sentry.seer.similarity.config import (
     get_grouping_model_version,
     get_new_model_version,
-    should_send_new_model_embeddings,
+    should_send_to_seer_for_training,
 )
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
@@ -588,11 +588,11 @@ def maybe_send_seer_for_new_model_training(
     variants: dict[str, BaseVariant],
 ) -> None:
     """
-    Send a training_mode=true request to Seer to build embeddings for the new model
-    version if the existing grouphash hasn't been sent to the new version yet.
+    Send a training_mode=true request to Seer for the new model version if the existing
+    grouphash hasn't been sent to the new version yet.
 
     This only happens for projects that have the new model rolled out. It helps
-    build embeddings for existing groups without affecting production grouping decisions.
+    build data for existing groups without affecting production grouping decisions.
 
     Args:
         event: The event being grouped
@@ -600,19 +600,16 @@ def maybe_send_seer_for_new_model_training(
         variants: Grouping variants for the event
     """
 
-    # Check if we should send embeddings for the new model
     gh_metadata = existing_grouphash.metadata
-    grouphash_seer_model = gh_metadata.seer_model if gh_metadata else None
     grouphash_seer_latest_training_model = (
         gh_metadata.seer_latest_training_model if gh_metadata else None
     )
 
-    if not should_send_new_model_embeddings(
-        event.project, grouphash_seer_model, grouphash_seer_latest_training_model
-    ):
+    if not should_send_to_seer_for_training(event.project, grouphash_seer_latest_training_model):
         return
 
-    # Send training mode request (honor all checks like rate limits, circuit breaker, etc.)
+    # Honor all checks like rate limits, circuit breaker, etc.
+    # TODO: should_call_seer_for_grouping reports metrics internally without training_mode=True
     if not should_call_seer_for_grouping(event, variants, existing_grouphash):
         return
 
@@ -638,7 +635,7 @@ def maybe_send_seer_for_new_model_training(
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={
             "platform": event.platform,
-            "result": "no_seer_matches",
+            "result": "training",
             "training_mode": True,
         },
     )
