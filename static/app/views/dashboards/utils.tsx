@@ -654,6 +654,7 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   const widgetTypesThatFetchOwnData = [
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
   ];
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };

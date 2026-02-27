@@ -96,6 +96,7 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
@@ -252,6 +253,19 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <TableWrapper>
+        <TracesTable
+          openTraceViewDrawer={() => {}}
+          limit={widget.limit}
+          tableWidths={widget.tableWidths}
+          frameless
+        />
+      </TableWrapper>
     );
   }
 
