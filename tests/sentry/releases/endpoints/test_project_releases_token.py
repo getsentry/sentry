@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_locality
 
 
 class ReleaseTokenGetTest(APITestCase):
@@ -62,8 +62,7 @@ class ReleaseTokenGetTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
 
-        region = get_local_region()
-        assert response.data["webhookUrl"].startswith(region.to_url("/"))
+        assert response.data["webhookUrl"].startswith(get_local_locality().to_url("/"))
 
     def test_regenerates_token(self) -> None:
         project = self.create_project(name="foo")
