@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.commitcomparison import CommitComparison
-from sentry.models.project import Project
+from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import compare_snapshots
@@ -20,19 +20,19 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class PreprodSnapshotRecompareEndpoint(ProjectEndpoint):
+class PreprodSnapshotRecompareEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (StaffPermission,)
 
-    def post(self, request: Request, project: Project, snapshot_id: str) -> Response:
+    def post(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
         try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
-                id=snapshot_id, project_id=project.id
+                id=snapshot_id, project__organization_id=organization.id
             )
-        except PreprodArtifact.DoesNotExist:
+        except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
@@ -67,7 +67,7 @@ class PreprodSnapshotRecompareEndpoint(ProjectEndpoint):
 
             try:
                 base_commit_comparison = CommitComparison.objects.get(
-                    organization_id=project.organization_id,
+                    organization_id=organization.id,
                     head_sha=base_sha,
                     head_repo_name=base_repo_name,
                     head_ref=base_ref,
@@ -76,7 +76,7 @@ class PreprodSnapshotRecompareEndpoint(ProjectEndpoint):
                 base_artifact = (
                     PreprodArtifact.objects.filter(
                         commit_comparison=base_commit_comparison,
-                        project=project,
+                        project__organization_id=organization.id,
                     )
                     .order_by("-date_added")
                     .first()
@@ -92,15 +92,14 @@ class PreprodSnapshotRecompareEndpoint(ProjectEndpoint):
             extra={
                 "head_artifact_id": artifact.id,
                 "base_artifact_id": base_artifact_id,
-                "project_id": project.id,
-                "org_id": project.organization_id,
+                "org_id": organization.id,
             },
         )
 
         compare_snapshots.apply_async(
             kwargs={
-                "project_id": project.id,
-                "org_id": project.organization_id,
+                "project_id": artifact.project_id,
+                "org_id": organization.id,
                 "head_artifact_id": artifact.id,
                 "base_artifact_id": base_artifact_id,
             },
