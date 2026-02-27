@@ -62,7 +62,13 @@ export const useLabelId = () => {
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
   const location = useLocation();
   useEffect(() => {
-    if (location.hash.slice(1) !== fieldName) {
+    let hash: string;
+    try {
+      hash = decodeURIComponent(location.hash.slice(1));
+    } catch {
+      return;
+    }
+    if (hash !== fieldName) {
       return;
     }
     ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
