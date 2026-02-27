@@ -84,7 +84,7 @@ class SnubaRPCRateLimitExceeded(SnubaRPCError):
 
 
 class SnubaRPCRequest(Protocol):
-    def SerializeToString(self, deterministic: bool = ...) -> bytes: ...
+    def SerializeToString(self, *, deterministic: bool = ...) -> bytes: ...
 
     @property
     def meta(
