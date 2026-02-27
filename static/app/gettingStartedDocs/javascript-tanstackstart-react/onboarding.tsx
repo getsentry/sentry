@@ -174,35 +174,31 @@ Sentry.init({
           ),
         },
         {
-          type: 'conditional',
-          condition: params.isPerformanceSelected,
-          content: [
+          type: 'text',
+          text: tct(
+            'To capture server-side errors and traces, explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
             {
-              type: 'text',
-              text: tct(
-                'To enable tracing for server-side requests, you need to explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
-                {
-                  code: <code />,
-                  serverEntryLink: (
-                    <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
-                  ),
-                }
+              code: <code />,
+              serverEntryLink: (
+                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
               ),
-            },
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct('Create a [code:src/server.ts] file in your project:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              type: 'text',
-              text: tct('Create a [code:src/server.ts] file in your project:', {
-                code: <code />,
-              }),
-            },
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'TypeScript',
-                  language: 'typescript',
-                  filename: 'src/server.ts',
-                  code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'src/server.ts',
+              code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 export default createServerEntry(
@@ -212,8 +208,6 @@ export default createServerEntry(
     },
   })
 );`,
-                },
-              ],
             },
           ],
         },
