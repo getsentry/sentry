@@ -7,9 +7,11 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {FieldMeta} from './meta';
 
-export type BaseFieldProps = {
-  disabled?: boolean | string;
+type BaseProps = {
+  disabled: boolean | string | undefined;
 };
+
+export type BaseFieldProps = Partial<BaseProps>;
 
 type FieldChildrenProps = {
   'aria-describedby': string;
@@ -79,7 +81,7 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
 }
 
 export function BaseField(
-  props: BaseFieldProps & {
+  props: BaseProps & {
     children: (props: FieldChildrenProps) => React.ReactNode;
   }
 ) {
