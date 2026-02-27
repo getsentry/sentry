@@ -1066,8 +1066,3 @@ class WaterFallTestCase(TestCase):
         assert len(frames) == 1
         assert frames[0]["module"] == "io.sentry.example.Application"
         assert frames[0]["filename"] == "Application.java"
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

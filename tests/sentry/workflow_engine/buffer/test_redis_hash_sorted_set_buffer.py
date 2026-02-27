@@ -532,8 +532,3 @@ class TestRedisHashSortedSetBuffer:
         # Try to get a key that doesn't exist
         retrieved_data = self.buf.get_parsed_key("nonexistent_key", TestModel)
         assert retrieved_data is None
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

@@ -63,8 +63,3 @@ class DeleteOrphanedDetectorsTest(TestMigrations):
         remaining_data_source = valid_data_sources.first()
         assert remaining_data_source
         assert remaining_data_source.source_id == str(self.monitor_with_detector.id)
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

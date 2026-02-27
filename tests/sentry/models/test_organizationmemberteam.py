@@ -25,8 +25,3 @@ class OrganizationMemberTest(TestCase):
         for org_role in ("admin", "manager", "owner"):
             self.member.role = org_role
             assert omt.get_team_role() == team_roles.get("admin")
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

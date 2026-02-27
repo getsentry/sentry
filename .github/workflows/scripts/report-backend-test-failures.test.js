@@ -76,14 +76,14 @@ function mockCore() {
 
 function mockGithub({existingComments = []} = {}) {
   const calls = [];
-  return {
+  const mock = {
     calls,
+    paginate: async (method, params) => {
+      calls.push({method: 'paginate', params});
+      return existingComments;
+    },
     rest: {
       issues: {
-        listComments: async params => {
-          calls.push({method: 'listComments', params});
-          return {data: existingComments};
-        },
         createComment: async params => {
           calls.push({method: 'createComment', params});
         },
@@ -93,6 +93,7 @@ function mockGithub({existingComments = []} = {}) {
       },
     },
   };
+  return mock;
 }
 
 function mockContext(prNumber = 123) {

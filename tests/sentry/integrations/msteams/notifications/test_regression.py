@@ -50,8 +50,3 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
             f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=regression\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

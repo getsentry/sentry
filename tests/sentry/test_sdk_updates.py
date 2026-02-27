@@ -217,8 +217,3 @@ def test_more_specific_dotnet_sdk(some_dotnet_sdk) -> None:
                 "type": "changeSdk",
             }
         ]
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

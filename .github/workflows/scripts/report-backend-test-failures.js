@@ -94,8 +94,9 @@ export async function report({github, context, core}) {
   const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
   const body = buildCommentBody(failures, runUrl);
 
-  // Find existing comment to update instead of creating a duplicate
-  const {data: comments} = await github.rest.issues.listComments({
+  // Find existing comment to update instead of creating a duplicate.
+  // Use paginate to search all comments, not just the first page.
+  const comments = await github.paginate(github.rest.issues.listComments, {
     owner: context.repo.owner,
     repo: context.repo.repo,
     issue_number: prNumber,

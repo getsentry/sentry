@@ -101,8 +101,3 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
     def test_missing_keys(self) -> None:
         self.login()
         self.assertFalse(has_sudo_privileges(self.request))
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"
