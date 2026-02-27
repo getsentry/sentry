@@ -41,7 +41,7 @@ interface MetricSelectOption {
 }
 
 function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}`;
+  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
 export default function EAPMetricsField({
