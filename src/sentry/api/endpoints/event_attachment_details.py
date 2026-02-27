@@ -27,12 +27,19 @@ from sentry.utils import metrics
 
 def _parse_accept_encoding(header: str) -> list[str]:
     """Parse an Accept-Encoding header value into a list of encoding names.
-    Strips q-values and normalizes to lowercase per RFC 7231."""
-    return [
-        part.split(";")[0].strip().lower()
-        for part in header.split(",")
-        if part.split(";")[0].strip()
-    ]
+    Strips q-values and normalizes to lowercase per RFC 7231.
+    Excludes encodings with q=0, which the client explicitly rejects (RFC 7231 §5.3.4)."""
+    result = []
+    for part in header.split(","):
+        segments = part.split(";")
+        name = segments[0].strip().lower()
+        if not name:
+            continue
+        # q=0 means explicitly not acceptable; don't treat it as a supported encoding
+        if any(s.strip().lower() == "q=0" for s in segments[1:]):
+            continue
+        result.append(name)
+    return result
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
