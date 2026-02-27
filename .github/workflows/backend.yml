@@ -3,6 +3,7 @@ name: backend
 on:
   push:
     branches:
+      - mchen/test-apidocs-minimal
       - master
   pull_request:
     types: [opened, synchronize, reopened, labeled]
@@ -62,7 +63,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          mode: minimal
 
       - name: Run API docs tests
         run: |
