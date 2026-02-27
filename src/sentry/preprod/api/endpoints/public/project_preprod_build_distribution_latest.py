@@ -167,17 +167,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 codesigning_type=codesigning_type,
             )
 
-            if not current_artifact:
-                logger.info(
-                    "preprod.latest_build.current_not_found",
-                    extra={
-                        "project_id": project.id,
-                        "app_id": app_id,
-                        "platform": platform,
-                        "build_version": build_version,
-                    },
-                )
-
             # Inherit filters from current artifact when not explicitly provided
             if current_artifact:
                 if not effective_build_configuration and current_artifact.build_configuration:
@@ -190,6 +179,16 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                     current_groups = current_artifact.extras.get("install_groups")
                     if current_groups and isinstance(current_groups, list):
                         effective_install_groups = current_groups
+            else:
+                logger.info(
+                    "preprod.latest_build.current_not_found",
+                    extra={
+                        "project_id": project.id,
+                        "app_id": app_id,
+                        "platform": platform,
+                        "build_version": build_version,
+                    },
+                )
 
         latest_artifact = find_latest_installable_artifact(
             project=project,
@@ -200,7 +199,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             install_groups=effective_install_groups,
         )
 
-        # Build response dicts
         latest_dict = None
         if latest_artifact:
             download_count = get_download_count_for_artifact(latest_artifact)
@@ -213,12 +211,10 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
 
         # Determine update availability
         if build_version is not None:
-            if latest_artifact and current_artifact:
-                update_available = latest_artifact.id != current_artifact.id
-            elif latest_artifact and not current_artifact:
-                update_available = True
-            else:
-                update_available = False
+            update_available = bool(
+                latest_artifact
+                and latest_artifact.id != (current_artifact.id if current_artifact else None)
+            )
 
         return Response(
             create_latest_installable_build_response(
