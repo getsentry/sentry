@@ -11,6 +11,7 @@ import {
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
+import {useNavContext} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {
@@ -23,6 +24,7 @@ import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 export function SecondarySidebar() {
   const {currentStepId} = useStackedNavigationTour();
+  const {activePrimaryNavGroup} = useNavContext();
   const stepId = currentStepId ?? StackedNavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
@@ -42,7 +44,11 @@ export function SecondarySidebar() {
     },
   });
 
-  const activeNavGroup = useActiveNavGroup();
+  // In collapsed mode, activePrimaryNavGroup is set on hover to control the flyout content.
+  // In expanded mode, hover no longer writes to activePrimaryNavGroup (it uses hoveredNav
+  // for the popover instead), so this falls back to the route-based group.
+  const routeNavGroup = useActiveNavGroup();
+  const activeNavGroup = activePrimaryNavGroup ?? routeNavGroup;
 
   return (
     <SecondarySidebarWrapper
