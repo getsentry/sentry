@@ -13,6 +13,7 @@ class SnapshotDiffSection(StrEnum):
     REMOVED = "removed"
     CHANGED = "changed"
     UNCHANGED = "unchanged"
+    ERRORED = "errored"
 
 
 # GET response
@@ -55,6 +56,9 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     unchanged: list[SnapshotImageResponse] = []
     unchanged_count: int = 0
+
+    errored: list[SnapshotDiffPair] = []
+    errored_count: int = 0
 
 
 # TODO: POST request in the future when we migrate away from current schemas

@@ -1,5 +1,6 @@
 import {GitHubIntegrationConfigFixture} from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -92,6 +93,26 @@ describe('Project Ownership', () => {
   });
 
   describe('issue owners settings', () => {
+    it('renders autoAssignment select field with correct initial value', async () => {
+      render(<ProjectOwnership />, {
+        organization,
+        outletContext: {project},
+      });
+
+      expect(
+        await screen.findByText('Auto-assign to suspect commits')
+      ).toBeInTheDocument();
+    });
+
+    it('renders Sync changes from CODEOWNERS field', async () => {
+      render(<ProjectOwnership />, {
+        organization,
+        outletContext: {project},
+      });
+
+      expect(await screen.findByText('Sync changes from CODEOWNERS')).toBeInTheDocument();
+    });
+
     it('should set autoAssignment with commit-context string', async () => {
       const updateOwnership = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/ownership/`,
@@ -122,6 +143,39 @@ describe('Project Ownership', () => {
           })
         );
       });
+    });
+
+    it('disables autoAssignment select when user lacks write access', async () => {
+      render(<ProjectOwnership />, {
+        organization: OrganizationFixture({access: ['project:read']}),
+        outletContext: {project: ProjectFixture({access: []})},
+      });
+
+      // Wait for the autoAssignment field to render
+      const autoAssignText = await screen.findByText('Auto-assign to suspect commits');
+      expect(autoAssignText).toBeInTheDocument();
+
+      // The select input should be disabled - find the textbox closest to the label
+      const selectInput = autoAssignText
+        .closest('[class*="container"]')
+        ?.querySelector('input');
+      expect(selectInput).toBeDisabled();
+    });
+
+    it('disables codeownersAutoSync when no codeowners exist', async () => {
+      render(<ProjectOwnership />, {
+        organization,
+        outletContext: {project},
+      });
+
+      // Wait for the page to load
+      expect(await screen.findByText('Sync changes from CODEOWNERS')).toBeInTheDocument();
+
+      // The switch should be disabled since no codeowners exist (codeowners returns [])
+      const switchEl = screen.getByRole('checkbox', {
+        name: /sync changes from codeowners/i,
+      });
+      expect(switchEl).toBeDisabled();
     });
   });
 });

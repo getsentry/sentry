@@ -472,7 +472,7 @@ def test_read_when_bulk_record(indexer, use_case_id) -> None:
         )
 
 
-def test_rate_limited(indexer, use_case_id, writes_limiter_option_name) -> None:
+def test_rate_limited(indexer, indexer_cache, use_case_id, writes_limiter_option_name) -> None:
     """
     Assert that rate limits per-org and globally are applied at all.
 

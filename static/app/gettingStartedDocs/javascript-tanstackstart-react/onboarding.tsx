@@ -114,6 +114,13 @@ export const getRouter = () => {
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,`
           : ''
+      }${
+        params.isLogsSelected
+          ? `
+
+      // Enable logs to be sent to Sentry
+      enableLogs: true,`
+          : ''
       }
     });
   }
@@ -153,6 +160,13 @@ Sentry.init({
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
       : ''
   }
 });`,

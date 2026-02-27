@@ -106,6 +106,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Data Forwarding
+register(
+    "data-forwarding.project-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
@@ -655,6 +663,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relay.objectstore-attachments.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -733,6 +748,11 @@ register(
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.drop-unprocessed-events.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1180,7 +1200,12 @@ register(
     default=500,
     type=Int,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    ttl=60 * 5,
+)
+register(
+    "explorer.service_map.parent_span_batch_size",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.similarity.global-rate-limit",

@@ -10,6 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
@@ -222,8 +223,6 @@ class SeerExplorerClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        conduit_channel_id: str | None = None,
-        conduit_url: str | None = None,
         request: Request | None = None,
     ) -> int:
         """
@@ -235,8 +234,6 @@ class SeerExplorerClient:
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
-            conduit_channel_id: Optional Conduit channel ID for streaming
-            conduit_url: Optional Conduit URL for streaming
             request: Optional rest_framework Request object from endpoints.
 
         Returns:
@@ -293,10 +290,10 @@ class SeerExplorerClient:
         if metadata:
             payload["metadata"] = metadata
 
-        # Add conduit params for streaming if provided
-        if conduit_channel_id and conduit_url:
-            payload["conduit_channel_id"] = conduit_channel_id
-            payload["conduit_url"] = conduit_url
+        if features.has(
+            "organizations:seer-explorer-context-engine", self.organization, actor=self.user
+        ):
+            payload["is_context_engine_enabled"] = True
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -320,8 +317,6 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
-        conduit_channel_id: str | None = None,
-        conduit_url: str | None = None,
     ) -> int:
         """
         Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
@@ -333,8 +328,6 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key for a new artifact to generate in this step
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
-            conduit_channel_id: Optional Conduit channel ID for streaming
-            conduit_url: Optional Conduit URL for streaming
 
         Returns:
             int: The run ID (same as input)
@@ -366,14 +359,12 @@ class SeerExplorerClient:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
 
-        if self.category_key and self.category_value:
-            payload["category_key"] = self.category_key
-            payload["category_value"] = self.category_value
-
-        # Add conduit params for streaming if provided
-        if conduit_channel_id and conduit_url:
-            payload["conduit_channel_id"] = conduit_channel_id
-            payload["conduit_url"] = conduit_url
+        if features.has(
+            "organizations:seer-explorer-context-engine",
+            self.organization,
+            actor=self.user,
+        ):
+            payload["is_context_engine_enabled"] = True
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 

@@ -27,7 +27,7 @@ interface UseRawCountsOptions {
   /**
    * Optional custom aggregate function. If not provided, a default aggregate
    * will be determined based on the dataset.
-   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,-)`.
+   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,<unit>)`.
    */
   aggregate?: string;
   enabled?: boolean;

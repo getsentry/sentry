@@ -226,7 +226,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             linked_id=external_issue.id,
         ).exists()
 
-        activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value)[0]
+        activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value).order_by("id")[0]
         assert activity.project_id == group.project_id
         assert activity.group_id == group.id
         assert activity.ident is None
@@ -408,7 +408,9 @@ class GroupIntegrationDetailsTest(APITestCase):
                 linked_id=external_issue.id,
             ).exists()
 
-            activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value)[0]
+            activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value).order_by("id")[
+                0
+            ]
             assert activity.project_id == group.project_id
             assert activity.group_id == group.id
             assert activity.ident is None

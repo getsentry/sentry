@@ -119,6 +119,7 @@ class Span(NamedTuple):
     payload: bytes
     end_timestamp: float
     is_segment_span: bool = False
+    partition: int = 0
 
     def effective_parent_id(self):
         # Note: For the case where the span's parent is in another project, we
@@ -189,7 +190,6 @@ class SpansBuffer:
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         zero_copy_threshold = options.get("spans.buffer.zero-copy-dest-threshold-bytes")
-        debug_traces = set(options.get("spans.buffer.debug-traces"))
 
         result_meta = []
         is_root_span_count = 0
@@ -239,16 +239,14 @@ class SpansBuffer:
                     for (project_and_trace, parent_span_id), subsegment in batch:
                         byte_count = sum(len(span.payload) for span in subsegment)
 
-                        _, _, trace_id = project_and_trace.partition(":")
-                        if trace_id in debug_traces:
-                            try:
-                                if self._debug_trace_logger is None:
-                                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                                self._debug_trace_logger.log_subsegment_info(
-                                    project_and_trace, parent_span_id, subsegment
-                                )
-                            except Exception:
-                                logger.exception("Failed to log debug trace info")
+                        try:
+                            if self._debug_trace_logger is None:
+                                self._debug_trace_logger = DebugTraceLogger(self.client)
+                            self._debug_trace_logger.log_subsegment_info(
+                                project_and_trace, parent_span_id, subsegment
+                            )
+                        except Exception:
+                            logger.exception("process_spans: Failed to log debug trace info")
 
                         span_ids = [span.span_id for span in subsegment]
                         is_segment_span = (
@@ -271,7 +269,11 @@ class SpansBuffer:
                         )
 
                         is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                        result_meta.append((project_and_trace, parent_span_id))
+
+                        # All spans in a subsegment share the same trace_id,
+                        # so they all came from the same Kafka partition.
+                        partition = subsegment[0].partition
+                        result_meta.append((project_and_trace, parent_span_id, partition))
 
                     results.extend(p.execute())
 
@@ -289,7 +291,7 @@ class SpansBuffer:
 
             assert len(result_meta) == len(results)
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id, partition), result in zip(result_meta, results):
                 (
                     segment_key,
                     has_root_span,
@@ -300,9 +302,9 @@ class SpansBuffer:
 
                 latency_entries.append((project_and_trace, evalsha_latency_ms))
 
-                shard = self.assigned_shards[
-                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
-                ]
+                # The Kafka partition is used directly as the queue shard
+                # so that routing is stable across rebalances.
+                shard = partition
                 queue_key = self._get_queue_key(shard)
 
                 # if the currently processed span is a root span, OR the buffer
@@ -554,6 +556,21 @@ class SpansBuffer:
                 oob_keys=oob_keys_by_segment.get(segment_key, []),
             )
             num_has_root_spans += int(has_root_span)
+
+            try:
+                if self._debug_trace_logger is None:
+                    self._debug_trace_logger = DebugTraceLogger(self.client)
+                self._debug_trace_logger.log_flush_info(
+                    segment_key,
+                    segment_span_id,
+                    has_root_span,
+                    len(segment),
+                    shard,
+                    queue_key,
+                    now,
+                )
+            except Exception:
+                logger.exception("flush_segments: Failed to log debug trace flush info")
 
             if flusher_logger_enabled and segment:
                 project_id, trace_id, _ = parse_segment_key(segment_key)

@@ -765,7 +765,7 @@ class CopyProjectSettingsTest(TestCase):
         project.update_option("sentry:resolve_age", 200)
         ProjectTeam.objects.create(team=self.create_team(), project=project)
         self.create_environment(project=project)
-        Rule.objects.filter(project_id=project.id)[0]
+        Rule.objects.filter(project_id=project.id).order_by("id")[0]
 
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
