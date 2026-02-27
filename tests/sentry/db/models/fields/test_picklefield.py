@@ -46,3 +46,8 @@ def test_to_python_int() -> None:
 def test_to_python_bool() -> None:
     obj = picklefield.PickledObjectField()
     assert obj.to_python(True) is True
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

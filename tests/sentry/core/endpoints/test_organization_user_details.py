@@ -27,3 +27,8 @@ class OrganizationUserDetailsTest(APITestCase):
     def test_bad_user_id(self) -> None:
         self.get_error_response(self.org.slug, 123, status_code=404)
         self.get_error_response(self.org.slug, "not_valid", status_code=400)
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

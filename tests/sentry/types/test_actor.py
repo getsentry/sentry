@@ -203,3 +203,8 @@ def test_parse_and_validate_actor() -> None:
     assert actor
     assert actor.id == team.id
     assert actor.actor_type == ActorType.TEAM
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

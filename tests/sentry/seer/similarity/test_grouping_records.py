@@ -82,3 +82,8 @@ def test_delete_grouping_records_by_hash_failure(
             "project_id": project_id,
         },
     )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

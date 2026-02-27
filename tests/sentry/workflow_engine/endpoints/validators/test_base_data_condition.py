@@ -162,3 +162,8 @@ class TestAbstractConditionValidator(TestCase):
         invalid_data = {**self.valid_data, "conditionResult": "invalid"}
         validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

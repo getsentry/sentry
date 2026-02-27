@@ -297,3 +297,8 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("POST", self.team, auth=key)
         assert self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

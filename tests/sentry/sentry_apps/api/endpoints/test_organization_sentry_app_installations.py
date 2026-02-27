@@ -239,3 +239,8 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             "detail": "At least one feature from this list has to be enabled in order to install the app",
             "missing_features": ["organizations:integrations-alert-rule"],
         }
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

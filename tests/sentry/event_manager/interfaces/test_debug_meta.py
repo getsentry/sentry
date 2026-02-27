@@ -146,3 +146,8 @@ def test_proguard_behavior(make_debug_meta_snapshot: CustomSnapshotter) -> None:
     make_debug_meta_snapshot(
         {"images": [{"type": "proguard", "uuid": "C05B4DDD-69A7-3840-A649-32180D341587"}]}
     )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

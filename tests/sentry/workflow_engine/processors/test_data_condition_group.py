@@ -573,3 +573,8 @@ class TestTriggerResult(unittest.TestCase):
         assert TriggerResult.choose_tainted(TRUE, FALSE.with_error(ERR)) == FALSE.with_error(ERR)
         assert TriggerResult.choose_tainted(TRUE, FALSE) == TRUE
         assert TriggerResult.choose_tainted(FALSE, TRUE) == FALSE
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"
