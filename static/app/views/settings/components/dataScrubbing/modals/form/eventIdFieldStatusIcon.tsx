@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
@@ -25,7 +25,7 @@ function EventIdFieldStatusIcon({status, onClickIconClose}: Props) {
         </CloseIcon>
       );
     case EventIdStatus.LOADING:
-      return <ControlState isSaving />;
+      return <LoadingIndicator mini size={16} />;
     case EventIdStatus.LOADED:
       return <IconCheckmark variant="success" />;
     default:

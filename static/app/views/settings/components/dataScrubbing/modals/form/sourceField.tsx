@@ -1,7 +1,9 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import TextField from 'sentry/components/forms/fields/textField';
+import {Input} from '@sentry/scraps/input';
+import {Text} from '@sentry/scraps/text';
+
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,17 +17,13 @@ import {
 
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 
-const defaultHelp = t(
-  'Where to look. In the simplest case this can be an attribute name.'
-);
-
 type Props = {
   isRegExMatchesSelected: boolean;
   onChange: (value: string) => void;
   suggestions: SourceSuggestion[];
   value: string;
   error?: string;
-  onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
+  onBlur?: () => void;
 };
 
 type State = {
@@ -44,7 +42,7 @@ class SourceField extends Component<Props, State> {
     activeSuggestion: 0,
     showSuggestions: false,
     hideCaret: false,
-    help: defaultHelp,
+    help: '',
   };
 
   componentDidMount() {
@@ -301,7 +299,7 @@ class SourceField extends Component<Props, State> {
     if (help) {
       if (!isMaybeRegExp) {
         this.setState({
-          help: defaultHelp,
+          help: '',
         });
       }
       return;
@@ -385,37 +383,31 @@ class SourceField extends Component<Props, State> {
   };
 
   render() {
-    const {error, value, onBlur} = this.props;
+    const {value, onBlur} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
-        <StyledTextField
+        <StyledInput
           data-test-id="source-field"
-          label={t('Source')}
           name="source"
+          aria-label={t('Source')}
           placeholder={t('Enter a custom attribute, variable or header name')}
-          onChange={this.handleChange}
+          onChange={e => this.handleChange(e.target.value)}
           autoComplete="off"
           value={value}
-          error={error}
-          help={help}
-          onKeyDown={this.handleKeyDown}
+          onKeyDown={e => this.handleKeyDown(value, e)}
           onBlur={onBlur}
           onFocus={this.handleFocus}
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          required
-          showHelpInTooltip
         />
+        {help && (
+          <Text size="sm" variant="muted">
+            {help}
+          </Text>
+        )}
         {showSuggestions && suggestions.length > 0 && (
           <Fragment>
-            <Suggestions
-              ref={this.suggestionList}
-              error={error}
-              data-test-id="source-suggestions"
-            >
+            <Suggestions ref={this.suggestionList} data-test-id="source-suggestions">
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}
@@ -457,16 +449,16 @@ const Wrapper = styled('div')<{hideCaret?: boolean}>`
   ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
-const StyledTextField = styled(TextField)`
+const StyledInput = styled(Input)`
   z-index: 1002;
   :focus {
     outline: none;
   }
 `;
 
-const Suggestions = styled('ul')<{error?: string}>`
+const Suggestions = styled('ul')`
   position: absolute;
-  width: ${p => (p.error ? 'calc(100% - 34px)' : '100%')};
+  width: 100%;
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
@@ -474,7 +466,7 @@ const Suggestions = styled('ul')<{error?: string}>`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
   background: ${p => p.theme.tokens.background.primary};
-  top: 63px;
+  top: 40px;
   left: 0;
   z-index: 1002;
   overflow: hidden;

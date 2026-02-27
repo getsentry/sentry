@@ -28,7 +28,6 @@ import type {
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   AllowedDataScrubbingDatasets,
-  EventIdStatus,
   MethodType,
   RuleType,
 } from 'sentry/views/settings/components/dataScrubbing/types';
@@ -39,7 +38,6 @@ import {
   getRuleLabel,
   TraceItemFieldSelector,
   validateTraceItemFieldSelector,
-  valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import AttributeField from './form/attributeField';
@@ -47,11 +45,6 @@ import EventIdField from './form/eventIdField';
 import SourceField from './form/sourceField';
 import handleError, {ErrorType} from './handleError';
 import {hasCaptureGroups, useSourceGroupData} from './utils';
-
-type EventId = {
-  status: EventIdStatus;
-  value: string;
-};
 
 const dataScrubSchema = z
   .object({
@@ -110,7 +103,7 @@ function DataScrubFormModal({
 }: DataScrubFormModalProps) {
   const organization = useOrganization();
   const traceItemDatasetsEnabled = areScrubbingDatasetsEnabled(organization);
-  const {sourceGroupData, saveToSourceGroupData} = useSourceGroupData();
+  const {sourceGroupData} = useSourceGroupData();
 
   // Compute initial dataset from initialState
   const initialValues = {
@@ -128,10 +121,6 @@ function DataScrubFormModal({
     traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
 
   const [dataset, setDataset] = useState<AllowedDataScrubbingDatasets>(initialDataset);
-  const [eventId, setEventId] = useState<EventId>({
-    value: sourceGroupData.eventId,
-    status: sourceGroupData.eventId ? EventIdStatus.LOADED : EventIdStatus.UNDEFINED,
-  });
   const [sourceSuggestions, setSourceSuggestions] = useState<SourceSuggestion[]>(
     sourceGroupData.sourceSuggestions
   );
@@ -175,55 +164,6 @@ function DataScrubFormModal({
       }
     },
   });
-
-  const handleUpdateEventId = useCallback(
-    async (newEventId: string) => {
-      if (newEventId === eventId.value) {
-        return;
-      }
-
-      if (!newEventId) {
-        setSourceSuggestions(valueSuggestions);
-        const newState = {value: '', status: EventIdStatus.UNDEFINED};
-        setEventId(newState);
-        saveToSourceGroupData(newState, valueSuggestions);
-        return;
-      }
-
-      setSourceSuggestions(valueSuggestions);
-      setEventId({value: newEventId, status: EventIdStatus.LOADING});
-
-      try {
-        const query: {eventId: string; projectId?: string} = {eventId: newEventId};
-        if (projectId) {
-          query.projectId = projectId;
-        }
-        const rawSuggestions = await api.requestPromise(
-          `/organizations/${orgSlug}/data-scrubbing-selector-suggestions/`,
-          {query}
-        );
-        const suggestions: SourceSuggestion[] = rawSuggestions.suggestions;
-
-        if (suggestions && suggestions.length > 0) {
-          const newState = {value: newEventId, status: EventIdStatus.LOADED};
-          setSourceSuggestions(suggestions);
-          setEventId(newState);
-          saveToSourceGroupData(newState, suggestions);
-          return;
-        }
-
-        const newState = {value: newEventId, status: EventIdStatus.NOT_FOUND};
-        setSourceSuggestions(valueSuggestions);
-        setEventId(newState);
-        saveToSourceGroupData(newState, valueSuggestions);
-      } catch {
-        const newState = {value: newEventId, status: EventIdStatus.ERROR};
-        setEventId(newState);
-        saveToSourceGroupData(newState);
-      }
-    },
-    [eventId.value, orgSlug, projectId, api, saveToSourceGroupData]
-  );
 
   const handleValidateAttributeField = useCallback(
     (value: string) => {
@@ -453,20 +393,29 @@ function DataScrubFormModal({
                         <SourceGroup isExpanded={displayEventId}>
                           {displayEventId && (
                             <EventIdField
-                              onUpdateEventId={handleUpdateEventId}
-                              eventId={eventId}
+                              orgSlug={orgSlug}
+                              projectId={projectId}
+                              onSuggestionsLoaded={setSourceSuggestions}
                             />
                           )}
-                          <SourceField
-                            onChange={value => sourceField.handleChange(value)}
-                            value={sourceValue}
-                            error={sourceError}
-                            onBlur={sourceField.handleBlur}
-                            isRegExMatchesSelected={
-                              form.getFieldValue('type') === RuleType.PATTERN
-                            }
-                            suggestions={sourceSuggestions}
-                          />
+                          <sourceField.Layout.Stack
+                            label={t('Source')}
+                            hintText={t(
+                              'Where to look. In the simplest case this can be an attribute name.'
+                            )}
+                            variant="compact"
+                            required
+                          >
+                            <SourceField
+                              onChange={value => sourceField.handleChange(value)}
+                              value={sourceValue}
+                              onBlur={sourceField.handleBlur}
+                              isRegExMatchesSelected={
+                                form.getFieldValue('type') === RuleType.PATTERN
+                              }
+                              suggestions={sourceSuggestions}
+                            />
+                          </sourceField.Layout.Stack>
                           {containsRootDeepWildcard(sourceValue) && (
                             <Alert variant="warning" style={{marginTop: space(1)}}>
                               {t(
@@ -520,20 +469,29 @@ function DataScrubFormModal({
                   <SourceGroup isExpanded={displayEventId}>
                     {displayEventId && (
                       <EventIdField
-                        onUpdateEventId={handleUpdateEventId}
-                        eventId={eventId}
+                        orgSlug={orgSlug}
+                        projectId={projectId}
+                        onSuggestionsLoaded={setSourceSuggestions}
                       />
                     )}
-                    <SourceField
-                      onChange={value => sourceField.handleChange(value)}
-                      value={sourceValue}
-                      error={sourceError}
-                      onBlur={sourceField.handleBlur}
-                      isRegExMatchesSelected={
-                        form.getFieldValue('type') === RuleType.PATTERN
-                      }
-                      suggestions={sourceSuggestions}
-                    />
+                    <sourceField.Layout.Stack
+                      label={t('Source')}
+                      hintText={t(
+                        'Where to look. In the simplest case this can be an attribute name.'
+                      )}
+                      variant="compact"
+                      required
+                    >
+                      <SourceField
+                        onChange={value => sourceField.handleChange(value)}
+                        value={sourceValue}
+                        onBlur={sourceField.handleBlur}
+                        isRegExMatchesSelected={
+                          form.getFieldValue('type') === RuleType.PATTERN
+                        }
+                        suggestions={sourceSuggestions}
+                      />
+                    </sourceField.Layout.Stack>
                   </SourceGroup>
                 </Fragment>
               );

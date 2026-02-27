@@ -1,115 +1,133 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventIdField from 'sentry/views/settings/components/dataScrubbing/modals/form/eventIdField';
-import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
 const eventIdValue = '887ab369df634e74aea708bcafe1a175';
 
-describe('EventIdField', () => {
-  it('default render', async () => {
-    const handleUpdateEventId = jest.fn();
+function renderEventIdField(
+  props: Partial<React.ComponentProps<typeof EventIdField>> = {}
+) {
+  const queryClient = new QueryClient();
 
-    render(
-      <EventIdField
-        onUpdateEventId={handleUpdateEventId}
-        eventId={{value: '', status: EventIdStatus.UNDEFINED}}
-      />
-    );
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <EventIdField orgSlug="sentry" onSuggestionsLoaded={jest.fn()} {...props} />
+    </QueryClientProvider>
+  );
+}
+
+describe('EventIdField', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('default render', () => {
+    renderEventIdField();
 
     expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('XXXXXXXXXXXXXX')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveValue('');
 
-    await userEvent.hover(screen.getByTestId('more-information'));
-
     expect(
-      await screen.findByText(
+      screen.getByText(
         'Providing an event ID will automatically provide you a list of suggested sources'
       )
     ).toBeInTheDocument();
-
-    await userEvent.type(
-      screen.getByRole('textbox'),
-      '887ab369df634e74aea708bcafe1a175{enter}'
-    );
-
-    expect(handleUpdateEventId).toHaveBeenCalled();
   });
 
-  it('LOADING status', () => {
-    render(
-      <EventIdField
-        onUpdateEventId={jest.fn()}
-        eventId={{value: eventIdValue, status: EventIdStatus.LOADING}}
-      />
-    );
+  it('displays error for INVALID event ID', async () => {
+    renderEventIdField();
 
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    await userEvent.type(screen.getByRole('textbox'), 'tooshort{enter}');
 
-    expect(screen.getByTestId('saving')).toBeInTheDocument();
+    expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
   });
 
-  it('LOADED status', () => {
-    render(
-      <EventIdField
-        onUpdateEventId={jest.fn()}
-        eventId={{value: eventIdValue, status: EventIdStatus.LOADED}}
-      />
-    );
+  it('fetches suggestions on valid event ID', async () => {
+    const handleSuggestionsLoaded = jest.fn();
 
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/data-scrubbing-selector-suggestions/',
+      body: {
+        suggestions: [{type: 'value', value: '$frame.abs_path'}],
+      },
+    });
 
-    expect(screen.queryByLabelText('Clear event ID')).not.toBeInTheDocument();
+    renderEventIdField({
+      orgSlug: 'sentry',
+      projectId: 'foo',
+      onSuggestionsLoaded: handleSuggestionsLoaded,
+    });
 
-    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox'), `${eventIdValue}{enter}`);
+
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+
+    expect(handleSuggestionsLoaded).toHaveBeenCalledWith([
+      {type: 'value', value: '$frame.abs_path'},
+    ]);
   });
 
-  it('ERROR status', async () => {
-    render(
-      <EventIdField
-        onUpdateEventId={jest.fn()}
-        eventId={{value: eventIdValue, status: EventIdStatus.ERROR}}
-      />
-    );
+  it('shows error status on API failure', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/data-scrubbing-selector-suggestions/',
+      statusCode: 500,
+      body: {},
+    });
 
-    await userEvent.hover(screen.getByTestId('icon-close'));
+    renderEventIdField();
 
-    expect(await screen.findByText('Clear event ID')).toBeInTheDocument();
-
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    await userEvent.type(screen.getByRole('textbox'), `${eventIdValue}{enter}`);
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         'An error occurred while fetching the suggestions based on this event ID'
       )
     ).toBeInTheDocument();
   });
 
-  it('INVALID status', async () => {
-    render(
-      <EventIdField
-        onUpdateEventId={jest.fn()}
-        eventId={{value: eventIdValue, status: EventIdStatus.INVALID}}
-      />
-    );
+  it('shows NOT_FOUND status when no suggestions returned', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/data-scrubbing-selector-suggestions/',
+      body: {
+        suggestions: [],
+      },
+    });
 
-    expect(await screen.findByRole('textbox')).toHaveValue(eventIdValue);
+    renderEventIdField();
 
-    expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
-  });
-
-  it('NOTFOUND status', async () => {
-    render(
-      <EventIdField
-        onUpdateEventId={jest.fn()}
-        eventId={{value: eventIdValue, status: EventIdStatus.NOT_FOUND}}
-      />
-    );
-
-    expect(await screen.findByRole('textbox')).toHaveValue(eventIdValue);
+    await userEvent.type(screen.getByRole('textbox'), `${eventIdValue}{enter}`);
 
     expect(
-      screen.getByText('The chosen event ID was not found in projects you have access to')
+      await screen.findByText(
+        'The chosen event ID was not found in projects you have access to'
+      )
     ).toBeInTheDocument();
+  });
+
+  it('clears event ID on close icon click', async () => {
+    const handleSuggestionsLoaded = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/data-scrubbing-selector-suggestions/',
+      statusCode: 500,
+      body: {},
+    });
+
+    renderEventIdField({onSuggestionsLoaded: handleSuggestionsLoaded});
+
+    await userEvent.type(screen.getByRole('textbox'), `${eventIdValue}{enter}`);
+
+    // Wait for error status to show close icon
+    const closeIcon = await screen.findByTestId('icon-close');
+    await userEvent.hover(closeIcon);
+    expect(await screen.findByText('Clear event ID')).toBeInTheDocument();
+
+    await userEvent.click(closeIcon);
+
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(handleSuggestionsLoaded).toHaveBeenCalled();
   });
 });

@@ -1,32 +1,47 @@
-import {useEffect, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useSourceGroupData} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
-import type {EventId} from 'sentry/views/settings/components/dataScrubbing/types';
+import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
+import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
 
 type Props = {
-  eventId: EventId;
-  onUpdateEventId: (eventId: string) => void;
+  onSuggestionsLoaded: (suggestions: SourceSuggestion[]) => void;
+  orgSlug: string;
   disabled?: boolean;
+  projectId?: Project['id'];
 };
 
-function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
-  const [eventData, setEventData] = useState<EventId>(eventId);
-  const {saveToSourceGroupData} = useSourceGroupData();
+const suggestionOptions = (orgSlug: string) =>
+  apiOptions.as<SourceSuggestion[]>()(
+    '/organizations/$organizationIdOrSlug/data-scrubbing-selector-suggestions/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: Infinity,
+    }
+  );
 
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setEventData(eventId);
-  }, [eventId]);
+function EventIdField({disabled, orgSlug, projectId, onSuggestionsLoaded}: Props) {
+  const {sourceGroupData, saveToSourceGroupData} = useSourceGroupData();
+  const queryClient = useQueryClient();
+  const lastFetchedEventId = useRef(sourceGroupData.eventId);
+
+  const [eventData, setEventData] = useState({
+    value: sourceGroupData.eventId,
+    status: sourceGroupData.eventId ? EventIdStatus.LOADED : EventIdStatus.UNDEFINED,
+  });
 
   function getErrorMessage(): string | undefined {
     switch (eventData.status) {
@@ -43,32 +58,77 @@ function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
     }
   }
 
-  function isEventIdValid() {
+  function isEventIdValid(): boolean {
     if (eventData.value && eventData.value.length !== 32) {
       if (eventData.status !== EventIdStatus.INVALID) {
-        saveToSourceGroupData(eventData);
-        setEventData({...eventData, status: EventIdStatus.INVALID});
+        const newState = {value: eventData.value, status: EventIdStatus.INVALID};
+        saveToSourceGroupData(newState);
+        setEventData(newState);
       }
-
       return false;
     }
-
     return true;
   }
 
+  async function handleUpdateEventId(newEventId: string) {
+    if (newEventId === lastFetchedEventId.current) {
+      return;
+    }
+
+    lastFetchedEventId.current = newEventId;
+
+    if (!newEventId) {
+      onSuggestionsLoaded(valueSuggestions);
+      const newState = {value: '', status: EventIdStatus.UNDEFINED};
+      setEventData(newState);
+      saveToSourceGroupData(newState, valueSuggestions);
+      return;
+    }
+
+    onSuggestionsLoaded(valueSuggestions);
+    setEventData({value: newEventId, status: EventIdStatus.LOADING});
+
+    try {
+      const query: {eventId: string; projectId?: string} = {eventId: newEventId};
+      if (projectId) {
+        query.projectId = projectId;
+      }
+
+      const {json: suggestions} = await queryClient.fetchQuery(
+        suggestionOptions(orgSlug)
+      );
+
+      if (suggestions.length > 0) {
+        const newState = {value: newEventId, status: EventIdStatus.LOADED};
+        onSuggestionsLoaded(suggestions);
+        setEventData(newState);
+        saveToSourceGroupData(newState, suggestions);
+        return;
+      }
+
+      const newState = {value: newEventId, status: EventIdStatus.NOT_FOUND};
+      onSuggestionsLoaded(valueSuggestions);
+      setEventData(newState);
+      saveToSourceGroupData(newState, valueSuggestions);
+    } catch {
+      const newState = {value: newEventId, status: EventIdStatus.ERROR};
+      setEventData(newState);
+      saveToSourceGroupData(newState);
+    }
+  }
+
+  const errorMessage = getErrorMessage();
+
   return (
-    <FieldGroup
-      data-test-id="event-id-field"
-      label={t('Event ID (Optional)')}
-      help={t(
-        'Providing an event ID will automatically provide you a list of suggested sources'
-      )}
-      inline={false}
-      error={getErrorMessage()}
-      flexibleControlStateSize
-      stacked
-      showHelpInTooltip
-    >
+    <Stack gap="sm" data-test-id="event-id-field">
+      <Text bold size="sm">
+        {t('Event ID (Optional)')}
+      </Text>
+      <Text size="sm" variant="muted">
+        {t(
+          'Providing an event ID will automatically provide you a list of suggested sources'
+        )}
+      </Text>
       <Flex align="center" position="relative">
         <StyledInput
           type="text"
@@ -88,30 +148,35 @@ function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
           }}
           onKeyDown={event => {
             if (event.key === 'Enter' && isEventIdValid()) {
-              onUpdateEventId(eventData.value);
+              handleUpdateEventId(eventData.value);
             }
           }}
           onBlur={event => {
             event.preventDefault();
 
             if (isEventIdValid()) {
-              onUpdateEventId(eventData.value);
+              handleUpdateEventId(eventData.value);
             }
           }}
         />
         <Status>
           <EventIdFieldStatusIcon
             onClickIconClose={() => {
-              setEventData({
-                value: '',
-                status: EventIdStatus.UNDEFINED,
-              });
+              const newState = {value: '', status: EventIdStatus.UNDEFINED};
+              setEventData(newState);
+              onSuggestionsLoaded(valueSuggestions);
+              saveToSourceGroupData(newState, valueSuggestions);
             }}
             status={eventData.status}
           />
         </Status>
       </Flex>
-    </FieldGroup>
+      {errorMessage && (
+        <Text size="sm" variant="danger">
+          {errorMessage}
+        </Text>
+      )}
+    </Stack>
   );
 }
 

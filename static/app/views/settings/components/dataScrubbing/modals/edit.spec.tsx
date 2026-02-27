@@ -37,6 +37,10 @@ const mockAttributeResults = createMockAttributeResults();
 jest.mock('sentry/views/settings/components/dataScrubbing/submitRules');
 
 describe('Edit Modal', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('open Edit Rule Modal', async () => {
     const handleCloseModal = jest.fn();
 
@@ -217,6 +221,7 @@ describe('Edit Modal with ourlogs-enabled', () => {
   });
 
   beforeEach(() => {
+    localStorage.clear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,

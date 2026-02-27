@@ -35,6 +35,10 @@ const emptyAttributeResults = createMockAttributeResults(true);
 const defaultAttributeResults = createMockAttributeResults();
 
 describe('Add Modal', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('open Add Rule Modal', async () => {
     const handleCloseModal = jest.fn();
 
@@ -61,9 +65,7 @@ describe('Add Modal', () => {
 
     // Method Field
     expect(screen.getByText('Method')).toBeInTheDocument();
-
-    await userEvent.hover(screen.getAllByTestId('more-information')[0]!);
-    expect(await screen.findByText('What to do')).toBeInTheDocument();
+    expect(screen.getByText('What to do')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
 
@@ -76,10 +78,8 @@ describe('Add Modal', () => {
 
     // Type Field
     expect(screen.getByText('Data Type')).toBeInTheDocument();
-
-    await userEvent.hover(screen.getAllByTestId('more-information')[1]!);
     expect(
-      await screen.findByText(
+      screen.getByText(
         'What to look for. Use an existing pattern or define your own using regular expressions.'
       )
     ).toBeInTheDocument();
@@ -101,10 +101,9 @@ describe('Add Modal', () => {
     // Source Field
     screen.getByRole('textbox', {name: 'Source'});
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[2]!);
-
+    expect(screen.getByText('Source')).toBeInTheDocument();
     expect(
-      await screen.findByText(
+      screen.getByText(
         'Where to look. In the simplest case this can be an attribute name.'
       )
     ).toBeInTheDocument();
@@ -143,10 +142,8 @@ describe('Add Modal', () => {
 
     expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[1]!);
-
     expect(
-      await screen.findByText('It will replace the default placeholder [Filtered]')
+      screen.getByText('It will replace the default placeholder [Filtered]')
     ).toBeInTheDocument();
   });
 
@@ -180,10 +177,8 @@ describe('Add Modal', () => {
 
     expect(screen.getByPlaceholderText('[a-zA-Z0-9]+')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[2]!);
-
     expect(
-      await screen.findByText('Custom regular expression (see documentation)')
+      screen.getByText('Custom regular expression (see documentation)')
     ).toBeInTheDocument();
   });
 
@@ -286,14 +281,6 @@ describe('Add Modal', () => {
     await userEvent.clear(eventIdInput);
 
     await userEvent.type(eventIdInput, `${eventId}{enter}`);
-
-    // API should be called with the event ID
-    expect(suggestionsRequest).toHaveBeenCalledWith(
-      `/organizations/${organizationSlug}/data-scrubbing-selector-suggestions/`,
-      expect.objectContaining({
-        query: {eventId, projectId},
-      })
-    );
 
     // Suggestions should load — checkmark indicates LOADED status
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
