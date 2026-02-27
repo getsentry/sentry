@@ -115,7 +115,7 @@ export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
       }
 
       const value = node.value;
-      if (!value || value.type !== 'JSXExpressionContainer') {
+      if (value?.type !== 'JSXExpressionContainer') {
         return;
       }
 

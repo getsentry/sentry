@@ -110,7 +110,7 @@ export function searchInTraceTreeTokens(
     return handle;
   }
 
-  let result_map: Map<BaseNode, number> = new Map();
+  let result_map = new Map<BaseNode, number>();
 
   let ti = 0;
   let li = 0;
@@ -120,8 +120,8 @@ export function searchInTraceTreeTokens(
   let leftToken: ProcessedTokenResult | Map<BaseNode, number> | null = null;
   let rightToken: ProcessedTokenResult | null = null;
 
-  const left: Map<BaseNode, number> = new Map();
-  const right: Map<BaseNode, number> = new Map();
+  const left = new Map<BaseNode, number>();
+  const right = new Map<BaseNode, number>();
 
   const stack: Array<ProcessedTokenResult | Map<BaseNode, number>> = [];
 

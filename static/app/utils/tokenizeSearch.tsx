@@ -419,6 +419,21 @@ export class MutableSearch {
     return this.getFilterValues(key).length > 0;
   }
 
+  /**
+   * Renames all filter tokens matching `oldKey` to `newKey` in-place,
+   * preserving operators, negation, position, and filter type.
+   */
+  renameFilter(oldKey: string, newKey: string) {
+    for (const token of this.tokens) {
+      if (token.key === oldKey) {
+        token.key = newKey;
+      } else if (token.key === `!${oldKey}`) {
+        token.key = `!${newKey}`;
+      }
+    }
+    return this;
+  }
+
   removeFilter(key: string) {
     const removeErroneousAndOrOps = () => {
       let toRemove = -1;

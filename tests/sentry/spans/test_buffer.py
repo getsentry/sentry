@@ -85,13 +85,22 @@ def buffer(request):
     with override_options(test_options):
         if redis_type == "cluster":
             from sentry.testutils.helpers.redis import use_redis_cluster
+            from sentry.utils import redis as redis_utils
 
-            with use_redis_cluster("default"):
+            # Use a distinct cluster name to avoid poisoning the "default"
+            # entry in RedisClusterManager._clusters_bytes, which would
+            # leak a Redis Cluster client into subsequent tests that expect
+            # standalone Redis under "default".
+            with use_redis_cluster(
+                "span-buffer",
+                with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+            ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
-                # since we patch the default redis cluster only temporarily, we
-                # need to clean it up ourselves.
                 buf.client.flushall()
                 yield buf
+                # Clean up cached client so it doesn't persist after the
+                # option override is restored.
+                redis_utils.redis_clusters._clusters_bytes.pop("span-buffer", None)
         else:
             buf = SpansBuffer(assigned_shards=list(range(32)))
             buf.client.flushdb()

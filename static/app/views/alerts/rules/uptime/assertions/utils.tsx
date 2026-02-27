@@ -1,13 +1,13 @@
 import {t} from 'sentry/locale';
 import {
-  ComparisonType,
-  OpType,
-  type GroupOp,
-  type HeaderCheckOp,
-  type HeaderOperand,
-  type JsonPathOp,
-  type JsonPathOperand,
-  type Op,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeGroupOp,
+  type UptimeHeaderCheckOp,
+  type UptimeHeaderOperand,
+  type UptimeJsonPathOp,
+  type UptimeJsonPathOperand,
+  type UptimeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './opCommon';
@@ -20,9 +20,13 @@ import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './opCommon';
  * @param afterOpId - The ID of the op that should come before
  * @returns true if opId is directly after afterOpId in the container's children, false otherwise
  */
-export function isAfterOp(containerOp: Op, opId: string, afterOpId: string): boolean {
+export function isAfterOp(
+  containerOp: UptimeOp,
+  opId: string,
+  afterOpId: string
+): boolean {
   // Only group ops have children where one can be after another
-  if (containerOp.op === OpType.AND || containerOp.op === OpType.OR) {
+  if (containerOp.op === UptimeOpType.AND || containerOp.op === UptimeOpType.OR) {
     for (let i = 0; i < containerOp.children.length - 1; i++) {
       if (containerOp.children[i]?.id === afterOpId) {
         return containerOp.children[i + 1]?.id === opId;
@@ -31,12 +35,12 @@ export function isAfterOp(containerOp: Op, opId: string, afterOpId: string): boo
   }
 
   // Also check recursively in nested groups
-  if (containerOp.op === OpType.AND || containerOp.op === OpType.OR) {
+  if (containerOp.op === UptimeOpType.AND || containerOp.op === UptimeOpType.OR) {
     return containerOp.children.some(child => isAfterOp(child, opId, afterOpId));
   }
 
   // Check in not operand
-  if (containerOp.op === OpType.NOT) {
+  if (containerOp.op === UptimeOpType.NOT) {
     return isAfterOp(containerOp.operand, opId, afterOpId);
   }
 
@@ -48,19 +52,22 @@ export function isAfterOp(containerOp: Op, opId: string, afterOpId: string): boo
  *
  * @param op - The op tree to search in
  * @param id - The ID of the op to find
- * @returns An object with the found op and its parent GroupOp, or null if not found
+ * @returns An object with the found op and its parent UptimeGroupOp, or null if not found
  */
-function findOpById(op: Op, id: string): {op: Op; parent: GroupOp | null} | null {
+function findOpById(
+  op: UptimeOp,
+  id: string
+): {op: UptimeOp; parent: UptimeGroupOp | null} | null {
   // Helper function for recursive search
   const search = (
-    currentOp: Op,
-    parentOp: GroupOp | null
-  ): {op: Op; parent: GroupOp | null} | null => {
+    currentOp: UptimeOp,
+    parentOp: UptimeGroupOp | null
+  ): {op: UptimeOp; parent: UptimeGroupOp | null} | null => {
     if (currentOp.id === id) {
       return {op: currentOp, parent: parentOp};
     }
 
-    if (currentOp.op === OpType.AND || currentOp.op === OpType.OR) {
+    if (currentOp.op === UptimeOpType.AND || currentOp.op === UptimeOpType.OR) {
       for (const child of currentOp.children) {
         const found = search(child, currentOp);
         if (found) {
@@ -69,9 +76,12 @@ function findOpById(op: Op, id: string): {op: Op; parent: GroupOp | null} | null
       }
     }
 
-    if (currentOp.op === OpType.NOT) {
+    if (currentOp.op === UptimeOpType.NOT) {
       // For 'not' ops, check if the operand is a group op to use as parent
-      if (currentOp.operand.op === OpType.AND || currentOp.operand.op === OpType.OR) {
+      if (
+        currentOp.operand.op === UptimeOpType.AND ||
+        currentOp.operand.op === UptimeOpType.OR
+      ) {
         return search(currentOp.operand, currentOp.operand);
       }
       return search(currentOp.operand, parentOp);
@@ -91,18 +101,18 @@ function findOpById(op: Op, id: string): {op: Op; parent: GroupOp | null} | null
  * @param descendantId - The ID of the potential descendant
  * @returns true if ancestorId is an ancestor of descendantId
  */
-function isAncestorOf(op: Op, ancestorId: string, descendantId: string): boolean {
+function isAncestorOf(op: UptimeOp, ancestorId: string, descendantId: string): boolean {
   // Find the potential ancestor node
   if (op.id === ancestorId) {
     // Check if descendantId exists within this subtree
-    const hasDescendant = (node: Op): boolean => {
+    const hasDescendant = (node: UptimeOp): boolean => {
       if (node.id === descendantId) {
         return true;
       }
-      if (node.op === OpType.AND || node.op === OpType.OR) {
+      if (node.op === UptimeOpType.AND || node.op === UptimeOpType.OR) {
         return node.children.some(child => hasDescendant(child));
       }
-      if (node.op === OpType.NOT) {
+      if (node.op === UptimeOpType.NOT) {
         return hasDescendant(node.operand);
       }
       return false;
@@ -111,10 +121,10 @@ function isAncestorOf(op: Op, ancestorId: string, descendantId: string): boolean
   }
 
   // Continue searching for the ancestor in the tree
-  if (op.op === OpType.AND || op.op === OpType.OR) {
+  if (op.op === UptimeOpType.AND || op.op === UptimeOpType.OR) {
     return op.children.some(child => isAncestorOf(child, ancestorId, descendantId));
   }
-  if (op.op === OpType.NOT) {
+  if (op.op === UptimeOpType.NOT) {
     return isAncestorOf(op.operand, ancestorId, descendantId);
   }
 
@@ -131,11 +141,11 @@ function isAncestorOf(op: Op, ancestorId: string, descendantId: string): boolean
  * @returns A new root logical op tree with the source moved to the new position
  */
 export function moveTo(
-  rootOp: GroupOp,
+  rootOp: UptimeGroupOp,
   sourceId: string,
   targetId: string,
   position: 'before' | 'after' | 'inside'
-): GroupOp {
+): UptimeGroupOp {
   // First, find and extract the source op
   const sourceResult = findOpById(rootOp, sourceId);
   if (!sourceResult) {
@@ -158,7 +168,7 @@ export function moveTo(
   // For 'inside' position, target must be a group op and doesn't need a parent
   if (position === 'inside') {
     const {op: targetOp} = targetResult;
-    if (targetOp.op !== OpType.AND && targetOp.op !== OpType.OR) {
+    if (targetOp.op !== UptimeOpType.AND && targetOp.op !== UptimeOpType.OR) {
       return rootOp; // Can only move inside group ops
     }
   } else {
@@ -169,22 +179,22 @@ export function moveTo(
   }
 
   // Remove the source op from its current location
-  const removeOp = (op: Op): Op => {
-    if (op.op === OpType.AND || op.op === OpType.OR) {
+  const removeOp = (op: UptimeOp): UptimeOp => {
+    if (op.op === UptimeOpType.AND || op.op === UptimeOpType.OR) {
       const newChildren = op.children
         .filter(child => child.id !== sourceId)
         .map(child => removeOp(child));
       return {...op, children: newChildren};
     }
-    if (op.op === OpType.NOT) {
+    if (op.op === UptimeOpType.NOT) {
       return {...op, operand: removeOp(op.operand)};
     }
     return op;
   };
 
   // Insert the source op at the target location
-  const insertOp = (op: Op): Op => {
-    if (op.op === OpType.AND || op.op === OpType.OR) {
+  const insertOp = (op: UptimeOp): UptimeOp => {
+    if (op.op === UptimeOpType.AND || op.op === UptimeOpType.OR) {
       // Check if we should insert inside this group
       if (position === 'inside' && op.id === targetId) {
         // Append to the end of this group's children
@@ -204,7 +214,7 @@ export function moveTo(
       // Target not in this container, recurse into children
       return {...op, children: op.children.map(child => insertOp(child))};
     }
-    if (op.op === OpType.NOT) {
+    if (op.op === UptimeOpType.NOT) {
       return {...op, operand: insertOp(op.operand)};
     }
     return op;
@@ -212,10 +222,10 @@ export function moveTo(
 
   // First remove, then insert
   const withoutSource = removeOp(rootOp);
-  return insertOp(withoutSource) as GroupOp;
+  return insertOp(withoutSource) as UptimeGroupOp;
 }
 
-export function getHeaderOperandValue(operand: HeaderOperand): string {
+export function getHeaderOperandValue(operand: UptimeHeaderOperand): string {
   return operand.header_op === 'literal'
     ? operand.value
     : operand.header_op === 'glob'
@@ -223,11 +233,13 @@ export function getHeaderOperandValue(operand: HeaderOperand): string {
       : '';
 }
 
-export function shouldShowHeaderValueInput(op: HeaderCheckOp): boolean {
-  return [ComparisonType.EQUALS, ComparisonType.NOT_EQUAL].includes(op.key_op.cmp);
+export function shouldShowHeaderValueInput(op: UptimeHeaderCheckOp): boolean {
+  return [UptimeComparisonType.EQUALS, UptimeComparisonType.NOT_EQUAL].includes(
+    op.key_op.cmp
+  );
 }
 
-export function getHeaderKeyCombinedLabelAndTooltip(op: HeaderCheckOp): {
+export function getHeaderKeyCombinedLabelAndTooltip(op: UptimeHeaderCheckOp): {
   combinedLabel: string;
   combinedTooltip: string;
 } {
@@ -259,7 +271,7 @@ export function getHeaderKeyCombinedLabelAndTooltip(op: HeaderCheckOp): {
   return {combinedLabel, combinedTooltip};
 }
 
-export function getHeaderValueCombinedLabelAndTooltip(op: HeaderCheckOp): {
+export function getHeaderValueCombinedLabelAndTooltip(op: UptimeHeaderCheckOp): {
   combinedLabel: string;
   combinedTooltip: string;
 } {
@@ -292,7 +304,7 @@ export function getHeaderValueCombinedLabelAndTooltip(op: HeaderCheckOp): {
   return {combinedLabel, combinedTooltip};
 }
 
-export function getJsonPathOperandValue(operand: JsonPathOperand): string {
+export function getJsonPathOperandValue(operand: UptimeJsonPathOperand): string {
   return operand.jsonpath_op === 'literal'
     ? operand.value
     : operand.jsonpath_op === 'glob'
@@ -304,18 +316,18 @@ export function getJsonPathOperandValue(operand: JsonPathOperand): string {
 // It just ensures that we don't break the UI when we receive legacy ops from the backend.
 // TODO Abdullah Khan: This is added during LA, only our own montors are affected. Can
 // remove once we have EA'd assertions.
-export function normalizeJsonPathOp(op: JsonPathOp): JsonPathOp {
+export function normalizeJsonPathOp(op: UptimeJsonPathOp): UptimeJsonPathOp {
   const hasOperator = 'operator' in op && op.operator;
   const hasOperand = 'operand' in op && op.operand;
 
   return {
     ...op,
-    operator: hasOperator ? op.operator : {cmp: ComparisonType.EQUALS},
+    operator: hasOperator ? op.operator : {cmp: UptimeComparisonType.EQUALS},
     operand: hasOperand ? op.operand : {jsonpath_op: 'literal', value: ''},
   };
 }
 
-export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
+export function getJsonPathCombinedLabelAndTooltip(op: UptimeJsonPathOp): {
   combinedLabel: string;
   combinedTooltip: string;
 } {
@@ -335,8 +347,8 @@ export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
       : (STRING_OPERAND_OPTIONS.find(opt => opt.value === operandType)?.symbol ?? '');
 
   const isNumericComparison =
-    op.operator.cmp === ComparisonType.LESS_THAN ||
-    op.operator.cmp === ComparisonType.GREATER_THAN;
+    op.operator.cmp === UptimeComparisonType.LESS_THAN ||
+    op.operator.cmp === UptimeComparisonType.GREATER_THAN;
 
   const combinedLabel = isNumericComparison
     ? comparisonSymbol
@@ -354,8 +366,8 @@ export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
   return {combinedLabel, combinedTooltip};
 }
 
-export function getGroupOpLabel(op: GroupOp, isNegated: boolean): string {
-  if (op.op === OpType.AND) {
+export function getGroupOpLabel(op: UptimeGroupOp, isNegated: boolean): string {
+  if (op.op === UptimeOpType.AND) {
     // By De Morgan's Laws, NOT (A AND B) is equivalent to (NOT A OR NOT B),
     // i.e. passing when at least one child fails.
     return isNegated ? t('Assert Not All') : t('Assert All');

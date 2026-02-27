@@ -284,8 +284,10 @@ def filter_recently_fired_workflow_actions(
     workflow_ids: set[int] = set()
 
     for action_id, workflow_id in data_condition_group_actions:
-        action_to_workflows_ids[action_id].add(workflow_id)
-        workflow_ids.add(workflow_id)
+        # If we are mid-deletion, the workflow_id can be none.
+        if workflow_id is not None:
+            action_to_workflows_ids[action_id].add(workflow_id)
+            workflow_ids.add(workflow_id)
 
     workflows = Workflow.objects.filter(id__in=workflow_ids)
 

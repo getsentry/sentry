@@ -35,7 +35,7 @@ class HighlightPreset(TypedDict):
     context: dict[str, list[str]]
 
 
-DEFAULT_HIGHLIGHT_TAGS = ["handled", "level"]
+DEFAULT_HIGHLIGHT_TAGS = ["handled", "level", "transaction"]
 DEFAULT_HIGHLIGHT_CTX = {"trace": ["trace_id"]}
 
 MOBILE_HIGHLIGHTS: HighlightPreset = {
