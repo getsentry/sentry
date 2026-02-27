@@ -31,6 +31,7 @@ COMMIT_SHA = "746a4f8b311bb179a2057272cae04855404b4137"
 # Build configurations - set to None to disable a build
 BUILDS = [
     {
+        "artifact_id": 5,
         "app_id": "com.emerge.hackernews.ios",
         "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
         "app_name": "HackerNews",
@@ -40,6 +41,7 @@ BUILDS = [
     },
     # Uncomment to test multi-build (monorepo) comments:
     # {
+    #     "artifact_id": 6,
     #     "app_id": "com.emerge.hackernews.android",
     #     "artifact_type": PreprodArtifact.ArtifactType.AAB,
     #     "app_name": "HackerNews",
@@ -113,7 +115,12 @@ def main() -> None:
                 project, build_config.get("build_configuration")
             )
 
+            # Use a fixed ID so the PR comment links to a predictable URL.
+            artifact_id = build_config.get("artifact_id")
+            PreprodArtifact.objects.filter(id=artifact_id).delete()
+
             artifact = PreprodArtifact.objects.create(
+                id=artifact_id,
                 project=project,
                 artifact_type=build_config["artifact_type"],
                 app_id=build_config["app_id"],
