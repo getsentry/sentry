@@ -429,11 +429,14 @@ class WorkflowEngineRuleSerializer(Serializer):
             condition_data: dict[str, Any], is_slow_condition: bool = False
         ) -> dict[str, Any]:
             from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+                BaseEventFrequencyQueryHandler,
                 slow_condition_query_handler_registry,
             )
+            from sentry.workflow_engine.types import DataConditionHandler
 
             condition_type = condition_data.pop("condition_type", None)
 
+            handler: type[BaseEventFrequencyQueryHandler] | type[DataConditionHandler[Any]]
             if is_slow_condition:
                 try:
                     handler = slow_condition_query_handler_registry.get(condition_type)

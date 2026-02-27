@@ -69,9 +69,10 @@ class InvalidFilter(Exception):
 
 class BaseEventFrequencyQueryHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
+    label_template = ""
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]):
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
         return cls.label_template.format(**condition_data)
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:

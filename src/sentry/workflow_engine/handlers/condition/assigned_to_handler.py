@@ -62,17 +62,24 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any]) -> str:
-        target_type = AssigneeTargetType(condition_data.get("targetType"))
-        target_identifer = condition_data.get("targetIdentifier")
-        if target_type == AssigneeTargetType.TEAM:
+        target_type: str | None = condition_data.get("targetType")
+        if target_type is None:
+            return cls.label_template.format(**condition_data)
+        assignee_target_type = AssigneeTargetType(target_type)
+        target_identifer: str | None = condition_data.get("targetIdentifier")
+        if assignee_target_type == AssigneeTargetType.TEAM:
+            if target_identifer is None:
+                return cls.label_template.format(**condition_data)
             try:
                 team = Team.objects.get(id=target_identifer)
             except Team.DoesNotExist:
                 return cls.label_template.format(**condition_data)
             return cls.label_template.format(targetType=f"team #{team.slug}")
 
-        elif target_type == AssigneeTargetType.MEMBER:
-            user = user_service.get_user(user_id=target_identifer)
+        elif assignee_target_type == AssigneeTargetType.MEMBER:
+            if target_identifer is None:
+                return cls.label_template.format(**condition_data)
+            user = user_service.get_user(user_id=int(target_identifer))
             if user is not None:
                 return cls.label_template.format(targetType=user.username)
             else:
