@@ -67,16 +67,6 @@ class TestSendToSeer(TestCase):
         mock_response = mock.MagicMock()
         mock_response.status = 200
 
-        edges = [
-            {
-                "source_project_id": 1,
-                "source_project_slug": "frontend",
-                "target_project_id": 2,
-                "target_project_slug": "api",
-                "count": 5,
-            }
-        ]
-
         with mock.patch(
             "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
             return_value=mock_response,
