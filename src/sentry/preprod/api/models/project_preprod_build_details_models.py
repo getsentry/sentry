@@ -9,7 +9,7 @@ from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
 )
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import Platform, PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class BuildDetailsAppInfo(BaseModel):
     date_added: str | None = None
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType | None = None
-    platform: Literal["apple", "android"] | None = None
+    platform: Platform | None = None
     build_configuration: str | None = None
     app_icon_id: str | None = None
     apple_app_info: AppleAppInfo | None = None
