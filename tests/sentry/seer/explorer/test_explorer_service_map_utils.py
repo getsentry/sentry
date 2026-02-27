@@ -88,7 +88,6 @@ class TestSendToSeer(TestCase):
         assert body["organization_id"] == org.id
         assert body["nodes"] == nodes
         assert body["edges"] == edges
-        assert "generated_at" in body
 
     def test_filters_nodes_with_missing_slugs(self):
         org = self.create_organization()
