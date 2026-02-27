@@ -20,7 +20,7 @@ const noStaticTranslations = {
     return {
       CallExpression(node) {
         const callee = node.callee;
-        if (!callee || callee.type !== 'Identifier') return;
+        if (callee?.type !== 'Identifier') return;
         if (!DYNAMIC_TRANSLATION_FNS.includes(callee.name)) return;
         if (node.arguments.length === 0) return;
 

@@ -1974,6 +1974,88 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             == "Must be '+', '-', or empty string."
         )
 
+    def test_update_widget_with_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Axis Range",
+                    "displayType": "line",
+                    "axisRange": "dataMin",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["axisRange"] == "dataMin"
+
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.detail["axis_range"] == "dataMin"
+
+    def test_update_widget_with_invalid_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Invalid Axis Range",
+                    "displayType": "line",
+                    "axisRange": "invalid_value",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+
+    def test_create_widget_with_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard with Axis Range Widget",
+            "widgets": [
+                {
+                    "title": "New Line Chart",
+                    "displayType": "line",
+                    "axisRange": "dataMin",
+                    "widgetType": "error-events",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["axisRange"] == "dataMin"
+
+        widget = DashboardWidget.objects.get(dashboard=self.dashboard, title="New Line Chart")
+        assert widget.detail["axis_range"] == "dataMin"
+
     def test_update_migrated_spans_widget_reset_changed_reason(self) -> None:
         new_dashboard = Dashboard.objects.create(
             title="New dashboard",

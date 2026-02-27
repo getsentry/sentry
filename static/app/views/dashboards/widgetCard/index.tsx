@@ -20,7 +20,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -63,6 +63,7 @@ import {WidgetFrame} from './widgetFrame';
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
 };
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -133,6 +134,7 @@ type Data = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
@@ -149,6 +151,7 @@ function WidgetCard(props: Props) {
       props.onDataFetched({
         tableResults: newData.tableResults,
         timeseriesResultsTypes: newData.timeseriesResultsTypes,
+        timeseriesResultsUnits: newData.timeseriesResultsUnits,
       });
     }
 

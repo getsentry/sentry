@@ -40,7 +40,7 @@ export const noTokenImport = {
 
     return {
       ImportDeclaration(node) {
-        if (!node || node.source.type !== 'Literal') return;
+        if (node?.source.type !== 'Literal') return;
         if (importerIsInAllowedDir) return;
 
         const value = node.source.value;
