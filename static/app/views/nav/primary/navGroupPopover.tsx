@@ -46,10 +46,10 @@ export function NavGroupPopover() {
     <AnimatePresence>
       {shouldShow ? (
         <PopoverWrapper
-          key={hoveredNav!.group}
+          key={hoveredNav.group}
           style={{
-            top: hoveredNav!.anchorY,
-            maxHeight: `calc(100vh - ${hoveredNav!.anchorY}px - 32px)`,
+            top: hoveredNav.anchorY,
+            maxHeight: `calc(100vh - ${hoveredNav.anchorY}px - 32px)`,
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
@@ -60,7 +60,7 @@ export function NavGroupPopover() {
           {...{[NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true}}
         >
           <PopoverSecondaryNav>
-            <SecondaryNavContent group={hoveredNav!.group} />
+            <SecondaryNavContent group={hoveredNav.group} />
           </PopoverSecondaryNav>
         </PopoverWrapper>
       ) : null}
