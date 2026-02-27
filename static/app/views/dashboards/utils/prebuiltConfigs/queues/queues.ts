@@ -2,52 +2,14 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const QUEUE_CHARTS = spaceWidgetsEquallyOnRow(
-  [
-    {
-      id: 'average-duration-widget',
-      title: t('Average Duration'),
-      displayType: DisplayType.AREA,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          aggregates: [
-            `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-            `avg(${SpanFields.SPAN_DURATION})`,
-          ],
-          columns: [],
-          conditions: `${SpanFields.SPAN_OP}:queue.process`,
-          orderby: `avg(${SpanFields.SPAN_DURATION})`,
-        },
-      ],
-    },
-    {
-      id: 'throughput-widget',
-      title: t('Published vs Processed'),
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          aggregates: ['epm()'],
-          columns: [SpanFields.SPAN_OP],
-          conditions: `${SpanFields.SPAN_OP}:[queue.publish, queue.process]`,
-          orderby: 'epm()',
-        },
-      ],
-    },
-  ],
-  0
-);
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow([...QUEUE_CHARTS], 0);
 
-const DETINATION_TABLE: Widget = {
+const DESTINATION_TABLE: Widget = {
   id: 'destination-table',
   title: t('Destinations'),
   displayType: DisplayType.TABLE,
@@ -67,7 +29,6 @@ const DETINATION_TABLE: Widget = {
       ],
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME],
       aggregates: [
-        'epm()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
@@ -130,5 +91,5 @@ export const QUEUES_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...QUEUE_CHARTS, DETINATION_TABLE],
+  widgets: [...FIRST_ROW_WIDGETS, DESTINATION_TABLE],
 };

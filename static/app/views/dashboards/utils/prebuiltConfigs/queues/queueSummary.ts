@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
+import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -121,6 +121,8 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
   {h: 1, minH: 1}
 );
 
+const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow([...QUEUE_CHARTS], 1);
+
 const TRANSACTIONS_TABLE: Widget = {
   id: 'transactions-table',
   title: t('Transactions Interacting with Destination'),
@@ -134,7 +136,6 @@ const TRANSACTIONS_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
         `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.publish)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
@@ -143,7 +144,6 @@ const TRANSACTIONS_TABLE: Widget = {
       aggregates: [
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
         `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.publish)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
@@ -187,5 +187,5 @@ export const QUEUE_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: SUMMARY_DASHBOARD_TITLE,
   filters: {},
-  widgets: [...FIRST_ROW_WIDGTS, ...QUEUE_CHARTS, TRANSACTIONS_TABLE],
+  widgets: [...FIRST_ROW_WIDGTS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
 };
