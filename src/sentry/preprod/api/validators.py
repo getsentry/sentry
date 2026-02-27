@@ -89,38 +89,6 @@ class PreprodListBuildsValidator(serializers.Serializer[Any]):
         return value
 
 
-class PreprodPublicBuildsValidator(serializers.Serializer[Any]):
-    """Validator for the public builds list endpoint (camelCase params)."""
-
-    platform = serializers.ChoiceField(
-        choices=[("apple", "Apple"), ("android", "Android")],
-        required=False,
-        help_text="Filter by platform",
-    )
-    appId = serializers.CharField(required=False, help_text="Filter by app identifier")
-    branch = serializers.CharField(required=False, help_text="Filter by git branch (head ref)")
-    buildVersion = serializers.CharField(required=False, help_text="Filter by build version")
-    buildConfiguration = serializers.CharField(
-        required=False, help_text="Filter by build configuration name"
-    )
-    prNumber = serializers.IntegerField(required=False, help_text="Filter by PR number")
-    installGroup = serializers.CharField(
-        required=False, help_text="Filter by install group name (exact match)"
-    )
-    perPage = serializers.IntegerField(
-        default=25,
-        min_value=1,
-        max_value=100,
-        required=False,
-        help_text="Number of results per page",
-    )
-
-    def validate_platform(self, value: str | None) -> str | None:
-        if value:
-            return value.lower()
-        return value
-
-
 class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
     """Validator for the public latest installable build endpoint (camelCase params)."""
 
