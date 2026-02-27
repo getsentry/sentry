@@ -93,3 +93,21 @@ class ShouldSendNewModelEmbeddingsTest(TestCase):
         with self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE):
             result = should_send_new_model_embeddings(self.project, "v2")
             assert result is False
+
+    def test_returns_false_when_training_model_matches_new_version(self):
+        """Returns False when seer_latest_training_model already matches new version"""
+        with self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE):
+            result = should_send_new_model_embeddings(self.project, "v1", "v2")
+            assert result is False
+
+    def test_returns_true_when_training_model_is_old_version(self):
+        """Returns True when both seer_model and seer_latest_training_model are old"""
+        with self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE):
+            result = should_send_new_model_embeddings(self.project, "v1", "v1")
+            assert result is True
+
+    def test_returns_true_when_both_none(self):
+        """Returns True when both seer_model and seer_latest_training_model are None"""
+        with self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE):
+            result = should_send_new_model_embeddings(self.project, None, None)
+            assert result is True
