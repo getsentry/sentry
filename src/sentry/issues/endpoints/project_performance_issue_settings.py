@@ -229,6 +229,22 @@ def get_disabled_threshold_options(payload, current_settings):
     return options
 
 
+def payload_contains_disabled_threshold_setting(data: dict[str, Any], project: Project) -> bool:
+    """Check if the payload contains threshold settings whose detector is disabled."""
+    performance_issue_settings_default: dict[str, Any] = projectoptions.get_well_known_default(
+        SETTINGS_PROJECT_OPTION_KEY,
+        project=project,
+    )
+
+    performance_issue_settings: dict[str, Any] = project.get_option(
+        SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
+    )
+
+    current_settings = {**performance_issue_settings_default, **performance_issue_settings}
+    disabled_options = get_disabled_threshold_options(data, current_settings)
+    return any(option in disabled_options for option in data)
+
+
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUE_DETECTION_BACKEND
@@ -301,23 +317,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        performance_issue_settings_default: dict[str, Any] = projectoptions.get_well_known_default(
-            SETTINGS_PROJECT_OPTION_KEY,
-            project=project,
-        )
-
-        performance_issue_settings: dict[str, Any] = project.get_option(
-            SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
-        )
-
-        current_settings = {**performance_issue_settings_default, **performance_issue_settings}
-
         data = serializer.validated_data
 
-        payload_contains_disabled_threshold_setting = any(
-            [option in get_disabled_threshold_options(data, current_settings) for option in data]
-        )
-        if payload_contains_disabled_threshold_setting:
+        if payload_contains_disabled_threshold_setting(data, project):
             return Response(
                 {"detail": "Disabled options can not be modified"},
                 status=status.HTTP_403_FORBIDDEN,
