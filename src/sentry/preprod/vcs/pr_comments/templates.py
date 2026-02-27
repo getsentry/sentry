@@ -21,7 +21,7 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
         app_id = artifact.app_id or "Unknown"
         version_string = _format_version_string(artifact)
         config = artifact.build_configuration.name if artifact.build_configuration else "--"
-        artifact_url = get_preprod_artifact_url(artifact, view_type="distribution")
+        artifact_url = get_preprod_artifact_url(artifact, view_type="install")
 
         name_cell = f"[{app_name or app_id}]({artifact_url})"
 

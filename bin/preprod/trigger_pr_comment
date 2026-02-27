@@ -31,9 +31,9 @@ COMMIT_SHA = "746a4f8b311bb179a2057272cae04855404b4137"
 # Build configurations - set to None to disable a build
 BUILDS = [
     {
-        "artifact_id": 5,
-        "app_id": "com.emerge.hackernews.ios",
-        "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
+        "artifact_id": 1,
+        "app_id": "com.emergetools.hackernews.debug",
+        "artifact_type": PreprodArtifact.ArtifactType.APK,
         "app_name": "HackerNews",
         "build_version": "1.0.3",
         "build_number": 15,
