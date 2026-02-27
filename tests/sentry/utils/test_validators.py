@@ -61,8 +61,3 @@ def test_is_span_id() -> None:
     assert not is_span_id("202ab439bb9c4f31AAAAAAAAAA")
     assert not is_span_id(False)
     assert not is_span_id(None)
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

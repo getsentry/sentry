@@ -57,8 +57,3 @@ class UnEnforceRateLimitTest(APITestCase):
         with freeze_time("2000-01-01"):
             self.get_success_response()
             self.get_success_response()
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

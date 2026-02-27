@@ -212,8 +212,3 @@ class OrganizationGroupSearchViewStarredOrderTransactionTest(TestCase):
         )
 
         assert response.status_code == 400
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

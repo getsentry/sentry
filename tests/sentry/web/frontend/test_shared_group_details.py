@@ -66,8 +66,3 @@ class SharedGroupDetailsTest(TestCase):
         response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)
         assert response.status_code == 200
         self.assert_group_metadata_present(response)
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

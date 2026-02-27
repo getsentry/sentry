@@ -28,7 +28,13 @@ class OrganizationUserDetailsTest(APITestCase):
         self.get_error_response(self.org.slug, 123, status_code=404)
         self.get_error_response(self.org.slug, "not_valid", status_code=400)
 
+    def test_does_not_expose_secondary_emails(self) -> None:
+        """VULN-720: secondary emails should not be visible to other org members."""
+        self.create_useremail(self.owner_user, email="secondary@example.com", is_verified=True)
 
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"
+        # Request as a regular member, not the owner themselves
+        self.login_as(user=self.user)
+        response = self.get_success_response(self.org.slug, self.owner_user.id)
+
+        assert response.data["email"] == self.owner_user.email
+        assert response.data["emails"] == []

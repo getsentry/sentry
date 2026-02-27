@@ -124,8 +124,3 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
         assert response.data["installable_artifacts_deleted"] == 0
 
         assert not PreprodArtifact.objects.filter(id=artifact.id).exists()
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"
