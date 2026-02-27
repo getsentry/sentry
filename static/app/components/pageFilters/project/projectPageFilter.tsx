@@ -91,9 +91,17 @@ export function ProjectPageFilter({
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  // Ref to break the circular dependency: options need toggleOption, but toggleOption
-  // comes from useStagedCompactSelect which depends on options.
+  // Ref to break the circular dependency: options need toggleOption/dispatch, but those
+  // come from useStagedCompactSelect which depends on options.
   const toggleOptionRef = useRef<((val: number) => void) | undefined>(undefined);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dispatchRef = useRef<React.Dispatch<any> | undefined>(undefined);
+
+  // Tracks which sentinel modes the user has explicitly clicked to deselect while they
+  // were already active from the committed URL. Without this, isAllProjectsMode /
+  // isMyProjectsMode would stay true (from the committed URL fallback) even after the
+  // user clicks to uncheck them. Reset when the menu reopens.
+  const [deselectedModes, setDeselectedModes] = useState(() => new Set<number>());
 
   // Track optimistically bookmarked projects to prevent star from disappearing
   // during API call when user bookmarks and quickly moves focus
@@ -261,13 +269,37 @@ export function ProjectPageFilter({
   }, [routes, organization]);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
+    // A sentinel may be staged but not yet committed to the URL. Check staged first,
+    // then fall back to the committed page filter value (unless the user has explicitly
+    // clicked to deselect that mode, tracked by deselectedModes).
+    const allProjectsSentinelStaged = stagedValue.includes(ALL_ACCESS_PROJECTS);
+    const myProjectsSentinelStaged = stagedValue.includes(MY_PROJECTS_VALUE);
+    const anySentinelStaged = allProjectsSentinelStaged || myProjectsSentinelStaged;
+    const isAllProjectsMode =
+      allProjectsSentinelStaged ||
+      (!deselectedModes.has(ALL_ACCESS_PROJECTS) &&
+        !anySentinelStaged &&
+        pageFilterValue.includes(ALL_ACCESS_PROJECTS));
+    // My Projects is a subset of All Projects, so it's also "selected" when All Projects
+    // is active. The committed URL fallback also applies unless explicitly deselected.
+    const isMyProjectsMode =
+      isAllProjectsMode ||
+      myProjectsSentinelStaged ||
+      (!deselectedModes.has(MY_PROJECTS_VALUE) &&
+        !anySentinelStaged &&
+        pageFilterValue.length === 0);
+
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
           <MenuComponents.Checkbox
-            checked={isSelected}
+            checked={
+              allProjectsSentinelStaged ||
+              (myProjectsSentinelStaged && project.isMember) ||
+              isSelected
+            }
             onChange={() => toggleOptionRef.current?.(parseInt(project.id, 10))}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
@@ -339,43 +371,74 @@ export function ProjectPageFilter({
       } satisfies SelectOption<number>;
     };
 
-    const isAllProjectsMode = pageFilterValue.includes(ALL_ACCESS_PROJECTS);
-    const isMyProjectsMode = pageFilterValue.length === 0;
-
-    const specialItems: Array<SelectOption<number>> = [
-      {
-        value: ALL_ACCESS_PROJECTS,
-        label: t('All Projects'),
-        textValue: '',
-        leadingItems: () => (
-          <Fragment>
-            <MenuComponents.Checkbox
-              checked={isAllProjectsMode}
-              onChange={() => toggleOptionRef.current?.(ALL_ACCESS_PROJECTS)}
-              aria-label={t('Select All Projects')}
-              tabIndex={-1}
-            />
-            <IconAllProjects size="sm" variant="muted" />
-          </Fragment>
-        ),
-      },
-      {
-        value: MY_PROJECTS_VALUE,
-        label: t('My Projects'),
-        textValue: '',
-        leadingItems: () => (
-          <Fragment>
-            <MenuComponents.Checkbox
-              checked={isMyProjectsMode}
-              onChange={() => toggleOptionRef.current?.(MY_PROJECTS_VALUE)}
-              aria-label={t('Select My Projects')}
-              tabIndex={-1}
-            />
-            <IconMyProjects size="sm" variant="muted" />
-          </Fragment>
-        ),
-      },
-    ];
+    const specialItems: Array<SelectOption<number>> =
+      nonMemberProjects.length > 0
+        ? [
+            {
+              value: ALL_ACCESS_PROJECTS,
+              label: t('All Projects'),
+              textValue: '',
+              leadingItems: () => (
+                <Fragment>
+                  <MenuComponents.Checkbox
+                    checked={isAllProjectsMode}
+                    onChange={() => {
+                      if (isAllProjectsMode) {
+                        // Deselect: clear staged and mark mode as explicitly deselected
+                        dispatchRef.current?.({type: 'set staged', value: []});
+                        setDeselectedModes(
+                          prev => new Set([...prev, ALL_ACCESS_PROJECTS])
+                        );
+                      } else {
+                        // Activate All Projects
+                        dispatchRef.current?.({
+                          type: 'set staged',
+                          value: [ALL_ACCESS_PROJECTS],
+                        });
+                        setDeselectedModes(new Set());
+                      }
+                    }}
+                    aria-label={t('Select All Projects')}
+                    tabIndex={-1}
+                  />
+                  <IconAllProjects size="sm" variant="muted" />
+                </Fragment>
+              ),
+            },
+            {
+              value: MY_PROJECTS_VALUE,
+              label: t('My Projects'),
+              textValue: '',
+              leadingItems: () => (
+                <Fragment>
+                  <MenuComponents.Checkbox
+                    checked={isMyProjectsMode}
+                    onChange={() => {
+                      if (
+                        myProjectsSentinelStaged ||
+                        (isMyProjectsMode && !isAllProjectsMode)
+                      ) {
+                        // Deselect My Projects (was staged or from committed URL)
+                        dispatchRef.current?.({type: 'set staged', value: []});
+                        setDeselectedModes(prev => new Set([...prev, MY_PROJECTS_VALUE]));
+                      } else {
+                        // Activate My Projects (or switch from All Projects to My Projects)
+                        dispatchRef.current?.({
+                          type: 'set staged',
+                          value: [MY_PROJECTS_VALUE],
+                        });
+                        setDeselectedModes(new Set());
+                      }
+                    }}
+                    aria-label={t('Select My Projects')}
+                    tabIndex={-1}
+                  />
+                  <IconMyProjects size="sm" variant="muted" />
+                </Fragment>
+              ),
+            },
+          ]
+        : [];
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
     const listSort = (project: Project) =>
@@ -403,6 +466,8 @@ export function ProjectPageFilter({
     mapURLValueToNormalValue,
     optimisticallyBookmarkedProjects,
     pageFilterValue,
+    stagedValue,
+    deselectedModes,
   ]);
 
   const defaultMenuWidth = useMemo(() => {
@@ -440,10 +505,11 @@ export function ProjectPageFilter({
     disableCommit: selectionLimitExceeded,
   });
 
-  // Wire up toggleOptionRef after stagedSelect is created to break the circular
-  // dependency between options (which need toggleOption) and useStagedCompactSelect
-  // (which needs options).
+  // Wire up refs after stagedSelect is created to break the circular dependency between
+  // options (which need toggleOption/dispatch) and useStagedCompactSelect (which needs
+  // options).
   toggleOptionRef.current = stagedSelect.toggleOption;
+  dispatchRef.current = stagedSelect.dispatch;
 
   const {dispatch} = stagedSelect;
 
@@ -454,6 +520,7 @@ export function ProjectPageFilter({
       if (open) {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
         dispatch({type: 'reset anchor'});
+        setDeselectedModes(new Set());
       }
     },
     [dispatch, optimisticallyBookmarkedProjects]
@@ -461,6 +528,7 @@ export function ProjectPageFilter({
 
   const handleReset = useCallback(() => {
     dispatch({type: 'remove staged'});
+    setDeselectedModes(new Set());
     handleChange(defaultValue);
     onReset?.();
 
@@ -476,6 +544,7 @@ export function ProjectPageFilter({
       organization,
     });
     dispatch({type: 'remove staged'});
+    setDeselectedModes(new Set());
   }, [dispatch, routes, organization]);
 
   const handleApply = useCallback(() => {
@@ -486,6 +555,7 @@ export function ProjectPageFilter({
       organization,
     });
     dispatch({type: 'remove staged'});
+    setDeselectedModes(new Set());
     handleChange(stagedSelect.value);
   }, [dispatch, handleChange, routes, organization, stagedSelect.value, stagedValue]);
 

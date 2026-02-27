@@ -237,9 +237,8 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
-    // Get all project rows — first 2 are special items ("All Projects", "My Projects")
-    const allRows = screen.getAllByRole('row');
-    const projectRows = allRows.slice(2);
+    // All projects are members so no special items are shown
+    const projectRows = screen.getAllByRole('row');
 
     // Verify sort order:
     // 1. Selected project (selected-project)
@@ -290,8 +289,8 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
-    // Verify initial sort order (skip first 2 special items)
-    let projectRows = screen.getAllByRole('row').slice(2);
+    // All projects are members so no special items are shown
+    let projectRows = screen.getAllByRole('row');
     expect(projectRows).toHaveLength(4);
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
@@ -315,7 +314,7 @@ describe('ProjectPageFilter', () => {
     );
 
     // Verify sort order DOES NOT change while menu is still open (stable sorting)
-    projectRows = screen.getAllByRole('row').slice(2);
+    projectRows = screen.getAllByRole('row');
 
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
@@ -349,7 +348,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
     // Verify new sort order with bookmarked projects grouped together
-    projectRows = screen.getAllByRole('row').slice(2);
+    projectRows = screen.getAllByRole('row');
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
     expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();

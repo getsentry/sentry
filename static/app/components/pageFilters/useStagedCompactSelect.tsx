@@ -30,7 +30,8 @@ type StagedSelectAction<Value extends SelectKey> =
   | {type: 'remove staged'}
   | {type: 'clear anchor'}
   | {search: string; type: 'set search'}
-  | {type: 'reset anchor'};
+  | {type: 'reset anchor'}
+  | {type: 'set staged'; value: Value[]};
 
 function getFlatOptions<Value extends SelectKey>(
   opts: Array<SelectOptionOrSection<Value>>
@@ -115,6 +116,8 @@ function stagingReducer<Value extends SelectKey>(
     }
     case 'remove staged':
       return {...state, stagedValue: null};
+    case 'set staged':
+      return {...state, stagedValue: action.value, lastSelected: null};
     case 'clear anchor':
       return {...state, lastSelected: null};
     case 'set search':
