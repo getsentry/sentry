@@ -307,6 +307,7 @@ def get_seer_similar_issues(
     seer_results = get_similarity_data_from_seer(
         request_data,
         {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
+        raise_on_error=training_mode,
     )
 
     # All of these will get overridden if we find a usable match

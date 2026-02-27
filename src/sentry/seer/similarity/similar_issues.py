@@ -39,6 +39,7 @@ seer_grouping_connection_pool = connection_from_url(
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,
+    raise_on_error: bool = False,
 ) -> list[SeerSimilarIssueData]:
     """
     Request similar issues data from seer and normalize the results. Returns similar groups
@@ -85,6 +86,8 @@ def get_similarity_data_from_seer(
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
         circuit_breaker.record_error()
+        if raise_on_error:
+            raise
         return []
 
     metric_tags["response_status"] = response.status
@@ -114,6 +117,10 @@ def get_similarity_data_from_seer(
         if response.status >= 500:
             circuit_breaker.record_error()
 
+        if raise_on_error:
+            raise Exception(
+                f"Received {response.status} from Seer endpoint {SEER_SIMILAR_ISSUES_URL}"
+            )
         return []
 
     try:
@@ -136,6 +143,8 @@ def get_similarity_data_from_seer(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
+        if raise_on_error:
+            raise
         return []
 
     # TODO: Temporary log to prove things are working as they should. This should come in a pair
