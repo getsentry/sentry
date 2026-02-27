@@ -6,6 +6,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {extractTraceMetricFromWidget} from 'sentry/views/dashboards/utils/extractTraceMetricFromWidget';
 import {
   serializeFields,
@@ -75,5 +76,6 @@ export function convertWidgetToBuilderStateParams(
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
+    axisRange: getAxisRange(widget.axisRange),
   };
 }

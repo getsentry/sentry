@@ -12,14 +12,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
-from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
+from sentry.feedback.lib.seer_api import SummarizeFeedbacksRequest, make_summarize_feedbacks_request
 from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -32,18 +31,15 @@ MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 # One day since the cache key includes the start and end dates at hour granularity
 SUMMARY_CACHE_TIMEOUT = 86400
 
-SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/summarize"
 SEER_TIMEOUT_S = 30
 SEER_RETRIES = Retry(total=1, backoff_factor=3)  # 1 retry after a 3 second delay.
 
 
 def get_summary_from_seer(feedback_msgs: list[str]) -> str | None:
-    request_body = json.dumps({"feedbacks": feedback_msgs}).encode("utf-8")
+    request_body = SummarizeFeedbacksRequest(feedbacks=feedback_msgs)
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_summarization_connection_pool,
-            path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
-            body=request_body,
+        response = make_summarize_feedbacks_request(
+            request_body,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )

@@ -1,9 +1,10 @@
 import hashlib
 import hmac
 import logging
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
@@ -64,6 +65,106 @@ def make_signed_seer_api_request(
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
             **options,
         )
+
+
+class OrgProjectKnowledgeProjectData(TypedDict):
+    project_id: int
+    slug: str
+    sdk_name: str
+    error_count: int
+    transaction_count: int
+    instrumentation: list[str]
+    top_transactions: list[str]
+    top_span_operations: list[tuple[str, str]]
+
+
+class OrgProjectKnowledgeIndexRequest(TypedDict):
+    org_id: int
+    projects: list[OrgProjectKnowledgeProjectData]
+
+
+class RemoveRepositoryRequest(TypedDict):
+    organization_id: int
+    repo_provider: str
+    repo_external_id: str
+
+
+class ExplorerIndexProject(TypedDict):
+    org_id: int
+    project_id: int
+
+
+class ExplorerIndexRequest(TypedDict):
+    projects: list[ExplorerIndexProject]
+
+
+class LlmGenerateRequest(TypedDict):
+    provider: str
+    model: str
+    referrer: str
+    prompt: str
+    system_prompt: str
+    temperature: float
+    max_tokens: int
+    response_schema: NotRequired[dict[str, Any]]
+
+
+def make_org_project_knowledge_index_request(
+    body: OrgProjectKnowledgeIndexRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_remove_repository_request(
+    body: RemoveRepositoryRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/remove-repository",
+        body=orjson.dumps(body),
+    )
+
+
+def make_explorer_index_request(
+    body: ExplorerIndexRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_seer_models_request(
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/models",
+        body=b"",
+        timeout=timeout,
+        method="GET",
+    )
+
+
+def make_llm_generate_request(
+    body: LlmGenerateRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/llm/generate",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
 
 
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:

@@ -37,7 +37,7 @@ function FileChangeApprovalBlock({
   pendingInput,
 }: FileChangeApprovalBlockProps) {
   const data = useMemo(() => {
-    if (!pendingInput || pendingInput.input_type !== 'file_change_approval') {
+    if (pendingInput?.input_type !== 'file_change_approval') {
       return null;
     }
     return pendingInput.data as FileChangeApprovalData;

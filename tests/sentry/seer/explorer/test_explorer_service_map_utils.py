@@ -599,7 +599,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
             extra_data={
                 "trace_id": uuid4().hex,
                 "span_id": uuid4().hex[:16],
-                "parent_span_id": "nonexistent1234",  # Non-existent parent
+                "parent_span_id": "deadbeef00000000",  # Non-existent parent (valid hex format)
                 "is_segment": True,
                 "sentry_tags": {"transaction": "/orphan/transaction"},
             },

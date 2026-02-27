@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import tempfile
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -132,6 +133,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Context manager for P4 connections with automatic cleanup.
 
         Yields a connected P4 instance and ensures disconnection on exit.
+        Uses a per-connection temporary directory for P4TRUST to avoid
+        lock contention between concurrent connections from different tenants.
 
         Uses P4Python API:
         - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
@@ -142,84 +145,91 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             with self._connect() as p4:
                 result = p4.run("info")
         """
-        p4 = P4()
-        p4.port = self.p4port
-        p4.user = self.user
-        p4.password = self.password
+        # Use a temporary directory for P4TRUST and P4TICKETS to isolate each
+        # connection. Without this, all connections share ~/.p4trust and its
+        # lock file (~/.p4trust.lck), causing lock contention and failures
+        # when multiple tenants connect concurrently.
+        with tempfile.TemporaryDirectory(prefix="sentry-p4-") as tmpdir:
+            p4 = P4()
+            p4.port = self.p4port
+            p4.user = self.user
+            p4.password = self.password
+            p4.trust_file = f"{tmpdir}/.p4trust"
+            p4.ticket_file = f"{tmpdir}/.p4tickets"
 
-        if self.client_name:
-            p4.client = self.client_name
+            if self.client_name:
+                p4.client = self.client_name
 
-        p4.exception_level = 1  # Only errors raise exceptions
+            p4.exception_level = 1  # Only errors raise exceptions
 
-        # Connect to Perforce server
-        try:
-            p4.connect()
-        except P4Exception as e:
-            error_msg = str(e)
-            # Provide helpful error message for connection failures
-            if "SSL" in error_msg or "trust" in error_msg.lower():
-                raise ApiError(
-                    f"Failed to connect to Perforce (SSL issue): {error_msg}. "
-                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                )
-            raise ApiError(f"Failed to connect to Perforce: {error_msg}")
-
-        # Assert SSL trust after connection (if needed)
-        # This must be done after p4.connect() but before p4.run_login()
-        if self.ssl_fingerprint and self.p4port.startswith("ssl"):
+            # Connect to Perforce server
             try:
-                p4.run_trust("-i", self.ssl_fingerprint)
-            except P4Exception as trust_error:
-                try:
-                    p4.disconnect()
-                except Exception:
-                    pass
-                raise ApiError(
-                    f"Failed to establish SSL trust: {trust_error}. "
-                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                )
-
-        # Authenticate based on auth_type
-        # - password: Requires run_login() to exchange password for session ticket
-        # - ticket: Already authenticated via p4.password, no login needed
-        if self.password and self.auth_type == "password":
-            try:
-                p4.run_login()
-            except P4Exception as login_error:
-                try:
-                    p4.disconnect()
-                except Exception:
-                    pass
-                raise ApiUnauthorized(
-                    f"Failed to authenticate with Perforce: {login_error}. "
-                    "Verify your password is correct."
-                )
-        elif self.password and self.auth_type == "ticket":
-            # Ticket authentication: p4.password is already set to the ticket
-            # Verify ticket works by running a test command
-            try:
-                p4.run("info")
+                p4.connect()
             except P4Exception as e:
-                try:
-                    p4.disconnect()
-                except Exception:
-                    pass
-                raise ApiUnauthorized(
-                    f"Failed to authenticate with Perforce ticket: {e}. "
-                    "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
-                )
+                error_msg = str(e)
+                # Provide helpful error message for connection failures
+                if "SSL" in error_msg or "trust" in error_msg.lower():
+                    raise ApiError(
+                        f"Failed to connect to Perforce (SSL issue): {error_msg}. "
+                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                    )
+                raise ApiError(f"Failed to connect to Perforce: {error_msg}")
 
-        try:
-            yield p4
-        finally:
-            # Ensure cleanup
+            # Assert SSL trust after connection (if needed)
+            # This must be done after p4.connect() but before p4.run_login()
+            if self.ssl_fingerprint and self.p4port.startswith("ssl"):
+                try:
+                    p4.run_trust("-i", self.ssl_fingerprint)
+                except P4Exception as trust_error:
+                    try:
+                        p4.disconnect()
+                    except Exception:
+                        pass
+                    raise ApiError(
+                        f"Failed to establish SSL trust: {trust_error}. "
+                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                    )
+
+            # Authenticate based on auth_type
+            # - password: Requires run_login() to exchange password for session ticket
+            # - ticket: Already authenticated via p4.password, no login needed
+            if self.password and self.auth_type == "password":
+                try:
+                    p4.run_login()
+                except P4Exception as login_error:
+                    try:
+                        p4.disconnect()
+                    except Exception:
+                        pass
+                    raise ApiUnauthorized(
+                        f"Failed to authenticate with Perforce: {login_error}. "
+                        "Verify your password is correct."
+                    )
+            elif self.password and self.auth_type == "ticket":
+                # Ticket authentication: p4.password is already set to the ticket
+                # Verify ticket works by running a test command
+                try:
+                    p4.run("info")
+                except P4Exception as e:
+                    try:
+                        p4.disconnect()
+                    except Exception:
+                        pass
+                    raise ApiUnauthorized(
+                        f"Failed to authenticate with Perforce ticket: {e}. "
+                        "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
+                    )
+
             try:
-                if p4.connected():
-                    p4.disconnect()
-            except Exception as e:
-                # Log disconnect failures as they may indicate connection leaks
-                logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
+                yield p4
+            finally:
+                # Ensure cleanup
+                try:
+                    if p4.connected():
+                        p4.disconnect()
+                except Exception as e:
+                    # Log disconnect failures as they may indicate connection leaks
+                    logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
