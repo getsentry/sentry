@@ -168,7 +168,7 @@ Sentry.init({
             {
               code: <code />,
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/#without---import-flag-eg-vercel-netlify" />
               ),
             }
           ),
