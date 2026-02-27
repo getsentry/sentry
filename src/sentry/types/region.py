@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
+class RegionCategory(Enum):
+    MULTI_TENANT = "MULTI_TENANT"
+    SINGLE_TENANT = "SINGLE_TENANT"
+
+
 @dataclass(frozen=True, eq=True)
 class Locality:
     """A grouping of one or more cells (e.g. "us" contains "us1", "us2")."""
@@ -45,11 +50,6 @@ class Locality:
 
     def api_serialize(self) -> dict[str, Any]:
         return {"name": self.name, "url": self.to_url("")}
-
-
-class RegionCategory(Enum):
-    MULTI_TENANT = "MULTI_TENANT"
-    SINGLE_TENANT = "SINGLE_TENANT"
 
 
 # TODO(cells): rename to LocalityConfigurationError
