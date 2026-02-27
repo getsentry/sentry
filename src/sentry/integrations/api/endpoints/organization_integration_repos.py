@@ -1,3 +1,4 @@
+import logging
 from typing import Any, TypedDict
 
 from rest_framework.request import Request
@@ -14,7 +15,9 @@ from sentry.integrations.api.bases.organization_integrations import (
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationError
+
+logger = logging.getLogger(__name__)
 
 
 class IntegrationRepository(TypedDict):
@@ -65,6 +68,16 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         if isinstance(install, RepositoryIntegration):
             try:
                 repositories = install.get_repositories(request.GET.get("search"))
+            except ApiForbiddenError as e:
+                logger.info(
+                    "integration.repos.forbidden",
+                    extra={
+                        "organization_id": organization.id,
+                        "integration_id": integration_id,
+                        "error": str(e),
+                    },
+                )
+                return self.respond({"detail": str(e)}, status=403)
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
