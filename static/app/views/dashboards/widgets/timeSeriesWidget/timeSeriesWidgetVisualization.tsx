@@ -485,7 +485,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // The threshold maxOffset must account for the legend height so that threshold
   // lines/areas drawn at pixel coordinates (for "infinite" thresholds) don't overlap
   // the legend. These values must stay in sync with the `grid.top` config below.
-  const thresholdMaxOffset = showLegend ? 25 : 10;
+  const usesChartLegendComponent = organization.features.includes(
+    'chart-legend-component'
+  );
+
+  const thresholdMaxOffset = showLegend && !usesChartLegendComponent ? 25 : 10;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
@@ -554,10 +558,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const seriesIndexToPlottableRangeMap = new RangeMap<Plottable>(
     seriesIndexToPlottableMapRanges
-  );
-
-  const usesChartLegendComponent = organization.features.includes(
-    'chart-legend-component'
   );
 
   // Local legend selection state used when the parent doesn't manage it
