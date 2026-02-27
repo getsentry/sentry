@@ -70,6 +70,145 @@ const SELECTION_COUNT_LIMIT = 50;
  * "All Projects".
  */
 const MY_PROJECTS_VALUE = -2;
+type SentinelMode = 'all' | 'my';
+
+interface SentinelSelectionState {
+  isAllProjectsMode: boolean;
+  isMyProjectsMode: boolean;
+  stagedSentinelMode: SentinelMode | null;
+}
+
+type SentinelTransition =
+  | {stagedValue: number[]; suppressed: {type: 'add'; modes: SentinelMode[]}}
+  | {stagedValue: number[]; suppressed: {type: 'clear'}};
+
+function projectId(project: Pick<Project, 'id'>): number {
+  return parseInt(project.id, 10);
+}
+
+function applySuppressedModesTransition(
+  prev: Set<SentinelMode>,
+  transition: SentinelTransition
+): Set<SentinelMode> {
+  if (transition.suppressed.type === 'clear') {
+    return new Set();
+  }
+  return new Set([...prev, ...transition.suppressed.modes]);
+}
+
+function isProjectCheckedInMode({
+  isSelected,
+  isMember,
+  noStagedChanges,
+  allProjectsSentinelStaged,
+  myProjectsSentinelStaged,
+  isAllProjectsMode,
+  isMyProjectsMode,
+}: {
+  isSelected: boolean;
+  isMember: boolean;
+  noStagedChanges: boolean;
+  allProjectsSentinelStaged: boolean;
+  myProjectsSentinelStaged: boolean;
+  isAllProjectsMode: boolean;
+  isMyProjectsMode: boolean;
+}): boolean {
+  if (allProjectsSentinelStaged) {
+    return true;
+  }
+
+  if (myProjectsSentinelStaged && isMember) {
+    return true;
+  }
+
+  if (noStagedChanges && isAllProjectsMode) {
+    return true;
+  }
+
+  if (noStagedChanges && isMyProjectsMode && isMember) {
+    return true;
+  }
+
+  return isSelected;
+}
+
+function getSentinelSelectionState({
+  pageFilterValue,
+  stagedValue,
+  suppressedCommittedModes,
+}: {
+  pageFilterValue: number[];
+  stagedValue: number[];
+  suppressedCommittedModes: Set<SentinelMode>;
+}): SentinelSelectionState {
+  const stagedSentinelMode: SentinelMode | null = stagedValue.includes(ALL_ACCESS_PROJECTS)
+    ? 'all'
+    : stagedValue.includes(MY_PROJECTS_VALUE)
+      ? 'my'
+      : null;
+  const anySentinelStaged = stagedSentinelMode !== null;
+  const committedAllProjectsMode = pageFilterValue.includes(ALL_ACCESS_PROJECTS);
+  const committedMyProjectsMode = pageFilterValue.length === 0;
+  const isAllProjectsMode =
+    stagedSentinelMode === 'all' ||
+    (!suppressedCommittedModes.has('all') &&
+      !anySentinelStaged &&
+      committedAllProjectsMode);
+  const isMyProjectsMode =
+    isAllProjectsMode ||
+    stagedSentinelMode === 'my' ||
+    (!suppressedCommittedModes.has('my') &&
+      !anySentinelStaged &&
+      committedMyProjectsMode);
+
+  return {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode};
+}
+
+function getAllProjectsToggleTransition(isAllProjectsMode: boolean): SentinelTransition {
+  if (isAllProjectsMode) {
+    return {
+      stagedValue: [],
+      suppressed: {type: 'add', modes: ['all']},
+    };
+  }
+
+  return {
+    stagedValue: [ALL_ACCESS_PROJECTS],
+    suppressed: {type: 'clear'},
+  };
+}
+
+function getMyProjectsToggleTransition({
+  isAllProjectsMode,
+  isMyProjectsMode,
+  stagedSentinelMode,
+  nonMemberProjectIds,
+}: {
+  isAllProjectsMode: boolean;
+  isMyProjectsMode: boolean;
+  stagedSentinelMode: SentinelMode | null;
+  nonMemberProjectIds: number[];
+}): SentinelTransition {
+  if (isAllProjectsMode) {
+    return {
+      stagedValue: nonMemberProjectIds,
+      suppressed: {type: 'add', modes: ['all', 'my']},
+    };
+  }
+
+  if (stagedSentinelMode === 'my' || isMyProjectsMode) {
+    return {
+      // Toggling off "My Projects" from a My-only state should leave nothing selected.
+      stagedValue: [],
+      suppressed: {type: 'add', modes: ['all', 'my']},
+    };
+  }
+
+  return {
+    stagedValue: [MY_PROJECTS_VALUE],
+    suppressed: {type: 'clear'},
+  };
+}
 
 export function ProjectPageFilter({
   onChange,
@@ -94,14 +233,15 @@ export function ProjectPageFilter({
   // Ref to break the circular dependency: options need toggleOption/dispatch, but those
   // come from useStagedCompactSelect which depends on options.
   const toggleOptionRef = useRef<((val: number) => void) | undefined>(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const dispatchRef = useRef<React.Dispatch<any> | undefined>(undefined);
 
-  // Tracks which sentinel modes the user has explicitly clicked to deselect while they
-  // were already active from the committed URL. Without this, isAllProjectsMode /
-  // isMyProjectsMode would stay true (from the committed URL fallback) even after the
-  // user clicks to uncheck them. Reset when the menu reopens.
-  const [deselectedModes, setDeselectedModes] = useState(() => new Set<number>());
+  // Tracks committed sentinel modes that have been explicitly toggled off while the menu
+  // is open. This prevents committed URL fallback ("All Projects"/"My Projects")
+  // from immediately re-checking those sentinels before Apply.
+  const [suppressedCommittedModes, setSuppressedCommittedModes] = useState<Set<SentinelMode>>(
+    () => new Set()
+  );
 
   // Track optimistically bookmarked projects to prevent star from disappearing
   // during API call when user bookmarks and quickly moves focus
@@ -134,6 +274,10 @@ export function ProjectPageFilter({
   const nonMemberProjects = useMemo(
     () => (showNonMemberProjects ? otherProjects : []),
     [otherProjects, showNonMemberProjects]
+  );
+  const nonMemberProjectIds = useMemo(
+    () => nonMemberProjects.map(projectId),
+    [nonMemberProjects]
   );
 
   const {
@@ -269,38 +413,62 @@ export function ProjectPageFilter({
   }, [routes, organization]);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
-    // A sentinel may be staged but not yet committed to the URL. Check staged first,
-    // then fall back to the committed page filter value (unless the user has explicitly
-    // clicked to deselect that mode, tracked by deselectedModes).
-    const allProjectsSentinelStaged = stagedValue.includes(ALL_ACCESS_PROJECTS);
-    const myProjectsSentinelStaged = stagedValue.includes(MY_PROJECTS_VALUE);
-    const anySentinelStaged = allProjectsSentinelStaged || myProjectsSentinelStaged;
-    const isAllProjectsMode =
-      allProjectsSentinelStaged ||
-      (!deselectedModes.has(ALL_ACCESS_PROJECTS) &&
-        !anySentinelStaged &&
-        pageFilterValue.includes(ALL_ACCESS_PROJECTS));
-    // My Projects is a subset of All Projects, so it's also "selected" when All Projects
-    // is active. The committed URL fallback also applies unless explicitly deselected.
-    const isMyProjectsMode =
-      isAllProjectsMode ||
-      myProjectsSentinelStaged ||
-      (!deselectedModes.has(MY_PROJECTS_VALUE) &&
-        !anySentinelStaged &&
-        pageFilterValue.length === 0);
+    const {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode} =
+      getSentinelSelectionState({
+        pageFilterValue,
+        stagedValue,
+        suppressedCommittedModes,
+      });
+    const allProjectsSentinelStaged = stagedSentinelMode === 'all';
+    const myProjectsSentinelStaged = stagedSentinelMode === 'my';
+    // When staged is empty, there are no pending changes — use the URL mode flags as
+    // a fallback so individual project checkboxes reflect the committed mode (All/My
+    // Projects). When staged is non-empty the per-item isSelected and the sentinel-
+    // staged flags take over.
+    const noStagedChanges = stagedValue.length === 0;
+
+    const setStaged = (nextValue: number[]) => {
+      dispatchRef.current?.({type: 'set staged', value: nextValue});
+    };
+
+    const applySentinelTransition = (transition: SentinelTransition) => {
+      setStaged(transition.stagedValue);
+      setSuppressedCommittedModes(prev =>
+        applySuppressedModesTransition(prev, transition)
+      );
+    };
+
+    const handleAllProjectsToggle = () => {
+      applySentinelTransition(getAllProjectsToggleTransition(isAllProjectsMode));
+    };
+
+    const handleMyProjectsToggle = () => {
+      applySentinelTransition(
+        getMyProjectsToggleTransition({
+          isAllProjectsMode,
+          isMyProjectsMode,
+          stagedSentinelMode,
+          nonMemberProjectIds,
+        })
+      );
+    };
 
     const getProjectItem = (project: Project) => {
       return {
-        value: parseInt(project.id, 10),
+        value: projectId(project),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
           <MenuComponents.Checkbox
-            checked={
-              allProjectsSentinelStaged ||
-              (myProjectsSentinelStaged && project.isMember) ||
-              isSelected
-            }
-            onChange={() => toggleOptionRef.current?.(parseInt(project.id, 10))}
+            checked={isProjectCheckedInMode({
+              isSelected,
+              isMember: project.isMember,
+              noStagedChanges,
+              allProjectsSentinelStaged,
+              myProjectsSentinelStaged,
+              isAllProjectsMode,
+              isMyProjectsMode,
+            })}
+            onChange={() => toggleOptionRef.current?.(projectId(project))}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />
@@ -382,22 +550,7 @@ export function ProjectPageFilter({
                 <Fragment>
                   <MenuComponents.Checkbox
                     checked={isAllProjectsMode}
-                    onChange={() => {
-                      if (isAllProjectsMode) {
-                        // Deselect: clear staged and mark mode as explicitly deselected
-                        dispatchRef.current?.({type: 'set staged', value: []});
-                        setDeselectedModes(
-                          prev => new Set([...prev, ALL_ACCESS_PROJECTS])
-                        );
-                      } else {
-                        // Activate All Projects
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: [ALL_ACCESS_PROJECTS],
-                        });
-                        setDeselectedModes(new Set());
-                      }
-                    }}
+                    onChange={handleAllProjectsToggle}
                     aria-label={t('Select All Projects')}
                     tabIndex={-1}
                   />
@@ -413,23 +566,7 @@ export function ProjectPageFilter({
                 <Fragment>
                   <MenuComponents.Checkbox
                     checked={isMyProjectsMode}
-                    onChange={() => {
-                      if (
-                        myProjectsSentinelStaged ||
-                        (isMyProjectsMode && !isAllProjectsMode)
-                      ) {
-                        // Deselect My Projects (was staged or from committed URL)
-                        dispatchRef.current?.({type: 'set staged', value: []});
-                        setDeselectedModes(prev => new Set([...prev, MY_PROJECTS_VALUE]));
-                      } else {
-                        // Activate My Projects (or switch from All Projects to My Projects)
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: [MY_PROJECTS_VALUE],
-                        });
-                        setDeselectedModes(new Set());
-                      }
-                    }}
+                    onChange={handleMyProjectsToggle}
                     aria-label={t('Select My Projects')}
                     tabIndex={-1}
                   />
@@ -444,13 +581,13 @@ export function ProjectPageFilter({
     const listSort = (project: Project) =>
       bookmarkedSnapshotRef.current
         ? [
-            !lastSelected.includes(parseInt(project.id, 10)),
+            !lastSelected.includes(projectId(project)),
             !project.isMember,
             !bookmarkedSnapshotRef.current.has(project.id),
             project.slug,
           ]
         : [
-            !lastSelected.includes(parseInt(project.id, 10)),
+            !lastSelected.includes(projectId(project)),
             !project.isMember,
             project.slug,
           ];
@@ -464,10 +601,11 @@ export function ProjectPageFilter({
     memberProjects,
     nonMemberProjects,
     mapURLValueToNormalValue,
+    nonMemberProjectIds,
     optimisticallyBookmarkedProjects,
     pageFilterValue,
     stagedValue,
-    deselectedModes,
+    suppressedCommittedModes,
   ]);
 
   const defaultMenuWidth = useMemo(() => {
@@ -513,6 +651,16 @@ export function ProjectPageFilter({
 
   const {dispatch} = stagedSelect;
 
+  // True when the user has explicitly deselected "My Projects" from a My-Projects URL
+  // state but hasn't selected anything else. In this state we suppress the Apply button
+  // and revert on close, mirroring the "All Projects deselected" behavior. Without this
+  // guard, clicking Apply (or interact-outside) would commit [] → mapNormalValueToURLValue([])
+  // = [-1], silently switching the URL from My Projects to All Projects.
+  const isMyProjectsDeselectedOnly =
+    stagedSelect.value.length === 0 &&
+    suppressedCommittedModes.has('my') &&
+    pageFilterValue.length === 0;
+
   // Merge the hook's onOpenChange (resets shift-click anchor) with the local
   // snapshot logic (freezes the bookmark sort order while the menu is open).
   const handleOpenChange = useCallback(
@@ -520,7 +668,7 @@ export function ProjectPageFilter({
       if (open) {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
         dispatch({type: 'reset anchor'});
-        setDeselectedModes(new Set());
+        setSuppressedCommittedModes(new Set());
       }
     },
     [dispatch, optimisticallyBookmarkedProjects]
@@ -528,7 +676,7 @@ export function ProjectPageFilter({
 
   const handleReset = useCallback(() => {
     dispatch({type: 'remove staged'});
-    setDeselectedModes(new Set());
+    setSuppressedCommittedModes(new Set());
     handleChange(defaultValue);
     onReset?.();
 
@@ -544,8 +692,15 @@ export function ProjectPageFilter({
       organization,
     });
     dispatch({type: 'remove staged'});
-    setDeselectedModes(new Set());
+    setSuppressedCommittedModes(new Set());
   }, [dispatch, routes, organization]);
+
+  // Revert staged changes without committing. Used when My Projects is deselected only —
+  // clicking outside should not commit [] → All Projects URL.
+  const handleRevertOnClose = useCallback(() => {
+    dispatch({type: 'remove staged'});
+    setSuppressedCommittedModes(new Set());
+  }, [dispatch]);
 
   const handleApply = useCallback(() => {
     trackAnalytics('projectselector.apply', {
@@ -555,11 +710,12 @@ export function ProjectPageFilter({
       organization,
     });
     dispatch({type: 'remove staged'});
-    setDeselectedModes(new Set());
+    setSuppressedCommittedModes(new Set());
     handleChange(stagedSelect.value);
   }, [dispatch, handleChange, routes, organization, stagedSelect.value, stagedValue]);
 
-  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const hasStagedChanges =
+    !isMyProjectsDeselectedOnly && xor(stagedSelect.value, value).length > 0;
   const shouldShowReset = xor(stagedSelect.value, defaultValue).length > 0;
 
   const hasProjectWrite = organization.access.includes('project:write');
@@ -591,6 +747,11 @@ export function ProjectPageFilter({
         )
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
+      onInteractOutside={
+        isMyProjectsDeselectedOnly
+          ? handleRevertOnClose
+          : stagedSelect.compactSelectProps.onInteractOutside
+      }
       onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
         shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
@@ -601,7 +762,7 @@ export function ProjectPageFilter({
             {selectionLimitExceeded && (
               <MenuComponents.Alert variant="warning">
                 {tct(
-                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.`,
                   {
                     limit: SELECTION_COUNT_LIMIT,
                     count: stagedValue.length,
