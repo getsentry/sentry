@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -20,9 +21,13 @@ def api_request(
     if body is not None:
         headers["Content-Type"] = content_type
     req = urllib.request.Request(url, data=body, method=method, headers=headers)
-    with urllib.request.urlopen(req) as resp:
-        raw = resp.read()
-        return json.loads(raw) if raw else None
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            return json.loads(raw) if raw else None
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode(errors="replace")
+        raise RuntimeError(f"{method} {url} returned HTTP {e.code}: {detail}") from None
 
 
 def upload_images(
