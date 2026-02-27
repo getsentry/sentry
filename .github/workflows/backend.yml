@@ -307,6 +307,15 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
+      - name: Upload pytest results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          if-no-files-found: ignore
+          retention-days: 1
+
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -333,6 +342,15 @@ jobs:
           if command -v devservices; then
             devservices logs
           fi
+
+      - name: Upload pytest results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pytest-results-migration-${{ github.run_id }}
+          path: .artifacts/pytest.json
+          if-no-files-found: ignore
+          retention-days: 1
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -504,6 +522,15 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
+      - name: Upload pytest results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pytest-results-monolith-dbs-${{ github.run_id }}
+          path: .artifacts/pytest.monolith-dbs.json
+          if-no-files-found: ignore
+          retention-days: 1
+
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -574,6 +601,36 @@ jobs:
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':knife: regenerate mypy module blocklist'
+
+  report-backend-test-failures:
+    needs: [backend-required-check]
+    if: always() && !cancelled() && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: .github/workflows/scripts/report-backend-test-failures.js
+          sparse-checkout-cone-mode: false
+
+      - name: Download pytest result artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: pytest-results-*
+        continue-on-error: true
+
+      - name: Report failures
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures`).report({
+              github,
+              context,
+              core,
+            });
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
