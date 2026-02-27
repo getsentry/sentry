@@ -765,3 +765,8 @@ def test__get_crashed_thread_registers_unknown_arch() -> None:
    eax: 0x0000000040000000  ecx: 0x000000016b7d0f50  edx: 0x0000000183ea5748  esp: 0x0000000104987b9c
    esi: 0x000000016b7d0f10"""
     )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

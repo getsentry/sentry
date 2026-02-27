@@ -414,3 +414,8 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
 
         self.user.refresh_from_db()
         assert self.user.session_nonce != original_nonce
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

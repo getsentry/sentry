@@ -84,3 +84,8 @@ class NonPartnerFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
         self.auth_provider = AuthProvider.objects.create(
             provider=ChannelName.FLY_NON_PARTNER.value, organization_id=self.organization.id
         )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

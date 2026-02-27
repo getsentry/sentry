@@ -551,3 +551,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             status_code=status.HTTP_204_NO_CONTENT,
             method="DELETE",
         )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

@@ -159,3 +159,8 @@ class SplitDiscoverDatasetDashboardsSelfHostedTest(TestMigrations, SnubaTestCase
             self.discover_ambiguous_widget.discover_widget_split
             == DashboardWidgetTypes.TRANSACTION_LIKE
         )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

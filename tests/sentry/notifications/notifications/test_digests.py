@@ -393,3 +393,8 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         encoded_timestamp = quote(timestamp, safe="")
         assert f"start={encoded_timestamp.lower()}" in warning_text_lower
         assert f"end={encoded_timestamp.lower()}" in warning_text_lower
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

@@ -32,3 +32,8 @@ class OrganizationOptionManagerTest(TestCase):
         OrganizationOption.objects.create(organization=self.organization, key="foo", value="bar")
         result = OrganizationOption.objects.get_value_bulk([self.organization], "foo")
         assert result == {self.organization: "bar"}
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

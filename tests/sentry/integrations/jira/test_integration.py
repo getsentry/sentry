@@ -1455,3 +1455,8 @@ class JiraInstallationTest(IntegrationTestCase):
 
     def test_installation(self) -> None:
         self.assert_setup_flow()
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"
