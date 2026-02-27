@@ -270,3 +270,16 @@ class SnubaQueryValidatorTest(TestCase):
 
         assert validator.is_valid()
         assert validator.validated_data["group_by"] == ["project", "environment", "release", "user"]
+
+    def test_eap_user_misery_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "user_misery(span.duration,300)",
+            "timeWindow": 60,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["aggregate"] == "user_misery(span.duration,300)"
