@@ -8,6 +8,7 @@ import {
   buildCommentBody,
   buildFailureBlocks,
   COMMENT_MARKER,
+  commitMarker,
   extractNodeids,
   parseFailures,
   reportShard,
@@ -135,8 +136,16 @@ function mockContext(prNumber = 123) {
     repo: {owner: 'getsentry', repo: 'sentry'},
     payload: {pull_request: {number: prNumber}},
     runId: 99,
+    sha: 'abc1234567890def1234567890abcdef12345678',
   };
 }
+
+const TEST_SHA = 'abc1234567890def1234567890abcdef12345678';
+const TEST_OPTS = {
+  runUrl: 'https://example.com/run',
+  sha: TEST_SHA,
+  repoUrl: 'https://github.com/getsentry/sentry',
+};
 
 // -- Tests -------------------------------------------------------------------
 
@@ -240,7 +249,7 @@ describe('extractNodeids', () => {
         {nodeid: 'tests/foo.py::A::test_1', longrepr: ''},
         {nodeid: 'tests/bar.py::B::test_2', longrepr: ''},
       ],
-      'https://example.com/run'
+      TEST_OPTS
     );
 
     const nodeids = extractNodeids(body);
@@ -292,16 +301,19 @@ describe('buildCommentBody', () => {
       },
     ];
 
-    const body = buildCommentBody(
-      failures,
-      'https://github.com/getsentry/sentry/actions/runs/99'
-    );
+    const body = buildCommentBody(failures, {
+      runUrl: 'https://github.com/getsentry/sentry/actions/runs/99',
+      sha: TEST_SHA,
+      repoUrl: 'https://github.com/getsentry/sentry',
+    });
 
     assert.ok(body.startsWith(COMMENT_MARKER));
+    assert.ok(body.includes(commitMarker(TEST_SHA)));
     assert.ok(body.includes('## Backend Test Failures'));
     assert.ok(
       body.includes('[this run](https://github.com/getsentry/sentry/actions/runs/99)')
     );
+    assert.ok(body.includes(`\`abc1234\``));
     assert.ok(body.includes('<details>'));
     assert.ok(
       body.includes('<code>tests/sentry/api/test_foo.py::TestFoo::test_bar</code>')
@@ -315,7 +327,7 @@ describe('buildCommentBody', () => {
       longrepr: '',
     }));
 
-    const body = buildCommentBody(failures, 'https://example.com/run');
+    const body = buildCommentBody(failures, TEST_OPTS);
     assert.ok(body.includes('test_29'));
     assert.ok(!body.includes('test_30'));
     assert.ok(body.includes('... and 5 more failures.'));
@@ -327,7 +339,7 @@ describe('buildCommentBody', () => {
       longrepr: 'x'.repeat(3000),
     }));
 
-    const body = buildCommentBody(failures, 'https://example.com/run');
+    const body = buildCommentBody(failures, TEST_OPTS);
     assert.ok(body.length <= 65100);
     assert.ok(body.includes('truncated due to GitHub comment size limit'));
   });
@@ -367,10 +379,10 @@ describe('reportShard (integration)', () => {
   });
 
   it('appends new failures to an existing comment', async () => {
-    // Existing comment already has FAILED_TEST reported
+    // Existing comment already has FAILED_TEST reported (same commit)
     const existingBody = buildCommentBody(
       [{nodeid: FAILED_TEST.nodeid, longrepr: 'old traceback'}],
-      'https://example.com/run'
+      TEST_OPTS
     );
 
     const jsonPath = writePytestJson('pytest.json', [FAILED_TEST, FAILED_TEST_2]);
@@ -393,7 +405,7 @@ describe('reportShard (integration)', () => {
   it('skips when all failures are already in the comment', async () => {
     const existingBody = buildCommentBody(
       [{nodeid: FAILED_TEST.nodeid, longrepr: ''}],
-      'https://example.com/run'
+      TEST_OPTS
     );
 
     const jsonPath = writePytestJson('pytest.json', [FAILED_TEST]);

@@ -5,6 +5,10 @@ const MAX_FAILURES = 30;
 const MAX_TRACEBACK_LINES = 50;
 export const COMMENT_MARKER = '<!-- BACKEND_TEST_FAILURES -->';
 
+export function commitMarker(sha) {
+  return `<!-- BACKEND_TEST_FAILURES_COMMIT:${sha} -->`;
+}
+
 export function parseFailures(files, core) {
   const failures = [];
 
@@ -104,10 +108,12 @@ export function buildFailureBlocks(failures) {
 }
 
 // Builds a full comment body (header + blocks). Used when creating a new comment.
-export function buildCommentBody(failures, runUrl) {
+export function buildCommentBody(failures, {runUrl, sha, repoUrl}) {
   const capped = failures.slice(0, MAX_FAILURES);
+  const shortSha = sha.slice(0, 7);
+  const commitUrl = `${repoUrl}/commit/${sha}`;
 
-  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed in [this run](${runUrl}):\n\n`;
+  let body = `${COMMENT_MARKER}\n${commitMarker(sha)}\n## Backend Test Failures\n\nFailures on [\`${shortSha}\`](${commitUrl}) in [this run](${runUrl}):\n\n`;
   body += buildFailureBlocks(capped);
 
   if (failures.length > MAX_FAILURES) {
@@ -153,12 +159,16 @@ export async function reportShard({github, context, core}) {
   const failures = shardFailures.map(f => ({...f, jobUrl: jobUrls[f.artifactDir]}));
 
   const prNumber = context.payload.pull_request.number;
+  const sha = context.sha;
+  const marker = commitMarker(sha);
+
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner: context.repo.owner,
     repo: context.repo.repo,
     issue_number: prNumber,
   });
-  const existing = comments.find(c => c.body?.includes(COMMENT_MARKER));
+  // Only match comments for the same commit — a new push gets a fresh comment.
+  const existing = comments.find(c => c.body?.includes(marker));
 
   // Append-only: skip failures whose nodeid is already in the comment.
   const seen = extractNodeids(existing?.body);
@@ -185,8 +195,9 @@ export async function reportShard({github, context, core}) {
     });
     core.info(`Appended ${newFailures.length} failure(s) to comment.`);
   } else {
-    const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-    const body = buildCommentBody(failures, runUrl);
+    const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
+    const runUrl = `${repoUrl}/actions/runs/${context.runId}`;
+    const body = buildCommentBody(failures, {runUrl, sha, repoUrl});
     await github.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
