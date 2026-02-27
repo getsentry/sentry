@@ -65,7 +65,7 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
       return <ResourceImageVisualization spanGroup={spanGroup} projectId={projectId} />;
     }
 
-    return <Container padding="md xl">{spanDescription}</Container>;
+    return <Wrapper maxFontSize={64}>{spanDescription}</Wrapper>;
   }
 
   return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
@@ -117,11 +117,17 @@ function HttpSpanVisualization(props: {
   );
 }
 
-function Wrapper({children}: any) {
+function Wrapper({
+  children,
+  maxFontSize,
+}: {
+  children: React.ReactNode;
+  maxFontSize?: number;
+}) {
   return (
     <GrowingWrapper>
       <AutoResizeParent>
-        <AutoSizedText>{children}</AutoSizedText>
+        <AutoSizedText maxFontSize={maxFontSize}>{children}</AutoSizedText>
       </AutoResizeParent>
     </GrowingWrapper>
   );
