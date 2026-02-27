@@ -229,18 +229,20 @@ def get_disabled_threshold_options(payload, current_settings):
     return options
 
 
-def payload_contains_disabled_threshold_setting(data: dict[str, Any], project: Project) -> bool:
-    """Check if the payload contains threshold settings whose detector is disabled."""
-    performance_issue_settings_default: dict[str, Any] = projectoptions.get_well_known_default(
+def get_current_performance_settings(project: Project) -> dict[str, Any]:
+    """Return well-known defaults merged with project-level overrides."""
+    defaults: dict[str, Any] = projectoptions.get_well_known_default(
         SETTINGS_PROJECT_OPTION_KEY,
         project=project,
     )
+    current: dict[str, Any] = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default=defaults)
+    return {**defaults, **current}
 
-    performance_issue_settings: dict[str, Any] = project.get_option(
-        SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
-    )
 
-    current_settings = {**performance_issue_settings_default, **performance_issue_settings}
+def payload_contains_disabled_threshold_setting(
+    data: dict[str, Any], current_settings: dict[str, Any]
+) -> bool:
+    """Check if the payload contains threshold settings whose detector is disabled."""
     disabled_options = get_disabled_threshold_options(data, current_settings)
     return any(option in disabled_options for option in data)
 
@@ -318,15 +320,18 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
+        current_settings = get_current_performance_settings(project)
 
-        if payload_contains_disabled_threshold_setting(data, project):
+        if payload_contains_disabled_threshold_setting(data, current_settings):
             return Response(
                 {"detail": "Disabled options can not be modified"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
-        update_performance_settings(project, changes=data, sync_detectors=sync_detectors)
+        update_performance_settings(
+            project, {**current_settings, **data}, sync_detectors=sync_detectors
+        )
 
         if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(
