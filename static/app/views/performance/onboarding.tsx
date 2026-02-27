@@ -94,14 +94,11 @@ function TraceDrainsLink() {
       <BodyTitle>{t('OpenTelemetry Drains and Forwarders')}</BodyTitle>
       <SubTitle>
         {tct(
-          'You can use [link:OpenTelemetry Drains] to send traces from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+          'You can use [link:OpenTelemetry Drains] to send traces from platforms like [vercelLink:Vercel], or via the [otlpLink:OpenTelemetry Collector].',
           {
             link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
             vercelLink: (
               <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
-            ),
-            herokuLink: (
-              <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
             ),
             otlpLink: (
               <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
