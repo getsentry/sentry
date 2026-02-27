@@ -1,8 +1,9 @@
 import type {ReactNode} from 'react';
-import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Tag} from '@sentry/scraps/badge';
 import {
   CompactSelect,
   type SelectKey,
@@ -23,8 +24,10 @@ import {
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
@@ -36,10 +39,11 @@ interface MetricSelectOption extends SelectOption<string> {
   metricName: string;
   metricType: TraceMetricTypeValue;
   trailingItems: ReactNode;
+  metricUnit?: string;
 }
 
 function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}`;
+  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
 /**
@@ -49,6 +53,7 @@ function makeMetricSelectValue(metric: TraceMetric): string {
  */
 export function MetricsVisualize() {
   const formContext = useContext(FormContext);
+  const hasMetricUnitsUI = useHasMetricUnitsUI();
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
@@ -68,18 +73,35 @@ export function MetricsVisualize() {
     environments: environment ? [environment] : undefined,
   });
 
-  const metricSelectValue = makeMetricSelectValue(traceMetric);
+  const metricSelectValue = makeMetricSelectValue(
+    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
+  );
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
       label: traceMetric.name || t('Select a metric'),
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricName: traceMetric.name,
+      metricUnit: hasMetricUnitsUI ? (traceMetric.unit ?? NONE_UNIT) : undefined,
       trailingItems: (
-        <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+        <Fragment>
+          <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+          {hasMetricUnitsUI &&
+            traceMetric.unit &&
+            traceMetric.unit !== '-' &&
+            traceMetric.unit !== NONE_UNIT && (
+              <Tag variant="promotion">{traceMetric.unit}</Tag>
+            )}
+        </Fragment>
       ),
     }),
-    [metricSelectValue, traceMetric.name, traceMetric.type]
+    [
+      metricSelectValue,
+      traceMetric.name,
+      traceMetric.type,
+      traceMetric.unit,
+      hasMetricUnitsUI,
+    ]
   );
 
   const metricOptions = useMemo((): MetricSelectOption[] => {
@@ -95,15 +117,28 @@ export function MetricsVisualize() {
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
+          unit: hasMetricUnitsUI
+            ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
+            : undefined,
         }),
         metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
         metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
+        metricUnit: hasMetricUnitsUI
+          ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
+          : undefined,
         trailingItems: (
-          <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+          <Fragment>
+            <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
+              <Tag variant="promotion">
+                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+              </Tag>
+            )}
+          </Fragment>
         ),
       })) ?? []),
     ];
-  }, [metricOptionsData, optionFromTraceMetric, traceMetric.name]);
+  }, [metricOptionsData, optionFromTraceMetric, traceMetric.name, hasMetricUnitsUI]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(
@@ -146,6 +181,7 @@ export function MetricsVisualize() {
       const newMetric: TraceMetric = {
         name: option.metricName,
         type: option.metricType,
+        unit: hasMetricUnitsUI ? (option.metricUnit ?? NONE_UNIT) : undefined,
       };
       const newMetricType = option.metricType?.toLowerCase() ?? '';
       const validOperations = OPTIONS_BY_TYPE[newMetricType] ?? [];
@@ -155,10 +191,12 @@ export function MetricsVisualize() {
         makeMetricsAggregate({aggregate: newAggregation, traceMetric: newMetric})
       );
     },
-    [updateFormAggregate]
+    [updateFormAggregate, hasMetricUnitsUI]
   );
 
-  const traceMetricSelectValue = makeMetricSelectValue(traceMetric);
+  const traceMetricSelectValue = makeMetricSelectValue(
+    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
+  );
   const previousOptions = usePrevious(metricOptions ?? []);
   const hasNoMetrics = isMetricOptionsEmpty && !search;
 
