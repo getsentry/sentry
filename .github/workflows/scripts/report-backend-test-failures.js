@@ -28,16 +28,6 @@ function parseFailures(jsonFiles, core) {
   const failures = [];
 
   for (const file of jsonFiles) {
-    const dirName = path.basename(path.dirname(file));
-    let label = dirName;
-    if (dirName.startsWith('pytest-results-monolith-dbs')) {
-      label = 'monolith-dbs';
-    } else if (dirName.startsWith('pytest-results-migration')) {
-      label = 'migration';
-    } else if (dirName.startsWith('pytest-results-backend')) {
-      label = 'backend';
-    }
-
     let data;
     try {
       data = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -57,10 +47,9 @@ function parseFailures(jsonFiles, core) {
 
       const nodeid = test.nodeid || 'unknown';
       const call = test.call || test.setup || test.teardown || {};
-      const message = call.crash?.message || call.message || 'No error message';
       const longrepr = call.longrepr || '';
 
-      failures.push({label, nodeid, message, longrepr});
+      failures.push({nodeid, longrepr});
     }
   }
 
@@ -69,45 +58,25 @@ function parseFailures(jsonFiles, core) {
 
 function buildCommentBody(failures) {
   const capped = failures.slice(0, MAX_FAILURES);
-  const shardGroups = {};
-  for (const f of capped) {
-    (shardGroups[f.label] ||= []).push(f);
-  }
 
-  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\n`;
-  body += `**${failures.length}** test${failures.length === 1 ? '' : 's'} failed`;
-  if (failures.length > MAX_FAILURES) {
-    body += ` (showing first ${MAX_FAILURES})`;
-  }
-  body += '.\n\n';
+  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed:\n\n`;
 
-  for (const [label, tests] of Object.entries(shardGroups).sort()) {
-    body += `### ${label}\n\n`;
-    body += '| Test | Error |\n|------|-------|\n';
-    for (const t of tests) {
-      const shortName = t.nodeid.split('::').pop();
-      const escapedMsg = t.message
-        .replace(/\\/g, '\\\\')
-        .replace(/\|/g, '\\|')
-        .replace(/\n/g, ' ')
-        .slice(0, 200);
-      body += `| \`${shortName}\` | ${escapedMsg} |\n`;
-    }
-    body += '\n';
-
-    for (const t of tests) {
-      let tb = t.longrepr;
-      if (tb) {
-        const lines = tb.split('\n');
-        if (lines.length > MAX_TRACEBACK_LINES) {
-          tb =
-            lines.slice(0, MAX_TRACEBACK_LINES).join('\n') +
-            `\n... (${lines.length - MAX_TRACEBACK_LINES} more lines)`;
-        }
+  for (const t of capped) {
+    let tb = t.longrepr;
+    if (tb) {
+      const lines = tb.split('\n');
+      if (lines.length > MAX_TRACEBACK_LINES) {
+        tb =
+          lines.slice(0, MAX_TRACEBACK_LINES).join('\n') +
+          `\n... (${lines.length - MAX_TRACEBACK_LINES} more lines)`;
       }
-      body += `<details><summary><code>${t.nodeid}</code></summary>\n\n`;
-      body += `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`;
     }
+    body += `<details><summary><code>${t.nodeid}</code></summary>\n\n`;
+    body += `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`;
+  }
+
+  if (failures.length > MAX_FAILURES) {
+    body += `... and ${failures.length - MAX_FAILURES} more failures.\n`;
   }
 
   // Enforce GitHub comment size limit

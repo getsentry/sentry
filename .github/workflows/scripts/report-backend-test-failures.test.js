@@ -146,7 +146,7 @@ describe('parseFailures', () => {
     fs.rmSync(tmpDir, {recursive: true, force: true});
   });
 
-  it('extracts failed tests from backend artifacts', () => {
+  it('extracts failed tests and ignores passing ones', () => {
     createArtifactDir(
       'pytest-results-backend-111-0',
       'pytest.json',
@@ -154,40 +154,11 @@ describe('parseFailures', () => {
     );
 
     const files = findJsonFiles(tmpDir);
-    const core = mockCore();
-    const failures = parseFailures(files, core);
+    const failures = parseFailures(files, mockCore());
 
     assert.equal(failures.length, 1);
-    assert.equal(failures[0].label, 'backend');
     assert.equal(failures[0].nodeid, FAILED_TEST.nodeid);
-    assert.equal(failures[0].message, 'AssertionError: assert 500 == 200');
     assert.ok(failures[0].longrepr.includes('assert response.status_code'));
-  });
-
-  it('labels migration artifacts correctly', () => {
-    createArtifactDir(
-      'pytest-results-migration-222',
-      'pytest.json',
-      makePytestJson([FAILED_TEST])
-    );
-
-    const files = findJsonFiles(tmpDir);
-    const failures = parseFailures(files, mockCore());
-
-    assert.equal(failures[0].label, 'migration');
-  });
-
-  it('labels monolith-dbs artifacts correctly', () => {
-    createArtifactDir(
-      'pytest-results-monolith-dbs-333',
-      'pytest.monolith-dbs.json',
-      makePytestJson([FAILED_TEST])
-    );
-
-    const files = findJsonFiles(tmpDir);
-    const failures = parseFailures(files, mockCore());
-
-    assert.equal(failures[0].label, 'monolith-dbs');
   });
 
   it('handles setup failures (no call phase)', () => {
@@ -201,7 +172,6 @@ describe('parseFailures', () => {
     const failures = parseFailures(files, mockCore());
 
     assert.equal(failures.length, 1);
-    assert.equal(failures[0].message, 'KeyError: "missing"');
     assert.ok(failures[0].longrepr.includes('fixture error'));
   });
 
@@ -229,7 +199,7 @@ describe('parseFailures', () => {
     assert.equal(failures.length, 0);
   });
 
-  it('aggregates failures across multiple shards', () => {
+  it('aggregates failures across multiple files', () => {
     createArtifactDir(
       'pytest-results-backend-111-0',
       'pytest.json',
@@ -250,17 +220,14 @@ describe('parseFailures', () => {
     const failures = parseFailures(files, mockCore());
 
     assert.equal(failures.length, 2);
-    assert.ok(failures.every(f => f.label === 'backend'));
   });
 });
 
 describe('buildCommentBody', () => {
-  it('produces valid markdown with header and table', () => {
+  it('produces markdown with header and collapsible tracebacks', () => {
     const failures = [
       {
-        label: 'backend',
         nodeid: 'tests/sentry/api/test_foo.py::TestFoo::test_bar',
-        message: 'AssertionError: assert 500 == 200',
         longrepr: 'full traceback here',
       },
     ];
@@ -269,80 +236,46 @@ describe('buildCommentBody', () => {
 
     assert.ok(body.startsWith(COMMENT_MARKER));
     assert.ok(body.includes('## Backend Test Failures'));
-    assert.ok(body.includes('**1** test failed'));
-    assert.ok(body.includes('### backend'));
-    assert.ok(body.includes('| `test_bar` |'));
+    assert.ok(body.includes('The following tests failed:'));
     assert.ok(body.includes('<details>'));
+    assert.ok(
+      body.includes('<code>tests/sentry/api/test_foo.py::TestFoo::test_bar</code>')
+    );
     assert.ok(body.includes('full traceback here'));
   });
 
-  it('pluralizes correctly for multiple failures', () => {
-    const failures = [
-      {label: 'backend', nodeid: 'a::b::c', message: 'err', longrepr: ''},
-      {label: 'migration', nodeid: 'd::e::f', message: 'err2', longrepr: ''},
-    ];
+  it('shows "No traceback available" when longrepr is empty', () => {
+    const failures = [{nodeid: 'a::b::c', longrepr: ''}];
 
     const body = buildCommentBody(failures);
-    assert.ok(body.includes('**2** tests failed'));
-  });
-
-  it('groups failures by label and sorts', () => {
-    const failures = [
-      {label: 'migration', nodeid: 'a::b::mig_test', message: 'e1', longrepr: ''},
-      {label: 'backend', nodeid: 'c::d::be_test', message: 'e2', longrepr: ''},
-    ];
-
-    const body = buildCommentBody(failures);
-    const backendIdx = body.indexOf('### backend');
-    const migrationIdx = body.indexOf('### migration');
-    assert.ok(backendIdx < migrationIdx, 'backend section should come before migration');
-  });
-
-  it('escapes pipe and backslash characters in error messages', () => {
-    const failures = [
-      {
-        label: 'backend',
-        nodeid: 'a::b::c',
-        message: 'expected foo | bar \\ baz',
-        longrepr: '',
-      },
-    ];
-
-    const body = buildCommentBody(failures);
-    assert.ok(body.includes('expected foo \\| bar \\\\ baz'));
+    assert.ok(body.includes('No traceback available'));
   });
 
   it('truncates long tracebacks', () => {
     const longTrace = Array.from({length: 100}, (_, i) => `line ${i}`).join('\n');
-    const failures = [
-      {label: 'backend', nodeid: 'a::b::c', message: 'err', longrepr: longTrace},
-    ];
+    const failures = [{nodeid: 'a::b::c', longrepr: longTrace}];
 
     const body = buildCommentBody(failures);
     assert.ok(body.includes('... (50 more lines)'));
     assert.ok(!body.includes('line 99'));
   });
 
-  it('caps at 30 failures with a note', () => {
+  it('caps at 30 failures with overflow note', () => {
     const failures = Array.from({length: 35}, (_, i) => ({
-      label: 'backend',
       nodeid: `a::b::test_${i}`,
-      message: `err ${i}`,
       longrepr: '',
     }));
 
     const body = buildCommentBody(failures);
-    assert.ok(body.includes('**35** tests failed (showing first 30)'));
     assert.ok(body.includes('test_29'));
     assert.ok(!body.includes('test_30'));
+    assert.ok(body.includes('... and 5 more failures.'));
   });
 
   it('truncates body exceeding 65K chars', () => {
     const hugeTrace = 'x'.repeat(3000);
     const failures = Array.from({length: 30}, (_, i) => ({
-      label: 'backend',
       nodeid: `a::b::test_${i}`,
-      message: 'err',
       longrepr: hugeTrace,
     }));
 
@@ -381,7 +314,7 @@ describe('report (integration)', () => {
     assert.ok(create, 'should have called createComment');
     assert.equal(create.params.issue_number, 123);
     assert.ok(create.params.body.includes(COMMENT_MARKER));
-    assert.ok(create.params.body.includes('test_bar'));
+    assert.ok(create.params.body.includes(FAILED_TEST.nodeid));
   });
 
   it('updates an existing comment', async () => {
