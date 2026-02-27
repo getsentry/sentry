@@ -1848,7 +1848,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == 4
-        # Check ordering
+        for w in widgets:
+            print(f"DEBUG widget id={w.id} title={w.title!r} order={w.order}")
         assert self.widget_1.id == widgets[0].id
         assert self.widget_2.id == widgets[1].id
         assert self.widget_4.id == widgets[2].id

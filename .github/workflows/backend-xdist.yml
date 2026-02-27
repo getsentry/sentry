@@ -269,6 +269,7 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
+      SENTRY_DEBUG_XDIST_DB: '1'
       SENTRY_SKIP_SELENIUM_PLUGIN: '1'
 
     steps:
