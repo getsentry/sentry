@@ -142,6 +142,8 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     windowWidth?: number;
   };
 
+const noop = () => void 0;
+
 function WidgetCardChart(props: WidgetCardChartProps) {
   const {
     tableResults,
@@ -260,7 +262,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     return (
       <TableWrapper>
         <TracesTable
-          openTraceViewDrawer={() => {}}
+          openTraceViewDrawer={noop}
           limit={widget.limit}
           tableWidths={widget.tableWidths}
           frameless
