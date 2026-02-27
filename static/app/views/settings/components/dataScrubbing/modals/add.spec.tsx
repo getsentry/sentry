@@ -745,6 +745,41 @@ describe('Add Modal', () => {
     });
   });
 
+  it('pre-fills event ID from localStorage and shows event ID field expanded', () => {
+    const storedEventId = 'aabbccddeeff00112233445566778899';
+
+    localStorage.setItem(
+      'advanced-data-scrubbing',
+      JSON.stringify({
+        eventId: storedEventId,
+        sourceSuggestions: [],
+      })
+    );
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Event ID field should be visible (expanded) because localStorage had an eventId
+    expect(screen.getByRole('button', {name: 'Hide event ID field'})).toBeInTheDocument();
+
+    // The event ID input should be pre-filled with the stored value
+    expect(screen.getByPlaceholderText('XXXXXXXXXXXXXX')).toHaveValue(storedEventId);
+  });
+
   it('does not show dataset selector without ourlogs-enabled feature', () => {
     const handleCloseModal = jest.fn();
 
