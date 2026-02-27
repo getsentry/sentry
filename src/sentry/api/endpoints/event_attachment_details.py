@@ -19,9 +19,20 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.objectstore import get_attachments_session
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+
+
+def _parse_accept_encoding(header: str) -> list[str]:
+    """Parse an Accept-Encoding header value into a list of encoding names.
+    Strips q-values and normalizes to lowercase per RFC 7231."""
+    return [
+        part.split(";")[0].strip().lower()
+        for part in header.split(",")
+        if part.split(";")[0].strip()
+    ]
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -61,8 +72,31 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
-    def download(self, attachment: EventAttachment):
+    def download(
+        self, attachment: EventAttachment, request: Request, project
+    ) -> StreamingHttpResponse:
         name = posixpath.basename(" ".join(attachment.name.split()))
+
+        accept_encoding = _parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
+        if accept_encoding and (attachment.blob_path or "").startswith(V2_PREFIX):
+            v2_key = attachment.blob_path.removeprefix(V2_PREFIX)  # type: ignore[union-attr]
+            os_response = get_attachments_session(
+                project.organization_id, attachment.project_id
+            ).get(v2_key, accept_encoding=accept_encoding)
+            encoding = os_response.metadata.compression
+
+            def stream_v2():
+                with os_response.payload as payload:
+                    while chunk := payload.read(4096):
+                        yield chunk
+
+            response = StreamingHttpResponse(stream_v2(), content_type=attachment.content_type)
+            if encoding:
+                response["Content-Encoding"] = encoding
+            else:
+                response["Content-Length"] = attachment.size
+            response["Content-Disposition"] = f'attachment; filename="{name}"'
+            return response
 
         def stream_attachment():
             attachment_file = attachment.getfile()
@@ -137,7 +171,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             return self.respond({"detail": "Attachment not found"}, status=404)
 
         if request.GET.get("download") is not None:
-            return self.download(attachment)
+            return self.download(attachment, request, project)
 
         return self.respond(serialize(attachment, request.user))
 

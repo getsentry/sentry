@@ -99,7 +99,22 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
             stream=True,
             allow_redirects=False,
         )
-        return stream_response(response)
+
+        content_encodings = {
+            enc.strip().lower()
+            for enc in response.headers.get("Content-Encoding", "").split(",")
+            if enc.strip()
+        }
+        accepted_encodings = {
+            part.split(";")[0].strip().lower()
+            for part in request.headers.get("Accept-Encoding", "").split(",")
+            if part.strip()
+        }
+        decode_content = bool(content_encodings) and not content_encodings.issubset(
+            accepted_encodings
+        )
+
+        return stream_response(response, decode_content=decode_content)
 
 
 def get_raw_body(
@@ -153,11 +168,13 @@ def get_target_url(path: str) -> str:
     return target
 
 
-def stream_response(external_response: ExternalResponse) -> StreamingHttpResponse:
+def stream_response(
+    external_response: ExternalResponse, decode_content: bool = False
+) -> StreamingHttpResponse:
     CHUNK_SIZE = 512 * 1024
 
     def stream_generator() -> Generator[bytes]:
-        external_response.raw.decode_content = False
+        external_response.raw.decode_content = decode_content
         while True:
             chunk = external_response.raw.read(CHUNK_SIZE)
             if not chunk:
@@ -172,6 +189,8 @@ def stream_response(external_response: ExternalResponse) -> StreamingHttpRespons
     for header, value in external_response.headers.items():
         if header.lower() == "server":
             continue
+        if decode_content and header.lower() == "content-encoding":
+            continue  # Body was decompressed; don't advertise the original encoding
         if not is_hop_by_hop(header):
             response[header] = value
 
