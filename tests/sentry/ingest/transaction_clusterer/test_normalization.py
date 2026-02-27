@@ -276,3 +276,8 @@ def test_clusterer_works_with_scrubbing(
             {"meta": {"": {"val": segment_name, "rem": [["/users/*/**", "s"]]}}}
         ).decode()
     )
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

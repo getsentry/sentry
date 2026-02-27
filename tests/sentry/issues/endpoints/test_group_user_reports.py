@@ -121,3 +121,8 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         response = self.client.get(self.path + "?environment=invalid_env")
         assert response.status_code == 200
         assert response.data == []
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

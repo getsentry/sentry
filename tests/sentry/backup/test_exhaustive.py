@@ -61,3 +61,8 @@ class ExhaustiveTests(BackupTransactionTestCase):
             tmp_actual = Path(tmp_dir).joinpath(f"{self._testMethodName}.actual.json")
             actual = export_to_file(tmp_actual, ExportScope.Global)
             verify_models_in_output(expected_models, actual)
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

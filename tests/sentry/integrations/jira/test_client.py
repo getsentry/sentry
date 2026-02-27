@@ -111,3 +111,8 @@ class JiraClientTest(TestCase):
                 uri=self.jira_client.SERVER_INFO_URL, method=method, query_params=params
             ),
         }
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

@@ -1660,3 +1660,8 @@ def test_project_config_trimming(default_project, trimming_configs):
             assert "trimming" not in cfg
 
         _validate_project_config(cfg)
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

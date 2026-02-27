@@ -144,3 +144,8 @@ class DeleteGroupHashTest(TestCase):
         new_grouphash = GroupHash.objects.filter(hash=new_event.get_primary_hash()).first()
         assert new_grouphash and new_grouphash.metadata
         assert new_grouphash.metadata.seer_matched_grouphash is None
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

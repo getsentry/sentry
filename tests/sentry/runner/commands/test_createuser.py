@@ -110,3 +110,8 @@ class CreateUserTest(CliTestCase):
     def test_missing_password(self) -> None:
         rv = self.invoke("--email=you@somewhereawesome.com")
         assert rv.exit_code != 0, rv.output
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

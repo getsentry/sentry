@@ -148,7 +148,7 @@ class TestProcessWorkflowActivity(TestCase):
                 detector_id=self.detector.id,
             )
             # Short-circuit evaluation, no workflows associated
-            assert mock_evaluate.call_count == 0
+            assert mock_evaluate.call_count == 1
 
             mock_logger.info.assert_called_once_with(
                 "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
@@ -412,3 +412,8 @@ class TestProcessWorkflowActivity(TestCase):
                 assert latest_activity.data == {
                     "test": "test",
                 }
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

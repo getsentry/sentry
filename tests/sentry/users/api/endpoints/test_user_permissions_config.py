@@ -42,3 +42,8 @@ class UserPermissionsConfigGetTest(UserPermissionsConfigTest):
         assert "options.admin" in response.data
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

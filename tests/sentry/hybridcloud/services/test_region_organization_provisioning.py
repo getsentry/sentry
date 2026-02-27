@@ -325,3 +325,8 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             org = Organization.objects.get(id=self.provisioned_org.id)
         assert org.slug == self.provisioned_org.slug
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"
