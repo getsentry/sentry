@@ -735,7 +735,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
             priority="transparent"
             size="zero"
             icon={<IconSettings variant="muted" />}
-            title={t('Dynamic Sampling Settings')}
+            tooltipProps={{title: t('Dynamic Sampling Settings')}}
             aria-label={t('Dynamic Sampling Settings')}
             to={`/settings/${organization.slug}/dynamic-sampling/`}
           />

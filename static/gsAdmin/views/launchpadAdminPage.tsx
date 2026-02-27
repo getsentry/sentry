@@ -305,32 +305,32 @@ function LaunchpadAdminPage() {
             }
           `}
         >
-          <form onSubmit={handleRerunSubmit}>
+          <form onSubmit={handleFetchInfoSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
-                <Heading as="h3">Rerun Analysis</Heading>
+                <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for a specific preprod artifact.
+                  Retrieve all data and details for a specific preprod artifact.
                 </Text>
-                <label htmlFor="rerunArtifactId">
+                <label htmlFor="fetchInfoArtifactId">
                   <Text bold>Preprod Artifact ID:</Text>
                 </label>
                 <StyledInput
                   type="text"
-                  name="rerunArtifactId"
-                  value={rerunArtifactId}
-                  onChange={e => setRerunArtifactId(e.target.value)}
+                  name="fetchInfoArtifactId"
+                  value={fetchInfoArtifactId}
+                  onChange={e => setFetchInfoArtifactId(e.target.value)}
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="primary"
+                  priority="default"
                   type="submit"
-                  disabled={!rerunArtifactId.trim() || !region}
+                  disabled={!fetchInfoArtifactId.trim() || !region}
                   css={css`
                     width: fit-content;
                   `}
                 >
-                  Rerun Analysis
+                  Fetch Info
                 </Button>
               </Flex>
             </Container>
@@ -367,32 +367,32 @@ function LaunchpadAdminPage() {
             </Container>
           </form>
 
-          <form onSubmit={handleFetchInfoSubmit}>
+          <form onSubmit={handleRerunSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
-                <Heading as="h3">Fetch Artifact Info</Heading>
+                <Heading as="h3">Rerun Analysis</Heading>
                 <Text as="p" variant="muted">
-                  Retrieve all data and details for a specific preprod artifact.
+                  Rerun analysis for a specific preprod artifact.
                 </Text>
-                <label htmlFor="fetchInfoArtifactId">
+                <label htmlFor="rerunArtifactId">
                   <Text bold>Preprod Artifact ID:</Text>
                 </label>
                 <StyledInput
                   type="text"
-                  name="fetchInfoArtifactId"
-                  value={fetchInfoArtifactId}
-                  onChange={e => setFetchInfoArtifactId(e.target.value)}
+                  name="rerunArtifactId"
+                  value={rerunArtifactId}
+                  onChange={e => setRerunArtifactId(e.target.value)}
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  priority="primary"
                   type="submit"
-                  disabled={!fetchInfoArtifactId.trim() || !region}
+                  disabled={!rerunArtifactId.trim() || !region}
                   css={css`
                     width: fit-content;
                   `}
                 >
-                  Fetch Info
+                  Rerun Analysis
                 </Button>
               </Flex>
             </Container>

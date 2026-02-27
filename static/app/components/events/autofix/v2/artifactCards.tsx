@@ -8,7 +8,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {assignToActor} from 'sentry/actionCreators/group';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
@@ -473,7 +472,7 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
             path: {organizationIdOrSlug: organization.slug},
           }),
         ]
-      : ([''] as ApiQueryKey),
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!email,
       staleTime: 0,
@@ -490,7 +489,7 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
           }),
           {query: {query: name}},
         ]
-      : ([''] as ApiQueryKey),
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!shouldTryNameMatch,
       staleTime: 0,
@@ -552,11 +551,15 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   const typedData = data as unknown as TriageArtifact;
   const hasSuspect = typedData.suspect_commit;
   const hasAssignee = typedData.suggested_assignee;
-  const [isAssigning, setIsAssigning] = useState(false);
-
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
     group,
     organization,
+    onError: () => {
+      addErrorMessage(t('Failed to assign issue'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Issue assigned successfully'));
+    },
   });
 
   const commit = useSuspectCommitData(typedData.suspect_commit, organization);
@@ -567,26 +570,20 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
     typedData.suggested_assignee?.name
   );
 
-  const handleAssign = async () => {
+  const handleAssignSuggested = () => {
     if (!assigneeUser) {
       addErrorMessage(t('Unable to find user to assign'));
       return;
     }
 
-    setIsAssigning(true);
-    try {
-      await assignToActor({
-        id: group.id,
-        orgSlug: organization.slug,
-        actor: {id: String(assigneeUser.id), type: 'user'},
-        assignedBy: 'suggested_assignee',
-      });
-      addSuccessMessage(t('Issue assigned successfully'));
-    } catch (error) {
-      addErrorMessage(t('Failed to assign issue'));
-    } finally {
-      setIsAssigning(false);
-    }
+    handleAssigneeChange(
+      {
+        assignee: assigneeUser,
+        id: assigneeUser.id,
+        type: 'user',
+      },
+      {assignedBy: 'suggested_assignee'}
+    );
   };
 
   // Create a minimal user object for avatar display
@@ -679,8 +676,12 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
 
                     <Flex justify="end">
                       {hasAssigneeMatch ? (
-                        <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
-                          {isAssigning
+                        <Button
+                          size="sm"
+                          onClick={handleAssignSuggested}
+                          disabled={assigneeLoading}
+                        >
+                          {assigneeLoading
                             ? t('Assigning...')
                             : t(
                                 'Assign to %s',

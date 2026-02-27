@@ -205,6 +205,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["per_minute(value)"] == 0.6
         assert meta["fields"]["per_minute(value)"] == "rate"
+        assert meta["units"]["per_minute(value)"] == "1/minute"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula(self) -> None:
@@ -231,6 +232,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             data[0]["per_second(value)"] == 0.01
         )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
         assert meta["fields"]["per_second(value)"] == "rate"
+        assert meta["units"]["per_second(value)"] == "1/second"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula_with_counter_metric_type(self) -> None:
@@ -645,6 +647,86 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert "units" in meta, "meta should contain 'units' key"
         assert meta["units"]["sum(value,request_count,counter,-)"] is None
 
+    def test_aggregate_with_unit_filters_for_correct_items(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="second"
+            ),
+            self.create_trace_metric(
+                "request_duration", 300.0, "distribution", metric_unit="millisecond"
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,millisecond)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,millisecond)"] == 2
+
+    def test_aggregate_with_placeholder_unit_selects_all_items(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 100.0, "distribution"),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 300.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,-)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,-)"] == 3
+
+    def test_aggregate_with_none_unit_defined_only_selects_items_with_no_unit(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 100.0, "distribution"),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 300.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,none)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,none)"] == 1
+
     def test_tracemetric_value_tracks_unit(self) -> None:
         self.store_trace_metrics(
             [
@@ -667,3 +749,25 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["value"] == 1.0
         assert response.data["meta"]["units"]["value"] == "millisecond"
+
+    def test_tracemetric_value_tracks_unit_with_none(self) -> None:
+        self.store_trace_metrics(
+            [
+                self.create_trace_metric(
+                    metric_name="test_metric",
+                    metric_value=1.0,
+                    metric_type="counter",
+                )
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["value"],
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+                "query": "metric.name:test_metric metric.type:counter !has:metric.unit",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["value"] == 1.0
+        assert response.data["meta"]["units"]["value"] is None

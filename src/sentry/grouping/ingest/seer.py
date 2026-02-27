@@ -107,8 +107,8 @@ def _is_race_condition_skipped_event(event: Event, event_grouphash: GroupHash) -
     # TODO: Temporary debugging for the fact that we're still sometimes seeing multiple events per
     # hash being let through
     initial_has_group = bool(event_grouphash.group_id)  # Should in theory always be False
+    new_has_group: Any = None  # mypy appeasement
     if not initial_has_group:
-        new_has_group: Any = None  # mypy appeasement
         try:
             event_grouphash.refresh_from_db()
             new_has_group = bool(event_grouphash.group_id)
@@ -159,7 +159,8 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
 
 
 def _stacktrace_exceeds_limits(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST):
+    model_version = get_grouping_model_version(event.project)
+    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST, model_version):
         record_did_call_seer_metric(event, call_made=False, blocker="stacktrace-too-long")
         return True
 
@@ -517,7 +518,6 @@ def maybe_check_seer_for_matching_grouphash(
         # Update the relevant GroupHash with Seer results
         gh_metadata = event_grouphash.metadata
         if gh_metadata:
-
             # TODO: This should never be true (anything created with `objects.create` should have an
             # id), but it seems in some cases to happen anyway. While we debug the problem, to avoid
             # errors, bail early.

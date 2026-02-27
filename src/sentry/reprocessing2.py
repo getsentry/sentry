@@ -598,7 +598,7 @@ def start_group_reprocessing(
 
         # Create a duplicate row that has the same attributes by nulling out
         # the primary key and saving
-        group.pk = group.id = None  # type: ignore[assignment]  # XXX: intentional resetting pk
+        group.pk = group.id = None  # XXX: intentional resetting pk
         new_group = group  # rename variable just to avoid confusion
         del group
 

@@ -41,11 +41,6 @@ function datetimeHasSameValue(
 
 export interface PageFiltersState {
   /**
-   * The set of page filters which have been pinned but do not match the current
-   * URL state.
-   */
-  desyncedFilters: Set<PinnedPageFilter>;
-  /**
    * Are page filters ready?
    */
   isReady: boolean;
@@ -71,7 +66,6 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
-  updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[] | null): void;
   updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
@@ -82,7 +76,6 @@ const storeConfig: PageFiltersStoreDefinition = {
     isReady: false,
     selection: getDefaultPageFilterSelection(),
     pinnedFilters: new Set(),
-    desyncedFilters: new Set(),
     shouldPersist: true,
   },
 
@@ -130,19 +123,9 @@ const storeConfig: PageFiltersStoreDefinition = {
     this.trigger(this.getState());
   },
 
-  updateDesyncedFilters(filters: Set<PinnedPageFilter>) {
-    this.state = {...this.state, desyncedFilters: filters};
-    this.trigger(this.getState());
-  },
-
   updateProjects(projects = [], environments = null) {
     if (valueIsEqual(this.state.selection.projects, projects)) {
       return;
-    }
-
-    const newDesyncedFilters = new Set(this.state.desyncedFilters);
-    if (this.state.desyncedFilters.has('projects')) {
-      newDesyncedFilters.delete('projects');
     }
 
     const selection = {
@@ -151,7 +134,7 @@ const storeConfig: PageFiltersStoreDefinition = {
       environments:
         environments === null ? this.state.selection.environments : environments,
     };
-    this.state = {...this.state, selection, desyncedFilters: newDesyncedFilters};
+    this.state = {...this.state, selection};
     this.trigger(this.getState());
   },
 
@@ -160,18 +143,12 @@ const storeConfig: PageFiltersStoreDefinition = {
       return;
     }
 
-    const newDesyncedFilters = new Set(this.state.desyncedFilters);
-    if (this.state.desyncedFilters.has('datetime')) {
-      newDesyncedFilters.delete('datetime');
-    }
-
     this.state = {
       ...this.state,
       selection: {
         ...this.state.selection,
         datetime: newDateTime,
       },
-      desyncedFilters: newDesyncedFilters,
     };
     this.trigger(this.getState());
   },
@@ -181,14 +158,8 @@ const storeConfig: PageFiltersStoreDefinition = {
       return;
     }
 
-    const newDesyncedFilters = new Set(this.state.desyncedFilters);
-    if (this.state.desyncedFilters.has('environments')) {
-      newDesyncedFilters.delete('environments');
-    }
-
     this.state = {
       ...this.state,
-      desyncedFilters: newDesyncedFilters,
       selection: {
         ...this.state.selection,
         environments: environments ?? [],

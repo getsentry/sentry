@@ -83,6 +83,10 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Whether the select has a search input field.
+   */
+  searchable?: boolean;
+  /**
    * When false, hides option details.
    */
   showDetails?: boolean;
@@ -129,7 +133,7 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
-  hasSearch,
+  searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
@@ -191,6 +195,7 @@ export function ListBox<T extends ObjectLike>({
         height="100%"
         overflowY="auto"
         className={className}
+        style={{scrollbarGutter: 'stable'}}
       >
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
@@ -234,7 +239,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!hasSearch && hiddenOptions.size > 0 && (
+            {!searchable && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>
@@ -251,6 +256,13 @@ const heightEstimations = {
   md: {regular: 36, large: 53},
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
+
+/**
+ * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
+ * Passed to the virtualizer's wrapper to account for the padding,
+ * preventing a tiny scrollbar when few items remain after filtering.
+ */
+const listPaddingVertical = 4;
 
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
@@ -289,7 +301,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize(),
+          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
           width: '100%',
           position: 'relative',
         },

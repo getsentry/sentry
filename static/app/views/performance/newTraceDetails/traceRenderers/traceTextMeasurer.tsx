@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 export class TraceTextMeasurer {
   queue: string[] = [];
   drainRaf: number | null = null;
-  cache: Map<string, number> = new Map();
+  cache = new Map<string, number>();
 
   number = 0;
   dot = 0;

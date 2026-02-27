@@ -116,7 +116,7 @@ class GithubAuth(BaseOAuth2):
                 # if the user is a member of the organization, response code
                 # will be 204, see http://bit.ly/ZS6vFl
                 if response.code != 204:
-                    raise AuthFailed("User doesn't belong to the " "organization")
+                    raise AuthFailed("User doesn't belong to the organization")
         return data
 
 

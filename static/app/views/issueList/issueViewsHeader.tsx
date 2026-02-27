@@ -234,7 +234,7 @@ function IssueViewsHeader({
               <DisableInDemoMode>
                 <Button
                   size="sm"
-                  title={realtimeLabel}
+                  tooltipProps={{title: realtimeLabel}}
                   aria-label={realtimeLabel}
                   icon={realtimeActive ? <IconPause /> : <IconPlay />}
                   onClick={() => onRealtimeChange(!realtimeActive)}

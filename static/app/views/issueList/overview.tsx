@@ -20,7 +20,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -575,7 +574,6 @@ function IssueListOverview({
   useEffect(() => {
     return () => {
       pollerRef.current?.disable();
-      SelectedGroupStore.reset();
       GroupStore.reset();
     };
   }, []);

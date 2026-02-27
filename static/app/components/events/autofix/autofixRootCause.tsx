@@ -20,7 +20,7 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
-  useCodingAgentIntegrations,
+  organizationIntegrationsCodingAgents,
   useLaunchCodingAgent,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -33,7 +33,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -238,7 +238,7 @@ function CopyRootCauseButton({
   return (
     <Button
       size="sm"
-      title="Copy analysis as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy analysis as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
@@ -301,7 +301,7 @@ function SolutionActionButton({
         priority={primaryButtonPriority}
         busy={isSelectingRootCause}
         onClick={submitFindSolution}
-        title={findSolutionTitle}
+        tooltipProps={{title: findSolutionTitle}}
       >
         {t('Find Solution')}
       </Button>
@@ -442,8 +442,9 @@ function AutofixRootCauseDisplay({
     groupId,
     runId,
   });
-  const {data: codingAgentResponse, isLoading: isLoadingAgents} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentResponse, isLoading: isLoadingAgents} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
   const {mutate: launchCodingAgent, isPending: isLaunchingAgent} = useLaunchCodingAgent(
     groupId,
@@ -601,7 +602,7 @@ function AutofixRootCauseDisplay({
           <Button
             size="zero"
             priority="transparent"
-            title={t('Chat with Seer')}
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
             analyticsEventKey="autofix.root_cause.chat"

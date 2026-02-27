@@ -84,6 +84,7 @@ const config: KnipConfig = {
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
+    'odiff-bin', // raw binary consumed by Python backend, not a JS import
   ],
   rules: {
     binaries: 'off',

@@ -11,6 +11,8 @@ import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
@@ -118,18 +120,19 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const previousOverflowRef = useRef<string>(null);
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    previousOverflowRef.current ??= document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    overwriteDrawerConfig({renderer, options});
-    options.onOpen?.();
-  }, []);
+  const scrollLock = useScrollLock(document.documentElement);
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => {
+      scrollLock.acquire();
+      overwriteDrawerConfig({renderer, options});
+      options.onOpen?.();
+    },
+    [scrollLock]
+  );
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
-    document.body.style.overflow = previousOverflowRef.current ?? '';
-    previousOverflowRef.current = null;
+    scrollLock.release();
     overwriteDrawerConfig(undefined);
-  }, []);
+  }, [scrollLock]);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();

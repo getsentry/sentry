@@ -1,0 +1,8 @@
+---
+description: Run pre-commit on changed files before completing a task
+alwaysApply: true
+---
+
+# Pre-commit Before Done
+
+Before you consider a coding task complete, run pre-commit on any files you created or modified. See the "Before completing a task" section in [AGENTS.md](AGENTS.md) for the command (use `.venv/bin/pre-commit run --files ...` with repo-relative paths). Fix any failures and re-run until it passes. Do not push with `--no-verify`—fix the issues and try again instead.

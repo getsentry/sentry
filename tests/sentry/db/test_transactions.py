@@ -43,7 +43,6 @@ class CaseMixin:
         assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
     def test_bad_transaction_boundaries(self) -> None:
-
         org = Factories.create_organization()
         Factories.create_project(organization=org)
         Factories.create_user()

@@ -72,8 +72,8 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
                 res = client.get_last_commits(name, end_sha)
                 return self._format_commits(client, name, res[:20])
             else:
-                res = client.compare_commits(name, start_sha, end_sha)
-                return self._format_commits(client, name, res["commits"])
+                commits = client.compare_commits(name, start_sha, end_sha)
+                return self._format_commits(client, name, commits)
 
         integration_id = repo.integration_id
         if integration_id is None:

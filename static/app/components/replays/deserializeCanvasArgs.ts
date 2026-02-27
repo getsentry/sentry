@@ -12,7 +12,7 @@ type CanvasContexts =
   | CanvasRenderingContext2D
   | WebGLRenderingContext
   | WebGL2RenderingContext;
-const webGLVarMap: Map<CanvasContexts, GLVarMap> = new Map();
+const webGLVarMap = new Map<CanvasContexts, GLVarMap>();
 
 function variableListFor(ctx: CanvasContexts, ctor: string) {
   let contextMap = webGLVarMap.get(ctx);

@@ -4,12 +4,12 @@ import argparse
 import re
 import subprocess
 from collections.abc import Sequence
-from functools import lru_cache
+from functools import cache
 
 ACTION_VERSION_RE = re.compile(r"(?<=uses: )(?P<action>.*)@(?P<ref>[^#\s]+)")
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_sha(repo: str, ref: str) -> str:
     if len(ref) == 40:
         try:

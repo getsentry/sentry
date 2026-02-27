@@ -72,7 +72,6 @@ describe('useInfiniteLogsQuery', () => {
     mockLocation.mockReturnValue(LocationFixture());
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture(),
@@ -661,7 +660,6 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture(),

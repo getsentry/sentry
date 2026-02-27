@@ -19,8 +19,7 @@ import type {EAPTraceMeta, TraceMeta} from './types';
 
 type TraceMetaQueryParams =
   | {
-      // demo has the format ${projectSlug}:${eventId}
-      // used to query a demo transaction event from the backend.
+      include_uptime: string;
       statsPeriod: string;
     }
   | {
@@ -35,15 +34,13 @@ function getMetaQueryParams(
 ): TraceMetaQueryParams {
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-  if (row.timestamp) {
-    return {
-      include_uptime: normalizedParams.includeUptime,
-      timestamp: row.timestamp,
-    };
-  }
-
   return {
-    statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+    include_uptime: '1',
+    ...(row.timestamp
+      ? {timestamp: row.timestamp}
+      : {
+          statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+        }),
   };
 }
 
