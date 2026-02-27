@@ -462,7 +462,7 @@ class SeerExplorerClient:
 
         # Add optional filters
         if only_current_user and self.user and hasattr(self.user, "id"):
-            runs_body["user_id"] = self.user.id
+            runs_body["user_id"] = int(self.user.id)
         if category_key is not None:
             runs_body["category_key"] = category_key
         if category_value is not None:

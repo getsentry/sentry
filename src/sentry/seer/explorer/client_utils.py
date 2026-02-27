@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
@@ -75,8 +76,8 @@ class ExplorerRunsRequest(TypedDict):
     project_ids: NotRequired[list[int]]
     limit: NotRequired[int]
     expand: NotRequired[str]
-    start: NotRequired[str]
-    end: NotRequired[str]
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
 
 
 class ExplorerUpdateRequest(TypedDict):

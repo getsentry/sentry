@@ -275,7 +275,7 @@ class FixabilityScoreRequest(TypedDict):
     organization_slug: str
     organization_id: int
     project_id: int
-    summary: NotRequired[str | None]
+    summary: NotRequired[dict[str, Any] | None]
 
 
 def make_fixability_score_request(
