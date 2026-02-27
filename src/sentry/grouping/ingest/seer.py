@@ -43,7 +43,10 @@ logger = logging.getLogger("sentry.events.grouping")
 
 @sentry_sdk.tracing.trace
 def should_call_seer_for_grouping(
-    event: Event, variants: dict[str, BaseVariant], event_grouphash: GroupHash
+    event: Event,
+    variants: dict[str, BaseVariant],
+    event_grouphash: GroupHash,
+    training_mode: bool = False,
 ) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
@@ -60,16 +63,16 @@ def should_call_seer_for_grouping(
         return False
 
     if (
-        _has_custom_fingerprint(event, variants)
-        or _is_race_condition_skipped_event(event, event_grouphash)
-        or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
-        or _circuit_breaker_broken(event, project)
+        _has_custom_fingerprint(event, variants, training_mode)
+        or _is_race_condition_skipped_event(event, event_grouphash, training_mode)
+        or killswitch_enabled(project.id, ReferrerOptions.INGEST, event, training_mode)
+        or _circuit_breaker_broken(event, project, training_mode)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
         # know the other checks have passed.
-        or _has_empty_stacktrace_string(event, variants)
+        or _has_empty_stacktrace_string(event, variants, training_mode)
         # do this after the empty stacktrace string check because it calculates the stacktrace string
-        or _stacktrace_exceeds_limits(event, variants)
+        or _stacktrace_exceeds_limits(event, variants, training_mode)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
         #
@@ -77,14 +80,16 @@ def should_call_seer_for_grouping(
         # we've tried to call it, and if we fail any of the other checks, it shouldn't count as an
         # attempt. Thus we only want to run the rate limit check if every other check has already
         # succeeded.)
-        or _ratelimiting_enabled(event, project)
+        or _ratelimiting_enabled(event, project, training_mode)
     ):
         return False
 
     return True
 
 
-def _is_race_condition_skipped_event(event: Event, event_grouphash: GroupHash) -> bool:
+def _is_race_condition_skipped_event(
+    event: Event, event_grouphash: GroupHash, training_mode: bool = False
+) -> bool:
     """
     In cases where multiple events with the same new hash are racing to assign that hash to a group,
     we only want one of them to be sent to Seer.
@@ -102,7 +107,9 @@ def _is_race_condition_skipped_event(event: Event, event_grouphash: GroupHash) -
                 "event_id": event.event_id,
             },
         )
-        record_did_call_seer_metric(event, call_made=False, blocker="race_condition")
+        record_did_call_seer_metric(
+            event, call_made=False, blocker="race_condition", training_mode=training_mode
+        )
         return True
 
     # TODO: Temporary debugging for the fact that we're still sometimes seeing multiple events per
@@ -159,10 +166,14 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def _stacktrace_exceeds_limits(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def _stacktrace_exceeds_limits(
+    event: Event, variants: dict[str, BaseVariant], training_mode: bool = False
+) -> bool:
     model_version = get_grouping_model_version(event.project)
     if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST, model_version):
-        record_did_call_seer_metric(event, call_made=False, blocker="stacktrace-too-long")
+        record_did_call_seer_metric(
+            event, call_made=False, blocker="stacktrace-too-long", training_mode=training_mode
+        )
         return True
 
     return False
@@ -184,15 +195,19 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     return has_been_backfilled
 
 
-def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def _has_custom_fingerprint(
+    event: Event, variants: dict[str, BaseVariant], training_mode: bool = False
+) -> bool:
     if any(key.endswith("fingerprint") and "hybrid" not in key for key in variants):
-        record_did_call_seer_metric(event, call_made=False, blocker="custom_fingerprint")
+        record_did_call_seer_metric(
+            event, call_made=False, blocker="custom_fingerprint", training_mode=training_mode
+        )
         return True
 
     return False
 
 
-def _ratelimiting_enabled(event: Event, project: Project) -> bool:
+def _ratelimiting_enabled(event: Event, project: Project, training_mode: bool = False) -> bool:
     """
     Check both the global and project-based Seer similarity ratelimits.
     """
@@ -208,7 +223,9 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     if ratelimiter.backend.is_limited("seer:similarity:global-limit", **global_ratelimit):
         logger_extra["limit_per_sec"] = global_limit_per_sec
         logger.warning("should_call_seer_for_grouping.global_ratelimit_hit", extra=logger_extra)
-        record_did_call_seer_metric(event, call_made=False, blocker="global-rate-limit")
+        record_did_call_seer_metric(
+            event, call_made=False, blocker="global-rate-limit", training_mode=training_mode
+        )
 
         return True
 
@@ -217,14 +234,16 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     ):
         logger_extra["limit_per_sec"] = project_limit_per_sec
         logger.warning("should_call_seer_for_grouping.project_ratelimit_hit", extra=logger_extra)
-        record_did_call_seer_metric(event, call_made=False, blocker="project-rate-limit")
+        record_did_call_seer_metric(
+            event, call_made=False, blocker="project-rate-limit", training_mode=training_mode
+        )
 
         return True
 
     return False
 
 
-def _circuit_breaker_broken(event: Event, project: Project) -> bool:
+def _circuit_breaker_broken(event: Event, project: Project, training_mode: bool = False) -> bool:
     breaker_config = options.get("seer.similarity.circuit-breaker-config")
     circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
     circuit_broken = not circuit_breaker.should_allow_request()
@@ -238,16 +257,25 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
                 **breaker_config,
             },
         )
-        record_did_call_seer_metric(event, call_made=False, blocker="circuit-breaker")
+        record_did_call_seer_metric(
+            event, call_made=False, blocker="circuit-breaker", training_mode=training_mode
+        )
 
     return circuit_broken
 
 
-def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def _has_empty_stacktrace_string(
+    event: Event, variants: dict[str, BaseVariant], training_mode: bool = False
+) -> bool:
     stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
     if not stacktrace_string:
         if stacktrace_string == "":
-            record_did_call_seer_metric(event, call_made=False, blocker="empty-stacktrace-string")
+            record_did_call_seer_metric(
+                event,
+                call_made=False,
+                blocker="empty-stacktrace-string",
+                training_mode=training_mode,
+            )
         return True
     # Store the stacktrace string in the event so we only calculate it once. We need to pop it
     # later so it isn't stored in the database.
@@ -609,8 +637,7 @@ def maybe_send_seer_for_new_model_training(
         return
 
     # Honor all checks like rate limits, circuit breaker, etc.
-    # TODO: should_call_seer_for_grouping reports metrics internally without training_mode=True
-    if not should_call_seer_for_grouping(event, variants, existing_grouphash):
+    if not should_call_seer_for_grouping(event, variants, existing_grouphash, training_mode=True):
         return
 
     record_did_call_seer_metric(event, call_made=True, blocker="none", training_mode=True)
