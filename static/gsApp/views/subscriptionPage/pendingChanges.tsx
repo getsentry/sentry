@@ -21,9 +21,11 @@ import {
   hasPerformance,
 } from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
+  isEmergeCategory,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
@@ -173,14 +175,28 @@ function PendingChanges({organization, subscription}: Props) {
           pendingReserved !== RESERVED_BUDGET_QUOTA &&
           pendingReserved !== 0
         ) {
+          const formattedQuantity = formatReservedWithUnits(
+            pendingReserved ?? null,
+            category
+          );
+          const billedCategoryInfo = getCategoryInfoFromPlural(category);
+          const unitName = billedCategoryInfo?.shortenedUnitName;
+          let displayName = getPlanCategoryName({
+            plan: pendingChanges.planDetails,
+            category,
+            capitalize: false,
+          });
+          let quantityText = formattedQuantity;
+          if (isEmergeCategory(category) && unitName) {
+            // Strip unit from display name (e.g. "size analysis builds" → "size analysis")
+            displayName = displayName.replace(new RegExp(`\\s+${unitName}s?$`, 'i'), '');
+            const unitSuffix = pendingReserved === 1 ? unitName : `${unitName}s`;
+            quantityText = `${formattedQuantity} ${unitSuffix}`;
+          }
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
-              displayName: getPlanCategoryName({
-                plan: pendingChanges.planDetails,
-                category,
-                capitalize: false,
-              }),
-              quantity: formatReservedWithUnits(pendingReserved ?? null, category),
+              displayName,
+              quantity: quantityText,
             })
           );
         }
