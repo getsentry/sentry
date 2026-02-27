@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
 
 
 def find_base_snapshot_artifact(
@@ -10,7 +10,7 @@ def find_base_snapshot_artifact(
     project_id: int,
     app_id: str | None,
     artifact_type: str | None,
-    build_configuration: str | None,
+    build_configuration: PreprodBuildConfiguration | None,
 ) -> PreprodArtifact | None:
     return (
         PreprodArtifact.objects.filter(
