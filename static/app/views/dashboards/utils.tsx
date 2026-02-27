@@ -665,6 +665,7 @@ export const isWidgetEditable = (widgetType: DisplayType) => {
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
     DisplayType.WHEEL,
+    DisplayType.AGENTS_TRACES_TABLE,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
 };
