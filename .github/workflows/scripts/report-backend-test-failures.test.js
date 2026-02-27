@@ -98,6 +98,7 @@ function mockContext(prNumber = 123) {
   return {
     repo: {owner: 'getsentry', repo: 'sentry'},
     payload: {pull_request: {number: prNumber}},
+    runId: 99,
   };
 }
 
@@ -229,11 +230,16 @@ describe('buildCommentBody', () => {
       },
     ];
 
-    const body = buildCommentBody(failures);
+    const body = buildCommentBody(
+      failures,
+      'https://github.com/getsentry/sentry/actions/runs/99'
+    );
 
     assert.ok(body.startsWith(COMMENT_MARKER));
     assert.ok(body.includes('## Backend Test Failures'));
-    assert.ok(body.includes('The following tests failed:'));
+    assert.ok(
+      body.includes('[this run](https://github.com/getsentry/sentry/actions/runs/99)')
+    );
     assert.ok(body.includes('<details>'));
     assert.ok(
       body.includes('<code>tests/sentry/api/test_foo.py::TestFoo::test_bar</code>')
@@ -244,7 +250,7 @@ describe('buildCommentBody', () => {
   it('shows "No traceback available" when longrepr is empty', () => {
     const failures = [{nodeid: 'a::b::c', longrepr: ''}];
 
-    const body = buildCommentBody(failures);
+    const body = buildCommentBody(failures, 'https://example.com/run');
     assert.ok(body.includes('No traceback available'));
   });
 
@@ -252,7 +258,7 @@ describe('buildCommentBody', () => {
     const longTrace = Array.from({length: 100}, (_, i) => `line ${i}`).join('\n');
     const failures = [{nodeid: 'a::b::c', longrepr: longTrace}];
 
-    const body = buildCommentBody(failures);
+    const body = buildCommentBody(failures, 'https://example.com/run');
     assert.ok(body.includes('... (50 more lines)'));
     assert.ok(!body.includes('line 99'));
   });
@@ -263,7 +269,7 @@ describe('buildCommentBody', () => {
       longrepr: '',
     }));
 
-    const body = buildCommentBody(failures);
+    const body = buildCommentBody(failures, 'https://example.com/run');
     assert.ok(body.includes('test_29'));
     assert.ok(!body.includes('test_30'));
     assert.ok(body.includes('... and 5 more failures.'));
@@ -276,7 +282,7 @@ describe('buildCommentBody', () => {
       longrepr: hugeTrace,
     }));
 
-    const body = buildCommentBody(failures);
+    const body = buildCommentBody(failures, 'https://example.com/run');
     assert.ok(body.length <= 65100);
     assert.ok(body.includes('truncated due to GitHub comment size limit'));
   });
@@ -312,6 +318,7 @@ describe('report (integration)', () => {
     assert.equal(create.params.issue_number, 123);
     assert.ok(create.params.body.includes(COMMENT_MARKER));
     assert.ok(create.params.body.includes(FAILED_TEST.nodeid));
+    assert.ok(create.params.body.includes('actions/runs/99'));
   });
 
   it('updates an existing comment', async () => {

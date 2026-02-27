@@ -56,10 +56,10 @@ function parseFailures(jsonFiles, core) {
   return failures;
 }
 
-function buildCommentBody(failures) {
+function buildCommentBody(failures, runUrl) {
   const capped = failures.slice(0, MAX_FAILURES);
 
-  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed:\n\n`;
+  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed in [this run](${runUrl}):\n\n`;
 
   for (const t of capped) {
     let tb = t.longrepr;
@@ -111,7 +111,8 @@ module.exports = {
     }
 
     const prNumber = context.payload.pull_request.number;
-    const body = buildCommentBody(failures);
+    const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+    const body = buildCommentBody(failures, runUrl);
 
     // Find existing comment to update instead of creating a duplicate
     const {data: comments} = await github.rest.issues.listComments({
