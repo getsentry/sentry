@@ -56,7 +56,7 @@ async function getJobUrls(failures, github, context) {
     if (backendMatch) {
       const shard = parseInt(backendMatch[1], 10);
       const job = jobs.find(j => {
-        const m = j.name.match(/^backend-test \((\d+)\)$/);
+        const m = j.name.match(/^backend test \((\d+)\)$/);
         return m && parseInt(m[1], 10) === shard;
       });
       if (job) dirToUrl[dir] = job.html_url;
@@ -64,13 +64,13 @@ async function getJobUrls(failures, github, context) {
     }
     // pytest-results-migration-{runId} → "backend-migration-tests"
     if (/^pytest-results-migration-\d+$/.test(dir)) {
-      const job = jobs.find(j => j.name.includes('backend-migration-tests'));
+      const job = jobs.find(j => j.name.includes('backend migration tests'));
       if (job) dirToUrl[dir] = job.html_url;
       continue;
     }
     // pytest-results-monolith-dbs-{runId} → "monolith-dbs"
     if (/^pytest-results-monolith-dbs-\d+$/.test(dir)) {
-      const job = jobs.find(j => j.name.includes('monolith-dbs'));
+      const job = jobs.find(j => j.name.includes('monolith-dbs test'));
       if (job) dirToUrl[dir] = job.html_url;
     }
   }

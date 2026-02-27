@@ -439,7 +439,7 @@ describe('reportShard (integration)', () => {
     const github = mockGithub({
       jobs: [
         {
-          name: 'backend-test (3)',
+          name: 'backend test (3)',
           html_url: 'https://github.com/getsentry/sentry/actions/runs/99/jobs/55555',
         },
       ],
