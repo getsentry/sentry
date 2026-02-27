@@ -8,6 +8,7 @@ from sentry.hybridcloud.models.webhookpayload import (
     BACKOFF_INTERVAL,
     BACKOFF_RATE,
     MAX_ATTEMPTS,
+    NUL_REPLACEMENT_PLACEHOLDER,
     DestinationType,
 )
 from sentry.testutils.cases import TestCase
@@ -65,6 +66,38 @@ class WebhookPayloadTest(TestCase):
             == '{"Cookie":"","Content-Length":"36","Content-Type":"application/json"}'
         )
         assert hook.request_body == '{"installation": {"id": "github:1"}}'
+
+    def test_request_body_sanitizes_null_byte_and_unicode_escape(self) -> None:
+        """Stored request_body must not contain \\u0000 so PostgreSQL JSON ->> does not error.
+
+        Real-world cases: GitHub webhook payloads can contain \\u0000 in user-generated
+        fields. Git rejects NUL in commit messages ("error: a NUL byte in commit log
+        message not allowed"), but the same payload shape is used for issue/PR/comment
+        bodies, review bodies, and other text where \\u0000 can appear (paste, API, or
+        malformed clients). Querying with request_body::json ->> 'key' then fails in
+        PostgreSQL because text cannot contain the null character.
+        """
+        factory = RequestFactory()
+        # Simulates a payload with \u0000 in a string (e.g. comment/body text)
+        body_with_null = (
+            b'{"repository":{"owner":{"login":"org"}},"commit":"redirecting to \\u0000"}'
+        )
+        request = factory.post(
+            "/extensions/github/webhook/",
+            data=body_with_null,
+            content_type="application/json",
+        )
+        hook = WebhookPayload.create_from_request(
+            destination_type=DestinationType.SENTRY_REGION,
+            region="us",
+            provider="github",
+            identifier=1,
+            request=request,
+        )
+        assert "\u0000" not in hook.request_body
+        assert "\\u0000" not in hook.request_body
+        assert "redirecting to " in hook.request_body
+        assert NUL_REPLACEMENT_PLACEHOLDER in hook.request_body
 
     def test_schedule_next_attempt_moves_forward(self) -> None:
         hook = self.create_webhook_payload("jira:123", "us")

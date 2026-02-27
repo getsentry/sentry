@@ -15,6 +15,9 @@ from sentry.utils import json, metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 MAX_ATTEMPTS = 10
 
+# Placeholder written when null bytes or \u0000 are stripped from webhook body (PostgreSQL text cannot contain NUL)
+NUL_REPLACEMENT_PLACEHOLDER = "_NUL_byte_replaced_"
+
 BACKOFF_INTERVAL = 3
 BACKOFF_RATE = 1.4
 
@@ -100,15 +103,33 @@ class WebhookPayload(Model):
     )
 
     @classmethod
+    def _sanitize_json_body_for_storage(cls, body: str) -> str:
+        """Replace null bytes and \\u0000 with a placeholder so PostgreSQL JSON/text works.
+
+        - \\u0000: real-world case. Valid JSON can contain this escape in string values
+          (e.g. GitHub webhook issue/comment bodies). PostgreSQL rejects it when
+          casting JSON to text (->>).
+        - \\x00 (literal NUL): defensive only. Valid JSON cannot contain raw NUL
+          inside strings; literal null bytes imply malformed or corrupt bodies
+          (buggy client, proxy mangling, binary paste). Replacing them avoids
+          storing a character that PostgreSQL text does not allow.
+        Using a placeholder makes sanitization visible for debugging and auditing.
+        """
+        return body.replace("\x00", NUL_REPLACEMENT_PLACEHOLDER).replace(
+            "\\u0000", NUL_REPLACEMENT_PLACEHOLDER
+        )
+
+    @classmethod
     def get_attributes_from_request(
         cls,
         request: HttpRequest,
     ) -> dict[str, Any]:
+        raw_body = request.body.decode(encoding="utf-8")
         return dict(
             request_method=request.method,
             request_path=request.get_full_path(),
             request_headers=json.dumps({k: v for k, v in request.headers.items()}),
-            request_body=request.body.decode(encoding="utf-8"),
+            request_body=cls._sanitize_json_body_for_storage(raw_body),
         )
 
     @classmethod
