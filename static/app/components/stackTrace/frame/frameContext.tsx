@@ -222,7 +222,6 @@ const FrameSourceLineNumber = styled(Text)<{
     p.isActive &&
     p.coverage === Coverage.PARTIAL &&
     css`
-      mix-blend-mode: screen;
       background: ${p.theme.colors.yellow200};
     `}
 
@@ -230,7 +229,6 @@ const FrameSourceLineNumber = styled(Text)<{
     p.isActive &&
     p.coverage === Coverage.COVERED &&
     css`
-      mix-blend-mode: screen;
       background: ${p.theme.colors.green200};
     `}
 
@@ -238,9 +236,7 @@ const FrameSourceLineNumber = styled(Text)<{
     p.isActive &&
     p.coverage === Coverage.NOT_COVERED &&
     css`
-      color: ${p.theme.colors.white};
-      mix-blend-mode: screen;
-      background: ${p.theme.colors.red400};
+      background: ${p.theme.colors.red200};
     `}
 `;
 
