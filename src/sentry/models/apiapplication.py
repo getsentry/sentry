@@ -177,6 +177,12 @@ class ApiApplication(Model):
         #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
         #   - Native apps loopback exception (RFC 8252 §8.4):
         #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
+
+        # Capture the raw path before normalization for the double-encoding
+        # guard below.  This must happen on the unprocessed input so that
+        # quote() inside normalize_url doesn't interfere with the check.
+        raw_path = urlparse(value).path
+
         value = self.normalize_url(value)
 
         # First: exact match only (spec-compliant), no logging.
@@ -217,11 +223,11 @@ class ApiApplication(Model):
 
         # Then: prefix-only match (legacy behavior). Log on success.
         if not self.has_feature(ApiApplicationFeature.STRICT_REDIRECT_URI):
-            # Reject multi-layer percent-encoding: if decoding the
-            # already-decoded path changes it further, the input was
-            # double-encoded (or deeper) and must not be prefix-matched.
-            normalized_path = urlparse(value).path
-            if unquote(normalized_path) != normalized_path:
+            # Reject multi-layer percent-encoding by checking the raw input:
+            # decode once, then check if a second decode would change it.
+            # If so, the input was double-encoded (or deeper).
+            decoded_once = unquote(raw_path)
+            if unquote(decoded_once) != decoded_once:
                 return False
             for ruri in normalized_ruris:
                 if value.startswith(ruri):

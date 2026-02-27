@@ -108,6 +108,32 @@ class ApiApplicationTest(TestCase):
         assert app.is_valid_redirect_uri("http://example.com/callback/deep/nested/path")
         assert not app.is_valid_redirect_uri("http://example.com/other")
 
+    def test_is_valid_redirect_uri_legitimate_encoded_characters(self) -> None:
+        """URIs with legitimately encoded characters must not be rejected."""
+        # Encoded space in registered URI
+        app_space = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/my%20app/",
+            version=0,
+        )
+        assert app_space.is_valid_redirect_uri("http://example.com/my%20app/callback")
+
+        # Non-ASCII (UTF-8 encoded) in registered URI
+        app_utf8 = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/caf%C3%A9/",
+            version=0,
+        )
+        assert app_utf8.is_valid_redirect_uri("http://example.com/caf%C3%A9/callback")
+
+        # Literal percent (%25) in registered URI
+        app_pct = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/100%25done/",
+            version=0,
+        )
+        assert app_pct.is_valid_redirect_uri("http://example.com/100%25done/callback")
+
     def test_is_valid_redirect_uri_encoded_slash_traversal(self) -> None:
         """Encoded forward slash (%2f) in traversal sequences must be resolved."""
         app = ApiApplication.objects.create(
