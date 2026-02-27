@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
+    """Deprecated: Use OrganizationPreprodArtifactPublicInstallDetailsEndpoint instead."""
+
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
