@@ -186,24 +186,24 @@ class PreprodExamples:
     }
 
     EXAMPLE_LATEST_BUILD_ONLY = {
-        "latest": EXAMPLE_BUILD_SUMMARY,
-        "current": None,
+        "latestArtifact": EXAMPLE_BUILD_SUMMARY,
+        "currentArtifact": None,
         "updateAvailable": None,
     }
 
     EXAMPLE_UPDATE_AVAILABLE = {
-        "latest": {
+        "latestArtifact": {
             **EXAMPLE_BUILD_SUMMARY,
             "buildId": "12346",
             "appInfo": {**_APP_INFO, "version": "1.3.0", "buildNumber": 50},
         },
-        "current": EXAMPLE_BUILD_SUMMARY,
+        "currentArtifact": EXAMPLE_BUILD_SUMMARY,
         "updateAvailable": True,
     }
 
     EXAMPLE_NO_UPDATE = {
-        "latest": EXAMPLE_BUILD_SUMMARY,
-        "current": EXAMPLE_BUILD_SUMMARY,
+        "latestArtifact": EXAMPLE_BUILD_SUMMARY,
+        "currentArtifact": EXAMPLE_BUILD_SUMMARY,
         "updateAvailable": False,
     }
 

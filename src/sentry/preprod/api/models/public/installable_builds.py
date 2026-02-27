@@ -41,8 +41,8 @@ class InstallableBuildResponseDict(TypedDict):
 
 
 class LatestInstallableBuildResponseDict(TypedDict):
-    latest: InstallableBuildResponseDict | None
-    current: InstallableBuildResponseDict | None
+    latestArtifact: InstallableBuildResponseDict | None
+    currentArtifact: InstallableBuildResponseDict | None
     updateAvailable: bool | None
 
 
@@ -91,7 +91,7 @@ def create_latest_installable_build_response(
     update_available: bool | None,
 ) -> LatestInstallableBuildResponseDict:
     return {
-        "latest": latest,
-        "current": current,
+        "latestArtifact": latest,
+        "currentArtifact": current,
         "updateAvailable": update_available,
     }

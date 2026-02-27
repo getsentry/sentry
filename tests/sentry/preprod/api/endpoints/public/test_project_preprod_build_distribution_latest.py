@@ -94,9 +94,9 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"] is not None
-        assert data["latest"]["buildId"] == str(artifact.id)
-        assert data["current"] is None
+        assert data["latestArtifact"] is not None
+        assert data["latestArtifact"]["buildId"] == str(artifact.id)
+        assert data["currentArtifact"] is None
         assert data["updateAvailable"] is None
 
     def test_latest_mode_no_matching_build(self):
@@ -105,8 +105,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"] is None
-        assert data["current"] is None
+        assert data["latestArtifact"] is None
+        assert data["currentArtifact"] is None
         assert data["updateAvailable"] is None
 
     def test_latest_mode_response_fields(self):
@@ -120,7 +120,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             self._get_url(), {"appId": "com.example.app", "platform": "android"}
         )
         assert response.status_code == 200
-        build = response.json()["latest"]
+        build = response.json()["latestArtifact"]
         assert build["buildId"] == str(artifact.id)
         assert build["state"] == "PROCESSED"
         assert build["platform"] == "android"
@@ -159,9 +159,9 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["updateAvailable"] is True
-        assert data["latest"]["buildId"] == str(newer.id)
-        assert data["current"] is not None
-        assert data["current"]["appInfo"]["version"] == "1.0.0"
+        assert data["latestArtifact"]["buildId"] == str(newer.id)
+        assert data["currentArtifact"] is not None
+        assert data["currentArtifact"]["appInfo"]["version"] == "1.0.0"
 
     def test_check_for_updates_already_on_latest(self):
         artifact = self._create_installable_artifact(
@@ -181,8 +181,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["updateAvailable"] is False
-        assert data["latest"]["buildId"] == str(artifact.id)
-        assert data["current"]["buildId"] == str(artifact.id)
+        assert data["latestArtifact"]["buildId"] == str(artifact.id)
+        assert data["currentArtifact"]["buildId"] == str(artifact.id)
 
     def test_check_for_updates_current_not_found(self):
         latest = self._create_installable_artifact(
@@ -202,8 +202,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["updateAvailable"] is True
-        assert data["latest"]["buildId"] == str(latest.id)
-        assert data["current"] is None
+        assert data["latestArtifact"]["buildId"] == str(latest.id)
+        assert data["currentArtifact"] is None
 
     def test_platform_filter_apple(self):
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
@@ -223,9 +223,9 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"] is not None
-        assert data["latest"]["buildId"] == str(ios_artifact.id)
-        assert data["latest"]["platform"] == "apple"
+        assert data["latestArtifact"] is not None
+        assert data["latestArtifact"]["buildId"] == str(ios_artifact.id)
+        assert data["latestArtifact"]["platform"] == "apple"
 
     def test_platform_filter_android_includes_aab(self):
         self._create_installable_artifact(
@@ -244,9 +244,9 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"] is not None
+        assert data["latestArtifact"] is not None
         # Should pick the highest build number among same version
-        assert data["latest"]["buildId"] == str(apk_artifact.id)
+        assert data["latestArtifact"]["buildId"] == str(apk_artifact.id)
 
     def test_build_configuration_filter(self):
         debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
@@ -271,7 +271,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["buildId"] == str(debug_artifact.id)
+        assert data["latestArtifact"]["buildId"] == str(debug_artifact.id)
 
     def test_codesigning_type_filter(self):
         self._create_installable_artifact(
@@ -295,7 +295,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["buildId"] == str(enterprise_artifact.id)
+        assert data["latestArtifact"]["buildId"] == str(enterprise_artifact.id)
 
     def test_install_groups_filter(self):
         self._create_installable_artifact(
@@ -314,12 +314,12 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             {
                 "appId": "com.example.app",
                 "platform": "android",
-                "installGroup": "beta-testers",
+                "installGroups": "beta-testers",
             },
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["buildId"] == str(beta_artifact.id)
+        assert data["latestArtifact"]["buildId"] == str(beta_artifact.id)
 
     def test_install_groups_inheritance_from_current(self):
         current = self._create_installable_artifact(
@@ -352,8 +352,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["updateAvailable"] is True
-        assert data["latest"]["buildId"] == str(newer.id)
-        assert data["current"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(newer.id)
+        assert data["currentArtifact"]["buildId"] == str(current.id)
 
     def test_semver_comparison_picks_highest_version(self):
         # Create artifacts with different versions — not in semver order
@@ -367,7 +367,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["buildId"] == str(highest.id)
+        assert data["latestArtifact"]["buildId"] == str(highest.id)
 
     def test_build_number_tiebreaker(self):
         self._create_installable_artifact(build_version="1.0.0", build_number=1)
@@ -379,7 +379,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["buildId"] == str(highest_build.id)
+        assert data["latestArtifact"]["buildId"] == str(highest_build.id)
 
     def test_main_binary_identifier_matching(self):
         current = self._create_installable_artifact(
@@ -403,8 +403,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["current"]["buildId"] == str(current.id)
-        assert data["latest"]["buildId"] == str(newer.id)
+        assert data["currentArtifact"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(newer.id)
         assert data["updateAvailable"] is True
 
     def test_excludes_non_installable_builds(self):
@@ -434,8 +434,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"] is not None
-        assert data["latest"]["buildId"] == str(installable.id)
+        assert data["latestArtifact"] is not None
+        assert data["latestArtifact"]["buildId"] == str(installable.id)
 
     def test_only_returns_builds_for_this_project(self):
         other_project = self.create_project(organization=self.organization)
@@ -454,7 +454,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["buildId"] == str(artifact.id)
+        assert data["latestArtifact"]["buildId"] == str(artifact.id)
 
     def test_download_count(self):
         artifact = self._create_installable_artifact()
@@ -465,7 +465,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"]["downloadCount"] == 5
+        assert data["latestArtifact"]["downloadCount"] == 5
 
     def test_codesigning_type_inheritance_from_current(self):
         current = self._create_installable_artifact(
@@ -497,8 +497,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["updateAvailable"] is True
-        assert data["latest"]["buildId"] == str(newer_dev.id)
-        assert data["current"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(newer_dev.id)
+        assert data["currentArtifact"]["buildId"] == str(current.id)
 
     def test_build_configuration_inheritance_from_current(self):
         debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
@@ -531,8 +531,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["updateAvailable"] is True
-        assert data["latest"]["buildId"] == str(newer_release.id)
-        assert data["current"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(newer_release.id)
+        assert data["currentArtifact"]["buildId"] == str(current.id)
 
     def test_check_for_updates_no_builds_exist(self):
         response = self.client.get(
@@ -546,6 +546,6 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["latest"] is None
-        assert data["current"] is None
+        assert data["latestArtifact"] is None
+        assert data["currentArtifact"] is None
         assert data["updateAvailable"] is False

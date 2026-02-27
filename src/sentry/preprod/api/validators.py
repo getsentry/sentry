@@ -146,11 +146,6 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         required=False, help_text="Filter by build configuration name"
     )
     codesigningType = serializers.CharField(required=False, help_text="Filter by code signing type")
-    installGroup = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        help_text="Filter by install group (repeatable for multiple groups)",
-    )
 
     def validate_platform(self, value: str | None) -> str | None:
         if value:

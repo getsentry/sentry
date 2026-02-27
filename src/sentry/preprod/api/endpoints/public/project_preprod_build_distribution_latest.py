@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+
+logger = logging.getLogger(__name__)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -90,7 +94,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 location="query",
             ),
             OpenApiParameter(
-                name="installGroup",
+                name="installGroups",
                 description="Filter by install group name (repeatable for multiple groups).",
                 required=False,
                 type=str,
@@ -128,13 +132,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        # installGroup is a repeatable param — collect all values from the query string
-        query_params = request.GET.copy()
-        install_groups_raw = request.GET.getlist("installGroup")
-        if install_groups_raw:
-            query_params.setlist("installGroup", install_groups_raw)
-
-        validator = PreprodLatestInstallableBuildValidator(data=query_params)
+        validator = PreprodLatestInstallableBuildValidator(data=request.GET)
         validator.is_valid(raise_exception=True)
         params = validator.validated_data
 
@@ -145,7 +143,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         main_binary_identifier: str | None = params.get("mainBinaryIdentifier")
         build_configuration: str | None = params.get("buildConfiguration")
         codesigning_type: str | None = params.get("codesigningType")
-        install_groups: list[str] | None = params.get("installGroup")
+        install_groups: list[str] | None = request.GET.getlist("installGroups") or None
 
         current_artifact = None
         latest_artifact = None
@@ -168,6 +166,17 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 build_configuration=build_configuration,
                 codesigning_type=codesigning_type,
             )
+
+            if not current_artifact:
+                logger.info(
+                    "preprod.latest_build.current_not_found",
+                    extra={
+                        "project_id": project.id,
+                        "app_id": app_id,
+                        "platform": platform,
+                        "build_version": build_version,
+                    },
+                )
 
             # Inherit filters from current artifact when not explicitly provided
             if current_artifact:
