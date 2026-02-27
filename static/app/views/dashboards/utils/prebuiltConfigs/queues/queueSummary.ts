@@ -1,10 +1,191 @@
+import {t} from 'sentry/locale';
+import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {SpanFields} from 'sentry/views/insights/types';
+
+const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.publish, queue.process]`;
+
+const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'avg-time-in-queue-widget',
+      title: t('Avg Time in Queue'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [`avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`],
+          aggregates: [`avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`],
+          columns: [],
+          conditions: SPAN_OP_FILTER,
+          orderby: `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
+        },
+      ],
+    },
+    {
+      id: 'avg-processing-time-widget',
+      title: t('Avg Processing Time'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+          columns: [],
+          conditions: SPAN_OP_FILTER,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+    },
+    {
+      id: 'error-rate-widget',
+      title: t('Error Rate'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [
+            `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+          ],
+          aggregates: [
+            `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+          ],
+          columns: [],
+          conditions: SPAN_OP_FILTER,
+          orderby: `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+        },
+      ],
+    },
+    {
+      id: 'published-widget',
+      title: t('Published'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [`count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          aggregates: [`count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          columns: [],
+          conditions: SPAN_OP_FILTER,
+          orderby: `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        },
+      ],
+    },
+    {
+      id: 'processed-widget',
+      title: t('Processed'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [`count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          aggregates: [`count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          columns: [],
+          conditions: SPAN_OP_FILTER,
+          orderby: `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        },
+      ],
+    },
+    {
+      id: 'time-spent-widget',
+      title: t('Time Spent'),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [`sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
+          columns: [],
+          conditions: SPAN_OP_FILTER,
+          orderby: `sum(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+    },
+  ],
+  0,
+  {h: 1, minH: 1}
+);
+
+const TRANSACTIONS_TABLE: Widget = {
+  id: 'transactions-table',
+  title: t('Transactions Interacting with Destination'),
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.TRANSACTION,
+        `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
+        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+        `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `sum(${SpanFields.SPAN_DURATION})`,
+      ],
+      aggregates: [
+        `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
+        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+        `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `sum(${SpanFields.SPAN_DURATION})`,
+      ],
+      columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, SpanFields.TRANSACTION],
+      fieldAliases: [
+        t('Transaction'),
+        t('Avg time in queue'),
+        t('Avg processing time'),
+        t('Error rate'),
+        t('Published'),
+        t('Processed'),
+        t('Time spent'),
+      ],
+      fieldMeta: [
+        null,
+        null,
+        null,
+        null,
+        {valueType: 'percentage', valueUnit: null},
+        null,
+        null,
+        null,
+      ],
+      conditions: SPAN_OP_FILTER,
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 4,
+    w: 6,
+    h: 6,
+    minH: 6,
+  },
+};
 
 export const QUEUE_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: SUMMARY_DASHBOARD_TITLE,
   filters: {},
-  widgets: [],
+  widgets: [...FIRST_ROW_WIDGTS, ...QUEUE_CHARTS, TRANSACTIONS_TABLE],
 };
