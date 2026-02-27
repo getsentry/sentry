@@ -23,7 +23,8 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.services.eventstore.models import GroupEvent
-    from sentry.snuba.models import SnubaQueryEventType
+    from sentry.snuba.dataset import Dataset
+    from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowItem
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
@@ -383,14 +384,15 @@ class DataConditionType(TypedDict):
 
 # TODO - Move this to snuba module
 class SnubaQueryDataSourceType(TypedDict):
-    query_type: int
-    dataset: str
+    query_type: SnubaQuery.Type
+    dataset: Dataset
     query: str
     aggregate: str
     time_window: float
     resolution: float
-    environment: str
-    event_types: list[SnubaQueryEventType]
+    extrapolation_mode: ExtrapolationMode | None
+    environment: Environment | None
+    event_types: list[SnubaQueryEventType.EventType]
 
 
 @dataclass(frozen=True)

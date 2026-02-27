@@ -4,9 +4,9 @@ import {PlatformIcon} from 'platformicons';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -187,7 +187,7 @@ export function WizardProjectSelection({
 
   // Set the selected team to the first team if there is only one
   useEffect(() => {
-    if (selectableTeams && selectableTeams.length === 1) {
+    if (selectableTeams?.length === 1) {
       setNewProjectTeam(selectableTeams[0]!.slug);
     }
   }, [selectableTeams]);
@@ -402,18 +402,15 @@ export function WizardProjectSelection({
               menuFooter={
                 isCreationEnabled
                   ? ({closeOverlay}) => (
-                      <Flex justify="end">
-                        <Button
-                          size="xs"
-                          onClick={() => {
-                            setSelectedProjectId(CREATE_PROJECT_VALUE);
-                            closeOverlay();
-                          }}
-                          icon={<IconAdd />}
-                        >
-                          {t('Create Project')}
-                        </Button>
-                      </Flex>
+                      <MenuComponents.CTAButton
+                        onClick={() => {
+                          setSelectedProjectId(CREATE_PROJECT_VALUE);
+                          closeOverlay();
+                        }}
+                        icon={<IconAdd />}
+                      >
+                        {t('Create Project')}
+                      </MenuComponents.CTAButton>
                     )
                   : undefined
               }

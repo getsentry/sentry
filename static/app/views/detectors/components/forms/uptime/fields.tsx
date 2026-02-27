@@ -5,7 +5,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {createEmptyAssertionRoot} from 'sentry/views/alerts/rules/uptime/assertions/field';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
@@ -13,7 +13,7 @@ export const UPTIME_DEFAULT_RECOVERY_THRESHOLD = 1;
 export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
 interface UptimeDetectorFormData {
-  assertion: Assertion | null;
+  assertion: UptimeAssertion | null;
   body: string;
   description: string | null;
   downtimeThreshold: number;

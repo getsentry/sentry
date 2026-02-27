@@ -9,5 +9,5 @@ export function generateMetricAggregate(
     return queryFieldValue.field;
   }
 
-  return `${queryFieldValue.function[0]}(value,${traceMetric.name},${traceMetric.type},-)`;
+  return `${queryFieldValue.function[0]}(value,${traceMetric.name},${traceMetric.type},${traceMetric.unit ?? '-'})`;
 }

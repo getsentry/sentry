@@ -565,7 +565,7 @@ describe('CompactSelect', () => {
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
     });
 
-    it('uses string.includes for default search matching', async () => {
+    it('uses fzf for default search matching', async () => {
       render(
         <CompactSelect
           search={{placeholder: 'Search here…'}}
@@ -581,10 +581,39 @@ describe('CompactSelect', () => {
       await userEvent.click(screen.getByRole('button'));
       await userEvent.click(screen.getByPlaceholderText('Search here…'));
 
-      // 'ption On' is a mid-string substring of 'Option One' — only includes() catches it
+      // 'ption On' is a subsequence of 'Option One' — fzf matches it
       await userEvent.keyboard('ption On');
       expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+    });
+
+    it('shows fzf matches even when gap penalties make the raw score negative', async () => {
+      // fzf can return a negative score when matched characters are spread far apart
+      // (gap penalties accumulate). The option must still be shown, not hidden.
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            // 'az' is a subsequence of this label but the match spans a very long gap,
+            // which causes fzf's raw score to be negative.
+            {value: 'opt_sparse', label: 'a' + 'x'.repeat(50) + 'z'},
+            {value: 'opt_no_match', label: 'no match here'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      await userEvent.keyboard('az');
+      expect(
+        screen.getByRole('option', {name: 'a' + 'x'.repeat(50) + 'z'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'no match here'})
+      ).not.toBeInTheDocument();
     });
 
     it('sorts options by score when searchMatcher returns SearchMatchResult', async () => {

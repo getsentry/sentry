@@ -7,6 +7,7 @@ import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {fzf} from 'sentry/utils/search/fzf';
 
 import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';
@@ -120,12 +121,22 @@ export function getDisabledOptions<Value extends SelectKey>(
 }
 
 function defaultSearchMatcher<Value extends SelectKey>(
-  opt: SelectOptionWithKey<Value>,
+  option: SelectOptionWithKey<Value>,
   search: string
 ): SearchMatchResult {
-  const searchableText =
-    opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
-  return {score: searchableText.toLowerCase().includes(search.toLowerCase()) ? 1 : 0};
+  const text = option.textValue ?? (typeof option.label === 'string' ? option.label : '');
+  if (!text) {
+    return {score: 0};
+  }
+  const result = fzf(text, search.toLowerCase(), false);
+  // fzf returns end=-1 when no subsequence match exists (score is also 0).
+  // For valid matches fzf may return negative scores due to gap penalties, so we
+  // cannot rely on score > 0 to detect a match. Use end !== -1 instead and clamp
+  // the score so getHiddenOptions always sees score > 0 for any real match.
+  if (result.end === -1) {
+    return {score: 0};
+  }
+  return {score: Math.max(1, result.score)};
 }
 
 /**
@@ -133,11 +144,12 @@ function defaultSearchMatcher<Value extends SelectKey>(
  * outside the list box's count limit. Also collects match scores for use in sorting.
  *
  * An option is considered a match when its score is greater than 0. The default matcher
- * returns score 1 for a substring match and 0 otherwise. Custom matchers can return any
- * positive score to influence sort order — higher scores appear first.
+ * uses fzf and always returns a positive score for any subsequence match, 0 when there
+ * is no match. Custom matchers can return any positive score to influence sort order —
+ * higher scores appear first.
  *
  * Returns both the set of hidden option keys and a map of key → score for matched
- * options. The scores map only contains entries when a custom searchMatcher is provided.
+ * options.
  */
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
@@ -163,11 +175,7 @@ export function getHiddenOptions<Value extends SelectKey>(
     }
     const result = matcher(opt, search);
     if (result.score > 0) {
-      if (searchMatcher) {
-        // Only track scores when a custom matcher is provided — default scores are
-        // always 1 and would trigger unnecessary sorting.
-        scores.set(opt.key, result.score);
-      }
+      scores.set(opt.key, result.score);
       return true;
     }
     return false;
