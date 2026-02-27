@@ -32,6 +32,8 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +132,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     name="sentry.tasks.context_engine_index.build_service_map",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
+    retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
 def build_service_map(organization_id: int, *args, **kwargs) -> None:
     """
@@ -155,50 +158,45 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
     try:
         organization = Organization.objects.get(id=organization_id)
-        projects = list(
-            Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
-        )
-
-        if not projects:
-            logger.info("No projects found for organization", extra={"org_id": organization_id})
-            return
-
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(hours=24)
-
-        snuba_params = SnubaParams(
-            start=start,
-            end=end,
-            projects=projects,
-            organization=organization,
-        )
-
-        edges = _query_service_dependencies(snuba_params)
-
-        if not edges:
-            logger.info("No service dependencies found", extra={"org_id": organization_id})
-            return
-
-        nodes = _build_nodes(edges)
-
-        _send_to_seer(organization_id, nodes, edges)
-
-        logger.info(
-            "Successfully completed service map build",
-            extra={
-                "org_id": organization_id,
-                "edge_count": len(edges),
-                "node_count": len(nodes),
-            },
-        )
-
     except Organization.DoesNotExist:
         logger.error("Organization not found", extra={"org_id": organization_id})
-    except Exception:
-        logger.exception(
-            "Failed to build service map",
-            extra={"org_id": organization_id},
-        )
+        return
+
+    projects = list(
+        Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
+    )
+
+    if not projects:
+        logger.info("No projects found for organization", extra={"org_id": organization_id})
+        return
+
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(hours=24)
+
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+
+    edges = _query_service_dependencies(snuba_params)
+    nodes = _build_nodes(edges, projects)
+
+    if not nodes:
+        logger.info("No service map data found", extra={"org_id": organization_id})
+        return
+
+    _send_to_seer(organization_id, nodes, edges)
+
+    logger.info(
+        "Successfully completed service map build",
+        extra={
+            "org_id": organization_id,
+            "edge_count": len(edges),
+            "node_count": len(nodes),
+        },
+    )
 
 
 @instrumented_task(
