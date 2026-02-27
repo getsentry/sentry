@@ -10,11 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.permissions import StaffPermission
-from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import compare_snapshots
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 
 logger = logging.getLogger(__name__)
 
@@ -61,36 +61,22 @@ class PreprodSnapshotRecompareEndpoint(OrganizationEndpoint):
 
             base_sha = commit_comparison.base_sha
             base_repo_name = commit_comparison.base_repo_name
-            base_ref = commit_comparison.base_ref
 
-            if not (base_sha and base_repo_name and base_ref):
+            if not (base_sha and base_repo_name):
                 return Response({"detail": "Incomplete VCS info to find base"}, status=400)
 
-            try:
-                base_commit_comparison = CommitComparison.objects.get(
-                    organization_id=organization.id,
-                    head_sha=base_sha,
-                    head_repo_name=base_repo_name,
-                    head_ref=base_ref,
-                    base_sha__isnull=True,
-                )
-                base_artifact = (
-                    PreprodArtifact.objects.filter(
-                        commit_comparison=base_commit_comparison,
-                        project=artifact.project,
-                        app_id=artifact.app_id,
-                        artifact_type=artifact.artifact_type,
-                        build_configuration=artifact.build_configuration,
-                        preprodsnapshotmetrics__isnull=False,
-                    )
-                    .order_by("-date_added")
-                    .first()
-                )
-                if not base_artifact:
-                    return Response({"detail": "No base artifact found"}, status=404)
-                base_artifact_id = base_artifact.id
-            except CommitComparison.DoesNotExist:
-                return Response({"detail": "No matching base commit found"}, status=404)
+            base_artifact = find_base_snapshot_artifact(
+                organization_id=organization.id,
+                base_sha=base_sha,
+                base_repo_name=base_repo_name,
+                project_id=artifact.project_id,
+                app_id=artifact.app_id,
+                artifact_type=artifact.artifact_type,
+                build_configuration=artifact.build_configuration,
+            )
+            if not base_artifact:
+                return Response({"detail": "No base artifact found"}, status=404)
+            base_artifact_id = base_artifact.id
 
         logger.info(
             "Recompare: dispatching compare_snapshots task",

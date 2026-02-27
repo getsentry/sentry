@@ -34,6 +34,7 @@ from sentry.preprod.snapshots.comparison_categorizer import (
 from sentry.preprod.snapshots.manifest import ComparisonManifest, ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import compare_snapshots
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -374,19 +375,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         if base_sha and base_repo_name:
             try:
-                base_artifact = (
-                    PreprodArtifact.objects.filter(
-                        commit_comparison__organization_id=project.organization_id,
-                        commit_comparison__head_sha=base_sha,
-                        commit_comparison__head_repo_name=base_repo_name,
-                        project=project,
-                        preprodsnapshotmetrics__isnull=False,
-                        app_id=artifact.app_id,
-                        artifact_type=artifact.artifact_type,
-                        build_configuration=artifact.build_configuration,
-                    )
-                    .order_by("-date_added")
-                    .first()
+                base_artifact = find_base_snapshot_artifact(
+                    organization_id=project.organization_id,
+                    base_sha=base_sha,
+                    base_repo_name=base_repo_name,
+                    project_id=project.id,
+                    app_id=artifact.app_id,
+                    artifact_type=artifact.artifact_type,
+                    build_configuration=artifact.build_configuration,
                 )
                 if base_artifact:
                     logger.info(
