@@ -262,12 +262,12 @@ describe('buildFailureBlocks', () => {
     const blocks = buildFailureBlocks([
       {nodeid: 'a::b::c', longrepr: '', jobUrl: 'https://example.com/job/1'},
     ]);
-    assert.ok(blocks.includes('— [log](https://example.com/job/1)'));
+    assert.ok(blocks.includes('— <a href="https://example.com/job/1">log</a>'));
   });
 
   it('omits log link when jobUrl absent', () => {
     const blocks = buildFailureBlocks([{nodeid: 'a::b::c', longrepr: ''}]);
-    assert.ok(!blocks.includes('[log]'));
+    assert.ok(!blocks.includes('>log</a>'));
   });
 
   it('shows "No traceback available" for empty longrepr', () => {
@@ -449,7 +449,7 @@ describe('reportShard (integration)', () => {
     const create = github.calls.find(c => c.method === 'createComment');
     assert.ok(
       create.params.body.includes(
-        '[log](https://github.com/getsentry/sentry/actions/runs/99/jobs/55555)'
+        '<a href="https://github.com/getsentry/sentry/actions/runs/99/jobs/55555">log</a>'
       )
     );
   });

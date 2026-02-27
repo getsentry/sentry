@@ -96,7 +96,7 @@ export function buildFailureBlocks(failures) {
           `\n... (${lines.length - MAX_TRACEBACK_LINES} more lines)`;
       }
     }
-    const logLink = t.jobUrl ? ` — [log](${t.jobUrl})` : '';
+    const logLink = t.jobUrl ? ` — <a href="${t.jobUrl}">log</a>` : '';
     blocks += `<details><summary><code>${t.nodeid}</code>${logLink}</summary>\n\n`;
     blocks += `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`;
   }
