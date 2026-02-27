@@ -2,7 +2,8 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {createMockAttributeResults} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -37,6 +38,7 @@ const defaultAttributeResults = createMockAttributeResults();
 describe('Add Modal', () => {
   beforeEach(() => {
     localStorage.clear();
+    MockApiClient.clearMockResponses();
   });
 
   it('open Add Rule Modal', async () => {
@@ -290,6 +292,459 @@ describe('Add Modal', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
+  it('successful submission sends correct payload', async () => {
+    const closeModal = jest.fn();
+    const onSubmitSuccess = jest.fn();
+
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={closeModal}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={onSubmitSuccess}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Type in source field (default method=MASK, type=CREDITCARD)
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '$message');
+    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    await waitFor(() => {
+      expect(mockPutRequest).toHaveBeenCalled();
+    });
+
+    // Verify the submitted PII config contains the new rule
+    const submittedData = JSON.parse(mockPutRequest.mock.calls[0][1].data.relayPiiConfig);
+
+    // The new rule (creditcard + mask on $message) should be in the config
+    // Rule index 3 is the new one (0-2 are existing)
+    expect(submittedData.rules['3']).toEqual({
+      type: 'creditcard',
+      redaction: {method: 'mask'},
+    });
+    expect(submittedData.applications.$message).toContain('3');
+
+    await waitFor(() => {
+      expect(onSubmitSuccess).toHaveBeenCalled();
+    });
+    expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('submission with REPLACE method includes placeholder', async () => {
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Change method to REPLACE
+    await selectEvent.select(
+      screen.getByText(getMethodLabel(MethodType.MASK).label),
+      getMethodLabel(MethodType.REPLACE).label
+    );
+
+    // Type custom placeholder
+    await userEvent.type(screen.getByPlaceholderText('[Filtered]'), 'REDACTED');
+
+    // Fill source
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '$message');
+    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    await waitFor(() => {
+      expect(mockPutRequest).toHaveBeenCalled();
+    });
+
+    const submittedData = JSON.parse(mockPutRequest.mock.calls[0][1].data.relayPiiConfig);
+    expect(submittedData.rules['3']).toEqual({
+      type: 'creditcard',
+      redaction: {method: 'replace', text: 'REDACTED'},
+    });
+  });
+
+  it('submission with PATTERN type includes pattern and replaceCaptured', async () => {
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Change type to PATTERN (Regex matches)
+    await selectEvent.select(
+      screen.getByText(getRuleLabel(RuleType.CREDITCARD)),
+      getRuleLabel(RuleType.PATTERN)
+    );
+
+    // Enter regex pattern with capture group
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Regex matches'}),
+      '(secret).*'
+    );
+
+    // Check replaceCaptured checkbox (should be enabled due to capture group)
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    );
+
+    // Fill source
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '$message');
+    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    await waitFor(() => {
+      expect(mockPutRequest).toHaveBeenCalled();
+    });
+
+    const submittedData = JSON.parse(mockPutRequest.mock.calls[0][1].data.relayPiiConfig);
+    expect(submittedData.rules['3']).toEqual({
+      type: 'pattern',
+      pattern: '(secret).*',
+      redaction: {method: 'mask'},
+      replaceGroups: [1],
+    });
+  });
+
+  it('validation blocks submission when source is empty', async () => {
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Submit without filling source — Zod validation should block submission
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(await screen.findByText('This field is required')).toBeInTheDocument();
+
+    // Submission should not have happened
+    expect(mockPutRequest).not.toHaveBeenCalled();
+  });
+
+  it('validation blocks submission when pattern is empty for PATTERN type', async () => {
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Change type to PATTERN
+    await selectEvent.select(
+      screen.getByText(getRuleLabel(RuleType.CREDITCARD)),
+      getRuleLabel(RuleType.PATTERN)
+    );
+
+    // Fill source but leave pattern empty
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '$message');
+    await userEvent.tab();
+
+    // Submit — Zod superRefine validation should block because pattern is empty
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(await screen.findByText('This field is required')).toBeInTheDocument();
+
+    // Submission should not have happened
+    expect(mockPutRequest).not.toHaveBeenCalled();
+  });
+
+  it('changing method from REPLACE clears placeholder value', async () => {
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Select REPLACE method
+    await selectEvent.select(
+      screen.getByText(getMethodLabel(MethodType.MASK).label),
+      getMethodLabel(MethodType.REPLACE).label
+    );
+
+    // Type in placeholder
+    await userEvent.type(screen.getByPlaceholderText('[Filtered]'), 'REDACTED');
+    expect(screen.getByPlaceholderText('[Filtered]')).toHaveValue('REDACTED');
+
+    // Switch to MASK
+    await selectEvent.select(
+      screen.getByText(getMethodLabel(MethodType.REPLACE).label),
+      getMethodLabel(MethodType.MASK).label
+    );
+
+    // Placeholder field should be hidden
+    expect(screen.queryByText('Custom Placeholder (Optional)')).not.toBeInTheDocument();
+
+    // Switch back to REPLACE
+    await selectEvent.select(
+      screen.getByText(getMethodLabel(MethodType.MASK).label),
+      getMethodLabel(MethodType.REPLACE).label
+    );
+
+    // Placeholder should be empty (value was cleared)
+    expect(screen.getByPlaceholderText('[Filtered]')).toHaveValue('');
+  });
+
+  it('changing type from PATTERN clears pattern and replaceCaptured', async () => {
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Select PATTERN type
+    await selectEvent.select(
+      screen.getByText(getRuleLabel(RuleType.CREDITCARD)),
+      getRuleLabel(RuleType.PATTERN)
+    );
+
+    // Type regex with capture group
+    await userEvent.type(screen.getByRole('textbox', {name: 'Regex matches'}), '(foo)');
+
+    // Check replaceCaptured
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    );
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).toBeChecked();
+
+    // Switch to CREDITCARD
+    await selectEvent.select(
+      screen.getAllByText(getRuleLabel(RuleType.PATTERN))[0]!,
+      getRuleLabel(RuleType.CREDITCARD)
+    );
+
+    // Regex field should disappear
+    expect(
+      screen.queryByRole('textbox', {name: 'Regex matches'})
+    ).not.toBeInTheDocument();
+
+    // Switch back to PATTERN
+    await selectEvent.select(
+      screen.getByText(getRuleLabel(RuleType.CREDITCARD)),
+      getRuleLabel(RuleType.PATTERN)
+    );
+
+    // Pattern should be empty and replaceCaptured should be unchecked
+    expect(screen.getByRole('textbox', {name: 'Regex matches'})).toHaveValue('');
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).not.toBeChecked();
+  });
+
+  it('replaceCaptured checkbox is disabled without capture groups', async () => {
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Select PATTERN type
+    await selectEvent.select(
+      screen.getByText(getRuleLabel(RuleType.CREDITCARD)),
+      getRuleLabel(RuleType.PATTERN)
+    );
+
+    // Type pattern without capture groups
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Regex matches'}),
+      'secret.*'
+    );
+
+    // Checkbox should be disabled
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).toBeDisabled();
+
+    // Clear and type pattern with capture group
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Regex matches'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Regex matches'}),
+      'xx(secret)xx'
+    );
+
+    // Checkbox should now be enabled
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).toBeEnabled();
+  });
+
+  it('form submits even when event ID has an error', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/data-scrubbing-selector-suggestions/`,
+      body: {suggestions: []},
+    });
+
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Toggle event ID visible
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Use event ID for auto-completion'})
+    );
+
+    // Enter an event ID (API returns empty suggestions → NOT_FOUND status)
+    await userEvent.type(
+      screen.getByPlaceholderText('XXXXXXXXXXXXXX'),
+      '12345678901234567890123456789012{enter}'
+    );
+
+    // Wait for NOT_FOUND status
+    expect(
+      await screen.findByText(
+        'The chosen event ID was not found in projects you have access to'
+      )
+    ).toBeInTheDocument();
+
+    // Fill source field
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '$message');
+    await userEvent.tab();
+
+    // Save should still work despite event ID error
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    await waitFor(() => {
+      expect(mockPutRequest).toHaveBeenCalled();
+    });
+  });
+
   it('does not show dataset selector without ourlogs-enabled feature', () => {
     const handleCloseModal = jest.fn();
 
@@ -325,7 +780,6 @@ describe('Add Modal with ourlogs-enabled', () => {
   const mockAttributeResults = defaultAttributeResults;
 
   beforeEach(() => {
-    localStorage.clear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/trace-items/attributes/`,
@@ -436,7 +890,7 @@ describe('Add Modal with ourlogs-enabled', () => {
     await userEvent.click(screen.getByLabelText('Errors, Transactions, Attachments'));
 
     expect(screen.getByText('Source')).toBeInTheDocument();
-    // Event ID toggle should be present
+    // Event ID toggle button should be present
     expect(
       screen.getByRole('button', {name: 'Use event ID for auto-completion'})
     ).toBeInTheDocument();

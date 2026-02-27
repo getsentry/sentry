@@ -2,9 +2,10 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {createMockAttributeResults} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   makeClosableHeader,
   makeCloseButton,
@@ -14,13 +15,14 @@ import {
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Edit from 'sentry/views/settings/components/dataScrubbing/modals/edit';
-import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
+
+jest.mock('sentry/actionCreators/indicator');
 
 const relayPiiConfig = DataScrubbingRelayPiiConfigFixture();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
@@ -33,8 +35,6 @@ const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 const emptyAttributeResults = createMockAttributeResults(true);
 const mockAttributeResults = createMockAttributeResults();
-
-jest.mock('sentry/views/settings/components/dataScrubbing/submitRules');
 
 describe('Edit Modal', () => {
   beforeEach(() => {
@@ -126,6 +126,12 @@ describe('Edit Modal', () => {
   });
 
   it('edit Rule Modal', async () => {
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
     render(
       <Edit
         Body={ModalBody}
@@ -166,25 +172,17 @@ describe('Edit Modal', () => {
     // Save rule
     await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
-    expect(submitRules).toHaveBeenCalledWith(api, endpoint, [
-      {
-        id: 0,
-        method: 'replace',
-        type: 'password',
-        source: 'password',
-        placeholder: 'Scrubbed',
-      },
-      {id: 1, method: 'mask', type: 'creditcard', source: '$message'},
-      {
-        id: 2,
-        method: 'mask',
-        pattern: '',
-        placeholder: '',
-        replaceCaptured: false,
-        type: 'anything',
-        source: valueSuggestions[2]!.value,
-      },
-    ]);
+    await waitFor(() => {
+      expect(mockPutRequest).toHaveBeenCalled();
+    });
+
+    // Verify the submitted PII config has the edited rule
+    const submittedData = JSON.parse(mockPutRequest.mock.calls[0][1].data.relayPiiConfig);
+    // Rule at index 2 should now be "anything" type with "mask" method
+    expect(submittedData.rules['2']).toEqual({
+      type: 'anything',
+      redaction: {method: 'mask'},
+    });
   });
 
   it('does not show dataset selector without ourlogs-enabled feature', () => {
@@ -212,6 +210,103 @@ describe('Edit Modal', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+  });
+
+  it('surfaces invalid selector error on source field', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      statusCode: 400,
+      body: {relayPiiConfig: ['invalid selector: \n1 | bad$$selector']},
+    });
+
+    render(
+      <Edit
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        Header={makeClosableHeader(jest.fn())}
+        Footer={ModalFooter}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        rule={rule}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(await screen.findByText(/Invalid source value/)).toBeInTheDocument();
+  });
+
+  it('surfaces regex parse error on pattern field', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      statusCode: 400,
+      body: {relayPiiConfig: ['regex parse error:\nerror: unclosed group']},
+    });
+
+    render(
+      <Edit
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        Header={makeClosableHeader(jest.fn())}
+        Footer={ModalFooter}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        rule={rule}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(await screen.findByText(/Invalid regex/)).toBeInTheDocument();
+  });
+
+  it('shows toast for unknown server error', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      statusCode: 400,
+      body: {relayPiiConfig: ['something unexpected']},
+    });
+
+    render(
+      <Edit
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        Header={makeClosableHeader(jest.fn())}
+        Footer={ModalFooter}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        rule={rule}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'An unknown error occurred while saving data scrubbing rule'
+      );
+    });
   });
 });
 
