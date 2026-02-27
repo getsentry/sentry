@@ -224,6 +224,11 @@ describe('getDetectorOpenInDestination', () => {
         expect(result?.to).toContain('/explore/metrics/');
         expect(result?.to).toContain('project=1');
         expect(result?.to).toContain('environment=prod');
+        expect(result?.to).toContain('statsPeriod=7d');
+        expect(result?.to).toContain('interval=5m');
+        // Metric query params are JSON-encoded then URL-encoded
+        expect(result?.to).toContain('my_metric');
+        expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2C-%29');
       });
     });
 
