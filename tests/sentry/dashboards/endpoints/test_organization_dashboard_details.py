@@ -44,6 +44,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -52,6 +53,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1848,8 +1850,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == 4
-        for w in widgets:
-            print(f"DEBUG widget id={w.id} title={w.title!r} order={w.order}")
         assert self.widget_1.id == widgets[0].id
         assert self.widget_2.id == widgets[1].id
         assert self.widget_4.id == widgets[2].id
