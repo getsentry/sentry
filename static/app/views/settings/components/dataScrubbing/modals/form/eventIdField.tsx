@@ -160,8 +160,6 @@ function EventIdField({
   );
 }
 
-export {suggestionOptions};
-export type {FieldProps};
 export default EventIdField;
 
 const StyledInput = styled(Input)`
