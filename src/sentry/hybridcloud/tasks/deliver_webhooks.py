@@ -130,8 +130,10 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
         return
 
     lock_key = _drain_lock_key(mailbox_name)
+    lock_acquired = False
     try:
         if cache.add(lock_key, 1, timeout=15):
+            lock_acquired = True
             # Only drain if the true mailbox head (lowest ID) is ready to deliver.
             # We must check the head specifically — filtering by schedule_for first
             # would skip the head and return a later payload, breaking head-of-line
@@ -149,20 +151,16 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
                 metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
                 return
             head_id = head[0]
-            # Claim the head payload by bumping schedule_for, matching the pattern used
-            # by schedule_webhook_delivery. This prevents a concurrent scheduler run
-            # from re-enqueuing this mailbox in the window between drain_mailbox.delay()
-            # returning and the drain task entering its loop and refreshing the lock.
-            WebhookPayload.objects.filter(id=head_id).update(
-                schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
-            )
             drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.success")
         else:
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.skipped")
     except Exception:
-        # Release the lock on any failure so delivery isn't blocked for 15s.
-        _release_drain_lock(mailbox_name)
+        # Only release the lock if this caller acquired it. Releasing unconditionally
+        # would delete another process's lock when cache.add returned False and a
+        # subsequent operation (e.g. metrics.incr) raised.
+        if lock_acquired:
+            _release_drain_lock(mailbox_name)
         metrics.incr("hybridcloud.deliver_webhooks.push_trigger.error")
 
 
