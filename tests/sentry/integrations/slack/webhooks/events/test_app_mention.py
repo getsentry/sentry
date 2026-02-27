@@ -18,7 +18,7 @@ THREADED_APP_MENTION_EVENT = {
 
 
 class AppMentionEventTest(BaseEventTest):
-    @patch("sentry.seer.entrypoints.slack.tasks.process_explorer_mention.apply_async")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_dispatches_task(self, mock_apply_async):
         with self.feature("organizations:seer-slack-explorer"):
             resp = self.post_webhook(event_data=APP_MENTION_EVENT)
@@ -34,7 +34,7 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["text"] == APP_MENTION_EVENT["text"]
         assert kwargs["slack_user_id"] == "U1234567890"
 
-    @patch("sentry.seer.entrypoints.slack.tasks.process_explorer_mention.apply_async")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_threaded(self, mock_apply_async):
         with self.feature("organizations:seer-slack-explorer"):
             resp = self.post_webhook(event_data=THREADED_APP_MENTION_EVENT)
@@ -44,14 +44,14 @@ class AppMentionEventTest(BaseEventTest):
         kwargs = mock_apply_async.call_args[1]["kwargs"]
         assert kwargs["thread_ts"] == "1234567890.000001"
 
-    @patch("sentry.seer.entrypoints.slack.tasks.process_explorer_mention.apply_async")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_feature_flag_disabled(self, mock_apply_async):
         resp = self.post_webhook(event_data=APP_MENTION_EVENT)
 
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.tasks.process_explorer_mention.apply_async")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_empty_text(self, mock_apply_async):
         event_data = {**APP_MENTION_EVENT, "text": ""}
         with self.feature("organizations:seer-slack-explorer"):
@@ -60,7 +60,7 @@ class AppMentionEventTest(BaseEventTest):
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.tasks.process_explorer_mention.apply_async")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_no_organization(self, mock_apply_async):
         """When the integration has no org integrations, we should not dispatch."""
         with patch(

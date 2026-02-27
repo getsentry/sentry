@@ -346,9 +346,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not channel_id or not text:
             return self.respond()
 
-        from sentry.seer.entrypoints.slack.tasks import process_explorer_mention
+        from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
-        process_explorer_mention.apply_async(
+        process_mention_for_slack.apply_async(
             kwargs={
                 "integration_id": slack_request.integration.id,
                 "organization_id": organization_id,

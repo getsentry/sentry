@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.seer.entrypoints.slack.process_explorer_mention",
+    name="sentry.seer.entrypoints.slack.process_mention_for_slack",
     namespace=integrations_tasks,
     processing_deadline_duration=300,
     retry=Retry(times=2, delay=30),
 )
-def process_explorer_mention(
+def process_mention_for_slack(
     *,
     integration_id: int,
     organization_id: int,
