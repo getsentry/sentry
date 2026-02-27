@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - mchen/test-migration-targeted
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
