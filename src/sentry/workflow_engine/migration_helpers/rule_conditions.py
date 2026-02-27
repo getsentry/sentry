@@ -317,7 +317,7 @@ data_condition_to_rule_condition_mapping = {
     Condition.PERCENT_SESSIONS_COUNT: create_percent_sessions_condition,
     Condition.PERCENT_SESSIONS_PERCENT: create_percent_sessions_condition,
 }
-filter_id_to_condition_type_mapping = {
+FILTER_ID_TO_CONDITION_TYPE_MAPPING = {
     TaggedEventFilter.id: Condition.TAGGED_EVENT.value,
     EventAttributeFilter.id: Condition.EVENT_ATTRIBUTE.value,
     AgeComparisonFilter.id: Condition.AGE_COMPARISON.value,
@@ -338,10 +338,4 @@ def translate_to_rule_condition_filters(
     if not translator:
         raise ValueError(f"Unsupported condition: {data_condition.type}")
 
-    condition_data, filters = translator(data_condition, is_filter)
-    condition_data["condition_type"] = data_condition.type
-
-    for f in filters:
-        f["condition_type"] = filter_id_to_condition_type_mapping[f["id"]]
-
-    return condition_data, filters
+    return translator(data_condition, is_filter)

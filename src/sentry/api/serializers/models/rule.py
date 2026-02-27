@@ -419,6 +419,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         from sentry.workflow_engine.migration_helpers.rule_conditions import (
+            FILTER_ID_TO_CONDITION_TYPE_MAPPING,
             translate_to_rule_condition_filters,
         )
 
@@ -457,9 +458,13 @@ class WorkflowEngineRuleSerializer(Serializer):
                     cond, is_filter=is_filter
                 )
                 if condition_data.get("id"):
+                    condition_data["condition_type"] = cond.type
                     all_conditions.append(
                         update_condition_name(condition_data, is_slow_condition(cond))
                     )
+                for f in filters:
+                    f["condition_type"] = FILTER_ID_TO_CONDITION_TYPE_MAPPING[f["id"]]
+
                 all_filters.extend([update_condition_name(f) for f in filters])
 
         trigger_conditions = (
