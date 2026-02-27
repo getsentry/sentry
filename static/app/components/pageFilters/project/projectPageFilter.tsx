@@ -34,7 +34,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export interface ProjectPageFilterProps extends Partial<
@@ -84,7 +83,7 @@ export function ProjectPageFilter({
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {
-    selection: {projects: pageFilterValue},
+    selection: {projects: urlProjectSelection},
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
@@ -102,18 +101,20 @@ export function ProjectPageFilter({
     return [partitionedProjects[0], []];
   }, [projects, showNonMemberProjects]);
 
-  const [value, defaultValue] = useMemo<[number[], number[]]>(
+  // Committed selection comes from page filters (URL/store); draft selection lives in
+  // useStagedCompactSelect while the menu is open.
+  const [committedSelection, defaultMemberSelection] = useMemo<[number[], number[]]>(
     () => [
-      mapURLValueToNormalValue({
-        value: pageFilterValue,
+      fromURLValue({
+        value: urlProjectSelection,
         memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
       }),
-      mapURLValueToNormalValue({
+      fromURLValue({
         value: [],
         memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
       }),
     ],
-    [pageFilterValue, memberProjects]
+    [urlProjectSelection, memberProjects]
   );
 
   // Ref to break the circular dependency: options need toggleOption/dispatch, but those
@@ -141,129 +142,50 @@ export function ProjectPageFilter({
     bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
   }
 
-  const [stagedValue, setStagedValue] = useState<number[]>(value);
-  const [hasStagedValue, setHasStagedValue] = useState(false);
+  const [draftSelection, setDraftSelection] = useState<number[]>(committedSelection);
+  const [hasDraftSelection, setHasDraftSelection] = useState(false);
 
-  const handleChange = useCallback(
-    async (newValue: number[]) => {
-      // Translate sentinel values to their actual project ID lists
-      let resolvedValue = newValue;
-      if (newValue.includes(ALL_ACCESS_PROJECTS)) {
-        resolvedValue = [];
-      } else if (newValue.includes(MY_PROJECTS_VALUE)) {
-        resolvedValue = defaultValue;
+  const applySentinelTransition = useCallback((transition: SentinelTransition) => {
+    dispatchRef.current?.({type: 'set staged', value: transition.stagedValue});
+    setSuppressedCommittedModes(prev => {
+      if (transition.suppressed.type === 'clear') {
+        return new Set();
       }
-
-      onChange?.(resolvedValue);
-
-      trackAnalytics('projectselector.update', {
-        count: resolvedValue.length,
-        path: getRouteStringFromRoutes(routes),
-        organization,
-        multi: resolvedValue.length > 1,
-      });
-
-      // Wait for the menu to close before calling onChange
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      updateProjects(
-        mapNormalValueToURLValue({
-          value: resolvedValue,
-          memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
-          showNonMemberProjects,
-        }),
-        router,
-        {
-          save: true,
-          resetParams: resetParamsOnChange,
-          environments: [], // Clear environments when switching projects
-          storageNamespace,
-        }
-      );
-    },
-    [
-      defaultValue,
-      memberProjects,
-      showNonMemberProjects,
-      resetParamsOnChange,
-      router,
-      organization,
-      routes,
-      onChange,
-      storageNamespace,
-    ]
-  );
+      return new Set([...prev, ...transition.suppressed.modes]);
+    });
+  }, []);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
     const {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode} =
       getSentinelSelectionState({
-        pageFilterValue,
-        stagedValue,
+        committedUrlSelection: urlProjectSelection,
+        draftSelection,
         suppressedCommittedModes,
-        hasStagedValue,
+        hasDraftSelection,
       });
     const allProjectsSentinelStaged = stagedSentinelMode === 'all';
     const myProjectsSentinelStaged = stagedSentinelMode === 'my';
     // When there is no staged state, use URL mode fallback so checkboxes reflect
     // committed All/My Projects modes. If staged state exists (even empty []), do not
     // fall back to committed URL modes.
-    const noStagedChanges = !hasStagedValue;
-    const setStaged = (nextValue: number[]) => {
-      dispatchRef.current?.({type: 'set staged', value: nextValue});
-    };
-
-    const handleAllProjectsToggle = () => {
-      const transition = isAllProjectsMode
-        ? {
-            stagedValue: [],
-            suppressed: {type: 'add', modes: ['all']},
-          }
-        : {
-            stagedValue: [ALL_ACCESS_PROJECTS],
-            suppressed: {type: 'clear'},
-          };
-
-      setStaged(transition.stagedValue);
-      setSuppressedCommittedModes(prev => {
-        if (transition.suppressed.type === 'clear') {
-          return new Set();
-        }
-        return new Set([...prev, ...transition.suppressed.modes]);
-      });
-    };
-
-    const handleMyProjectsToggle = () => {
-      const transition = getMyProjectsToggleTransition({
-        isAllProjectsMode,
-        isMyProjectsMode,
-        stagedSentinelMode,
-        nonMemberProjectIds: nonMemberProjects.map(project => parseInt(project.id, 10)),
-      });
-      setStaged(transition.stagedValue);
-      setSuppressedCommittedModes(prev => {
-        if (transition.suppressed.type === 'clear') {
-          return new Set();
-        }
-        return new Set([...prev, ...transition.suppressed.modes]);
-      });
-    };
-
-    const allProjectIds = [
-      ...memberProjects.map(project => parseInt(project.id, 10)),
-      ...nonMemberProjects.map(project => parseInt(project.id, 10)),
-    ];
+    const noStagedChanges = !hasDraftSelection;
 
     const handleProjectToggle = (project: Project) => {
       const clickedProjectId = parseInt(project.id, 10);
 
       const fallbackSelection =
         !allProjectsSentinelStaged && !myProjectsSentinelStaged
-          ? hasStagedValue
+          ? hasDraftSelection
             ? null
             : isAllProjectsMode
-              ? allProjectIds
+              ? [
+                  ...memberProjects.map(memberProject => parseInt(memberProject.id, 10)),
+                  ...nonMemberProjects.map(nonMemberProject =>
+                    parseInt(nonMemberProject.id, 10)
+                  ),
+                ]
               : isMyProjectsMode && project.isMember
-                ? memberProjects.map(p => parseInt(project.id, 10))
+                ? memberProjects.map(memberProject => parseInt(memberProject.id, 10))
                 : null
           : null;
 
@@ -413,7 +335,18 @@ export function ProjectPageFilter({
                 <Fragment>
                   <MenuComponents.Checkbox
                     checked={isAllProjectsMode}
-                    onChange={handleAllProjectsToggle}
+                    onChange={() => {
+                      const transition: SentinelTransition = isAllProjectsMode
+                        ? {
+                            stagedValue: [],
+                            suppressed: {type: 'add', modes: ['all']},
+                          }
+                        : {
+                            stagedValue: [ALL_ACCESS_PROJECTS],
+                            suppressed: {type: 'clear'},
+                          };
+                      applySentinelTransition(transition);
+                    }}
                     aria-label={t('Select All Projects')}
                     tabIndex={-1}
                   />
@@ -463,7 +396,18 @@ export function ProjectPageFilter({
                 <Fragment>
                   <MenuComponents.Checkbox
                     checked={isMyProjectsMode}
-                    onChange={handleMyProjectsToggle}
+                    onChange={() => {
+                      applySentinelTransition(
+                        getMyProjectsToggleTransition({
+                          isAllProjectsMode,
+                          isMyProjectsMode,
+                          stagedSentinelMode,
+                          nonMemberProjectIds: nonMemberProjects.map(project =>
+                            parseInt(project.id, 10)
+                          ),
+                        })
+                      );
+                    }}
                     aria-label={t('Select My Projects')}
                     tabIndex={-1}
                   />
@@ -475,10 +419,11 @@ export function ProjectPageFilter({
         : []),
     ];
 
-    const lastSelected = mapURLValueToNormalValue({
-      value: pageFilterValue,
+    const lastSelected = fromURLValue({
+      value: urlProjectSelection,
       memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
     });
+
     const listSort = (project: Project) =>
       bookmarkedSnapshotRef.current
         ? [
@@ -504,49 +449,34 @@ export function ProjectPageFilter({
     nonMemberProjects,
     projects.length,
     optimisticallyBookmarkedProjects,
-    pageFilterValue,
-    hasStagedValue,
-    stagedValue,
+    urlProjectSelection,
+    hasDraftSelection,
+    draftSelection,
     suppressedCommittedModes,
+    applySentinelTransition,
   ]);
 
-  const defaultMenuWidth = useMemo(() => {
-    // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = options.reduce((acc, cur) => {
-      const length = cur.textValue?.length ?? 0;
-      return length > acc ? length : acc;
-    }, 0);
-
-    // Calculate an appropriate width for the menu. It should be between 22  and 28em.
-    // Within that range, the width is a function of the length of the longest slug.
-    // The project slugs take up to (longestSlugLength * 0.6)em of horizontal space
-    // (each character occupies roughly 0.6em).
-    // We also need to add 12em to account for padding, trailing buttons, and the checkbox.
-    const minWidthEm = 22;
-    return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
-  }, [options]);
-
   const selectionLimitExceeded = useMemo(() => {
-    const realStagedValue = stagedValue.filter(
+    const realStagedValue = draftSelection.filter(
       v => v !== ALL_ACCESS_PROJECTS && v !== MY_PROJECTS_VALUE
     );
-    const mappedValue = mapNormalValueToURLValue({
+    const mappedValue = toURLValue({
       value: realStagedValue,
       memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
       showNonMemberProjects,
     });
     return mappedValue.length > SELECTION_COUNT_LIMIT;
-  }, [stagedValue, showNonMemberProjects, memberProjects]);
+  }, [draftSelection, showNonMemberProjects, memberProjects]);
 
   const onToggle = useCallback(
     (newValue: number[]) => {
       trackAnalytics('projectselector.toggle', {
-        action: newValue.length > stagedValue.length ? 'added' : 'removed',
+        action: newValue.length > draftSelection.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
         organization,
       });
     },
-    [stagedValue, routes, organization]
+    [draftSelection, routes, organization]
   );
 
   const onReplace = useCallback(() => {
@@ -556,12 +486,60 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
+  const commitSelection = useCallback(
+    (newValue: number[]) => {
+      // Translate sentinel values to their actual project ID lists
+      let resolvedValue = newValue;
+      if (newValue.includes(ALL_ACCESS_PROJECTS)) {
+        resolvedValue = [];
+      } else if (newValue.includes(MY_PROJECTS_VALUE)) {
+        resolvedValue = defaultMemberSelection;
+      }
+
+      onChange?.(resolvedValue);
+
+      trackAnalytics('projectselector.update', {
+        count: resolvedValue.length,
+        path: getRouteStringFromRoutes(routes),
+        organization,
+        multi: resolvedValue.length > 1,
+      });
+
+      updateProjects(
+        toURLValue({
+          value: resolvedValue,
+          memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
+          showNonMemberProjects,
+        }),
+        router,
+        {
+          save: true,
+          resetParams: resetParamsOnChange,
+          // Why are we clearing the environments when switching projects?
+          environments: [],
+          storageNamespace,
+        }
+      );
+    },
+    [
+      defaultMemberSelection,
+      memberProjects,
+      showNonMemberProjects,
+      resetParamsOnChange,
+      router,
+      organization,
+      routes,
+      onChange,
+      storageNamespace,
+    ]
+  );
+
   const stagedSelect = useStagedCompactSelect({
-    value,
+    value: committedSelection,
     options,
-    onChange: handleChange,
-    onStagedValueChange: setStagedValue,
-    onStagedStateChange: setHasStagedValue,
+    onChange: commitSelection,
+    onStagedValueChange: setDraftSelection,
+    onStagedStateChange: setHasDraftSelection,
     onToggle,
     onReplace,
     multiple: true,
@@ -575,6 +553,10 @@ export function ProjectPageFilter({
   dispatchRef.current = stagedSelect.dispatch;
 
   const {dispatch} = stagedSelect;
+  const clearDraftSelectionState = useCallback(() => {
+    dispatch({type: 'remove staged'});
+    setSuppressedCommittedModes(new Set());
+  }, [dispatch]);
 
   // True when the user has explicitly deselected "My Projects" from a My-Projects URL
   // state but hasn't selected anything else. In this state we suppress the Apply button
@@ -584,7 +566,7 @@ export function ProjectPageFilter({
   const isMyProjectsDeselectedOnly =
     stagedSelect.value.length === 0 &&
     suppressedCommittedModes.has('my') &&
-    pageFilterValue.length === 0;
+    urlProjectSelection.length === 0;
 
   // Merge the hook's onOpenChange (resets shift-click anchor) with the local
   // snapshot logic (freezes the bookmark sort order while the menu is open).
@@ -600,47 +582,50 @@ export function ProjectPageFilter({
   );
 
   const handleReset = useCallback(() => {
-    dispatch({type: 'remove staged'});
-    setSuppressedCommittedModes(new Set());
-    handleChange(defaultValue);
+    clearDraftSelectionState();
+    commitSelection(defaultMemberSelection);
     onReset?.();
 
     trackAnalytics('projectselector.clear', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-  }, [dispatch, handleChange, defaultValue, onReset, routes, organization]);
+  }, [
+    clearDraftSelectionState,
+    commitSelection,
+    defaultMemberSelection,
+    onReset,
+    routes,
+    organization,
+  ]);
 
   const handleCancel = useCallback(() => {
     trackAnalytics('projectselector.cancel', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-    dispatch({type: 'remove staged'});
-    setSuppressedCommittedModes(new Set());
-  }, [dispatch, routes, organization]);
-
-  // Revert staged changes without committing. Used when My Projects is deselected only —
-  // clicking outside should not commit [] → All Projects URL.
-  const handleRevertOnClose = useCallback(() => {
-    dispatch({type: 'remove staged'});
-    setSuppressedCommittedModes(new Set());
-  }, [dispatch]);
+    clearDraftSelectionState();
+  }, [clearDraftSelectionState, routes, organization]);
 
   const handleApply = useCallback(() => {
     trackAnalytics('projectselector.apply', {
-      count: stagedValue.length,
-      multi: stagedValue.length > 1,
+      count: draftSelection.length,
+      multi: draftSelection.length > 1,
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-    dispatch({type: 'remove staged'});
-    setSuppressedCommittedModes(new Set());
-    handleChange(stagedSelect.value);
-  }, [dispatch, handleChange, routes, organization, stagedSelect.value, stagedValue]);
+    clearDraftSelectionState();
+    commitSelection(stagedSelect.value);
+  }, [
+    clearDraftSelectionState,
+    commitSelection,
+    routes,
+    organization,
+    stagedSelect.value,
+    draftSelection,
+  ]);
 
-  const hasStagedChanges =
-    !isMyProjectsDeselectedOnly && xor(stagedSelect.value, value).length > 0;
+  const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
   return (
     <CompactSelect
@@ -671,19 +656,20 @@ export function ProjectPageFilter({
       menuWidth={menuWidth ?? defaultMenuWidth}
       onInteractOutside={
         isMyProjectsDeselectedOnly
-          ? handleRevertOnClose
+          ? clearDraftSelectionState
           : stagedSelect.compactSelectProps.onInteractOutside
       }
       onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
-        xor(stagedSelect.value, defaultValue).length > 0 ? (
+        xor(stagedSelect.value, defaultMemberSelection).length > 0 ? (
           <MenuComponents.ResetButton onClick={handleReset} />
         ) : null
       }
       menuFooter={
         selectionLimitExceeded ||
         organization.access.includes('project:write') ||
-        hasStagedChanges ? (
+        (!isMyProjectsDeselectedOnly &&
+          xor(stagedSelect.value, committedSelection).length > 0) ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
               <MenuComponents.Alert variant="warning">
@@ -691,7 +677,7 @@ export function ProjectPageFilter({
                   `You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.`,
                   {
                     limit: SELECTION_COUNT_LIMIT,
-                    count: stagedValue.length,
+                    count: draftSelection.length,
                   }
                 )}
               </MenuComponents.Alert>
@@ -710,15 +696,13 @@ export function ProjectPageFilter({
                   {t('Create Project')}
                 </MenuComponents.CTALinkButton>
               ) : undefined}
-              {hasStagedChanges ? (
-                <Flex gap="md" align="center" justify="end">
-                  <MenuComponents.CancelButton onClick={handleCancel} />
-                  <MenuComponents.ApplyButton
-                    disabled={selectionLimitExceeded}
-                    onClick={handleApply}
-                  />
-                </Flex>
-              ) : null}
+              <Flex gap="md" align="center" justify="end">
+                <MenuComponents.CancelButton onClick={handleCancel} />
+                <MenuComponents.ApplyButton
+                  disabled={selectionLimitExceeded}
+                  onClick={handleApply}
+                />
+              </Flex>
             </Flex>
           </Stack>
         ) : null
@@ -728,7 +712,7 @@ export function ProjectPageFilter({
         (triggerProps => (
           <ProjectPageFilterTrigger
             {...triggerProps}
-            value={value}
+            value={committedSelection}
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}
             ready={projectsLoaded && pageFilterIsReady}
@@ -766,32 +750,38 @@ type SentinelTransition =
   | {stagedValue: number[]; suppressed: {type: 'clear'}};
 
 function getSentinelSelectionState({
-  pageFilterValue,
-  stagedValue,
+  committedUrlSelection,
+  draftSelection,
   suppressedCommittedModes,
-  hasStagedValue,
+  hasDraftSelection,
 }: {
-  hasStagedValue: boolean;
-  pageFilterValue: number[];
-  stagedValue: number[];
+  committedUrlSelection: number[];
+  draftSelection: number[];
+  hasDraftSelection: boolean;
   suppressedCommittedModes: Set<SentinelMode>;
 }): SentinelSelectionState {
-  const stagedSentinelMode: SentinelMode | null = stagedValue.includes(
+  const stagedSentinelMode: SentinelMode | null = draftSelection.includes(
     ALL_ACCESS_PROJECTS
   )
     ? 'all'
-    : stagedValue.includes(MY_PROJECTS_VALUE)
+    : draftSelection.includes(MY_PROJECTS_VALUE)
       ? 'my'
       : null;
-  const committedAllProjectsMode = pageFilterValue.includes(ALL_ACCESS_PROJECTS);
-  const committedMyProjectsMode = pageFilterValue.length === 0;
+
+  const committedAllProjectsMode = committedUrlSelection.includes(ALL_ACCESS_PROJECTS);
+  const committedMyProjectsMode = committedUrlSelection.length === 0;
+
   const isAllProjectsMode =
     stagedSentinelMode === 'all' ||
-    (!suppressedCommittedModes.has('all') && !hasStagedValue && committedAllProjectsMode);
+    (!suppressedCommittedModes.has('all') &&
+      !hasDraftSelection &&
+      committedAllProjectsMode);
   const isMyProjectsMode =
     isAllProjectsMode ||
     stagedSentinelMode === 'my' ||
-    (!suppressedCommittedModes.has('my') && !hasStagedValue && committedMyProjectsMode);
+    (!suppressedCommittedModes.has('my') &&
+      !hasDraftSelection &&
+      committedMyProjectsMode);
 
   return {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode};
 }
@@ -828,14 +818,13 @@ function getMyProjectsToggleTransition({
   };
 }
 
-function mapURLValueToNormalValue({
+function fromURLValue({
   memberProjectIds,
   value,
 }: {
   memberProjectIds: number[];
   value: number[];
 }): number[] {
-  // "All Projects"
   if (value.includes(ALL_ACCESS_PROJECTS)) {
     return [];
   }
@@ -848,7 +837,7 @@ function mapURLValueToNormalValue({
   return value;
 }
 
-function mapNormalValueToURLValue({
+function toURLValue({
   memberProjectIds,
   showNonMemberProjects,
   value,
@@ -857,12 +846,7 @@ function mapNormalValueToURLValue({
   showNonMemberProjects: boolean;
   value: number[];
 }): number[] {
-  if (value.includes(ALL_ACCESS_PROJECTS)) {
-    return [ALL_ACCESS_PROJECTS];
-  }
-
-  // "All Projects"
-  if (!value.length) {
+  if (value.includes(ALL_ACCESS_PROJECTS) || !value.length) {
     return [ALL_ACCESS_PROJECTS];
   }
 
@@ -880,4 +864,29 @@ function mapNormalValueToURLValue({
   }
 
   return value;
+}
+
+const MENU_MIN_WIDTH_EM = 22;
+const MENU_MAX_WIDTH_EM = 28;
+const MENU_SLUG_CHAR_WIDTH_EM = 0.6;
+const MENU_FIXED_WIDTH_EM = 12;
+function computeMenuWidth(options: Array<SelectOption<number>>): string {
+  // ProjectPageFilter will try to expand to accommodate the longest project slug
+  const longestSlugLength = options.reduce((acc, cur) => {
+    const length = cur.textValue?.length ?? 0;
+    return length > acc ? length : acc;
+  }, 0);
+
+  // Calculate an appropriate width for the menu. It should be between 22  and 28em.
+  // Within that range, the width is a function of the length of the longest slug.
+  // The project slugs take up to (longestSlugLength * 0.6)em of horizontal space
+  // (each character occupies roughly 0.6em).
+  // We also need to add 12em to account for padding, trailing buttons, and the checkbox.
+  return `${Math.max(
+    MENU_MIN_WIDTH_EM,
+    Math.min(
+      MENU_MAX_WIDTH_EM,
+      longestSlugLength * MENU_SLUG_CHAR_WIDTH_EM + MENU_FIXED_WIDTH_EM
+    )
+  )}em`;
 }
