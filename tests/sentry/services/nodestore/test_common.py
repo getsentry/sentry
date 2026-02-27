@@ -115,3 +115,8 @@ def test_set_subkeys(ns: NodeStorage) -> None:
     ns.delete("node_1")
     assert ns.get("node_1") is None
     assert ns.get("node_1", subkey="other") is None
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

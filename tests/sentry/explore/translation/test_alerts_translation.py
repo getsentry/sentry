@@ -1589,3 +1589,8 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

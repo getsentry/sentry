@@ -14,3 +14,8 @@ class UserOrganizationsTest(APITestCase):
         response = self.get_success_response("me")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(organization_id)
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

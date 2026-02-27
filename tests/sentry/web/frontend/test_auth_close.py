@@ -36,3 +36,8 @@ class AuthClose(TestCase):
 
         resp = self.client.get(self.path)
         assert resp.context["logged_in"]
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"

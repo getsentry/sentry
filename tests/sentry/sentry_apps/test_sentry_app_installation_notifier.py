@@ -133,3 +133,8 @@ class TestInstallationNotifier(TestCase):
         assert len(requests) == 2
         assert requests[0]["event_type"] == "installation.deleted"
         assert requests[1]["event_type"] == "installation.created"
+
+
+# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
+def test_intentional_failure_for_ci_reporting():
+    assert False, "Intentional failure to test backend CI failure reporting"
