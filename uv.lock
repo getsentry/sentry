@@ -103,6 +103,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/brotli-1.2.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:9e5825ba2c9998375530504578fd4d5d1059d09621a02065d1b6bfc41a8e05ab" },
     { url = "https://pypi.devinfra.sentry.io/wheels/brotli-1.2.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c8565e3cdc1808b1a34714b553b262c5de5fbda202285782173ec137fd13709f" },
     { url = "https://pypi.devinfra.sentry.io/wheels/brotli-1.2.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:67a91c5187e1eec76a61625c77a6c8c785650f5b576ca732bd33ef58b0dff49c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/brotli-1.2.0-cp314-cp314-macosx_10_15_universal2.whl", hash = "sha256:6c12dad5cd04530323e723787ff762bac749a7b256a5bece32b2243dd5c27b21" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/brotli-1.2.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:963a08f3bebd8b75ac57661045402da15991468a621f014be54e50f53a58d19e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/brotli-1.2.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:cf9cba6f5b78a2071ec6fb1e7bd39acf35071d90a81231d67e92d637776a6a63" },
 ]
 
 [[package]]
@@ -145,6 +148,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0984a4925a435b1da406122d4d7968dd861c1385afe3b45ba82b750f229811e2" },
     { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:706510fe141c86a69c8ddc029c7910003a17353970cff3b904ff0686a5927683" },
     { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dd398dbc6773384a17fe0d3e7eeb8d1a21c2200473ee6806bb5e6a8e62bb73dd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:b68a8fc9d607e33a63857a353e9255b52b4b9dfcf1259ba72d82658440865724" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:246b02d160e8bf9d2db536b2c49cda912e83a4bc12ccadfbe1154a9965c89b75" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:2336726f5b751a982dcf99bc97f9683db0cc9fe8eec6118865edad9a478149d6" },
 ]
 
 [[package]]
@@ -172,6 +178,7 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/charset_normalizer-3.4.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:92a7e36b000bf022ef3dbb9c46bfe2d52c047d5e3f3343f43204263c5addc250" },
     { url = "https://pypi.devinfra.sentry.io/wheels/charset_normalizer-3.4.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:54b6a92d009cbe2fb11054ba694bc9e284dad30a26757b1e372a1fdddaf21920" },
     { url = "https://pypi.devinfra.sentry.io/wheels/charset_normalizer-3.4.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4796efc4faf6b53a18e3d46343535caed491776a22af773f366534056c4e1fbc" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/charset_normalizer-3.4.0-py3-none-any.whl", hash = "sha256:fe9f97feb71aa9896b81973a7bbada8c49501dc73e58a10fcef6663af95e5079" },
 ]
 
 [[package]]
@@ -213,6 +220,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/coverage-7.6.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:b0ac3d42cb51c4b12df9c5f0dd2f13a4f24f01943627120ec4d293c9181219ba" },
     { url = "https://pypi.devinfra.sentry.io/wheels/coverage-7.6.4-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f8fe4984b431f8621ca53d9380901f62bfb54ff759a1348cd140490ada7b693c" },
     { url = "https://pypi.devinfra.sentry.io/wheels/coverage-7.6.4-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dacbc52de979f2823a819571f2e3a350a7e36b8cb7484cdb1e289bceaf35305f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/coverage-7.6.4-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:195bb15106367d53b0568a0f5cdf6e3b90ab60a618bcc52769585d5384941021" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/coverage-7.6.4-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:4ba20745bbafc23169ddbac67751686f5c062e843482c00d12bce78229f91832" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/coverage-7.6.4-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:62d663523d03014e6215fcc04ccdc843bb7c4d05eda4720972128f3b83885fb9" },
 ]
 
 [[package]]
@@ -716,6 +726,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/google_crc32c-1.6.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:37e9126c083345f27a86c606168c96a10f4385a57079274fc7c9e59140ee4703" },
     { url = "https://pypi.devinfra.sentry.io/wheels/google_crc32c-1.6.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:c07c8e51d3d79c06ccc71cda8ba463a7a0f5f3b97088b02ab09a1107e40fd8db" },
     { url = "https://pypi.devinfra.sentry.io/wheels/google_crc32c-1.6.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:651a890f3d56b51b6bcbf0620b64ce6648fcd684e03240609bb6edc2055d11f1" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_crc32c-1.6.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:bbaa120af474ad969f13acd097eb05dd3c19d910078bee1b2f1b242d01569033" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_crc32c-1.6.0-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:db1adc05f705c91127e4b4ce7a706416f3998bafae968bb6ecc2d8363b23eee8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_crc32c-1.6.0-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:db3b57e16252dfd8606edcf0b2ec652dde01b910a8890c030ca8edcde97f7978" },
 ]
 
 [[package]]
@@ -820,6 +833,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:5b8f381eadcd6ecaa143a21e9e80a26424c76a0a9b3d546febe6648f3a36a5ac" },
     { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5bf4001d3293e3414d0cf99ff9b1139106e57c3a66dfff0c5f60b2a6286ec133" },
     { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0ee119f4f88d9f75414217823d21d75bfe0e6ed40135b0cbbfc6376bc9f7757d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp314-cp314-macosx_11_0_universal2.whl", hash = "sha256:06373a94fd16ec287116a825161dca179a0402d0c60674ceeec8c9fba344fe66" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:4484f4b7287bdaa7a5b3980f3c7224c3c622669405d20f69549f5fb956ad0421" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:07a554fa31c668cf0e7a188678ceeca3cb8fead29bbe455352e712ec33ca701c" },
 ]
 
 [[package]]
@@ -876,6 +892,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/hiredis-2.3.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:353e2f99f4c70188d9c588a909da525d59909da0e4e26e6f7f8f087a2baea6d6" },
     { url = "https://pypi.devinfra.sentry.io/wheels/hiredis-2.3.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:62168d8ac203024c45ed71afaa3d7ca385c78f4b1dac577b69cada0f4c2fd51f" },
     { url = "https://pypi.devinfra.sentry.io/wheels/hiredis-2.3.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c885fdb3252ea88f1de1b8e1c64d26e70aaf4a0962d4841f2896ee05a7e8bdf5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/hiredis-2.3.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:1645edb1d30fbbad0b5ead6bf91b890c6d5c46c4970ef988dc191f41ab1299ce" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/hiredis-2.3.2-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:493e0be31edd922a37420f8606b4f7d972bf2bd982b9cb8db850568e6186a9cb" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/hiredis-2.3.2-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:ec6010ac5d0d56ae24bffd5f4f77015dbb3cf985b6105a00acc6adcf2a96a056" },
 ]
 
 [[package]]
@@ -1084,6 +1103,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/lazy_object_proxy-1.10.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ddc3eb74e64cbcda1eda390c05a87374b18c4eb6851010cb7d28d37138353a45" },
     { url = "https://pypi.devinfra.sentry.io/wheels/lazy_object_proxy-1.10.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:477f83401dd4959b56bb0a9a5879effa3b221de8d7f46dd005e9711047534e01" },
     { url = "https://pypi.devinfra.sentry.io/wheels/lazy_object_proxy-1.10.0-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:18aee130bee3d713b488ae107aa80c0d2e39f1791b780cc84072845cc3178a6e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/lazy_object_proxy-1.10.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:159930535bed31b061491337fea7421d086c165f6a92fef28f7bbfd8d645c5aa" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/lazy_object_proxy-1.10.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:5adfcdd9d9a0b532ea281d00d70b0e0d7943a7310b572937c31e32d34b8b5a95" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/lazy_object_proxy-1.10.0-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:cef0276c4dc8743c9e24192aec703e4e4294471a2c3ba185cffc6a85c98a2279" },
 ]
 
 [[package]]
@@ -1094,6 +1116,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:44e0c2cbc9bebd074cf2cdbe472ca185e824be4e74b1c63a8e934cea674bebf2" },
     { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:451e7ffcef8f785831fdb791bd69211f47e95dc4c6ddff68e589058806f044c6" },
     { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3469e1af9f1380e093ae06bedcbdd11e407ac0b303a56bbe9afb1d6824d4982d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:7b0803e9008c62a7ef79058233db7ff6f37a9933b8f2573c05b07ddafa226611" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b9122094e3f24aa759c38f46bd8863433820654927370250f460ae75488b66ea" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:7e03bea66af33c95ce3addf87a9bf1fcad8d33e757bc479957ddbc0e4f7207ac" },
 ]
 
 [[package]]
@@ -1105,6 +1130,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/lxml-5.3.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e92ce66cd919d18d14b3856906a61d3f6b6a8500e0794142338da644260595cd" },
     { url = "https://pypi.devinfra.sentry.io/wheels/lxml-5.3.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:c00f323cc00576df6165cc9d21a4c21285fa6b9989c5c39830c3903dc4303ef3" },
     { url = "https://pypi.devinfra.sentry.io/wheels/lxml-5.3.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:1473427aff3d66a3fa2199004c3e601e6c4500ab86696edffdbc84954c72d832" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/lxml-5.3.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:0e7f9ca5345467ae9ba00b46f9ee97104706c3e292936f69d10b5eeba60d4ab3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/lxml-5.3.0-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:747d37f3380f53c32c2ac545d8112af1e6f2716ecb01ef7b38fc44d639b1fe7b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/lxml-5.3.0-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:5ce1687e8d3292853320d861859f555132ac11cb6eb8ffe97e9319157bebf7e0" },
 ]
 
 [[package]]
@@ -1124,6 +1152,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/MarkupSafe-2.1.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c163548c21c79f928b8049da6e39a1d8a19a57588dd8f414e1c2f79738dc93fd" },
     { url = "https://pypi.devinfra.sentry.io/wheels/MarkupSafe-2.1.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ffec59a92daae9dfd02e58939deb58dd173f465bac8c848b60629b86e5ac288b" },
     { url = "https://pypi.devinfra.sentry.io/wheels/MarkupSafe-2.1.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:563dfd163b5ee8a0972aa01a0514f71c1e57a9d60c7442370d66e590796b127f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/MarkupSafe-2.1.2-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:bc19da3c36cd22f8dfa9c9f1960d0c337953fdc0db57f3ac2ce843295d17f727" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/MarkupSafe-2.1.2-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:3e3e90f32cba8467771c23bca5123bc822c0d0c6e9836b84b586bd3acd7e2b6f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/markupsafe-2.1.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:ad1e6b125e30f3687ec2f075e7edabb1179c20ba8993640c17ec0ef0519bc3ad" },
 ]
 
 [[package]]
@@ -1135,6 +1166,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/maxminddb-2.3.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7cd2df10c9cdef5db61e94b9efafa327f156dc579d105e84f90e7baa439467d9" },
     { url = "https://pypi.devinfra.sentry.io/wheels/maxminddb-2.3.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:f45bd157505b78b0ac464d851511daf00aa00eefd754627c8e96405b5713acce" },
     { url = "https://pypi.devinfra.sentry.io/wheels/maxminddb-2.3.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:d78d0e17750f4b6c68a3994747aab707124794fd7a22a1ce0d1e25bd9b72ca90" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/maxminddb-2.3.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:2bd9f86f456931a18e7d6dcdb10cef9c4b9523982f7b270fccb2758fd797358d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/maxminddb-2.3.0-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:dd01b808dfe09b5fc68ec9e2258bcafdea324b49ff2f351a4b1821878c7b837f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/maxminddb-2.3.0-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:611b335d7625fe281252c40c380147982e7bc8082f778da8093f90c738f0ecbd" },
 ]
 
 [[package]]
@@ -1173,6 +1207,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/mmh3-4.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:9f970f76cf95cc6feb24285e07ee14f0ce8d02bfaf9e6b607798e3434a194362" },
     { url = "https://pypi.devinfra.sentry.io/wheels/mmh3-4.0.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9287eb884ed38c14173c6b6582c1c41b0a1b623a560b832eab5f99396b6f647f" },
     { url = "https://pypi.devinfra.sentry.io/wheels/mmh3-4.0.0-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c578c978e5f447d88295f73a7e85107d7825696760a921809ff7024d49a46fa0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mmh3-4.0.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:1a9e6dc6881142fc2a8935578f791f5591119d806b607260435affa39e1cc326" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mmh3-4.0.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:4324fe845469387801dee90d4ef2c33418f7a1808edab221951f6e57c2dbe552" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mmh3-4.0.0-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:ebc603b5ff5b3b38afe8c859e6d3987148fae75f26786cbcd2b15cd36ebe4e93" },
 ]
 
 [[package]]
@@ -1192,6 +1229,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/msgpack-1.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4a1964df7b81285d00a84da4e70cb1383f2e665e0f1f2a7027e683956d04b734" },
     { url = "https://pypi.devinfra.sentry.io/wheels/msgpack-1.1.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:59caf6a4ed0d164055ccff8fe31eddc0ebc07cf7326a2aaa0dbf7a4001cd823e" },
     { url = "https://pypi.devinfra.sentry.io/wheels/msgpack-1.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0907e1a7119b337971a689153665764adc34e89175f9a34793307d9def08e6ca" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgpack-1.1.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:468123312019df9b62826aed9445d3cc3ab2f0ff268dd5ad1ea4d3ff2b053fdd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgpack-1.1.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:3cf4b52691272498b85f6b1e2bede14f99d1941f7b975d2995aea071baa81543" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgpack-1.1.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:083ba2518f408300fbf2466d3ca8ce0fb34f5d08f5a0f1129f424653317f6f9f" },
 ]
 
 [[package]]
@@ -1211,6 +1251,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:82b2c42c1b9ebc89e822e7e13bbe9d17ede0c23c187469fdd9505afd5a481314" },
     { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:19746b50be214a54239aab822964f2ac81e38b0055cca94808359d779338c10e" },
     { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:60ef4bdb0ec8e4ad62e5a1f95230c08efb1f64f32e6e8dd2ced685bcc73858b5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:e016ff4f80d752a70b0b6163a57d9750036c1eeb21646bd1f8f522bd53276363" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:b8528befe01b6b8640032080433c04e9f8cba33867ad374781dd8807d264528c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:e319d05a557dcabf9037258f1600226ab4a9f8b58db74691065cf993f1d2ac17" },
 ]
 
 [[package]]
@@ -1227,6 +1270,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:bdb12f69bcc02700c2b47e070238f42cb87f18c0bc1fc4cdb4fb2bc5fd7a3b8b" },
     { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f859fb09d9583a985be9a493d5cfc5515b56b08f7447759a0c5deaf68d80506e" },
     { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c9a6538e0415310aad77cb94004ca6482330fece18036b5f360b62c45814c4ef" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:804bd67b8054a85447c8954215a906d6eff9cabeabe493fb6334b24f4bfff718" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:21761006a7f497cb0d4de3d8ef4ca70532256688b0523eee02baf9eec895e27b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:28902ee51f12e0f19e1e16fbe2f8f06b6637f482c459dd393efddd0ec7f82045" },
 ]
 
 [[package]]
@@ -1463,6 +1509,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/pillow-11.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0e038b0745997c7dcaae350d35859c9715c71e92ffb7e0f4a8e8a16732150f38" },
     { url = "https://pypi.devinfra.sentry.io/wheels/pillow-11.0.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:61b887f9ddba63ddf62fd02a3ba7add935d053b6dd7d58998c630e6dbade8527" },
     { url = "https://pypi.devinfra.sentry.io/wheels/pillow-11.0.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:c6a660307ca9d4867caa8d9ca2c2658ab685de83792d1876274991adec7b93fa" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-11.0.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:d06fe46339c3b524dc482c6d2c92cd0c5bd50b62184198b2859960a07c6d178c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-11.0.0-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:a93098a41e8e4715e137e2696ed5d3f8b9085d9882165a758bc76dfb16f1045f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-11.0.0-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:682e113ebeb97bf34cd49578fa35ec9b499a4bd230e2398f3f41069ef56fd904" },
 ]
 
 [[package]]
@@ -1560,6 +1609,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/psycopg2_binary-2.9.10-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:e217ce4d37667df0bc1c397fdcd8de5e81018ef305aed9415c3b093faaeb10fb" },
     { url = "https://pypi.devinfra.sentry.io/wheels/psycopg2_binary-2.9.10-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:245159e7ab20a71d989da00f280ca57da7641fa2cdcf71749c193cea540a74f7" },
     { url = "https://pypi.devinfra.sentry.io/wheels/psycopg2_binary-2.9.10-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8608c078134f0b3cbd9f89b34bd60a943b23fd33cc5f065e8d5f840061bd0673" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/psycopg2_binary-2.9.10-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:ce313780d0c3f165f37b759873128abc950136b18d73dad7d56a4ec2e6a30491" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/psycopg2_binary-2.9.10-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:3393e93c4923aceea70524588ce683387ac882d5827086d44960e84612746d90" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/psycopg2_binary-2.9.10-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:957d8df3b59e1662d1c74b5e0e76b58fbeeddab5713dae0db9bbc3a36e4b003b" },
 ]
 
 [[package]]
@@ -1790,6 +1842,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/python_rapidjson-1.8-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:bef20c59916d699ee29fc0a4d1a688c28443beac329ae0ffd7bfd38aeed213fd" },
     { url = "https://pypi.devinfra.sentry.io/wheels/python_rapidjson-1.8-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9ea40ce18611e89eedae7b39a18929b12b00d8e5b8bd14662b51cfe8f27d848a" },
     { url = "https://pypi.devinfra.sentry.io/wheels/python_rapidjson-1.8-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:951708799770b40ca7a57dedc48e0a45652f2e0328677cf796634b016a1befd7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/python_rapidjson-1.8-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:422071c4ee6974442c0cbbbd68d019886c1c32d3eda62c911cc8507ae020399a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/python_rapidjson-1.8-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:7be7fb1f2d58092f130ffe3423d87816c25a3d4845503ff39562408388dc987d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/python_rapidjson-1.8-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:2d6064c72a9c0bd707054ebdafc9c892483d1782b4cbb8f8e00abe5952876ff4" },
 ]
 
 [[package]]
@@ -1838,6 +1893,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/PyYAML-6.0.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:50187695423ffe49e2deacb8cd10510bc361faac997de9efef88badc3bb9e2d1" },
     { url = "https://pypi.devinfra.sentry.io/wheels/PyYAML-6.0.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0ffe8360bab4910ef1b9e87fb812d8bc0a308b0d0eef8c8f44e0254ab3b07133" },
     { url = "https://pypi.devinfra.sentry.io/wheels/PyYAML-6.0.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:70b189594dbe54f75ab3a1acec5f1e3faa7e8cf2f1e08d9b561cb41b845f69d5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pyyaml-6.0.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:ff2a8860cc687015a5acf920fb87e14f5f7f3fb4b895fa35e606b6ff2c7bd3b3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pyyaml-6.0.2-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:918a9159ae5c038776e60536cd239f908b1445786bc445bec9ca873ca48e712b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pyyaml-6.0.2-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:d0e22744a9bae02dff74a8ac4e92adf4040d07281e7d95e2a062e8a209363ff4" },
 ]
 
 [[package]]
@@ -1891,6 +1949,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/regex-2022.9.13-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:9a0f0235cab3a306d0e46d6bbd4c4a19ac9a0ca2a4a2b6b4bde7a614ecabf5b2" },
     { url = "https://pypi.devinfra.sentry.io/wheels/regex-2022.9.13-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:01a4a1991b405c8e810ff15bcacb4f0766510438be7c054a624f7e8665f2f4c6" },
     { url = "https://pypi.devinfra.sentry.io/wheels/regex-2022.9.13-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:43f252b6c4dc0b274e7b34e4ef6c491ade5d6d1fd4de02974743f4eabddc3b73" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/regex-2022.9.13-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:7047e8129f970792c842f3699cd875f0120ccd48ce2559cc24bef77db351a1ae" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/regex-2022.9.13-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:228f884c89a0231912e989fe46601066c1666c4e7b88d05cb5747c4c9210feee" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/regex-2022.9.13-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:e7189bb2033262b39fc1d995a3df84416ff41101ab7dda8e141e9af1bc2529b9" },
 ]
 
 [[package]]
@@ -2284,7 +2345,7 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.24" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-protos", specifier = ">=0.7.1" },
+    { name = "sentry-protos", specifier = ">=0.8.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.23" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
@@ -2456,7 +2517,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.7.1"
+version = "0.8.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2465,7 +2526,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.7.1-py3-none-any.whl", hash = "sha256:2ab81f82d9ab297e79151394e10c14d4ef9e6a2a53051e763f36ff0c1cbde08d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.0-py3-none-any.whl", hash = "sha256:b3b07d6b0d1030277472f1705b007bddd2c09b75acef04eb9f41bc5722019be2" },
 ]
 
 [[package]]
@@ -2529,6 +2590,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/setproctitle-1.3.7-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:3384e682b158d569e85a51cfbde2afd1ab57ecf93ea6651fe198d0ba451196ee" },
     { url = "https://pypi.devinfra.sentry.io/wheels/setproctitle-1.3.7-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:0564a936ea687cd24dffcea35903e2a20962aa6ac20e61dd3a207652401492dd" },
     { url = "https://pypi.devinfra.sentry.io/wheels/setproctitle-1.3.7-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a5d1cb3f81531f0eb40e13246b679a1bdb58762b170303463cb06ecc296f26d0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/setproctitle-1.3.7-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:b53602371a52b91c80aaf578b5ada29d311d12b8a69c0c17fbc35b76a1fd4f2e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/setproctitle-1.3.7-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:fcb966a6c57cf07cc9448321a08f3be6b11b7635be502669bc1d8745115d7e7f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/setproctitle-1.3.7-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:46178672599b940368d769474fe13ecef1b587d58bb438ea72b9987f74c56ea5" },
 ]
 
 [[package]]
@@ -2548,6 +2612,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/simplejson-3.17.6-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:45fadf81bff24af545f337707b229ba01a750c67cae8b25762245b78978478d3" },
     { url = "https://pypi.devinfra.sentry.io/wheels/simplejson-3.17.6-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:cfda4d6ae61a95c4f053167a6a305b82dac943a864144ccc0efe8efdca1c0c2c" },
     { url = "https://pypi.devinfra.sentry.io/wheels/simplejson-3.17.6-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d9fa1be0834a2c56b3fb083a9e764e00eac7c307d13230dc58ec65d3a635498f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/simplejson-3.17.6-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:2b3c5583354512a68f2e27021dae07b80d17986c8583e3547b53d1e0cbcd05c2" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/simplejson-3.17.6-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:e220a00a16717d94fcfdca47904da9d13583757be9a53aae6f48f47dfc372ec5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/simplejson-3.17.6-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:b6e7ee6a6d84510d3897a5434ee6fc13c83c81425a812bee9ed2c6bd8ae8afb8" },
 ]
 
 [[package]]
@@ -2689,6 +2756,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/time_machine-2.16.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:1784edf173ca840ba154de6eed000b5727f65ab92972c2f88cec5c4d6349c5f2" },
     { url = "https://pypi.devinfra.sentry.io/wheels/time_machine-2.16.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2f5876a5682ce1f517e55d7ace2383432627889f6f7e338b961f99d684fd9e8d" },
     { url = "https://pypi.devinfra.sentry.io/wheels/time_machine-2.16.0-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:667b150fedb54acdca2a4bea5bf6da837b43e6dd12857301b48191f8803ba93f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/time_machine-2.16.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:555af1ee44a940fe138f4729117cfc99c537e46099a789a16c2d54fc28b07db5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/time_machine-2.16.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:6d39a412ce935ae81f55702c2f46fa6b7bfc9413c4e841e5aa0f8e52842ae3bb" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/time_machine-2.16.0-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:42b6c78860e7a70f25e517687cea83374e5346fc08a984d414d9243337444bc9" },
 ]
 
 [[package]]
@@ -3011,6 +3081,9 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/watchfiles-1.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:20ecc8abbd957046f1fe9562757903f5eaf57c3bce70929fda6c7711bb58074a" },
     { url = "https://pypi.devinfra.sentry.io/wheels/watchfiles-1.1.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f2f0498b7d2a3c072766dba3274fe22a183dbea1f99d188f1c6c72209a1063dc" },
     { url = "https://pypi.devinfra.sentry.io/wheels/watchfiles-1.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9481174d3ed982e269c090f780122fb59cee6c3796f74efe74e70f7780ed94c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/watchfiles-1.1.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:c68e9f1fcb4d43798ad8814c4c1b61547b014b667216cb754e606bfade587018" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/watchfiles-1.1.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:95ab1594377effac17110e1352989bdd7bdfca9ff0e5eeccd8c69c5389b826d0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/watchfiles-1.1.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:62cc7a30eeb0e20ecc5f4bd113cd69dcdb745a07c68c0370cea919f373f65d9e" },
 ]
 
 [[package]]
@@ -3088,4 +3161,7 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/zstandard-0.18.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:d68ff7c3a4c35400d807efbfa793767c2d4866a7017770b424e65749a70e958e" },
     { url = "https://pypi.devinfra.sentry.io/wheels/zstandard-0.18.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e1ef5b96f0e90855ea13d06b7213a75a77a23946d8bb186ff38578dd1ff5efd4" },
     { url = "https://pypi.devinfra.sentry.io/wheels/zstandard-0.18.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:754256fb4080a36f8992983b2f65f23719d275c9a350bcf18d76344ed64efa19" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/zstandard-0.18.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:cdfe7ba070e4c13ca286494e0f3981a5deb0be0b3df84484399f2612bf8fd9ca" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/zstandard-0.18.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:97efd8e7411354833c5c561c5b8b4c73fa9922c46b477229ae63318bc740afbd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/zstandard-0.18.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_31_x86_64.whl", hash = "sha256:f91b92f1f6f53f3c11539767d448b4dbf65bed61788d5f510eec5338d876687a" },
 ]

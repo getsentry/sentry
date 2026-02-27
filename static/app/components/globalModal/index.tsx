@@ -8,6 +8,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
@@ -146,6 +147,7 @@ function GlobalModal({onClose}: Props) {
     [closeModal, closeEvents]
   );
 
+  const scrollLock = useScrollLock(document.documentElement);
   const portal = getModalPortal();
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
@@ -164,20 +166,17 @@ function GlobalModal({onClose}: Props) {
   }, [portal]);
 
   useEffect(() => {
-    const body = document.querySelector('body');
     const root = document.getElementById(ROOT_ELEMENT);
 
     const reset = () => {
-      body?.style.removeProperty('overflow');
+      scrollLock.release();
       root?.removeAttribute('aria-hidden');
       focusTrap.current?.deactivate();
       document.removeEventListener('keydown', handleEscapeClose);
     };
 
     if (visible) {
-      if (body) {
-        body.style.overflow = 'hidden';
-      }
+      scrollLock.acquire();
       root?.setAttribute('aria-hidden', 'true');
       focusTrap.current?.activate();
 
@@ -187,7 +186,7 @@ function GlobalModal({onClose}: Props) {
     }
 
     return reset;
-  }, [portal, handleEscapeClose, visible]);
+  }, [portal, handleEscapeClose, visible, scrollLock]);
 
   // Close the modal when the browser history changes.
   //

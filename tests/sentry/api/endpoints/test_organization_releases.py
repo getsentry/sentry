@@ -251,30 +251,79 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     def test_release_list_order_by_semver(self) -> None:
         self.login_as(user=self.user)
         release_1 = self.create_release(version="test@2.2")
-        release_2 = self.create_release(version="test@10.0+122")
+        release_2 = self.create_release(version="test@10.0+1000")
         release_3 = self.create_release(version="test@2.2-alpha")
         release_4 = self.create_release(version="test@2.2.3")
         release_5 = self.create_release(version="test@2.20.3")
         release_6 = self.create_release(version="test@2.20.3.3")
-        release_7 = self.create_release(version="test@10.0+123")
+        release_7 = self.create_release(version="test@10.0+998")
         release_8 = self.create_release(version="test@some_thing")
         release_9 = self.create_release(version="random_junk")
+        release_10 = self.create_release(version="test@10.0+x22")
+        release_11 = self.create_release(version="test@10.0+a23")
+        release_12 = self.create_release(version="test@10.0")
+        release_13 = self.create_release(version="test@10.0-abc")
+        release_14 = self.create_release(version="test@10.0+999")
 
         response = self.get_success_response(self.organization.slug, sort="semver")
-        self.assert_expected_versions(
-            response,
-            [
-                release_7,
-                release_2,
-                release_6,
-                release_5,
-                release_4,
-                release_1,
-                release_3,
-                release_9,
-                release_8,
-            ],
-        )
+
+        # without build code ordering, tiebreaker is date_added
+        expected_order = [
+            release_14,  # test@10.0+999
+            release_12,  # test@10.0
+            release_11,  # test@10.0+a23
+            release_10,  # test@10.0+x22
+            release_7,  # test@10.0+998
+            release_2,  # test@10.0+1000
+            release_13,  # test@10.0-abc
+            release_6,  # test@2.20.3.3
+            release_5,  # test@2.20.3
+            release_4,  # test@2.2.3
+            release_1,  # test@2.2
+            release_3,  # test@2.2-alpha
+            release_9,  # random_junk
+            release_8,  # test@some_thing
+        ]
+        self.assert_expected_versions(response, expected_order)
+
+    def test_release_list_order_by_semver_with_build_code(self) -> None:
+        self.login_as(user=self.user)
+
+        release_1 = self.create_release(version="test@2.2")
+        release_2 = self.create_release(version="test@10.0+1000")
+        release_3 = self.create_release(version="test@2.2-alpha")
+        release_4 = self.create_release(version="test@2.2.3")
+        release_5 = self.create_release(version="test@2.20.3")
+        release_6 = self.create_release(version="test@2.20.3.3")
+        release_7 = self.create_release(version="test@10.0+998")
+        release_8 = self.create_release(version="test@some_thing")
+        release_9 = self.create_release(version="random_junk")
+        release_10 = self.create_release(version="test@10.0+x22")
+        release_11 = self.create_release(version="test@10.0+a23")
+        release_12 = self.create_release(version="test@10.0")
+        release_13 = self.create_release(version="test@10.0-abc")
+        release_14 = self.create_release(version="test@10.0+999")
+
+        with self.feature("organizations:semver-ordering-with-build-code"):
+            response = self.get_success_response(self.organization.slug, sort="semver")
+
+        expected_order = [
+            release_10,  # test@10.0+x22
+            release_11,  # test@10.0+a23
+            release_2,  # test@10.0+1000
+            release_14,  # test@10.0+999
+            release_7,  # test@10.0+998
+            release_12,  # test@10.0
+            release_13,  # test@10.0-abc
+            release_6,  # test@2.20.3.3
+            release_5,  # test@2.20.3
+            release_4,  # test@2.2.3
+            release_1,  # test@2.2
+            release_3,  # test@2.2-alpha
+            release_9,  # random_junk
+            release_8,  # test@some_thing
+        ]
+        self.assert_expected_versions(response, expected_order)
 
     def test_query_filter(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)

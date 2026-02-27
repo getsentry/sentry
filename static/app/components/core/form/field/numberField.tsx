@@ -1,15 +1,12 @@
 import {InputField} from '@sentry/scraps/form/field/inputField';
-import {type InputProps} from '@sentry/scraps/input';
 
-import {type BaseFieldProps} from './baseField';
+import type {InputFieldProps} from './inputField';
 
 export function NumberField(
-  props: BaseFieldProps &
-    Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
-      onChange: (value: number) => void;
-      value: number;
-      disabled?: boolean | string;
-    }
+  props: Omit<InputFieldProps, 'type' | 'value' | 'onChange'> & {
+    onChange: (value: number) => void;
+    value: number;
+  }
 ) {
   return (
     <InputField

@@ -90,6 +90,8 @@ class DebugTraceLogger:
         root_span_in_segment: bool,
         num_spans: int,
         shard_id: int,
+        queue_key: bytes,
+        now: int,
     ) -> None:
         project_id, trace_id, _ = parse_segment_key(segment_key)
         if trace_id.decode("ascii") not in self._get_debug_traces():
@@ -100,6 +102,11 @@ class DebugTraceLogger:
 
         project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
 
+        # Fetch the segment's deadline from the sorted set
+        deadline_score = self._client.zscore(queue_key, segment_key)
+        deadline = int(deadline_score) if deadline_score is not None else None
+        ttl_remaining = (deadline - now) if deadline is not None else None
+
         logger.info(
             "spans.buffer.debug_flush",
             extra={
@@ -109,5 +116,8 @@ class DebugTraceLogger:
                 "root_span_in_segment": root_span_in_segment,
                 "num_spans": num_spans,
                 "shard_id": shard_id,
+                "flusher_now": now,
+                "segment_deadline": deadline,
+                "ttl_remaining_seconds": ttl_remaining,
             },
         )

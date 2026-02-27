@@ -43,6 +43,7 @@ from sentry.preprod.size_analysis.utils import (
     ComparisonValidationResult,
     build_size_metrics_map,
     can_compare_size_metrics,
+    match_and_fetch_comparisons,
 )
 
 logger = logging.getLogger(__name__)
@@ -156,19 +157,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 status=404,
             )
 
-        head_metrics_map = build_size_metrics_map(head_size_metrics)
-        base_metrics_map = build_size_metrics_map(base_size_metrics)
+        matched = match_and_fetch_comparisons(head_size_metrics, base_size_metrics)
 
         comparisons: list[SizeAnalysisComparison] = []
-        for key, head_metric in head_metrics_map.items():
-            base_metric = base_metrics_map.get(key)
+        for match in matched:
+            head_metric = match.head_metric
 
-            if not base_metric:
-                logger.info(
-                    "preprod.size_analysis.compare.api.get.no_matching_base_metric",
-                    extra={"head_metric_id": head_metric.id},
-                )
-                # No matching base metric, so we can't compare
+            if not match.base_metric:
                 comparisons.append(
                     SizeAnalysisComparison(
                         head_size_metric_id=head_metric.id,
@@ -183,29 +178,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 )
                 continue
 
-            logger.info(
-                "preprod.size_analysis.compare.api.get.metrics",
-                extra={"head_metric": head_metric, "base_metric": base_metric},
-            )
+            base_metric = match.base_metric
 
-            # Try to find a comparison object
-            try:
-                comparison_obj = PreprodArtifactSizeComparison.objects.get(
-                    head_size_analysis_id=head_metric.id,
-                    base_size_analysis_id=base_metric.id,
-                )
-            except PreprodArtifactSizeComparison.DoesNotExist:
-                logger.info(
-                    "preprod.size_analysis.compare.api.get.no_comparison_obj",
-                    extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
-                )
+            if not match.comparison:
                 continue
 
-            logger.info(
-                "preprod.size_analysis.compare.api.get.comparison_obj",
-                extra={"comparison_obj": comparison_obj},
-            )
-
+            comparison_obj = match.comparison
             if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
                 comparisons.append(
                     SizeAnalysisComparison(
@@ -237,7 +215,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                     )
                 )
             else:
-                # Still processing or pending
                 comparisons.append(
                     SizeAnalysisComparison(
                         head_size_metric_id=head_metric.id,
