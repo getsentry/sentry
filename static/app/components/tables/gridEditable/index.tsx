@@ -374,7 +374,9 @@ export default function GridEditable<
 
   useEffect(() => {
     redrawGridColumn();
+  }, [data, error, redrawGridColumn]);
 
+  useEffect(() => {
     window.addEventListener('resize', redrawGridColumn);
 
     return () => {
