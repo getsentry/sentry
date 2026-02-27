@@ -284,7 +284,7 @@ def get_merged_settings(
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
-            project=project.id,
+            project=project,
         )
         if project
         else {}

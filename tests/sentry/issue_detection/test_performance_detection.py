@@ -353,7 +353,7 @@ class PerformanceDetectionTest(TestCase):
         sdk_span_mock = Mock()
 
         self.project_option_mock.return_value = projectoptions.get_well_known_default(
-            "sentry:performance_issue_settings", project=1
+            "sentry:performance_issue_settings", project=self.project
         )
         with override_options(
             {
@@ -718,7 +718,7 @@ class WFEDetectorConfigTest(TestCase):
     def test_wfe_detector_enabled_uses_wfe_config(self) -> None:
         self.create_detector(
             project=self.project,
-            type="performance_slow_db_query",
+            type=PerformanceSlowDBQueryGroupType.slug,
             name="Test SlowDB Detector",
             enabled=True,
             config={"duration_threshold": 5000},
@@ -733,7 +733,7 @@ class WFEDetectorConfigTest(TestCase):
     def test_wfe_detector_disabled_still_uses_wfe_config(self) -> None:
         self.create_detector(
             project=self.project,
-            type="performance_slow_db_query",
+            type=PerformanceSlowDBQueryGroupType.slug,
             name="Test SlowDB Detector",
             enabled=False,
             config={"duration_threshold": 5000},
@@ -779,7 +779,7 @@ class WFEDetectorConfigTest(TestCase):
 
         self.create_detector(
             project=self.project,
-            type="performance_slow_db_query",
+            type=PerformanceSlowDBQueryGroupType.slug,
             name="Test SlowDB Detector",
             enabled=True,
             config={},
@@ -794,7 +794,7 @@ class WFEDetectorConfigTest(TestCase):
     def test_feature_flag_disabled_uses_legacy_config(self) -> None:
         self.create_detector(
             project=self.project,
-            type="performance_slow_db_query",
+            type=PerformanceSlowDBQueryGroupType.slug,
             name="Test SlowDB Detector",
             enabled=True,
             config={"duration_threshold": 5000},
@@ -807,6 +807,6 @@ class WFEDetectorConfigTest(TestCase):
     def test_all_wfe_detector_types_are_registered_group_types(self) -> None:
         for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
             group_type = registry.get_by_slug(mapping.wfe_detector_type)
-            assert (
-                group_type is not None
-            ), f"wfe_detector_type '{mapping.wfe_detector_type}' is not a registered GroupType slug"
+            assert group_type is not None, (
+                f"wfe_detector_type '{mapping.wfe_detector_type}' is not a registered GroupType slug"
+            )
