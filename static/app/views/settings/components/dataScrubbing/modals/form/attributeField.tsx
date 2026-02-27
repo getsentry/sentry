@@ -243,9 +243,9 @@ const Suggestions = styled('ul')`
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 0 0 ${space(0.5)} ${space(0.5)};
+  border-radius: ${space(0.5)};
   background: ${p => p.theme.tokens.background.primary};
-  top: 100%;
+  top: calc(100% + ${space(0.5)});
   left: 0;
   z-index: 1002;
   overflow: hidden;
