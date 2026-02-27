@@ -188,11 +188,27 @@ def execute_table_query(
             **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
         }
     except client.ApiError as e:
+        error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+        error_str = str(error_detail) if error_detail is not None else str(e.body)
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
-            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return {"error": error_str}
+        # For timeout (504) and rate limit (429) errors, return a user-friendly error
+        # instead of re-raising, so Seer can handle them gracefully without recording
+        # them as unhandled errors.
+        if e.status_code == 429:
+            logger.warning(
+                "execute_table_query: rate limit exceeded",
+                extra={"org_id": org_id, "dataset": dataset, "fields": fields, "query": query},
+            )
+            return {"error": error_str}
+        if e.status_code == 504:
+            logger.warning(
+                "execute_table_query: query timeout",
+                extra={"org_id": org_id},
+            )
+            return {"error": error_str}
         raise
 
 
