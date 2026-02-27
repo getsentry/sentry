@@ -37,7 +37,11 @@ describe('ImageAvatar', () => {
         ['', 'john.smith@example.com', 'John Smith', 'JS'],
       ])('renders LetterAvatar when src is "%s"', (src, identifier, name, expected) => {
         render(
-          <ImageAvatar definition={{type: 'image', src}} identifier={identifier} name={name} />
+          <ImageAvatar
+            definition={{type: 'image', src}}
+            identifier={identifier}
+            name={name}
+          />
         );
         expect(screen.getByText(expected)).toBeInTheDocument();
         expect(screen.queryByRole('img')).not.toBeInTheDocument();
