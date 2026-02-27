@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';
@@ -30,7 +33,11 @@ export function mapPreviewCheckErrorToMessage(
     : t('Assertion Serialization Error');
 }
 
-export function mapToFormErrors(responseJson: any) {
+function mapToFormErrors(responseJson: any) {
+  if (!responseJson) {
+    return responseJson;
+  }
+
   const error = extractPreviewCheckError(responseJson);
 
   if (error) {
@@ -52,11 +59,22 @@ export function mapToFormErrors(responseJson: any) {
   return responseJson;
 }
 
+export function createMapFormErrors(
+  previewCheckResult: ReturnType<typeof usePreviewCheckResult>
+) {
+  return (responseJson: any) => {
+    previewCheckResult?.setPreviewCheckError(extractPreviewCheckError(responseJson));
+    return mapToFormErrors(responseJson);
+  };
+}
+
 function isPreviewCheckError(value: any): value is PreviewCheckError {
   return (
     value !== null &&
     typeof value === 'object' &&
     'assertion' in value &&
+    value.assertion !== null &&
+    typeof value.assertion === 'object' &&
     'error' in value.assertion
   );
 }
@@ -282,10 +300,14 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
   }
 
   return (
-    <span style={{display: 'inline-flex', marginTop: 4}}>
+    <IconWarningContainer>
       <Tooltip title={message} isHoverable forceVisible overlayStyle={{zIndex: 1}}>
         <IconWarning variant="danger" size="sm" />
       </Tooltip>
-    </span>
+    </IconWarningContainer>
   );
 }
+
+const IconWarningContainer = styled(Flex)`
+  margin-top: ${p => p.theme.space.xs};
+`;

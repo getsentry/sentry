@@ -1,4 +1,4 @@
-import {createContext, useContext, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import type {
   PreviewCheckError,
@@ -26,23 +26,33 @@ export function PreviewCheckResultProvider({children}: {children: React.ReactNod
     error: null,
   });
 
-  const setPreviewCheckData = (data: PreviewCheckResult | null) =>
-    setState({data, error: null});
+  const setPreviewCheckData = useCallback(
+    (data: PreviewCheckResult | null) => setState({data, error: null}),
+    []
+  );
 
-  const setPreviewCheckError = (error: PreviewCheckError | null) =>
-    setState({data: null, error});
+  const setPreviewCheckError = useCallback(
+    (error: PreviewCheckError | null) => setState({data: null, error}),
+    []
+  );
 
-  const resetPreviewCheckResult = () => setState({data: null, error: null});
+  const resetPreviewCheckResult = useCallback(
+    () => setState({data: null, error: null}),
+    []
+  );
+
+  const value = useMemo(
+    () => ({
+      ...state,
+      setPreviewCheckData,
+      setPreviewCheckError,
+      resetPreviewCheckResult,
+    }),
+    [state, setPreviewCheckData, setPreviewCheckError, resetPreviewCheckResult]
+  );
 
   return (
-    <PreviewCheckResultContext.Provider
-      value={{
-        ...state,
-        setPreviewCheckData,
-        setPreviewCheckError,
-        resetPreviewCheckResult,
-      }}
-    >
+    <PreviewCheckResultContext.Provider value={value}>
       {children}
     </PreviewCheckResultContext.Provider>
   );

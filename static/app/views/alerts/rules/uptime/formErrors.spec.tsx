@@ -1,10 +1,12 @@
+import {useEffect} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   AssertionFormError,
+  createMapFormErrors,
   extractPreviewCheckError,
   mapPreviewCheckErrorToMessage,
-  mapToFormErrors,
   resolveErroredAssertionOp,
 } from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
@@ -12,10 +14,11 @@ import {
   PreviewCheckErrorKind,
   UptimeComparisonType,
   type PreviewCheckError,
+  type UptimeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {makeAndOp, makeStatusCodeOp} from './assertions/testUtils';
-import * as PreviewCheckContext from './previewCheckContext';
+import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 
 function makeContext({
   data = null,
@@ -33,8 +36,10 @@ function makeContext({
   };
 }
 
-describe('mapToFormErrors', () => {
-  it('returns nonFieldErrors for assertion errors', () => {
+describe('createMapFormErrors', () => {
+  it('returns nonFieldErrors and calls setPreviewCheckError for assertion errors', () => {
+    const ctx = makeContext();
+    const mapFormErrors = createMapFormErrors(ctx);
     const body = {
       assertion: {
         error: PreviewCheckErrorKind.COMPILATION_ERROR,
@@ -45,14 +50,17 @@ describe('mapToFormErrors', () => {
         },
       },
     };
-    expect(mapToFormErrors(body)).toEqual({
+    expect(mapFormErrors(body)).toEqual({
       nonFieldErrors: ['Failed to create monitor (Assertion Compilation Error)'],
     });
+    expect(ctx.setPreviewCheckError).toHaveBeenCalledWith(body);
   });
 
   it('flattens dataSources fields to top level for non-assertion errors', () => {
+    const ctx = makeContext();
+    const mapFormErrors = createMapFormErrors(ctx);
     const body = {dataSources: {url: ['Enter a valid URL.']}};
-    expect(mapToFormErrors(body)).toEqual({url: ['Enter a valid URL.']});
+    expect(mapFormErrors(body)).toEqual({url: ['Enter a valid URL.']});
   });
 });
 
@@ -178,25 +186,43 @@ describe('resolveErroredAssertionOp', () => {
 });
 
 describe('AssertionFormError', () => {
-  afterEach(() => jest.restoreAllMocks());
-
-  function mockContext(ctx: ReturnType<typeof makeContext> | null) {
-    jest.spyOn(PreviewCheckContext, 'usePreviewCheckResult').mockReturnValue(ctx);
+  function renderWithProvider(
+    op: UptimeOp,
+    erroredOp: UptimeOp | undefined,
+    initial: {data?: any; error?: PreviewCheckError | null} = {}
+  ) {
+    function Setter() {
+      const previewCheckResult = usePreviewCheckResult();
+      useEffect(() => {
+        if ('data' in initial)
+          previewCheckResult?.setPreviewCheckData(initial.data ?? null);
+        if ('error' in initial)
+          previewCheckResult?.setPreviewCheckError(initial.error ?? null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    return render(
+      <PreviewCheckResultProvider>
+        <Setter />
+        <AssertionFormError op={op} erroredOp={erroredOp} />
+      </PreviewCheckResultProvider>
+    );
   }
 
   it('renders nothing when op ids do not match', () => {
-    mockContext(makeContext());
     const op = makeStatusCodeOp();
     const otherOp = makeStatusCodeOp();
-    const {container} = render(<AssertionFormError op={op} erroredOp={otherOp} />);
+    const {container} = renderWithProvider(op, otherOp);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders the error tooltip for an assertion failure', async () => {
-    const data = {check_result: {assertion_failure_data: {root: makeAndOp()}}};
-    mockContext(makeContext({data}));
     const op = makeStatusCodeOp();
-    render(<AssertionFormError op={op} erroredOp={op} />);
+    const data = {
+      check_result: {assertion_failure_data: {root: makeAndOp({children: [op]})}},
+    };
+    renderWithProvider(op, op, {data});
     expect(await screen.findByText('Assertion Failed')).toBeInTheDocument();
   });
 
@@ -211,9 +237,8 @@ describe('AssertionFormError', () => {
         },
       },
     };
-    mockContext(makeContext({error}));
     const op = makeStatusCodeOp();
-    render(<AssertionFormError op={op} erroredOp={op} />);
+    renderWithProvider(op, op, {error});
     expect(await screen.findByText('Invalid JSON Path: bad path')).toBeInTheDocument();
   });
 });

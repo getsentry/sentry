@@ -41,7 +41,7 @@ import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
-import {extractPreviewCheckError, mapToFormErrors} from './formErrors';
+import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
 import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
@@ -218,10 +218,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
-      mapFormErrors={responseJson => {
-        previewCheckResult?.setPreviewCheckError(extractPreviewCheckError(responseJson));
-        return mapToFormErrors(responseJson);
-      }}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
       onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {

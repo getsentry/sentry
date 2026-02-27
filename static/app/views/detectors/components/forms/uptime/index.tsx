@@ -5,10 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {
-  extractPreviewCheckError,
-  mapToFormErrors,
-} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {createMapFormErrors} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
   PreviewCheckResultProvider,
   usePreviewCheckResult,
@@ -97,10 +94,7 @@ function NewUptimeDetectorFormContent() {
           </Fragment>
         ) : undefined
       }
-      mapFormErrors={responseJson => {
-        previewCheckResult?.setPreviewCheckError(extractPreviewCheckError(responseJson));
-        return mapToFormErrors(responseJson);
-      }}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -135,10 +129,7 @@ function EditExistingUptimeDetectorFormContent({detector}: {detector: UptimeDete
           </Fragment>
         ) : undefined
       }
-      mapFormErrors={responseJson => {
-        previewCheckResult?.setPreviewCheckError(extractPreviewCheckError(responseJson));
-        return mapToFormErrors(responseJson);
-      }}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>
