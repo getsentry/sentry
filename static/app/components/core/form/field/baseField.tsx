@@ -8,13 +8,10 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {FieldMeta} from './meta';
 
-type BaseProps<T extends HTMLElement> = {
-  disabled: boolean | string | undefined;
-  ref: Ref<T> | undefined;
+export type BaseFieldProps<T extends HTMLElement> = {
+  disabled?: boolean | string;
+  ref?: Ref<T>;
 };
-
-export type BaseFieldProps<T extends HTMLElement> = Partial<BaseProps<T>>;
-
 type FieldChildrenProps<T extends HTMLElement> = {
   'aria-describedby': string;
   'aria-invalid': boolean;
@@ -83,7 +80,7 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
 }
 
 export function BaseField<T extends HTMLElement>(
-  props: BaseProps<T> & {
+  props: BaseFieldProps<T> & {
     children: (props: FieldChildrenProps<T>) => React.ReactNode;
   }
 ) {
