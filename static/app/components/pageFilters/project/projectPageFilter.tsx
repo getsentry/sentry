@@ -9,6 +9,7 @@ import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -64,152 +65,6 @@ export interface ProjectPageFilterProps extends Partial<
  */
 const SELECTION_COUNT_LIMIT = 50;
 
-/**
- * Sentinel value for the "My Projects" quick-select option. Must be negative to avoid
- * collision with real project IDs. ALL_ACCESS_PROJECTS (-1) is already used for
- * "All Projects".
- */
-const MY_PROJECTS_VALUE = -2;
-type SentinelMode = 'all' | 'my';
-
-interface SentinelSelectionState {
-  isAllProjectsMode: boolean;
-  isMyProjectsMode: boolean;
-  stagedSentinelMode: SentinelMode | null;
-}
-
-type SentinelTransition =
-  | {stagedValue: number[]; suppressed: {type: 'add'; modes: SentinelMode[]}}
-  | {stagedValue: number[]; suppressed: {type: 'clear'}};
-
-function projectId(project: Pick<Project, 'id'>): number {
-  return parseInt(project.id, 10);
-}
-
-function applySuppressedModesTransition(
-  prev: Set<SentinelMode>,
-  transition: SentinelTransition
-): Set<SentinelMode> {
-  if (transition.suppressed.type === 'clear') {
-    return new Set();
-  }
-  return new Set([...prev, ...transition.suppressed.modes]);
-}
-
-function isProjectCheckedInMode({
-  isSelected,
-  isMember,
-  noStagedChanges,
-  allProjectsSentinelStaged,
-  myProjectsSentinelStaged,
-  isAllProjectsMode,
-  isMyProjectsMode,
-}: {
-  isSelected: boolean;
-  isMember: boolean;
-  noStagedChanges: boolean;
-  allProjectsSentinelStaged: boolean;
-  myProjectsSentinelStaged: boolean;
-  isAllProjectsMode: boolean;
-  isMyProjectsMode: boolean;
-}): boolean {
-  if (allProjectsSentinelStaged) {
-    return true;
-  }
-
-  if (myProjectsSentinelStaged && isMember) {
-    return true;
-  }
-
-  if (noStagedChanges && isAllProjectsMode) {
-    return true;
-  }
-
-  if (noStagedChanges && isMyProjectsMode && isMember) {
-    return true;
-  }
-
-  return isSelected;
-}
-
-function getSentinelSelectionState({
-  pageFilterValue,
-  stagedValue,
-  suppressedCommittedModes,
-}: {
-  pageFilterValue: number[];
-  stagedValue: number[];
-  suppressedCommittedModes: Set<SentinelMode>;
-}): SentinelSelectionState {
-  const stagedSentinelMode: SentinelMode | null = stagedValue.includes(ALL_ACCESS_PROJECTS)
-    ? 'all'
-    : stagedValue.includes(MY_PROJECTS_VALUE)
-      ? 'my'
-      : null;
-  const anySentinelStaged = stagedSentinelMode !== null;
-  const committedAllProjectsMode = pageFilterValue.includes(ALL_ACCESS_PROJECTS);
-  const committedMyProjectsMode = pageFilterValue.length === 0;
-  const isAllProjectsMode =
-    stagedSentinelMode === 'all' ||
-    (!suppressedCommittedModes.has('all') &&
-      !anySentinelStaged &&
-      committedAllProjectsMode);
-  const isMyProjectsMode =
-    isAllProjectsMode ||
-    stagedSentinelMode === 'my' ||
-    (!suppressedCommittedModes.has('my') &&
-      !anySentinelStaged &&
-      committedMyProjectsMode);
-
-  return {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode};
-}
-
-function getAllProjectsToggleTransition(isAllProjectsMode: boolean): SentinelTransition {
-  if (isAllProjectsMode) {
-    return {
-      stagedValue: [],
-      suppressed: {type: 'add', modes: ['all']},
-    };
-  }
-
-  return {
-    stagedValue: [ALL_ACCESS_PROJECTS],
-    suppressed: {type: 'clear'},
-  };
-}
-
-function getMyProjectsToggleTransition({
-  isAllProjectsMode,
-  isMyProjectsMode,
-  stagedSentinelMode,
-  nonMemberProjectIds,
-}: {
-  isAllProjectsMode: boolean;
-  isMyProjectsMode: boolean;
-  stagedSentinelMode: SentinelMode | null;
-  nonMemberProjectIds: number[];
-}): SentinelTransition {
-  if (isAllProjectsMode) {
-    return {
-      stagedValue: nonMemberProjectIds,
-      suppressed: {type: 'add', modes: ['all', 'my']},
-    };
-  }
-
-  if (stagedSentinelMode === 'my' || isMyProjectsMode) {
-    return {
-      // Toggling off "My Projects" from a My-only state should leave nothing selected.
-      stagedValue: [],
-      suppressed: {type: 'add', modes: ['all', 'my']},
-    };
-  }
-
-  return {
-    stagedValue: [MY_PROJECTS_VALUE],
-    suppressed: {type: 'clear'},
-  };
-}
-
 export function ProjectPageFilter({
   onChange,
   onReset,
@@ -223,25 +78,55 @@ export function ProjectPageFilter({
   storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
-  const user = useUser();
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {
+    selection: {projects: pageFilterValue},
+    isReady: pageFilterIsReady,
+  } = usePageFilters();
+
+  const showNonMemberProjects =
+    organization.orgRole === 'owner' ||
+    organization.orgRole === 'manager' ||
+    organization.features.includes('open-membership');
+
+  const [memberProjects, nonMemberProjects] = useMemo(() => {
+    const partitionedProjects = partition(projects, project => project.isMember);
+    if (showNonMemberProjects) {
+      return [partitionedProjects[0], partitionedProjects[1]];
+    }
+
+    return [partitionedProjects[0], []];
+  }, [projects, showNonMemberProjects]);
+
+  const [value, defaultValue] = useMemo<[number[], number[]]>(
+    () => [
+      mapURLValueToNormalValue({
+        value: pageFilterValue,
+        memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
+      }),
+      mapURLValueToNormalValue({
+        value: [],
+        memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
+      }),
+    ],
+    [pageFilterValue, memberProjects]
+  );
 
   // Ref to break the circular dependency: options need toggleOption/dispatch, but those
   // come from useStagedCompactSelect which depends on options.
   const toggleOptionRef = useRef<((val: number) => void) | undefined>(undefined);
-
   const dispatchRef = useRef<React.Dispatch<any> | undefined>(undefined);
 
   // Tracks committed sentinel modes that have been explicitly toggled off while the menu
   // is open. This prevents committed URL fallback ("All Projects"/"My Projects")
   // from immediately re-checking those sentinels before Apply.
-  const [suppressedCommittedModes, setSuppressedCommittedModes] = useState<Set<SentinelMode>>(
-    () => new Set()
-  );
+  const [suppressedCommittedModes, setSuppressedCommittedModes] = useState<
+    Set<SentinelMode>
+  >(() => new Set());
 
   // Track optimistically bookmarked projects to prevent star from disappearing
   // during API call when user bookmarks and quickly moves focus
@@ -249,109 +134,15 @@ export function ProjectPageFilter({
     useState<Set<string>>(
       () => new Set(projects.filter(p => p.isBookmarked).map(p => p.id))
     );
-
   // Snapshot of bookmarked projects when menu opens - used for sorting to prevent
   // re-sorting while menu is open
   const bookmarkedSnapshotRef = useRef<Set<string> | undefined>(undefined);
-
   if (!bookmarkedSnapshotRef.current) {
     bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
   }
 
-  const [memberProjects, otherProjects] = useMemo(
-    () => partition(projects, project => project.isMember),
-    [projects]
-  );
-
-  const showNonMemberProjects = useMemo(() => {
-    const isOrgAdminOrManager =
-      organization.orgRole === 'owner' || organization.orgRole === 'manager';
-    const isOpenMembership = organization.features.includes('open-membership');
-
-    return user.isSuperuser || isOrgAdminOrManager || isOpenMembership;
-  }, [user, organization.orgRole, organization.features]);
-
-  const nonMemberProjects = useMemo(
-    () => (showNonMemberProjects ? otherProjects : []),
-    [otherProjects, showNonMemberProjects]
-  );
-  const nonMemberProjectIds = useMemo(
-    () => nonMemberProjects.map(projectId),
-    [nonMemberProjects]
-  );
-
-  const {
-    selection: {projects: pageFilterValue},
-    isReady: pageFilterIsReady,
-  } = usePageFilters();
-
-  /**
-   * Transforms a plain array of project IDs into values that can be used as page filter
-   * URL parameters. This is necessary because some configurations have special URL
-   * values: "My Projects" = [] and "All Projects" = [-1].
-   */
-  const mapNormalValueToURLValue = useCallback(
-    (val: number[]) => {
-      if (val.includes(ALL_ACCESS_PROJECTS)) {
-        return [ALL_ACCESS_PROJECTS];
-      }
-
-      const memberProjectsSelected = memberProjects.every(p =>
-        val.includes(parseInt(p.id, 10))
-      );
-
-      // "All Projects"
-      if (!val.length) {
-        return [ALL_ACCESS_PROJECTS];
-      }
-
-      // "My Projects"
-      if (
-        showNonMemberProjects &&
-        memberProjectsSelected &&
-        val.length === memberProjects.length
-      ) {
-        return [];
-      }
-
-      return val;
-    },
-    [memberProjects, showNonMemberProjects]
-  );
-
-  /**
-   * Transforms an array of page filter URL parameters into a plain array of project
-   * IDs. This is necessary because some URL values denote special configurations: [] =
-   * "My Projects" and [-1] = "All Projects".
-   */
-  const mapURLValueToNormalValue = useCallback(
-    (val: number[]) => {
-      // "All Projects"
-      if (val.includes(ALL_ACCESS_PROJECTS)) {
-        return [];
-      }
-
-      // "My Projects"
-      if (!val.length) {
-        return memberProjects.map(p => parseInt(p.id, 10));
-      }
-
-      return val;
-    },
-    [memberProjects]
-  );
-
-  const value = useMemo<number[]>(
-    () => mapURLValueToNormalValue(pageFilterValue),
-    [mapURLValueToNormalValue, pageFilterValue]
-  );
-
-  const defaultValue = useMemo<number[]>(
-    () => mapURLValueToNormalValue([]),
-    [mapURLValueToNormalValue]
-  );
-
   const [stagedValue, setStagedValue] = useState<number[]>(value);
+  const [hasStagedValue, setHasStagedValue] = useState(false);
 
   const handleChange = useCallback(
     async (newValue: number[]) => {
@@ -375,42 +166,33 @@ export function ProjectPageFilter({
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      updateProjects(mapNormalValueToURLValue(resolvedValue), router, {
-        save: true,
-        resetParams: resetParamsOnChange,
-        environments: [], // Clear environments when switching projects
-        storageNamespace,
-      });
+      updateProjects(
+        mapNormalValueToURLValue({
+          value: resolvedValue,
+          memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
+          showNonMemberProjects,
+        }),
+        router,
+        {
+          save: true,
+          resetParams: resetParamsOnChange,
+          environments: [], // Clear environments when switching projects
+          storageNamespace,
+        }
+      );
     },
     [
       defaultValue,
+      memberProjects,
+      showNonMemberProjects,
       resetParamsOnChange,
       router,
       organization,
       routes,
       onChange,
-      mapNormalValueToURLValue,
       storageNamespace,
     ]
   );
-
-  const onToggle = useCallback(
-    (newValue: number[]) => {
-      trackAnalytics('projectselector.toggle', {
-        action: newValue.length > stagedValue.length ? 'added' : 'removed',
-        path: getRouteStringFromRoutes(routes),
-        organization,
-      });
-    },
-    [stagedValue, routes, organization]
-  );
-
-  const onReplace = useCallback(() => {
-    trackAnalytics('projectselector.direct_selection', {
-      path: getRouteStringFromRoutes(routes),
-      organization,
-    });
-  }, [routes, organization]);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
     const {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode} =
@@ -418,57 +200,108 @@ export function ProjectPageFilter({
         pageFilterValue,
         stagedValue,
         suppressedCommittedModes,
+        hasStagedValue,
       });
     const allProjectsSentinelStaged = stagedSentinelMode === 'all';
     const myProjectsSentinelStaged = stagedSentinelMode === 'my';
-    // When staged is empty, there are no pending changes — use the URL mode flags as
-    // a fallback so individual project checkboxes reflect the committed mode (All/My
-    // Projects). When staged is non-empty the per-item isSelected and the sentinel-
-    // staged flags take over.
-    const noStagedChanges = stagedValue.length === 0;
-
+    // When there is no staged state, use URL mode fallback so checkboxes reflect
+    // committed All/My Projects modes. If staged state exists (even empty []), do not
+    // fall back to committed URL modes.
+    const noStagedChanges = !hasStagedValue;
     const setStaged = (nextValue: number[]) => {
       dispatchRef.current?.({type: 'set staged', value: nextValue});
     };
 
-    const applySentinelTransition = (transition: SentinelTransition) => {
-      setStaged(transition.stagedValue);
-      setSuppressedCommittedModes(prev =>
-        applySuppressedModesTransition(prev, transition)
-      );
-    };
-
     const handleAllProjectsToggle = () => {
-      applySentinelTransition(getAllProjectsToggleTransition(isAllProjectsMode));
+      const transition = isAllProjectsMode
+        ? {
+            stagedValue: [],
+            suppressed: {type: 'add', modes: ['all']},
+          }
+        : {
+            stagedValue: [ALL_ACCESS_PROJECTS],
+            suppressed: {type: 'clear'},
+          };
+
+      setStaged(transition.stagedValue);
+      setSuppressedCommittedModes(prev => {
+        if (transition.suppressed.type === 'clear') {
+          return new Set();
+        }
+        return new Set([...prev, ...transition.suppressed.modes]);
+      });
     };
 
     const handleMyProjectsToggle = () => {
-      applySentinelTransition(
-        getMyProjectsToggleTransition({
-          isAllProjectsMode,
-          isMyProjectsMode,
-          stagedSentinelMode,
-          nonMemberProjectIds,
-        })
-      );
+      const transition = getMyProjectsToggleTransition({
+        isAllProjectsMode,
+        isMyProjectsMode,
+        stagedSentinelMode,
+        nonMemberProjectIds: nonMemberProjects.map(project => parseInt(project.id, 10)),
+      });
+      setStaged(transition.stagedValue);
+      setSuppressedCommittedModes(prev => {
+        if (transition.suppressed.type === 'clear') {
+          return new Set();
+        }
+        return new Set([...prev, ...transition.suppressed.modes]);
+      });
+    };
+
+    const allProjectIds = [
+      ...memberProjects.map(project => parseInt(project.id, 10)),
+      ...nonMemberProjects.map(project => parseInt(project.id, 10)),
+    ];
+
+    const handleProjectToggle = (project: Project) => {
+      const clickedProjectId = parseInt(project.id, 10);
+
+      const fallbackSelection =
+        !allProjectsSentinelStaged && !myProjectsSentinelStaged
+          ? hasStagedValue
+            ? null
+            : isAllProjectsMode
+              ? allProjectIds
+              : isMyProjectsMode && project.isMember
+                ? memberProjects.map(p => parseInt(project.id, 10))
+                : null
+          : null;
+
+      // In committed fallback modes (All/My), seed staged state from the effective
+      // committed selection before toggling the clicked project.
+      if (fallbackSelection) {
+        setStaged(fallbackSelection.filter(id => id !== clickedProjectId));
+        setSuppressedCommittedModes(
+          prev =>
+            new Set([
+              ...prev,
+              ...(isAllProjectsMode ? (['all', 'my'] as const) : (['my'] as const)),
+            ])
+        );
+        return;
+      }
+
+      toggleOptionRef.current?.(clickedProjectId);
     };
 
     const getProjectItem = (project: Project) => {
       return {
-        value: projectId(project),
+        value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
           <MenuComponents.Checkbox
-            checked={isProjectCheckedInMode({
-              isSelected,
-              isMember: project.isMember,
-              noStagedChanges,
-              allProjectsSentinelStaged,
-              myProjectsSentinelStaged,
-              isAllProjectsMode,
-              isMyProjectsMode,
-            })}
-            onChange={() => toggleOptionRef.current?.(projectId(project))}
+            checked={
+              allProjectsSentinelStaged
+                ? true
+                : myProjectsSentinelStaged && project.isMember
+                  ? true
+                  : noStagedChanges && isAllProjectsMode
+                    ? true
+                    : noStagedChanges && isMyProjectsMode && project.isMember
+                      ? true
+                      : isSelected
+            }
+            onChange={() => handleProjectToggle(project)}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />
@@ -539,13 +372,43 @@ export function ProjectPageFilter({
       } satisfies SelectOption<number>;
     };
 
-    const specialItems: Array<SelectOption<number>> =
-      nonMemberProjects.length > 0
+    const specialItems = [
+      ...(nonMemberProjects.length > 0
         ? [
             {
               value: ALL_ACCESS_PROJECTS,
-              label: t('All Projects'),
-              textValue: '',
+              label: (
+                <Flex
+                  align="center"
+                  justify="between"
+                  width="100%"
+                  style={
+                    memberProjects.length + nonMemberProjects.length > 0
+                      ? {position: 'relative'}
+                      : undefined
+                  }
+                >
+                  <Text>{t('All Projects')}</Text>
+                  <Text size="sm" variant="muted">
+                    ({projects.length})
+                  </Text>
+                  {memberProjects.length + nonMemberProjects.length > 0 ? (
+                    <Separator
+                      orientation="horizontal"
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        bottom: '-8px',
+                        left: '-48px',
+                        right: 0,
+                        width: 'calc(100% + 48px)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  ) : null}
+                </Flex>
+              ),
+              textValue: t('All Projects'),
               leadingItems: () => (
                 <Fragment>
                   <MenuComponents.Checkbox
@@ -557,11 +420,45 @@ export function ProjectPageFilter({
                   <IconAllProjects size="sm" variant="muted" />
                 </Fragment>
               ),
-            },
+            } satisfies SelectOption<number>,
+          ]
+        : []),
+      ...(memberProjects.length < projects.length
+        ? [
             {
               value: MY_PROJECTS_VALUE,
-              label: t('My Projects'),
-              textValue: '',
+              label: (
+                <Flex
+                  align="center"
+                  justify="between"
+                  width="100%"
+                  style={
+                    memberProjects.length + nonMemberProjects.length > 0
+                      ? {position: 'relative'}
+                      : undefined
+                  }
+                >
+                  <Text>{t('My Projects')}</Text>
+                  <Text size="sm" variant="muted">
+                    ({memberProjects.length})
+                  </Text>
+                  {memberProjects.length + nonMemberProjects.length > 0 ? (
+                    <Separator
+                      orientation="horizontal"
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        bottom: '-8px',
+                        left: '-48px',
+                        right: 0,
+                        width: 'calc(100% + 48px)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  ) : null}
+                </Flex>
+              ),
+              textValue: t('My Projects'),
               leadingItems: () => (
                 <Fragment>
                   <MenuComponents.Checkbox
@@ -573,37 +470,42 @@ export function ProjectPageFilter({
                   <IconMyProjects size="sm" variant="muted" />
                 </Fragment>
               ),
-            },
+            } satisfies SelectOption<number>,
           ]
-        : [];
+        : []),
+    ];
 
-    const lastSelected = mapURLValueToNormalValue(pageFilterValue);
+    const lastSelected = mapURLValueToNormalValue({
+      value: pageFilterValue,
+      memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
+    });
     const listSort = (project: Project) =>
       bookmarkedSnapshotRef.current
         ? [
-            !lastSelected.includes(projectId(project)),
+            !lastSelected.includes(parseInt(project.id, 10)),
             !project.isMember,
             !bookmarkedSnapshotRef.current.has(project.id),
             project.slug,
           ]
         : [
-            !lastSelected.includes(projectId(project)),
+            !lastSelected.includes(parseInt(project.id, 10)),
             !project.isMember,
             project.slug,
           ];
 
-    return [
-      ...specialItems,
-      ...sortBy([...memberProjects, ...nonMemberProjects], listSort).map(getProjectItem),
-    ];
+    const projectItems = sortBy([...memberProjects, ...nonMemberProjects], listSort).map(
+      getProjectItem
+    );
+
+    return [...specialItems, ...projectItems];
   }, [
     organization,
     memberProjects,
     nonMemberProjects,
-    mapURLValueToNormalValue,
-    nonMemberProjectIds,
+    projects.length,
     optimisticallyBookmarkedProjects,
     pageFilterValue,
+    hasStagedValue,
     stagedValue,
     suppressedCommittedModes,
   ]);
@@ -628,15 +530,38 @@ export function ProjectPageFilter({
     const realStagedValue = stagedValue.filter(
       v => v !== ALL_ACCESS_PROJECTS && v !== MY_PROJECTS_VALUE
     );
-    const mappedValue = mapNormalValueToURLValue(realStagedValue);
+    const mappedValue = mapNormalValueToURLValue({
+      value: realStagedValue,
+      memberProjectIds: memberProjects.map(project => parseInt(project.id, 10)),
+      showNonMemberProjects,
+    });
     return mappedValue.length > SELECTION_COUNT_LIMIT;
-  }, [stagedValue, mapNormalValueToURLValue]);
+  }, [stagedValue, showNonMemberProjects, memberProjects]);
+
+  const onToggle = useCallback(
+    (newValue: number[]) => {
+      trackAnalytics('projectselector.toggle', {
+        action: newValue.length > stagedValue.length ? 'added' : 'removed',
+        path: getRouteStringFromRoutes(routes),
+        organization,
+      });
+    },
+    [stagedValue, routes, organization]
+  );
+
+  const onReplace = useCallback(() => {
+    trackAnalytics('projectselector.direct_selection', {
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+  }, [routes, organization]);
 
   const stagedSelect = useStagedCompactSelect({
     value,
     options,
     onChange: handleChange,
     onStagedValueChange: setStagedValue,
+    onStagedStateChange: setHasStagedValue,
     onToggle,
     onReplace,
     multiple: true,
@@ -716,9 +641,6 @@ export function ProjectPageFilter({
 
   const hasStagedChanges =
     !isMyProjectsDeselectedOnly && xor(stagedSelect.value, value).length > 0;
-  const shouldShowReset = xor(stagedSelect.value, defaultValue).length > 0;
-
-  const hasProjectWrite = organization.access.includes('project:write');
 
   return (
     <CompactSelect
@@ -754,10 +676,14 @@ export function ProjectPageFilter({
       }
       onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
-        shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
+        xor(stagedSelect.value, defaultValue).length > 0 ? (
+          <MenuComponents.ResetButton onClick={handleReset} />
+        ) : null
       }
       menuFooter={
-        selectionLimitExceeded || hasProjectWrite || hasStagedChanges ? (
+        selectionLimitExceeded ||
+        organization.access.includes('project:write') ||
+        hasStagedChanges ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
               <MenuComponents.Alert variant="warning">
@@ -770,8 +696,12 @@ export function ProjectPageFilter({
                 )}
               </MenuComponents.Alert>
             )}
-            <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
-              {hasProjectWrite ? (
+            <Flex
+              gap="md"
+              align="center"
+              justify={organization.access.includes('project:write') ? 'between' : 'end'}
+            >
+              {organization.access.includes('project:write') ? (
                 <MenuComponents.CTALinkButton
                   icon={<IconAdd />}
                   to={makeProjectsPathname({path: '/new/', organization})}
@@ -805,16 +735,149 @@ export function ProjectPageFilter({
           />
         ))
       }
-      shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+      shouldCloseOnInteractOutside={target => {
+        // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
+        const powerHovercard = target.closest('[data-test-id="power-hovercard"]');
+        const disabledFeatureHovercard = target.closest(
+          '[data-test-id="disabled-feature-hovercard"]'
+        );
+        return !powerHovercard && !disabledFeatureHovercard;
+      }}
     />
   );
 }
 
-function shouldCloseOnInteractOutside(target: Element) {
-  // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
-  const powerHovercard = target.closest('[data-test-id="power-hovercard"]');
-  const disabledFeatureHovercard = target.closest(
-    '[data-test-id="disabled-feature-hovercard"]'
+/**
+ * Sentinel value for the "My Projects" quick-select option. Must be negative to avoid
+ * collision with real project IDs. ALL_ACCESS_PROJECTS (-1) is already used for
+ * "All Projects".
+ */
+const MY_PROJECTS_VALUE = -2;
+type SentinelMode = 'all' | 'my';
+
+interface SentinelSelectionState {
+  isAllProjectsMode: boolean;
+  isMyProjectsMode: boolean;
+  stagedSentinelMode: SentinelMode | null;
+}
+
+type SentinelTransition =
+  | {stagedValue: number[]; suppressed: {modes: SentinelMode[]; type: 'add'}}
+  | {stagedValue: number[]; suppressed: {type: 'clear'}};
+
+function getSentinelSelectionState({
+  pageFilterValue,
+  stagedValue,
+  suppressedCommittedModes,
+  hasStagedValue,
+}: {
+  hasStagedValue: boolean;
+  pageFilterValue: number[];
+  stagedValue: number[];
+  suppressedCommittedModes: Set<SentinelMode>;
+}): SentinelSelectionState {
+  const stagedSentinelMode: SentinelMode | null = stagedValue.includes(
+    ALL_ACCESS_PROJECTS
+  )
+    ? 'all'
+    : stagedValue.includes(MY_PROJECTS_VALUE)
+      ? 'my'
+      : null;
+  const committedAllProjectsMode = pageFilterValue.includes(ALL_ACCESS_PROJECTS);
+  const committedMyProjectsMode = pageFilterValue.length === 0;
+  const isAllProjectsMode =
+    stagedSentinelMode === 'all' ||
+    (!suppressedCommittedModes.has('all') && !hasStagedValue && committedAllProjectsMode);
+  const isMyProjectsMode =
+    isAllProjectsMode ||
+    stagedSentinelMode === 'my' ||
+    (!suppressedCommittedModes.has('my') && !hasStagedValue && committedMyProjectsMode);
+
+  return {stagedSentinelMode, isAllProjectsMode, isMyProjectsMode};
+}
+
+function getMyProjectsToggleTransition({
+  isAllProjectsMode,
+  isMyProjectsMode,
+  stagedSentinelMode,
+  nonMemberProjectIds,
+}: {
+  isAllProjectsMode: boolean;
+  isMyProjectsMode: boolean;
+  nonMemberProjectIds: number[];
+  stagedSentinelMode: SentinelMode | null;
+}): SentinelTransition {
+  if (isAllProjectsMode) {
+    return {
+      stagedValue: nonMemberProjectIds,
+      suppressed: {type: 'add', modes: ['all', 'my']},
+    };
+  }
+
+  if (stagedSentinelMode === 'my' || isMyProjectsMode) {
+    return {
+      // Toggling off "My Projects" from a My-only state should leave nothing selected.
+      stagedValue: [],
+      suppressed: {type: 'add', modes: ['all', 'my']},
+    };
+  }
+
+  return {
+    stagedValue: [MY_PROJECTS_VALUE],
+    suppressed: {type: 'clear'},
+  };
+}
+
+function mapURLValueToNormalValue({
+  memberProjectIds,
+  value,
+}: {
+  memberProjectIds: number[];
+  value: number[];
+}): number[] {
+  // "All Projects"
+  if (value.includes(ALL_ACCESS_PROJECTS)) {
+    return [];
+  }
+
+  // "My Projects"
+  if (!value.length) {
+    return memberProjectIds;
+  }
+
+  return value;
+}
+
+function mapNormalValueToURLValue({
+  memberProjectIds,
+  showNonMemberProjects,
+  value,
+}: {
+  memberProjectIds: number[];
+  showNonMemberProjects: boolean;
+  value: number[];
+}): number[] {
+  if (value.includes(ALL_ACCESS_PROJECTS)) {
+    return [ALL_ACCESS_PROJECTS];
+  }
+
+  // "All Projects"
+  if (!value.length) {
+    return [ALL_ACCESS_PROJECTS];
+  }
+
+  const memberProjectsSelected = memberProjectIds.every(project =>
+    value.includes(project)
   );
-  return !powerHovercard && !disabledFeatureHovercard;
+
+  // "My Projects"
+  if (
+    showNonMemberProjects &&
+    value.length === memberProjectIds.length &&
+    memberProjectsSelected
+  ) {
+    return [];
+  }
+
+  return value;
 }
