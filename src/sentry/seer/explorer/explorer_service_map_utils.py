@@ -16,7 +16,6 @@ from typing import Any, cast
 
 import orjson
 import sentry_sdk
-from django.utils import timezone as django_timezone
 
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
@@ -145,7 +144,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     # Parent resolution: Batch-resolve parent spans → get their project_ids.
     # Batched to keep query strings within reasonable size limits.
-    edges_by_pair: dict[tuple[int, str | None, int, str | None], int] = defaultdict(int)
+    edges_by_pair: dict[tuple[int, str, int, str], int] = defaultdict(int)
     batch_size = options.get("explorer.service_map.parent_span_batch_size")
 
     with sentry_sdk.start_span(op="explorer.service_map.resolve_parents") as span:
@@ -313,7 +312,6 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         "organization_id": org_id,
         "nodes": valid_nodes,
         "edges": valid_edges,
-        "generated_at": django_timezone.now().isoformat(),
     }
 
     body = orjson.dumps(payload)
