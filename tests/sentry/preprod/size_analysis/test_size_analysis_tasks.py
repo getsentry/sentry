@@ -219,17 +219,23 @@ class MaybeEmitIssuesTest(TestCase):
 
 
 class GetPlatformTest(TestCase):
+    def _make_artifact(self, artifact_type):
+        file = self.create_file(name="test", type="application/octet-stream")
+        return self.create_preprod_artifact(
+            project=self.project, file_id=file.id, artifact_type=artifact_type
+        )
+
     def test_xcarchive_returns_apple(self):
-        assert _get_platform(PreprodArtifact.ArtifactType.XCARCHIVE) == "apple"
+        assert _get_platform(self._make_artifact(PreprodArtifact.ArtifactType.XCARCHIVE)) == "apple"
 
     def test_aab_returns_android(self):
-        assert _get_platform(PreprodArtifact.ArtifactType.AAB) == "android"
+        assert _get_platform(self._make_artifact(PreprodArtifact.ArtifactType.AAB)) == "android"
 
     def test_apk_returns_android(self):
-        assert _get_platform(PreprodArtifact.ArtifactType.APK) == "android"
+        assert _get_platform(self._make_artifact(PreprodArtifact.ArtifactType.APK)) == "android"
 
     def test_none_returns_unknown(self):
-        assert _get_platform(None) == "unknown"
+        assert _get_platform(self._make_artifact(None)) == "unknown"
 
 
 class ArtifactToTagsTest(TestCase):

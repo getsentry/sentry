@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Literal, Self, assert_never
 
 import sentry_sdk
 from django.db import models
@@ -223,6 +223,18 @@ class PreprodArtifact(DefaultFieldsModel):
         choices=InstallableAppErrorCode.as_choices(), null=True
     )
     installable_app_error_message = models.TextField(null=True)
+
+    @property
+    def platform(self) -> Literal["apple", "android"] | None:
+        if self.artifact_type is None:
+            return None
+        match self.artifact_type:
+            case self.ArtifactType.XCARCHIVE:
+                return "apple"
+            case self.ArtifactType.AAB | self.ArtifactType.APK:
+                return "android"
+            case _:
+                assert_never(self.artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """

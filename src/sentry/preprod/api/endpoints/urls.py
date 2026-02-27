@@ -43,6 +43,9 @@ from .project_preprod_size import (
     ProjectPreprodSizeWithIdentifierEndpoint,
 )
 from .project_preprod_upload_options import ProjectPreprodUploadOptionsEndpoint
+from .public.organization_preprod_artifact_install_details import (
+    OrganizationPreprodArtifactPublicInstallDetailsEndpoint,
+)
 from .public.organization_preprod_size_analysis import OrganizationPreprodPublicSizeAnalysisEndpoint
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
@@ -173,6 +176,11 @@ preprod_organization_urlpatterns = [
         name="sentry-api-0-organization-builds",
     ),
     # Public API endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/install-details/$",
+        OrganizationPreprodArtifactPublicInstallDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-public-install-details",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
         OrganizationPreprodPublicSizeAnalysisEndpoint.as_view(),
