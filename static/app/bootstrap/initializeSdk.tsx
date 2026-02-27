@@ -32,7 +32,6 @@ export function getLastEventId(): string | undefined {
   return lastEventId;
 }
 
-// Pre-compiled regex and lookup map for isFilteredRequestErrorEvent.
 // Each error type maps to the set of HTTP status codes it should be filtered for.
 const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<string>>> = {
   RequestError: new Set(['200', '400', '401', '403', '404', '429']),
@@ -44,7 +43,6 @@ const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<strin
 };
 const FILTERED_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|DELETE) .* (\d+)$/;
 
-// Pre-compiled regex for addEndpointTagToRequestError.
 const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
 
 // We don't care about recording breadcrumbs for these hosts. These typically
