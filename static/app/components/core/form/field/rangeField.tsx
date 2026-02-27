@@ -5,7 +5,7 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
+import {BaseField, type BaseFieldProps} from './baseField';
 
 export function RangeField({
   onChange,
@@ -20,11 +20,10 @@ export function RangeField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
 
   return (
     <BaseField disabled={disabled} ref={ref}>
-      {fieldProps => (
+      {(fieldProps, {indicator}) => (
         <Fragment>
           <Slider
             {...fieldProps}

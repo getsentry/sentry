@@ -1,7 +1,7 @@
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
-import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
+import {BaseField, type BaseFieldProps} from './baseField';
 
 export interface InputFieldProps
   extends
@@ -20,11 +20,9 @@ export function InputField({
   ref,
   ...props
 }: InputFieldProps) {
-  const indicator = useAutoSaveIndicator();
-
   return (
     <BaseField disabled={disabled} ref={ref}>
-      {fieldProps => (
+      {(fieldProps, {indicator}) => (
         <InputGroup style={{flex: 1}}>
           <InputGroup.Input
             {...fieldProps}

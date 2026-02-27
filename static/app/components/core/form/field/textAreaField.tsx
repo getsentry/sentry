@@ -1,7 +1,7 @@
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {type TextAreaProps} from '@sentry/scraps/textarea';
 
-import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
+import {BaseField, type BaseFieldProps} from './baseField';
 
 export function TextAreaField({
   onChange,
@@ -14,11 +14,9 @@ export function TextAreaField({
     value: string;
     disabled?: boolean | string;
   }) {
-  const indicator = useAutoSaveIndicator();
-
   return (
     <BaseField disabled={disabled} ref={ref}>
-      {fieldProps => (
+      {(fieldProps, {indicator}) => (
         <InputGroup style={{flex: 1}}>
           <InputGroup.TextArea
             {...fieldProps}
