@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1035_delete_code_review_event"),
+        ("sentry", "1036_orgmapping_date_updated_trunc_index"),
     ]
 
     operations = [

@@ -9,5 +9,6 @@ export function getDefaultWidget(widgetType: WidgetType): Widget {
     title: 'Custom Widget',
     widgetType,
     queries: [config.defaultWidgetQuery],
+    axisRange: config.axisRange,
   };
 }

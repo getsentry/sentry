@@ -131,10 +131,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.environment = Environment.objects.create(
             organization_id=self.project.organization_id, name="production"
         )
+        request = self.make_request(user=self.user)
         self.context = {
             "organization": self.project.organization,
             "project": self.project,
-            "request": self.make_request(),
+            "request": request,
+            "user": request.user,
         }
         self.valid_data = {
             "name": "Test Detector",
