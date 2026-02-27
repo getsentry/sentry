@@ -915,9 +915,7 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert len(response.json()) == 2
 
-        response = self._request(
-            {"query": "distribution_error_code:[no_quota, skipped]"}
-        )
+        response = self._request({"query": "distribution_error_code:[no_quota, skipped]"})
         self._assert_is_successful(response)
         assert len(response.json()) == 2
 
