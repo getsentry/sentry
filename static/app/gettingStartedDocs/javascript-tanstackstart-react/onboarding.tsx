@@ -200,8 +200,7 @@ Sentry.init({
         },
         {
           type: 'conditional',
-          condition:
-            params.platformOptions.serverPlatform === ServerPlatform.NODE,
+          condition: params.platformOptions.serverPlatform === ServerPlatform.NODE,
           content: [
             {
               type: 'code',
@@ -227,9 +226,7 @@ export default createServerEntry(
         },
         {
           type: 'conditional',
-          condition:
-            params.platformOptions.serverPlatform ===
-            ServerPlatform.SERVERLESS,
+          condition: params.platformOptions.serverPlatform === ServerPlatform.SERVERLESS,
           content: [
             {
               type: 'code',
@@ -304,8 +301,7 @@ export default defineConfig({
         },
         {
           type: 'conditional',
-          condition:
-            params.platformOptions.serverPlatform === ServerPlatform.NODE,
+          condition: params.platformOptions.serverPlatform === ServerPlatform.NODE,
           content: [
             {
               type: 'text',
