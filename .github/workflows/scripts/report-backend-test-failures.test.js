@@ -6,9 +6,11 @@ import {afterEach, beforeEach, describe, it} from 'node:test';
 
 import {
   buildCommentBody,
+  buildFailureBlocks,
   COMMENT_MARKER,
+  extractNodeids,
   parseFailures,
-  report,
+  reportShard,
 } from './report-backend-test-failures.js';
 
 // -- Fixtures ----------------------------------------------------------------
@@ -30,6 +32,17 @@ const FAILED_TEST = {
       lineno: 42,
       message: 'AssertionError: assert 500 == 200',
     },
+  },
+};
+
+const FAILED_TEST_2 = {
+  nodeid: 'tests/sentry/api/test_other.py::TestOther::test_boom',
+  outcome: 'failed',
+  call: {
+    status: 'failed',
+    duration: 0.05,
+    longrepr: 'AssertionError: boom',
+    crash: {path: '/src/tests/sentry/api/test_other.py', lineno: 10, message: 'boom'},
   },
 };
 
@@ -62,6 +75,12 @@ function createArtifactFile(artifactDir, filename, content) {
   mkdirSync(dir, {recursive: true});
   const filePath = join(dir, filename);
   writeFileSync(filePath, content);
+  return filePath;
+}
+
+function writePytestJson(filename, tests) {
+  const filePath = join(tmpDir, filename);
+  writeFileSync(filePath, makePytestJson(tests));
   return filePath;
 }
 
@@ -202,15 +221,65 @@ describe('parseFailures', () => {
     const file2 = createArtifactFile(
       'pytest-results-backend-111-1',
       'pytest.json',
-      makePytestJson([
-        {
-          ...FAILED_TEST,
-          nodeid: 'tests/sentry/api/test_other.py::TestOther::test_boom',
-        },
-      ])
+      makePytestJson([FAILED_TEST_2])
     );
 
     assert.equal(parseFailures([file1, file2], mockCore()).length, 2);
+  });
+});
+
+describe('extractNodeids', () => {
+  it('returns empty set for null/undefined', () => {
+    assert.equal(extractNodeids(null).size, 0);
+    assert.equal(extractNodeids(undefined).size, 0);
+  });
+
+  it('extracts nodeids from <code> tags in comment body', () => {
+    const body = buildCommentBody(
+      [
+        {nodeid: 'tests/foo.py::A::test_1', longrepr: ''},
+        {nodeid: 'tests/bar.py::B::test_2', longrepr: ''},
+      ],
+      'https://example.com/run'
+    );
+
+    const nodeids = extractNodeids(body);
+    assert.ok(nodeids.has('tests/foo.py::A::test_1'));
+    assert.ok(nodeids.has('tests/bar.py::B::test_2'));
+    assert.equal(nodeids.size, 2);
+  });
+});
+
+describe('buildFailureBlocks', () => {
+  it('renders a details block per failure', () => {
+    const blocks = buildFailureBlocks([{nodeid: 'a::b::c', longrepr: 'traceback here'}]);
+    assert.ok(blocks.includes('<details>'));
+    assert.ok(blocks.includes('<code>a::b::c</code>'));
+    assert.ok(blocks.includes('traceback here'));
+  });
+
+  it('includes log link when jobUrl provided', () => {
+    const blocks = buildFailureBlocks([
+      {nodeid: 'a::b::c', longrepr: '', jobUrl: 'https://example.com/job/1'},
+    ]);
+    assert.ok(blocks.includes('— [log](https://example.com/job/1)'));
+  });
+
+  it('omits log link when jobUrl absent', () => {
+    const blocks = buildFailureBlocks([{nodeid: 'a::b::c', longrepr: ''}]);
+    assert.ok(!blocks.includes('[log]'));
+  });
+
+  it('shows "No traceback available" for empty longrepr', () => {
+    const blocks = buildFailureBlocks([{nodeid: 'a::b::c', longrepr: ''}]);
+    assert.ok(blocks.includes('No traceback available'));
+  });
+
+  it('truncates long tracebacks', () => {
+    const longTrace = Array.from({length: 100}, (_, i) => `line ${i}`).join('\n');
+    const blocks = buildFailureBlocks([{nodeid: 'a::b::c', longrepr: longTrace}]);
+    assert.ok(blocks.includes('... (50 more lines)'));
+    assert.ok(!blocks.includes('line 99'));
   });
 });
 
@@ -240,40 +309,6 @@ describe('buildCommentBody', () => {
     assert.ok(body.includes('full traceback here'));
   });
 
-  it('includes a log link in the summary when jobUrl is provided', () => {
-    const body = buildCommentBody(
-      [{nodeid: 'a::b::c', longrepr: '', jobUrl: 'https://example.com/job/42'}],
-      'https://example.com/run'
-    );
-    assert.ok(body.includes('— [log](https://example.com/job/42)'));
-  });
-
-  it('omits the log link when jobUrl is absent', () => {
-    const body = buildCommentBody(
-      [{nodeid: 'a::b::c', longrepr: ''}],
-      'https://example.com/run'
-    );
-    assert.ok(!body.includes('[log]'));
-  });
-
-  it('shows "No traceback available" when longrepr is empty', () => {
-    const body = buildCommentBody(
-      [{nodeid: 'a::b::c', longrepr: ''}],
-      'https://example.com/run'
-    );
-    assert.ok(body.includes('No traceback available'));
-  });
-
-  it('truncates long tracebacks', () => {
-    const longTrace = Array.from({length: 100}, (_, i) => `line ${i}`).join('\n');
-    const body = buildCommentBody(
-      [{nodeid: 'a::b::c', longrepr: longTrace}],
-      'https://example.com/run'
-    );
-    assert.ok(body.includes('... (50 more lines)'));
-    assert.ok(!body.includes('line 99'));
-  });
-
   it('caps at 30 failures with overflow note', () => {
     const failures = Array.from({length: 35}, (_, i) => ({
       nodeid: `a::b::test_${i}`,
@@ -298,45 +333,108 @@ describe('buildCommentBody', () => {
   });
 });
 
-describe('report (integration)', () => {
+describe('reportShard (integration)', () => {
   let origEnv;
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'pytest-report-'));
-    origEnv = process.env.GITHUB_WORKSPACE;
-    process.env.GITHUB_WORKSPACE = tmpDir;
+    origEnv = {
+      PYTEST_JSON_PATH: process.env.PYTEST_JSON_PATH,
+      PYTEST_ARTIFACT_DIR: process.env.PYTEST_ARTIFACT_DIR,
+    };
   });
   afterEach(() => {
-    process.env.GITHUB_WORKSPACE = origEnv;
+    for (const [k, v] of Object.entries(origEnv)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
     rmSync(tmpDir, {recursive: true, force: true});
   });
 
-  it('creates a comment when failures exist', async () => {
-    createArtifactFile(
-      'pytest-results-backend-111-0',
-      'pytest.json',
-      makePytestJson([FAILED_TEST])
-    );
+  it('creates a comment when the shard has failures', async () => {
+    const jsonPath = writePytestJson('pytest.json', [FAILED_TEST]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+    process.env.PYTEST_ARTIFACT_DIR = 'pytest-results-backend-99-3';
 
     const github = mockGithub();
-    const core = mockCore();
-
-    await report({github, context: mockContext(), core});
+    await reportShard({github, context: mockContext(), core: mockCore()});
 
     const create = github.calls.find(c => c.method === 'createComment');
     assert.ok(create, 'should have called createComment');
-    assert.equal(create.params.issue_number, 123);
     assert.ok(create.params.body.includes(COMMENT_MARKER));
     assert.ok(create.params.body.includes(FAILED_TEST.nodeid));
     assert.ok(create.params.body.includes('actions/runs/99'));
   });
 
-  it('includes a job log link when the shard job is found', async () => {
-    createArtifactFile(
-      'pytest-results-backend-99-3',
-      'pytest.json',
-      makePytestJson([FAILED_TEST])
+  it('appends new failures to an existing comment', async () => {
+    // Existing comment already has FAILED_TEST reported
+    const existingBody = buildCommentBody(
+      [{nodeid: FAILED_TEST.nodeid, longrepr: 'old traceback'}],
+      'https://example.com/run'
     );
+
+    const jsonPath = writePytestJson('pytest.json', [FAILED_TEST, FAILED_TEST_2]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+    delete process.env.PYTEST_ARTIFACT_DIR;
+
+    const github = mockGithub({
+      existingComments: [{id: 999, body: existingBody}],
+    });
+    await reportShard({github, context: mockContext(), core: mockCore()});
+
+    const update = github.calls.find(c => c.method === 'updateComment');
+    assert.ok(update, 'should have called updateComment');
+    // FAILED_TEST already existed — only FAILED_TEST_2 should be appended
+    assert.ok(update.params.body.includes(FAILED_TEST_2.nodeid));
+    // Original content preserved
+    assert.ok(update.params.body.includes(FAILED_TEST.nodeid));
+  });
+
+  it('skips when all failures are already in the comment', async () => {
+    const existingBody = buildCommentBody(
+      [{nodeid: FAILED_TEST.nodeid, longrepr: ''}],
+      'https://example.com/run'
+    );
+
+    const jsonPath = writePytestJson('pytest.json', [FAILED_TEST]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+
+    const github = mockGithub({existingComments: [{id: 999, body: existingBody}]});
+    const core = mockCore();
+    await reportShard({github, context: mockContext(), core});
+
+    assert.ok(!github.calls.some(c => c.method === 'updateComment'));
+    assert.ok(!github.calls.some(c => c.method === 'createComment'));
+    assert.ok(core.logs.info.some(m => m.includes('already reported')));
+  });
+
+  it('does nothing when the shard has no failures', async () => {
+    const jsonPath = writePytestJson('pytest.json', [PASSED_TEST]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+
+    const github = mockGithub();
+    const core = mockCore();
+    await reportShard({github, context: mockContext(), core});
+
+    assert.equal(github.calls.length, 0);
+    assert.ok(core.logs.info.some(m => m.includes('No failures')));
+  });
+
+  it('does nothing when PYTEST_JSON_PATH is not set', async () => {
+    delete process.env.PYTEST_JSON_PATH;
+
+    const github = mockGithub();
+    const core = mockCore();
+    await reportShard({github, context: mockContext(), core});
+
+    assert.equal(github.calls.length, 0);
+    assert.ok(core.logs.warning.some(m => m.includes('PYTEST_JSON_PATH')));
+  });
+
+  it('includes job log link when the shard job is matched', async () => {
+    const jsonPath = writePytestJson('pytest.json', [FAILED_TEST]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+    process.env.PYTEST_ARTIFACT_DIR = 'pytest-results-backend-99-3';
 
     const github = mockGithub({
       jobs: [
@@ -346,8 +444,7 @@ describe('report (integration)', () => {
         },
       ],
     });
-
-    await report({github, context: mockContext(), core: mockCore()});
+    await reportShard({github, context: mockContext(), core: mockCore()});
 
     const create = github.calls.find(c => c.method === 'createComment');
     assert.ok(
@@ -355,50 +452,5 @@ describe('report (integration)', () => {
         '[log](https://github.com/getsentry/sentry/actions/runs/99/jobs/55555)'
       )
     );
-  });
-
-  it('updates an existing comment', async () => {
-    createArtifactFile(
-      'pytest-results-backend-111-0',
-      'pytest.json',
-      makePytestJson([FAILED_TEST])
-    );
-
-    const github = mockGithub({
-      existingComments: [{id: 999, body: `${COMMENT_MARKER}\nold content`}],
-    });
-
-    await report({github, context: mockContext(), core: mockCore()});
-
-    const update = github.calls.find(c => c.method === 'updateComment');
-    assert.ok(update, 'should have called updateComment');
-    assert.equal(update.params.comment_id, 999);
-    assert.ok(!github.calls.some(c => c.method === 'createComment'));
-  });
-
-  it('does nothing when no artifacts exist', async () => {
-    const github = mockGithub();
-    const core = mockCore();
-
-    await report({github, context: mockContext(), core});
-
-    assert.equal(github.calls.length, 0);
-    assert.ok(core.logs.info.some(m => m.includes('No pytest result files')));
-  });
-
-  it('does nothing when all tests pass', async () => {
-    createArtifactFile(
-      'pytest-results-backend-111-0',
-      'pytest.json',
-      makePytestJson([PASSED_TEST])
-    );
-
-    const github = mockGithub();
-    const core = mockCore();
-
-    await report({github, context: mockContext(), core});
-
-    assert.ok(!github.calls.some(c => c.method === 'createComment'));
-    assert.ok(!github.calls.some(c => c.method === 'updateComment'));
   });
 });

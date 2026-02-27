@@ -1,5 +1,5 @@
-import {readdirSync, readFileSync} from 'node:fs';
-import {basename, dirname, join} from 'node:path';
+import {readFileSync} from 'node:fs';
+import {basename, dirname} from 'node:path';
 
 const MAX_FAILURES = 30;
 const MAX_TRACEBACK_LINES = 50;
@@ -77,12 +77,16 @@ async function getJobUrls(failures, github, context) {
   return dirToUrl;
 }
 
-export function buildCommentBody(failures, runUrl) {
-  const capped = failures.slice(0, MAX_FAILURES);
+// Returns the set of test nodeids already present in a comment body.
+export function extractNodeids(body) {
+  if (!body) return new Set();
+  return new Set([...body.matchAll(/<code>([^<]+)<\/code>/g)].map(m => m[1]));
+}
 
-  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed in [this run](${runUrl}):\n\n`;
-
-  for (const t of capped) {
+// Renders <details> blocks for each failure (no header).
+export function buildFailureBlocks(failures) {
+  let blocks = '';
+  for (const t of failures) {
     let tb = t.longrepr;
     if (tb) {
       const lines = tb.split('\n');
@@ -93,15 +97,23 @@ export function buildCommentBody(failures, runUrl) {
       }
     }
     const logLink = t.jobUrl ? ` — [log](${t.jobUrl})` : '';
-    body += `<details><summary><code>${t.nodeid}</code>${logLink}</summary>\n\n`;
-    body += `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`;
+    blocks += `<details><summary><code>${t.nodeid}</code>${logLink}</summary>\n\n`;
+    blocks += `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`;
   }
+  return blocks;
+}
+
+// Builds a full comment body (header + blocks). Used when creating a new comment.
+export function buildCommentBody(failures, runUrl) {
+  const capped = failures.slice(0, MAX_FAILURES);
+
+  let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed in [this run](${runUrl}):\n\n`;
+  body += buildFailureBlocks(capped);
 
   if (failures.length > MAX_FAILURES) {
     body += `... and ${failures.length - MAX_FAILURES} more failures.\n`;
   }
 
-  // Enforce GitHub comment size limit
   if (body.length > 65000) {
     body =
       body.slice(0, 64900) + '\n\n... (truncated due to GitHub comment size limit)\n';
@@ -110,39 +122,37 @@ export function buildCommentBody(failures, runUrl) {
   return body;
 }
 
-export async function report({github, context, core}) {
-  const workspace = process.env.GITHUB_WORKSPACE || '.';
+// Called from within each test shard. Reads the shard's own pytest.json from the
+// filesystem, appends any new failures to the PR comment, creating it if needed.
+export async function reportShard({github, context, core}) {
+  const jsonPath = process.env.PYTEST_JSON_PATH;
+  const artifactDir = process.env.PYTEST_ARTIFACT_DIR;
 
-  const files = readdirSync(workspace, {recursive: true})
-    .filter(f => /^pytest-results-/.test(f) && f.endsWith('.json'))
-    .map(f => join(workspace, f));
-
-  if (files.length === 0) {
-    core.info('No pytest result files found — skipping comment.');
+  if (!jsonPath) {
+    core.warning('PYTEST_JSON_PATH not set — skipping.');
     return;
   }
 
-  const failures = parseFailures(files, core);
-
-  if (failures.length === 0) {
-    core.info('No test failures found.');
+  const rawFailures = parseFailures([jsonPath], core);
+  if (rawFailures.length === 0) {
+    core.info('No failures in this shard — skipping.');
     return;
   }
+
+  // Use the artifact dir name (passed via env) so getJobUrls can match this shard's job.
+  const shardFailures = artifactDir
+    ? rawFailures.map(f => ({...f, artifactDir}))
+    : rawFailures;
 
   let jobUrls = {};
   try {
-    jobUrls = await getJobUrls(failures, github, context);
+    jobUrls = await getJobUrls(shardFailures, github, context);
   } catch (e) {
     core.warning(`Could not fetch job URLs: ${e.message}`);
   }
-  const enrichedFailures = failures.map(f => ({...f, jobUrl: jobUrls[f.artifactDir]}));
+  const failures = shardFailures.map(f => ({...f, jobUrl: jobUrls[f.artifactDir]}));
 
   const prNumber = context.payload.pull_request.number;
-  const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-  const body = buildCommentBody(enrichedFailures, runUrl);
-
-  // Find existing comment to update instead of creating a duplicate.
-  // Use paginate to search all comments, not just the first page.
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -150,21 +160,41 @@ export async function report({github, context, core}) {
   });
   const existing = comments.find(c => c.body?.includes(COMMENT_MARKER));
 
+  // Append-only: skip failures whose nodeid is already in the comment.
+  const seen = extractNodeids(existing?.body);
+  const newFailures = failures.filter(f => !seen.has(f.nodeid)).slice(0, MAX_FAILURES);
+
+  if (newFailures.length === 0) {
+    core.info('All failures already reported — skipping.');
+    return;
+  }
+
+  const newBlocks = buildFailureBlocks(newFailures);
+
   if (existing) {
+    let body = existing.body + newBlocks;
+    if (body.length > 65000) {
+      body =
+        body.slice(0, 64900) + '\n\n... (truncated due to GitHub comment size limit)\n';
+    }
     await github.rest.issues.updateComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       comment_id: existing.id,
       body,
     });
-    core.info('Updated existing failure comment.');
+    core.info(`Appended ${newFailures.length} failure(s) to comment.`);
   } else {
+    const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+    const body = buildCommentBody(failures, runUrl);
     await github.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: prNumber,
       body,
     });
-    core.info('Created failure comment.');
+    core.info(
+      `Created failure comment with ${Math.min(failures.length, MAX_FAILURES)} failure(s).`
+    );
   }
 }
