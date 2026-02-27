@@ -1220,6 +1220,7 @@ class FakeGitHubApiClient(GitHubApiClient):
     def __init__(self) -> None:
         super().__init__(integration=MagicMock(spec=Integration))
         self.issue_comments: list[dict[str, Any]] = []
+        self.pr_comments: list[dict[str, Any]] = []
         self.graphql_pr_comments_data: dict[str, Any] | None = None
         self.minimize_comment_data: dict[str, Any] | None = None
         self.resolve_thread_data: dict[str, Any] | None = None
@@ -1269,6 +1270,11 @@ class FakeGitHubApiClient(GitHubApiClient):
         if self.pull_request_data is None:
             return make_github_pull_request()
         return self.pull_request_data
+
+    def get_pull_request_comments(self, repo: str, pull_number: str) -> list[dict[str, Any]]:
+        self._record_call("get_pull_request_comments", repo, pull_number)
+        self._maybe_raise()
+        return self.pr_comments
 
     def get_pull_request_comments_graphql(
         self,

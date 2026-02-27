@@ -189,16 +189,11 @@ class GitHubProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
-        owner, repo = self.repository["name"].split("/", 1)
-        raw = self.client.get_pull_request_comments_graphql(
-            owner,
-            repo,
-            int(pull_request_id),
-        )
+        comments = self.client.get_pull_request_comments(self.repository["name"], pull_request_id)
         return PaginatedActionResult(
-            data=map_graphql_pr_comments(raw),
+            data=[map_comment(c) for c in comments],
             type="github",
-            raw=raw,
+            raw=comments,
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -863,43 +858,6 @@ def map_check_run(raw: dict[str, Any]) -> CheckRun:
         conclusion=GITHUB_CONCLUSION_MAP.get(raw_conclusion) if raw_conclusion else None,
         html_url=raw.get("html_url", ""),
     )
-
-
-def map_graphql_author(raw_author: dict[str, Any] | None) -> Author | None:
-    if raw_author is None:
-        return None
-    return Author(
-        id=str(raw_author["databaseId"]) if "databaseId" in raw_author else "",
-        username=raw_author.get("login", ""),
-    )
-
-
-def map_graphql_comment(raw: dict[str, Any]) -> Comment:
-    return Comment(
-        id=raw["id"],
-        body=raw.get("body", ""),
-        author=map_graphql_author(raw.get("author")),
-    )
-
-
-def map_graphql_pr_comments(raw: dict[str, Any]) -> list[Comment]:
-    """Flatten GraphQL issue comments and review thread comments into a single list.
-
-    Review thread comments have their ``raw`` dict enriched with thread-level
-    metadata (``thread_id``, ``isResolved``, ``isOutdated``, ``isCollapsed``)
-    so callers can access it without a separate query.
-    """
-    pr_data = raw.get("repository", {}).get("pullRequest", {})
-    results: list[Comment] = []
-
-    for node in pr_data.get("comments", {}).get("nodes", []):
-        results.append(map_graphql_comment(node))
-
-    for thread in pr_data.get("reviewThreads", {}).get("nodes", []):
-        for node in thread.get("comments", {}).get("nodes", []):
-            results.append(map_graphql_comment(node))
-
-    return results
 
 
 def map_pull_request_file(raw_file: dict[str, Any]) -> PullRequestFile:

@@ -19,10 +19,6 @@ from tests.sentry.scm.test_fixtures import (
     make_github_git_blob,
     make_github_git_commit_object,
     make_github_git_tree,
-    make_github_graphql_issue_comment,
-    make_github_graphql_pr_comments_response,
-    make_github_graphql_review_thread,
-    make_github_graphql_review_thread_comment,
     make_github_pull_request,
     make_github_pull_request_commit,
     make_github_pull_request_file,
@@ -526,16 +522,7 @@ CLIENT_DELEGATION_TESTS: list[
     (
         "get_pull_request_comments",
         {"pull_request_id": "42"},
-        (
-            "get_pull_request_comments_graphql",
-            ("test-org", "test-repo", 42),
-            {
-                "comments_after": None,
-                "include_comments": True,
-                "review_threads_after": None,
-                "include_threads": True,
-            },
-        ),
+        ("get_pull_request_comments", ("test-org/test-repo", "42"), {}),
     ),
     (
         "minimize_comment",
@@ -591,22 +578,15 @@ def _check_issue_comments(result: Any) -> None:
     assert result["data"][1]["id"] == "102"
 
 
-def _check_graphql_pr_comments(result: Any) -> None:
-    # Default factory produces 1 issue comment + 1 review thread with 1 comment = 2 total
+def _check_pr_comments(result: Any) -> None:
     assert len(result["data"]) == 2
     assert result["type"] == "github"
-    # First: issue comment
-    assert result["data"][0]["id"] == "IC_abc123"
-    assert result["data"][0]["body"] == "Test issue comment"
+    assert result["data"][0]["id"] == "101"
+    assert result["data"][0]["body"] == "First comment"
     assert result["data"][0]["author"] is not None
-    assert result["data"][0]["author"]["id"] == "123"
-    assert result["data"][0]["author"]["username"] == "testuser"
-    # Second: review thread comment
-    assert result["data"][1]["id"] == "PRRC_abc123"
-    assert result["data"][1]["body"] == "Review thread comment"
-    assert result["data"][1]["author"] is not None
-    assert result["data"][1]["author"]["id"] == "456"
-    assert result["data"][1]["author"]["username"] == "reviewer"
+    assert result["data"][0]["author"]["id"] == "1"
+    assert result["data"][0]["author"]["username"] == "user1"
+    assert result["data"][1]["id"] == "102"
 
 
 def _check_pull_request(result: Any) -> None:
@@ -823,8 +803,8 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "get_pull_request_comments",
         {"pull_request_id": "42"},
-        {"graphql_pr_comments_data": make_github_graphql_pr_comments_response()},
-        _check_graphql_pr_comments,
+        {"pr_comments": _ISSUE_COMMENTS_DATA},
+        _check_pr_comments,
     ),
     (
         "get_pull_request",
@@ -1471,23 +1451,18 @@ class TestUpdateCheckRunEdgeCases:
 
 
 class TestGetPullRequestCommentsEdgeCases:
-    def test_empty_comments_and_threads(self):
+    def test_empty_comments(self):
         repository = make_repository()
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
+        client = _make_client(pr_comments=[])
         provider = GitHubProvider(client, repository)
 
         result = provider.get_pull_request_comments("42")
 
         assert result["data"] == []
 
-    def test_review_thread_comment_with_null_author(self):
+    def test_null_author(self):
         repository = make_repository()
-        comment = make_github_graphql_review_thread_comment(author_login="ghost")
-        comment["author"] = None
-        thread = make_github_graphql_review_thread(comments=[comment])
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
-        client = _make_client(graphql_pr_comments_data=raw)
+        client = _make_client(pr_comments=[{"id": 1, "body": "ghost comment", "user": None}])
         provider = GitHubProvider(client, repository)
 
         result = provider.get_pull_request_comments("42")
@@ -1495,113 +1470,7 @@ class TestGetPullRequestCommentsEdgeCases:
         assert len(result["data"]) == 1
         assert result["data"][0]["author"] is None
 
-    def test_review_thread_comment_with_reactions(self):
-        repository = make_repository()
-        comment = make_github_graphql_review_thread_comment(
-            reactions=[{"content": "THUMBS_UP"}, {"content": "HEART"}],
-            reactions_total_count=2,
-        )
-        thread = make_github_graphql_review_thread(comments=[comment])
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-
-    def test_issue_comment_with_null_author(self):
-        repository = make_repository()
-        comment = make_github_graphql_issue_comment()
-        comment["author"] = None
-        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        assert result["data"][0]["author"] is None
-
-    def test_graphql_author_without_database_id(self):
-        """Author without databaseId should have empty string id."""
-        repository = make_repository()
-        comment = make_github_graphql_issue_comment()
-        del comment["author"]["databaseId"]
-        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        author = result["data"][0]["author"]
-        assert author is not None
-        assert author["id"] == ""
-        assert author["username"] == "testuser"
-
-    def test_graphql_author_database_id_used_as_id(self):
-        """Author databaseId should be used as the author id."""
-        repository = make_repository()
-        comment = make_github_graphql_issue_comment(author_database_id=999)
-        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        author = result["data"][0]["author"]
-        assert author is not None
-        assert author["id"] == "999"
-        assert author["username"] == "testuser"
-
-    def test_flattens_issue_comments_and_thread_comments(self):
-        repository = make_repository()
-        issue_comment = make_github_graphql_issue_comment(node_id="IC_1", body="issue comment")
-        thread_comment = make_github_graphql_review_thread_comment(
-            node_id="PRRC_1", body="thread comment"
-        )
-        thread = make_github_graphql_review_thread(comments=[thread_comment])
-        raw = make_github_graphql_pr_comments_response(
-            issue_comments=[issue_comment], review_threads=[thread]
-        )
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 2
-        assert result["data"][0]["id"] == "IC_1"
-        assert result["data"][0]["body"] == "issue comment"
-        assert result["data"][1]["id"] == "PRRC_1"
-        assert result["data"][1]["body"] == "thread comment"
-
-    def test_thread_metadata_in_raw_response(self):
-        repository = make_repository()
-        comment = make_github_graphql_review_thread_comment(node_id="PRRC_1")
-        thread = make_github_graphql_review_thread(
-            node_id="PRT_resolved",
-            is_resolved=True,
-            is_outdated=True,
-            is_collapsed=True,
-            comments=[comment],
-        )
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        # The raw field contains the full GraphQL response
-        threads = result["raw"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
-        assert threads[0]["id"] == "PRT_resolved"
-        assert threads[0]["isResolved"] is True
-        assert threads[0]["isOutdated"] is True
-        assert threads[0]["isCollapsed"] is True
-
-    def test_splits_owner_repo_correctly(self):
+    def test_delegates_to_client(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
@@ -1609,12 +1478,7 @@ class TestGetPullRequestCommentsEdgeCases:
         provider.get_pull_request_comments("42")
 
         assert (
-            "get_pull_request_comments_graphql",
-            ("test-org", "test-repo", 42),
-            {
-                "comments_after": None,
-                "include_comments": True,
-                "review_threads_after": None,
-                "include_threads": True,
-            },
+            "get_pull_request_comments",
+            ("test-org/test-repo", "42"),
+            {},
         ) in client.calls
