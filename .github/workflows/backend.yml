@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - mchen/test-monolith-xdist
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
