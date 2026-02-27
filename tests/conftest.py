@@ -19,6 +19,69 @@ from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
 pytest_plugins = ["sentry.testutils.pytest"]
 
 
+@pytest.fixture(scope="session")
+def django_db_setup(
+    request: pytest.FixtureRequest,
+    django_test_environment: None,
+    django_db_blocker,
+    django_db_use_migrations: bool,
+    django_db_keepdb: bool,
+    django_db_createdb: bool,
+    django_db_modify_db_settings: None,
+):
+    """
+    Debuggable wrapper around pytest-django's django_db_setup.
+
+    Enable with SENTRY_DEBUG_XDIST_DB=1 to print worker-aware DB settings after
+    pytest-django applies xdist suffixes, but before setup_databases() runs.
+    """
+    from django.conf import settings
+    from django.test.utils import setup_databases, teardown_databases
+
+    if os.environ.get("SENTRY_DEBUG_XDIST_DB") == "1":
+        reporter = request.config.pluginmanager.get_plugin("terminalreporter")
+        worker_id = getattr(request.config, "workerinput", {}).get("workerid", "master")
+        if reporter:
+            reporter.write_line(f"[db-debug] worker={worker_id} pre-setup settings.DATABASES")
+        for alias, db in settings.DATABASES.items():
+            test_name = db.get("TEST", {}).get("NAME", "(not set)")
+            if reporter:
+                reporter.write_line(
+                    f"[db-debug] worker={worker_id} settings {alias}: NAME={db['NAME']} TEST.NAME={test_name}"
+                )
+
+        for alias in connections:
+            conn = connections[alias]
+            test_name = conn.settings_dict.get("TEST", {}).get("NAME", "(not set)")
+            if reporter:
+                reporter.write_line(
+                    f"[db-debug] worker={worker_id} connection {alias}: "
+                    f"NAME={conn.settings_dict['NAME']} TEST.NAME={test_name}"
+                )
+
+    setup_databases_args = {}
+    if not django_db_use_migrations:
+        from pytest_django.fixtures import _disable_migrations
+
+        _disable_migrations()
+
+    if django_db_keepdb and not django_db_createdb:
+        setup_databases_args["keepdb"] = True
+
+    with django_db_blocker.unblock():
+        db_cfg = setup_databases(
+            verbosity=request.config.option.verbose,
+            interactive=False,
+            **setup_databases_args,
+        )
+
+    yield
+
+    if not django_db_keepdb:
+        with django_db_blocker.unblock():
+            teardown_databases(db_cfg, verbosity=request.config.option.verbose)
+
+
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
 # so that we can add support for pytest_rerunfailures
 # retried tests will no longer be annotated in GHA
