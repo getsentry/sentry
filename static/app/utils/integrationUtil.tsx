@@ -78,7 +78,7 @@ export const getSentryAppInstallStatus = (install: SentryAppInstallation | undef
   if (install && install.status !== 'pending_deletion') {
     return capitalize(install.status) as IntegrationInstallationStatus;
   }
-  if (install && install.status === 'pending_deletion') {
+  if (install?.status === 'pending_deletion') {
     return 'Pending Deletion';
   }
   return 'Not Installed';

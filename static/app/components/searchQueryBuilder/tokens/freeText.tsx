@@ -149,11 +149,7 @@ function calculateNextFocusForFilter(
       ? 'op'
       : 'value';
 
-  if (
-    definition &&
-    definition.kind === FieldKind.FUNCTION &&
-    definition.parameters?.length
-  ) {
+  if (definition?.kind === FieldKind.FUNCTION && definition.parameters?.length) {
     part = 'key';
   } else if (key === FilterType.IS || key === FilterType.HAS) {
     part = 'value';

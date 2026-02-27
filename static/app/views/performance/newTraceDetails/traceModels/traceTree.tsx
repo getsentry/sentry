@@ -819,8 +819,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let end = head.space[0] + head.space[1];
 
       while (
-        tail &&
-        tail.children.length === 1 &&
+        tail?.children.length === 1 &&
         tail.children[0]!.canAutogroup &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0]!.op !== 'default' &&

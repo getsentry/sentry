@@ -10,7 +10,12 @@ from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
+from sentry.models.apitoken import (
+    ApiToken,
+    NotSupported,
+    PlaintextSecretAlreadyRead,
+    TokenRefreshError,
+)
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
@@ -117,6 +122,37 @@ class ApiTokenTest(TestCase):
 
         with pytest.raises(NotSupported):
             token.refresh()
+
+    def test_refresh_lock_contention_raises_error(self) -> None:
+        from sentry.locks import locks
+
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+
+        lock = locks.get(
+            ApiToken.get_lock_key(token.id),
+            duration=10,
+            name="api_token_refresh",
+        )
+        lock.acquire()
+
+        with pytest.raises(TokenRefreshError, match="token refresh already in progress"):
+            token.refresh()
+
+    def test_refresh_stale_token_raises_error(self) -> None:
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+
+        # Save the original refresh_token, then rotate the token in the DB
+        original_refresh_token = token.refresh_token
+        token.refresh()
+
+        # Create a stale reference with the old refresh_token
+        stale_token = ApiToken(id=token.id, refresh_token=original_refresh_token)
+        stale_token.token_type = token.token_type
+
+        with pytest.raises(TokenRefreshError, match="refresh token has already been rotated"):
+            stale_token.refresh()
 
     def test_user_auth_token_sha256_hash(self) -> None:
         user = self.create_user()

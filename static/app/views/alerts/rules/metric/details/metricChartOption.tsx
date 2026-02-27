@@ -338,7 +338,7 @@ export function getMetricAlertChartOption(
           }
         });
 
-        if (selectedIncident && incident.id === selectedIncident.id) {
+        if (incident.id === selectedIncident?.id) {
           const selectedIncidentColor =
             incidentColor === theme.colors.yellow400
               ? theme.colors.yellow100

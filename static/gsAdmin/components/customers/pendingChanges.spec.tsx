@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
@@ -300,7 +301,7 @@ describe('PendingChanges', () => {
     expect(container).toHaveTextContent(
       'Reserved performance units — 100,000 → 0 transactions'
     );
-    expect(container).toHaveTextContent('Reserved replays — 500 → 50 replays');
+    expect(container).toHaveTextContent('Reserved replays — 500 → 50 session replays');
     expect(container).toHaveTextContent('Reserved spans — 0 → 10,000,000 spans');
 
     // no actual changes
@@ -480,7 +481,7 @@ describe('PendingChanges', () => {
       'Reserved accepted spans — reserved budget → 10,000,000 spans'
     );
     expect(container).toHaveTextContent(
-      'Reserved stored spans — reserved budget → 0 spansIndexed'
+      'Reserved stored spans — reserved budget → 0 stored spans'
     );
     expect(container).not.toHaveTextContent('Reserved spans —');
     expect(container).not.toHaveTextContent('Reserved spansIndexed —');
@@ -489,7 +490,7 @@ describe('PendingChanges', () => {
       'Reserved cost-per-event for spans — $0.01000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
+      'Reserved cost-per-event for stored spans — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
       'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget'
@@ -502,5 +503,31 @@ describe('PendingChanges', () => {
     });
     const {container} = render(<PendingChanges subscription={subscription} />);
     expect(container).not.toHaveTextContent('Reserved budgets —');
+  });
+
+  it('renders size analysis reserved changes with human-readable name', () => {
+    const subscription = SubscriptionFixture({
+      organization: OrganizationFixture(),
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business'),
+        plan: 'am3_business',
+        planName: 'Business',
+        reserved: {
+          sizeAnalyses: 100,
+        },
+      }),
+    });
+    subscription.categories = {
+      ...subscription.categories,
+      sizeAnalyses: MetricHistoryFixture({
+        category: 'sizeAnalyses' as any,
+        reserved: 50,
+      }),
+    };
+
+    const {container} = render(<PendingChanges subscription={subscription} />);
+    expect(container).toHaveTextContent('Reserved size analysis builds');
+    expect(container).toHaveTextContent('50 → 100');
+    expect(container).not.toHaveTextContent('sizeAnalyses');
   });
 });

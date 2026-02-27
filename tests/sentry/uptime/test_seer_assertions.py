@@ -288,7 +288,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert suggestions is None
         assert debug is not None and "No status_code" in debug
 
-    @patch("sentry.uptime.seer_assertions.make_signed_seer_api_request")
+    @patch("sentry.uptime.seer_assertions.make_llm_generate_request")
     def test_seer_request_failure(self, mock_request):
         from sentry.seer.models import SeerApiError
 
@@ -310,7 +310,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert suggestions is None
         assert debug is not None and "request failed" in debug
 
-    @patch("sentry.uptime.seer_assertions.make_signed_seer_api_request")
+    @patch("sentry.uptime.seer_assertions.make_llm_generate_request")
     def test_successful_generation(self, mock_request):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {
@@ -335,7 +335,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert suggestions.suggestions[0].assertion_type == "status_code"
         assert debug is None
 
-    @patch("sentry.uptime.seer_assertions.make_signed_seer_api_request")
+    @patch("sentry.uptime.seer_assertions.make_llm_generate_request")
     def test_empty_seer_content(self, mock_request):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {"content": ""}
