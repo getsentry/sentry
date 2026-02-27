@@ -178,7 +178,7 @@ export function AnrRootCause({event, organization}: Props) {
           </IssueSummary>
         );
       })}
-      {organization.features.includes('anr-analyze-frames') && renderAnrCulprit()}
+      {renderAnrCulprit()}
     </InterimSection>
   );
 }

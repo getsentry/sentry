@@ -45,7 +45,7 @@ export const metrics: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Metrics are automatically enabled in your [code:\\Sentry\\init] configuration. You can emit metrics using the [code:\\Sentry\\trace_metrics()] API.',
+            'Metrics are automatically enabled in your [code:\\Sentry\\init] configuration. You can emit metrics using the [code:\\Sentry\\traceMetrics()] API.',
             {
               code: <code />,
             }
@@ -59,17 +59,17 @@ export const metrics: OnboardingConfig = {
 ]);
 
 // Counter metric
-\\Sentry\\trace_metrics()->count('test-counter', 10, ['my-attribute' => 'foo']);
+\\Sentry\\traceMetrics()->count('test-counter', 10, ['my-attribute' => 'foo']);
 
 // Gauge metric
-\\Sentry\\trace_metrics()->gauge('test-gauge', 50.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::millisecond());
+\\Sentry\\traceMetrics()->gauge('test-gauge', 50.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::millisecond());
 
 // Distribution metric
-\\Sentry\\trace_metrics()->distribution('test-distribution', 20.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::kilobyte())
+\\Sentry\\traceMetrics()->distribution('test-distribution', 20.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::kilobyte())
 
 // Somewhere at the end of your execution, you should flush
 // to send pending metrics to Sentry.
-\\Sentry\\trace_metrics()->flush();`,
+\\Sentry\\traceMetrics()->flush();`,
         },
       ],
     },

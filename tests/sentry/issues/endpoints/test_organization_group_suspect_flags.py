@@ -28,6 +28,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
             first_seen=today - datetime.timedelta(hours=1),
             last_seen=today + datetime.timedelta(hours=1),
         )
+        baseline_group = self.create_group()
 
         self._mock_event(
             today,
@@ -46,7 +47,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
                 {"flag": "key", "result": False},
                 {"flag": "other", "result": False},
             ],
-            group_id=2,
+            group_id=baseline_group.id,
             project_id=self.project.id,
         )
 

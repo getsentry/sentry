@@ -10,12 +10,9 @@ import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedba
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 export default function FeedbackSummaryCategories() {
-  const organization = useOrganization();
-
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const [isExpanded, setIsExpanded] = useSyncedLocalStorageState(
@@ -23,12 +20,7 @@ export default function FeedbackSummaryCategories() {
     true
   );
 
-  const showSummaryCategories =
-    (organization.features.includes('user-feedback-ai-summaries') ||
-      organization.features.includes('user-feedback-ai-categorization-features')) &&
-    areAiFeaturesAllowed;
-
-  if (!showSummaryCategories) {
+  if (!areAiFeaturesAllowed) {
     return null;
   }
 
@@ -78,12 +70,8 @@ export default function FeedbackSummaryCategories() {
         </Disclosure.Title>
         <Disclosure.Content>
           <Stack gap="md" width="100%">
-            {organization.features.includes('user-feedback-ai-summaries') && (
-              <FeedbackSummary />
-            )}
-            {organization.features.includes(
-              'user-feedback-ai-categorization-features'
-            ) && <FeedbackCategories />}
+            <FeedbackSummary />
+            <FeedbackCategories />
           </Stack>
         </Disclosure.Content>
       </Disclosure>

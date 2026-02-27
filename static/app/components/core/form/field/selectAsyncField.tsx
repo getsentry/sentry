@@ -9,8 +9,11 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type BaseFieldProps} from './baseField';
 import {SelectField, type SelectFieldProps} from './selectField';
 
-type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps &
-  DistributedOmit<SelectFieldProps<TValue>, 'options' | 'isLoading' | 'onInputChange'> & {
+type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> &
+  DistributedOmit<
+    SelectFieldProps<TValue>,
+    'options' | 'isLoading' | 'onInputChange' | 'id'
+  > & {
     /**
      * Called when selection changes with the full data object
      */

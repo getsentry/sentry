@@ -106,6 +106,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Data Forwarding
+register(
+    "data-forwarding.project-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
@@ -639,9 +647,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
+register(
+    "relay.eap-span-outcomes.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "relay.objectstore-attachments.sample-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -722,6 +745,16 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.mailbox-bucketing.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.drop-unprocessed-events.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Console SDK App (separate app for repository invitations)
@@ -1143,6 +1176,32 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Explorer context engine indexing options
+register(
+    "explorer.context_engine_indexing.enable",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.allowed_organizations",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.max_edges",
+    default=5000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.max_segments",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    ttl=60 * 5,
+)
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
@@ -2407,6 +2466,12 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Break glass controls
 register(
@@ -3173,6 +3238,16 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Threshold in bytes for out-of-band storage of large compressed span payloads.
+# Payloads larger than this are stored in separate Redis string keys instead of
+# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
+# Only applies when compression is enabled (compression.level >= 0).
+register(
+    "spans.buffer.oob-threshold-bytes",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Maximum number of subsegments to process in each Redis pipeline. Each
 # subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
 register(
@@ -3185,6 +3260,15 @@ register(
 # chunks to avoid Lua unpack() limits. Set to 0 for unlimited.
 register(
     "spans.buffer.max-spans-per-evalsha",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
+# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
+# re-serialisation of the entire destination set during SUNIONSTORE.
+register(
+    "spans.buffer.zero-copy-dest-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3527,6 +3611,22 @@ register(
     "workflow_engine.evaluation_logs_direct_to_sentry",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Safe default limit for workflows. Should be high enough to cover almost all orgs,
+# low enough to have no concerns about stability impact.
+register(
+    "workflow_engine.max_workflows_per_org",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
+# generally set to 'as high as we think we can safely handle for a handful of orgs'.
+register(
+    "workflow_engine.max_more_workflows_per_org",
+    type=Int,
+    default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

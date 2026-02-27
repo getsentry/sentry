@@ -1,6 +1,5 @@
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
-import requests
 from django.conf import settings
 
 from sentry.seer.services.test_generation.service import test_generation_service
@@ -8,14 +7,12 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
 
 
-@patch("sentry.seer.services.test_generation.impl.requests.post")
+@patch("sentry.seer.services.test_generation.impl.make_signed_seer_api_request")
 @django_db_all
 @control_silo_test
-def test_start_unit_test_generation(posts_mock: MagicMock) -> None:
-    response_object: requests.Response = requests.Response()
-    response_object.json = Mock(method="json", return_value={})  # type: ignore[method-assign]
-    response_object.status_code = 200
-    posts_mock.return_value = response_object
+def test_start_unit_test_generation(mock_request: MagicMock) -> None:
+    mock_request.return_value.status = 200
+    mock_request.return_value.json.return_value = {}
     response = test_generation_service.start_unit_test_generation(
         region_name=settings.SENTRY_MONOLITH_REGION,
         github_org="some-org",
@@ -25,4 +22,4 @@ def test_start_unit_test_generation(posts_mock: MagicMock) -> None:
     )
     assert response.success
 
-    posts_mock.assert_called_once()
+    mock_request.assert_called_once()

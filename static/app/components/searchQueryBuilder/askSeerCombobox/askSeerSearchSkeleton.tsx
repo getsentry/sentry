@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 function generateThreeUniqueNumbers(): number[] {
-  const numbers: Set<number> = new Set();
+  const numbers = new Set<number>();
   const min = 35;
   const max = 95;
 

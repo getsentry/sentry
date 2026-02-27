@@ -2,7 +2,6 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
-from sentry.seer.autofix.utils import AutofixState
 from sentry.sentry_apps.metrics import SentryAppEventType
 
 
@@ -31,7 +30,7 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
+    def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
         """
         Called when an autofix run already exists for the group.
         Also passes the most recent state from the matching stopping_point step for convenience.
@@ -66,7 +65,9 @@ class SeerEntrypoint[CachePayloadT](Protocol):
 
     @staticmethod
     def on_autofix_update(
-        event_type: SentryAppEventType, event_payload: dict[str, Any], cache_payload: CachePayloadT
+        event_type: SentryAppEventType,
+        event_payload: dict[str, Any],
+        cache_payload: CachePayloadT,
     ) -> None:
         """
         Called when an autofix update is received (via Seer's webhooks).
