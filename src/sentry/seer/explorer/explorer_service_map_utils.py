@@ -83,23 +83,20 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     page_limit = min(_SNUBA_MAX_ROWS, max_segments)
     with sentry_sdk.start_span(op="explorer.service_map.broad_scan") as span:
         span.set_data("limit", page_limit)
-        try:
-            result = Spans.run_table_query(
-                params=snuba_params,
-                query_string="is_transaction:true has:parent_span",
-                selected_columns=["id", "parent_span", "project.id", "project.slug", "timestamp"],
-                orderby=["-timestamp"],
-                offset=0,
-                limit=page_limit,
-                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                config=SearchResolverConfig(),
-            )
-            rows = result.get("data", [])
-            _process_rows(rows)
-            span.set_data("rows_returned", len(rows))
-            span.set_data("covered_projects", len(covered_project_ids))
-        except Exception:
-            logger.exception("Failed broad segment scan", extra={"org_id": org_id})
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="is_transaction:true has:parent_span",
+            selected_columns=["id", "parent_span", "project.id", "project.slug", "timestamp"],
+            orderby=["-timestamp"],
+            offset=0,
+            limit=page_limit,
+            referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+            config=SearchResolverConfig(),
+        )
+        rows = result.get("data", [])
+        _process_rows(rows)
+        span.set_data("rows_returned", len(rows))
+        span.set_data("covered_projects", len(covered_project_ids))
 
     # Fallback scan: One scoped query for projects with no representation in the broad scan.
     # No has:parent_span filter — broad scan to give low-traffic projects a second chance.
@@ -114,28 +111,25 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         with sentry_sdk.start_span(op="explorer.service_map.fallback_scan") as span:
             span.set_data("uncovered_projects", len(uncovered))
             span.set_data("limit", page_limit)
-            try:
-                result = Spans.run_table_query(
-                    params=uncovered_params,
-                    query_string="is_transaction:true",
-                    selected_columns=[
-                        "id",
-                        "parent_span",
-                        "project.id",
-                        "project.slug",
-                        "timestamp",
-                    ],
-                    orderby=["-timestamp"],
-                    offset=0,
-                    limit=page_limit,
-                    referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                    config=SearchResolverConfig(),
-                )
-                rows = result.get("data", [])
-                _process_rows(rows)
-                span.set_data("rows_returned", len(rows))
-            except Exception:
-                logger.exception("Failed fallback scan", extra={"org_id": org_id})
+            result = Spans.run_table_query(
+                params=uncovered_params,
+                query_string="is_transaction:true",
+                selected_columns=[
+                    "id",
+                    "parent_span",
+                    "project.id",
+                    "project.slug",
+                    "timestamp",
+                ],
+                orderby=["-timestamp"],
+                offset=0,
+                limit=page_limit,
+                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+                config=SearchResolverConfig(),
+            )
+            rows = result.get("data", [])
+            _process_rows(rows)
+            span.set_data("rows_returned", len(rows))
 
     unique_parent_span_ids = list(segments_by_parent.keys())
     if not unique_parent_span_ids:
@@ -153,22 +147,16 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
             span_id_filters = " OR ".join([f'id:"{sid}"' for sid in batch])
-            try:
-                parent_result = Spans.run_table_query(
-                    params=snuba_params,
-                    query_string=span_id_filters,
-                    selected_columns=["id", "project.id", "project.slug", "timestamp"],
-                    orderby=["-timestamp"],
-                    offset=0,
-                    limit=len(batch),
-                    referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                    config=SearchResolverConfig(),
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to query parent spans", extra={"org_id": org_id, "batch_index": i}
-                )
-                continue
+            parent_result = Spans.run_table_query(
+                params=snuba_params,
+                query_string=span_id_filters,
+                selected_columns=["id", "project.id", "project.slug", "timestamp"],
+                orderby=["-timestamp"],
+                offset=0,
+                limit=len(batch),
+                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+                config=SearchResolverConfig(),
+            )
 
             for parent_row in parent_result.get("data", []):
                 parent_span_id = parent_row.get("id")
