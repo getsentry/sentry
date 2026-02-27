@@ -846,29 +846,14 @@ class WFEDetectorConfigTest(TestCase):
                 f"DetectorType.{detector_type.name} not found in get_merged_settings()"
             )
 
-    def test_no_unwhitelisted_shared_wfe_detector_types(self) -> None:
-        """Ensure shared wfe_detector_type values are explicitly allowlisted."""
-        allowed_shared: dict[str, set[DetectorType]] = {
-            "query_injection_vulnerability": {
-                DetectorType.SQL_INJECTION,
-                DetectorType.QUERY_INJECTION,
-            },
-        }
-
+    def test_no_shared_wfe_detector_types(self) -> None:
+        """Ensure each wfe_detector_type maps to exactly one DetectorType."""
         type_to_detectors: dict[str, set[DetectorType]] = {}
         for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
             type_to_detectors.setdefault(mapping.wfe_detector_type, set()).add(detector_type)
 
         for wfe_type, detectors in type_to_detectors.items():
-            if len(detectors) > 1:
-                assert wfe_type in allowed_shared, (
-                    f"wfe_detector_type '{wfe_type}' is shared by {detectors} "
-                    f"but not in the allowlist"
-                )
-                assert detectors == allowed_shared[wfe_type], (
-                    f"wfe_detector_type '{wfe_type}' shared by {detectors} "
-                    f"but allowlist has {allowed_shared[wfe_type]}"
-                )
+            assert len(detectors) == 1, f"wfe_detector_type '{wfe_type}' is shared by {detectors}"
 
     def test_no_unwhitelisted_shared_detection_enabled_keys(self) -> None:
         """Ensure shared detection_enabled_key values are explicitly allowlisted."""
@@ -898,6 +883,11 @@ class WFEDetectorConfigTest(TestCase):
                     f"but allowlist has {allowed_shared[key]}"
                 )
 
+        for key in allowed_shared:
+            assert key in key_to_detectors and len(key_to_detectors[key]) > 1, (
+                f"allowlisted detection_enabled_key '{key}' is no longer shared — remove it from the allowlist"
+            )
+
     def test_no_unwhitelisted_shared_option_key_values(self) -> None:
         """Ensure shared ProjectOption key values across mappings are explicitly allowlisted."""
         allowed_shared: dict[str, set[DetectorType]] = {
@@ -921,3 +911,8 @@ class WFEDetectorConfigTest(TestCase):
                     f"option_keys value '{value}' shared by {detectors} "
                     f"but allowlist has {allowed_shared[value]}"
                 )
+
+        for value in allowed_shared:
+            assert value in value_to_detectors and len(value_to_detectors[value]) > 1, (
+                f"allowlisted option_keys value '{value}' is no longer shared — remove it from the allowlist"
+            )
