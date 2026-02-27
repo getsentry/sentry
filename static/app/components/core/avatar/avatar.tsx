@@ -67,23 +67,19 @@ export function Avatar({
         title={title}
         {...restProps}
       >
-        {type === 'upload' ? (
+        {type === 'upload' || type === 'gravatar' ? (
           <ImageAvatar
-            definition={{
-              type: 'image',
-              src: buildUploadUrl((avatarProps as UploadBaseAvatarProps).uploadUrl),
-            }}
-            identifier={identifier}
-            name={name}
-            round={round}
-            suggested={suggested}
-          />
-        ) : type === 'gravatar' ? (
-          <ImageAvatar
-            definition={{
-              type: 'gravatar',
-              gravatarId: (avatarProps as GravatarBaseAvatarProps).gravatarId,
-            }}
+            definition={
+              type === 'upload'
+                ? {
+                    type: 'image',
+                    src: buildUploadUrl(avatarProps.uploadUrl),
+                  }
+                : {
+                    type: 'gravatar',
+                    gravatarId: avatarProps.gravatarId,
+                  }
+            }
             identifier={identifier}
             name={name}
             round={round}
