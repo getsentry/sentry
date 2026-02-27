@@ -499,13 +499,16 @@ function BaseFieldExample() {
           {field => (
             <field.Layout.Row label="Terms of Service:">
               <field.Base<HTMLInputElement>>
-                {baseProps => (
-                  <input
-                    {...baseProps}
-                    type="checkbox"
-                    checked={field.state.value}
-                    onChange={e => field.handleChange(e.target.checked)}
-                  />
+                {(baseProps, {indicator}) => (
+                  <Flex flexGrow={1}>
+                    <input
+                      {...baseProps}
+                      type="checkbox"
+                      checked={field.state.value}
+                      onChange={e => field.handleChange(e.target.checked)}
+                    />
+                    {indicator}
+                  </Flex>
                 )}
               </field.Base>
             </field.Layout.Row>

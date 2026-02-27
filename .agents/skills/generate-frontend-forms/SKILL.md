@@ -267,13 +267,16 @@ For one-off fields that don't have a built-in component (e.g. a color picker, or
   {field => (
     <field.Layout.Row label="Terms of Service:">
       <field.Base<HTMLInputElement>>
-        {baseProps => (
-          <input
-            {...baseProps}
-            type="checkbox"
-            checked={field.state.value}
-            onChange={e => field.handleChange(e.target.checked)}
-          />
+        {(baseProps, {indicator}) => (
+          <Flex flexGrow={1}>
+            <input
+              {...baseProps}
+              type="checkbox"
+              checked={field.state.value}
+              onChange={e => field.handleChange(e.target.checked)}
+            />
+            {indicator}
+          </Flex>
         )}
       </field.Base>
     </field.Layout.Row>
@@ -281,7 +284,12 @@ For one-off fields that don't have a built-in component (e.g. a color picker, or
 </form.AppField>
 ```
 
-The type is inferred from the passed `ref`, so if you don't pass one, you have to manually annotate it with `<field.Base<HTMLInputElement>>`.
+The render prop receives two arguments:
+
+1. **`baseProps`** — accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) to spread onto your element
+2. **`{indicator}`** — the auto-save status indicator (spinner/checkmark) as a React node, which you can place wherever makes sense in your custom layout
+
+The element type is inferred from the passed `ref`, so if you don't pass one, you have to manually annotate it with `<field.Base<HTMLInputElement>>`.
 
 `field.Base` automatically handles:
 
@@ -289,7 +297,6 @@ The type is inferred from the passed `ref`, so if you don't pass one, you have t
 - Disabling the field when auto-save is pending
 - Setting `aria-invalid` based on validation state
 - Linking to hint text via `aria-describedby`
-- Rendering the auto-save status indicator (spinner/checkmark)
 
 Use `field.Base` instead of building custom wrappers that duplicate this logic. It works with any native HTML element or third-party component that accepts standard props.
 
