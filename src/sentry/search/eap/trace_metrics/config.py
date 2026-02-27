@@ -105,7 +105,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         search_resolver: SearchResolver,
     ) -> None:
         metric_unit = search_resolver._search_filter_values.get("sentry.metric_unit")
-        if isinstance(metric_unit, str):
+        if isinstance(metric_unit, str) and "value" in search_resolver._resolved_attribute_cache:
             if metric_unit not in constants.DURATION_TYPE | constants.SIZE_TYPE:
                 return
             search_resolver._resolved_attribute_cache["value"] = (
