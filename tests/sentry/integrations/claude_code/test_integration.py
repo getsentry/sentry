@@ -211,28 +211,24 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         installation = self._create_installation()
         installation.update_organization_config({"environment_id": "env-new-456"})
 
-        installation.model.refresh_from_db()
         assert installation.model.metadata["environment_id"] == "env-new-456"
 
     def test_update_organization_config_clears_environment_id(self):
         installation = self._create_installation(environment_id="env-old")
         installation.update_organization_config({"environment_id": ""})
 
-        installation.model.refresh_from_db()
         assert installation.model.metadata["environment_id"] is None
 
     def test_update_organization_config_sets_workspace_name(self):
         installation = self._create_installation()
         installation.update_organization_config({"workspace_name": "my-workspace"})
 
-        installation.model.refresh_from_db()
         assert installation.model.metadata["workspace_name"] == "my-workspace"
 
     def test_update_organization_config_clears_workspace_name(self):
         installation = self._create_installation(workspace_name="old-ws")
         installation.update_organization_config({"workspace_name": ""})
 
-        installation.model.refresh_from_db()
         assert installation.model.metadata["workspace_name"] is None
 
     # ── update_environment_id ────────────────────────────────────────
@@ -243,7 +239,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         installation.update_environment_id("env-new-789")
 
-        installation.model.refresh_from_db()
         assert installation.model.metadata["environment_id"] == "env-new-789"
         assert installation.model.metadata["api_key"] == "sk-ant-test-key"
 
@@ -340,7 +335,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
             installation.launch(request=request)
 
-        installation.model.refresh_from_db()
         assert installation.model.metadata["environment_id"] == "env-resolved-123"
 
     def test_launch_does_not_update_environment_id_when_unchanged(self):
