@@ -203,7 +203,7 @@ export function usePRWidgetData({
             <Flex align="center" gap="md">
               {isCreating ? (
                 <Text size="xs" variant="muted">
-                  {t('Creating PR...')}
+                  {hasPRs ? t('Updating PR...') : t('Creating PR...')}
                 </Text>
               ) : syncStatus?.hasPR ? (
                 <Flex align="center" gap="md" justify="between" width="100%">
@@ -241,7 +241,7 @@ export function usePRWidgetData({
         },
       };
     });
-  }, [repoNames, repoFileStats, repoPRStates, repoSyncStatus]);
+  }, [repoNames, repoFileStats, repoPRStates, repoSyncStatus, hasPRs]);
 
   // Build footer for explorer menu
   const menuFooter = useMemo(() => {
