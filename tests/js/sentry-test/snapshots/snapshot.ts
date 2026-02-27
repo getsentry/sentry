@@ -131,29 +131,32 @@ export async function takeSnapshot(
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);
     const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, '-');
-    const filename = `${sanitizedName}-${themeName}.png`;
+    const coreFilename = `${sanitizedName}-${themeName}`;
+    const imageFilename = `${coreFilename}.png`;
 
     const outputDir = path.join(getOutputDir(), dirOfTestFile);
     if (!existsSync(outputDir)) {
       mkdirSync(outputDir, {recursive: true});
     }
 
-    // TODO: parallelize this with writeFileSync
-    writeFileSync(path.join(outputDir, filename), screenshot);
-
     // PNG width/height are stored as 4-byte big-endian integers at offsets 16 and 20
     const width = screenshot.readUInt32BE(16);
     const height = screenshot.readUInt32BE(20);
     const metadata: SnapshotImageMetadata = {
       display_name: name,
-      image_file_name: filename,
+      image_file_name: imageFilename,
       width,
       height,
+      // Dump additional options as metadata
+      ...options,
     };
-    writeFileSync(
-      path.join(outputDir, `${sanitizedName}-${themeName}.json`),
-      JSON.stringify(metadata, null, 2)
-    );
+    await Promise.all([
+      writeFileSync(path.join(outputDir, imageFilename), screenshot),
+      writeFileSync(
+        path.join(outputDir, `${coreFilename}.json`),
+        JSON.stringify(metadata, null, 2)
+      ),
+    ]);
   } finally {
     await context.close();
   }

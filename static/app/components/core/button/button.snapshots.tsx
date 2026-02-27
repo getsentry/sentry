@@ -1,13 +1,13 @@
 import {Button} from '@sentry/scraps/button';
 
 describe('Button', () => {
-  it.snapshot('button-default', () => <Button>Default</Button>);
+  it.snapshot('Default', () => <Button>Default</Button>);
 
-  it.snapshot('button-primary', () => <Button priority="primary">Primary</Button>);
+  it.snapshot('Primary', () => <Button priority="primary">Primary</Button>);
 
-  it.snapshot('button-primary-dark', {theme: 'dark'}, () => (
+  it.snapshot('Primary (dark)', {theme: 'dark'}, () => (
     <Button priority="primary">Primary</Button>
   ));
 
-  it.snapshot('button-danger', () => <Button priority="danger">Danger</Button>);
+  it.snapshot('Danger', () => <Button priority="danger">Danger</Button>);
 });
