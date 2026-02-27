@@ -204,6 +204,139 @@ describe('ProjectPageFilter', () => {
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
   });
 
+  it('clicking My Projects when All Projects is active selects only non-member projects', async () => {
+    // Start with All Projects active from URL
+    PageFiltersStore.onInitializeUrlState({
+      projects: [-1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+    // Click "My Projects" while All Projects is active
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+
+    // Both sentinels should be unchecked
+    expect(screen.getByRole('checkbox', {name: 'Select All Projects'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).not.toBeChecked();
+    // Member projects should be unchecked
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-2'})).not.toBeChecked();
+    // Non-member project should be checked
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).toBeChecked();
+  });
+
+  it('clicking My Projects while All Projects is staged selects only non-member projects', async () => {
+    // Start with a single project selected
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+
+    // Stage All Projects first
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Projects'}));
+
+    // Now click My Projects — should subtract member projects
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+
+    // Both sentinels should be unchecked
+    expect(screen.getByRole('checkbox', {name: 'Select All Projects'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).not.toBeChecked();
+    // Member projects should be unchecked
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-2'})).not.toBeChecked();
+    // Non-member project should be checked
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).toBeChecked();
+  });
+
+  it('All Projects toggles all projects on; clicking again deselects everything', async () => {
+    // Start with a single project selected
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+
+    // Click "All Projects" — should check all projects
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Projects'}));
+
+    expect(screen.getByRole('checkbox', {name: 'Select All Projects'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-2'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).toBeChecked();
+
+    // Click "All Projects" again — should deselect everything
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Projects'}));
+
+    expect(screen.getByRole('checkbox', {name: 'Select All Projects'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-2'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
+  });
+
+  it('My Projects toggles member projects on; clicking again deselects everything', async () => {
+    // Start with a single project selected
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+
+    // Click "My Projects" — should check member projects only
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-2'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
+
+    // Click "My Projects" again — should deselect everything
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+
+    expect(screen.getByRole('checkbox', {name: 'Select All Projects'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-2'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
+  });
+
   it('sorts projects with bookmarked appearing before non-bookmarked', async () => {
     // Set up projects with different bookmark states
     const projectsWithBookmarks = [
