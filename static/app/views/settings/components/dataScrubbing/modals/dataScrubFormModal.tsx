@@ -55,6 +55,7 @@ const dataScrubSchema = z
     source: z.string(),
     type: z.enum(RuleType),
     dataset: z.enum(AllowedDataScrubbingDatasets),
+    eventId: z.string(),
   })
   .superRefine((data, ctx) => {
     if (data.type === RuleType.PATTERN && !data.pattern.trim()) {
@@ -121,23 +122,25 @@ function DataScrubFormModal({
     traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
 
   const [dataset, setDataset] = useState<AllowedDataScrubbingDatasets>(initialDataset);
+  const [displayEventId, setDisplayEventId] = useState(!!sourceGroupData.eventId);
   const [sourceSuggestions, setSourceSuggestions] = useState<SourceSuggestion[]>(
     sourceGroupData.sourceSuggestions
   );
-  const [displayEventId, setDisplayEventId] = useState(!!sourceGroupData.eventId);
+  const [eventIdError, setEventIdError] = useState<string | undefined>(undefined);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       ...initialValues,
       dataset: initialDataset,
+      eventId: sourceGroupData.eventId,
     },
     validators: {
-      onSubmit: dataScrubSchema,
+      onDynamic: dataScrubSchema,
     },
     onSubmit: async ({value}) => {
-      // Strip dataset from values before creating rules
-      const {dataset: _dataset, ...ruleValues} = value;
+      // Strip dataset and eventId from values before creating rules
+      const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
       const newRules = onGetNewRules(ruleValues as EditableRule);
 
       try {
@@ -199,6 +202,37 @@ function DataScrubFormModal({
     label: getRuleLabel(value),
     value,
   }));
+
+  const eventIdFieldBlock = (
+    <form.AppField name="eventId">
+      {eventIdField => (
+        <eventIdField.Layout.Stack
+          label={t('Event ID (Optional)')}
+          hintText={t(
+            'Providing an event ID will automatically provide you a list of suggested sources'
+          )}
+          variant="compact"
+        >
+          <eventIdField.Base>
+            {fieldProps => (
+              <Flex gap="sm" align="center" flexGrow={1}>
+                <EventIdField
+                  fieldProps={fieldProps}
+                  value={eventIdField.state.value ?? ''}
+                  onChange={eventIdField.handleChange}
+                  onSuggestionsLoaded={setSourceSuggestions}
+                  onErrorChange={setEventIdError}
+                  orgSlug={orgSlug}
+                  projectId={projectId}
+                />
+                <eventIdField.Meta.Status error={eventIdError} />
+              </Flex>
+            )}
+          </eventIdField.Base>
+        </eventIdField.Layout.Stack>
+      )}
+    </form.AppField>
+  );
 
   return (
     <form.AppForm form={form}>
@@ -392,13 +426,7 @@ function DataScrubFormModal({
                           )}
                         </Flex>
                         <SourceGroup isExpanded={displayEventId}>
-                          {displayEventId && (
-                            <EventIdField
-                              orgSlug={orgSlug}
-                              projectId={projectId}
-                              onSuggestionsLoaded={setSourceSuggestions}
-                            />
-                          )}
+                          {displayEventId && eventIdFieldBlock}
                           <sourceField.Layout.Stack
                             label={t('Source')}
                             hintText={t(
@@ -480,13 +508,7 @@ function DataScrubFormModal({
                     )}
                   </Flex>
                   <SourceGroup isExpanded={displayEventId}>
-                    {displayEventId && (
-                      <EventIdField
-                        orgSlug={orgSlug}
-                        projectId={projectId}
-                        onSuggestionsLoaded={setSourceSuggestions}
-                      />
-                    )}
+                    {displayEventId && eventIdFieldBlock}
                     <sourceField.Layout.Stack
                       label={t('Source')}
                       hintText={t(
