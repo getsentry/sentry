@@ -16,6 +16,19 @@ import type {
   StackTraceView,
 } from './types';
 
+export interface StackTraceSharedViewContextValue {
+  hasMinifiedStacktrace: boolean;
+  isMinified: boolean;
+  isNewestFirst: boolean;
+  setIsMinified: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
+  setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
+  view: StackTraceView;
+}
+
+export const StackTraceSharedViewContext =
+  createContext<StackTraceSharedViewContextValue | null>(null);
+
 export interface StackTraceContextValue {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
@@ -70,6 +83,10 @@ export function useStackTraceContext() {
     throw new Error('StackTrace components must be used within StackTrace.Root');
   }
   return context;
+}
+
+export function useOptionalStackTraceContext() {
+  return useContext(StackTraceContext);
 }
 
 export function useStackTraceFrameContext() {

@@ -1,2 +1,8 @@
-export {StackTrace, useStackTraceContext} from './stackTrace';
+export {ChainedStackTrace} from './chainedStackTrace';
+export {
+  StackTraceProvider,
+  StackTraceSharedViewProvider,
+  useStackTraceContext,
+} from './stackTraceProvider';
+export {StackTrace} from './stackTrace';
 export {StackTraceWithCoverageData} from './stackTraceWithCoverageData';

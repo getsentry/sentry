@@ -7,11 +7,13 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {StackTrace} from './stackTrace';
 import {useStackTraceContext} from './stackTraceContext';
-import type {StackTraceRootProps} from './types';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceProviderProps} from './types';
 
-type StackTraceFrame = NonNullable<StackTraceRootProps['stacktrace']['frames']>[number];
+type StackTraceFrame = NonNullable<
+  StackTraceProviderProps['stacktrace']['frames']
+>[number];
 
 function hasCoverageEligibleFrameData(
   frame: StackTraceFrame | undefined
@@ -20,7 +22,7 @@ function hasCoverageEligibleFrameData(
 }
 
 function getStacktraceCoverageQueryOptions(params: {
-  event: StackTraceRootProps['event'];
+  event: StackTraceProviderProps['event'];
   frame: StackTraceFrame;
   organizationSlug: string;
   projectSlug: string;
@@ -96,7 +98,10 @@ function CoverageDataLoader({
   ));
 }
 
-type StackTraceWithCoverageDataProps = Omit<StackTraceRootProps, 'getFrameLineCoverage'>;
+type StackTraceWithCoverageDataProps = Omit<
+  StackTraceProviderProps,
+  'getFrameLineCoverage'
+>;
 
 export function StackTraceWithCoverageData({
   children,
@@ -111,7 +116,7 @@ export function StackTraceWithCoverageData({
   );
 
   const getFrameLineCoverage = useCallback<
-    NonNullable<StackTraceRootProps['getFrameLineCoverage']>
+    NonNullable<StackTraceProviderProps['getFrameLineCoverage']>
   >(
     ({event, frame}) => {
       const organizationSlug = organization?.slug;
@@ -150,13 +155,13 @@ export function StackTraceWithCoverageData({
   );
 
   return (
-    <StackTrace {...stackTraceProps} getFrameLineCoverage={getFrameLineCoverage}>
+    <StackTraceProvider {...stackTraceProps} getFrameLineCoverage={getFrameLineCoverage}>
       <CoverageDataLoader
         hasCodecovAccess={!!organization?.codecovAccess}
         organizationSlug={organization?.slug}
         projectSlug={project?.slug}
       />
       {children}
-    </StackTrace>
+    </StackTraceProvider>
   );
 }

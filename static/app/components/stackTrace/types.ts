@@ -45,7 +45,7 @@ export type StackTraceMeta = {
   registers?: Record<string, unknown>;
 } & Record<string, unknown>;
 
-export interface StackTraceRootProps {
+export interface StackTraceProviderProps {
   children: ReactNode;
   event: Event;
   stacktrace: StacktraceType;

@@ -1,7 +1,19 @@
+import {Fragment} from 'react';
+
 import Panel from 'sentry/components/panels/panel';
-import {StackTrace, useStackTraceContext} from 'sentry/components/stackTrace';
+import {
+  ChainedStackTrace,
+  StackTrace,
+  StackTraceProvider,
+  useStackTraceContext,
+} from 'sentry/components/stackTrace';
 import * as Storybook from 'sentry/stories';
-import {EventOrGroupType, type Event, type Frame} from 'sentry/types/event';
+import {
+  EventOrGroupType,
+  type Event,
+  type ExceptionValue,
+  type Frame,
+} from 'sentry/types/event';
 import {Coverage} from 'sentry/types/integrations';
 import type {
   LineCoverage,
@@ -78,9 +90,13 @@ function makeStackTraceData(): StackTraceStoryData {
       module: 'raven.base',
       function: 'build_msg',
       context: [
+        [298, '    def build_msg(self, event_type, data=None, date=None,'],
+        [299, '                  time_spent=None, extra=None, stack=False, **kwargs):'],
         [300, '            data.update({'],
         [301, "                'sentry.interfaces.Stacktrace': {"],
         [302, "                    'frames': get_stack_info(frames),"],
+        [303, '                }'],
+        [304, '            })'],
       ],
       lineNo: 302,
       inApp: false,
@@ -99,9 +115,16 @@ function makeStackTraceData(): StackTraceStoryData {
       module: 'raven.base',
       function: 'capture',
       context: [
+        [455, '    def capture(self, event_type, data=None, date=None,'],
+        [
+          456,
+          '                time_spent=None, extra=None, stack=False, tags=None, **kwargs):',
+        ],
         [457, '        data = self.build_msg('],
         [458, '            event_type, data, date, time_spent, extra, stack, tags=tags,'],
         [459, '            **kwargs)'],
+        [460, '        if data is None:'],
+        [461, '            return None'],
       ],
       lineNo: 459,
       inApp: false,
@@ -117,12 +140,16 @@ function makeStackTraceData(): StackTraceStoryData {
       module: 'raven.base',
       function: 'captureMessage',
       context: [
+        [573, '    def captureMessage(self, message, **kwargs):'],
+        [574, '        """'],
         [575, "        >>> client.captureMessage('My event just happened!')"],
         [576, '        """'],
         [
           577,
           "        return self.capture('raven.events.Message', message=message, **kwargs)",
         ],
+        [578, ''],
+        [579, '    def captureException(self, exc_info=None, **kwargs):'],
       ],
       lineNo: 577,
       inApp: true,
@@ -140,9 +167,13 @@ function makeStackTraceData(): StackTraceStoryData {
       module: 'raven.scripts.runner',
       function: 'send_test_message',
       context: [
+        [73, 'def send_test_message(client, options=None):'],
+        [74, '    client.captureMessage('],
         [75, '        extra={'],
         [76, "            'user': get_uid(),"],
         [77, "            'loadavg': get_loadavg(),"],
+        [78, '        },'],
+        [79, '    )'],
       ],
       lineNo: 77,
       inApp: true,
@@ -159,9 +190,13 @@ function makeStackTraceData(): StackTraceStoryData {
       module: 'raven.scripts.runner',
       function: 'main',
       context: [
-        [110, ''],
+        [108, 'def main():'],
+        [109, '    opts, args = parser.parse_args()'],
+        [110, '    dsn = args[0] if args else os.environ.get("SENTRY_DSN")'],
         [111, "    client = Client(dsn, include_paths=['raven'])"],
         [112, '    send_test_message(client, opts.__dict__)'],
+        [113, ''],
+        [114, 'if __name__ == "__main__":'],
       ],
       lineNo: 112,
       inApp: true,
@@ -377,134 +412,287 @@ function makeFrameCoverageResolver(
   };
 }
 
+function makeChainedExceptionValues(): ExceptionValue[] {
+  return [
+    {
+      type: 'ValueError',
+      value: 'test',
+      mechanism: {handled: true, type: ''},
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            filename: 'file1.py',
+            absPath: 'file1.py',
+            module: 'helpers',
+            function: 'func1',
+            lineNo: 50,
+            context: [
+              [46, 'def func1(items):'],
+              [47, '    processed = []'],
+              [48, '    for item in items:'],
+              [49, '        value = item.get("value")'],
+              [50, '        raise ValueError("test")'],
+              [51, '    return processed'],
+              [52, ''],
+            ],
+          }),
+        ],
+      },
+      module: 'helpers',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'TypeError',
+      value: 'nested',
+      mechanism: {handled: true, type: ''},
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            filename: 'file2.py',
+            absPath: 'file2.py',
+            module: 'helpers',
+            function: 'func2',
+            lineNo: 50,
+            context: [
+              [46, 'def func2(raw):'],
+              [47, '    # coerce raw input to int'],
+              [48, '    if not isinstance(raw, (int, str)):'],
+              [49, '        pass'],
+              [50, '    raise TypeError("int")'],
+              [51, ''],
+              [52, 'def func3():'],
+            ],
+          }),
+        ],
+      },
+      module: 'helpers',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'RuntimeError',
+      value: 'original cause',
+      mechanism: {handled: true, type: ''},
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            filename: 'file3.py',
+            absPath: 'file3.py',
+            module: 'helpers',
+            function: 'func3',
+            lineNo: 10,
+            context: [
+              [6, 'def func3():'],
+              [7, '    conn = get_connection()'],
+              [8, '    if not conn.is_alive():'],
+              [9, '        conn.reconnect()'],
+              [10, '    raise RuntimeError("original cause")'],
+              [11, '    return conn.execute()'],
+              [12, ''],
+            ],
+          }),
+        ],
+      },
+      module: 'helpers',
+      threadId: null,
+      rawStacktrace: null,
+    },
+  ];
+}
+
 export default Storybook.story('Core/StackTrace', story => {
-  story('Interactive', () => {
+  story('StackTraceProvider - Default', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     return (
-      <div>
-        <StackTrace event={event} stacktrace={stacktrace}>
-          <StackTrace.Toolbar />
-          <StackTrace.Content />
-        </StackTrace>
-      </div>
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="StackTraceProvider" /> is the low-level building block.
+          Compose <Storybook.JSXNode name="StackTraceProvider.Toolbar" /> and{' '}
+          <Storybook.JSXNode name="StackTraceProvider.Frames" /> to build custom layouts.
+          The toolbar lets users toggle between app-only, full, and raw views.
+        </p>
+        <div>
+          <StackTraceProvider event={event} stacktrace={stacktrace}>
+            <StackTraceProvider.Toolbar />
+            <StackTraceProvider.Frames />
+          </StackTraceProvider>
+        </div>
+      </Fragment>
     );
   });
 
-  story('Raw View', () => {
+  story('StackTraceProvider - Raw View', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace} defaultView="raw">
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="defaultView" value="raw" /> to show the
+          unprocessed frame list without view-switching controls.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace} defaultView="raw">
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('With Omitted Frames', () => {
+  story('StackTraceProvider - With Omitted Frames', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     return (
-      <StackTrace
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          framesOmitted: [1, 3],
-        }}
-      >
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          When <Storybook.JSXProperty name="framesOmitted" value={[1, 3]} /> is set, a
+          placeholder row appears in place of the omitted frame range.
+        </p>
+        <StackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            framesOmitted: [1, 3],
+          }}
+        >
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('With Sentry App Frame Links', () => {
+  story('StackTraceProvider - With Sentry App Frame Links', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     return (
-      <StackTrace
-        event={event}
-        stacktrace={stacktrace}
-        components={makeStacktraceLinkComponents()}
-      >
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="components" value={Array} /> to inject Sentry
+          App stacktrace-link components, which appear as source links on each frame.
+        </p>
+        <StackTraceProvider
+          event={event}
+          stacktrace={stacktrace}
+          components={makeStacktraceLinkComponents()}
+        >
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('Circular Frames', () => {
+  story('StackTraceProvider - Circular Frames', () => {
     const {event, stacktrace} = makeCircularStackTraceData();
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace}>
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Identical frames (same module, function, and address) are detected as recursive
+          and collapsed into a single row with a repeat count badge.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('Long Frame Paths', () => {
+  story('StackTraceProvider - Long Frame Paths', () => {
     const {event, stacktrace} = makeLongPathStackTraceData();
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace}>
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Very long file paths are truncated with an ellipsis on the left side, preserving
+          the most specific (rightmost) segments.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('Long Paths and Functions', () => {
+  story('StackTraceProvider - Long Paths and Functions', () => {
     const {event, stacktrace} = makeLongPathAndFunctionStackTraceData();
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace}>
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Both the file path and function name are long here, testing two-column overflow.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('Raw Function and Package', () => {
+  story('StackTraceProvider - Raw Function and Package', () => {
     const {event, stacktrace} = makeRawFunctionAndPackageStackTraceData();
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace}>
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          When <Storybook.JSXProperty name="function" value={null} /> is null and{' '}
+          <Storybook.JSXProperty name="rawFunction" value="string" /> is set, the raw
+          symbol is shown. A <Storybook.JSXProperty name="package" value="string" /> path
+          appears as a secondary label.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('Registers and Assembly', () => {
+  story('StackTraceProvider - Registers and Assembly', () => {
     const {event, stacktrace} = makeRegistersAndAssemblyStackTraceData();
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace}>
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          When the event has a <code>device.arch</code> context and the stacktrace has{' '}
+          <Storybook.JSXProperty name="registers" value={Object} />, CPU register values
+          are shown below the last frame.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('With Coverage (Multiple Frames)', () => {
+  story('StackTraceProvider - With Coverage (Multiple Frames)', () => {
     const {event, stacktrace} = makeCoverageStackTraceData();
 
     return (
-      <StackTrace
-        event={event}
-        stacktrace={stacktrace}
-        getFrameLineCoverage={makeFrameCoverageResolver(stacktrace)}
-      >
-        <StackTrace.Toolbar />
-        <StackTrace.Content />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="getFrameLineCoverage" value={Function} /> to
+          annotate context lines with covered / partial / not-covered indicators.
+        </p>
+        <StackTraceProvider
+          event={event}
+          stacktrace={stacktrace}
+          getFrameLineCoverage={makeFrameCoverageResolver(stacktrace)}
+        >
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
     );
   });
 
-  story('Composed Frame API', () => {
+  story('StackTraceProvider - Composed Frame API', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     function ComposedContent() {
@@ -523,10 +711,10 @@ export default Storybook.story('Core/StackTrace', story => {
               }
 
               return (
-                <StackTrace.Frame key={row.frameIndex} row={row}>
-                  <StackTrace.Frame.Header />
-                  <StackTrace.Frame.Context />
-                </StackTrace.Frame>
+                <StackTraceProvider.Frame key={row.frameIndex} row={row}>
+                  <StackTraceProvider.Frame.Header />
+                  <StackTraceProvider.Frame.Context />
+                </StackTraceProvider.Frame>
               );
             })}
           </div>
@@ -535,10 +723,189 @@ export default Storybook.story('Core/StackTrace', story => {
     }
 
     return (
-      <StackTrace event={event} stacktrace={stacktrace}>
-        <StackTrace.Toolbar />
-        <ComposedContent />
-      </StackTrace>
+      <Fragment>
+        <p>
+          Use <Storybook.JSXNode name="useStackTraceContext" /> and{' '}
+          <Storybook.JSXNode name="StackTraceProvider.Frame" /> to render individual
+          frames with complete control over layout.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceProvider.Toolbar />
+          <ComposedContent />
+        </StackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Default', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="StackTrace" /> is the convenience wrapper: it renders
+          the toolbar and frames in one component.
+        </p>
+        <StackTrace event={event} stacktrace={stacktrace} />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Minified Toggle', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const minifiedStacktrace: StacktraceWithFrames = {
+      ...stacktrace,
+      frames: stacktrace.frames.map(frame => ({
+        ...frame,
+        filename: frame.filename
+          ? frame.filename.replace('.py', '.min.py')
+          : frame.filename,
+        function: frame.function ? `_${frame.function}` : frame.function,
+      })),
+    };
+    return (
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="minifiedStacktrace" value={Object} /> to
+          enable a toggle button in the toolbar that switches between the original and
+          minified frames.
+        </p>
+        <StackTrace
+          event={event}
+          stacktrace={stacktrace}
+          minifiedStacktrace={minifiedStacktrace}
+        />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - App Frames Only', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    return (
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="defaultView" value="app" /> to show only
+          in-app frames on initial render.
+        </p>
+        <StackTrace event={event} stacktrace={stacktrace} defaultView="app" />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Full Stack', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    return (
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="defaultView" value="full" /> to show all
+          frames including system frames on initial render.
+        </p>
+        <StackTrace event={event} stacktrace={stacktrace} defaultView="full" />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - With ANR', () => {
+    const frames = [
+      makeFrame({
+        filename: 'com/example/App.java',
+        module: 'com.example.App',
+        function: 'main',
+        platform: 'java',
+        inApp: true,
+        lineNo: 42,
+      }),
+      makeFrame({
+        filename: 'java/lang/Object.java',
+        module: 'java.lang.Object',
+        function: 'wait',
+        platform: 'java',
+        inApp: false,
+        lineNo: 1,
+      }),
+    ];
+    const stacktrace: StacktraceWithFrames = {
+      framesOmitted: null,
+      hasSystemFrames: true,
+      registers: {},
+      frames,
+    };
+    const event = makeEvent({platform: 'java'});
+    return (
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="lockAddress" value="string" /> to display an
+          ANR lock address annotation below the blocked thread frame.
+        </p>
+        <StackTrace event={event} stacktrace={stacktrace} lockAddress="0x08040000" />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Empty', () => {
+    const event = makeEvent({platform: 'python'});
+    const stacktrace: StacktraceWithFrames = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: {},
+      frames: [],
+    };
+    return (
+      <Fragment>
+        <p>
+          An empty frames array renders a placeholder indicating no frames are available.
+        </p>
+        <StackTrace event={event} stacktrace={stacktrace} />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Chained (Anatomy)', () => (
+    <Fragment>
+      <p>
+        <Storybook.JSXNode name="ChainedStackTrace" /> renders one collapsible{' '}
+        <Storybook.JSXNode name="Disclosure" /> per exception. The most recent exception
+        (index 0 after reversing) starts expanded; all others start collapsed.
+      </p>
+      <Storybook.JSXNode name="ChainedStackTrace" props={{newestFirst: true}}>
+        <Storybook.JSXNode name="Disclosure" props={{defaultExpanded: true}}>
+          <Storybook.JSXNode name="Disclosure.Title" />
+          <Storybook.JSXNode name="Disclosure.Content">
+            <Storybook.JSXNode name="StackTrace" />
+          </Storybook.JSXNode>
+        </Storybook.JSXNode>
+        <Storybook.JSXNode name="Disclosure" props={{defaultExpanded: false}}>
+          <Storybook.JSXNode name="Disclosure.Title" />
+          <Storybook.JSXNode name="Disclosure.Content">
+            <Storybook.JSXNode name="StackTrace" />
+          </Storybook.JSXNode>
+        </Storybook.JSXNode>
+      </Storybook.JSXNode>
+    </Fragment>
+  ));
+
+  story('StackTrace - Chained', () => {
+    const values = makeChainedExceptionValues();
+    return (
+      <Fragment>
+        <p>
+          Three chained exceptions rendered newest-first (default). The most recent
+          exception is expanded; the two older ones are collapsed.
+        </p>
+        <ChainedStackTrace event={makeEvent()} values={values} />
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Chained (Oldest First)', () => {
+    const values = makeChainedExceptionValues();
+    return (
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="newestFirst" value={false} /> to reverse the
+          order, rendering the original cause first and the most recent exception last.
+        </p>
+        <ChainedStackTrace event={makeEvent()} values={values} newestFirst={false} />
+      </Fragment>
     );
   });
 });
