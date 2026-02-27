@@ -69,8 +69,8 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     }
 
     return (
-      // Add 16px to the height to account for the padding of the children
-      <Container height={`${RESOURCE_TEXT_MAX_FONT_SIZE_PX + 16}px`} width="100%">
+      // Add 32px to the height to account for the padding of the children
+      <Container height={`${RESOURCE_TEXT_MAX_FONT_SIZE_PX + 32}px`} width="100%">
         <Wrapper>{spanDescription}</Wrapper>
       </Container>
     );
