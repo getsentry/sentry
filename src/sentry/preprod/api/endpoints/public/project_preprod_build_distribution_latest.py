@@ -209,7 +209,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             download_count = get_download_count_for_artifact(current_artifact)
             current_dict = create_installable_build_dict(current_artifact, download_count)
 
-        # Determine update availability
         if build_version is not None:
             update_available = bool(
                 latest_artifact
