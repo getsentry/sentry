@@ -3,6 +3,7 @@ import {useEffect, useRef, type Ref} from 'react';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
+import {DisabledTip} from '@sentry/scraps/info';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 export type BaseFieldProps = Record<never, unknown>;
@@ -16,7 +17,7 @@ type FieldChildrenProps = {
   ref: Ref<HTMLElement>;
 };
 
-export const useFieldStateIndicator = () => {
+export const useAutoSaveIndicator = () => {
   const field = useFieldContext();
   const status = useAutoSaveContext()?.status;
 
@@ -30,16 +31,29 @@ export const useFieldStateIndicator = () => {
     return <Checkmark variant="success" size="sm" />;
   }
 
+  return null;
+};
+
+export function FieldStatus({disabled}: {disabled?: boolean | string}) {
+  const field = useFieldContext();
+
   if (!field.state.meta.isValid) {
     const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
     return (
-      <Tooltip position="bottom" offset={8} title={errorMessage} forceVisible skipWrapper>
+      <Tooltip position="bottom" title={errorMessage} forceVisible skipWrapper>
         <Warning variant="danger" size="sm" />
       </Tooltip>
     );
   }
+
+  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
+
+  if (disabledReason) {
+    return <DisabledTip title={disabledReason} size="sm" />;
+  }
+
   return null;
-};
+}
 
 export const useFieldId = () => {
   const field = useFieldContext();
@@ -51,6 +65,12 @@ export const useHintTextId = () => {
   const fieldId = useFieldId();
 
   return `${fieldId}-hint`;
+};
+
+export const useLabelId = () => {
+  const fieldId = useFieldId();
+
+  return `${fieldId}-label`;
 };
 
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {

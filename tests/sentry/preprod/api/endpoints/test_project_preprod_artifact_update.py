@@ -624,6 +624,53 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "size_analysis" in resp_data["requestedFeatures"]
         assert "build_distribution" not in resp_data["requestedFeatures"]
 
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_no_error_code_when_distribution_can_run(self) -> None:
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.installable_app_error_code is None
+        assert self.preprod_artifact.installable_app_error_message is None
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch("sentry.preprod.quotas.has_installable_quota")
+    def test_update_sets_error_code_no_quota(self, mock_has_installable_quota) -> None:
+        mock_has_installable_quota.return_value = False
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+        )
+        assert self.preprod_artifact.installable_app_error_message == "Distribution quota exceeded"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_sets_error_code_skipped_when_filtered(self) -> None:
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        )
+        assert (
+            self.preprod_artifact.installable_app_error_message
+            == "Distribution filtered out by project settings"
+        )
+
 
 class FindOrCreateReleaseTest(TestCase):
     def test_exact_version_matching_prevents_incorrect_matches(self):

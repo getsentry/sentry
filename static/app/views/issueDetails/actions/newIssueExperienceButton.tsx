@@ -153,7 +153,6 @@ export function NewIssueExperienceButton() {
   }, [isTourCompleted, organization]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const hasNewUIOnly = Boolean(organization.streamlineOnly);
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -211,15 +210,6 @@ export function NewIssueExperienceButton() {
           },
         });
       },
-    },
-    {
-      key: 'switch-to-old-ui',
-      label: t('Switch to the old issue experience'),
-      // Do not show the toggle out of the new UI if any of these are true:
-      //  - The user is on the old UI
-      //  - The org has the new UI only option
-      hidden: !hasStreamlinedUI || hasNewUIOnly,
-      onAction: handleToggle,
     },
     {
       key: 'reset-tour-modal',

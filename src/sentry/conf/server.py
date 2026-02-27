@@ -887,6 +887,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
+    "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",
@@ -2396,19 +2397,6 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
-    },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "headers": {
-            "User-Agent": "curl/7.72.0",
-        },
-        "is_public": True,
-        "has_index": True,
     },
     "amd": {
         "type": "http",
