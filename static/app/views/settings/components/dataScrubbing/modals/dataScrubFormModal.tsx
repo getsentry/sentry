@@ -7,7 +7,12 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormOptions,
+  setFieldErrors,
+  useScrapsForm,
+  useStore,
+} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -52,7 +57,7 @@ const dataScrubSchema = z
     pattern: z.string(),
     placeholder: z.string(),
     replaceCaptured: z.boolean(),
-    source: z.string(),
+    source: z.string().min(1, t('This field is required')),
     type: z.enum(RuleType),
     dataset: z.enum(AllowedDataScrubbingDatasets),
     eventId: z.string(),
@@ -61,15 +66,8 @@ const dataScrubSchema = z
     if (data.type === RuleType.PATTERN && !data.pattern.trim()) {
       ctx.addIssue({
         code: 'custom',
-        message: t('Field Required'),
+        message: t('This field is required'),
         path: ['pattern'],
-      });
-    }
-    if (!data.source.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('Field Required'),
-        path: ['source'],
       });
     }
   });
@@ -167,6 +165,8 @@ function DataScrubFormModal({
       }
     },
   });
+
+  const type = useStore(form.store, state => state.values.type);
 
   const handleValidateAttributeField = useCallback(
     (value: string) => {
@@ -327,79 +327,76 @@ function DataScrubFormModal({
             )}
           </form.Subscribe>
 
-          <form.Subscribe selector={state => state.values.type}>
-            {type => (
-              <Grid
-                columns={type === RuleType.PATTERN ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'}
-                gap={{sm: 'md'}}
-              >
-                <form.AppField
-                  name="type"
-                  listeners={{
-                    onChange: ({value}) => {
-                      if (value !== RuleType.PATTERN) {
-                        form.setFieldValue('pattern', '');
-                        form.setFieldValue('replaceCaptured', false);
-                      }
-                    },
-                  }}
-                >
-                  {typeField => (
-                    <typeField.Layout.Stack
-                      label={t('Data Type')}
-                      hintText={t(
-                        'What to look for. Use an existing pattern or define your own using regular expressions.'
-                      )}
-                      variant="compact"
-                    >
-                      <typeField.Select
-                        placeholder={t('Select type')}
-                        options={typeOptions}
-                        value={typeField.state.value}
-                        onChange={typeField.handleChange}
-                        isSearchable={false}
-                        openOnFocus
-                      />
-                    </typeField.Layout.Stack>
+          <Grid
+            columns={type === RuleType.PATTERN ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'}
+            gap={{sm: 'md'}}
+          >
+            <form.AppField
+              name="type"
+              listeners={{
+                onChange: ({value}) => {
+                  if (value !== RuleType.PATTERN) {
+                    form.setFieldValue('pattern', '');
+                    form.setFieldValue('replaceCaptured', false);
+                  }
+                },
+              }}
+            >
+              {typeField => (
+                <typeField.Layout.Stack
+                  label={t('Data Type')}
+                  hintText={t(
+                    'What to look for. Use an existing pattern or define your own using regular expressions.'
                   )}
-                </form.AppField>
-                {type === RuleType.PATTERN && (
-                  <form.AppField name="pattern">
-                    {patternField => (
-                      <patternField.Layout.Stack
-                        label={t('Regex matches')}
-                        hintText={t('Custom regular expression (see documentation)')}
-                        variant="compact"
-                        required
-                      >
-                        <RegularExpressionWrapper>
-                          <patternField.Input
-                            type="text"
-                            placeholder={t('[a-zA-Z0-9]+')}
-                            onChange={patternField.handleChange}
-                            value={patternField.state.value}
-                          />
-                        </RegularExpressionWrapper>
-                        <form.AppField name="replaceCaptured">
-                          {replaceCapturedField => (
-                            <ReplaceCapturedCheckbox
-                              pattern={patternField.state.value}
-                              checked={replaceCapturedField.state.value}
-                              onChange={val => replaceCapturedField.handleChange(val)}
-                            />
-                          )}
-                        </form.AppField>
-                      </patternField.Layout.Stack>
-                    )}
-                  </form.AppField>
+                  variant="compact"
+                >
+                  <typeField.Select
+                    placeholder={t('Select type')}
+                    options={typeOptions}
+                    value={typeField.state.value}
+                    onChange={typeField.handleChange}
+                    isSearchable={false}
+                    openOnFocus
+                  />
+                </typeField.Layout.Stack>
+              )}
+            </form.AppField>
+            {type === RuleType.PATTERN && (
+              <form.AppField name="pattern">
+                {patternField => (
+                  <patternField.Layout.Stack
+                    label={t('Regex matches')}
+                    hintText={t('Custom regular expression (see documentation)')}
+                    variant="compact"
+                    required
+                  >
+                    <RegularExpressionWrapper>
+                      <patternField.Input
+                        type="text"
+                        placeholder={t('[a-zA-Z0-9]+')}
+                        onChange={patternField.handleChange}
+                        value={patternField.state.value}
+                      />
+                    </RegularExpressionWrapper>
+                    <form.AppField name="replaceCaptured">
+                      {replaceCapturedField => (
+                        <ReplaceCapturedCheckbox
+                          pattern={patternField.state.value}
+                          checked={replaceCapturedField.state.value}
+                          onChange={val => replaceCapturedField.handleChange(val)}
+                        />
+                      )}
+                    </form.AppField>
+                  </patternField.Layout.Stack>
                 )}
-              </Grid>
+              </form.AppField>
             )}
-          </form.Subscribe>
+          </Grid>
 
           <form.AppField name="source">
             {sourceField => {
               const sourceValue = sourceField.state.value;
+              const isRegExMatchesSelected = type === RuleType.PATTERN;
 
               if (traceItemDatasetsEnabled) {
                 return (
@@ -441,9 +438,7 @@ function DataScrubFormModal({
                                   fieldProps={fieldProps}
                                   onChange={value => sourceField.handleChange(value)}
                                   value={sourceValue}
-                                  isRegExMatchesSelected={
-                                    form.getFieldValue('type') === RuleType.PATTERN
-                                  }
+                                  isRegExMatchesSelected={isRegExMatchesSelected}
                                   suggestions={sourceSuggestions}
                                 />
                               )}
@@ -523,9 +518,7 @@ function DataScrubFormModal({
                             fieldProps={fieldProps}
                             onChange={value => sourceField.handleChange(value)}
                             value={sourceValue}
-                            isRegExMatchesSelected={
-                              form.getFieldValue('type') === RuleType.PATTERN
-                            }
+                            isRegExMatchesSelected={isRegExMatchesSelected}
                             suggestions={sourceSuggestions}
                           />
                         )}
