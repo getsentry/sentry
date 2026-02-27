@@ -70,4 +70,4 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
         title = TYPE_CHOICES.get(value)
         issue_type_name = title if title else ""
         include_label = INCLUDE_CHOICES.get(condition_data.get("include", "true"), "equal to")
-        return cls.label.format(include=include_label, value=issue_type_name)
+        return cls.label_template.format(include=include_label, value=issue_type_name)
