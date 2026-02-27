@@ -704,7 +704,10 @@ class DashboardDetail extends Component<Props, State> {
         pathname: path,
         query: {
           ...location.query,
-          ...convertWidgetToBuilderStateParams(widget),
+          ...convertWidgetToBuilderStateParams({
+            ...widget,
+            axisRange: widget.axisRange ?? 'auto',
+          }),
         },
       }),
       {preventScrollReset: true}

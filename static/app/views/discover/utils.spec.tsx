@@ -872,7 +872,6 @@ describe('constructAddQueryToDashboardLink', () => {
         displayType: DisplayType.AREA,
         yAxis: ['count()', 'count_unique(user)'],
         source: DashboardWidgetSource.DISCOVERV2,
-        axisRange: 'auto',
       });
     });
     it('should construct a link with the correct params - topN', () => {
@@ -905,7 +904,6 @@ describe('constructAddQueryToDashboardLink', () => {
         yAxis: ['count()'],
         limit: 5,
         source: DashboardWidgetSource.DISCOVERV2,
-        axisRange: 'auto',
       });
     });
     it('should construct a link with the correct params - daily top N', () => {
@@ -938,7 +936,6 @@ describe('constructAddQueryToDashboardLink', () => {
         yAxis: ['count()'],
         limit: 5,
         source: DashboardWidgetSource.DISCOVERV2,
-        axisRange: 'auto',
       });
     });
   });
