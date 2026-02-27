@@ -246,32 +246,32 @@ function DataScrubFormModal({
               },
             }}
           >
-            {field => (
+            {methodField => (
               <form.AppField name="placeholder">
                 {placeholderField => (
                   <Grid
                     columns={
-                      field.state.value === MethodType.REPLACE
+                      methodField.state.value === MethodType.REPLACE
                         ? {xs: '1fr', sm: '1fr 1fr'}
                         : '1fr'
                     }
                     gap={{sm: 'md'}}
                   >
-                    <field.Layout.Stack
+                    <methodField.Layout.Stack
                       label={t('Method')}
                       hintText={t('What to do')}
                       variant="compact"
                     >
-                      <field.Select
+                      <methodField.Select
                         placeholder={t('Select method')}
                         options={methodOptions}
-                        value={field.state.value}
-                        onChange={field.handleChange}
+                        value={methodField.state.value}
+                        onChange={methodField.handleChange}
                         isSearchable={false}
                         openOnFocus
                       />
-                    </field.Layout.Stack>
-                    {field.state.value === MethodType.REPLACE && (
+                    </methodField.Layout.Stack>
+                    {methodField.state.value === MethodType.REPLACE && (
                       <placeholderField.Layout.Stack
                         label={t('Custom Placeholder (Optional)')}
                         hintText={t('It will replace the default placeholder [Filtered]')}
