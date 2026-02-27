@@ -124,6 +124,12 @@ def main(context: dict[str, str]) -> int:
         colima.uninstall(binroot)
         limactl.uninstall(binroot)
 
+    if os.path.exists(f"{reporoot}/.devenv/bin/uv"):
+        os.remove(f"{reporoot}/.devenv/bin/uv")
+
+    if os.path.exists(f"{reporoot}/.devenv/bin/uvx"):
+        os.remove(f"{reporoot}/.devenv/bin/uvx")
+
     if not shutil.which("uv"):
         print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
         return 1
