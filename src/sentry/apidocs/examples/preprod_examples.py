@@ -171,6 +171,28 @@ class PreprodExamples:
         ),
     ]
 
+    EXAMPLE_BUILD_SUMMARY = {
+        "buildId": "12345",
+        "state": "PROCESSED",
+        "appInfo": _APP_INFO,
+        "gitInfo": _GIT_INFO,
+        "platform": "android",
+        "projectId": "1",
+        "projectSlug": "my-project",
+        "buildConfiguration": "release",
+        "downloadCount": 5,
+        "releaseNotes": "Bug fixes and performance improvements.",
+    }
+
+    GET_BUILDS = [
+        OpenApiExample(
+            "Build List",
+            value=[EXAMPLE_BUILD_SUMMARY],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
     GET_SIZE_ANALYSIS = [
         OpenApiExample(
             "Pending Analysis",

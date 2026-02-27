@@ -4,7 +4,9 @@ from typing import TypedDict
 
 from sentry.preprod.api.models.public.shared import (
     AppInfoResponseDict,
+    GitInfoResponseDict,
     create_app_info_dict,
+    create_git_info_dict,
 )
 from sentry.preprod.build_distribution_utils import get_artifact_install_info
 from sentry.preprod.models import PreprodArtifact
@@ -24,6 +26,19 @@ class InstallInfoResponseDict(TypedDict):
     codesigningType: str | None
 
 
+class InstallableBuildResponseDict(TypedDict):
+    buildId: str
+    state: str
+    appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
+    platform: str | None
+    projectId: str
+    projectSlug: str
+    buildConfiguration: str | None
+    downloadCount: int
+    releaseNotes: str | None
+
+
 def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDict:
     info = get_artifact_install_info(artifact)
 
@@ -40,4 +55,23 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
         "isCodeSignatureValid": info.is_code_signature_valid,
         "profileName": info.profile_name,
         "codesigningType": info.codesigning_type,
+    }
+
+
+def create_installable_build_dict(
+    artifact: PreprodArtifact, download_count: int
+) -> InstallableBuildResponseDict:
+    return {
+        "buildId": str(artifact.id),
+        "state": PreprodArtifact.ArtifactState(artifact.state).name,
+        "appInfo": create_app_info_dict(artifact),
+        "gitInfo": create_git_info_dict(artifact),
+        "platform": artifact.platform,
+        "projectId": str(artifact.project_id),
+        "projectSlug": artifact.project.slug,
+        "buildConfiguration": (
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
+        "downloadCount": download_count,
+        "releaseNotes": (artifact.extras or {}).get("release_notes"),
     }
