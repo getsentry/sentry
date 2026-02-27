@@ -12,6 +12,12 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 
+
+class SeerViewerContext(TypedDict, total=False):
+    organization_id: int
+    user_id: int
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,6 +43,7 @@ def make_signed_seer_api_request(
     retries: int | None | Retry = None,
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     host = connection_pool.host
     if connection_pool.port:
@@ -46,6 +53,17 @@ def make_signed_seer_api_request(
     parsed = urlparse(url)
 
     auth_headers = sign_with_seer_secret(body)
+
+    headers: dict[str, str] = {
+        "content-type": "application/json;charset=utf-8",
+        **auth_headers,
+    }
+
+    if viewer_context:
+        context_bytes = orjson.dumps(viewer_context)
+        context_signature = sign_viewer_context(context_bytes)
+        headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
+        headers["X-Viewer-Context-Signature"] = context_signature
 
     options: dict[str, Any] = {}
     if timeout:
@@ -62,7 +80,7 @@ def make_signed_seer_api_request(
             method,
             parsed.path,
             body=body,
-            headers={"content-type": "application/json;charset=utf-8", **auth_headers},
+            headers=headers,
             **options,
         )
 
@@ -382,3 +400,12 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
             "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
     return auth_headers
+
+
+def sign_viewer_context(context_bytes: bytes) -> str:
+    """Sign the viewer context payload with the shared secret."""
+    return hmac.new(
+        settings.SEER_API_SHARED_SECRET.encode("utf-8"),
+        context_bytes,
+        hashlib.sha256,
+    ).hexdigest()
