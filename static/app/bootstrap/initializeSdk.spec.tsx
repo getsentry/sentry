@@ -73,7 +73,7 @@ describe('initializeSdk', () => {
           },
         ],
       },
-    };
+    } as Sentry.ErrorEvent;
 
     expect(initConfig?.beforeSend?.(event, {} as Sentry.EventHint)).toBeNull();
   });
