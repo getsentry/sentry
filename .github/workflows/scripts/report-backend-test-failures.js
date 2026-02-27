@@ -1,5 +1,4 @@
-import {readFileSync} from 'node:fs';
-import {glob} from 'node:fs/promises';
+import {readdirSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 const MAX_FAILURES = 30;
@@ -73,10 +72,9 @@ export function buildCommentBody(failures, runUrl) {
 export async function report({github, context, core}) {
   const workspace = process.env.GITHUB_WORKSPACE || '.';
 
-  const files = [];
-  for await (const f of glob('pytest-results-*/**/*.json', {cwd: workspace})) {
-    files.push(join(workspace, f));
-  }
+  const files = readdirSync(workspace, {recursive: true})
+    .filter(f => /^pytest-results-/.test(f) && f.endsWith('.json'))
+    .map(f => join(workspace, f));
 
   if (files.length === 0) {
     core.info('No pytest result files found — skipping comment.');
