@@ -527,32 +527,104 @@ class GitHubProvider:
         )
 
     @catch_provider_exception
-    def create_review_comment(
+    def create_review_comment_file(
         self,
         pull_request_id: str,
+        commit_id: CommitSHA,
         body: str,
-        commit_sha: CommitSHA,
         path: str,
-        line: int | None = None,
-        side: ReviewSide | None = None,
-        start_line: int | None = None,
-        start_side: ReviewSide | None = None,
+        side: ReviewSide,
+    ):
+        """Leave a review comment on a file."""
+        return map_action(
+            self.client.create_review_comment(
+                self.repository["name"],
+                pull_request_id,
+                {
+                    "body": body,
+                    "commit_id": commit_id,
+                    "path": path,
+                    "side": side,
+                    "subject_type": "file",
+                },
+            ),
+            map_review_comment,
+        )
+
+    @catch_provider_exception
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ):
+        """Leave a review comment on a specific line in a file."""
+        return map_action(
+            self.client.create_review_comment(
+                self.repository["name"],
+                pull_request_id,
+                {
+                    "body": body,
+                    "commit_id": commit_id,
+                    "path": path,
+                    "line": line,
+                    "side": side,
+                    "subject_type": "line",
+                },
+            ),
+            map_review_comment,
+        )
+
+    @catch_provider_exception
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ):
+        """Leave a review comment on a multiline span in a file."""
+        return map_action(
+            self.client.create_review_comment(
+                self.repository["name"],
+                pull_request_id,
+                {
+                    "body": body,
+                    "commit_id": commit_id,
+                    "path": path,
+                    "line": end_line,
+                    "side": end_side,
+                    "start_line": start_line,
+                    "start_side": start_side,
+                    "subject_type": "line",
+                },
+            ),
+            map_review_comment,
+        )
+
+    @catch_provider_exception
+    def create_review_comment_reply(
+        self, pull_request_id: str, body: str, comment_id: str
     ) -> ActionResult[ReviewComment]:
-        data: dict[str, Any] = {
-            "body": body,
-            "commit_id": commit_sha,
-            "path": path,
-        }
-        if line is not None:
-            data["line"] = line
-        if side is not None:
-            data["side"] = side
-        if start_line is not None:
-            data["start_line"] = start_line
-        if start_side is not None:
-            data["start_side"] = start_side
-        raw = self.client.create_review_comment(self.repository["name"], pull_request_id, data)
-        return map_action(raw, map_review_comment)
+        """Leave a review comment in reply to another review comment."""
+        return map_action(
+            self.client.create_review_comment(
+                self.repository["name"],
+                pull_request_id,
+                {
+                    "body": body,
+                    "in_reply_to": int(comment_id),
+                },
+            ),
+            map_review_comment,
+        )
 
     @catch_provider_exception
     def create_review(

@@ -1028,18 +1028,80 @@ class BaseTestProvider(Provider):
 
     # Review operations
 
-    def create_review_comment(
+    def create_review_comment_file(
+        self,
+        pull_request_id: str,
+        commit_id: str,
+        body: str,
+        path: str,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        raw = make_github_review_comment(body=body, path=path)
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: str,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        raw = make_github_review_comment(body=body, path=path)
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: str,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        raw = make_github_review_comment(body=body, path=path)
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_review_comment_reply(
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: str,
-        path: str,
-        line: int | None = None,
-        side: ReviewSide | None = None,
-        start_line: int | None = None,
-        start_side: ReviewSide | None = None,
+        comment_id: str,
     ) -> ActionResult[ReviewComment]:
-        raw = make_github_review_comment(body=body, path=path)
+        raw = make_github_review_comment(body=body)
         return ActionResult(
             data=ReviewComment(
                 id=str(raw["id"]),

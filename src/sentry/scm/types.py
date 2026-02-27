@@ -589,16 +589,42 @@ class Provider(Protocol):
 
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None: ...
 
-    def create_review_comment(
+    def create_review_comment_file(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]: ...
+
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]: ...
+
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ) -> ActionResult[ReviewComment]: ...
+
+    def create_review_comment_reply(
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: CommitSHA,
-        path: str,
-        line: int | None = None,
-        side: ReviewSide | None = None,
-        start_line: int | None = None,
-        start_side: ReviewSide | None = None,
+        comment_id: str,
     ) -> ActionResult[ReviewComment]: ...
 
     def create_review(

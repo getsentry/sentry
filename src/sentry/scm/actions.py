@@ -399,28 +399,69 @@ class SourceCodeManager:
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         return self._exec(lambda p: p.request_review(pull_request_id, reviewers))
 
-    def create_review_comment(
+    def create_review_comment_file(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        """Leave a review comment on a file."""
+        return self._exec(
+            lambda p: p.create_review_comment_file(pull_request_id, commit_id, body, path, side)
+        )
+
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        """Leave a review comment on a specific line in a file."""
+        return self._exec(
+            lambda p: p.create_review_comment_line(
+                pull_request_id, commit_id, body, path, line, side
+            )
+        )
+
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        """Leave a review comment on a multiline span in a file."""
+        return self._exec(
+            lambda p: p.create_review_comment_multiline(
+                pull_request_id,
+                commit_id,
+                body,
+                path,
+                start_line,
+                start_side,
+                end_line,
+                end_side,
+            )
+        )
+
+    def create_review_comment_reply(
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: CommitSHA,
-        path: str,
-        line: int | None = None,
-        side: ReviewSide | None = None,
-        start_line: int | None = None,
-        start_side: ReviewSide | None = None,
+        comment_id: str,
     ) -> ActionResult[ReviewComment]:
+        """Leave a review comment in reply to another review comment."""
         return self._exec(
-            lambda p: p.create_review_comment(
-                pull_request_id,
-                body,
-                commit_sha,
-                path,
-                line=line,
-                side=side,
-                start_line=start_line,
-                start_side=start_side,
-            )
+            lambda p: p.create_review_comment_reply(pull_request_id, body, comment_id)
         )
 
     def create_review(

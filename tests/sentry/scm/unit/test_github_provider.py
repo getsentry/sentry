@@ -92,12 +92,45 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("update_pull_request", {"pull_request_id": "42"}),
     ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
     (
-        "create_review_comment",
+        "create_review_comment_file",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_reply",
         {
             "pull_request_id": "42",
             "body": "comment",
-            "commit_sha": "abc",
-            "path": "f.py",
+            "comment_id": "123",
         },
     ),
     (
@@ -343,19 +376,104 @@ CLIENT_DELEGATION_TESTS: list[
         ),
     ),
     (
-        "create_review_comment",
+        "create_review_comment_file",
         {
             "pull_request_id": "42",
+            "commit_id": "abc123",
             "body": "Nice!",
-            "commit_sha": "abc123",
             "path": "src/main.py",
+            "side": "RIGHT",
         },
         (
             "create_review_comment",
             (
                 "test-org/test-repo",
                 "42",
-                {"body": "Nice!", "commit_id": "abc123", "path": "src/main.py"},
+                {
+                    "body": "Nice!",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "side": "RIGHT",
+                    "subject_type": "file",
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Nice!",
+            "path": "src/main.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "Nice!",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Nice!",
+            "path": "src/main.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "Nice!",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "start_line": 5,
+                    "start_side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment_reply",
+        {
+            "pull_request_id": "42",
+            "body": "Nice!",
+            "comment_id": "999",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "Nice!",
+                    "in_reply_to": 999,
+                },
             ),
             {},
         ),
@@ -841,12 +959,51 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         _check_update_pull_request,
     ),
     (
-        "create_review_comment",
+        "create_review_comment_file",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Looks good",
+            "path": "src/main.py",
+            "side": "RIGHT",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Looks good",
+            "path": "src/main.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Looks good",
+            "path": "src/main.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review_comment_reply",
         {
             "pull_request_id": "42",
             "body": "Looks good",
-            "commit_sha": "abc123",
-            "path": "src/main.py",
+            "comment_id": "999",
         },
         {"review_comment_data": make_github_review_comment()},
         _check_review_comment,
@@ -1118,37 +1275,60 @@ class TestPullRequestCommitEdgeCases:
 
 
 class TestCreateReviewCommentEdgeCases:
-    def test_only_required_fields(self):
+    def test_file_comment(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review_comment("42", "comment", "abc123", "src/main.py")
+        provider.create_review_comment_file("42", "abc123", "comment", "src/main.py", "RIGHT")
 
         assert (
             "create_review_comment",
             (
                 "test-org/test-repo",
                 "42",
-                {"body": "comment", "commit_id": "abc123", "path": "src/main.py"},
+                {
+                    "body": "comment",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "side": "RIGHT",
+                    "subject_type": "file",
+                },
             ),
             {},
         ) in client.calls
 
-    def test_with_positioning_fields(self):
+    def test_line_comment(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review_comment(
-            "42",
-            "comment",
-            "abc123",
-            "src/main.py",
-            line=10,
-            side="RIGHT",
-            start_line=5,
-            start_side="RIGHT",
+        provider.create_review_comment_line("42", "abc123", "comment", "src/main.py", 10, "RIGHT")
+
+        assert (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "comment",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ) in client.calls
+
+    def test_multiline_comment(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
+
+        provider.create_review_comment_multiline(
+            "42", "abc123", "comment", "src/main.py", 5, "RIGHT", 10, "RIGHT"
         )
 
         assert (
@@ -1164,6 +1344,27 @@ class TestCreateReviewCommentEdgeCases:
                     "side": "RIGHT",
                     "start_line": 5,
                     "start_side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ) in client.calls
+
+    def test_reply_comment(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
+
+        provider.create_review_comment_reply("42", "comment", "999")
+
+        assert (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "comment",
+                    "in_reply_to": 999,
                 },
             ),
             {},

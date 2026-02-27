@@ -81,12 +81,45 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
     # Review operations
     (
-        "create_review_comment",
+        "create_review_comment_file",
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_reply",
         {
             "pull_request_id": "1",
             "body": "comment",
-            "commit_sha": "abc",
-            "path": "f.py",
+            "comment_id": "123",
         },
     ),
     (
@@ -374,7 +407,6 @@ def _check_created_reaction(result: Any) -> None:
 def _check_review_comment(result: Any) -> None:
     rc = result["data"]
     assert rc["id"] == "100"
-    assert rc["path"] == "f.py"
     assert rc["body"] == "comment"
     assert result["type"] == "github"
 
@@ -516,12 +548,48 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_none,
     ),
     (
-        SourceCodeManager.create_review_comment,
+        SourceCodeManager.create_review_comment_file,
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "side": "RIGHT",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review_comment_line,
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review_comment_multiline,
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review_comment_reply,
         {
             "pull_request_id": "1",
             "body": "comment",
-            "commit_sha": "abc",
-            "path": "f.py",
+            "comment_id": "123",
         },
         _check_review_comment,
     ),
