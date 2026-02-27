@@ -181,11 +181,18 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    return (
-      dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      []
+    const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    if (!urlFilters) {
+      return savedFilters;
+    }
+
+    const nonOverlappingSaved = savedFilters.filter(
+      saved => !urlFilters.some(url => globalFilterKeysAreEqual(saved, url))
     );
+
+    return [...nonOverlappingSaved, ...urlFilters];
   });
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
