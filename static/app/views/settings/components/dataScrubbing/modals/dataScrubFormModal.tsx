@@ -220,7 +220,7 @@ function DataScrubFormModal({
                 >
                   <field.Layout.Stack
                     label={t('Dataset')}
-                    hintText={t('The dataset targetted by the scrubbing rule')}
+                    hintText={t('The dataset targeted by the scrubbing rule')}
                     variant="compact"
                   >
                     <Flex gap="lg">
@@ -364,7 +364,6 @@ function DataScrubFormModal({
           <form.AppField name="source">
             {sourceField => {
               const sourceValue = sourceField.state.value;
-              const sourceError = sourceField.state.meta.errors?.[0]?.message;
 
               if (traceItemDatasetsEnabled) {
                 return (
@@ -430,26 +429,34 @@ function DataScrubFormModal({
                         </SourceGroup>
                       </Fragment>
                     ) : (
-                      <Fragment>
-                        <AttributeField
-                          dataset={dataset}
-                          onChange={value =>
-                            sourceField.handleChange(
-                              TraceItemFieldSelector.fromField(
-                                dataset,
-                                value
-                              )?.getSelector() ?? ''
-                            )
-                          }
-                          value={sourceValue}
-                          error={sourceError}
-                          onBlur={(value, _event) => {
-                            handleValidateAttributeField(value);
-                            sourceField.handleBlur();
-                          }}
-                          projectId={projectId}
-                        />
-                      </Fragment>
+                      <sourceField.Layout.Stack
+                        label={t('Attribute')}
+                        hintText={t('The attribute to scrub')}
+                        variant="compact"
+                        required
+                      >
+                        <sourceField.Base>
+                          {fieldProps => (
+                            <AttributeField
+                              fieldProps={fieldProps}
+                              dataset={dataset}
+                              onChange={value =>
+                                sourceField.handleChange(
+                                  TraceItemFieldSelector.fromField(
+                                    dataset,
+                                    value
+                                  )?.getSelector() ?? ''
+                                )
+                              }
+                              value={sourceValue}
+                              onBlur={(value, _event) => {
+                                handleValidateAttributeField(value);
+                              }}
+                              projectId={projectId}
+                            />
+                          )}
+                        </sourceField.Base>
+                      </sourceField.Layout.Stack>
                     )}
                   </SourceGroup>
                 );
