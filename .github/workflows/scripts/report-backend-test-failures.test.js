@@ -1,16 +1,15 @@
-const {describe, it, beforeEach, afterEach} = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import assert from 'node:assert/strict';
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {afterEach, beforeEach, describe, it} from 'node:test';
 
-const {
-  findJsonFiles,
-  parseFailures,
+import {
   buildCommentBody,
   COMMENT_MARKER,
+  parseFailures,
   report,
-} = require('./report-backend-test-failures');
+} from './report-backend-test-failures.js';
 
 // -- Fixtures ----------------------------------------------------------------
 
@@ -58,10 +57,12 @@ const SETUP_FAILURE = {
 
 let tmpDir;
 
-function createArtifactDir(name, filename, content) {
-  const dir = path.join(tmpDir, name);
-  fs.mkdirSync(dir, {recursive: true});
-  fs.writeFileSync(path.join(dir, filename), content);
+function createArtifactFile(artifactDir, filename, content) {
+  const dir = join(tmpDir, artifactDir);
+  mkdirSync(dir, {recursive: true});
+  const filePath = join(dir, filename);
+  writeFileSync(filePath, content);
+  return filePath;
 }
 
 function mockCore() {
@@ -104,55 +105,22 @@ function mockContext(prNumber = 123) {
 
 // -- Tests -------------------------------------------------------------------
 
-describe('findJsonFiles', () => {
-  beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pytest-report-'));
-  });
-  afterEach(() => {
-    fs.rmSync(tmpDir, {recursive: true, force: true});
-  });
-
-  it('finds json files in nested directories', () => {
-    createArtifactDir('pytest-results-backend-111-0', 'pytest.json', '{}');
-    createArtifactDir('pytest-results-backend-111-1', 'pytest.json', '{}');
-    createArtifactDir('pytest-results-migration-111', 'pytest.json', '{}');
-
-    const files = findJsonFiles(tmpDir);
-    assert.equal(files.length, 3);
-    assert.ok(files.every(f => f.endsWith('.json')));
-  });
-
-  it('returns empty array for nonexistent directory', () => {
-    assert.deepEqual(findJsonFiles('/nonexistent/path'), []);
-  });
-
-  it('ignores non-json files', () => {
-    createArtifactDir('pytest-results-backend-111-0', 'readme.txt', 'hi');
-    createArtifactDir('pytest-results-backend-111-0', 'pytest.json', '{}');
-
-    const files = findJsonFiles(tmpDir);
-    assert.equal(files.length, 1);
-    assert.ok(files[0].endsWith('.json'));
-  });
-});
-
 describe('parseFailures', () => {
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pytest-report-'));
+    tmpDir = mkdtempSync(join(tmpdir(), 'pytest-report-'));
   });
   afterEach(() => {
-    fs.rmSync(tmpDir, {recursive: true, force: true});
+    rmSync(tmpDir, {recursive: true, force: true});
   });
 
   it('extracts failed tests and ignores passing ones', () => {
-    createArtifactDir(
+    const file = createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       makePytestJson([FAILED_TEST, PASSED_TEST])
     );
 
-    const files = findJsonFiles(tmpDir);
-    const failures = parseFailures(files, mockCore());
+    const failures = parseFailures([file], mockCore());
 
     assert.equal(failures.length, 1);
     assert.equal(failures[0].nodeid, FAILED_TEST.nodeid);
@@ -160,25 +128,27 @@ describe('parseFailures', () => {
   });
 
   it('handles setup failures (no call phase)', () => {
-    createArtifactDir(
+    const file = createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       makePytestJson([SETUP_FAILURE])
     );
 
-    const files = findJsonFiles(tmpDir);
-    const failures = parseFailures(files, mockCore());
+    const failures = parseFailures([file], mockCore());
 
     assert.equal(failures.length, 1);
     assert.ok(failures[0].longrepr.includes('fixture error'));
   });
 
   it('skips corrupt json with a warning', () => {
-    createArtifactDir('pytest-results-backend-111-0', 'pytest.json', 'NOT VALID JSON');
+    const file = createArtifactFile(
+      'pytest-results-backend-111-0',
+      'pytest.json',
+      'NOT VALID JSON'
+    );
 
-    const files = findJsonFiles(tmpDir);
     const core = mockCore();
-    const failures = parseFailures(files, core);
+    const failures = parseFailures([file], core);
 
     assert.equal(failures.length, 0);
     assert.equal(core.logs.warning.length, 1);
@@ -186,24 +156,22 @@ describe('parseFailures', () => {
   });
 
   it('skips json without tests array', () => {
-    createArtifactDir(
+    const file = createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       JSON.stringify({summary: {}})
     );
 
-    const files = findJsonFiles(tmpDir);
-    const failures = parseFailures(files, mockCore());
-    assert.equal(failures.length, 0);
+    assert.equal(parseFailures([file], mockCore()).length, 0);
   });
 
   it('aggregates failures across multiple files', () => {
-    createArtifactDir(
+    const file1 = createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       makePytestJson([FAILED_TEST])
     );
-    createArtifactDir(
+    const file2 = createArtifactFile(
       'pytest-results-backend-111-1',
       'pytest.json',
       makePytestJson([
@@ -214,10 +182,7 @@ describe('parseFailures', () => {
       ])
     );
 
-    const files = findJsonFiles(tmpDir);
-    const failures = parseFailures(files, mockCore());
-
-    assert.equal(failures.length, 2);
+    assert.equal(parseFailures([file1, file2], mockCore()).length, 2);
   });
 });
 
@@ -248,17 +213,19 @@ describe('buildCommentBody', () => {
   });
 
   it('shows "No traceback available" when longrepr is empty', () => {
-    const failures = [{nodeid: 'a::b::c', longrepr: ''}];
-
-    const body = buildCommentBody(failures, 'https://example.com/run');
+    const body = buildCommentBody(
+      [{nodeid: 'a::b::c', longrepr: ''}],
+      'https://example.com/run'
+    );
     assert.ok(body.includes('No traceback available'));
   });
 
   it('truncates long tracebacks', () => {
     const longTrace = Array.from({length: 100}, (_, i) => `line ${i}`).join('\n');
-    const failures = [{nodeid: 'a::b::c', longrepr: longTrace}];
-
-    const body = buildCommentBody(failures, 'https://example.com/run');
+    const body = buildCommentBody(
+      [{nodeid: 'a::b::c', longrepr: longTrace}],
+      'https://example.com/run'
+    );
     assert.ok(body.includes('... (50 more lines)'));
     assert.ok(!body.includes('line 99'));
   });
@@ -276,10 +243,9 @@ describe('buildCommentBody', () => {
   });
 
   it('truncates body exceeding 65K chars', () => {
-    const hugeTrace = 'x'.repeat(3000);
     const failures = Array.from({length: 30}, (_, i) => ({
       nodeid: `a::b::test_${i}`,
-      longrepr: hugeTrace,
+      longrepr: 'x'.repeat(3000),
     }));
 
     const body = buildCommentBody(failures, 'https://example.com/run');
@@ -292,17 +258,17 @@ describe('report (integration)', () => {
   let origEnv;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pytest-report-'));
+    tmpDir = mkdtempSync(join(tmpdir(), 'pytest-report-'));
     origEnv = process.env.GITHUB_WORKSPACE;
     process.env.GITHUB_WORKSPACE = tmpDir;
   });
   afterEach(() => {
     process.env.GITHUB_WORKSPACE = origEnv;
-    fs.rmSync(tmpDir, {recursive: true, force: true});
+    rmSync(tmpDir, {recursive: true, force: true});
   });
 
   it('creates a comment when failures exist', async () => {
-    createArtifactDir(
+    createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       makePytestJson([FAILED_TEST])
@@ -322,7 +288,7 @@ describe('report (integration)', () => {
   });
 
   it('updates an existing comment', async () => {
-    createArtifactDir(
+    createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       makePytestJson([FAILED_TEST])
@@ -351,7 +317,7 @@ describe('report (integration)', () => {
   });
 
   it('does nothing when all tests pass', async () => {
-    createArtifactDir(
+    createArtifactFile(
       'pytest-results-backend-111-0',
       'pytest.json',
       makePytestJson([PASSED_TEST])
@@ -364,6 +330,5 @@ describe('report (integration)', () => {
 
     assert.ok(!github.calls.some(c => c.method === 'createComment'));
     assert.ok(!github.calls.some(c => c.method === 'updateComment'));
-    assert.ok(!github.calls.some(c => c.method === 'deleteComment'));
   });
 });

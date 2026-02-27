@@ -626,11 +626,8 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures`).report({
-              github,
-              context,
-              core,
-            });
+            const { report } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await report({ github, context, core });
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)

@@ -1,36 +1,18 @@
-const fs = require('fs');
-const path = require('path');
+import {readFileSync} from 'node:fs';
+import {glob} from 'node:fs/promises';
+import {join} from 'node:path';
 
 const MAX_FAILURES = 30;
 const MAX_TRACEBACK_LINES = 50;
-const COMMENT_MARKER = '<!-- BACKEND_TEST_FAILURES -->';
+export const COMMENT_MARKER = '<!-- BACKEND_TEST_FAILURES -->';
 
-function findJsonFiles(dir) {
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, {withFileTypes: true});
-  } catch {
-    return [];
-  }
-  const results = [];
-  for (const entry of entries) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...findJsonFiles(full));
-    } else if (entry.name.endsWith('.json')) {
-      results.push(full);
-    }
-  }
-  return results;
-}
-
-function parseFailures(jsonFiles, core) {
+export function parseFailures(files, core) {
   const failures = [];
 
-  for (const file of jsonFiles) {
+  for (const file of files) {
     let data;
     try {
-      data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      data = JSON.parse(readFileSync(file, 'utf8'));
     } catch (e) {
       core.warning(`Skipping ${file}: ${e.message}`);
       continue;
@@ -56,7 +38,7 @@ function parseFailures(jsonFiles, core) {
   return failures;
 }
 
-function buildCommentBody(failures, runUrl) {
+export function buildCommentBody(failures, runUrl) {
   const capped = failures.slice(0, MAX_FAILURES);
 
   let body = `${COMMENT_MARKER}\n## Backend Test Failures\n\nThe following tests failed in [this run](${runUrl}):\n\n`;
@@ -88,56 +70,53 @@ function buildCommentBody(failures, runUrl) {
   return body;
 }
 
-module.exports = {
-  // Exported for testing
-  findJsonFiles,
-  parseFailures,
-  buildCommentBody,
-  COMMENT_MARKER,
-  report: async ({github, context, core}) => {
-    const workspace = process.env.GITHUB_WORKSPACE || '.';
-    const jsonFiles = findJsonFiles(workspace);
+export async function report({github, context, core}) {
+  const workspace = process.env.GITHUB_WORKSPACE || '.';
 
-    if (jsonFiles.length === 0) {
-      core.info('No pytest result files found — skipping comment.');
-      return;
-    }
+  const files = [];
+  for await (const f of glob('pytest-results-*/**/*.json', {cwd: workspace})) {
+    files.push(join(workspace, f));
+  }
 
-    const failures = parseFailures(jsonFiles, core);
+  if (files.length === 0) {
+    core.info('No pytest result files found — skipping comment.');
+    return;
+  }
 
-    if (failures.length === 0) {
-      core.info('No test failures found.');
-      return;
-    }
+  const failures = parseFailures(files, core);
 
-    const prNumber = context.payload.pull_request.number;
-    const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-    const body = buildCommentBody(failures, runUrl);
+  if (failures.length === 0) {
+    core.info('No test failures found.');
+    return;
+  }
 
-    // Find existing comment to update instead of creating a duplicate
-    const {data: comments} = await github.rest.issues.listComments({
+  const prNumber = context.payload.pull_request.number;
+  const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+  const body = buildCommentBody(failures, runUrl);
+
+  // Find existing comment to update instead of creating a duplicate
+  const {data: comments} = await github.rest.issues.listComments({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    issue_number: prNumber,
+  });
+  const existing = comments.find(c => c.body?.includes(COMMENT_MARKER));
+
+  if (existing) {
+    await github.rest.issues.updateComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      comment_id: existing.id,
+      body,
+    });
+    core.info('Updated existing failure comment.');
+  } else {
+    await github.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: prNumber,
+      body,
     });
-    const existing = comments.find(c => c.body?.includes(COMMENT_MARKER));
-
-    if (existing) {
-      await github.rest.issues.updateComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        comment_id: existing.id,
-        body,
-      });
-      core.info('Updated existing failure comment.');
-    } else {
-      await github.rest.issues.createComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        issue_number: prNumber,
-        body,
-      });
-      core.info('Created failure comment.');
-    }
-  },
-};
+    core.info('Created failure comment.');
+  }
+}
