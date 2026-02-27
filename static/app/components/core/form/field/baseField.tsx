@@ -74,7 +74,7 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
     ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
     ref.current?.focus({focusVisible: true});
     animateRowHighlight(ref.current);
-  }, [fieldName, ref, location]);
+  }, [fieldName, ref, location.hash]);
 }
 
 type FieldState = {indicator: React.ReactNode};
