@@ -42,14 +42,12 @@ def configure_split_db() -> None:
     if already_configured or _use_monolith_dbs():
         return
 
-    import copy
-
-    settings.DATABASES["control"] = copy.deepcopy(settings.DATABASES["default"])
+    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
     settings.DATABASES["control"]["NAME"] = "control"
 
     settings.DATABASES["default"]["NAME"] = "region"
 
-    settings.DATABASES["secondary"] = copy.deepcopy(settings.DATABASES["default"])
+    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
     settings.DATABASES["secondary"]["NAME"] = "secondary"
 
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
