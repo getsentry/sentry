@@ -6,7 +6,7 @@ import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltCon
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.publish, queue.process]`;
+const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.process,queue.publish]`;
 
 const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
   [
@@ -36,11 +36,15 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+          fields: [
+            `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+          ],
+          aggregates: [
+            `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+          ],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `avg(${SpanFields.SPAN_DURATION})`,
+          orderby: `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         },
       ],
     },
@@ -61,6 +65,7 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
           ],
           columns: [],
           conditions: SPAN_OP_FILTER,
+          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         },
       ],
@@ -134,6 +139,7 @@ const TRANSACTIONS_TABLE: Widget = {
       name: '',
       fields: [
         SpanFields.TRANSACTION,
+        SpanFields.SPAN_OP,
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
         `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
@@ -149,9 +155,10 @@ const TRANSACTIONS_TABLE: Widget = {
         `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
-      columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, SpanFields.TRANSACTION],
+      columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP],
       fieldAliases: [
         t('Transaction'),
+        t('Type'),
         t('Avg time in queue'),
         t('Avg processing time'),
         t('Error rate'),
