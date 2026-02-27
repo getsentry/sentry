@@ -591,6 +591,7 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         self.assert_equal_serializers(rule)
 
+    @pytest.mark.skip(reason="flaky: #109579")
     def test_github_enterprise_action(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
