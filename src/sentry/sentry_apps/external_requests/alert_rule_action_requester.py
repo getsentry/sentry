@@ -81,6 +81,15 @@ class SentryAppAlertRuleActionRequester:
                     webhook_context={"error_type": halt_reason, **extras},
                     status_code=500,
                 )
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e, extra={**extras})
+                return SentryAppAlertRuleActionResult(
+                    success=False,
+                    message=e.message,
+                    error_type=SentryAppErrorType.INTEGRATOR,
+                    webhook_context={"error_type": e.webhook_context["error_type"], **extras},
+                    status_code=e.status_code,
+                )
             except Exception as e:
                 failure_reason = FAILURE_REASON_BASE.format(
                     SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR

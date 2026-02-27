@@ -90,6 +90,10 @@ class SelectRequester:
                     status_code=500,
                 ) from e
 
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e, extra={**extras})
+                raise
+
             except Exception as e:
                 failure_reason = FAILURE_REASON_BASE.format(
                     SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR
