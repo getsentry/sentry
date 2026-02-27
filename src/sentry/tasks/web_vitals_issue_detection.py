@@ -97,7 +97,7 @@ def dispatch_detection_for_project_ids(
             continue
 
         # Check if web vitals detection is enabled in the project's performance issue settings
-        performance_settings = get_merged_settings(project.id)
+        performance_settings = get_merged_settings(project)
         if not performance_settings.get("web_vitals_detection_enabled", False):
             results[project.id] = {"success": False, "reason": "web_vitals_detection_not_enabled"}
             continue
@@ -234,7 +234,7 @@ def get_highest_opportunity_page_vitals_for_project(
     start_time = end_time - timedelta(**start_time_delta)
 
     # Get the samples count threshold from performance issue settings
-    performance_settings = get_merged_settings(project.id)
+    performance_settings = get_merged_settings(project)
     samples_count_threshold = performance_settings.get(
         "web_vitals_count", DEFAULT_SAMPLES_COUNT_THRESHOLD
     )

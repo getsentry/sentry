@@ -19,7 +19,7 @@ from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
-from sentry.models.apitoken import ApiToken
+from sentry.models.apitoken import ApiToken, TokenRefreshError
 from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
@@ -437,7 +437,11 @@ class OAuthTokenView(View):
             )
         except ApiToken.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid request"}
-        refresh_token.refresh()
+
+        try:
+            refresh_token.refresh()
+        except TokenRefreshError as e:
+            return {"error": "invalid_grant", "reason": str(e)}
 
         return {"token": refresh_token}
 

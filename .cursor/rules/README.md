@@ -16,6 +16,7 @@ When you edit a file, Cursor automatically loads the relevant AGENTS.md based on
 ## Files
 
 - **`general.mdc`** - Always loads root `AGENTS.md` for general Sentry context
+- **`pre-commit-before-done.mdc`** - Run pre-commit on changed files before completing a task (always applied)
 - **`backend.mdc`** - Loads backend patterns for Python files in `src/`
 - **`tests.mdc`** - Loads testing patterns for test files
 - **`frontend.mdc`** - Loads frontend patterns for TypeScript/JavaScript/CSS files

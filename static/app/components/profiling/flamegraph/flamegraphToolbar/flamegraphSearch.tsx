@@ -226,7 +226,7 @@ function sortFrameResults(
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.spans.size);
+  const spans = new Array<SpanChartNode | FlamegraphFrame>(results.spans.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }

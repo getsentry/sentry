@@ -45,6 +45,7 @@ type Props = {
       | 'tableResults'
       | 'timeseriesResults'
       | 'timeseriesResultsTypes'
+      | 'timeseriesResultsUnits'
       | 'totalIssuesCount'
       | 'confidence'
       | 'sampleCount'

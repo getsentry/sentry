@@ -471,6 +471,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/pr-comments/$repoName/$prNumber/'
   | '/organizations/$organizationIdOrSlug/preprod/quota/'
   | '/organizations/$organizationIdOrSlug/preprod/retention/'
+  | '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/install-details/'
+  | '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/size-analysis/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/'

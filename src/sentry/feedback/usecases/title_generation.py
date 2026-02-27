@@ -1,24 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
 
-from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json, metrics
+from sentry.feedback.lib.seer_api import (
+    GenerateFeedbackTitleRequest,
+    make_title_generation_request,
+)
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
 SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0  # Do not retry since this is called in ingest.
-
-
-class GenerateFeedbackTitleRequest(TypedDict):
-    """Corresponds to GenerateFeedbackTitleRequest in Seer."""
-
-    organization_id: int
-    feedback_message: str
 
 
 def truncate_feedback_title(title: str, max_words: int = 10) -> str:
@@ -70,10 +63,8 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     )
 
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_summarization_connection_pool,
-            path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
-            body=json.dumps(seer_request).encode("utf-8"),
+        response = make_title_generation_request(
+            seer_request,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )

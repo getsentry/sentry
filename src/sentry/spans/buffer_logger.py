@@ -331,6 +331,10 @@ def emit_observability_metrics(
         )
 
     if oversized_count > 0:
+        logger.info(
+            "Parent span set oversized, skipping SUNIONSTORE",
+            extra={"oversized_count": oversized_count},
+        )
         metrics.incr(
             "spans.buffer.process_spans.parent_span_set_already_oversized.count",
             amount=oversized_count,
