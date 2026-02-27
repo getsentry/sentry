@@ -113,7 +113,7 @@ class UnwrappedProvider extends Component<Props> {
   getCounts() {
     const {teamKeyTransactions} = this.state;
 
-    const counts: Map<string, number> = new Map();
+    const counts = new Map<string, number>();
 
     teamKeyTransactions.forEach(({team, count}) => {
       counts.set(team, count);
@@ -125,7 +125,7 @@ class UnwrappedProvider extends Component<Props> {
   getKeyedTeams = (projectId: string, transactionName: string) => {
     const {teamKeyTransactions} = this.state;
 
-    const keyedTeams: Set<string> = new Set();
+    const keyedTeams = new Set<string>();
 
     teamKeyTransactions.forEach(({team, keyed}) => {
       const isKeyedByTeam = keyed.find(

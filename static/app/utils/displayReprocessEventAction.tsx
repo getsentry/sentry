@@ -4,7 +4,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 /** All platforms that always use Debug Files. */
-const DEBUG_FILE_PLATFORMS: Set<PlatformKey> = new Set([
+const DEBUG_FILE_PLATFORMS = new Set<PlatformKey>([
   'objc',
   'cocoa',
   'swift',
@@ -12,7 +12,7 @@ const DEBUG_FILE_PLATFORMS: Set<PlatformKey> = new Set([
   'c',
 ]);
 /** Other platforms that may use Debug Files. */
-const MAYBE_DEBUG_FILE_PLATFORMS: Set<PlatformKey> = new Set(['csharp', 'java']);
+const MAYBE_DEBUG_FILE_PLATFORMS = new Set<PlatformKey>(['csharp', 'java']);
 
 /**
  * Returns whether to display the "Reprocess Event" action.
