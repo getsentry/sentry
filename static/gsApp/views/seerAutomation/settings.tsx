@@ -24,7 +24,7 @@ export default function SeerAutomationSettings() {
       <SettingsPageHeader
         title={t('Seer')}
         subtitle={tct(
-          `Configure how Seer works with your codebase. Seer includes Issue Autofix and AI Code Review. Issue Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [read_the_docs:Learn what Seer can do from our docs].`,
+          `Configure how Seer works with your codebase. Seer includes [rca:Issue Autofix] and [code_review:AI Code Review]. Issue Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [read_the_docs:Read the docs] to learn what Seer can do.`,
           {
             rca: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#root-cause-analysis" />
