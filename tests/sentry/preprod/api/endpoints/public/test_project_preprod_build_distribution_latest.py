@@ -123,7 +123,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         build = response.json()["latestArtifact"]
         assert build["buildId"] == str(artifact.id)
         assert build["state"] == "PROCESSED"
-        assert build["platform"] == "android"
+        assert build["platform"] == "ANDROID"
         assert build["projectId"] == str(self.project.id)
         assert build["projectSlug"] == self.project.slug
         assert build["buildConfiguration"] == "release"
@@ -133,9 +133,14 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert build["gitInfo"] is not None
         assert build["gitInfo"]["headRef"] == "feature/test"
         assert build["gitInfo"]["prNumber"] == 42
+        assert build["isInstallable"] is True
+        assert build["installUrl"] is not None
         assert build["downloadCount"] == 0
         assert build["releaseNotes"] == "Bug fixes."
         assert build["installGroups"] == ["beta"]
+        assert build["isCodeSignatureValid"] is None
+        assert build["profileName"] is None
+        assert build["codesigningType"] is None
 
     def test_check_for_updates_update_available(self):
         self._create_installable_artifact(
@@ -225,7 +230,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         data = response.json()
         assert data["latestArtifact"] is not None
         assert data["latestArtifact"]["buildId"] == str(ios_artifact.id)
-        assert data["latestArtifact"]["platform"] == "apple"
+        assert data["latestArtifact"]["platform"] == "APPLE"
 
     def test_platform_filter_android_includes_aab(self):
         self._create_installable_artifact(

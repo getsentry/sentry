@@ -20,14 +20,13 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.preprod.api.models.public.installable_builds import (
     LatestInstallableBuildResponseDict,
-    create_installable_build_dict,
+    create_install_info_dict,
     create_latest_installable_build_response,
 )
 from sentry.preprod.api.validators import PreprodLatestInstallableBuildValidator
 from sentry.preprod.build_distribution_utils import (
     find_current_artifact,
     find_latest_installable_artifact,
-    get_download_count_for_artifact,
 )
 
 
@@ -201,13 +200,11 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
 
         latest_dict = None
         if latest_artifact:
-            download_count = get_download_count_for_artifact(latest_artifact)
-            latest_dict = create_installable_build_dict(latest_artifact, download_count)
+            latest_dict = create_install_info_dict(latest_artifact)
 
         current_dict = None
         if current_artifact:
-            download_count = get_download_count_for_artifact(current_artifact)
-            current_dict = create_installable_build_dict(current_artifact, download_count)
+            current_dict = create_install_info_dict(current_artifact)
 
         if build_version is not None:
             update_available = bool(

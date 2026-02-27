@@ -107,8 +107,13 @@ class PreprodExamples:
 
     EXAMPLE_INSTALL_INFO_INSTALLABLE = {
         "buildId": "12345",
+        "state": "PROCESSED",
         "appInfo": _APP_INFO,
+        "gitInfo": _GIT_INFO,
         "platform": "ANDROID",
+        "projectId": "1",
+        "projectSlug": "my-project",
+        "buildConfiguration": "release",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
         "downloadCount": 5,
@@ -121,8 +126,13 @@ class PreprodExamples:
 
     EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE = {
         "buildId": "12345",
+        "state": "PROCESSED",
         "appInfo": _APP_INFO,
+        "gitInfo": None,
         "platform": "ANDROID",
+        "projectId": "1",
+        "projectSlug": "my-project",
+        "buildConfiguration": None,
         "isInstallable": False,
         "installUrl": None,
         "downloadCount": 0,
@@ -135,11 +145,16 @@ class PreprodExamples:
 
     EXAMPLE_INSTALL_INFO_APPLE = {
         "buildId": "12346",
+        "state": "PROCESSED",
         "appInfo": {
             **_APP_INFO,
             "artifactType": "XCARCHIVE",
         },
+        "gitInfo": _GIT_INFO,
         "platform": "APPLE",
+        "projectId": "1",
+        "projectSlug": "my-project",
+        "buildConfiguration": "release",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
         "downloadCount": 3,
@@ -180,9 +195,14 @@ class PreprodExamples:
         "projectId": "1",
         "projectSlug": "my-project",
         "buildConfiguration": "release",
+        "isInstallable": True,
+        "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
         "downloadCount": 5,
         "releaseNotes": "Bug fixes and performance improvements.",
         "installGroups": ["beta-testers"],
+        "isCodeSignatureValid": None,
+        "profileName": None,
+        "codesigningType": None,
     }
 
     EXAMPLE_LATEST_BUILD_ONLY = {

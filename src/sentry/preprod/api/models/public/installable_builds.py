@@ -14,8 +14,13 @@ from sentry.preprod.models import PreprodArtifact
 
 class InstallInfoResponseDict(TypedDict):
     buildId: str
+    state: str
     appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
     platform: str | None
+    projectId: str
+    projectSlug: str
+    buildConfiguration: str | None
     isInstallable: bool
     installUrl: str | None
     downloadCount: int
@@ -26,23 +31,9 @@ class InstallInfoResponseDict(TypedDict):
     codesigningType: str | None
 
 
-class InstallableBuildResponseDict(TypedDict):
-    buildId: str
-    state: str
-    appInfo: AppInfoResponseDict
-    gitInfo: GitInfoResponseDict | None
-    platform: str | None
-    projectId: str
-    projectSlug: str
-    buildConfiguration: str | None
-    downloadCount: int
-    releaseNotes: str | None
-    installGroups: list[str] | None
-
-
 class LatestInstallableBuildResponseDict(TypedDict):
-    latestArtifact: InstallableBuildResponseDict | None
-    currentArtifact: InstallableBuildResponseDict | None
+    latestArtifact: InstallInfoResponseDict | None
+    currentArtifact: InstallInfoResponseDict | None
     updateAvailable: bool | None
 
 
@@ -51,9 +42,16 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
 
     return {
         "buildId": str(artifact.id),
+        "state": PreprodArtifact.ArtifactState(artifact.state).name,
         "appInfo": create_app_info_dict(artifact),
+        "gitInfo": create_git_info_dict(artifact),
         # Uppercase for consistency with other enum fields (e.g. artifactType)
         "platform": artifact.platform.upper() if artifact.platform else None,
+        "projectId": str(artifact.project_id),
+        "projectSlug": artifact.project.slug,
+        "buildConfiguration": (
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
         "isInstallable": info.is_installable,
         "installUrl": info.install_url,
         "downloadCount": info.download_count,
@@ -65,29 +63,9 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
     }
 
 
-def create_installable_build_dict(
-    artifact: PreprodArtifact, download_count: int
-) -> InstallableBuildResponseDict:
-    return {
-        "buildId": str(artifact.id),
-        "state": PreprodArtifact.ArtifactState(artifact.state).name,
-        "appInfo": create_app_info_dict(artifact),
-        "gitInfo": create_git_info_dict(artifact),
-        "platform": artifact.platform,
-        "projectId": str(artifact.project_id),
-        "projectSlug": artifact.project.slug,
-        "buildConfiguration": (
-            artifact.build_configuration.name if artifact.build_configuration else None
-        ),
-        "downloadCount": download_count,
-        "releaseNotes": (artifact.extras or {}).get("release_notes"),
-        "installGroups": (artifact.extras or {}).get("install_groups"),
-    }
-
-
 def create_latest_installable_build_response(
-    latest: InstallableBuildResponseDict | None,
-    current: InstallableBuildResponseDict | None,
+    latest: InstallInfoResponseDict | None,
+    current: InstallInfoResponseDict | None,
     update_available: bool | None,
 ) -> LatestInstallableBuildResponseDict:
     return {
