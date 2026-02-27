@@ -2,11 +2,10 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
@@ -133,7 +132,7 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples: Array<Array<Exclude<Profiling.ProfileReference, string>>> = new Array(
+    const examples = new Array<Array<Exclude<Profiling.ProfileReference, string>>>(
       frames.length
     );
 
@@ -227,7 +226,7 @@ export function SuspectFunctionsTable({
     <Fragment>
       <Flex justify="between" marginBottom="md">
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" />}
             aria-label={t('Previous')}

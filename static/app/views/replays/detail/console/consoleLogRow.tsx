@@ -1,9 +1,9 @@
-import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -24,7 +24,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
     expandedState: Record<string, boolean>
   ) => void;
   startTimestampMs: number;
-  style: CSSProperties;
+  dataIndex?: number;
   expandPaths?: string[];
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -32,6 +32,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
 function ConsoleLogRow({
   currentHoverTime,
   currentTime,
+  dataIndex,
   expandPaths,
   frame,
   onMouseEnter,
@@ -40,7 +41,6 @@ function ConsoleLogRow({
   onClickTimestamp,
   onDimensionChange,
   startTimestampMs,
-  style,
   ref,
 }: Props) {
   const handleDimensionChange = useCallback(
@@ -55,6 +55,7 @@ function ConsoleLogRow({
   return (
     <ConsoleLog
       ref={ref}
+      data-index={dataIndex}
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -65,7 +66,6 @@ function ConsoleLogRow({
       level={(frame as ConsoleFrame).level}
       onMouseEnter={() => onMouseEnter(frame)}
       onMouseLeave={() => onMouseLeave(frame)}
-      style={style}
     >
       <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
       <Message>

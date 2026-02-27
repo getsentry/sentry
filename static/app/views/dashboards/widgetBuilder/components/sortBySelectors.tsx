@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -145,11 +146,17 @@ export function SortBySelectors({
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
         {
-          // Trace Metrics also uses the table sort options because it constrains the options to the selected
-          // group bys and aggregate which is consistent for the explore page (i.e. you can't sort by a field
-          // that is not in the group bys or aggregate).
+          // Table-like displays use `getTableSortOptions` because they constrain options to the selected
+          // columns and aggregates. This includes:
+          // - Table: standard table display
+          // - Details: details display
+          // - Bar (Categorical): bar chart with categorical X-axis (uses table data)
+          // - Trace Metrics: constrains to selected group bys and aggregate, to
+          // keep consistency with Explore (i.e. you can't sort by a field that
+          // is not in the group bys or aggregate)
           displayType === DisplayType.TABLE ||
           displayType === DisplayType.DETAILS ||
+          displayType === DisplayType.CATEGORICAL_BAR ||
           widgetType === WidgetType.TRACEMETRICS ? (
             <Select
               name="sortBy"

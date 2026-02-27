@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconBranch, IconCommit, IconFile, IconGithub} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {

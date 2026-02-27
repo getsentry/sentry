@@ -17,7 +17,7 @@ const DEFAULT_POLL_INTERVAL = 5000;
  */
 type FirstIssue = null | boolean | Group;
 
-export interface EventWaiterProps {
+interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
   eventType: 'error' | 'transaction' | 'replay' | 'profile' | 'log';

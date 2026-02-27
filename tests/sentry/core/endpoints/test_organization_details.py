@@ -83,7 +83,10 @@ class MockAccess:
         return False
 
 
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+regions = create_test_regions("us", "de")
+
+
+@region_silo_test(regions=regions, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -670,6 +673,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
 
+@region_silo_test(regions=regions)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -1216,7 +1220,20 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_org_mapping_already_taken(self) -> None:
         self.create_organization(slug="taken")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+        res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+        assert res.json()["slug"] == ['The slug "taken" is already in use.']
+
+    def test_org_mapping_already_taken_org_in_other_region(self) -> None:
+        de_region = regions[1]
+        assert de_region.name == "de"
+
+        # Create an org, mapping, and slug reservation. For us to reach the RPC conflict,
+        # we need to not have the org record in our database.
+        conflict = self.create_organization(slug="taken", region=de_region)
+        Organization.objects.filter(id=conflict.id).delete()
+
+        res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+        assert res.json()["slug"] == ['The slug "taken" is in use by another organization.']
 
     def test_target_sample_rate_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
@@ -2037,9 +2054,9 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:
-            assert invite_url_regex.search(
-                email.body
-            ), f"No invite URL found in 2FA invite email body to: {email.to}"
+            assert invite_url_regex.search(email.body), (
+                f"No invite URL found in 2FA invite email body to: {email.to}"
+            )
 
     def assert_has_correct_audit_log(
         self, acting_user: User, target_user: User, organization: Organization
@@ -2055,13 +2072,13 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
                 target_user_id=target_user.id,
             )
 
-        assert (
-            audit_log_entry_query.exists()
-        ), f"No matching audit log entry found for actor: {acting_user}, target_user: {target_user}"
+        assert audit_log_entry_query.exists(), (
+            f"No matching audit log entry found for actor: {acting_user}, target_user: {target_user}"
+        )
 
-        assert (
-            len(audit_log_entry_query) == 1
-        ), f"More than 1 matching audit log entry found for actor: {acting_user}, target_user: {target_user}"
+        assert len(audit_log_entry_query) == 1, (
+            f"More than 1 matching audit log entry found for actor: {acting_user}, target_user: {target_user}"
+        )
 
         audit_log_entry = audit_log_entry_query[0]
         assert audit_log_entry.target_object == organization.id

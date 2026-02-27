@@ -7,6 +7,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
+    BaseDetectorHandler,
     DataPacketEvaluationType,
     DetectorHandler,
     DetectorOccurrence,
@@ -27,7 +28,7 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
 def build_mock_occurrence_and_event(
-    handler: DetectorHandler[Any, Any],
+    handler: DetectorHandler[Any],
     value: DataPacketEvaluationType,
     priority: PriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -99,7 +100,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC_ALERT.value
 
-        class MockDetectorHandler(DetectorHandler[dict[str, Any], int]):
+        class MockDetectorHandler(BaseDetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
@@ -123,7 +124,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("dedupe", 0)
 
-        class MockDetectorWithUpdateHandler(DetectorHandler[dict[str, Any], int]):
+        class MockDetectorWithUpdateHandler(BaseDetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:

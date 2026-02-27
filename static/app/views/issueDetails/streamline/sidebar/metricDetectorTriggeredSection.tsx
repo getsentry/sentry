@@ -1,12 +1,12 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -29,15 +29,26 @@ import type {
 import {defined} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {
+  buildDetectorZoomQuery,
+  computeZoomRangeMs,
+} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+
+import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 interface MetricDetectorEvidenceData {
   /**
@@ -55,7 +66,10 @@ interface MetricDetectorEvidenceData {
   /**
    * The evaluated value when the occurrence was created
    */
-  value: number;
+  value:
+    | number
+    // XXX: Anomaly detectors will store an object here with other data necessary for processing
+    | {value: number};
 }
 
 interface MetricDetectorTriggeredSectionProps {
@@ -90,13 +104,13 @@ interface RelatedIssuesProps {
 }
 
 function calculateStartOfInterval({
-  eventDateCreated,
+  openPeriodStart,
   timeWindow,
 }: {
-  eventDateCreated: string;
+  openPeriodStart: string;
   timeWindow: number;
 }) {
-  const eventTimestamp = new Date(eventDateCreated).getTime();
+  const eventTimestamp = new Date(openPeriodStart).getTime();
   const startOfInterval = new Date(
     eventTimestamp -
       // Subtract the time window (which is in seconds)
@@ -108,6 +122,81 @@ function calculateStartOfInterval({
   startOfInterval.setSeconds(0, 0);
 
   return startOfInterval;
+}
+
+function getFormattedEvaluatedValue({
+  aggregate,
+  detectionType,
+  value,
+}: {
+  aggregate: string;
+  detectionType: MetricDetectorConfig['detectionType'];
+  value: number;
+}): string {
+  const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
+  return `${value.toLocaleString()}${unitSuffix}`;
+}
+
+/**
+ * Once the open period loads, this hook will set the time range to visibly center the open period.
+ * If the URL already has a time period, this hook will do nothing
+ */
+function useZoomTimeRangeToOpenPeriod({
+  eventId,
+  intervalSeconds,
+  openPeriodStart,
+  openPeriodEnd,
+}: {
+  eventId: string;
+  intervalSeconds: number | undefined;
+  openPeriodEnd: string | null;
+  openPeriodStart: string | null;
+}) {
+  const organization = useOrganization();
+  const params = useParams<{groupId: string; eventId?: string}>();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
+    const hasTimePeriod =
+      defined(location.query.statsPeriod) ||
+      defined(location.query.start) ||
+      defined(location.query.end);
+
+    if (hasTimePeriod) {
+      return;
+    }
+
+    if (openPeriodStart) {
+      const zoomRange = computeZoomRangeMs({
+        startMs: new Date(openPeriodStart).getTime(),
+        endMs: openPeriodEnd ? new Date(openPeriodEnd).getTime() : Date.now(),
+        intervalSeconds,
+      });
+
+      const query = buildDetectorZoomQuery(location.query, zoomRange);
+
+      navigate(
+        {
+          pathname: normalizeUrl(
+            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+          ),
+          query,
+        },
+        {replace: true}
+      );
+    }
+  });
+
+  useEffect(() => {
+    zoomTimeRangeToOpenPeriod();
+  }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
+}
+
+function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>[0]) {
+  useZoomTimeRangeToOpenPeriod(props);
+
+  return null;
 }
 
 /**
@@ -273,6 +362,7 @@ function TriggeredConditionDetails({
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
   const triggeredCondition = conditions[0];
   const [fallbackEndDate] = useState(() => new Date().toISOString());
+  const detectionType = evidenceData.config?.detectionType ?? 'static';
   const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId,
     eventId,
@@ -287,13 +377,26 @@ function TriggeredConditionDetails({
   const datasetConfig = getDatasetConfig(detectorDataset);
   const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
+  const formattedEvaluatedValue = getFormattedEvaluatedValue({
+    value: defined(value) && typeof value === 'object' ? value.value : value,
+    aggregate: snubaQuery.aggregate,
+    detectionType,
+  });
   const startDate = calculateStartOfInterval({
-    eventDateCreated,
+    openPeriodStart: openPeriod?.start ?? eventDateCreated,
     timeWindow: snubaQuery.timeWindow,
   }).toISOString();
 
   return (
     <Fragment>
+      {!isOpenPeriodLoading && (
+        <ZoomToOpenPeriod
+          eventId={eventId}
+          intervalSeconds={snubaQuery?.timeWindow}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+        />
+      )}
       <InterimSection
         title="Triggered Condition"
         type="triggered_condition"
@@ -358,12 +461,13 @@ function TriggeredConditionDetails({
             },
             {
               key: 'value',
-              value,
+              value: formattedEvaluatedValue,
               subject: t('Evaluated Value'),
             },
           ]}
         />
       </InterimSection>
+      <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
           <InterimSection title={t('Contributing Issues')} type="contributing_issues">

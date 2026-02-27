@@ -28,6 +28,7 @@ class Message(BaseModel):
     role: Literal["user", "assistant", "tool_use"]
     content: str | None = None
     tool_calls: list[ToolCall] | None = None
+    metadata: dict[str, str] | None = None
 
     class Config:
         extra = "allow"
@@ -61,6 +62,7 @@ class ExplorerFilePatch(BaseModel):
 
     repo_name: str
     patch: FilePatch
+    diff: str = ""
 
     class Config:
         extra = "allow"
@@ -261,8 +263,16 @@ class ExplorerRun(BaseModel):
     title: str
     last_triggered_at: datetime
     created_at: datetime
+    user_id: int | None = None
     category_key: str | None = None
     category_value: str | None = None
 
     class Config:
         extra = "allow"
+
+
+class ExplorerRunWithPrs(ExplorerRun):
+    """A single Explorer run record with PR metadata."""
+
+    group_id: int | None = None
+    repo_pr_states: dict[str, RepoPRState] | None = None

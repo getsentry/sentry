@@ -7,6 +7,8 @@ import {testableDebounce} from 'sentry/utils/url/testUtils';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -22,11 +24,13 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
       displayType: 'line',
       widgetType: 'transactions-like',
       queries: [],
+      isCustomizable: true,
     },
   ]),
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockGetTopNConvertedDefaultWidgets = jest.mocked(getTopNConvertedDefaultWidgets);
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -156,5 +160,57 @@ describe('WidgetTemplatesList', () => {
 
     // show we're still on the widget templates list
     expect(await screen.findByText('Add to dashboard')).toBeInTheDocument();
+  });
+
+  it('should pre-select widget based on widgetTemplateId query parameter', async () => {
+    mockGetTopNConvertedDefaultWidgets.mockReturnValue([
+      {
+        id: 'duration-distribution',
+        title: 'Duration Distribution',
+        description: 'First widget',
+        displayType: 'line',
+        widgetType: 'transactions-like',
+        queries: [],
+        isCustomizable: true,
+      },
+      {
+        id: 'high-throughput-transactions',
+        title: 'High Throughput Transactions',
+        description: 'Second widget',
+        displayType: 'area',
+        widgetType: 'transactions-like',
+        queries: [],
+        isCustomizable: true,
+      },
+    ] as unknown as WidgetTemplate[]);
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetTemplatesList
+          onSave={onSave}
+          setOpenWidgetTemplates={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboards/new/widget/0/',
+            query: {
+              widgetTemplateId: 'high-throughput-transactions',
+            },
+          },
+        },
+      }
+    );
+
+    // Wait for the component to render
+    expect(await screen.findByText('Duration Distribution')).toBeInTheDocument();
+    expect(await screen.findByText('High Throughput Transactions')).toBeInTheDocument();
+
+    // The second widget should be pre-selected and show action buttons
+    expect(screen.getByText('Customize')).toBeInTheDocument();
+    expect(screen.getByText('Add to dashboard')).toBeInTheDocument();
   });
 });

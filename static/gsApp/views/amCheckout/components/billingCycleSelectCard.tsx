@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';

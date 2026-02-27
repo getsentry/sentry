@@ -75,6 +75,7 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
+const SENTRY_DEVSERVER_NGROK = env.SENTRY_DEVSERVER_NGROK;
 
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -110,9 +111,6 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
-const CODECOV_TOKEN = env.CODECOV_TOKEN;
-// value should come back as either 'true' or 'false' or undefined
-const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -305,8 +303,11 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        // Avoids recompiling core-js based on usage imports
-        exclude: /node_modules[\\/]core-js/,
+        // core-js: Avoids recompiling core-js based on usage imports
+        // react-select: Ships pre-compiled ESM with emotion's keyframes already
+        // compiled via Babel. Re-processing with @swc/plugin-emotion causes
+        // "illegal escape sequence" warnings in dev mode.
+        exclude: /node_modules[\\/](core-js|react-select)/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -645,19 +646,27 @@ if (
       // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
       // since ngrok urls are public and can be accessed by anyone.
       // '.ngrok.io',
+
+      // Needed if you want to use ngrok w/ backend
+      ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
     ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
     },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: SHOULD_HOT_MODULE_RELOAD,
+    hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
+    liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     devMiddleware: {
       stats: 'errors-only',
     },
     client: {
       overlay: false,
+      // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
+      // derive its URL from window.location instead of the dev server's host.
+      // Without this, HMR tries ws://127.0.0.1:8000/ws which is unreachable.
+      ...(SENTRY_DEVSERVER_NGROK && {webSocketURL: 'auto://0.0.0.0:0/ws'}),
     },
   };
 
@@ -892,26 +901,6 @@ if (IS_PRODUCTION) {
         excludeDebugStatements: false,
         excludeReplayIframe: true,
         excludeReplayShadowDom: true,
-      },
-    })
-  );
-}
-
-if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
-  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
-  // defaulting to an empty string which in turn will fallback to env var or
-  // determine merge commit sha from git
-  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
-
-  appConfig.plugins?.push(
-    codecovWebpackPlugin({
-      enableBundleAnalysis: true,
-      bundleName: 'app-webpack-bundle',
-      uploadToken: CODECOV_TOKEN,
-      debug: true,
-      gitService: 'github',
-      uploadOverrides: {
-        sha: GH_COMMIT_SHA,
       },
     })
   );

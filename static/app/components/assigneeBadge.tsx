@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tag} from 'sentry/components/core/badge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';

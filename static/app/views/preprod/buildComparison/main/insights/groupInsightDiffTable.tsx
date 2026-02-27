@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -215,7 +215,7 @@ export function GroupInsightItemDiffTable({
                         <Flex align="start" gap="xs">
                           <Text monospace>{groupDiffItem.path}</Text>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             size="zero"
                             text={groupDiffItem.path}
                             style={{flexShrink: 0}}
@@ -265,7 +265,7 @@ export function GroupInsightItemDiffTable({
           <Text size="sm" variant="muted">
             {t('Page %s of %s', safeCurrentPage + 1, totalPages)}
           </Text>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -66,6 +68,8 @@ class TestGetEventSeverity(TestCase):
             "message": "NopeError: Nopey McNopeface",
             "has_stacktrace": 0,
             "handled": True,
+            "org_id": self.project.organization_id,
+            "project_id": self.project.id,
         }
 
         mock_urlopen.assert_called_with(
@@ -90,7 +94,7 @@ class TestGetEventSeverity(TestCase):
                 body=orjson.dumps(payload),
                 headers={
                     "content-type": "application/json;charset=utf-8",
-                    "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
+                    "Authorization": f"Rpcsignature rpc0:{hmac.new(b'some-secret', orjson.dumps(payload), hashlib.sha256).hexdigest()}",
                 },
                 timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
@@ -118,6 +122,8 @@ class TestGetEventSeverity(TestCase):
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
                 "handled": None,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
             }
 
             mock_urlopen.assert_called_with(

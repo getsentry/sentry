@@ -5,13 +5,17 @@ from uuid import uuid4
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -286,7 +290,7 @@ class OrganizationEventsTraceEndpointTest(
         {
             "performance.traces.pagination.max-iterations": 30,
             "performance.traces.pagination.max-timeout": 15,
-            "performance.traces.pagination.query-limit": 5,
+            "performance.traces.pagination.query-limit": 1,
         }
     )
     def test_pagination(self) -> None:
@@ -552,9 +556,9 @@ class OrganizationEventsTraceEndpointTest(
             expected = self._trace_item_to_api_span(expected_item)
             actual_without_children = {k: v for k, v in actual.items() if k != "children"}
             expected_without_children = {k: v for k, v in expected.items() if k != "children"}
-            assert (
-                actual_without_children == expected_without_children
-            ), f"Span {i} differs (excluding children)"
+            assert actual_without_children == expected_without_children, (
+                f"Span {i} differs (excluding children)"
+            )
 
         if expected_children_ids:
             final_span = max(
@@ -562,15 +566,15 @@ class OrganizationEventsTraceEndpointTest(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", -1),
             )
             actual_children = final_span.get("children", [])
-            assert len(actual_children) == len(
-                expected_children_ids
-            ), f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            assert len(actual_children) == len(expected_children_ids), (
+                f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            )
 
             actual_child_txns = {child.get("transaction") for child in actual_children}
             for expected_id in expected_children_ids:
-                assert (
-                    expected_id in actual_child_txns
-                ), f"Expected '{expected_id}' transaction in children"
+                assert expected_id in actual_child_txns, (
+                    f"Expected '{expected_id}' transaction in children"
+                )
 
     def _trace_item_to_api_span(self, trace_item: TraceItem, children=None) -> dict:
         """Convert a TraceItem to the exact format returned by the API."""
@@ -765,3 +769,57 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
 
         self.assert_expected_results(data, [uptime_result], expected_children_ids=["root"])
+
+    def test_uptime_occurrences(self):
+        """Test that uptime occurrences are included in the response"""
+        self.load_trace()
+
+        check_id = "check-occur-1"
+        uptime_result = self._create_uptime_result_with_original_url(
+            organization=self.organization,
+            project=self.project,
+            trace_id=self.trace_id,
+            guid=check_id,
+            check_id=check_id,
+            subscription_id="sub-occur-1",
+            check_status="failure",
+            http_status_code=500,
+            request_sequence=0,
+            request_url="https://test.com",
+            scheduled_check_time=self.day_ago,
+            check_duration_us=200000,
+        )
+        self.store_uptime_results([uptime_result])
+
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            resource_id=None,
+            project_id=self.project.id,
+            event_id=self.root_event.event_id,
+            fingerprint=[uuid4().hex],
+            type=UptimeDomainCheckFailure,
+            issue_title="Downtime detected for https://test.com",
+            subtitle="Your monitored domain is down",
+            evidence_display=[],
+            evidence_data={"check_id": check_id},
+            culprit="",
+            detection_time=timezone.now(),
+            level="error",
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), self.root_event)
+        assert group_info is not None
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago, "include_uptime": "1"})
+
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        uptime_checks = self._find_uptime_checks(data)
+        assert len(uptime_checks) == 1
+
+        occurrences = uptime_checks[0]["occurrences"]
+        assert len(occurrences) == 1
+        occurrence = occurrences[0]
+        assert occurrence["transaction"] == "uptime.check"
+        assert occurrence["level"] == "error"

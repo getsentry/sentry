@@ -5,14 +5,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
-import {Input} from 'sentry/components/core/input';
-import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDelete, IconLink} from 'sentry/icons';
@@ -35,8 +34,6 @@ import {
   FieldValueType,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -47,7 +44,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -177,19 +174,18 @@ export function getColumnOptions(
   )?.value;
 
   if (
-    fieldData &&
-    fieldData.kind === FieldValueKind.FUNCTION &&
+    fieldData?.kind === FieldValueKind.FUNCTION &&
     fieldData.meta.parameters.length > 0 &&
     fieldData.meta.parameters[0]
   ) {
     const parameter = fieldData.meta.parameters[0];
-    if (parameter && parameter.kind === 'dropdown') {
+    if (parameter?.kind === 'dropdown') {
       // Parameters for dropdowns are already formatted in the correct manner
       // for select fields
       return parameter.options;
     }
 
-    if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
+    if (parameter?.kind === 'column' && parameter.columnTypes) {
       // Release Health widgets are the only widgets that actually have different
       // columns than the aggregates accept. e.g. project will never be a valid
       // parameter for any of the aggregates.
@@ -276,25 +272,22 @@ function Visualize({error, setError}: VisualizeProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
-  const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
-    fields: {selectedAggregate: decodeScalar},
-  });
-  const [selectedAggregateSet, setSelectedAggregateSet] = useState(
-    defined(queryParamSelectedAggregate)
-  );
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const disableTransactionWidget = useDisableTransactionWidget();
 
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricSearchFields;
   }
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
+  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -318,7 +311,8 @@ function Visualize({error, setError}: VisualizeProps) {
           column =>
             column !== '' &&
             !stringSpanTags.hasOwnProperty(column) &&
-            !numericSpanTags.hasOwnProperty(column)
+            !numericSpanTags.hasOwnProperty(column) &&
+            !booleanSpanTags.hasOwnProperty(column)
         )
         .map(column => {
           return {
@@ -327,6 +321,13 @@ function Visualize({error, setError}: VisualizeProps) {
             trailingItems: () => <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
+      ...Object.values(booleanSpanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
+        };
+      }),
       ...Object.values(stringSpanTags).map(tag => {
         return {
           label: tag.name,
@@ -344,15 +345,64 @@ function Visualize({error, setError}: VisualizeProps) {
     ];
     options.sort(_sortFn);
     return options;
-  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags]);
+  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags, booleanSpanTags]);
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
-  const fields = isChartWidget ? state.yAxis : state.fields;
+  // Determines which state field stores the visualization fields:
+
+  // - Line, Area, Bar (Time Series): use state.yAxis for aggregates
+  // - Table, Big Number: use state.fields for all columns (fields + aggregates)
+  // - Bar (Categorical): uses state.fields with one X-axis (FIELD kind) and one or more
+  //   aggregates (FUNCTION/EQUATION kind). Like Big Number, supports radio selection.
+  const usesYAxisState = isTimeSeriesWidget && !isCategoricalBarWidget;
+  const allFields = usesYAxisState ? state.yAxis : state.fields;
+  // For categorical bars, only show aggregate fields (FUNCTION kind) in the
+  // Visualize section. There should be exactly one in the state. The X-axis
+  // field (FIELD kind) is managed separately in the X-Axis selector
+  const aggregateFields = isCategoricalBarWidget
+    ? allFields?.filter(
+        f => f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+      )
+    : null;
+
+  const fields = isCategoricalBarWidget
+    ? aggregateFields
+    : usesYAxisState
+      ? state.yAxis
+      : state.fields;
+
+  const canHaveAlias = isTableWidget;
+
+  // Determines whether "Add Series/Column/Equation" buttons are shown:
+  // - Line, Area, Bar (Time Series): Can add multiple Y-axis series
+  // - Table: Can add multiple columns
+  // - Big Number / Bar (Categorical): Can add fields only if equations are enabled for the dataset
+  const canAddFields =
+    isTimeSeriesWidget ||
+    isTableWidget ||
+    ((isBigNumberWidget || isCategoricalBarWidget) && datasetConfig.enableEquations);
   const linkedDashboards = state.linkedDashboards || [];
-  const updateAction = isChartWidget
+
+  // Determines which action to use for updating visualization fields:
+  // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
+  // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging with X-axis)
+  // - Other widgets (Table, Big Number): SET_FIELDS for all columns
+  const updateAction = usesYAxisState
     ? BuilderStateAction.SET_Y_AXIS
-    : BuilderStateAction.SET_FIELDS;
+    : isCategoricalBarWidget
+      ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
+      : BuilderStateAction.SET_FIELDS;
+
+  const tooltipText = isTimeSeriesWidget
+    ? t(
+        'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+      )
+    : isCategoricalBarWidget
+      ? t(
+          'Primary metric that appears in your chart. You can add equations and select which one to display.'
+        )
+      : t('Columns to display in your table. You can also add equations.');
 
   const fieldOptions = useMemo(() => {
     // Explicitly merge numeric and string tags to ensure filtering
@@ -364,7 +414,7 @@ function Visualize({error, setError}: VisualizeProps) {
     ) {
       return datasetConfig.getTableFieldOptions(
         organization,
-        {...numericSpanTags, ...stringSpanTags},
+        {...booleanSpanTags, ...numericSpanTags, ...stringSpanTags},
         customMeasurements
       );
     }
@@ -376,14 +426,15 @@ function Visualize({error, setError}: VisualizeProps) {
       state.displayType
     );
   }, [
-    state.dataset,
-    datasetConfig,
-    organization,
-    tags,
+    booleanSpanTags,
     customMeasurements,
+    datasetConfig,
     numericSpanTags,
-    stringSpanTags,
+    organization,
+    state.dataset,
     state.displayType,
+    stringSpanTags,
+    tags,
   ]);
 
   const aggregates = useMemo(
@@ -405,7 +456,10 @@ function Visualize({error, setError}: VisualizeProps) {
   )?.aggregates;
 
   const canDrag =
-    fields?.length && fields.length > 1 && state.displayType !== DisplayType.BIG_NUMBER;
+    fields?.length &&
+    fields.length > 1 &&
+    state.displayType !== DisplayType.BIG_NUMBER &&
+    state.displayType !== DisplayType.CATEGORICAL_BAR;
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
@@ -416,7 +470,8 @@ function Visualize({error, setError}: VisualizeProps) {
 
   // Default field to add to the widget query when adding a new field.
   const defaultField =
-    (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
+    (isTimeSeriesWidget && datasetConfig.defaultSeriesField) ||
+    datasetConfig.defaultField;
 
   const baseAggregateOptions = useMemo(
     () =>
@@ -451,7 +506,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // imposed by the aggregate filtering its possible columns
   const tableFieldOptions = useMemo(() => {
     if (
-      isChartWidget ||
+      isTimeSeriesWidget ||
       isBigNumberWidget ||
       state.dataset === WidgetType.ISSUE ||
       state.dataset === WidgetType.SPANS ||
@@ -478,10 +533,11 @@ function Visualize({error, setError}: VisualizeProps) {
           ),
       }))
       .sort(_sortFn);
-  }, [isChartWidget, isBigNumberWidget, state.dataset, fieldOptions]);
+  }, [isTimeSeriesWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
   const computedAggregateOptions = useMemo(() => {
-    if (isChartWidget || isBigNumberWidget) {
+    // Categorical bars only allow aggregates, no field columns
+    if (isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget) {
       return {type: 'chart' as const, options: baseAggregateOptions};
     }
 
@@ -512,8 +568,9 @@ function Visualize({error, setError}: VisualizeProps) {
     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
     return {type: 'table' as const, options: [...baseOptions, ...tableFieldOptions]};
   }, [
-    isChartWidget,
+    isTimeSeriesWidget,
     isBigNumberWidget,
+    isCategoricalBarWidget,
     state.dataset,
     baseAggregateOptions,
     traceItemColumnOptions,
@@ -524,17 +581,11 @@ function Visualize({error, setError}: VisualizeProps) {
   return (
     <Fragment>
       <SectionHeader
-        title={isChartWidget ? t('Visualize') : t('Columns')}
-        tooltipText={
-          isChartWidget
-            ? t(
-                'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
-              )
-            : t('Columns to display in your table. You can also add equations.')
-        }
+        title={isTableWidget ? t('Columns') : t('Visualize')}
+        tooltipText={tooltipText}
       />
       <StyledFieldGroup
-        error={isChartWidget ? aggregateErrors : fieldErrors}
+        error={isTimeSeriesWidget ? aggregateErrors : fieldErrors}
         inline={false}
         flexibleControlStateSize
       >
@@ -587,7 +638,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 // For charts, we show aggregate parameter options for the y-axis as primary options.
                 // For tables, we show all string tags and fields as primary options, as well
                 // as aggregates that don't take parameters.
-                const columnFilterMethod = isChartWidget
+                const columnFilterMethod = isTimeSeriesWidget
                   ? datasetConfig.filterYAxisAggregateParams?.(
                       field,
                       state.displayType ?? DisplayType.LINE
@@ -664,7 +715,8 @@ function Visualize({error, setError}: VisualizeProps) {
                     {activeId !== null && index === Number(activeId) ? null : (
                       <FieldRow>
                         {fields.length > 1 &&
-                          state.displayType === DisplayType.BIG_NUMBER && (
+                          (state.displayType === DisplayType.BIG_NUMBER ||
+                            state.displayType === DisplayType.CATEGORICAL_BAR) && (
                             <RadioLineItem
                               index={index}
                               role="radio"
@@ -679,7 +731,6 @@ function Visualize({error, setError}: VisualizeProps) {
                                   });
                                 }}
                                 onClick={() => {
-                                  setSelectedAggregateSet(true);
                                   trackAnalytics(
                                     'dashboards_views.widget_builder.change',
                                     {
@@ -839,7 +890,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                         return;
                                       }
                                       newFields[index]!.function[1] = value;
-                                      dispatch({type: updateAction, payload: newFields});
+                                      dispatch({
+                                        type: updateAction,
+                                        payload: newFields,
+                                      });
                                       setError?.({...error, queries: []});
                                     }}
                                   />
@@ -847,8 +901,14 @@ function Visualize({error, setError}: VisualizeProps) {
                             </Fragment>
                           )}
                         </FieldBar>
-                        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-                          {!isChartWidget && !isBigNumberWidget && (
+                        <FieldExtras
+                          compact={
+                            isTimeSeriesWidget ||
+                            isBigNumberWidget ||
+                            isCategoricalBarWidget
+                          }
+                        >
+                          {canHaveAlias && (
                             <LegendAliasInput
                               name="alias"
                               placeholder={t('Add Alias')}
@@ -858,7 +918,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
                                 dispatch(
-                                  {type: updateAction, payload: newFields},
+                                  {
+                                    type: updateAction,
+                                    payload: newFields,
+                                  },
                                   {updateUrl: false}
                                 );
                               }}
@@ -866,7 +929,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
                                 dispatch(
-                                  {type: updateAction, payload: newFields},
+                                  {
+                                    type: updateAction,
+                                    payload: newFields,
+                                  },
                                   {updateUrl: true}
                                 );
                                 trackAnalytics('dashboards_views.widget_builder.change', {
@@ -885,7 +951,7 @@ function Visualize({error, setError}: VisualizeProps) {
                             isTableWidget &&
                             fields[index]?.kind === FieldValueKind.FIELD && (
                               <Button
-                                borderless
+                                priority="transparent"
                                 icon={<IconLink />}
                                 aria-label={t('Link field')}
                                 size="zero"
@@ -924,10 +990,9 @@ function Visualize({error, setError}: VisualizeProps) {
                                 }}
                               />
                             )}
-                          {(state.displayType !== DisplayType.BIG_NUMBER ||
-                            datasetConfig.enableEquations) && (
+                          {(!isBigNumberWidget || datasetConfig.enableEquations) && (
                             <Button
-                              borderless
+                              priority="transparent"
                               icon={<IconDelete />}
                               size="zero"
                               disabled={
@@ -935,25 +1000,9 @@ function Visualize({error, setError}: VisualizeProps) {
                               }
                               onClick={() => {
                                 dispatch({
-                                  type: updateAction,
-                                  payload:
-                                    fields?.filter((_field, i) => i !== index) ?? [],
+                                  type: BuilderStateAction.DELETE_AGGREGATE,
+                                  payload: index,
                                 });
-
-                                if (
-                                  state.displayType === DisplayType.BIG_NUMBER &&
-                                  selectedAggregateSet
-                                ) {
-                                  // Unset the selected aggregate if it's the last one
-                                  // so the state will automatically choose the last aggregate
-                                  // as new fields are added
-                                  if (state.selectedAggregate === fields.length - 1) {
-                                    dispatch({
-                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                      payload: undefined,
-                                    });
-                                  }
-                                }
 
                                 trackAnalytics('dashboards_views.widget_builder.change', {
                                   builder_version: WidgetBuilderVersion.SLIDEOUT,
@@ -986,7 +1035,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 aggregates={aggregates}
                 fields={fields ?? []}
                 isBigNumberWidget={isBigNumberWidget}
-                isChartWidget={isChartWidget}
+                isTimeSeriesWidget={isTimeSeriesWidget}
                 stringFields={stringFields ?? []}
               />
             )}
@@ -994,17 +1043,15 @@ function Visualize({error, setError}: VisualizeProps) {
         </DndContext>
       </StyledFieldGroup>
 
-      {(isChartWidget ||
-        isTableWidget ||
-        (isBigNumberWidget && datasetConfig.enableEquations)) && (
+      {canAddFields && (
         <AddButtons>
           <AddButton
             priority="link"
             disabled={disableTransactionWidget}
             aria-label={
-              isChartWidget
+              isTimeSeriesWidget
                 ? t('Add Series')
-                : isBigNumberWidget
+                : isBigNumberWidget || isCategoricalBarWidget
                   ? t('Add Field')
                   : t('Add Column')
             }
@@ -1025,9 +1072,9 @@ function Visualize({error, setError}: VisualizeProps) {
               });
             }}
           >
-            {isChartWidget
+            {isTimeSeriesWidget
               ? t('+ Add Series')
-              : isBigNumberWidget
+              : isBigNumberWidget || isCategoricalBarWidget
                 ? t('+ Add Field')
                 : t('+ Add Column')}
           </AddButton>
@@ -1147,11 +1194,11 @@ export function FieldRow(props: FlexProps<'div'>) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 
-export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
+export const FieldExtras = styled('div')<{compact: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: ${p => (p.isChartWidget ? '0' : '1')};
+  flex: ${p => (p.compact ? '0' : '1')};
   align-items: center;
 `;
 

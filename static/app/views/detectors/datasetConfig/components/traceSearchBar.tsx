@@ -5,6 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
 import type {DetectorSearchBarProps} from 'sentry/views/detectors/datasetConfig/base';
 import {
+  useTraceItemBooleanAttributes,
   useTraceItemNumberAttributes,
   useTraceItemStringAttributes,
 } from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
@@ -22,6 +23,10 @@ export function TraceSearchBar({
   const isLogs = dataset === DiscoverDatasets.OURLOGS;
   const traceDataset = isLogs ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
   const {attributes: numberAttributes} = useTraceItemNumberAttributes({
+    traceItemType: traceDataset,
+    projectIds,
+  });
+  const {attributes: booleanAttributes} = useTraceItemBooleanAttributes({
     traceItemType: traceDataset,
     projectIds,
   });
@@ -49,14 +54,25 @@ export function TraceSearchBar({
     return secondaryAliases;
   }, [stringAttributes]);
 
+  const booleanSecondaryAliases = useMemo(() => {
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(booleanAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.BOOLEAN}])
+    );
+    return secondaryAliases;
+  }, [booleanAttributes]);
+
   return (
     <TraceItemSearchQueryBuilder
       itemType={traceDataset}
       initialQuery={initialQuery}
       onSearch={onSearch}
+      booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringAttributes={stringAttributes}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       supportedAggregates={isLogs ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="detectors"

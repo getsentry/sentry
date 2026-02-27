@@ -1,20 +1,16 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Access from 'sentry/components/acl/access';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {
-  CompactSelect,
-  type SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -76,8 +72,7 @@ function RuleListRow({
       : rule.projects[0]!;
 
   const ruleType =
-    rule &&
-    rule.type === CombinedAlertType.METRIC &&
+    rule?.type === CombinedAlertType.METRIC &&
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
@@ -337,7 +332,7 @@ function RuleListRow({
                 disabled={!hasEditAccess}
                 options={dropdownTeams}
                 value={assignee}
-                searchable
+                search={{placeholder: t('Filter teams')}}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button
                     {...triggerProps}
@@ -345,19 +340,18 @@ function RuleListRow({
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
                     }
                     size="zero"
-                    borderless
+                    priority="transparent"
                   >
                     {avatarElement}
                   </OverlayTrigger.Button>
                 )}
-                searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}
               />
             )}
           </Flex>
         )}
       </Flex>
-      <ActionsColumn>
+      <Flex justify="center" align="center" padding="md">
         <Access access={['alerts:write']}>
           {({hasAccess}) => {
             const disabledKeys: string[] = [];
@@ -382,7 +376,7 @@ function RuleListRow({
             );
           }}
         </Access>
-      </ActionsColumn>
+      </Flex>
     </ErrorBoundary>
   );
 }
@@ -426,13 +420,6 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const ActionsColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
 `;
 
 const IconContainer = styled('div')`

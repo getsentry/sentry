@@ -2,9 +2,9 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {t} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -213,15 +213,22 @@ export function updateDashboard(
 
 export function deleteDashboard(
   api: Client,
-  orgId: string,
-  dashboardId: string
+  dashboardId: string,
+  queryClient: QueryClient,
+  organization: Organization
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
     {
       method: 'DELETE',
     }
   );
+
+  promise.then(() => {
+    queryClient.invalidateQueries({
+      queryKey: getQueryKey(organization),
+    });
+  });
 
   promise.catch(response => {
     const errorResponse = response?.responseJSON ?? null;

@@ -36,12 +36,12 @@ class UptimeSubscriptionSerializerResponse(TypedDict):
     intervalSeconds: int
     timeoutMs: int
     traceSampling: bool
+    responseCaptureEnabled: bool
     assertion: Any | None
 
 
 @register(UptimeSubscription)
 class UptimeSubscriptionSerializer(Serializer):
-
     @override
     def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
         return {
@@ -52,6 +52,7 @@ class UptimeSubscriptionSerializer(Serializer):
             "intervalSeconds": obj.interval_seconds,
             "timeoutMs": obj.timeout_ms,
             "traceSampling": obj.trace_sampling,
+            "responseCaptureEnabled": obj.response_capture_enabled,
             "assertion": obj.assertion,
         }
 
@@ -161,6 +162,7 @@ class EapCheckEntrySerializerResponse(TypedDict):
     httpStatusCode: int | None
     durationMs: int
     traceId: str
+    traceItemId: str
     incidentStatus: int
     environment: str
     region: str
@@ -169,7 +171,6 @@ class EapCheckEntrySerializerResponse(TypedDict):
 
 @register(EapCheckEntry)
 class EapCheckEntrySerializer(Serializer):
-
     def serialize(
         self, obj: EapCheckEntry, attrs, user, **kwargs
     ) -> EapCheckEntrySerializerResponse:
@@ -197,6 +198,7 @@ class EapCheckEntrySerializer(Serializer):
             "environment": obj.environment,
             "region": obj.region,
             "regionName": region_name,
+            "traceItemId": obj.trace_item_id,
         }
 
 

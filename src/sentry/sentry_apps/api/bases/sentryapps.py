@@ -94,7 +94,6 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
-
     def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
         """
         Surfaces errors from the region-side Sentry App RPC to the client.

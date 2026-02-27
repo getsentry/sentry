@@ -98,9 +98,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 sentry_app__slug=slug, organization_id=organization.id
             )
         except SentryAppInstallation.DoesNotExist:
-            assert isinstance(
-                request.user, (User, RpcUser)
-            ), "user must be authenticated to create a SentryAppInstallation"
+            assert isinstance(request.user, (User, RpcUser)), (
+                "user must be authenticated to create a SentryAppInstallation"
+            )
             install = SentryAppInstallationCreator(
                 organization_id=organization.id, slug=slug, notify=True
             ).run(user=request.user, request=request)

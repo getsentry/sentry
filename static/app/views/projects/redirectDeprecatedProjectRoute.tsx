@@ -1,8 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
@@ -142,7 +143,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
             }
 
             if (!hasProjectId || !organizationId) {
-              if (error && error.status === 404) {
+              if (error?.status === 404) {
                 return (
                   <Alert.Container>
                     <Alert variant="danger" showIcon={false}>

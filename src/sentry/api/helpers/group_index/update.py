@@ -46,6 +46,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
@@ -188,6 +189,8 @@ def update_groups(
     if len({p.organization_id for p in projects}) > 1:
         return Response({"detail": "All groups must belong to same organization."}, status=400)
 
+    organization = projects[0].organization if projects else None
+
     if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
@@ -258,6 +261,7 @@ def update_groups(
         data,
         res_type,
         request.META.get("HTTP_REFERER", ""),
+        organization,
     )
 
 
@@ -343,19 +347,25 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    groups = []
+    groups: list[Group] = []
     # Convert all group IDs to integers and filter out any non-integer values
     group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
     if group_ids_int:
         return list(
             Group.objects.filter(
                 project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            )
+            ).select_related("project")
         )
     else:
+        project_ids = {p.id for p in projects}
         for group_id in group_ids:
             if isinstance(group_id, str):
-                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+                try:
+                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                except Group.DoesNotExist:
+                    continue
+                if group.project_id in project_ids:
+                    groups.append(group)
 
     return groups
 
@@ -772,6 +782,7 @@ def prepare_response(
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
+    organization: Organization | None = None,
 ) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
@@ -788,9 +799,10 @@ def prepare_response(
         pass
 
     if "assignedTo" in result:
-        # Validate reassignment permissions for bulk updates
         try:
-            validate_bulk_reassignment(request, group_list, result["assignedTo"], acting_user)
+            validate_bulk_reassignment(
+                request, group_list, result["assignedTo"], acting_user, organization
+            )
         except serializers.ValidationError as e:
             return Response(e.detail, status=400)
 
@@ -880,13 +892,23 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    return (
+    order_by_build_code = features.has(
+        "organizations:semver-ordering-with-build-code", project.organization
+    )
+
+    semver_cols = (
+        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+    )
+
+    qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
-        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
+    if order_by_build_code:
+        qs = qs.annotate_build_code_column()
+    return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 
 def handle_is_subscribed(
@@ -1047,17 +1069,22 @@ def validate_bulk_reassignment(
     group_list: Sequence[Group],
     assigned_actor: Actor | None,
     user: RpcUser | User | None = None,
+    organization: Organization | None = None,
 ) -> None:
     """
     Validate that the user has permission to assign a team to all groups.
 
     When assigning to a team, a user is permitted if any of the following are true:
+    - Open Team Membership is enabled for the organization, OR
     - They have team:admin scope, OR
     - They are a member of the target team, OR
     - ALL groups are currently assigned to teams the user is a member of
       (allows reassignment from own team to any team)
     """
     if assigned_actor is None or not assigned_actor.is_team:
+        return
+
+    if organization and organization.flags.allow_joinleave:
         return
 
     access = getattr(request, "access", None)
@@ -1067,7 +1094,7 @@ def validate_bulk_reassignment(
     user = user or getattr(request, "user", None)
     if not user or not getattr(user, "is_authenticated", False):
         raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
+            {"assignedTo": "You can only assign teams you are a member of"}
         )
 
     user_is_target_team_member = OrganizationMemberTeam.objects.filter(
@@ -1093,7 +1120,7 @@ def validate_bulk_reassignment(
         # Some groups are either unassigned or assigned to users (not teams)
         # User cannot reassign these to a team they're not a member of
         raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
+            {"assignedTo": "You can only assign teams you are a member of"}
         )
 
     current_team_ids = {
@@ -1111,7 +1138,7 @@ def validate_bulk_reassignment(
     # If any group is assigned to a team the user is not a member of, deny
     if current_team_ids - user_team_memberships:
         raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
+            {"assignedTo": "You can only assign teams you are a member of"}
         )
 
 

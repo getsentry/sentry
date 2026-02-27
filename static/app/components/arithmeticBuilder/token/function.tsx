@@ -7,6 +7,8 @@ import {Item, Section} from '@react-stately/collections';
 import {useListState, type ListState} from '@react-stately/list';
 import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
 
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
@@ -18,8 +20,6 @@ import type {
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
@@ -126,8 +126,7 @@ function ArgumentsGrid({
 }
 
 interface GridListProps
-  extends AriaGridListOptions<TokenAttribute>,
-    ArithmeticTokenFunctionProps {
+  extends AriaGridListOptions<TokenAttribute>, ArithmeticTokenFunctionProps {
   arguments: Argument[];
   children: CollectionChildren<TokenAttribute>;
   onArgumentsChange: (index: number, argument: string) => void;
@@ -289,7 +288,7 @@ function InternalInput({
   );
 
   const attributesFilter = useMemo(() => {
-    if (parameterDefinition && parameterDefinition.kind === 'column') {
+    if (parameterDefinition?.kind === 'column') {
       const columnTypes = parameterDefinition.columnTypes;
       return typeof columnTypes === 'function'
         ? columnTypes
@@ -398,11 +397,7 @@ function InternalInput({
   const onInputCommit = useCallback(() => {
     let value = inputValue.trim() || argument.label;
 
-    if (
-      defined(getSuggestedKey) &&
-      parameterDefinition &&
-      parameterDefinition.kind === 'column'
-    ) {
+    if (defined(getSuggestedKey) && parameterDefinition?.kind === 'column') {
       value = getSuggestedKey(value) ?? value;
     }
 

@@ -178,7 +178,6 @@ def query(
     transform_alias_to_input_format: bool = False,
     sample: float | None = None,
     has_metrics: bool = False,
-    use_metrics_layer: bool = False,
     skip_tag_resolution: bool = False,
     extra_columns: list[Column] | None = None,
     on_demand_metrics_enabled: bool = False,
@@ -186,7 +185,6 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
     *,
     referrer: str,
 ) -> EventsResponse:
@@ -261,7 +259,7 @@ def query(
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
-    if debug:
+    if snuba_params.debug:
         result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
@@ -277,7 +275,6 @@ def timeseries_query(
     functions_acl: list[str] | None = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
@@ -823,7 +820,6 @@ def spans_histogram_query(
     limit_by: list[str] | None = None,
     extra_condition: list[Condition] | None = None,
     normalize_results: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
@@ -914,7 +910,6 @@ def histogram_query(
     histogram_rows: int | None = None,
     extra_conditions: list[Condition] | None = None,
     normalize_results: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,

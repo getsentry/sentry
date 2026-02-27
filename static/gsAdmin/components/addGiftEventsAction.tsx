@@ -13,6 +13,7 @@ import {
   getPlanCategoryName,
   isByteCategory,
   isContinuousProfiling,
+  isEmergeCategory,
 } from 'getsentry/utils/dataCategory';
 
 export function getFreeEventsKey(dataCategory: DataCategory) {
@@ -49,18 +50,13 @@ class AddGiftEventsAction extends Component<Props, State> {
   };
 
   coerceValue(value: string) {
-    const {billedCategoryInfo} = this.props;
-
     const intValue = parseInt(value, 10);
-    const maxValue =
-      (billedCategoryInfo?.maxAdminGift ?? 0) /
-      (billedCategoryInfo?.freeEventsMultiple ?? 1); // prevent ZeroDivisionError
 
     if (isNaN(intValue) || intValue < 0) {
       return undefined;
     }
 
-    return intValue > maxValue ? maxValue : intValue;
+    return intValue;
   }
 
   handleConfirm = (params: AdminConfirmParams) => {
@@ -105,6 +101,9 @@ class AddGiftEventsAction extends Component<Props, State> {
       if (isContinuousProfiling(dataCategory)) {
         return 'How many profile hours?';
       }
+      if (isEmergeCategory(dataCategory)) {
+        return `How many ${categoryName}?`;
+      }
 
       const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
       const addToMessage =
@@ -127,6 +126,12 @@ class AddGiftEventsAction extends Component<Props, State> {
       if (isByteCategory(dataCategory)) {
         postFix = ' GB';
       }
+      if (dataCategory === DataCategory.SIZE_ANALYSIS) {
+        postFix = total === '1' ? ' build' : ' builds';
+      }
+      if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
+        postFix = total === '1' ? ' install' : ' installs';
+      }
       return `Total: ${total}${postFix}`;
     }
 
@@ -142,7 +147,6 @@ class AddGiftEventsAction extends Component<Props, State> {
         name={dataCategory}
         inputMode="numeric"
         pattern="[0-9]*"
-        maxLength={dataCategory === DataCategory.REPLAYS ? 7 : 5}
         value={freeEvents && !isNaN(freeEvents) ? freeEvents.toString() : ''}
         onChange={this.handleChange}
       />

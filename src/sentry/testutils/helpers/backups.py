@@ -106,6 +106,7 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -474,6 +475,7 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
+        SeerOrganizationSettings.objects.create(organization=org)
 
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
@@ -952,6 +954,10 @@ class ExhaustiveFixtures(Fixtures):
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
+
+    def json_of_org_and_project(self) -> Any:
+        with open(get_fixture_path("backup", "org-and-project.json")) as backup_file:
+            return json.load(backup_file)
 
     @cached_property
     def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:

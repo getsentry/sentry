@@ -195,7 +195,6 @@ def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
-
     @retry(timeouts=False)
     def timeout_no_retry_task():
         raise ProcessingDeadlineExceeded()

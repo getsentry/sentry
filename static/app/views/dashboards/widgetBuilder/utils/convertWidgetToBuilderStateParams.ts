@@ -1,11 +1,13 @@
-import {explodeField, parseFunction} from 'sentry/utils/discover/fields';
+import {explodeField} from 'sentry/utils/discover/fields';
 import {
   DisplayType,
   WidgetType,
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {extractTraceMetricFromWidget} from 'sentry/views/dashboards/utils/extractTraceMetricFromWidget';
 import {
   serializeFields,
   serializeThresholds,
@@ -40,7 +42,7 @@ export function convertWidgetToBuilderStateParams(
   const firstWidgetQuery = widget.queries[0];
   let yAxis = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'aggregates') : [];
   let field: string[] = [];
-  if (isChartDisplayType(widget.displayType)) {
+  if (usesTimeSeriesData(widget.displayType)) {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   } else {
     // For TRACEMETRICS table/big_number widgets, use raw field strings directly
@@ -55,16 +57,9 @@ export function convertWidgetToBuilderStateParams(
     legendAlias = [];
   }
 
-  let traceMetric: TraceMetric | undefined = undefined;
+  let traceMetric: TraceMetric | null = null;
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    const traceMetricReferenceAggregate = firstWidgetQuery?.aggregates[0];
-    if (traceMetricReferenceAggregate) {
-      const func = parseFunction(traceMetricReferenceAggregate);
-      traceMetric = {
-        name: func?.arguments?.[1] ?? '',
-        type: func?.arguments?.[2] ?? '',
-      };
-    }
+    traceMetric = extractTraceMetricFromWidget(widget);
   }
 
   return {
@@ -81,5 +76,6 @@ export function convertWidgetToBuilderStateParams(
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
+    axisRange: getAxisRange(widget.axisRange),
   };
 }

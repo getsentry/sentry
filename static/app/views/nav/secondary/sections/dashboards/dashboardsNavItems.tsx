@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';

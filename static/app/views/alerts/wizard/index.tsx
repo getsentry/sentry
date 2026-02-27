@@ -1,9 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {ExternalLink} from 'sentry/components/core/link';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -35,7 +37,7 @@ import {
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
-import {AlertWizardPanelContent} from './panelContent';
+import {getAlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 const DEFAULT_ALERT_OPTION = 'issues';
@@ -156,7 +158,10 @@ export default function AlertWizard() {
     );
   }
 
-  const panelContent = AlertWizardPanelContent[alertOption];
+  const hasMetricIssues = organization.features.includes(
+    'workflow-engine-metric-issue-ui'
+  );
+  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
@@ -173,7 +178,7 @@ export default function AlertWizard() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
-          <WizardBody>
+          <Flex paddingTop="md">
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
                 ({categoryHeading, options}: any) => (
@@ -230,7 +235,7 @@ export default function AlertWizard() {
                 )}
               </WizardPanelBody>
             </WizardPanel>
-          </WizardBody>
+          </Flex>
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
@@ -245,11 +250,6 @@ const CategoryTitle = styled('h2')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)} !important;
-`;
-
-const WizardBody = styled('div')`
-  display: flex;
-  padding-top: ${space(1)};
 `;
 
 const WizardOptions = styled('div')`

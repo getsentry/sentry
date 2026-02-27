@@ -1,13 +1,13 @@
 import type {ComponentProps} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
 import {
   CompactSelect,
   type SelectOption,
   type SelectProps,
-} from 'sentry/components/core/compactSelect';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,7 +56,7 @@ export default function SubregionSelector({size}: Props) {
   return (
     <CompactSelect
       size={size}
-      searchable
+      search
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Geo region')}>
           {value.length === 0 ? t('All') : triggerProps.children}

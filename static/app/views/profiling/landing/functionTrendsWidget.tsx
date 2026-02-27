@@ -5,16 +5,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -32,7 +34,6 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
@@ -331,7 +332,7 @@ function FunctionTrendsEntry({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => setExpanded()}
         />
         {project && (

@@ -3,11 +3,12 @@ import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {InputProps} from 'sentry/components/core/input';
-import {Input} from 'sentry/components/core/input';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {InputProps} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
@@ -381,8 +382,7 @@ class _QueryField extends Component<Props> {
     let parameterDescriptions: ParameterDescription[] = [];
     // Generate options and values for each parameter.
     if (
-      field &&
-      field.kind === FieldValueKind.FUNCTION &&
+      field?.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
       fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
@@ -865,11 +865,11 @@ function appendFieldIfUnknown(
     return fieldOptions;
   }
 
-  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+  if (field?.kind === FieldValueKind.TAG && field.meta.unknown) {
     // Clone the options so we don't mutate other rows.
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+  } else if (field?.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[`measurement:${field.meta.name}`] = {
       label: field.meta.name,

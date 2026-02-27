@@ -459,7 +459,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_actions_sorting(self, mock_sentry_app_component_preparer: MagicMock) -> None:
-
         self.setup_sentry_apps()
         self.setup_integrations()
         self.setup_integrations_with_services()

@@ -1,16 +1,17 @@
 import {useCallback} from 'react';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   PreviewCheckStatus,
-  type Assertion,
   type PreviewCheckPayload,
   type PreviewCheckResponse,
+  type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface TestUptimeMonitorButtonProps {
@@ -19,7 +20,7 @@ interface TestUptimeMonitorButtonProps {
    * The caller is responsible for providing fallback values appropriate to their context.
    */
   getFormData: () => {
-    assertion: Assertion | null;
+    assertion: UptimeAssertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     method: string;
@@ -31,6 +32,12 @@ interface TestUptimeMonitorButtonProps {
    */
   label?: string;
   /**
+   * Called when the preview check returns a validation error (e.g. assertion
+   * compilation errors). Receives the parsed response JSON so callers can
+   * surface the errors on form fields.
+   */
+  onValidationError?: (responseJson: any) => void;
+  /**
    * Button size
    */
   size?: ButtonProps['size'];
@@ -39,6 +46,7 @@ interface TestUptimeMonitorButtonProps {
 export function TestUptimeMonitorButton({
   getFormData,
   label,
+  onValidationError,
   size,
 }: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
@@ -61,8 +69,12 @@ export function TestUptimeMonitorButton({
         addErrorMessage(t('Uptime check failed'));
       }
     },
-    onError: () => {
-      addErrorMessage(t('Uptime check failed'));
+    onError: (error: RequestError) => {
+      if (onValidationError && error.status === 400 && error.responseJSON) {
+        onValidationError(error.responseJSON);
+      } else {
+        addErrorMessage(t('Uptime check failed'));
+      }
     },
   });
 

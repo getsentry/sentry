@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
@@ -64,12 +64,14 @@ function BaseFooter({className}: Props) {
       <RightLinks>
         {appState === 'stale' && (
           <Button
-            borderless
+            priority="transparent"
             size="xs"
             onClick={() => window.location.reload()}
-            title={t(
-              "An improved version of Sentry's Frontend Application is now available. Click to update now."
-            )}
+            tooltipProps={{
+              title: t(
+                "An improved version of Sentry's Frontend Application is now available. Click to update now."
+              ),
+            }}
             aria-label={t('Reload frontend')}
           >
             <WaitingIndicator />

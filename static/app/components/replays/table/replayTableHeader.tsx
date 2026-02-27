@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
 import DeleteReplays from 'sentry/components/replays/table/deleteReplays';
 import {
   ReplaySelectColumn,
@@ -31,9 +32,17 @@ export default function ReplayTableHeader({
   stickyHeader,
 }: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
-    listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const {
+    countSelected,
+    isAllSelected,
+    isAnySelected,
+    queryKeyRef,
+    selectAll,
+    selectedIds,
+  } = listItemCheckboxState;
+  const queryOptions = queryKeyRef.current
+    ? parseQueryKey(queryKeyRef.current).options
+    : undefined;
   const queryString = queryOptions?.query?.query;
 
   const headerStyle: React.CSSProperties = stickyHeader

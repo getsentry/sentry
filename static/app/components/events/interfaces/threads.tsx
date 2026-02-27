@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
@@ -265,10 +265,9 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
-                      title={t('Previous Thread')}
-                      tooltipProps={{delay: 1000}}
+                      tooltipProps={{title: t('Previous Thread'), delay: 1000}}
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous Thread')}
                       size="xs"
@@ -277,8 +276,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                       }}
                     />
                     <Button
-                      title={t('Next Thread')}
-                      tooltipProps={{delay: 1000}}
+                      tooltipProps={{title: t('Next Thread'), delay: 1000}}
                       icon={<IconChevron direction="right" />}
                       aria-label={t('Next Thread')}
                       size="xs"

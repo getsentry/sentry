@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   IconCheckmark,
   IconFire,

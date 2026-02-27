@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Input} from '@sentry/scraps/input';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Input} from 'sentry/components/core/input';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -131,8 +132,7 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
                 validate={({form}: any) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    form?.rateLimit &&
-                    typeof form.rateLimit.count !== 'undefined' &&
+                    typeof form?.rateLimit?.count !== 'undefined' &&
                     typeof form.rateLimit.window !== 'undefined';
 
                   if (isValid) {

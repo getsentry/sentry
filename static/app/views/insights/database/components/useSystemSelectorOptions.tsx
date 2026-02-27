@@ -1,4 +1,5 @@
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -33,9 +34,7 @@ export function useSystemSelectorOptions() {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
-      const supportedSystemSet: Set<string> = new Set(
-        Object.values(SupportedDatabaseSystem)
-      );
+      const supportedSystemSet = new Set<string>(Object.values(SupportedDatabaseSystem));
 
       if (supportedSystemSet.has(system)) {
         options.push({value: system, label: textValue, textValue});

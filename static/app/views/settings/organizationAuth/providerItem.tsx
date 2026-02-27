@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';

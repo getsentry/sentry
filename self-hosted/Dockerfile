@@ -1,3 +1,18 @@
+FROM scratch AS odiff-amd64
+ADD --chmod=755 \
+    --checksum=sha256:2c17e6bcf92a58e6668f19f17f4a27fa4b1d70840994f31bd837b55bb6b297d7 \
+    https://github.com/dmtrKovalenko/odiff/releases/download/v4.3.2/odiff-linux-x64 \
+    /odiff
+
+FROM scratch AS odiff-arm64
+ADD --chmod=755 \
+    --checksum=sha256:d65f748c463a6aa78fa7bcdd31acd797eaed5160867e7769a3b291cfea42c9a0 \
+    https://github.com/dmtrKovalenko/odiff/releases/download/v4.3.2/odiff-linux-arm64 \
+    /odiff
+
+ARG TARGETARCH
+FROM odiff-${TARGETARCH} AS odiff
+
 FROM python:3.13.1-slim-bookworm
 
 LABEL maintainer="oss@sentry.io"
@@ -20,13 +35,15 @@ RUN : \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=odiff /odiff /usr/local/bin/odiff
+
 WORKDIR /usr/src/sentry
 
 ENV PATH="/.venv/bin:$PATH" UV_PROJECT_ENVIRONMENT=/.venv \
     PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
 
-RUN python3 -m pip install --index-url 'https://pypi.devinfra.sentry.io/simple' 'uv==0.8.2'
+RUN python3 -m pip install --index-url 'https://pypi.devinfra.sentry.io/simple' 'uv==0.9.28'
 
 # We don't want uv-managed python, we want to use python from the image.
 # We only want to use uv to manage dependencies.
@@ -35,8 +52,6 @@ RUN python3 -m venv /.venv
 ENV \
   # Sentry config params
   SENTRY_CONF=/etc/sentry \
-  # UWSGI dogstatsd plugin
-  UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
@@ -47,20 +62,11 @@ RUN set -x \
   && buildDeps=" \
   gcc \
   libpcre2-dev \
-  wget \
   zlib1g-dev \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && uv sync --frozen --quiet --no-install-project \
-  && mkdir /tmp/uwsgi-dogstatsd \
-  # pinned the same as in getsentry
-  && wget -O - https://github.com/DataDog/uwsgi-dogstatsd/archive/1a04f784491ab0270b4e94feb94686b65d8d2db1.tar.gz | \
-  tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
-  && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
-  && mkdir -p /var/lib/uwsgi \
-  && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
-  && rm -rf /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
   && apt-get purge -y --auto-remove $buildDeps \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \

@@ -9,7 +9,6 @@ from typing import Any, TypedDict
 import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
-from slack_sdk.models.blocks import ButtonElement
 
 from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
@@ -57,13 +56,14 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
@@ -112,9 +112,7 @@ SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
     NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),
     NotificationContextField.APPROX_START_TIME: lambda group, rules: datetime.fromtimestamp(
         get_approx_start_time(group=group)
-    ).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    ),  # format moment into YYYY-mm-dd h:m:s
+    ).strftime("%Y-%m-%d %H:%M:%S"),  # format moment into YYYY-mm-dd h:m:s
 }
 
 
@@ -508,6 +506,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self._is_compact = features.has(
             "organizations:slack-compact-alerts", self.group.organization
         )
+        self._has_autofix = SeerOperator.has_access(
+            organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
+        ) and SeerOperator.can_trigger_autofix(group=self.group)
 
     def get_title_block(
         self,
@@ -834,14 +835,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     )
                 )
 
-        if features.has("organizations:seer-slack-workflows", self.group.organization):
-            autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
-                data=SeerAutofixTrigger(
-                    group_id=self.group.id,
-                    project_id=self.group.project_id,
-                    organization_id=self.group.project.organization_id,
-                )
-            )
+        if self._has_autofix:
+            autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.
             actions.append(autofix_button.to_dict())

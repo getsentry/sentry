@@ -1,13 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Input} from '@sentry/scraps/input/input';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import Confirm from 'sentry/components/confirm';
 import type {
@@ -40,8 +37,7 @@ function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
   return a.every((override, idx) => {
     const other = b[idx];
     return (
-      other &&
-      override.branch_name === other.branch_name &&
+      override.branch_name === other?.branch_name &&
       override.tag_name === other.tag_name &&
       override.tag_value === other.tag_value
     );

@@ -4,12 +4,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import List from 'sentry/components/list';
@@ -259,9 +259,11 @@ function ActionButtons({
     <ButtonRow>
       <Button
         disabled
-        title={t(
-          'Only members with the role “Owner” or “Billing” can manage subscriptions'
-        )}
+        tooltipProps={{
+          title: t(
+            'Only members with the role "Owner" or "Billing" can manage subscriptions'
+          ),
+        }}
       >
         {t('Manage Subscription')}
       </Button>

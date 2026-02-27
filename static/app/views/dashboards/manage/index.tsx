@@ -4,18 +4,18 @@ import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Switch} from '@sentry/scraps/switch';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -577,7 +577,7 @@ function ManageDashboards() {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap="lg">
+                    <Grid flow="column" align="center" gap="lg">
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
@@ -605,9 +605,9 @@ function ManageDashboards() {
                             disabled={
                               hasReachedDashboardLimit || isLoadingDashboardsLimit
                             }
-                            title={limitMessage}
                             tooltipProps={{
                               isHoverable: true,
+                              title: limitMessage,
                             }}
                           >
                             {t('Create Dashboard')}
@@ -630,7 +630,7 @@ function ManageDashboards() {
                           {t('Import Dashboard from JSON')}
                         </Button>
                       </Feature>
-                    </ButtonBar>
+                    </Grid>
                   </Layout.HeaderActions>
                 </Layout.Header>
                 <Layout.Body>

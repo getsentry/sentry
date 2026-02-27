@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import debounce from 'lodash/debounce';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';

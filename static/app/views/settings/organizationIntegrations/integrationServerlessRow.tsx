@@ -1,15 +1,15 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {

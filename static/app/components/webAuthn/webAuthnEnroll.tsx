@@ -1,7 +1,8 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import FormField from 'sentry/components/forms/formField';
 import type FormModel from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';

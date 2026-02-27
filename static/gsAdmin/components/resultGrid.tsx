@@ -2,14 +2,14 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -619,7 +619,4 @@ const ErrorAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
 `;
 
-export default withApi(
-  // TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
-  withSentryRouter(ResultGrid)
-);
+export default withApi(withSentryRouter(ResultGrid));

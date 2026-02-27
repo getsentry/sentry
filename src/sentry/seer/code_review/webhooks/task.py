@@ -5,9 +5,9 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
 from urllib3.exceptions import HTTPError
 
-from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -24,7 +24,11 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
+from ..utils import (
+    convert_enum_keys_to_strings,
+    get_seer_endpoint_for_event,
+    make_seer_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,7 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    tags: Mapping[str, object],
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -62,11 +67,36 @@ def schedule_task(
         )
         return
 
-    # Convert enum to string for Celery serialization
+    # Validate payload before scheduling to catch schema mismatches early
+    from pydantic import ValidationError
+
+    try:
+        request_type = transformed_event.get("request_type")
+        validated_payload: (
+            SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
+        )
+        if request_type == "pr-closed":
+            validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(transformed_event)
+        else:
+            validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(transformed_event)
+        # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
+        # but JSON requires string keys, so we need to convert them back)
+        payload = convert_enum_keys_to_strings(validated_payload.dict())
+        # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
+        # Pydantic v2 will automatically convert enum keys to strings.
+        # payload = validated_payload.model_dump(mode="json")
+    except ValidationError:
+        logger.warning("%s.validation_failed_before_scheduling", PREFIX)
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.INVALID_PAYLOAD
+        )
+        return
+
     process_github_webhook_event.delay(
         github_event=github_event.value,
-        event_payload=transformed_event,
+        event_payload=payload,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        tags=tags,
     )
     record_webhook_enqueued(github_event, github_event_action)
 
@@ -82,6 +112,7 @@ def process_github_webhook_event(
     enqueued_at_str: str,
     github_event: str,
     event_payload: Mapping[str, Any],
+    tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -90,37 +121,17 @@ def process_github_webhook_event(
     Args:
         enqueued_at_str: The timestamp when the task was enqueued
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
-        event_payload: The payload of the webhook event
+        event_payload: The payload of the webhook event (already validated before scheduling)
+        tags: Sentry SDK tags to set on this task's scope for error correlation
         **kwargs: Parameters to pass to webhook handler functions
     """
     status = "success"
     should_record_latency = True
     try:
+        if tags:
+            sentry_sdk.set_tags(tags)
         path = get_seer_endpoint_for_event(github_event).value
-
-        # Validate payload with Pydantic if enabled (except for CHECK_RUN events which use minimal payload)
-        should_validate = options.get("seer.code_review.validate_webhook_payload", False)
-        if should_validate and github_event != GithubWebhookType.CHECK_RUN:
-            # Parse with appropriate model based on request type to enforce
-            # organization_id and integration_id requirements for PR closed
-            request_type = event_payload.get("request_type")
-            validated_payload: (
-                SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
-            )
-            if request_type == "pr-closed":
-                validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(event_payload)
-            else:
-                validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(event_payload)
-            # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
-            # but JSON requires string keys, so we need to convert them back)
-            payload = convert_enum_keys_to_strings(validated_payload.dict())
-            # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
-            # Pydantic v2 will automatically convert enum keys to strings.
-            # payload = validated_payload.model_dump(mode="json")
-        else:
-            payload = event_payload
-
-        make_seer_request(path=path, payload=payload)
+        make_seer_request(path=path, payload=event_payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
@@ -137,22 +148,22 @@ def process_github_webhook_event(
 
 
 def record_latency(status: str, enqueued_at_str: str) -> None:
-    latency_ms = calculate_latency(enqueued_at_str)
+    latency_ms = calculate_latency_ms(enqueued_at_str)
     if latency_ms > 0:
         metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
 
 
-def calculate_latency(enqueued_at_str: str) -> int:
-    """Calculate the latency between the enqueued_at timestamp and the current time."""
+def calculate_latency_ms(timestamp_str: str) -> int:
+    """Calculate the latency in milliseconds between the given timestamp and now."""
     try:
-        enqueued_at = datetime.fromisoformat(enqueued_at_str)
-        processing_started_at = datetime.now(timezone.utc)
-        return int((processing_started_at - enqueued_at).total_seconds() * 1000)
+        timestamp = datetime.fromisoformat(timestamp_str)
+        now = datetime.now(timezone.utc)
+        return int((now - timestamp).total_seconds() * 1000)
     except (ValueError, TypeError) as e:
         # Don't fail the task if timestamp parsing fails
         logger.warning(
             "%s.invalid_timestamp",
             PREFIX,
-            extra={"enqueued_at": enqueued_at_str, "error": str(e)},
+            extra={"timestamp": timestamp_str, "error": str(e)},
         )
         return 0

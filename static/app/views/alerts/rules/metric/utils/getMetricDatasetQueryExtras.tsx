@@ -40,6 +40,15 @@ export function getMetricDatasetQueryExtras({
     };
   }
 
+  if (
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    traceItemType === TraceItemDataset.TRACEMETRICS
+  ) {
+    return {
+      dataset: DiscoverDatasets.TRACEMETRICS,
+    };
+  }
+
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return {
       dataset: DiscoverDatasets.SPANS,
@@ -48,7 +57,6 @@ export function getMetricDatasetQueryExtras({
 
   const hasMetricDataset =
     hasOnDemandMetricAlertFeature(organization) ||
-    organization.features.includes('mep-rollout-flag') ||
     organization.features.includes('dashboards-metrics-transition');
   const disableMetricDataset =
     decodeScalar(location?.query?.disableMetricDataset) === 'true';

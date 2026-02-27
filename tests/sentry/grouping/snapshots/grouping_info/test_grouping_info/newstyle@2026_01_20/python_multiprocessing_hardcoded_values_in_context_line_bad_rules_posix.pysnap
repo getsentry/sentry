@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app) and un-ignored by custom stack trace rule (function:post_process_group +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app) and un-ignored by custom stacktrace rule (function:post_process_group +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -87,7 +87,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -131,7 +131,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -175,7 +175,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -219,7 +219,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -263,7 +263,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -307,7 +307,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -351,7 +351,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -395,7 +395,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -439,7 +439,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:post_process_group +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -527,7 +527,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -571,7 +571,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -615,7 +615,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -659,7 +659,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -703,7 +703,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -747,7 +747,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -791,7 +791,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -835,7 +835,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -879,7 +879,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -998,7 +998,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:post_process_group +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:post_process_group +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [

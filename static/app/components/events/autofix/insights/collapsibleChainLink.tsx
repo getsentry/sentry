@@ -1,11 +1,10 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -95,12 +94,12 @@ export function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       type="button"
                       size="sm"
                       onClick={handleCancel}
-                      title={t('Cancel')}
+                      tooltipProps={{title: t('Cancel')}}
                     >
                       <IconClose size="sm" />
                     </Button>
@@ -108,7 +107,7 @@ export function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Redo work from here')}
+                      tooltipProps={{title: t('Redo work from here')}}
                       aria-label={t('Redo work from here')}
                     >
                       {'\u23CE'}
@@ -120,9 +119,9 @@ export function CollapsibleChainLink({
           ) : (
             <AddButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => setIsAdding(true)}
-              title={t('Give feedback and rethink the answer')}
+              tooltipProps={{title: t('Give feedback and rethink the answer')}}
               aria-label={t('Give feedback and rethink the answer')}
               analyticsEventName="Autofix: Step Rethink Open"
               analyticsEventKey="autofix.step.rethink_open"

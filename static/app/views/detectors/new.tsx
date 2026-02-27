@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';

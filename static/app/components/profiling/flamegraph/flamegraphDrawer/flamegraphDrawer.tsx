@@ -2,11 +2,11 @@ import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -225,7 +225,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               <StyledButton
                 priority="transparent"
                 onClick={onTableLeftClick}
-                title={t('Table left')}
+                tooltipProps={{title: t('Table left')}}
                 aria-label={t('Table left')}
                 size="xs"
                 icon={<IconPanel direction="left" />}
@@ -235,7 +235,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               <StyledButton
                 priority="transparent"
                 onClick={onTableBottomClick}
-                title={t('Table bottom')}
+                tooltipProps={{title: t('Table bottom')}}
                 aria-label={t('Table bottom')}
                 size="xs"
                 icon={<IconPanel direction="down" />}
@@ -245,7 +245,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               <StyledButton
                 priority="transparent"
                 onClick={onTableRightClick}
-                title={t('Table right')}
+                tooltipProps={{title: t('Table right')}}
                 aria-label={t('Table right')}
                 size="xs"
                 icon={<IconPanel direction="right" />}
@@ -270,7 +270,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       {props.profileGroup.type === 'transaction' ? (
         <ProfileDetails
           transaction={
-            props.profileTransaction && props.profileTransaction.type === 'resolved'
+            props.profileTransaction?.type === 'resolved'
               ? props.profileTransaction.data
               : null
           }
@@ -297,6 +297,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   position: relative;
 `;
@@ -353,7 +354,7 @@ const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.tokens.border.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
 
@@ -409,7 +410,7 @@ export const ProfilingDetailsListItem = styled('li')<{
 
   &.active button {
     font-weight: ${p => p.theme.font.weight.sans.medium};
-    border-bottom: 2px solid ${prop => prop.theme.tokens.interactive.link.accent.active};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
   }
 `;
 

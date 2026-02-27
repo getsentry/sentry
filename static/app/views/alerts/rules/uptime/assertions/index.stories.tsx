@@ -4,11 +4,13 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
-import type {
-  HeaderCheckOp,
-  JsonPathOp,
-  LogicalOp,
-  StatusCodeOp,
+import {
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeHeaderCheckOp,
+  type UptimeJsonPathOp,
+  type UptimeLogicalOp,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
@@ -19,10 +21,10 @@ import {AssertionOpStatusCode} from './opStatusCode';
 
 export default Storybook.story('Uptime Assertions', story => {
   story('Status Code Op', () => {
-    const [statusCodeOp, setStatusCodeOp] = useState<StatusCodeOp>({
+    const [statusCodeOp, setStatusCodeOp] = useState<UptimeStatusCodeOp>({
       id: 'story-status-1',
-      op: 'status_code_check',
-      operator: {cmp: 'equals'},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -45,10 +47,12 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('JSON Path Op', () => {
-    const [jsonPathOp, setJsonPathOp] = useState<JsonPathOp>({
+    const [jsonPathOp, setJsonPathOp] = useState<UptimeJsonPathOp>({
       id: 'story-json-1',
-      op: 'json_path',
-      value: '$.data.success',
+      op: UptimeOpType.JSON_PATH,
+      value: '$.status',
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      operand: {jsonpath_op: 'literal', value: 'ok'},
     });
 
     return (
@@ -67,13 +71,39 @@ export default Storybook.story('Uptime Assertions', story => {
     );
   });
 
+  story('JSON Path Op - Glob Pattern', () => {
+    const [jsonPathOp, setJsonPathOp] = useState<UptimeJsonPathOp>({
+      id: 'story-json-glob-1',
+      op: UptimeOpType.JSON_PATH,
+      value: '$.status',
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      operand: {jsonpath_op: 'glob', pattern: {value: 'ok*'}},
+    });
+
+    return (
+      <Fragment>
+        <p>
+          JSON path assertions can compare against glob patterns. The operand type
+          selector allows switching between literal string matching and glob pattern
+          matching.
+        </p>
+        <AssertionOpJsonPath
+          value={jsonPathOp}
+          onChange={setJsonPathOp}
+          onRemove={() => {}}
+        />
+        <CodeBlock language="javascript">{JSON.stringify(jsonPathOp, null, 2)}</CodeBlock>
+      </Fragment>
+    );
+  });
+
   story('Header Op - With Values', () => {
-    const [headerOp, setHeaderOp] = useState<HeaderCheckOp>({
+    const [headerOp, setHeaderOp] = useState<UptimeHeaderCheckOp>({
       id: 'story-header-1',
-      op: 'header_check',
-      key_op: {cmp: 'equals'},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: 'equals'},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -91,12 +121,12 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Header Op - Always/Never', () => {
-    const [headerOp, setHeaderOp] = useState<HeaderCheckOp>({
+    const [headerOp, setHeaderOp] = useState<UptimeHeaderCheckOp>({
       id: 'story-header-2',
-      op: 'header_check',
-      key_op: {cmp: 'always'},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.ALWAYS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: 'always'},
+      value_op: {cmp: UptimeComparisonType.ALWAYS},
       value_operand: {header_op: 'none'},
     });
 
@@ -114,12 +144,12 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Header Op - Glob Pattern', () => {
-    const [headerOp, setHeaderOp] = useState<HeaderCheckOp>({
+    const [headerOp, setHeaderOp] = useState<UptimeHeaderCheckOp>({
       id: 'story-header-3',
-      op: 'header_check',
-      key_op: {cmp: 'equals'},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'glob', pattern: {value: 'X-*'}},
-      value_op: {cmp: 'not_equal'},
+      value_op: {cmp: UptimeComparisonType.NOT_EQUAL},
       value_operand: {header_op: 'glob', pattern: {value: '*error*'}},
     });
 
@@ -136,25 +166,27 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Multiple Ops', () => {
-    const [statusCodeOp, setStatusCodeOp] = useState<StatusCodeOp>({
+    const [statusCodeOp, setStatusCodeOp] = useState<UptimeStatusCodeOp>({
       id: 'story-status-2',
-      op: 'status_code_check',
-      operator: {cmp: 'less_than'},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.LESS_THAN},
       value: 400,
     });
 
-    const [jsonPathOp, setJsonPathOp] = useState<JsonPathOp>({
+    const [jsonPathOp, setJsonPathOp] = useState<UptimeJsonPathOp>({
       id: 'story-json-2',
-      op: 'json_path',
+      op: UptimeOpType.JSON_PATH,
       value: '$.error',
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      operand: {jsonpath_op: 'literal', value: ''},
     });
 
-    const [headerOp, setHeaderOp] = useState<HeaderCheckOp>({
+    const [headerOp, setHeaderOp] = useState<UptimeHeaderCheckOp>({
       id: 'story-header-4',
-      op: 'header_check',
-      key_op: {cmp: 'equals'},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: 'equals'},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -186,7 +218,7 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Add Op Button', () => {
-    const [ops, setOps] = useState<Array<StatusCodeOp | JsonPathOp>>([]);
+    const [ops, setOps] = useState<Array<UptimeStatusCodeOp | UptimeJsonPathOp>>([]);
 
     return (
       <Fragment>
@@ -197,7 +229,7 @@ export default Storybook.story('Uptime Assertions', story => {
         <Stack gap="md">
           <AddOpButton
             onAddOp={op => {
-              setOps(prev => [...prev, op as StatusCodeOp | JsonPathOp]);
+              setOps(prev => [...prev, op as UptimeStatusCodeOp | UptimeJsonPathOp]);
             }}
           />
           {ops.length > 0 && (
@@ -206,7 +238,7 @@ export default Storybook.story('Uptime Assertions', story => {
               <Stack gap="sm">
                 {ops.map((op, index) => (
                   <div key={index}>
-                    {op.op === 'status_code_check' ? (
+                    {op.op === UptimeOpType.STATUS_CODE_CHECK ? (
                       <AssertionOpStatusCode
                         value={op}
                         onChange={newOp => {
@@ -238,20 +270,22 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Group Op - Assert All (And)', () => {
-    const [groupOp, setGroupOp] = useState<LogicalOp>({
+    const [groupOp, setGroupOp] = useState<UptimeLogicalOp>({
       id: 'story-group-1',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'story-status-3',
-          op: 'status_code_check',
-          operator: {cmp: 'less_than'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
           value: 400,
         },
         {
           id: 'story-json-3',
-          op: 'json_path',
+          op: UptimeOpType.JSON_PATH,
           value: '$.success',
+          operator: {cmp: UptimeComparisonType.EQUALS},
+          operand: {jsonpath_op: 'literal', value: 'true'},
         },
       ],
     });
@@ -270,20 +304,20 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Group Op - Assert Any (Or)', () => {
-    const [groupOp, setGroupOp] = useState<LogicalOp>({
+    const [groupOp, setGroupOp] = useState<UptimeLogicalOp>({
       id: 'story-group-2',
-      op: 'or',
+      op: UptimeOpType.OR,
       children: [
         {
           id: 'story-status-4',
-          op: 'status_code_check',
-          operator: {cmp: 'equals'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'story-status-5',
-          op: 'status_code_check',
-          operator: {cmp: 'equals'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 204,
         },
       ],
@@ -301,24 +335,24 @@ export default Storybook.story('Uptime Assertions', story => {
     );
   });
 
-  story('Group Op - Assert None (Not And)', () => {
-    const [groupOp, setGroupOp] = useState<LogicalOp>({
+  story('Group Op - Assert Not All (Not And)', () => {
+    const [groupOp, setGroupOp] = useState<UptimeLogicalOp>({
       id: 'story-not-1',
-      op: 'not',
+      op: UptimeOpType.NOT,
       operand: {
         id: 'story-group-3',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'story-status-6',
-            op: 'status_code_check',
-            operator: {cmp: 'greater_than'},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.GREATER_THAN},
             value: 499,
           },
           {
             id: 'story-status-7',
-            op: 'status_code_check',
-            operator: {cmp: 'less_than'},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.LESS_THAN},
             value: 600,
           },
         ],
@@ -328,8 +362,8 @@ export default Storybook.story('Uptime Assertions', story => {
     return (
       <Fragment>
         <p>
-          "Assert None" fails if all child assertions pass (negated AND). This is useful
-          for asserting that none of a set of conditions are met.
+          "Assert Not All" fails if all child assertions pass (negated AND). This is
+          useful for asserting that none of a set of conditions are met.
         </p>
         <AssertionOpGroup value={groupOp} onChange={setGroupOp} />
         <CodeBlock language="javascript">{JSON.stringify(groupOp, null, 2)}</CodeBlock>
@@ -337,24 +371,24 @@ export default Storybook.story('Uptime Assertions', story => {
     );
   });
 
-  story('Group Op - Assert Not Any (Not Or)', () => {
-    const [groupOp, setGroupOp] = useState<LogicalOp>({
+  story('Group Op - Assert None (Not Or)', () => {
+    const [groupOp, setGroupOp] = useState<UptimeLogicalOp>({
       id: 'story-not-2',
-      op: 'not',
+      op: UptimeOpType.NOT,
       operand: {
         id: 'story-group-4',
-        op: 'or',
+        op: UptimeOpType.OR,
         children: [
           {
             id: 'story-status-8',
-            op: 'status_code_check',
-            operator: {cmp: 'equals'},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 404,
           },
           {
             id: 'story-status-9',
-            op: 'status_code_check',
-            operator: {cmp: 'equals'},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 500,
           },
         ],
@@ -364,8 +398,8 @@ export default Storybook.story('Uptime Assertions', story => {
     return (
       <Fragment>
         <p>
-          "Assert Not Any" fails if any child assertion passes (negated OR). This is
-          useful for ensuring that none of several error conditions occur.
+          "Assert None" fails if any child assertion passes (negated OR). This is useful
+          for ensuring that none of several error conditions occur.
         </p>
         <AssertionOpGroup value={groupOp} onChange={setGroupOp} />
         <CodeBlock language="javascript">{JSON.stringify(groupOp, null, 2)}</CodeBlock>
@@ -374,31 +408,33 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Group Op - Nested Groups', () => {
-    const [groupOp, setGroupOp] = useState<LogicalOp>({
+    const [groupOp, setGroupOp] = useState<UptimeLogicalOp>({
       id: 'story-group-5',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'story-status-10',
-          op: 'status_code_check',
-          operator: {cmp: 'less_than'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
           value: 400,
         },
         {
           id: 'story-group-6',
-          op: 'or',
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'story-json-4',
-              op: 'json_path',
+              op: UptimeOpType.JSON_PATH,
               value: '$.status',
+              operator: {cmp: UptimeComparisonType.EQUALS},
+              operand: {jsonpath_op: 'literal', value: 'ok'},
             },
             {
               id: 'story-header-5',
-              op: 'header_check',
-              key_op: {cmp: 'equals'},
+              op: UptimeOpType.HEADER_CHECK,
+              key_op: {cmp: UptimeComparisonType.EQUALS},
               key_operand: {header_op: 'literal', value: 'X-Status'},
-              value_op: {cmp: 'equals'},
+              value_op: {cmp: UptimeComparisonType.EQUALS},
               value_operand: {header_op: 'literal', value: 'ok'},
             },
           ],
@@ -420,9 +456,9 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Group Op - Empty Group', () => {
-    const [groupOp, setGroupOp] = useState<LogicalOp>({
+    const [groupOp, setGroupOp] = useState<UptimeLogicalOp>({
       id: 'story-group-7',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [],
     });
 
@@ -439,27 +475,29 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Root Group', () => {
-    const [rootGroup, setRootGroup] = useState<LogicalOp>({
+    const [rootGroup, setRootGroup] = useState<UptimeLogicalOp>({
       id: 'story-group-8',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'story-status-11',
-          op: 'status_code_check',
-          operator: {cmp: 'less_than'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
           value: 400,
         },
         {
           id: 'story-json-5',
-          op: 'json_path',
+          op: UptimeOpType.JSON_PATH,
           value: '$.success',
+          operator: {cmp: UptimeComparisonType.EQUALS},
+          operand: {jsonpath_op: 'literal', value: 'true'},
         },
         {
           id: 'story-header-6',
-          op: 'header_check',
-          key_op: {cmp: 'equals'},
+          op: UptimeOpType.HEADER_CHECK,
+          key_op: {cmp: UptimeComparisonType.EQUALS},
           key_operand: {header_op: 'literal', value: 'Content-Type'},
-          value_op: {cmp: 'equals'},
+          value_op: {cmp: UptimeComparisonType.EQUALS},
           value_operand: {header_op: 'literal', value: 'application/json'},
         },
       ],
@@ -480,9 +518,9 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Root Group - Empty', () => {
-    const [rootGroup, setRootGroup] = useState<LogicalOp>({
+    const [rootGroup, setRootGroup] = useState<UptimeLogicalOp>({
       id: 'story-group-9',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [],
     });
 
@@ -499,27 +537,29 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Drag and Drop - Reordering', () => {
-    const [rootGroup, setRootGroup] = useState<LogicalOp>({
+    const [rootGroup, setRootGroup] = useState<UptimeLogicalOp>({
       id: 'story-dnd-1',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'story-status-dnd-1',
-          op: 'status_code_check',
-          operator: {cmp: 'less_than'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
           value: 400,
         },
         {
           id: 'story-json-dnd-1',
-          op: 'json_path',
+          op: UptimeOpType.JSON_PATH,
           value: '$.success',
+          operator: {cmp: UptimeComparisonType.EQUALS},
+          operand: {jsonpath_op: 'literal', value: 'true'},
         },
         {
           id: 'story-header-dnd-1',
-          op: 'header_check',
-          key_op: {cmp: 'equals'},
+          op: UptimeOpType.HEADER_CHECK,
+          key_op: {cmp: UptimeComparisonType.EQUALS},
           key_operand: {header_op: 'literal', value: 'Content-Type'},
-          value_op: {cmp: 'equals'},
+          value_op: {cmp: UptimeComparisonType.EQUALS},
           value_operand: {header_op: 'literal', value: 'application/json'},
         },
       ],
@@ -539,38 +579,42 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Drag and Drop - Between Groups', () => {
-    const [rootGroup, setRootGroup] = useState<LogicalOp>({
+    const [rootGroup, setRootGroup] = useState<UptimeLogicalOp>({
       id: 'story-dnd-2',
-      op: 'and',
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'story-status-dnd-2',
-          op: 'status_code_check',
-          operator: {cmp: 'less_than'},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
           value: 400,
         },
         {
           id: 'story-or-dnd-1',
-          op: 'or',
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'story-json-dnd-2',
-              op: 'json_path',
+              op: UptimeOpType.JSON_PATH,
               value: '$.data.id',
+              operator: {cmp: UptimeComparisonType.EQUALS},
+              operand: {jsonpath_op: 'literal', value: '1234567890'},
             },
             {
               id: 'story-json-dnd-3',
-              op: 'json_path',
+              op: UptimeOpType.JSON_PATH,
               value: '$.data.name',
+              operator: {cmp: UptimeComparisonType.EQUALS},
+              operand: {jsonpath_op: 'literal', value: 'John Doe'},
             },
           ],
         },
         {
           id: 'story-header-dnd-2',
-          op: 'header_check',
-          key_op: {cmp: 'equals'},
+          op: UptimeOpType.HEADER_CHECK,
+          key_op: {cmp: UptimeComparisonType.EQUALS},
           key_operand: {header_op: 'literal', value: 'X-Request-Id'},
-          value_op: {cmp: 'always'},
+          value_op: {cmp: UptimeComparisonType.ALWAYS},
           value_operand: {header_op: 'none'},
         },
       ],

@@ -69,9 +69,9 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
 
 # Ensure that required fields are defined at runtime
 for field in {constants.TIMESTAMP_ALIAS, constants.TIMESTAMP_PRECISE_ALIAS, constants.TRACE_ALIAS}:
-    assert (
-        field in TRACE_METRICS_ATTRIBUTE_DEFINITIONS
-    ), f"{field} must be defined for trace metrics"
+    assert field in TRACE_METRICS_ATTRIBUTE_DEFINITIONS, (
+        f"{field} must be defined for trace metrics"
+    )
 
 TRACE_METRICS_VIRTUAL_CONTEXTS = {
     key: VirtualColumnDefinition(

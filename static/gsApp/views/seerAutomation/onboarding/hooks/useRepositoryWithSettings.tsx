@@ -1,5 +1,6 @@
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -13,10 +14,12 @@ interface Props extends Partial<UseApiQueryOptions<RepositoryWithSettings>> {
 
 export function getRepositoryWithSettingsQueryKey(
   organization: Organization,
-  repositoryId: string
+  repoId: string
 ) {
   return [
-    `/organizations/${organization.slug}/repos/${repositoryId}/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/repos/$repoId/`, {
+      path: {organizationIdOrSlug: organization.slug, repoId},
+    }),
     {query: {expand: 'settings'}},
   ] satisfies ApiQueryKey;
 }

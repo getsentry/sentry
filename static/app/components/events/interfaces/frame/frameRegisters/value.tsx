@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,10 +42,10 @@ export function FrameRegisterValue({meta, value}: Props) {
       <div>
         <ToggleButton
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconSliders size="xs" />}
           onClick={toggleFormat}
-          title={formatLabel}
+          tooltipProps={{title: formatLabel}}
           aria-label={t('Toggle register value format')}
         />
       </div>

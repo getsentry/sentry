@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout';
 import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
@@ -115,7 +116,7 @@ export function addUndoableFormChangeMessage(
   );
 }
 
-const PRETTY_VALUES: Map<unknown, string> = new Map([
+const PRETTY_VALUES = new Map<unknown, string>([
   ['', '<empty>'],
   [null, '<none>'],
   [undefined, '<unset>'],

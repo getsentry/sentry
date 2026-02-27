@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -9,6 +8,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -28,55 +28,23 @@ import {
   getSeriesResultType,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-  hasDatasetSelector,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type ErrorsAndTransactionsSeriesResponse =
   | EventsStats
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type ErrorsAndTransactionsTableResponse = TableData | EventsTableData;
-
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  // Apply dashboard filters if provided
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  return cleanWidgetForRequest(processedWidget);
-}
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -106,6 +74,7 @@ export function useErrorsAndTransactionsSeriesQuery(
     skipDashboardFilterParens,
     mepSetting,
     onDemandControlContext,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -114,7 +83,8 @@ export function useErrorsAndTransactionsSeriesQuery(
   );
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -133,7 +103,8 @@ export function useErrorsAndTransactionsSeriesQuery(
         organization,
         pageFilters,
         isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.DISCOVER,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       const splitDiscoverExtras = getQueryExtraForSplittingDiscover(
@@ -172,7 +143,9 @@ export function useErrorsAndTransactionsSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -180,7 +153,14 @@ export function useErrorsAndTransactionsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, isMEPEnabled, useOnDemandMetrics]);
+  }, [
+    filteredWidget,
+    organization,
+    pageFilters,
+    isMEPEnabled,
+    useOnDemandMetrics,
+    widgetInterval,
+  ]);
 
   const createQueryFn = useCallback(
     (queryIndex: number) =>
@@ -192,7 +172,8 @@ export function useErrorsAndTransactionsSeriesQuery(
             organization,
             pageFilters,
             DiscoverDatasets.METRICS_ENHANCED,
-            getReferrer(filteredWidget.displayType)
+            getReferrer(filteredWidget.displayType),
+            widgetInterval
           );
 
           requestData.queryExtras = {
@@ -241,7 +222,7 @@ export function useErrorsAndTransactionsSeriesQuery(
 
         return fetchDataQuery<ErrorsAndTransactionsSeriesResponse>(context);
       },
-    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue]
+    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue, widgetInterval]
   );
 
   const hasQueueFeature = organization.features.includes(
@@ -252,7 +233,7 @@ export function useErrorsAndTransactionsSeriesQuery(
     queries: queryKeys.map((queryKey, queryIndex) => ({
       queryKey,
       queryFn: createQueryFn(queryIndex),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -262,6 +243,7 @@ export function useErrorsAndTransactionsSeriesQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -341,7 +323,7 @@ export function useErrorsAndTransactionsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -386,7 +368,8 @@ export function useErrorsAndTransactionsTableQuery(
   );
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -432,7 +415,9 @@ export function useErrorsAndTransactionsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -479,7 +464,7 @@ export function useErrorsAndTransactionsTableQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -489,6 +474,7 @@ export function useErrorsAndTransactionsTableQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
     })),
   });
 
@@ -552,7 +538,7 @@ export function useErrorsAndTransactionsTableQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

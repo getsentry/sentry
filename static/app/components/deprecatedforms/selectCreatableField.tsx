@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
 import {SelectField} from 'sentry/components/deprecatedforms/selectField';
 import withFormContext from 'sentry/components/deprecatedforms/withFormContext';

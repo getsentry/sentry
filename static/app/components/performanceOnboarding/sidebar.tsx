@@ -3,19 +3,26 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -23,7 +30,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
@@ -227,6 +233,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
 
   const previousProject = usePrevious(currentProject);
@@ -332,13 +339,28 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   ];
 
   return (
-    <Fragment>
+    <TabSelectionScope>
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
       <Steps>
-        {steps.map(step => {
-          return <Step key={step.title ?? step.type} {...step} />;
+        {steps.map((step, index) => {
+          return (
+            <Step
+              key={step.title ?? step.type}
+              stepIndex={index}
+              {...step}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_sidebar_onboarding"
+                  />
+                ) : undefined
+              }
+            />
+          );
         })}
       </Steps>
       <EventWaiter
@@ -352,7 +374,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       >
         {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
       </EventWaiter>
-    </Fragment>
+    </TabSelectionScope>
   );
 }
 

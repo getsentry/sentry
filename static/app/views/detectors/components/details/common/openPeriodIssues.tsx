@@ -1,9 +1,9 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Text} from 'sentry/components/core/text';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -158,14 +158,14 @@ function LatestGroupWithOpenPeriods({
     (start: Date, end?: Date) => {
       const startMs = start.getTime();
       const endMs = (end ?? new Date()).getTime();
-      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+      const zoomRange = computeZoomRangeMs({
         startMs,
         endMs,
         intervalSeconds,
       });
       navigate({
         pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+        query: buildDetectorZoomQuery(location.query, zoomRange),
       });
     },
     [location.pathname, location.query, navigate, intervalSeconds]

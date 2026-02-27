@@ -2,14 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import * as Storybook from 'sentry/stories';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 
 interface APIReferenceProps {
   componentProps: TypeLoader.ComponentDocWithFilename | undefined;
@@ -111,7 +112,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <Flex align="center">
             <Button
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
                 props.node.expanded = !expanded;

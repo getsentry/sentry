@@ -2,12 +2,12 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
@@ -101,7 +101,7 @@ export function BreadcrumbsDrawer({
   );
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <InputGroup>
         <SearchInput
           size="xs"
@@ -138,7 +138,7 @@ export function BreadcrumbsDrawer({
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            borderless
+            priority="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
@@ -154,7 +154,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            priority="transparent"
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
             title={t('Sort')}
@@ -177,7 +177,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            priority="transparent"
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
                 <IconClock size="xs" />
@@ -201,8 +201,8 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
-      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} borderless />
-    </ButtonBar>
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} />
+    </Grid>
   );
 
   return (

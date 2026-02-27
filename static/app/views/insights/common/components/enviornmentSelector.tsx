@@ -1,7 +1,7 @@
 import {
   EnvironmentPageFilter,
   type EnvironmentPageFilterProps,
-} from 'sentry/components/organizations/environmentPageFilter';
+} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 type Props = Omit<EnvironmentPageFilterProps, 'storageNamespace'>;

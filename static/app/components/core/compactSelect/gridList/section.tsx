@@ -3,16 +3,16 @@ import {useSeparator} from '@react-aria/separator';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {SelectFilterContext} from 'sentry/components/core/compactSelect/list';
 import {
   SectionGroup,
   SectionHeader,
   SectionSeparator,
   SectionTitle,
+  SectionToggle,
   SectionWrap,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
-import {SectionToggle} from 'sentry/components/core/compactSelect/utils';
+  SelectFilterContext,
+} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
 
 import {GridListOption, type GridListOptionProps} from './option';
 

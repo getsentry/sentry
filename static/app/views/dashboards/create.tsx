@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';

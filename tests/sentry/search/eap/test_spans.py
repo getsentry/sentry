@@ -87,7 +87,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_uuid_validation(self) -> None:
-        where, having, _ = self.resolver.resolve_query(f"id:{'f'*16}")
+        where, having, _ = self.resolver.resolve_query(f"id:{'f' * 16}")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),

@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import orjson
@@ -7,8 +8,9 @@ import pytest
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
+from sentry.seer.code_review.webhooks.pull_request import handle_pull_request_event
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -252,6 +254,12 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
+            # After Pydantic validation, trigger_at is a datetime object
+            assert payload["data"]["config"]["trigger_at"] == datetime(
+                2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc
+            )
+            # sentry_received_trigger_at is set to current time when transform happens
+            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
@@ -302,7 +310,34 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_pull_request_closed_bypasses_trigger_check_post_ga(self) -> None:
+    def test_pull_request_closed_filtered_when_no_triggers_configured_post_ga(self) -> None:
+        """Test that closed action is filtered when no triggers are configured for a seat-based org.
+
+        If no triggers are configured, no pr_review was ever sent for any PR in this repo,
+        so there is nothing for Seer to process on close.
+
+        Note: This test calls handle_pull_request_event directly because the _send_webhook_event
+        helper skips RepositorySettings creation when triggers=[], which would cause the preflight
+        to deny the request before reaching the handler under test.
+        """
+        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        with self.feature(features), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+
+            handle_pull_request_event(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event=event,
+                organization=self.organization,
+                repo=self.create_repo(project=self.project, provider="integrations:github"),
+                org_code_review_settings=CodeReviewSettings(enabled=True, triggers=[]),
+                tags={},
+            )
+
+            self.mock_seer.assert_not_called()
+
+    def test_pull_request_closed_not_filtered_when_triggers_configured_post_ga(self) -> None:
+        """Test that closed action reaches Seer when at least one trigger is configured."""
         triggers: list[CodeReviewTrigger] = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
         org_options = {"sentry:enable_pr_review_test_generation": False}
@@ -374,3 +409,61 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             payload = call_kwargs["payload"]
             assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
+
+    def test_validation_happens_before_task_scheduling_pr_closed(self) -> None:
+        """Test that invalid pr-closed payloads are caught before scheduling the Celery task."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            patch(
+                "sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request"
+            ) as mock_transform,
+        ):
+            # Return an invalid payload missing required fields for pr-closed
+            mock_transform.return_value = {
+                "request_type": "pr-closed",
+                "data": {
+                    # Missing required fields like repo, pr_id, etc.
+                    "invalid": "payload"
+                },
+            }
+
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            # Task should NOT be scheduled due to validation failure
+            self.mock_seer.assert_not_called()
+
+    def test_validation_happens_before_task_scheduling_pr_review(self) -> None:
+        """Test that invalid pr-review payloads are caught before scheduling the Celery task."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            patch(
+                "sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request"
+            ) as mock_transform,
+        ):
+            # Return an invalid payload missing required fields for pr-review
+            mock_transform.return_value = {
+                "request_type": "pr-review",
+                "data": {
+                    # Missing required fields
+                    "invalid": "payload"
+                },
+            }
+
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "opened"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            # Task should NOT be scheduled due to validation failure
+            self.mock_seer.assert_not_called()

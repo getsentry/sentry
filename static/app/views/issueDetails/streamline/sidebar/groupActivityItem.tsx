@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import CommitLink from 'sentry/components/commitLink';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import PullRequestLink from 'sentry/components/pullRequestLink';
@@ -122,7 +123,7 @@ export default function getGroupActivityItem(
       const team = teams.find(({id}) => id === data.assignee);
       // TODO: could show a loading indicator if the team is loading
       assignee = team ? `#${team.slug}` : '<unknown-team>';
-    } else if (activity.user && data.assignee === activity.user.id) {
+    } else if (data.assignee === activity.user?.id) {
       assignee = t('themselves');
     } else if (data.assigneeType === 'user' && data.assigneeEmail) {
       assignee = data.assigneeEmail;

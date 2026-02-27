@@ -5,8 +5,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
@@ -132,14 +132,23 @@ describe('AssigneeSelectorDropdown', () => {
   const updateGroup = async (group: Group, newAssignee: AssignableEntity | null) => {
     updateGroupSpy(group, newAssignee);
     if (newAssignee) {
-      await assignToActor({
-        id: group.id,
-        orgSlug: 'org-slug',
-        actor: {id: newAssignee.id, type: newAssignee.type},
-        assignedBy: 'assignee_selector',
+      const api = new Client();
+      await api.requestPromise(`/organizations/org-slug/issues/${group.id}/`, {
+        method: 'PUT',
+        data: {
+          assignedTo: `${newAssignee.type}:${newAssignee.id}`,
+          assignedBy: 'assignee_selector',
+        },
       });
     } else {
-      await clearAssignment(group.id, 'org-slug', 'assignee_selector');
+      const api = new Client();
+      await api.requestPromise(`/organizations/org-slug/issues/${group.id}/`, {
+        method: 'PUT',
+        data: {
+          assignedTo: '',
+          assignedBy: 'assignee_selector',
+        },
+      });
     }
   };
 

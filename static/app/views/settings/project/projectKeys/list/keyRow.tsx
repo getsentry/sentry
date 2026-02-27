@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import ClippedBox from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -15,7 +15,6 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
@@ -47,8 +46,7 @@ function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
-  const showOtlpTraces =
-    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
+  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (

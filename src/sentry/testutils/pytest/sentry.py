@@ -336,6 +336,26 @@ def register_extensions() -> None:
     )
 
 
+def pytest_sessionstart(session: pytest.Session) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    # Store original send_task so tests that need it can restore it
+    TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+
+    # Prevent tests from producing real Kafka messages via the taskworker pipeline.
+    # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
+    # (_signal_send hook) which both operate before send_task in the call chain.
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    if hasattr(TaskNamespace, "_original_send_task"):
+        TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskNamespace._original_send_task
+
+
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
@@ -431,6 +451,14 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
+    # Determine shuffle seed early to incorporate into shard distribution
+    shuffle_enabled = bool(os.environ.get("SENTRY_SHUFFLE_TESTS"))
+    seed = None
+    if shuffle_enabled:
+        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
+        seed = int(seed_env) if seed_env else int(time.time())
+        config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
+
     # Reset keep/discard for sharding logic
     keep, discard = [], []
 
@@ -442,6 +470,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if grouping_strategy == "scope"
             else item.nodeid.encode()
         )
+
+        # Incorporate seed into shard assignment to redistribute tests across shards
+        if shuffle_enabled and seed is not None:
+            to_hash = to_hash + str(seed).encode()
+
         item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups
@@ -454,10 +487,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     items[:] = keep
 
-    if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
-        seed = int(seed_env) if seed_env else int(time.time())
-        config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
+    if shuffle_enabled:
         _shuffle(items, random.Random(seed))
 
     # This only needs to be done if there are items to be de-selected

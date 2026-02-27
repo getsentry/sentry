@@ -4,11 +4,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
@@ -502,9 +502,9 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
-  it('shows size analysis when billing feature flag is enabled', async () => {
+  it('shows size analysis when expose category feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['size-analysis-billing'],
+      features: ['expose-category-size-analysis'],
     });
 
     render(<OrganizationStats />, {
@@ -517,7 +517,7 @@ describe('OrganizationStats', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not show size analysis when billing feature flag is disabled', async () => {
+  it('does not show size analysis when expose category feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: [],
     });
@@ -532,9 +532,9 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows installable build when billing feature flag is enabled', async () => {
+  it('shows installable build when expose category feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['installable-build-billing'],
+      features: ['expose-category-installable-build'],
     });
 
     render(<OrganizationStats />, {
@@ -545,7 +545,7 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Build Distributions'})).toBeInTheDocument();
   });
 
-  it('does not show installable build when billing feature flag is disabled', async () => {
+  it('does not show installable build when expose category feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: [],
     });
@@ -560,9 +560,9 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
+  it('shows Metrics category when tracemetrics-enabled feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
+      features: ['team-insights', 'tracemetrics-enabled'],
     });
 
     render(<OrganizationStats />, {
@@ -571,19 +571,6 @@ describe('OrganizationStats', () => {
 
     await userEvent.click(await screen.findByText('Category'));
     expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
-  });
-
-  it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['team-insights'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-    });
-
-    await userEvent.click(await screen.findByText('Category'));
-    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {

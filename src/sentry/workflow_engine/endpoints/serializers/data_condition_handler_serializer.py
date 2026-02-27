@@ -9,14 +9,14 @@ class DataConditionHandlerResponse(TypedDict):
     type: str
     handlerGroup: str
     handlerSubgroup: NotRequired[str]
-    comparisonJsonSchema: dict
+    comparisonJsonSchema: dict[str, Any]
 
 
 @register(DataConditionHandler)
 class DataConditionHandlerSerializer(Serializer):
     def serialize(
         self,
-        obj: DataConditionHandler,
+        obj: DataConditionHandler[Any],
         attrs: Mapping[str, Any],
         user: Any,
         **kwargs: Any,

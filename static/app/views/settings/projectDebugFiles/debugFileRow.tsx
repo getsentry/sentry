@@ -1,17 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
@@ -92,7 +90,7 @@ function DebugFileRow({
         </Description>
       </Stack>
       <Flex justify="end" align="start" marginTop="md">
-        <ButtonBar gap="xs">
+        <Grid flow="column" align="center" gap="xs">
           <Tooltip
             disabled={hasRole}
             title={tct(
@@ -138,7 +136,7 @@ function DebugFileRow({
               </Tooltip>
             )}
           </Access>
-        </ButtonBar>
+        </Grid>
       </Flex>
     </Fragment>
   );

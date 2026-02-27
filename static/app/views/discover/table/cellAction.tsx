@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -194,6 +195,12 @@ function makeCellActions({
 
   // Do not render context menu buttons for the equation fields until we can query on them
   if (isEquationAlias(column.name)) {
+    return null;
+  }
+
+  // Starred transaction has it's own action on click
+  // so we don't want it to collide with the context menu
+  if (column.name === 'is_starred_transaction') {
     return null;
   }
 
@@ -443,7 +450,6 @@ function CellAction({
           trigger={triggerProps => (
             <ActionMenuTrigger
               {...triggerProps}
-              translucentBorder
               aria-label={t('Actions')}
               icon={<IconEllipsis size="xs" />}
               size="zero"

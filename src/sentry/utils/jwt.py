@@ -66,7 +66,7 @@ def decode(
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
     options = {}
-    kwargs = dict()
+    kwargs: dict[str, Any] = {}
     if audience is False:
         options["verify_aud"] = False
     elif audience is True:

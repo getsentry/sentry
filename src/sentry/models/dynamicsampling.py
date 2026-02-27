@@ -279,8 +279,7 @@ class CustomDynamicSamplingRule(Model):
         """
         CustomDynamicSamplingRule.objects.filter(
             # give it a minute grace period to make sure we don't deactivate rules that are still active
-            end_date__lt=timezone.now()
-            - timedelta(minutes=1),
+            end_date__lt=timezone.now() - timedelta(minutes=1),
         ).update(is_active=False)
 
     @staticmethod

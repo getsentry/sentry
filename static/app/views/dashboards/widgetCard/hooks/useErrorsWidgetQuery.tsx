@@ -8,6 +8,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -21,55 +22,21 @@ import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type ErrorsSeriesResponse =
   | EventsStats
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type ErrorsTableResponse = TableData | EventsTableData;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  return cleanWidgetForRequest(processedWidget);
-}
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -83,13 +50,15 @@ export function useErrorsSeriesQuery(
     enabled = true,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<ErrorsSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -101,7 +70,8 @@ export function useErrorsSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.ERRORS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       const {
@@ -126,7 +96,9 @@ export function useErrorsSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -134,7 +106,7 @@ export function useErrorsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
@@ -162,7 +134,7 @@ export function useErrorsSeriesQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -172,6 +144,7 @@ export function useErrorsSeriesQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -213,7 +186,7 @@ export function useErrorsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -253,7 +226,8 @@ export function useErrorsTableQuery(
   const prevRawDataRef = useRef<ErrorsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -297,7 +271,9 @@ export function useErrorsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -333,7 +309,7 @@ export function useErrorsTableQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -343,6 +319,7 @@ export function useErrorsTableQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
     })),
   });
 
@@ -389,7 +366,7 @@ export function useErrorsTableQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

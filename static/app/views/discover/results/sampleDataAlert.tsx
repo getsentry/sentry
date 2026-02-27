@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -52,7 +53,7 @@ export function SampleDataAlert({query}: {query?: string}) {
             icon={<IconClose />}
             onClick={dismiss}
             aria-label={t('Dismiss Alert')}
-            title={t('Dismiss Alert')}
+            tooltipProps={{title: t('Dismiss Alert')}}
           />
         </AlertContent>
       </Alert>

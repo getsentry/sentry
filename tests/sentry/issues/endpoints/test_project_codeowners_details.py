@@ -79,14 +79,14 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             response = self.client.put(self.url, data)
 
         # Verify our mock was called instead of making real HTTP requests
-        assert (
-            self.codeowner_mock.called
-        ), "Mock should have been called - no external HTTP requests made"
+        assert self.codeowner_mock.called, (
+            "Mock should have been called - no external HTTP requests made"
+        )
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == raw.strip()
-        codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
+        codeowner = ProjectCodeOwners.objects.get(id=self.codeowners.id)
         assert codeowner.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-10-03 00:00:00"
 
     def test_wrong_codeowners_id(self) -> None:

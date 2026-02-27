@@ -149,11 +149,7 @@ function calculateNextFocusForFilter(
       ? 'op'
       : 'value';
 
-  if (
-    definition &&
-    definition.kind === FieldKind.FUNCTION &&
-    definition.parameters?.length
-  ) {
+  if (definition?.kind === FieldKind.FUNCTION && definition.parameters?.length) {
     part = 'key';
   } else if (key === FilterType.IS || key === FilterType.HAS) {
     part = 'value';
@@ -301,11 +297,12 @@ function SearchQueryBuilderInputInternal({
     useFilterKeyListBox({
       filterValue,
     });
-  const sortedFilteredItems = useSortedFilterKeyItems({
-    filterValue,
-    inputValue,
-    includeSuggestions: true,
-  });
+  const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
+    useSortedFilterKeyItems({
+      filterValue,
+      inputValue,
+      includeSuggestions: true,
+    });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
 
@@ -438,6 +435,7 @@ function SearchQueryBuilderInputInternal({
         customMenu={customMenu}
         ref={inputRef}
         items={items}
+        isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
           if (handleOptionSelected) {

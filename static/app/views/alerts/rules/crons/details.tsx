@@ -1,15 +1,17 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
@@ -123,7 +125,7 @@ export default function MonitorDetails() {
       <Layout.Body>
         <TimezoneProvider timezone={timezoneOverride}>
           <Layout.Main>
-            <MainActions>
+            <Flex justify="between" align="center" gap="md">
               <StyledPageFilterBar condensed>
                 <DatePageFilter maxPickableDays={30} />
                 <EnvironmentPageFilter />
@@ -133,7 +135,7 @@ export default function MonitorDetails() {
                 userTimezone={userTimezone}
                 onTimezoneSelected={setTimezoneOverride}
               />
-            </MainActions>
+            </Flex>
             {monitor.status === 'disabled' && (
               <Alert.Container>
                 <Alert
@@ -191,13 +193,6 @@ export default function MonitorDetails() {
     </Layout.Page>
   );
 }
-
-const MainActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};

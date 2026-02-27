@@ -12,19 +12,31 @@ from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
 
 
+def format_no_quota_messages() -> tuple[str, str, str]:
+    """Format status check messages when quota is exhausted."""
+    title = _SIZE_ANALYZER_TITLE_BASE
+    subtitle = _("Quota exceeded")
+    summary = _("No quota available for size analysis. Contact support to increase your quota.")
+    return str(title), str(subtitle), str(summary)
+
+
 def format_status_check_messages(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     overall_status: StatusCheckStatus,
     project: Project,
+    base_artifact_map: dict[int, PreprodArtifact],
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]],
     triggered_rules: list[TriggeredRule] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
         artifacts: List of PreprodArtifact objects
-        size_metrics_map: Dict mapping artifact_id to PreprodArtifactSizeMetrics
+        size_metrics_map: Dict mapping artifact_id to list of PreprodArtifactSizeMetrics
         overall_status: The overall status of the check
         project: The project associated with the artifacts
+        base_artifact_map: Dict mapping head_artifact_id to base_artifact (pre-fetched)
+        base_metrics_by_artifact: Dict mapping base_artifact_id to list of size metrics
         triggered_rules: List of triggered rules with artifact associations
 
     Returns:
@@ -71,19 +83,31 @@ def format_status_check_messages(
         raise ValueError("No metrics exist for VCS size status check")
 
     parts = []
-    if analyzed_count > 0:
+    if analyzed_count > 0 and not triggered_rules:
         parts.append(
-            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            ngettext(
+                "%(count)d component analyzed",
+                "%(count)d components analyzed",
+                analyzed_count,
+            )
             % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            ngettext(
+                "%(count)d component processing",
+                "%(count)d components processing",
+                processing_count,
+            )
             % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            ngettext(
+                "%(count)d component errored",
+                "%(count)d components errored",
+                errored_count,
+            )
             % {"count": errored_count}
         )
 
@@ -96,20 +120,22 @@ def format_status_check_messages(
         failed_artifacts = [a for a in artifacts if a.id in failed_artifact_ids]
         passed_artifacts = [a for a in artifacts if a.id not in failed_artifact_ids]
 
-        failed_metrics_count = sum(
-            len(size_metrics_map.get(a.id, [])) or 1 for a in failed_artifacts
-        )
+        failed_checks_count = len(triggered_rules)
         failed_header = ngettext(
             "## ❌ %(count)d Failed Size Check",
             "## ❌ %(count)d Failed Size Checks",
-            failed_metrics_count,
-        ) % {"count": failed_metrics_count}
+            failed_checks_count,
+        ) % {"count": failed_checks_count}
 
         summary_parts = []
 
         # Failed apps section
         summary_parts.append(failed_header)
-        summary_parts.append(_format_artifact_summary(failed_artifacts, size_metrics_map))
+        summary_parts.append(
+            _format_artifact_summary(
+                failed_artifacts, size_metrics_map, base_artifact_map, base_metrics_by_artifact
+            )
+        )
         summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
 
         # Passed apps section (if any)
@@ -123,7 +149,11 @@ def format_status_check_messages(
                 passed_metrics_count,
             ) % {"count": passed_metrics_count}
             summary_parts.append(passed_header)
-            summary_parts.append(_format_artifact_summary(passed_artifacts, size_metrics_map))
+            summary_parts.append(
+                _format_artifact_summary(
+                    passed_artifacts, size_metrics_map, base_artifact_map, base_metrics_by_artifact
+                )
+            )
 
         # Footer link
         summary_parts.append(_format_configure_link(project, settings_url))
@@ -138,7 +168,11 @@ def format_status_check_messages(
     else:
         # Success or in-progress
         summary_parts = []
-        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map))
+        summary_parts.append(
+            _format_artifact_summary(
+                artifacts, size_metrics_map, base_artifact_map, base_metrics_by_artifact
+            )
+        )
         summary_parts.append(_format_configure_link(project, settings_url))
 
         summary = "\n\n".join(summary_parts)
@@ -149,8 +183,17 @@ def format_status_check_messages(
 def _format_artifact_summary(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+    base_artifact_map: dict[int, PreprodArtifact],
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]],
 ) -> str:
-    """Format summary for artifacts with size data."""
+    """Format summary for artifacts with size data.
+
+    Args:
+        artifacts: List of PreprodArtifact objects
+        size_metrics_map: Dict mapping artifact_id to list of PreprodArtifactSizeMetrics
+        base_artifact_map: Dict mapping head_artifact_id to base_artifact (pre-fetched)
+        base_metrics_by_artifact: Dict mapping base_artifact_id to list of size metrics
+    """
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
 
     grouped_rows: dict[str, list[str]] = {"android": [], "ios": []}
@@ -182,18 +225,18 @@ def _format_artifact_summary(
         # App version
         version_string = _format_version_string(artifact, default=str(_("Unknown")))
 
-        base_artifact = None
+        base_artifact = base_artifact_map.get(artifact.id)
         base_metrics = None
-        if (
-            size_metrics
-            and size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-        ):
-            base_artifact = artifact.get_base_artifact_for_commit().first()
-            if base_artifact:
-                base_metrics = base_artifact.get_size_metrics(
-                    metrics_artifact_type=size_metrics.metrics_artifact_type,
-                    identifier=size_metrics.identifier,
-                ).first()
+        if base_artifact and size_metrics:
+            base_metrics = next(
+                (
+                    m
+                    for m in base_metrics_by_artifact.get(base_artifact.id, [])
+                    if m.metrics_artifact_type == size_metrics.metrics_artifact_type
+                    and m.identifier == size_metrics.identifier
+                ),
+                None,
+            )
 
         # Install + Download sizes
         download_size_display, download_change, install_size_display, install_change = (
@@ -267,7 +310,7 @@ def _format_failure_summary(
             processing_text = str(_("Processing..."))
             table_rows.append(f"| {app_id_link} | {version_string} | {processing_text} |")
 
-    table = _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
+    table = _("| Name | Version | Error |\n|------|---------|-------|\n{table_rows}").format(
         table_rows="\n".join(table_rows)
     )
     return table
@@ -280,7 +323,8 @@ def _get_settings_url(
     """Build the settings URL for the project's preprod settings page."""
     base_url = f"/settings/projects/{project.slug}/mobile-builds/"
     if triggered_rules:
-        expanded_params = "&".join(f"expanded={tr.rule.id}" for tr in triggered_rules)
+        unique_rule_ids = list(dict.fromkeys(tr.rule.id for tr in triggered_rules))
+        expanded_params = "&".join(f"expanded={rule_id}" for rule_id in unique_rule_ids)
         return project.organization.absolute_url(base_url, query=expanded_params)
     return project.organization.absolute_url(base_url)
 
@@ -293,10 +337,10 @@ def _format_failed_checks_details(
     if not triggered_rules:
         return ""
 
-    # Group rules by app_id
-    rules_by_app: dict[str, list[TriggeredRule]] = {}
+    # Group rules by (app_id, build_configuration_name, platform)
+    rules_by_app: dict[tuple[str, str | None, str | None], list[TriggeredRule]] = {}
     for tr in triggered_rules:
-        app_key = tr.app_id or "Unknown"
+        app_key = (tr.app_id or "Unknown", tr.build_configuration_name, tr.platform)
         if app_key not in rules_by_app:
             rules_by_app[app_key] = []
         rules_by_app[app_key].append(tr)
@@ -309,17 +353,21 @@ def _format_failed_checks_details(
     ) % {"count": total_failed}
 
     details_content = []
-    for app_id, app_rules in rules_by_app.items():
-        platform = app_rules[0].platform if app_rules else None
+    for (app_id, config_name, platform), app_rules in rules_by_app.items():
         platform_text = f" ({platform})" if platform else ""
-        details_content.append(f"`{app_id}`{platform_text}")
+        config_text = f" | {config_name}" if config_name else ""
+        details_content.append(f"`{app_id}`{config_text}{platform_text}")
 
         for tr in app_rules:
             metric_display = _get_metric_display_name(tr.rule.metric)
             measurement_display = _get_measurement_display_name(tr.rule.measurement)
             threshold_display = _format_threshold_value(tr.rule.value, tr.rule.measurement)
+            artifact_type_display = _get_triggered_metric_type_display_name(
+                tr.metrics_artifact_type, tr.identifier
+            )
+            artifact_type_suffix = f" — {artifact_type_display}" if artifact_type_display else ""
             details_content.append(
-                f"- **{metric_display} - {measurement_display}** ≥ **{threshold_display}**"
+                f"- **{metric_display} ({measurement_display})** > **{threshold_display}**{artifact_type_suffix}"
             )
 
     return (
@@ -442,8 +490,29 @@ def _get_size_metric_type_display_name(
             return "Watch"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return None
+
+
+def _get_triggered_metric_type_display_name(
+    metric_type: PreprodArtifactSizeMetrics.MetricsArtifactType | int | None,
+    identifier: str | None,
+) -> str:
+    match metric_type:
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT:
+            return "Main App"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT:
+            return "Watch App"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
+            if identifier:
+                return f"Dynamic Feature ({identifier})"
+            return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
+        case _:
+            return ""
 
 
 def _create_sorted_artifact_metric_rows(

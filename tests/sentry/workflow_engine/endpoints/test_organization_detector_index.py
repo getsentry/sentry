@@ -191,7 +191,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert response.data == {"id": ["Invalid ID format"]}
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
@@ -254,6 +255,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         ]
 
     def test_sort_by_latest_group(self) -> None:
+        # delete the project default detectors as they cause flaky sorting results
+        self.error_detector.delete()
+        self.issue_stream_detector.delete()
+
         detector_1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug
         )
@@ -276,7 +281,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         detector_group_1.date_added = before_now(hours=3)
         detector_group_1.save()
 
-        # detector_2 has the newest grbefore_now
+        # detector_2 has the newest group
         detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
         detector_group_2.date_added = before_now(hours=1)  # Most recent
         detector_group_2.save()
@@ -294,8 +299,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             detector_2.name,
             detector_3.name,
             detector_1.name,
-            self.error_detector.name,
-            self.issue_stream_detector.name,
             detector_4.name,  # No groups, should be last
         ]
 
@@ -304,8 +307,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
         )
         assert [d["name"] for d in response2.data] == [
-            self.error_detector.name,
-            self.issue_stream_detector.name,
             detector_4.name,  # No groups, should be first
             detector_1.name,
             detector_3.name,
@@ -1186,7 +1187,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         for i in range(5):
             self.create_detector(
                 project=self.project,
-                name=f"Existing Detector {i+1}",
+                name=f"Existing Detector {i + 1}",
                 type=MetricIssue.slug,
                 status=ObjectStatus.ACTIVE,
             )
@@ -1264,6 +1265,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         Test that members cannot assign a team they are not a member of as owner.
         This is a regression test for an IDOR vulnerability.
         """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         other_team = self.create_team(organization=self.organization, name="other-team")
 
         user_with_team = self.create_user(is_superuser=False)
@@ -1281,7 +1285,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert response.data == {"owner": ["You do not have permission to assign this owner"]}
+        assert response.data == {"owner": ["You can only assign teams you are a member of"]}
 
     def test_owner_team_member_allowed(self) -> None:
         """
@@ -1319,6 +1323,33 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             teams=[self.team],
         )
         self.login_as(admin_user)
+
+        data = {**self.valid_data, "owner": f"team:{other_team.id}"}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.owner_team_id == other_team.id
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
 
         data = {**self.valid_data, "owner": f"team:{other_team.id}"}
         response = self.get_success_response(
@@ -1482,7 +1513,8 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_update_detectors_no_matching_detectors(self) -> None:
         response = self.get_error_response(
@@ -1809,7 +1841,8 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_delete_detectors_filtering_ignored_with_ids(self) -> None:
         # Other project detector

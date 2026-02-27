@@ -169,6 +169,10 @@ const restrictedImportPaths = [
     message:
       'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
   },
+  {
+    name: '@tanstack/react-form',
+    message: 'Use @sentry/scraps/form instead',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -452,8 +456,57 @@ export default typescript.config([
     name: 'plugin/@sentry/scraps',
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
+      '@sentry/scraps/no-core-import': 'error',
       '@sentry/scraps/no-token-import': 'error',
-      '@sentry/scraps/use-semantic-token': 'off',
+      '@sentry/scraps/use-semantic-token': [
+        'error',
+        {enabledCategories: ['background', 'border', 'content']},
+      ],
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'error',
+        {
+          slots: [
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuFooter'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.CTAButton',
+                    'MenuComponents.CTALinkButton',
+                    'MenuComponents.ApplyButton',
+                    'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
   },
   {
@@ -619,7 +672,6 @@ export default typescript.config([
       // Stylistic overrides
       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
@@ -1091,11 +1143,7 @@ export default typescript.config([
           type: 'test',
           pattern: 'tests/js',
         },
-        // --- specifics ---
-        {
-          type: 'core-button',
-          pattern: 'static/app/components/core/button',
-        },
+        // --- scraps core components ---
         {
           type: 'core',
           pattern: 'static/app/components/core',
@@ -1234,14 +1282,30 @@ export default typescript.config([
               allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
-            {
-              from: ['core-button'],
-              allow: ['core*'],
-            },
             // todo: sentry* shouldn't be allowed
             {
               from: ['core'],
               allow: ['core*', 'sentry*'],
+            },
+          ],
+        },
+      ],
+      'boundaries/entry-point': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              target: ['core'],
+              allow: [
+                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
+                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
+                '**/*.png', // needed for story-files
+              ],
+            },
+            {
+              target: ['!core'],
+              allow: '**/*',
             },
           ],
         },

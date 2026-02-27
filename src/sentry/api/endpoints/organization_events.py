@@ -106,12 +106,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
@@ -200,15 +197,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-        )
-
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
         except ValueError:
@@ -240,7 +228,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
-        debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -274,13 +261,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=use_aggregate_conditions,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
-                has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                has_metrics=True,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 fallback_to_transactions=True,
                 query_source=query_source,
-                debug=debug,
             )
 
         @sentry_sdk.tracing.trace

@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
 from sentry.api.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -69,7 +70,6 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
-from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
@@ -520,12 +520,16 @@ from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
+from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_explorer_pr_groups import (
+    OrganizationSeerExplorerPRGroupsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_explorer_runs import (
     OrganizationSeerExplorerRunsEndpoint,
@@ -595,6 +599,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -607,6 +612,9 @@ from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
 from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
     OrganizationUptimeAlertPreviewCheckEndpoint,
 )
+from sentry.uptime.endpoints.organization_uptime_assertion_suggestions import (
+    OrganizationUptimeAssertionSuggestionsEndpoint,
+)
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -614,6 +622,12 @@ from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
 )
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.uptime.endpoints.project_uptime_response_capture import (
+    ProjectUptimeResponseCaptureEndpoint,
+)
+from sentry.uptime.endpoints.project_uptime_response_captures_index import (
+    ProjectUptimeResponseCapturesIndexEndpoint,
+)
 from sentry.uptime.endpoints.uptime_ips import UptimeIpsEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
@@ -663,7 +677,6 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -826,7 +839,6 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,
     RelayHealthCheck,
-    RelayIndexEndpoint,
     RelayProjectConfigsEndpoint,
     RelayPublicKeysEndpoint,
     RelayRegisterChallengeEndpoint,
@@ -1090,11 +1102,6 @@ RELOCATION_URLS = [
 ]
 
 RELAY_URLS = [
-    re_path(
-        r"^$",
-        RelayIndexEndpoint.as_view(),
-        name="sentry-api-0-relays-index",
-    ),
     re_path(
         r"^register/challenge/$",
         RelayRegisterChallengeEndpoint.as_view(),
@@ -2154,6 +2161,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationSearchesEndpoint.as_view(),
         name="sentry-api-0-organization-searches",
     ),
+    # DSN Lookup
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dsn-lookup/$",
+        DsnLookupEndpoint.as_view(),
+        name="sentry-api-0-organization-dsn-lookup",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
@@ -2346,6 +2359,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-trace-explorer-ai-query",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issue-view-title/generate/$",
+        IssueViewTitleGenerateEndpoint.as_view(),
+        name="sentry-api-0-issue-view-title-generate",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/search-agent/translate/$",
         SearchAgentTranslateEndpoint.as_view(),
         name="sentry-api-0-search-agent-translate",
@@ -2361,14 +2379,24 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-search-agent-state",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/$",
         OrganizationSeerExplorerChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
+        OrganizationSeerExplorerChatEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
         OrganizationSeerExplorerRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-runs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-pr-groups/$",
+        OrganizationSeerExplorerPRGroupsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-pr-groups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
@@ -2587,18 +2615,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
             ],
         ),
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dynamic-sampling/",
-        include(
-            [
-                re_path(
-                    r"^custom-rules/$",
-                    CustomRulesEndpoint.as_view(),
-                    name="sentry-api-0-organization-dynamic_sampling-custom_rules",
-                ),
-            ],
-        ),
-    ),
     # Symbolicator Builtin Sources
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/builtin-symbol-sources/$",
@@ -2642,6 +2658,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-preview-check/$",
         OrganizationUptimeAlertPreviewCheckEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-preview-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-assertion-suggestions/$",
+        OrganizationUptimeAssertionSuggestionsEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-assertion-suggestions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-count/$",
@@ -3290,6 +3311,16 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/checks/$",
         ProjectUptimeAlertCheckIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-checks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/response-captures/(?P<capture_id>[^/]+)/$",
+        ProjectUptimeResponseCaptureEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-response-capture",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/response-captures/$",
+        ProjectUptimeResponseCapturesIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-response-captures-index",
     ),
     # Tempest
     re_path(

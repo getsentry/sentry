@@ -1,13 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
@@ -151,14 +151,15 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         <StyledCompactSelect
           id="version"
           clearable
-          searchable
-          disableSearchFilter
+          search={{
+            placeholder: t('Search versions'),
+            filter: false,
+            onChange: setSearchQuery,
+          }}
           options={options}
           value={version}
           loading={isFetching}
-          searchPlaceholder={t('Search versions')}
           emptyMessage={isFetching ? t('Loading releases\u2026') : t('No releases found')}
-          onSearch={setSearchQuery}
           onChange={option => {
             setVersion(option?.value ? String(option.value) : '');
             setSelectionError(null);

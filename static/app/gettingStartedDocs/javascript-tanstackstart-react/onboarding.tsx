@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -113,6 +114,13 @@ export const getRouter = () => {
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,`
           : ''
+      }${
+        params.isLogsSelected
+          ? `
+
+      // Enable logs to be sent to Sentry
+      enableLogs: true,`
+          : ''
       }
     });
   }
@@ -152,6 +160,13 @@ Sentry.init({
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
       : ''
   }
 });`,
@@ -217,7 +232,7 @@ export default createServerEntry(
               language: 'typescript',
               filename: 'vite.config.ts',
               code: `import { defineConfig } from "vite";
-import { sentryTanstackStart } from "@sentry/tanstackstart-react";
+import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 export default defineConfig({
@@ -297,8 +312,38 @@ export default defineConfig({
         {
           type: 'text',
           text: tct(
-            'Sentry automatically captures unhandled client-side errors. On the server side of TanStack Start, automatic error monitoring is not yet supported. Use [code:captureException] to manually capture errors in your server-side code.',
+            "To capture server-side errors from HTTP requests and server function invocations, add Sentry's global middlewares to [code:createStart()] in your [code:src/start.ts] file:",
             {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'src/start.ts',
+              code: `import {
+  sentryGlobalFunctionMiddleware,
+  sentryGlobalRequestMiddleware,
+} from "@sentry/tanstackstart-react";
+import { createStart } from "@tanstack/react-start";
+
+export const startInstance = createStart(() => {
+  return {
+    requestMiddleware: [sentryGlobalRequestMiddleware],
+    functionMiddleware: [sentryGlobalFunctionMiddleware],
+  };
+});`,
+            },
+          ],
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          showIcon: false,
+          text: t(
+            'The Sentry middleware should be the first middleware in the arrays to ensure all errors are captured. SSR rendering exceptions are not captured by the middleware. Use captureException to manually capture those errors.'
           ),
         },
         {

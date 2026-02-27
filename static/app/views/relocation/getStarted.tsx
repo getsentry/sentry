@@ -2,9 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';

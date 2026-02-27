@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {isIssueQuickFixable} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';

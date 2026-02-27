@@ -15,6 +15,7 @@ from sentry import eventstream, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
@@ -176,7 +177,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("projects:similarity-indexing")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record) -> None:
-        now = before_now(minutes=5).replace(microsecond=0)
+        # Replace second=0 to ensure all 17 events (now+0s to now+17s)
+        # stay within the same hour bucket. Without this, if now is within
+        # 17 seconds of an hour boundary, events can cross into the next
+        # bucket causing count mismatches.
+        now = before_now(minutes=5).replace(second=0, microsecond=0)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
@@ -260,7 +265,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         events.setdefault(get_fingerprint(event), []).append(event)
 
-        merge_source, source, destination = list(Group.objects.all())
+        merge_source, source, destination = list(Group.objects.all().order_by("id"))
 
         assert len(events) == 3
         assert sum(len(x) for x in events.values()) == 17
@@ -345,6 +350,25 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ) == {
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
+        }
+
+        staging_environment = Environment.objects.get(
+            organization_id=project.organization_id, name="staging"
+        )
+
+        assert set(
+            GroupEnvironment.objects.filter(group_id=source.id).values_list(
+                "environment_id", "first_seen"
+            )
+        ) == {(production_environment.id, time_from_now(10))}
+
+        assert set(
+            GroupEnvironment.objects.filter(group_id=destination.id).values_list(
+                "environment_id", "first_seen"
+            )
+        ) == {
+            (production_environment.id, time_from_now(0)),
+            (staging_environment.id, time_from_now(16)),
         }
 
         rollup_duration = 3600

@@ -62,7 +62,8 @@ class OwnerActorFieldTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Create a second team that self.user is NOT a member of
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
         self.other_team = self.create_team(organization=self.organization, name="other-team")
 
     def test_accepts_user_owner_without_restriction(self) -> None:
@@ -109,7 +110,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -140,7 +141,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -161,7 +162,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -210,7 +211,41 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
+                    code="invalid",
+                )
+            ]
+        }
+
+    def test_open_team_membership_allows_any_team_assignment(self) -> None:
+        """When Open Team Membership is enabled, users can assign any team."""
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        request = self.make_request(user=self.user)
+        serializer = DummyOwnerSerializer(
+            data={"owner": f"team:{self.other_team.id}"},
+            context={"organization": self.organization, "request": request},
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["owner"].id == self.other_team.id
+        assert serializer.validated_data["owner"].is_team
+
+    def test_open_team_membership_disabled_requires_membership(self) -> None:
+        """When Open Team Membership is disabled, membership validation applies."""
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        request = self.make_request(user=self.user)
+        serializer = DummyOwnerSerializer(
+            data={"owner": f"team:{self.other_team.id}"},
+            context={"organization": self.organization, "request": request},
+        )
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "owner": [
+                ErrorDetail(
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]

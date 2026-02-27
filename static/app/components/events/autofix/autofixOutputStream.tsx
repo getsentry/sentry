@@ -3,10 +3,11 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
@@ -135,8 +136,7 @@ function ActiveLogDisplay({
   const erroredStepIndex = erroredStep?.index ?? 0;
   let retainInsightCardIndex: number | null = null;
   if (
-    erroredStep &&
-    erroredStep.type === AutofixStepType.DEFAULT &&
+    erroredStep?.type === AutofixStepType.DEFAULT &&
     Array.isArray((erroredStep as any).insights)
   ) {
     const insights = (erroredStep as any).insights;
@@ -159,9 +159,9 @@ function ActiveLogDisplay({
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('Retry step')}
-          title={t('Retry step')}
+          tooltipProps={{title: t('Retry step')}}
           onClick={() =>
             refreshStep({
               message: '',
@@ -328,7 +328,7 @@ export function AutofixOutputStream({
               />
               <StyledButton
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
@@ -386,7 +386,7 @@ const Container = styled(motion.div)<{required: boolean}>`
         ${p =>
             p.required
               ? p.theme.colors.pink500
-              : p.theme.tokens.interactive.link.accent.active}
+              : p.theme.tokens.background.accent.vibrant}
           12.5%,
         transparent
       ),

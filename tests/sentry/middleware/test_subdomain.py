@@ -19,7 +19,6 @@ from sentry.testutils.silo import no_silo_test
 
 class SubdomainMiddlewareTest(TestCase):
     def test_attaches_subdomain_attribute(self) -> None:
-
         options = {
             "system.base-hostname": "us.dev.getsentry.net:8000",
         }

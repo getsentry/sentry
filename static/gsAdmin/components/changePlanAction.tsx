@@ -2,13 +2,14 @@ import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
@@ -17,6 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -54,10 +56,18 @@ function ChangePlanAction({
     data: configs,
     isPending,
     isError,
-  } = useApiQuery<BillingConfig>([`/customers/${orgId}/billing-config/?tier=all`], {
-    // TODO(isabella): pass billing config from customerDetails
-    staleTime: Infinity,
-  });
+  } = useApiQuery<BillingConfig>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+        path: {organizationIdOrSlug: orgId},
+      }),
+      {query: {tier: 'all'}},
+    ],
+    {
+      // TODO(isabella): pass billing config from customerDetails
+      staleTime: Infinity,
+    }
+  );
 
   const planList = useMemo(
     () =>

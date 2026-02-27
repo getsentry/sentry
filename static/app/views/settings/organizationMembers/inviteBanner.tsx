@@ -2,7 +2,9 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
@@ -10,9 +12,6 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
@@ -187,7 +186,7 @@ export function InviteBanner({
               />
             </Subtitle>
           </Stack>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               priority="primary"
               size="xs"
@@ -206,7 +205,7 @@ export function InviteBanner({
                 'aria-label': t('Actions'),
               }}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <Carousel>
           <MemberCards

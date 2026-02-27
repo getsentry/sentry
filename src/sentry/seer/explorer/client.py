@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Literal
+from datetime import datetime
+from typing import Any, Literal, overload
 
 import orjson
-import requests
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
+from rest_framework.request import Request
 
+from sentry import features
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
+from sentry.models.project import Project
+from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
+    explorer_connection_pool,
     fetch_run_status,
-    has_seer_explorer_access_with_detail,
     poll_until_done,
 )
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
@@ -24,8 +26,9 @@ from sentry.seer.explorer.on_completion_hook import (
     ExplorerOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.models import SeerPermissionError
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access_with_detail
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -163,19 +166,21 @@ class SeerExplorerClient:
         Args:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            project: Optional project for project-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
-            enable_coding: Enable code editing tools. When disabled, the agent cannot make code changes. Default is False.
+            enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
     """
 
     def __init__(
         self,
         organization: Organization,
         user: User | AnonymousUser | None = None,
+        project: Project | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
         custom_tools: list[type[ExplorerTool[Any]]] | None = None,
@@ -186,12 +191,17 @@ class SeerExplorerClient:
     ):
         self.organization = organization
         self.user = user
+        self.project = project
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+
+        if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
+            raise SeerPermissionError("Seer coding is not enabled for this organization")
+
         self.enable_coding = enable_coding
 
         # Validate that category_key and category_value are provided together
@@ -200,20 +210,20 @@ class SeerExplorerClient:
         if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
-        # Validate access on init
-        has_access, error = has_seer_explorer_access_with_detail(organization, user)
+        # Validate base Seer access on init (Explorer-specific flag checks are done at the endpoint level)
+        has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
     def start_run(
         self,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        conduit_channel_id: str | None = None,
-        conduit_url: str | None = None,
+        request: Request | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -224,14 +234,13 @@ class SeerExplorerClient:
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
-            conduit_channel_id: Optional Conduit channel ID for streaming
-            conduit_url: Optional Conduit URL for streaming
+            request: Optional rest_framework Request object from endpoints.
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
@@ -245,11 +254,19 @@ class SeerExplorerClient:
             "run_id": None,
             "insert_index": None,
             "on_page_context": on_page_context,
-            "user_org_context": collect_user_org_context(self.user, self.organization),
+            "user_org_context": collect_user_org_context(
+                self.user, self.organization, request=request
+            ),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
         }
+
+        if self.project:
+            payload["project_id"] = self.project.id
+
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
@@ -273,23 +290,21 @@ class SeerExplorerClient:
         if metadata:
             payload["metadata"] = metadata
 
-        # Add conduit params for streaming if provided
-        if conduit_channel_id and conduit_url:
-            payload["conduit_channel_id"] = conduit_channel_id
-            payload["conduit_url"] = conduit_url
+        if features.has(
+            "organizations:seer-explorer-context-engine", self.organization, actor=self.user
+        ):
+            payload["is_context_engine_enabled"] = True
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            explorer_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
         result = response.json()
         return result["run_id"]
 
@@ -297,12 +312,11 @@ class SeerExplorerClient:
         self,
         run_id: int,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
-        conduit_channel_id: str | None = None,
-        conduit_url: str | None = None,
     ) -> int:
         """
         Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
@@ -314,14 +328,12 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key for a new artifact to generate in this step
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
-            conduit_channel_id: Optional Conduit channel ID for streaming
-            conduit_url: Optional Conduit URL for streaming
 
         Returns:
             int: The run ID (same as input)
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
@@ -339,28 +351,31 @@ class SeerExplorerClient:
             "enable_coding": self.enable_coding,
         }
 
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
+
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
 
-        # Add conduit params for streaming if provided
-        if conduit_channel_id and conduit_url:
-            payload["conduit_channel_id"] = conduit_channel_id
-            payload["conduit_url"] = conduit_url
+        if features.has(
+            "organizations:seer-explorer-context-engine",
+            self.organization,
+            actor=self.user,
+        ):
+            payload["is_context_engine_enabled"] = True
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            explorer_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
         result = response.json()
         return result["run_id"]
 
@@ -384,7 +399,7 @@ class SeerExplorerClient:
             SeerRunState: State object with blocks, status, and reconstructed artifacts.
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
             TimeoutError: If polling exceeds poll_timeout when blocking=True
         """
         if blocking:
@@ -394,30 +409,63 @@ class SeerExplorerClient:
 
         return state
 
+    @overload
+    def get_runs(
+        self,
+        category_key: str | None = ...,
+        category_value: str | None = ...,
+        offset: int | None = ...,
+        limit: int | None = ...,
+        project_ids: list[int] | None = ...,
+        expand: Literal["prs"] = ...,
+        only_current_user: bool = ...,
+        start: datetime | None = ...,
+        end: datetime | None = ...,
+    ) -> list[ExplorerRunWithPrs]: ...
+
+    @overload
+    def get_runs(
+        self,
+        category_key: str | None = ...,
+        category_value: str | None = ...,
+        offset: int | None = ...,
+        limit: int | None = ...,
+        project_ids: list[int] | None = ...,
+        expand: None = ...,
+        only_current_user: bool = ...,
+        start: datetime | None = ...,
+        end: datetime | None = ...,
+    ) -> list[ExplorerRun]: ...
+
     def get_runs(
         self,
         category_key: str | None = None,
         category_value: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-    ) -> list[ExplorerRun]:
+        project_ids: list[int] | None = None,
+        expand: Literal["prs"] | None = None,
+        only_current_user: bool = True,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> list[ExplorerRunWithPrs] | list[ExplorerRun]:
         """
         Get a list of Seer Explorer runs for the organization with optional filters.
-
-        This function supports flexible filtering by user_id (from client), category_key,
-        or category_value. At least one filter should be provided to avoid returning all runs.
 
         Args:
             category_key: Optional category key to filter by (e.g., "bug-fixer")
             category_value: Optional category value to filter by (e.g., "issue-123")
             offset: Optional offset for pagination
             limit: Optional limit for pagination
+            expand: Optional string to include additional fields
+            only_current_user: Optional to filter runs by current user
 
         Returns:
-            list[ExplorerRun]: List of runs matching the filters, sorted by most recent first
+            List of runs matching the filters, sorted by most recent first.
+            Returns ExplorerRunWithPrs when expand="prs", ExplorerRun otherwise.
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
         """
         path = "/v1/automation/explorer/runs"
 
@@ -426,7 +474,7 @@ class SeerExplorerClient:
         }
 
         # Add optional filters
-        if self.user and hasattr(self.user, "id"):
+        if only_current_user and self.user and hasattr(self.user, "id"):
             payload["user_id"] = self.user.id
         if category_key is not None:
             payload["category_key"] = category_key
@@ -434,24 +482,31 @@ class SeerExplorerClient:
             payload["category_value"] = category_value
         if offset is not None:
             payload["offset"] = offset
+        if project_ids is not None:
+            payload["project_ids"] = project_ids
         if limit is not None:
             payload["limit"] = limit
+        if expand is not None:
+            payload["expand"] = expand
+        if start is not None:
+            payload["start"] = start
+        if end is not None:
+            payload["end"] = end
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            explorer_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
         result = response.json()
 
-        runs = [ExplorerRun(**run) for run in result.get("data", [])]
+        Model = ExplorerRunWithPrs if expand == "prs" else ExplorerRun
+        runs = [Model(**run) for run in result.get("data", [])]
         return runs
 
     def push_changes(
@@ -478,7 +533,7 @@ class SeerExplorerClient:
 
         Raises:
             TimeoutError: If polling exceeds timeout
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
         """
         # Trigger PR creation
         path = "/v1/automation/explorer/update"
@@ -491,15 +546,13 @@ class SeerExplorerClient:
             },
         }
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            explorer_connection_pool,
+            path,
+            body,
         )
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         # Poll until PR creation completes
         start_time = time.time()

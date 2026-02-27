@@ -43,42 +43,44 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     historical_timestamp_2 = (four_weeks_ago + timedelta(days=10)).timestamp()
     current_timestamp_1 = one_week_ago.timestamp()
     current_timestamp_2 = (one_week_ago + timedelta(minutes=10)).timestamp()
-    data = {
-        "project_id": 1,
-        "config": config,
-        "historical_data": [
-            [historical_timestamp_1, {"count": 5}],
-            [historical_timestamp_2, {"count": 7}],
-        ],
-        "current_data": [
-            [current_timestamp_1, {"count": 2}],
-            [current_timestamp_2, {"count": 3}],
-        ],
-    }
 
-    # for logging
-    context = DetectHistoricalAnomaliesContext(
-        history=[
-            TimeSeriesPoint(
-                timestamp=historical_timestamp_1,
-                value=5,
-            ),
-            TimeSeriesPoint(
-                timestamp=historical_timestamp_2,
-                value=7,
-            ),
-        ],
-        current=[
-            TimeSeriesPoint(
-                timestamp=current_timestamp_1,
-                value=2,
-            ),
-            TimeSeriesPoint(
-                timestamp=current_timestamp_2,
-                value=3,
-            ),
-        ],
-    )
+    def get_test_data(self, project_id: int) -> dict:
+        return {
+            "project_id": str(project_id),  # UI provides project_id as str
+            "config": self.config,
+            "historical_data": [
+                [self.historical_timestamp_1, {"count": 5}],
+                [self.historical_timestamp_2, {"count": 7}],
+            ],
+            "current_data": [
+                [self.current_timestamp_1, {"count": 2}],
+                [self.current_timestamp_2, {"count": 3}],
+            ],
+        }
+
+    def get_context(self) -> DetectHistoricalAnomaliesContext:
+        return DetectHistoricalAnomaliesContext(
+            history=[
+                TimeSeriesPoint(
+                    timestamp=self.historical_timestamp_1,
+                    value=5,
+                ),
+                TimeSeriesPoint(
+                    timestamp=self.historical_timestamp_2,
+                    value=7,
+                ),
+            ],
+            current=[
+                TimeSeriesPoint(
+                    timestamp=self.current_timestamp_1,
+                    value=2,
+                ),
+                TimeSeriesPoint(
+                    timestamp=self.current_timestamp_2,
+                    value=3,
+                ),
+            ],
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -86,7 +88,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_simple(self, mock_seer_request: MagicMock) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
         seer_return_value = DetectAnomaliesResponse(
@@ -107,9 +108,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         )
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_success_response(
-                self.organization.slug, status_code=200, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=200, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -123,11 +125,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     def test_member_permission(self, mock_seer_request: MagicMock) -> None:
         """Test that even a member (lowest permissions) can access this endpoint"""
         user = self.create_user(is_superuser=False)
-        member = self.create_member(
-            user=user, organization=self.organization, role="member", teams=[]
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
         )
-        self.create_team(organization=self.organization, members=[member])
-        self.login_as(member)
+        self.login_as(user)
 
         seer_return_value = DetectAnomaliesResponse(
             success=True,
@@ -147,9 +148,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         )
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_success_response(
-                self.organization.slug, status_code=200, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=200, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -162,7 +164,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     )
     def test_not_enough_historical_data(self, mock_seer_request: MagicMock) -> None:
         data = {
-            "project_id": 1,
+            "project_id": self.project.id,
             "config": self.config,
             "historical_data": [
                 [self.historical_timestamp_1, {"count": 5}],
@@ -172,7 +174,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
                 [self.current_timestamp_2, {"count": 3}],
             ],
         }
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
         with outbox_runner():
@@ -192,12 +193,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
     def test_timeout_error(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.side_effect = TimeoutError
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_error_response(
-                self.organization.slug, status_code=400, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=400, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -205,12 +206,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             "Timeout error when hitting anomaly detection endpoint",
             extra={
                 "organization_id": self.organization.id,
-                "project_id": 1,
+                "project_id": self.project.id,
                 "config": self.config,
-                "context": self.context,
+                "context": self.get_context(),
             },
         )
-        assert resp.data == "Unable to get historical anomaly data"
+        assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -220,12 +221,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
     def test_attribute_error(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse(None, status=400)  # type:ignore[arg-type]
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_error_response(
-                self.organization.slug, status_code=400, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=400, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -233,14 +234,14 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             "Failed to parse Seer anomaly detection response",
             extra={
                 "organization_id": self.organization.id,
-                "project_id": 1,
+                "project_id": self.project.id,
                 "config": self.config,
-                "context": self.context,
+                "context": self.get_context(),
                 "response_data": None,
                 "response_code": 400,
             },
         )
-        assert resp.data == "Unable to get historical anomaly data"
+        assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -250,12 +251,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
     def test_seer_error(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_error_response(
-                self.organization.slug, status_code=400, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=400, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -265,12 +266,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
                 "response_data": "Bad stuff",
                 "response_code": 500,
                 "organization_id": self.organization.id,
-                "project_id": 1,
+                "project_id": self.project.id,
                 "config": self.config,
-                "context": self.context,
+                "context": self.get_context(),
             },
         )
-        assert resp.data == "Unable to get historical anomaly data"
+        assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -285,12 +286,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             ),
             status=200,
         )
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_error_response(
-                self.organization.slug, status_code=400, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=400, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -299,12 +300,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             extra={
                 "response_data": "I have revolted against my human overlords",
                 "organization_id": self.organization.id,
-                "project_id": 1,
+                "project_id": self.project.id,
                 "config": self.config,
-                "context": self.context,
+                "context": self.get_context(),
             },
         )
-        assert resp.data == "Unable to get historical anomaly data"
+        assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -317,12 +318,12 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             orjson.dumps({"success": True, "message": "moo deng is cute", "timeseries": []}),
             status=200,
         )
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
+        data = self.get_test_data(self.project.id)
         with outbox_runner():
             resp = self.get_error_response(
-                self.organization.slug, status_code=400, raw_data=orjson.dumps(self.data)
+                self.organization.slug, status_code=400, raw_data=orjson.dumps(data)
             )
 
         assert mock_seer_request.call_count == 1
@@ -330,10 +331,41 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             "Seer anomaly detection response returned no potential anomalies",
             extra={
                 "organization_id": self.organization.id,
-                "project_id": 1,
+                "project_id": self.project.id,
                 "response_data": "moo deng is cute",
                 "config": self.config,
-                "context": self.context,
+                "context": self.get_context(),
             },
         )
-        assert resp.data == "Unable to get historical anomaly data"
+        assert resp.data == {"detail": "Unable to get historical anomaly data"}
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_rejects_project_not_in_organization(self) -> None:
+        """Test that POST fails when project doesn't belong to the organization"""
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+
+        self.login_as(self.user)
+
+        data = self.get_test_data(other_project.id)
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug, status_code=403, raw_data=orjson.dumps(data)
+            )
+
+        assert resp.data == {"detail": "You do not have permission to perform this action."}
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_rejects_nonexistent_project(self) -> None:
+        """Test that POST fails when project doesn't exist"""
+        self.login_as(self.user)
+
+        data = self.get_test_data(999999)
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug, status_code=403, raw_data=orjson.dumps(data)
+            )
+
+        assert resp.data == {"detail": "You do not have permission to perform this action."}

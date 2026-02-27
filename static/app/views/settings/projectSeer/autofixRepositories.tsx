@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';

@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -86,6 +87,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultCategoryField: 'transaction',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
@@ -104,6 +106,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.AREA,
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,

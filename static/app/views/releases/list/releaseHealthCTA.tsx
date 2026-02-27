@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
