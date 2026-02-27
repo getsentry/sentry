@@ -32,6 +32,8 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +132,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     name="sentry.tasks.context_engine_index.build_service_map",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
+    retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
 def build_service_map(organization_id: int, *args, **kwargs) -> None:
     """
@@ -193,11 +196,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
     except Organization.DoesNotExist:
         logger.error("Organization not found", extra={"org_id": organization_id})
-    except Exception:
-        logger.exception(
-            "Failed to build service map",
-            extra={"org_id": organization_id},
-        )
+        return
 
 
 @instrumented_task(

@@ -1200,7 +1200,12 @@ register(
     default=500,
     type=Int,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    ttl=60 * 5,
+)
+register(
+    "explorer.service_map.parent_span_batch_size",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.similarity.global-rate-limit",

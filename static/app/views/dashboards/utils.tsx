@@ -25,12 +25,14 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
+  ABYTE_UNITS,
   getAggregateAlias,
   getAggregateArg,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
   RateUnit,
+  SIZE_UNIT_MULTIPLIERS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -110,6 +112,13 @@ export function getThresholdUnitSelectOptions(
     }));
   }
 
+  if (dataType === 'size') {
+    return Object.values(ABYTE_UNITS).map(unit => ({
+      label: unit,
+      value: unit,
+    }));
+  }
+
   return [];
 }
 
@@ -121,7 +130,10 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
       : dataType === 'duration'
         ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           DURATION_UNITS[unit]
-        : 1;
+        : dataType === 'size'
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            SIZE_UNIT_MULTIPLIERS[unit]
+          : 1;
   return value * multiplier;
 }
 
