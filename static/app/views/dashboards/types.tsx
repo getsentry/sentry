@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -143,6 +144,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  axisRange?: AxisRange;
   changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
