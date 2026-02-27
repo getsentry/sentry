@@ -83,10 +83,10 @@ def main() -> int:
     print("Resolving org and project IDs...")
     org = api_request("GET", f"{SENTRY_URL}/api/0/organizations/{org_slug}/", auth_token)
     org_id = org["id"]
-    projects = api_request(
-        "GET", f"{SENTRY_URL}/api/0/organizations/{org_slug}/projects/", auth_token
+    project = api_request(
+        "GET", f"{SENTRY_URL}/api/0/projects/{org_slug}/{project_slug}/", auth_token
     )
-    project_id = next(p["id"] for p in projects if p["slug"] == project_slug)
+    project_id = project["id"]
     print(f"Org={org_id} Project={project_id}")
 
     print(f"\nUploading images from {snapshot_dir}...")
