@@ -67,7 +67,9 @@ def categorize_comparison_images(
                         base_image=base_img or _base_image_from_comparison(name, img),
                         head_image=head_img,
                         diff_image_key=img.diff_mask_image_id,
-                        diff=img.changed_pixels / img.total_pixels if img.total_pixels else None,
+                        diff=img.changed_pixels / img.total_pixels
+                        if img.changed_pixels is not None and img.total_pixels
+                        else None,
                     )
                 )
         elif img.status == "added":

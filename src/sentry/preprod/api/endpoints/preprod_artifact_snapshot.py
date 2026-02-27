@@ -180,7 +180,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         },
                     )
 
-        if comparison_manifest is not None:
+        if comparison_manifest is not None and comparison is not None:
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
