@@ -678,6 +678,123 @@ describe('EventsRequest', () => {
       );
     });
 
+    it('passes timeseriesResultsUnits to child for single yAxis', async () => {
+      (doEventsRequest as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ]]],
+          start: 1627402280,
+          end: 1627402398,
+          meta: {
+            fields: {
+              p95_measurements_custom: 'size',
+            },
+            units: {
+              p95_measurements_custom: 'kibibyte',
+            },
+          },
+        })
+      );
+      render(
+        <EventsRequest {...DEFAULTS} yAxis="p95(measurements.custom)">
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            timeseriesResultsTypes: {'p95(measurements.custom)': 'size'},
+            timeseriesResultsUnits: {'p95(measurements.custom)': 'kibibyte'},
+          })
+        )
+      );
+    });
+
+    it('passes timeseriesResultsUnits to child for multiple yAxis', async () => {
+      (doEventsRequest as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          'p95(measurements.custom)': {
+            data: [[new Date(), [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+            meta: {
+              fields: {
+                p95_measurements_custom: 'size',
+              },
+              units: {
+                p95_measurements_custom: 'kibibyte',
+              },
+            },
+          },
+          'p50(measurements.lcp)': {
+            data: [[new Date(), [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+            meta: {
+              fields: {
+                p50_measurements_lcp: 'duration',
+              },
+              units: {
+                p50_measurements_lcp: 'millisecond',
+              },
+            },
+          },
+        })
+      );
+      render(
+        <EventsRequest
+          {...DEFAULTS}
+          yAxis={['p95(measurements.custom)', 'p50(measurements.lcp)']}
+        >
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            timeseriesResultsTypes: {
+              'p95(measurements.custom)': 'size',
+              'p50(measurements.lcp)': 'duration',
+            },
+            timeseriesResultsUnits: {
+              'p95(measurements.custom)': 'kibibyte',
+              'p50(measurements.lcp)': 'millisecond',
+            },
+          })
+        )
+      );
+    });
+
+    it('does not include timeseriesResultsUnits when meta has no units', async () => {
+      (doEventsRequest as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ]]],
+          start: 1627402280,
+          end: 1627402398,
+          meta: {
+            fields: {
+              'count()': 'integer',
+            },
+          },
+        })
+      );
+      render(
+        <EventsRequest {...DEFAULTS} yAxis="count()">
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            timeseriesResultsTypes: {'count()': 'integer'},
+            timeseriesResultsUnits: undefined,
+          })
+        )
+      );
+    });
+
     it('scales timeseries values according to unit meta', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
