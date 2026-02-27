@@ -256,26 +256,18 @@ def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant])
 
 
 @sentry_sdk.tracing.trace
-def get_seer_similar_issues(
+def _build_seer_request(
     event: Event,
-    event_grouphash: GroupHash,
     variants: dict[str, BaseVariant],
     training_mode: bool = False,
-) -> tuple[float | None, GroupHash | None]:
+) -> tuple[SimilarIssuesEmbeddingsRequest, dict[str, str | int | bool]]:
     """
-    Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance and
-    matching GroupHash of the closest match (if any), or `(None, None)` if no match found.
+    Build the request payload and metric tags for a Seer similar issues request.
 
-    Args:
-        event: The event being grouped
-        event_grouphash: The grouphash for this event
-        variants: Grouping variants for the event
-        training_mode: If True, only possibly insert embedding without returning matches
+    Returns:
+        A tuple of (request_data, metric_tags).
     """
-    event_hash = event.get_primary_hash()
     exception_type = get_path(event.data, "exception", "values", -1, "type")
-    event_fingerprint = event.data.get("fingerprint")
-    event_has_hybrid_fingerprint = get_fingerprint_type(event_fingerprint) == "hybrid"
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
@@ -286,7 +278,7 @@ def get_seer_similar_issues(
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
-        "hash": event_hash,
+        "hash": event.get_primary_hash(),
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
@@ -298,16 +290,38 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags: dict[str, str | int | bool] = {
+    metric_tags: dict[str, str | int | bool] = {
         "platform": event.platform or "unknown",
         "model_version": model_version.value,
         "training_mode": training_mode,
     }
 
+    return request_data, metric_tags
+
+
+def get_seer_similar_issues(
+    event: Event,
+    event_grouphash: GroupHash,
+    variants: dict[str, BaseVariant],
+) -> tuple[float | None, GroupHash | None]:
+    """
+    Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance and
+    matching GroupHash of the closest match (if any), or `(None, None)` if no match found.
+
+    Args:
+        event: The event being grouped
+        event_grouphash: The grouphash for this event
+        variants: Grouping variants for the event
+    """
+    event_hash = event.get_primary_hash()
+    event_fingerprint = event.data.get("fingerprint")
+    event_has_hybrid_fingerprint = get_fingerprint_type(event_fingerprint) == "hybrid"
+
+    request_data, seer_request_metric_tags = _build_seer_request(event, variants)
+
     seer_results = get_similarity_data_from_seer(
         request_data,
         {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
-        raise_on_error=training_mode,
     )
 
     # All of these will get overridden if we find a usable match
@@ -403,7 +417,7 @@ def get_seer_similar_issues(
         tags={
             **metrics_tags,
             "is_hybrid": is_hybrid_fingerprint_case,
-            "training_mode": training_mode,
+            "training_mode": False,
         },
     )
     metrics.incr(
@@ -412,7 +426,7 @@ def get_seer_similar_issues(
         tags={
             **metrics_tags,
             "is_hybrid": is_hybrid_fingerprint_case,
-            "training_mode": training_mode,
+            "training_mode": False,
         },
     )
 
@@ -604,9 +618,10 @@ def maybe_send_seer_for_new_model_training(
 
     record_did_call_seer_metric(event, call_made=True, blocker="none", training_mode=True)
 
+    request_data, metric_tags = _build_seer_request(event, variants, training_mode=True)
+
     try:
-        # Call Seer with training_mode=True (results won't be used for grouping)
-        get_seer_similar_issues(event, existing_grouphash, variants, training_mode=True)
+        get_similarity_data_from_seer(request_data, metric_tags, raise_on_error=True)
     except Exception as e:
         sentry_sdk.capture_exception(
             e,
@@ -617,6 +632,26 @@ def maybe_send_seer_for_new_model_training(
             },
         )
         return
+
+    metrics.incr(
+        "grouping.similarity.get_seer_similar_issues",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "platform": event.platform,
+            "result": "no_seer_matches",
+            "training_mode": True,
+        },
+    )
+
+    logger.info(
+        "get_seer_similar_issues.results",
+        extra={
+            "event_id": event.event_id,
+            "project_id": event.project.id,
+            "hash": event.get_primary_hash(),
+            "training_mode": True,
+        },
+    )
 
     # Mark the grouphash as sent to the new model so we don't send duplicate requests.
     # We update seer_latest_training_model (not seer_model) to preserve the original
