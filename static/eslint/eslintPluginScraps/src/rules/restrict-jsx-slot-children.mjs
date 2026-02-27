@@ -349,7 +349,7 @@ export const restrictJsxSlotChildren = {
           }
         }
 
-        if (!node.value || node.value.type !== 'JSXExpressionContainer') {
+        if (node.value?.type !== 'JSXExpressionContainer') {
           return;
         }
 

@@ -159,7 +159,7 @@ export class Tree {
       // After the logical ops have been merged, if the root has only one GROUP op child,
       // we can remove the root to simplify the tree.
       // Example: 'Assert All then Assert Any' to just 'Assert Any'
-      if (this.root && this.root.children.length === 1) {
+      if (this.root?.children.length === 1) {
         const child = this.root.children[0];
         if (child && isGroupOp(child.value)) {
           this.removeNode(this.root);

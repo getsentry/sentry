@@ -138,8 +138,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable users to invite themselves to private console SDK GitHub repositories
-    manager.add("organizations:github-console-sdk-self-invite", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable granular permissions for replay features
     manager.add("organizations:granular-replay-permissions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable increased issue_owners rate limit for auto-assignment
@@ -238,6 +236,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-web-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend overview dashboard on dashboards platform
     manager.add("organizations:insights-frontend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable queue dashboard on dashboards platform
+    manager.add("organizations:insights-queue-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend assets dashboard on dashboards platform
     manager.add("organizations:insights-frontend-assets-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Next.js frontend overview dashboard on dashboards platform
@@ -327,6 +327,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:replay-details-eap-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable version 2 of release serializer
     manager.add("organizations:releases-serializer-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Add build code and build number to semver ordering
+    manager.add("organizations:semver-ordering-with-build-code", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable revocation of org auth keys when a user renames an org slug
     manager.add("organizations:revoke-org-auth-on-slug-rename", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable detecting SDK crashes during event processing
@@ -571,6 +573,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable supergroup RCA embedding generation from autofix explorer runs
     manager.add("projects:supergroup-embeddings-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
     # fmt: on
 
     # Partner oauth

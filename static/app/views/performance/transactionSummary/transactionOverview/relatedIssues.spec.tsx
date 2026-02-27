@@ -86,4 +86,46 @@ describe('RelatedIssues', () => {
 
     expect(screen.getByText(/No new issues/i)).toBeInTheDocument();
   });
+
+  it('remaps request.method to http.method when EAP is enabled', async () => {
+    const eapOrganization = OrganizationFixture({
+      features: ['performance-transaction-summary-eap'],
+    });
+    const eapData = initializeOrg({
+      organization: eapOrganization,
+      router: {
+        location: {
+          query: {
+            transaction: 'test-transaction',
+            project: '1',
+            statsPeriod: '14d',
+            query: 'request.method:GET',
+          },
+        },
+      },
+    });
+
+    render(
+      <RelatedIssues
+        organization={eapOrganization}
+        location={eapData.router.location}
+        transaction={transaction}
+        statsPeriod="14d"
+      />,
+      {organization: eapOrganization}
+    );
+
+    const placeholders = screen.queryAllByTestId('loading-placeholder');
+    await waitForElementToBeRemoved(placeholders);
+
+    const $openInIssuesButton = screen.getByRole('button', {name: 'Open in Issues'});
+    expect($openInIssuesButton).toHaveAttribute(
+      'href',
+      expect.stringContaining('http.method')
+    );
+    expect($openInIssuesButton).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('request.method')
+    );
+  });
 });

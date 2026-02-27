@@ -21,21 +21,28 @@ const validInteractiveContentTokenPaths = [
 ];
 
 const invalidPropertyTokenPairs = [
-  {property: 'background', tokenPath: 'content.primary'},
-  {property: 'border-color', tokenPath: 'content.accent'},
-  {property: 'fill', tokenPath: 'content.danger'},
-  {property: 'background-color', tokenPath: 'content.secondary'},
-  {property: 'stroke', tokenPath: 'content.warning'},
-  {property: 'outline-color', tokenPath: 'content.success'},
+  {suggestedCategory: 'syntax', property: 'background', tokenPath: 'content.primary'},
+  {suggestedCategory: 'border', property: 'border-color', tokenPath: 'content.accent'},
+  {
+    suggestedCategory: 'syntax',
+    property: 'background-color',
+    tokenPath: 'content.secondary',
+  },
+  {suggestedCategory: 'graphics', property: 'stroke', tokenPath: 'content.warning'},
+  {suggestedCategory: 'focus', property: 'outline-color', tokenPath: 'content.success'},
 ];
 
 const invalidInteractiveTokenPairs = [
   {
+    suggestedCategory: 'syntax',
     property: 'background',
     tokenPath: 'interactive.chonky.debossed.neutral.content.primary',
   },
-  {property: 'border-color', tokenPath: 'interactive.chonky.embossed.accent.content'},
-  {property: 'fill', tokenPath: 'interactive.link.neutral.rest'},
+  {
+    suggestedCategory: 'border',
+    property: 'border-color',
+    tokenPath: 'interactive.chonky.embossed.accent.content',
+  },
 ];
 
 /**
@@ -50,15 +57,21 @@ const makeValidCase = (property, tokenPath) => ({
 });
 
 /**
+ * @param {string} suggestedCategory - Data entry to suggest switching to
  * @param {string} property - CSS property name
  * @param {string} tokenPath - Token path (e.g., 'content.primary')
- * @returns {{code: string, errors: Array<{messageId: string, data: {tokenPath: string, property: string}}>}}
+ * @returns {{code: string, errors: Array<{messageId: string, data: {suggestedCategory: string, tokenPath: string, property: string}}>}}
  */
-const makeInvalidCase = (property, tokenPath) => ({
+const makeInvalidCase = (suggestedCategory, property, tokenPath) => ({
   code: `const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,
-  errors: [{messageId: 'invalidProperty', data: {tokenPath, property}}],
+  errors: [
+    {
+      messageId: 'invalidPropertyWithSuggestion',
+      data: {suggestedCategory, tokenPath, property},
+    },
+  ],
 });
 
 ruleTester.run('use-semantic-token', useSemanticToken, {
@@ -148,30 +161,33 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   ],
 
   invalid: [
-    ...invalidPropertyTokenPairs.map(({property, tokenPath}) =>
-      makeInvalidCase(property, tokenPath)
+    ...invalidPropertyTokenPairs.map(({suggestedCategory, property, tokenPath}) =>
+      makeInvalidCase(suggestedCategory, property, tokenPath)
     ),
-    ...invalidInteractiveTokenPairs.map(({property, tokenPath}) =>
-      makeInvalidCase(property, tokenPath)
+    ...invalidInteractiveTokenPairs.map(({suggestedCategory, property, tokenPath}) =>
+      makeInvalidCase(suggestedCategory, property, tokenPath)
     ),
     {
       code: `const Component = styled('div')\`
   background: \${p => p.theme.tokens.content.primary};
   border-color: \${p => p.theme.tokens.content.accent};
-  fill: \${p => p.theme.tokens.content.danger};
 \`;`,
       errors: [
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.primary', property: 'background'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            tokenPath: 'content.primary',
+            property: 'background',
+            suggestedCategory: 'syntax',
+          },
         },
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.accent', property: 'border-color'},
-        },
-        {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.danger', property: 'fill'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            tokenPath: 'content.accent',
+            property: 'border-color',
+            suggestedCategory: 'border',
+          },
         },
       ],
     },
@@ -181,8 +197,12 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
       errors: [
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.primary', property: 'background'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            tokenPath: 'content.primary',
+            property: 'background',
+            suggestedCategory: 'syntax',
+          },
         },
       ],
     },
@@ -192,8 +212,12 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
       errors: [
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.accent', property: 'background'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            tokenPath: 'content.accent',
+            property: 'background',
+            suggestedCategory: 'syntax',
+          },
         },
       ],
     },
@@ -203,8 +227,12 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
       errors: [
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.primary', property: 'background'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            tokenPath: 'content.primary',
+            property: 'background',
+            suggestedCategory: 'syntax',
+          },
         },
       ],
     },
@@ -214,8 +242,12 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
       errors: [
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.primary', property: 'box-shadow'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            tokenPath: 'content.primary',
+            property: 'box-shadow',
+            suggestedCategory: 'focus',
+          },
         },
       ],
     },
@@ -226,12 +258,20 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
       errors: [
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.primary', property: 'background'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            property: 'background',
+            suggestedCategory: 'syntax',
+            tokenPath: 'content.primary',
+          },
         },
         {
-          messageId: 'invalidProperty',
-          data: {tokenPath: 'content.accent', property: 'background'},
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {
+            property: 'background',
+            suggestedCategory: 'syntax',
+            tokenPath: 'content.accent',
+          },
         },
       ],
     },

@@ -560,4 +560,4 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert occurrence.issue_title == "Install size regression"
         assert event_data["platform"] == "unknown"
         assert event_data["tags"] == {}
-        assert occurrence.evidence_data == {}
+        assert occurrence.evidence_data == {"detector_id": detector.id}

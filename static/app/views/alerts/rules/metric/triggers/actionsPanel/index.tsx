@@ -402,8 +402,7 @@ class ActionsPanel extends PureComponent<Props> {
                           actionIdx
                         )}
                       />
-                    ) : availableAction &&
-                      availableAction.type === 'sentry_app' &&
+                    ) : availableAction?.type === 'sentry_app' &&
                       availableAction.settings ? (
                       <Button
                         icon={<IconSettings />}
