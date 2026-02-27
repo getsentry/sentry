@@ -544,7 +544,7 @@ function ReplaceCapturedCheckbox({
 
 export default DataScrubFormModal;
 
-const SourceGroup = styled('div')<{isExpanded?: boolean}>`
+const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   transition-property: height;
   ${p =>
@@ -557,6 +557,17 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
       padding: ${space(2)};
     `}
 `;
+
+function SourceGroup({
+  children,
+  isExpanded,
+}: React.PropsWithChildren<{isExpanded?: boolean}>) {
+  return (
+    <SourceGroupContainer isExpanded={isExpanded}>
+      <Stack gap={{xs: 'md', sm: 'xl'}}>{children}</Stack>
+    </SourceGroupContainer>
+  );
+}
 
 const RegularExpressionWrapper = styled('div')`
   input {
