@@ -99,7 +99,7 @@ export function MetricSelector({
         trailingItems: () => (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
+            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
               <Tag variant="promotion">
                 {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
               </Tag>
