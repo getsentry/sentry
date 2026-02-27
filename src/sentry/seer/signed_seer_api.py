@@ -167,6 +167,206 @@ def make_llm_generate_request(
     )
 
 
+class SummarizeTraceRequest(TypedDict):
+    trace_id: str
+    only_transaction: bool
+    trace: dict[str, Any]
+
+
+class SummarizeIssueRequest(TypedDict):
+    group_id: int
+    issue: dict[str, Any]
+    trace_tree: NotRequired[dict[str, Any] | None]
+    organization_slug: str
+    organization_id: int
+    project_id: int
+
+
+class SupergroupsEmbeddingRequest(TypedDict):
+    organization_id: int
+    group_id: int
+    artifact_data: dict[str, Any]
+
+
+class ServiceMapUpdateRequest(TypedDict):
+    organization_id: int
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+
+
+class UnitTestGenerationRequest(TypedDict):
+    repo: dict[str, Any]
+    pr_id: int
+
+
+class SearchAgentStateRequest(TypedDict):
+    run_id: int
+    organization_id: int
+
+
+class TranslateQueryRequest(TypedDict):
+    org_id: int
+    org_slug: str
+    project_ids: list[int]
+    natural_language_query: str
+
+
+class SearchAgentStartRequest(TypedDict):
+    org_id: int
+    org_slug: str
+    project_ids: list[int]
+    natural_language_query: str
+    strategy: str
+    user_email: NotRequired[str]
+    timezone: NotRequired[str]
+    options: NotRequired[dict[str, Any]]
+
+
+class TranslateAgenticRequest(TypedDict):
+    org_id: int
+    org_slug: str
+    project_ids: list[int]
+    natural_language_query: str
+    strategy: str
+    options: NotRequired[dict[str, Any]]
+
+
+class CreateCacheRequest(TypedDict):
+    org_id: int
+    project_ids: list[int]
+
+
+class CompareDistributionsRequest(TypedDict):
+    baseline: list[dict[str, Any]]
+    outliers: list[dict[str, Any]]
+    total_baseline: int
+    total_outliers: int
+    config: dict[str, Any]
+    meta: dict[str, Any]
+
+
+def make_summarize_trace_request(
+    body: SummarizeTraceRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        "/v1/automation/summarize/trace",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+    )
+
+
+def make_summarize_issue_request(
+    body: SummarizeIssueRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        "/v1/automation/summarize/issue",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+    )
+
+
+def make_supergroups_embedding_request(
+    body: SupergroupsEmbeddingRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_service_map_update_request(
+    body: ServiceMapUpdateRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/explorer/service-map/update",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_unit_test_generation_request(
+    body: UnitTestGenerationRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/codegen/unit-tests",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+    )
+
+
+def make_search_agent_state_request(
+    body: SearchAgentStateRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/state",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_translate_query_request(
+    body: TranslateQueryRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/translate",
+        body=orjson.dumps(body),
+    )
+
+
+def make_search_agent_start_request(
+    body: SearchAgentStartRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/start",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_translate_agentic_request(
+    body: TranslateAgenticRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/translate-agentic",
+        body=orjson.dumps(body),
+    )
+
+
+def make_create_cache_request(
+    body: CreateCacheRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/create-cache",
+        body=orjson.dumps(body),
+    )
+
+
+def make_compare_distributions_request(
+    body: CompareDistributionsRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_anomaly_detection_default_connection_pool,
+        "/v1/workflows/compare/cohort",
+        body=orjson.dumps(body),
+    )
+
+
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     auth_headers: dict[str, str] = {}
     if settings.SEER_API_SHARED_SECRET:

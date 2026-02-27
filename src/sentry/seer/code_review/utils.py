@@ -26,6 +26,8 @@ from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
 
+seer_code_review_connection_pool = connection_from_url(settings.SEER_PREVENT_AI_URL)
+
 
 class Log(enum.StrEnum):
     MISSING_INTEGRATION = "github.webhook.missing-integration"
@@ -104,7 +106,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
+        connection_pool=seer_code_review_connection_pool,
         path=path,
         body=orjson.dumps(payload),
     )
