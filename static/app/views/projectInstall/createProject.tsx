@@ -192,6 +192,7 @@ export function CreateProject() {
 
   const [formData, setFormData] = useState<FormData>(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
+  const hasUserModifiedProjectName = useRef(false);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -442,13 +443,11 @@ export function CreateProject() {
         key: value.id,
       });
 
-      const userModifiedName =
-        !!formData.projectName && formData.projectName !== formData.platform?.key;
-      const newName = userModifiedName ? formData.projectName : value.id;
+      const newName = hasUserModifiedProjectName.current ? formData.projectName : value.id;
 
       updateFormData('projectName', newName);
     },
-    [updateFormData, formData.projectName, formData.platform?.key, organization]
+    [updateFormData, formData.projectName, organization]
   );
 
   const platform = formData.platform?.key;
@@ -520,7 +519,13 @@ export function CreateProject() {
                   placeholder={t('project-slug')}
                   autoComplete="off"
                   value={formData.projectName}
-                  onChange={e => updateFormData('projectName', slugify(e.target.value))}
+                  onChange={e => {
+                    const slugified = slugify(e.target.value);
+                    // Track whether the user has intentionally set a custom name.
+                    // Reset if they clear the field so platform selection can fill it in again.
+                    hasUserModifiedProjectName.current = slugified !== '';
+                    updateFormData('projectName', slugified);
+                  }}
                 />
               </ProjectNameInputWrap>
             </div>

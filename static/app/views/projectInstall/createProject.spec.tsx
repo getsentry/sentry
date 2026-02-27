@@ -191,6 +191,54 @@ describe('CreateProject', () => {
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('another');
   });
 
+  it('should not overwrite a user-entered project name when the name happens to match the current platform key', async () => {
+    // Regression test: previously, the check `projectName !== platform.key` would incorrectly
+    // treat the name as auto-generated if it matched the current platform slug, causing a
+    // platform switch to overwrite a name the user explicitly typed.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    render(<CreateProject />, {organization});
+
+    // User explicitly types a name that happens to match a platform id
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'apple-ios');
+
+    // User then selects a different platform
+    await userEvent.click(screen.getByTestId('platform-ruby-rails'));
+
+    // The name they typed should be preserved, not replaced with 'ruby-rails'
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
+  });
+
+  it('should allow platform to fill the project name again after the user clears it', async () => {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    render(<CreateProject />, {organization});
+
+    // User types a name
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-project');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-project');
+
+    // User clears the field (signals they want the platform to drive the name again)
+    await userEvent.clear(screen.getByPlaceholderText('project-slug'));
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('');
+
+    // Now selecting a platform should fill the name
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
+  });
+
   it('should display success message on proj creation', async () => {
     const {organization} = initializeOrg({
       organization: {
