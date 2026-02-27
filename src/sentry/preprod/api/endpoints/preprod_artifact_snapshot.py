@@ -14,9 +14,11 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
@@ -79,35 +81,22 @@ def validate_preprod_snapshot_post_schema(request_body: bytes) -> tuple[dict[str
 
 
 @region_silo_endpoint
-class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
+class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (OrganizationReleasePermission,)
 
-    rate_limits = RateLimitConfig(
-        limit_overrides={
-            "POST": {
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
-            }
-        }
-    )
-
-    def get(self, request: Request, project: Project, snapshot_id: str) -> Response:
-        """
-        Retrieves snapshot data including manifest images and VCS info.
-        """
-
+    def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
+            "organizations:preprod-snapshots", organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
-                id=snapshot_id, project_id=project.id
+                id=snapshot_id, project__organization_id=organization.id
             )
         except PreprodArtifact.DoesNotExist:
             return Response({"detail": "Snapshot not found"}, status=404)
@@ -122,7 +111,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(project.organization_id, project.id)
+            session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
             manifest_data = orjson.loads(get_response.payload.read())
             manifest = SnapshotManifest(**manifest_data)
@@ -196,8 +185,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         analytics.record(
             PreprodArtifactApiGetSnapshotDetailsEvent(
-                organization_id=project.organization_id,
-                project_id=project.id,
+                organization_id=organization.id,
+                project_id=artifact.project_id,
                 user_id=request.user.id if request.user and request.user.is_authenticated else None,
                 artifact_id=str(artifact.id),
             )
@@ -269,8 +258,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             )
 
             result = response.dict()
-            result["org_id"] = str(project.organization_id)
-            result["project_id"] = str(project.id)
+            result["org_id"] = str(organization.id)
+            result["project_id"] = str(artifact.project_id)
             result["comparison_type"] = comparison_type
             if comparison_state is not None:
                 result["comparison_state"] = comparison_state
@@ -285,6 +274,23 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             default_per_page=20,
             max_per_page=100,
         )
+
+
+@region_silo_endpoint
+class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
+    owner = ApiOwner.EMERGE_TOOLS
+    publish_status = {
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
+    permission_classes = (ProjectReleasePermission,)
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
 
     def post(self, request: Request, project: Project) -> Response:
         if not settings.IS_DEV and not features.has(

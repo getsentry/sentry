@@ -27,7 +27,10 @@ from .preprod_artifact_rerun_analysis import (
     PreprodArtifactRerunAnalysisEndpoint,
 )
 from .preprod_artifact_rerun_status_checks import PreprodArtifactRerunStatusChecksEndpoint
-from .preprod_artifact_snapshot import ProjectPreprodSnapshotEndpoint
+from .preprod_artifact_snapshot import (
+    OrganizationPreprodSnapshotEndpoint,
+    ProjectPreprodSnapshotEndpoint,
+)
 from .preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
@@ -75,11 +78,6 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/upload-options/$",
         ProjectPreprodUploadOptionsEndpoint.as_view(),
         name="sentry-api-0-project-preprod-snapshots-upload-options",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
-        ProjectPreprodSnapshotEndpoint.as_view(),
-        name="sentry-api-0-project-preprod-snapshots-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/check-for-updates/$",
@@ -188,6 +186,11 @@ preprod_organization_urlpatterns = [
         name="sentry-api-0-organization-preprod-artifact-public-size-analysis",
     ),
     # Snapshots
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
+        OrganizationPreprodSnapshotEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-detail",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/recompare/$",
         PreprodSnapshotRecompareEndpoint.as_view(),
