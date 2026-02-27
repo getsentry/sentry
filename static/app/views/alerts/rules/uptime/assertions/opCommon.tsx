@@ -97,16 +97,18 @@ export function OpContainer({
             />
             {tooltip && <QuestionTooltip size="xs" title={tooltip} isHoverable />}
           </Flex>
-          <Grid columns="1fr max-content max-content" align="center" gap="sm">
+          <Grid columns="1fr max-content" align="center" gap="sm">
             {children}
-            <Button
-              size="sm"
-              priority="transparent"
-              icon={<IconDelete />}
-              aria-label={t('Remove assertion')}
-              onClick={onRemove}
-            />
-            <AssertionFormError op={op} erroredOp={erroredOp} />
+            <Flex align="center" gap="sm">
+              <Button
+                size="sm"
+                priority="transparent"
+                icon={<IconDelete />}
+                aria-label={t('Remove assertion')}
+                onClick={onRemove}
+              />
+              <AssertionFormError op={op} erroredOp={erroredOp} />
+            </Flex>
           </Grid>
         </AnimatedOp>
       )}

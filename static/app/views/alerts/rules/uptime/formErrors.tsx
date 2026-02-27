@@ -1,6 +1,4 @@
-import styled from '@emotion/styled';
-
-import {Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';
@@ -300,14 +298,10 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
   }
 
   return (
-    <IconWarningContainer>
+    <Container marginTop="xs">
       <Tooltip title={message} isHoverable forceVisible overlayStyle={{zIndex: 1}}>
         <IconWarning variant="danger" size="sm" />
       </Tooltip>
-    </IconWarningContainer>
+    </Container>
   );
 }
-
-const IconWarningContainer = styled(Flex)`
-  margin-top: ${p => p.theme.space.xs};
-`;
