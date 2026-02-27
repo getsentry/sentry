@@ -130,7 +130,8 @@ const graph = new StateGraph(MessagesAnnotation)
     const response = await llm.invoke(state.messages);
     return { messages: [response] };
   })
-  .addEdge("__start__", "agent");
+  .addEdge("__start__", "agent")
+  .addEdge("agent", "__end__");
 
 Sentry.instrumentLangGraph(graph, {
   recordInputs: true,
