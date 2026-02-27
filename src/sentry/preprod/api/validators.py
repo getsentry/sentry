@@ -49,35 +49,6 @@ class PreprodListBuildsValidator(serializers.Serializer[Any]):
         help_text="Relative period for filtering (e.g., '7d')",
     )
 
-    distribution_error_code = serializers.CharField(
-        required=False,
-        help_text="Filter by distribution error code (e.g., 'no_quota', 'skipped', 'processing_error')",
-    )
-
-    def validate_distribution_error_code(self, value: str | None) -> int | None:
-        """Convert distribution error code string to integer enum value."""
-        if value is None:
-            return None
-
-        choices = PreprodArtifact.InstallableAppErrorCode.as_choices()
-        valid_int_values = [choice[0] for choice in choices]
-        valid_str_names = [choice[1] for choice in choices]
-
-        try:
-            code_int = int(value)
-            if code_int in valid_int_values:
-                return code_int
-        except (ValueError, TypeError):
-            pass
-
-        try:
-            index = valid_str_names.index(value)
-            return valid_int_values[index]
-        except ValueError:
-            pass
-
-        raise serializers.ValidationError(f"Invalid distribution error code: {value}")
-
     def validate_state(self, value: str | None) -> int | None:
         """Convert state string to integer enum value."""
         if value is None:
