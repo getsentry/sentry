@@ -1,42 +1,33 @@
-import type {Ref} from 'react';
-import {mergeRefs} from '@react-aria/utils';
+import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {
-  BaseField,
-  FieldStatus,
-  useAutoSaveIndicator,
-  type BaseFieldProps,
-} from './baseField';
+import {BaseField, type BaseFieldProps} from './baseField';
 
 export function RangeField({
   onChange,
   disabled,
   value,
+  ref,
   ...props
-}: BaseFieldProps &
+}: BaseFieldProps<HTMLInputElement> &
   DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     onChange: (value: number) => void;
     value: number;
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
-  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
   return (
-    <BaseField>
-      {fieldProps => (
-        <Flex gap="sm" align="center">
+    <BaseField disabled={disabled} ref={ref}>
+      {(fieldProps, {indicator}) => (
+        <Fragment>
           <Slider
             {...fieldProps}
             {...props}
-            ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
-            disabled={isDisabled}
             value={value}
             onChange={onChange}
             onPointerUp={e => {
@@ -47,8 +38,7 @@ export function RangeField({
             }}
           />
           {indicator ?? <Flex width="14px" flexShrink={0} />}
-          <FieldStatus disabled={disabled} />
-        </Flex>
+        </Fragment>
       )}
     </BaseField>
   );

@@ -14,6 +14,8 @@ interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
   source: string;
   borderless?: boolean;
+  onCopy?: () => void;
+  title?: string;
 }
 
 /**
@@ -29,12 +31,17 @@ export function CopyMarkdownButton({
   getMarkdown,
   source,
   borderless,
+  onCopy,
+  title,
 }: CopyMarkdownButtonProps) {
   return (
     <Tooltip
-      title={t(
-        'Copies all steps and code examples as Markdown, optimized for use with an LLM.'
-      )}
+      title={
+        title ??
+        t(
+          'Copies all steps and code examples as Markdown, optimized for use with an LLM.'
+        )
+      }
       position="auto"
     >
       <Button
@@ -43,7 +50,10 @@ export function CopyMarkdownButton({
         analyticsEventKey="setup_guide.copy_as_markdown"
         analyticsEventName="Setup Guide: Copy as Markdown"
         analyticsParams={{format: 'markdown', source}}
-        onClick={() => copyToClipboard(getMarkdown())}
+        onClick={() => {
+          copyToClipboard(getMarkdown());
+          onCopy?.();
+        }}
         size="xs"
       >
         {t('Copy instructions')}
@@ -56,6 +66,14 @@ interface OnboardingCopyMarkdownButtonProps {
   source: string;
   steps: OnboardingStep[];
   borderless?: boolean;
+  onCopy?: () => void;
+  /**
+   * Optional markdown content to append after the steps. Use this to
+   * include additional context or instructions (e.g. a decision tree for
+   * manual instrumentation) that should be part of the copied output but are
+   * not represented as onboarding steps.
+   */
+  postamble?: string;
 }
 
 /**
@@ -66,16 +84,24 @@ export function OnboardingCopyMarkdownButton({
   steps,
   source,
   borderless,
+  postamble,
+  onCopy,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
   const tabSelectionsMap = useTabSelectionsMap();
 
   const getMarkdown = () => {
     try {
-      return stepsToMarkdown(steps, {
+      const stepsMarkdown = stepsToMarkdown(steps, {
         tabSelectionsMap,
         authToken,
       });
+
+      if (!postamble) {
+        return stepsMarkdown;
+      }
+
+      return `${stepsMarkdown}\n\n---\n\n${postamble}`;
     } catch {
       return '';
     }
@@ -86,6 +112,7 @@ export function OnboardingCopyMarkdownButton({
       getMarkdown={getMarkdown}
       source={source}
       borderless={borderless}
+      onCopy={onCopy}
     />
   );
 }

@@ -227,6 +227,97 @@ class UserDetailsUpdateTest(UserDetailsTest):
         # user_can_elevate should return False when SUPERUSER_ORG_ID is None
         assert not user_can_elevate(self.user)
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_superuser_and_staff_revoked_when_target_user_not_in_default_org(self) -> None:
+        """When updating superuser for a user not in the default org,
+        existing superuser and staff privileges should be revoked."""
+        self.user.update(is_superuser=True, is_staff=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            status_code=403,
+        )
+        assert (
+            resp.data["detail"]
+            == "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
+        )
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+        assert not user.is_staff
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_superuser_and_staff_revoked_when_updating_staff_and_target_not_in_default_org(
+        self,
+    ) -> None:
+        """When updating staff for a user not in the default org,
+        existing superuser and staff should both be revoked."""
+        self.user.update(is_superuser=True, is_staff=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isStaff="true",
+            status_code=403,
+        )
+        assert (
+            resp.data["detail"]
+            == "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
+        )
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+        assert not user.is_staff
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_options({"staff.ga-rollout": True})
+    def test_staff_actor_revokes_privileges_when_target_not_in_default_org(self) -> None:
+        """When a staff user updates superuser for a user not in the default org,
+        existing privileges should be revoked."""
+        self.user.update(is_superuser=True, is_staff=True)
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            status_code=403,
+        )
+        assert (
+            resp.data["detail"]
+            == "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
+        )
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+        assert not user.is_staff
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_revocation_does_not_persist_other_fields_from_rejected_request(self) -> None:
+        """A 403 revocation must only update is_superuser/is_staff. Other fields
+        in the request (e.g. isActive) must not be written to the database."""
+        self.user.update(is_superuser=True, is_staff=True, is_active=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            isActive="false",
+            status_code=403,
+        )
+        assert resp.status_code == 403
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+        assert not user.is_staff
+        # is_active must remain unchanged — the request was rejected
+        assert user.is_active
+
 
 @control_silo_test
 @override_options({"staff.ga-rollout": False})
@@ -355,7 +446,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         )
         assert (
             resp.data["detail"]
-            == "User must be a member to the default organization to enable SuperUser mode."
+            == "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
         )
 
         user = User.objects.get(id=self.user.id)
@@ -692,7 +783,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         )
         assert (
             resp.data["detail"]
-            == "User must be a member to the default organization to enable SuperUser mode."
+            == "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
         )
 
         user = User.objects.get(id=self.user.id)
