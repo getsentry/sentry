@@ -40,11 +40,11 @@ function SeerProjectDetails() {
   return (
     <AnalyticsArea name="project-details">
       <SentryDocumentTitle
-        title={t('Project Seer Settings')}
+        title={t('Seer Autofix Settings')}
         projectSlug={project.slug}
       />
       <SettingsPageHeader
-        title={tct('Seer Settings for [projectName]', {
+        title={tct('Seer Autofix for [projectName]', {
           projectName: (
             <Text as="span" monospace>
               {project.slug}

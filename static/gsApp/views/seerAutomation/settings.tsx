@@ -22,7 +22,7 @@ export default function SeerAutomationSettings() {
   return (
     <SeerSettingsPageWrapper>
       <SettingsPageHeader
-        title={t('Seer')}
+        title={t('Seer Overview')}
         subtitle={tct(
           `Configure how Seer works with your codebase. Seer includes [rca:Issue Autofix] and [code_review:AI Code Review]. Issue Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [read_the_docs:Read the docs] to learn what Seer can do.`,
           {
