@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -19,6 +19,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.groupredirect import GroupRedirect
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -224,6 +225,47 @@ class OccurrencesRPCTest(TestCase):
             )
         )
         assert having is None
+
+    def test_update_eap_query_string_with_merged_group_ids(self) -> None:
+        self.g1 = self.create_group(id=1)
+        self.g2 = self.create_group(id=2)
+        self.g3 = self.create_group(id=3)
+        self.g4 = self.create_group(id=4)
+
+        self.gr31 = GroupRedirect.objects.create(
+            id=10001,
+            organization_id=self.g1.project.organization_id,
+            group_id=self.g1.id,
+            previous_group_id=self.g3.id,
+            date_added=datetime.now(UTC) - timedelta(hours=4),
+        )
+        self.gr21 = GroupRedirect.objects.create(
+            id=10002,
+            organization_id=self.g1.project.organization_id,
+            group_id=self.g1.id,
+            previous_group_id=self.g2.id,
+            date_added=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        assert Occurrences._update_eap_query_string_with_merged_group_ids("foo:bar") == "foo:bar"
+        assert (
+            Occurrences._update_eap_query_string_with_merged_group_ids("group_id:1")
+            == "group_id:[1, 2, 3]"
+        )
+        assert (
+            Occurrences._update_eap_query_string_with_merged_group_ids("group_id:3")
+            == "group_id:[1, 3]"
+        )
+        assert (
+            Occurrences._update_eap_query_string_with_merged_group_ids("group_id:[3, 4]")
+            == "group_id:[1, 3, 4]"
+        )
+        assert (
+            Occurrences._update_eap_query_string_with_merged_group_ids(
+                "group_id:1 foo:bar group_id:[3, 4]"
+            )
+            == "group_id:[1, 2, 3] foo:bar group_id:[1, 3, 4]"
+        )
 
 
 class OccurrencesTimeseriesTest(TestCase):
