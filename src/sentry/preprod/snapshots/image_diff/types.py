@@ -22,8 +22,8 @@ class OdiffResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     requestId: int
-    exitCode: int
-    result: str
+    match: bool = False
+    reason: str | None = None
     diffCount: int | None = None
     diffPercentage: float | None = None
     error: str | None = None

@@ -475,6 +475,54 @@ function BasicForm() {
   );
 }
 
+function BaseFieldExample() {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      acceptTerms: false,
+    },
+    validators: {
+      onDynamic: z.object({
+        acceptTerms: z.literal(true, 'You must accept the terms'),
+      }),
+    },
+    onSubmit: ({value}) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(value));
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.FieldGroup title="Custom Field with BaseField">
+        <form.AppField name="acceptTerms">
+          {field => (
+            <field.Layout.Row label="Terms of Service:">
+              <field.Base<HTMLInputElement>>
+                {(baseProps, {indicator}) => (
+                  <Flex flexGrow={1}>
+                    <input
+                      {...baseProps}
+                      type="checkbox"
+                      checked={field.state.value}
+                      onChange={e => field.handleChange(e.target.checked)}
+                    />
+                    {indicator}
+                  </Flex>
+                )}
+              </field.Base>
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+      </form.FieldGroup>
+
+      <Flex gap="md" justify="end">
+        <form.SubmitButton>Submit</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
+  );
+}
+
 function CompactExample() {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -559,5 +607,9 @@ export default Storybook.story('Form', story => {
 
   story('Compact Variant', () => {
     return <CompactExample />;
+  });
+
+  story('Custom Field (BaseField)', () => {
+    return <BaseFieldExample />;
   });
 });

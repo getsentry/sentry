@@ -66,6 +66,7 @@ interface VisualizationWidgetProps {
     tableResults?: any[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
   }) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;

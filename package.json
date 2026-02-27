@@ -234,7 +234,7 @@
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
-    "typescript-eslint": "8.39.0"
+    "typescript-eslint": "8.56.1"
   },
   "pnpm": {
     "overrides": {
