@@ -178,25 +178,26 @@ export function MetricsVisualize() {
             title={t('No metrics found for this project')}
             disabled={!hasNoMetrics}
           >
-            <StyledSelect
-              searchable
-              options={isFetching ? previousOptions : (metricOptions ?? [])}
-              value={traceMetricSelectValue}
-              loading={isFetching}
-              onSearch={debouncedSetSearch}
-              menuTitle={t('Metrics')}
-              onChange={(option: SelectOption<SelectKey>) => {
-                if ('metricType' in option) {
-                  handleMetricChange(option as MetricSelectOption);
-                }
-              }}
-              disabled={hasNoMetrics}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps}>
-                  {traceMetric.name || t('Select a metric')}
-                </OverlayTrigger.Button>
-              )}
-            />
+            <div>
+              <StyledSelect
+                search={{onChange: debouncedSetSearch, filter: false}}
+                options={isFetching ? previousOptions : (metricOptions ?? [])}
+                value={traceMetricSelectValue}
+                loading={isFetching}
+                menuTitle={t('Metrics')}
+                onChange={(option: SelectOption<SelectKey>) => {
+                  if ('metricType' in option) {
+                    handleMetricChange(option as MetricSelectOption);
+                  }
+                }}
+                disabled={hasNoMetrics}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps}>
+                    {traceMetric.name || t('Select a metric')}
+                  </OverlayTrigger.Button>
+                )}
+              />
+            </div>
           </Tooltip>
         </Stack>
         <Stack flex="1" gap="xs" maxWidth="425px">
@@ -209,7 +210,7 @@ export function MetricsVisualize() {
             </Tooltip>
           </div>
           <StyledSelect
-            searchable
+            search
             options={operationOptions}
             value={aggregation}
             onChange={handleOperationChange}
