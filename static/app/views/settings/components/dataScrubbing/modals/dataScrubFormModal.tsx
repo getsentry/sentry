@@ -406,15 +406,19 @@ function DataScrubFormModal({
                             variant="compact"
                             required
                           >
-                            <SourceField
-                              onChange={value => sourceField.handleChange(value)}
-                              value={sourceValue}
-                              onBlur={sourceField.handleBlur}
-                              isRegExMatchesSelected={
-                                form.getFieldValue('type') === RuleType.PATTERN
-                              }
-                              suggestions={sourceSuggestions}
-                            />
+                            <sourceField.Base>
+                              {fieldProps => (
+                                <SourceField
+                                  fieldProps={fieldProps}
+                                  onChange={value => sourceField.handleChange(value)}
+                                  value={sourceValue}
+                                  isRegExMatchesSelected={
+                                    form.getFieldValue('type') === RuleType.PATTERN
+                                  }
+                                  suggestions={sourceSuggestions}
+                                />
+                              )}
+                            </sourceField.Base>
                           </sourceField.Layout.Stack>
                           {containsRootDeepWildcard(sourceValue) && (
                             <Alert variant="warning" style={{marginTop: space(1)}}>
@@ -482,15 +486,19 @@ function DataScrubFormModal({
                       variant="compact"
                       required
                     >
-                      <SourceField
-                        onChange={value => sourceField.handleChange(value)}
-                        value={sourceValue}
-                        onBlur={sourceField.handleBlur}
-                        isRegExMatchesSelected={
-                          form.getFieldValue('type') === RuleType.PATTERN
-                        }
-                        suggestions={sourceSuggestions}
-                      />
+                      <sourceField.Base>
+                        {fieldProps => (
+                          <SourceField
+                            fieldProps={fieldProps}
+                            onChange={value => sourceField.handleChange(value)}
+                            value={sourceValue}
+                            isRegExMatchesSelected={
+                              form.getFieldValue('type') === RuleType.PATTERN
+                            }
+                            suggestions={sourceSuggestions}
+                          />
+                        )}
+                      </sourceField.Base>
                     </sourceField.Layout.Stack>
                   </SourceGroup>
                 </Fragment>

@@ -7,10 +7,20 @@ import {
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
+const defaultFieldProps = {
+  'aria-describedby': 'source-hint',
+  'aria-invalid': false as boolean,
+  disabled: false,
+  id: 'source',
+  name: 'source',
+  onBlur: jest.fn(),
+};
+
 describe('Source', () => {
   it('default render', () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -24,6 +34,7 @@ describe('Source', () => {
   it('display defaultSuggestions if input is empty and focused', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -42,6 +53,7 @@ describe('Source', () => {
   it('display defaultSuggestions if input is empty, focused and has length 3', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -60,6 +72,7 @@ describe('Source', () => {
   it('display binaryOperatorSuggestions if penultimateFieldValue has type string', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -82,6 +95,7 @@ describe('Source', () => {
   it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -102,6 +116,7 @@ describe('Source', () => {
   it('display binaryOperatorSuggestions if penultimateFieldValue has type value', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -124,6 +139,7 @@ describe('Source', () => {
   it('display binaryOperatorSuggestions if penultimateFieldValue is of typeof Array', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -146,6 +162,7 @@ describe('Source', () => {
   it('display defaultSuggestions if penultimateFieldValue has type unary', async () => {
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={jest.fn()}
@@ -171,6 +188,7 @@ describe('Source', () => {
 
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={handleOnChange}
@@ -193,6 +211,7 @@ describe('Source', () => {
 
     render(
       <SourceField
+        fieldProps={defaultFieldProps}
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
         onChange={handleOnChange}

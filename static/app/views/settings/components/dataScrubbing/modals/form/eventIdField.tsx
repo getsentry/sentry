@@ -24,12 +24,16 @@ type Props = {
   projectId?: Project['id'];
 };
 
-const suggestionOptions = (orgSlug: string) =>
-  apiOptions.as<SourceSuggestion[]>()(
+const suggestionOptions = (
+  orgSlug: string,
+  query: {eventId: string; projectId?: string}
+) =>
+  apiOptions.as<{suggestions: SourceSuggestion[]}>()(
     '/organizations/$organizationIdOrSlug/data-scrubbing-selector-suggestions/',
     {
       path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
+      query,
+      staleTime: 0,
     }
   );
 
@@ -94,9 +98,9 @@ function EventIdField({disabled, orgSlug, projectId, onSuggestionsLoaded}: Props
         query.projectId = projectId;
       }
 
-      const {json: suggestions} = await queryClient.fetchQuery(
-        suggestionOptions(orgSlug)
-      );
+      const {
+        json: {suggestions},
+      } = await queryClient.fetchQuery(suggestionOptions(orgSlug, query));
 
       if (suggestions.length > 0) {
         const newState = {value: newEventId, status: EventIdStatus.LOADED};

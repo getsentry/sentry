@@ -17,13 +17,21 @@ import {
 
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 
+type FieldProps = {
+  'aria-describedby': string;
+  'aria-invalid': boolean;
+  disabled: boolean;
+  id: string;
+  name: string;
+  onBlur: () => void;
+};
+
 type Props = {
+  fieldProps: FieldProps;
   isRegExMatchesSelected: boolean;
   onChange: (value: string) => void;
   suggestions: SourceSuggestion[];
   value: string;
-  error?: string;
-  onBlur?: () => void;
 };
 
 type State = {
@@ -383,21 +391,21 @@ class SourceField extends Component<Props, State> {
   };
 
   render() {
-    const {value, onBlur} = this.props;
+    const {value, fieldProps} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledInput
+          {...fieldProps}
           data-test-id="source-field"
-          name="source"
           aria-label={t('Source')}
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={e => this.handleChange(e.target.value)}
           autoComplete="off"
           value={value}
           onKeyDown={e => this.handleKeyDown(value, e)}
-          onBlur={onBlur}
+          onBlur={fieldProps.onBlur}
           onFocus={this.handleFocus}
         />
         {help && (
