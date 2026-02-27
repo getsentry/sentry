@@ -69,7 +69,10 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     }
 
     return (
-      <Wrapper maxFontSize={RESOURCE_TEXT_MAX_FONT_SIZE_PX}>{spanDescription}</Wrapper>
+      // Add 16px to the height to account for the padding of the children
+      <Container height={`${RESOURCE_TEXT_MAX_FONT_SIZE_PX + 16}px`} width="100%">
+        <Wrapper>{spanDescription}</Wrapper>
+      </Container>
     );
   }
 
@@ -122,17 +125,11 @@ function HttpSpanVisualization(props: {
   );
 }
 
-function Wrapper({
-  children,
-  maxFontSize,
-}: {
-  children: React.ReactNode;
-  maxFontSize?: number;
-}) {
+function Wrapper({children}: {children: React.ReactNode}) {
   return (
     <GrowingWrapper>
       <AutoResizeParent>
-        <AutoSizedText maxFontSize={maxFontSize}>{children}</AutoSizedText>
+        <AutoSizedText>{children}</AutoSizedText>
       </AutoResizeParent>
     </GrowingWrapper>
   );

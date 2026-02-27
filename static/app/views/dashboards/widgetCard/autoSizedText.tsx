@@ -4,10 +4,9 @@ import * as Sentry from '@sentry/react';
 
 interface Props {
   children: React.ReactNode;
-  maxFontSize?: number;
 }
 
-export function AutoSizedText({children, maxFontSize}: Props) {
+export function AutoSizedText({children}: Props) {
   const childRef = useRef<HTMLDivElement>(null);
 
   const fontSize = useRef<number>(0);
@@ -48,9 +47,7 @@ export function AutoSizedText({children, maxFontSize}: Props) {
 
       // Reset the iteration parameters
       fontSizeLowerBound.current = 0;
-      fontSizeUpperBound.current = maxFontSize
-        ? Math.min(maxFontSize, parentDimensions.height)
-        : parentDimensions.height;
+      fontSizeUpperBound.current = parentDimensions.height;
 
       let iterationCount = 0;
 
@@ -99,7 +96,7 @@ export function AutoSizedText({children, maxFontSize}: Props) {
     return () => {
       observer.disconnect();
     };
-  }, [maxFontSize]);
+  }, []);
 
   const adjustFontSize = (childDimensions: Dimensions, parentDimensions: Dimensions) => {
     const childElement = childRef.current;
