@@ -771,3 +771,34 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["value"] == 1.0
         assert response.data["meta"]["units"]["value"] is None
+
+    def test_tracemetric_value_tracks_unit_mixed_with_aggregate(self) -> None:
+        self.store_trace_metrics(
+            [
+                self.create_trace_metric(
+                    metric_name="test_metric",
+                    metric_value=2.0,
+                    metric_type="counter",
+                    metric_unit="day",
+                )
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "value",
+                    "per_second(value,test_metric,counter,day)",
+                    "avg(value,test_metric,counter,day)",
+                ],
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+                "query": "metric.name:test_metric metric.type:counter metric.unit:day",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["units"]["value"] == "day"
+        assert (
+            response.data["meta"]["units"]["per_second(value,test_metric,counter,day)"]
+            == "1/second"
+        )
+        assert response.data["meta"]["units"]["avg(value,test_metric,counter,day)"] == "day"

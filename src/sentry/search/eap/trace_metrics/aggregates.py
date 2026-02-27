@@ -17,6 +17,19 @@ TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE),
 ]
 
+AGGREGATION_ATTRIBUTE_PARAMETER = AttributeArgumentDefinition(
+    attribute_types={
+        "string",
+        "duration",
+        "number",
+        "integer",
+        "percentage",
+        "currency",
+        *constants.SIZE_TYPE,
+        *constants.DURATION_TYPE,
+    },
+)
+
 TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
     "count": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -24,13 +37,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         processor=count_processor,
         default_search_type="integer",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "number",
-                    "integer",
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -56,18 +63,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         infer_search_type_from_arguments=False,
         processor=count_processor,
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -88,16 +84,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_SUM,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -118,17 +105,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_AVG,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -149,17 +126,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_P50,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -180,17 +147,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_P75,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -211,17 +168,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_P90,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -242,17 +189,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_P95,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -273,17 +210,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_P99,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -304,17 +231,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_MAX,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -335,17 +252,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         internal_function=Function.FUNCTION_MIN,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},

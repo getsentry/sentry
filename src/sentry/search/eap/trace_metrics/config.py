@@ -32,15 +32,15 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         if extra_conditions := self._extra_conditions_from_metric(search_resolver):
             return extra_conditions
 
+        # After the initial resolution, override the value search type based on
+        # the metric unit in the query if it exists
+        self._override_value_search_type_from_query(search_resolver)
+
         # then try to parse metric from the aggregations
         if extra_conditions := self._extra_conditions_from_columns(
             search_resolver, selected_columns, equations
         ):
             return extra_conditions
-
-        # After the initial resolution, override the value search type based on
-        # the metric unit in the query if it exists
-        self._override_value_search_type_from_query(search_resolver)
 
         return None
 
@@ -105,7 +105,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         search_resolver: SearchResolver,
     ) -> None:
         metric_unit = search_resolver._search_filter_values.get("sentry.metric_unit")
-        if isinstance(metric_unit, str) and "value" in search_resolver._resolved_attribute_cache:
+        if isinstance(metric_unit, str):
             if metric_unit not in constants.DURATION_TYPE | constants.SIZE_TYPE:
                 return
             search_resolver._resolved_attribute_cache["value"] = (

@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -21,6 +22,19 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.validator import literal_validator
+
+AGGREGATION_ATTRIBUTE_PARAMETER = AttributeArgumentDefinition(
+    attribute_types={
+        "string",
+        "duration",
+        "number",
+        "integer",
+        "percentage",
+        "currency",
+        *constants.SIZE_TYPE,
+        *constants.DURATION_TYPE,
+    },
+)
 
 
 def _rate_internal(
@@ -98,13 +112,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
     "per_second": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "number",
-                    "integer",
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -127,13 +135,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
     "per_minute": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "number",
-                    "integer",
-                },
-            ),
+            AGGREGATION_ATTRIBUTE_PARAMETER,
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
