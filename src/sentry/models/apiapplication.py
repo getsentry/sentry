@@ -3,7 +3,7 @@ import posixpath
 import secrets
 from enum import Enum
 from typing import Any, ClassVar, Literal, Self, TypeIs
-from urllib.parse import unquote, urlparse, urlunparse
+from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import petname
 from django.contrib.postgres.fields.array import ArrayField
@@ -169,7 +169,7 @@ class ApiApplication(Model):
             normalized_path = "/"
         elif value.endswith("/") and not normalized_path.endswith("/"):
             normalized_path += "/"
-        return urlunparse(parts._replace(path=normalized_path))
+        return urlunparse(parts._replace(path=quote(normalized_path, safe="/")))
 
     def is_valid_redirect_uri(self, value):
         # Spec references:

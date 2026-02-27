@@ -84,6 +84,17 @@ class ApiApplicationTest(TestCase):
             "http://example.com/path/path/%25252e%25252e/%25252e%25252e/new/path"
         )
 
+    def test_is_valid_redirect_uri_multi_layer_encoding_after_encoded_delimiters(self) -> None:
+        """Encoded path delimiters must not bypass the multi-layer encoding guard."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/callback/",
+            version=0,
+        )
+
+        assert not app.is_valid_redirect_uri("http://example.com/callback/%23%252e%252e/secret")
+        assert not app.is_valid_redirect_uri("http://example.com/callback/%3f%252e%252e/secret")
+
     def test_is_valid_redirect_uri_legitimate_prefix_match_with_guard(self) -> None:
         """Clean sub-paths must still prefix-match after the double-encoding guard."""
         app = ApiApplication.objects.create(
