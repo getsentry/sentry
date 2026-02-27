@@ -702,8 +702,3 @@ class FindOrCreateReleaseTest(TestCase):
         assert result_with_build is not None
         assert result_with_build.id == existing_release.id
         assert result_with_build.version == f"{package}@{version}+456"
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

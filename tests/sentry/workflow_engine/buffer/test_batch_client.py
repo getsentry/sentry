@@ -342,8 +342,3 @@ class TestProjectDelayedWorkflowClient:
         mock_buffer.push_to_hash_bulk.assert_called_once_with(
             model=Workflow, filters={"project_id": 123, "batch_key": "test-batch"}, data=data
         )
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

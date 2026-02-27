@@ -35,8 +35,3 @@ def test_link_button() -> None:
         "url": "https://sentry.io",
         "disabled": False,
     }
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

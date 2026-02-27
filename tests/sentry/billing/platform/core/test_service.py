@@ -119,8 +119,3 @@ class TestBillingService:
 
         assert service.get_user_name(Int32Value(value=123)).value == "User 123"
         assert service.get_user_count(StringValue(value="org_1")).value == 42
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

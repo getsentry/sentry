@@ -18,8 +18,3 @@ class ApiGrantTest(TestCase):
     def test_default_string_serialization(self) -> None:
         default_msg = f"api_grant_id={self.grant.id}, user_id={self.user.id}, application_id={self.application.id} is cool"
         assert f"{self.grant} is cool" == default_msg
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

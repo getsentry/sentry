@@ -163,8 +163,3 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

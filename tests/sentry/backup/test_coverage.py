@@ -135,8 +135,3 @@ def test_all_eligible_organization_scoped_models_tested_for_user_merge() -> None
     assert not {str(u) for u in untested}, (
         "The aforementioned models are not covered in the `ORG_MEMBER_MERGE` backup tests; please go to `tests/sentry/models/test_user.py::UserMergeToTest` and make sure at least one test in the suite contains covers each of the missing models."
     )
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

@@ -30,8 +30,3 @@ class ExistingHighPriorityIssueConditionTest(RuleTestCase):
 
         self.event.group.update(priority=PriorityLevel.MEDIUM)
         self.assertDoesNotPass(rule, is_new=False, has_reappeared=True, has_escalated=True)
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

@@ -18,8 +18,3 @@ class UpdateMonitorTest(BaseUpdateMonitorTest):
 class DeleteMonitorTest(BaseDeleteMonitorTest):
     endpoint = "sentry-api-0-organization-monitor-details"
     __test__ = True
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

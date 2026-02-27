@@ -43,8 +43,3 @@ def test_integration_id_for_event() -> None:
         assert get_integration_id_for_event("foobar", "sentry-java", []) == "java"
         assert get_integration_id_for_event("java", "foobar", []) == "java"
         assert get_integration_id_for_event("foobar", "foobar", []) is None
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

@@ -106,8 +106,3 @@ def test_oxfordize_list() -> None:
     assert oxfordize_list(["A", "B"]) == "A and B"
     assert oxfordize_list(["A", "B", "C"]) == "A, B, and C"
     assert oxfordize_list(["A", "B", "C", "D"]) == "A, B, C, and D"
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

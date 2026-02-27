@@ -85,8 +85,3 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert not PlatformExternalIssue.objects.all()
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"
