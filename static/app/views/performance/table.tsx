@@ -34,10 +34,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {
-  useDomainViewFilters,
-  type DomainViewFilters,
-} from 'sentry/views/insights/pages/useFilters';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
@@ -75,7 +72,6 @@ type Props = {
   theme: Theme;
   withStaticFilters: boolean;
   columnTitles?: ColumnTitle[];
-  domainViewFilters?: DomainViewFilters;
 };
 
 function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
@@ -134,15 +130,19 @@ export default function Table({
 }: Props) {
   const [widths, setWidths] = useState<number[]>([]);
   const [transactionData, setTransactionData] = useState<TransactionData>();
-  const unparameterizedMetricProject = useRef<Project>(undefined);
+  const [tableMetricSet, setTableMetricSet] = useState(false);
+  const unparameterizedMetricProject = useRef<{project?: Project | undefined}>(undefined);
 
   const domainViewFilters = useDomainViewFilters();
 
   useEffect(() => {
-    trackAnalytics('performance_views.landing.table.seen', {
-      organization,
-    });
-  }, [organization]);
+    if (!tableMetricSet) {
+      trackAnalytics('performance_views.landing.table.seen', {
+        organization,
+      });
+      setTableMetricSet(true);
+    }
+  }, [organization, tableMetricSet]);
 
   function sendUnparameterizedAnalytic(project: Project | undefined) {
     const statsPeriod = eventView.statsPeriod ?? 'other';
@@ -309,7 +309,7 @@ export default function Table({
       summaryView.query = existingQuery.formatString();
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
       if (isUnparameterizedRow && !unparameterizedMetricProject.current) {
-        unparameterizedMetricProject.current = project;
+        unparameterizedMetricProject.current = {project};
         sendUnparameterizedAnalytic(project);
       }
       const {isInDomainView, view} = domainViewFilters ?? {};
