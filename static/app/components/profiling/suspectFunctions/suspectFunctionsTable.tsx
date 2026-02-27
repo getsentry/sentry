@@ -132,7 +132,7 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples: Array<Array<Exclude<Profiling.ProfileReference, string>>> = new Array(
+    const examples = new Array<Array<Exclude<Profiling.ProfileReference, string>>>(
       frames.length
     );
 

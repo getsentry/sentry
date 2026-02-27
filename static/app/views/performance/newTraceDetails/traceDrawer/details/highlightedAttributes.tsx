@@ -321,7 +321,7 @@ function HighlightedTools({
     Referrer.TRACE_DRAWER_TOOL_USAGE
   );
 
-  const usedTools: Map<string, number> = new Map();
+  const usedTools = new Map<string, number>();
   toolSpansQuery.data?.forEach(span => {
     const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
     usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);

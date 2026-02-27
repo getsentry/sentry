@@ -101,6 +101,23 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert distribution_info["download_count"] == 5
         assert distribution_info["release_notes"] == "Build notes"
 
+    def test_get_build_details_distribution_error_fields(self) -> None:
+        self.preprod_artifact.installable_app_error_code = (
+            PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+        )
+        self.preprod_artifact.installable_app_error_message = "quota"
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        distribution_info = response.json()["distribution_info"]
+        assert distribution_info["error_code"] == "no_quota"
+        assert distribution_info["error_message"] == "quota"
+
     def test_get_build_details_not_found(self) -> None:
         url = self._get_url(artifact_id=999999)
         response = self.client.get(

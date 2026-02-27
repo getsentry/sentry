@@ -24,7 +24,7 @@ import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
-type Props = {groupId: string; projectId?: number};
+type Props = {groupId: string; noVisualizationPadding?: boolean; projectId?: number};
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
@@ -38,7 +38,7 @@ const {
 const imageWidth = '200px';
 const imageHeight = '180px';
 
-function SampleImages({groupId, projectId}: Props) {
+function SampleImages({groupId, projectId, noVisualizationPadding}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
@@ -83,17 +83,24 @@ function SampleImages({groupId, projectId}: Props) {
     setShowImages(true);
   };
 
+  const body = (
+    <SampleImagesChartPanelBody
+      onClickShowLinks={handleClickOnlyShowLinks}
+      images={filteredResources}
+      isLoadingImages={isLoadingImages}
+      isSettingsLoading={isSettingsLoading}
+      isImagesEnabled={isImagesEnabled}
+      showImages={showImages || isImagesEnabled}
+      noVisualizationPadding={noVisualizationPadding}
+    />
+  );
+
+  if (noVisualizationPadding) {
+    return body;
+  }
+
   return (
-    <ChartPanel title={showImages ? t('Largest Images') : undefined}>
-      <SampleImagesChartPanelBody
-        onClickShowLinks={handleClickOnlyShowLinks}
-        images={filteredResources}
-        isLoadingImages={isLoadingImages}
-        isSettingsLoading={isSettingsLoading}
-        isImagesEnabled={isImagesEnabled}
-        showImages={showImages || isImagesEnabled}
-      />
-    </ChartPanel>
+    <ChartPanel title={showImages ? t('Largest Images') : undefined}>{body}</ChartPanel>
   );
 }
 
@@ -111,6 +118,7 @@ function SampleImagesChartPanelBody(props: {
   isLoadingImages: boolean;
   isSettingsLoading: boolean;
   showImages: boolean;
+  noVisualizationPadding?: boolean;
   onClickShowLinks?: () => void;
 }) {
   const {
@@ -120,6 +128,7 @@ function SampleImagesChartPanelBody(props: {
     showImages,
     isImagesEnabled,
     isSettingsLoading,
+    noVisualizationPadding,
   } = props;
 
   const hasImages = images.length > 0;
@@ -147,7 +156,7 @@ function SampleImagesChartPanelBody(props: {
   }
 
   return (
-    <ImageWrapper>
+    <ImageWrapper noVisualizationPadding={noVisualizationPadding}>
       {images.map(resource => {
         const hasRawDomain = Boolean(resource[RAW_DOMAIN]);
         const isRelativeUrl = resource[SPAN_DESCRIPTION].startsWith('/');
@@ -299,10 +308,10 @@ const getFileNameFromDescription = (description: string) => {
   return url.pathname.split('/').pop() ?? '';
 };
 
-const ImageWrapper = styled('div')`
+const ImageWrapper = styled('div')<{noVisualizationPadding?: boolean}>`
   display: grid;
   grid-template-columns: repeat(auto-fill, ${imageWidth});
-  padding-top: ${space(2)};
+  padding-top: ${p => (p.noVisualizationPadding ? 0 : space(2))};
   gap: 30px;
 `;
 

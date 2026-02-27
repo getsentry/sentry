@@ -22,6 +22,7 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
         SpanFields.SPAN_GROUP,
         SpanFields.SPAN_DESCRIPTION,
         SpanFields.SPAN_CATEGORY,
+        SpanFields.PROJECT_ID,
       ] satisfies DefaultDetailWidgetFields[],
       aggregates: [],
       columns: [
@@ -30,6 +31,7 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
         SpanFields.SPAN_GROUP,
         SpanFields.SPAN_DESCRIPTION,
         SpanFields.SPAN_CATEGORY,
+        SpanFields.PROJECT_ID,
       ] satisfies DefaultDetailWidgetFields[],
       fieldAliases: [],
       conditions: '',
@@ -41,8 +43,8 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
   layout: {
     x: 0,
     y: 0,
-    minH: 1,
-    h: 1,
+    minH: 2,
+    h: 2,
     w: 6,
   },
 };
@@ -146,7 +148,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1,
+  2,
   {h: 1, minH: 1}
 );
 
@@ -210,7 +212,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1
+  3
 );
 
 const ASSETS_TABLE_WIDGET: Widget = {

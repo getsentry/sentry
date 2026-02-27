@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {IconQuestion} from 'sentry/icons';
+import {IconLock, IconQuestion} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
@@ -11,20 +11,24 @@ interface InfoTooltipProps extends SVGIconProps {
   position?: TooltipProps['position'];
 }
 
-export function InfoTip({title, position, ...props}: InfoTooltipProps) {
+function IconWithTooltip({
+  title,
+  position,
+  icon: Icon,
+  'aria-label': ariaLabel,
+  ...props
+}: InfoTooltipProps & {icon: React.ComponentType<SVGIconProps>}) {
   return (
     <Tooltip title={title} skipWrapper isHoverable position={position}>
-      <StyledIconQuestion
-        {...props}
-        tabIndex={0}
-        role="img"
-        aria-label={t('More information')}
-      />
+      <StyledIconWrapper tabIndex={0} role="img" aria-label={ariaLabel}>
+        <Icon {...props} aria-hidden />
+      </StyledIconWrapper>
     </Tooltip>
   );
 }
 
-const StyledIconQuestion = styled(IconQuestion)`
+const StyledIconWrapper = styled('span')`
+  display: inline-flex;
   border-radius: 50%;
   outline: none;
 
@@ -32,3 +36,17 @@ const StyledIconQuestion = styled(IconQuestion)`
     ${p => p.theme.focusRing()}
   }
 `;
+
+export function InfoTip(props: InfoTooltipProps) {
+  return (
+    <IconWithTooltip {...props} icon={IconQuestion} aria-label={t('More information')} />
+  );
+}
+
+function LockIcon(props: SVGIconProps) {
+  return <IconLock locked {...props} />;
+}
+
+export function DisabledTip(props: InfoTooltipProps) {
+  return <IconWithTooltip {...props} icon={LockIcon} aria-label={t('Disabled')} />;
+}
