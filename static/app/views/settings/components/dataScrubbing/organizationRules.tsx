@@ -1,4 +1,4 @@
-import {Component, createRef} from 'react';
+import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,91 +18,59 @@ type Props = {
   organization: Organization;
 };
 
-type State = {
-  isCollapsed: boolean;
-  rules: Rule[];
-  contentHeight?: string;
-};
+export function OrganizationRules({organization}: Props) {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [contentHeight, setContentHeight] = useState<string | undefined>();
 
-export class OrganizationRules extends Component<Props, State> {
-  state: State = {
-    isCollapsed: true,
-    rules: [],
-  };
-
-  componentDidMount() {
-    this.loadRules();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (
-      prevProps.organization.relayPiiConfig !== this.props.organization.relayPiiConfig
-    ) {
-      this.loadRules();
-      return;
-    }
-
-    this.loadContentHeight();
-  }
-
-  rulesRef = createRef<HTMLUListElement>();
-
-  loadContentHeight() {
-    if (!this.state.contentHeight) {
-      const contentHeight = this.rulesRef.current?.offsetHeight;
-      if (contentHeight) {
-        this.setState({contentHeight: `${contentHeight}px`});
-      }
-    }
-  }
-
-  handleToggleCollapsed = () => {
-    this.setState(prevState => ({
-      isCollapsed: !prevState.isCollapsed,
-    }));
-  };
-
-  loadRules() {
+  useEffect(() => {
     try {
-      this.setState({
-        rules: convertRelayPiiConfig(this.props.organization.relayPiiConfig),
-      });
+      setRules(convertRelayPiiConfig(organization.relayPiiConfig));
     } catch {
       addErrorMessage(t('Unable to load data scrubbing rules'));
     }
-  }
+  }, [organization.relayPiiConfig]);
 
-  render() {
-    const {isCollapsed, contentHeight, rules} = this.state;
+  const handleToggleCollapsed = () => {
+    setIsCollapsed(previousIsCollapsed => !previousIsCollapsed);
+  };
 
-    if (rules.length === 0) {
-      return (
-        <PanelAlert variant="info">
-          {t('There are no data scrubbing rules at the organization level')}
-        </PanelAlert>
-      );
-    }
+  if (rules.length === 0) {
     return (
-      <Wrapper isCollapsed={isCollapsed} contentHeight={contentHeight}>
-        <Header onClick={this.handleToggleCollapsed}>
-          <div>{t('Organization Rules')}</div>
-          <Button
-            tooltipProps={{
-              title: isCollapsed
-                ? t('Expand Organization Rules')
-                : t('Collapse Organization Rules'),
-            }}
-            icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
-            size="xs"
-            aria-label={t('Toggle Organization Rules')}
-          />
-        </Header>
-        <Content>
-          <Rules rules={rules} ref={this.rulesRef} disabled />
-        </Content>
-      </Wrapper>
+      <PanelAlert variant="info">
+        {t('There are no data scrubbing rules at the organization level')}
+      </PanelAlert>
     );
   }
+
+  return (
+    <Wrapper isCollapsed={isCollapsed} contentHeight={contentHeight}>
+      <Header onClick={handleToggleCollapsed}>
+        <div>{t('Organization Rules')}</div>
+        <Button
+          tooltipProps={{
+            title: isCollapsed
+              ? t('Expand Organization Rules')
+              : t('Collapse Organization Rules'),
+          }}
+          icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
+          size="xs"
+          aria-label={t('Toggle Organization Rules')}
+        />
+      </Header>
+      <Content>
+        <Rules
+          rules={rules}
+          ref={rulesRef => {
+            if (!contentHeight && rulesRef) {
+              setContentHeight(`${rulesRef.offsetHeight}px`);
+            }
+          }}
+          disabled
+        />
+      </Content>
+    </Wrapper>
+  );
 }
 
 const Content = styled('div')`
