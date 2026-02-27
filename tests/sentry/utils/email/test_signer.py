@@ -11,8 +11,3 @@ class CaseInsensitiveSignerTests(TestCase):
             assert signer.unsign(signer.sign("foo")) == "foo"
             assert signer.sign("foo") == "foo:wkpxg5djz3d4m0zktktfl9hdzw4"
             assert signer.unsign("foo:WKPXG5DJZ3D4M0ZKTKTFL9HDZW4") == "foo"
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

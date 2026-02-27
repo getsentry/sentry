@@ -299,8 +299,3 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_get_code_mappings.assert_not_called()
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == existing_repos
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

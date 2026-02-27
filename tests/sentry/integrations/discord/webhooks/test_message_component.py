@@ -275,8 +275,3 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         )
         assert response.status_code == 200
         assert self.get_message_content(response) == ARCHIVE_UNTIL_ESCALATES
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

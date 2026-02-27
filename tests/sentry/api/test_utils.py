@@ -267,8 +267,3 @@ class ClampDateRangeTest(unittest.TestCase):
             datetime.datetime(2024, 1, 13),
             end,
         )
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

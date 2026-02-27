@@ -23,8 +23,3 @@ class CommitAuthorUsernameExtractionTest(SimpleTestCase):
     def test_get_username_from_external_id_multiple_colons(self) -> None:
         author = CommitAuthor(external_id="provider:user:with:colons")
         assert author.get_username_from_external_id() == "user:with:colons"
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

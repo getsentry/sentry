@@ -233,8 +233,3 @@ def test_slack_presenter_methods_with_different_types() -> None:
         responses.calls[0].request.headers["x-sentry-options-signature"]
         == "8b7827d99b4373d1a969e38d2813be1ee8de3f4a75c46223af548c04a053f98a"
     )
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

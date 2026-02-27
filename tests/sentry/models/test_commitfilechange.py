@@ -21,8 +21,3 @@ class CommitFileChangeTest(TestCase):
 
         count = CommitFileChange.objects.get_count_for_commits([commit])
         assert count == 1
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

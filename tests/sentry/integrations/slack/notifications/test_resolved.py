@@ -118,8 +118,3 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             group_event.group,
             "resolved_activity-slack",
         )
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

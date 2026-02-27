@@ -114,8 +114,3 @@ def test_legacy_custom_mix_customer() -> None:
         cluster_options = get_kafka_consumer_cluster_options("default")
         assert cluster_options["bootstrap.servers"] == "old.server:9092"
         assert "security.protocol" not in cluster_options
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

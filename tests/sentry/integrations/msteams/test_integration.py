@@ -186,8 +186,3 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             self.installation.send_notification(target=self.target, payload=payload)
 
         assert str(e.value) == error_payload
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"

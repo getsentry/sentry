@@ -1013,8 +1013,3 @@ class TestEAPPageTokenPaginator:
         assert actual_page_token == expected_page_token
 
         page = paginator.get_result(limit=3, cursor=page.next)
-
-
-# TEMPORARY: intentional failure to test CI reporting (remove after verifying)
-def test_intentional_failure_for_ci_reporting():
-    assert False, "Intentional failure to test backend CI failure reporting"
