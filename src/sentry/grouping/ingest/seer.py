@@ -283,7 +283,6 @@ def _has_empty_stacktrace_string(
     return False
 
 
-@sentry_sdk.tracing.trace
 def _build_seer_request(
     event: Event,
     variants: dict[str, BaseVariant],
@@ -327,6 +326,7 @@ def _build_seer_request(
     return request_data, metric_tags
 
 
+@sentry_sdk.tracing.trace
 def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
