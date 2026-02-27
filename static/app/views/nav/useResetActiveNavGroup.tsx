@@ -16,7 +16,7 @@ import {NavLayout} from 'sentry/views/nav/types';
  * to prevent accidental dismissals.
  */
 export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
-  const {layout, setActivePrimaryNavGroup} = useNavContext();
+  const {layout, setActivePrimaryNavGroup, setHoveredNav} = useNavContext();
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const resetActiveNavGroup = useCallback(() => {
@@ -26,8 +26,9 @@ export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
 
     resetTimeoutRef.current = setTimeout(() => {
       setActivePrimaryNavGroup(null);
+      setHoveredNav(null);
     }, NAV_SIDEBAR_RESET_DELAY_MS);
-  }, [setActivePrimaryNavGroup]);
+  }, [setActivePrimaryNavGroup, setHoveredNav]);
 
   const clearResetTimeout = useCallback(() => {
     if (resetTimeoutRef.current) {

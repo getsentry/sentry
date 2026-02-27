@@ -7,16 +7,24 @@ import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constant
 import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
 
+export interface HoveredNav {
+  anchorY: number;
+  group: PrimaryNavGroup;
+}
+
 interface NavContext {
   activePrimaryNavGroup: PrimaryNavGroup | null;
   collapsedNavIsOpen: boolean;
   endInteraction: () => void;
+  hoveredNav: HoveredNav | null;
+  hoveredNavCloseTimerRef: React.MutableRefObject<NodeJS.Timeout | null>;
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
   layout: NavLayout;
   navParentRef: React.RefObject<HTMLDivElement | null>;
   setActivePrimaryNavGroup: (activePrimaryNavGroup: PrimaryNavGroup | null) => void;
   setCollapsedNavIsOpen: (collapsedNavIsOpen: boolean) => void;
+  setHoveredNav: (hoveredNav: HoveredNav | null) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
   setShowTourReminder: (showTourReminder: boolean) => void;
   showTourReminder: boolean;
@@ -37,6 +45,9 @@ const NavContext = createContext<NavContext>({
   setActivePrimaryNavGroup: () => {},
   collapsedNavIsOpen: false,
   setCollapsedNavIsOpen: () => {},
+  hoveredNav: null,
+  setHoveredNav: () => {},
+  hoveredNavCloseTimerRef: {current: null},
 });
 
 export function useNavContext(): NavContext {
@@ -46,6 +57,7 @@ export function useNavContext(): NavContext {
 export function NavContextProvider({children}: {children: React.ReactNode}) {
   const navParentRef = useRef<HTMLDivElement>(null);
   const isInteractingRef = useRef(false);
+  const hoveredNavCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
@@ -54,6 +66,7 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
   const [showTourReminder, setShowTourReminder] = useState(false);
   const [activePrimaryNavGroup, setActivePrimaryNavGroup] =
     useState<PrimaryNavGroup | null>(null);
+  const [hoveredNav, setHoveredNav] = useState<HoveredNav | null>(null);
 
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
@@ -81,6 +94,9 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setActivePrimaryNavGroup,
       collapsedNavIsOpen,
       setCollapsedNavIsOpen,
+      hoveredNav,
+      setHoveredNav,
+      hoveredNavCloseTimerRef,
     }),
     [
       isMobile,
@@ -94,6 +110,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setActivePrimaryNavGroup,
       collapsedNavIsOpen,
       setCollapsedNavIsOpen,
+      hoveredNav,
+      setHoveredNav,
     ]
   );
 

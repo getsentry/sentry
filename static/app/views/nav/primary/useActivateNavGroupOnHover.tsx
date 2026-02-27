@@ -7,10 +7,13 @@ import {useWindowHeight} from 'sentry/views/nav/primary/useWindowHeight';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 
 /**
- * Hovering over a primary nav item will change the contents of the sidebar.
+ * Hovering over a primary nav item shows a popover with that group's secondary nav.
  * This hook returns event handlers which can be applied to a nav item.
  *
- * When a nav item detects a mouse enter event, it will either activate the group
+ * On hover, the secondary sidebar stays locked to the currently active route.
+ * A floating popover appears instead, which is less jarring.
+ *
+ * When a nav item detects a mouse enter event, it will either show the popover
  * immediately, or do so after a short delay depending on mouse position and angle of movement.
  *
  * There are two cases where we add a delay:
@@ -30,22 +33,46 @@ export function useActivateNavGroupOnHover({
     ref,
     disabled: layout !== NavLayout.SIDEBAR,
   });
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
+  const openTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    setActivePrimaryNavGroup,
+    setHoveredNav,
+    hoveredNav,
+    hoveredNavCloseTimerRef,
+    isCollapsed,
+    collapsedNavIsOpen,
+  } = useNavContext();
   const windowHeight = useWindowHeight();
 
   return function makeNavItemProps(group: PrimaryNavGroup) {
     const onMouseEnter = (e: MouseEvent) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      if (isCollapsed && !collapsedNavIsOpen) {
-        setActivePrimaryNavGroup(group);
+      // For collapsed nav, keep existing flyout behavior
+      if (isCollapsed) {
+        if (!collapsedNavIsOpen) {
+          setActivePrimaryNavGroup(group);
+        }
         return;
       }
 
+      // Cancel any pending close timer so popover doesn't flicker
+      if (hoveredNavCloseTimerRef.current) {
+        clearTimeout(hoveredNavCloseTimerRef.current);
+        hoveredNavCloseTimerRef.current = null;
+      }
+      if (openTimerRef.current) {
+        clearTimeout(openTimerRef.current);
+      }
+
+      const anchorY = (e.currentTarget as HTMLElement).getBoundingClientRect().top;
+
+      // If a popover is already open (user is hovering between items), switch immediately
+      const isAlreadyHovering = hoveredNav !== null;
+
       const getDelay = () => {
+        if (isAlreadyHovering) {
+          return 0;
+        }
+
         const {horizontalSpeed, verticalSpeed, horizontalDirection, verticalDirection} =
           mouseAccelerationRef.current;
 
@@ -57,7 +84,7 @@ export function useActivateNavGroupOnHover({
         const distanceToBottom = windowHeight - mouseY;
 
         // Find angle from mouse to top and bottom of nav
-        // This is the angle of motion that likely inidcates that the user is
+        // This is the angle of motion that likely indicates that the user is
         // moving their mouse into the secondary nav.
         // Similar to https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown
         const angleToTop =
@@ -80,7 +107,7 @@ export function useActivateNavGroupOnHover({
         const isSkimmingRightSide =
           horizontalDirection < 1 && mouseX > PRIMARY_SIDEBAR_WIDTH * 0.8;
 
-        // If we deem the user intention is _not_ to active another nav group, add a 200ms delay
+        // If we deem the user intention is _not_ to activate another nav group, add a 200ms delay
         if (isMovingTowardSecondaryNav || isSkimmingRightSide) {
           return 200;
         }
@@ -89,19 +116,29 @@ export function useActivateNavGroupOnHover({
         return 0;
       };
 
-      timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavGroup(group);
+      openTimerRef.current = setTimeout(() => {
+        setHoveredNav({group, anchorY});
       }, getDelay());
     };
 
     const onMouseLeave = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (openTimerRef.current) {
+        clearTimeout(openTimerRef.current);
+        openTimerRef.current = null;
+      }
+
+      // Start a close timer so the mouse can move from nav item to popover
+      // without it flickering. The popover's onMouseEnter cancels this timer.
+      if (!isCollapsed) {
+        hoveredNavCloseTimerRef.current = setTimeout(() => {
+          setHoveredNav(null);
+        }, 150);
       }
     };
 
     const onClick = () => {
       setActivePrimaryNavGroup(group);
+      setHoveredNav(null);
     };
 
     return {

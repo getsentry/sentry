@@ -18,6 +18,7 @@ import {
 import {useNavContext} from 'sentry/views/nav/context';
 import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
+import {NavGroupPopover} from 'sentry/views/nav/primary/navGroupPopover';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
 import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
@@ -86,6 +87,7 @@ export function Sidebar() {
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
       ) : null}
+      <NavGroupPopover />
     </Fragment>
   );
 }

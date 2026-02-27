@@ -11,7 +11,6 @@ import {
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {
@@ -43,10 +42,7 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavGroup} = useNavContext();
-  const defaultActiveNavGroup = useActiveNavGroup();
-
-  const activeNavGroup = activePrimaryNavGroup ?? defaultActiveNavGroup;
+  const activeNavGroup = useActiveNavGroup();
 
   return (
     <SecondarySidebarWrapper

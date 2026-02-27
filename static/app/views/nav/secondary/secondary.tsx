@@ -66,7 +66,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
   }
 
   return (
-    <Header>
+    <Header data-secondary-nav-header>
       <div>{children}</div>
       <div>
         <Button
@@ -89,7 +89,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
 
-  return <Body layout={layout}>{children}</Body>;
+  return (
+    <Body layout={layout} data-secondary-nav-body>
+      {children}
+    </Body>
+  );
 };
 
 function SectionTitle({
