@@ -833,6 +833,9 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# Used to switch from sentry.taskworker to taskbroker_client - Temporary
+TASKWORKER_USE_LIBRARY = os.getenv("TASKWORKER_USE_LIBRARY")
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
