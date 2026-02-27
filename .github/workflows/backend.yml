@@ -289,6 +289,15 @@ jobs:
         run: |
           make test-python-ci
 
+      - name: Upload pytest results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          if-no-files-found: ignore
+          retention-days: 1
+
       - name: Inspect failure
         if: failure()
         run: |
@@ -306,15 +315,6 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
-
-      - name: Upload pytest results
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
-          path: .artifacts/pytest.json
-          if-no-files-found: ignore
-          retention-days: 1
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -336,13 +336,6 @@ jobs:
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
 
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
       - name: Upload pytest results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -351,6 +344,13 @@ jobs:
           path: .artifacts/pytest.json
           if-no-files-found: ignore
           retention-days: 1
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -505,6 +505,15 @@ jobs:
         run: |
           make test-monolith-dbs
 
+      - name: Upload pytest results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pytest-results-monolith-dbs-${{ github.run_id }}
+          path: .artifacts/pytest.monolith-dbs.json
+          if-no-files-found: ignore
+          retention-days: 1
+
       - name: Inspect failure
         if: failure()
         run: |
@@ -521,15 +530,6 @@ jobs:
           gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
-      - name: Upload pytest results
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: pytest-results-monolith-dbs-${{ github.run_id }}
-          path: .artifacts/pytest.monolith-dbs.json
-          if-no-files-found: ignore
-          retention-days: 1
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
