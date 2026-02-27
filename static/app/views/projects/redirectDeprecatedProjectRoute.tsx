@@ -143,7 +143,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
             }
 
             if (!hasProjectId || !organizationId) {
-              if (error && error.status === 404) {
+              if (error?.status === 404) {
                 return (
                   <Alert.Container>
                     <Alert variant="danger" showIcon={false}>
