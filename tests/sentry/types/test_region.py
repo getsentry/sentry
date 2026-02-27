@@ -78,7 +78,7 @@ class RegionDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
-        assert directory.get_by_name("nowhere") is None
+        assert directory.get_cell_by_name("nowhere") is None
 
         with self._in_global_state(directory):
             assert get_region_by_name("eu") == self._EXPECTED_OUTPUTS[1]
