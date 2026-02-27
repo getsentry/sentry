@@ -41,6 +41,9 @@ class CheckForUpdatesApiResponse(BaseModel):
     current: InstallableBuildDetails | None = None
 
 
+# Deprecated: This experimental endpoint is superseded by the public
+# ProjectPreprodBuildDistributionLatestEndpoint at
+# /api/0/{org}/{project}/preprodartifacts/build-distribution/latest/
 @region_silo_endpoint
 class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS

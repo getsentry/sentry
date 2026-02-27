@@ -37,6 +37,13 @@ class InstallableBuildResponseDict(TypedDict):
     buildConfiguration: str | None
     downloadCount: int
     releaseNotes: str | None
+    installGroups: list[str] | None
+
+
+class LatestInstallableBuildResponseDict(TypedDict):
+    latest: InstallableBuildResponseDict | None
+    current: InstallableBuildResponseDict | None
+    updateAvailable: bool | None
 
 
 def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDict:
@@ -74,4 +81,17 @@ def create_installable_build_dict(
         ),
         "downloadCount": download_count,
         "releaseNotes": (artifact.extras or {}).get("release_notes"),
+        "installGroups": (artifact.extras or {}).get("install_groups"),
+    }
+
+
+def create_latest_installable_build_response(
+    latest: InstallableBuildResponseDict | None,
+    current: InstallableBuildResponseDict | None,
+    update_available: bool | None,
+) -> LatestInstallableBuildResponseDict:
+    return {
+        "latest": latest,
+        "current": current,
+        "updateAvailable": update_available,
     }

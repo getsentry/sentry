@@ -29,19 +29,6 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             pr_number=42,
         )
 
-        self.artifact = self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            installable_app_file_id=self.installable_file.id,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=1,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            build_configuration=self.build_config,
-            commit_comparison=self.commit_comparison,
-        )
-
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
         self.feature_context.__enter__()
 
@@ -63,6 +50,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             "installable_app_file_id": self.installable_file.id,
             "artifact_type": PreprodArtifact.ArtifactType.APK,
             "app_id": "com.example.app",
+            "build_version": "1.0.0",
             "build_number": 1,
             "state": PreprodArtifact.ArtifactState.PROCESSED,
         }
@@ -71,167 +59,493 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
 
     def test_feature_flag_disabled(self):
         with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self.client.get(self._get_url())
+            response = self.client.get(
+                self._get_url(), {"appId": "com.example.app", "platform": "android"}
+            )
             assert response.status_code == 403
             assert response.json()["detail"] == "Feature not enabled"
 
-    def test_empty_results(self):
-        PreprodArtifact.objects.all().delete()
+    def test_missing_required_params(self):
         response = self.client.get(self._get_url())
-        assert response.status_code == 200
-        assert response.json() == []
+        assert response.status_code == 400
 
-    def test_list_builds_no_filters(self):
-        response = self.client.get(self._get_url())
+        response = self.client.get(self._get_url(), {"appId": "com.example.app"})
+        assert response.status_code == 400
+
+        response = self.client.get(self._get_url(), {"platform": "android"})
+        assert response.status_code == 400
+
+    def test_build_version_requires_identifier(self):
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_latest_mode_returns_latest_build(self):
+        artifact = self._create_installable_artifact()
+
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        build = data[0]
-        assert build["buildId"] == str(self.artifact.id)
+        assert data["latest"] is not None
+        assert data["latest"]["buildId"] == str(artifact.id)
+        assert data["current"] is None
+        assert data["updateAvailable"] is None
+
+    def test_latest_mode_no_matching_build(self):
+        response = self.client.get(
+            self._get_url(), {"appId": "com.nonexistent.app", "platform": "android"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"] is None
+        assert data["current"] is None
+        assert data["updateAvailable"] is None
+
+    def test_latest_mode_response_fields(self):
+        artifact = self._create_installable_artifact(
+            build_configuration=self.build_config,
+            commit_comparison=self.commit_comparison,
+            extras={"release_notes": "Bug fixes.", "install_groups": ["beta"]},
+        )
+
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
+        assert response.status_code == 200
+        build = response.json()["latest"]
+        assert build["buildId"] == str(artifact.id)
         assert build["state"] == "PROCESSED"
         assert build["platform"] == "android"
-
         assert build["projectId"] == str(self.project.id)
         assert build["projectSlug"] == self.project.slug
         assert build["buildConfiguration"] == "release"
         assert build["appInfo"]["appId"] == "com.example.app"
+        assert build["appInfo"]["version"] == "1.0.0"
+        assert build["appInfo"]["buildNumber"] == 1
         assert build["gitInfo"] is not None
         assert build["gitInfo"]["headRef"] == "feature/test"
         assert build["gitInfo"]["prNumber"] == 42
         assert build["downloadCount"] == 0
+        assert build["releaseNotes"] == "Bug fixes."
+        assert build["installGroups"] == ["beta"]
 
-    def test_excludes_non_eligible_builds(self):
+    def test_check_for_updates_update_available(self):
+        self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+        )
+        newer = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updateAvailable"] is True
+        assert data["latest"]["buildId"] == str(newer.id)
+        assert data["current"] is not None
+        assert data["current"]["appInfo"]["version"] == "1.0.0"
+
+    def test_check_for_updates_already_on_latest(self):
+        artifact = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "2.0.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updateAvailable"] is False
+        assert data["latest"]["buildId"] == str(artifact.id)
+        assert data["current"]["buildId"] == str(artifact.id)
+
+    def test_check_for_updates_current_not_found(self):
+        latest = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "0.5.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updateAvailable"] is True
+        assert data["latest"]["buildId"] == str(latest.id)
+        assert data["current"] is None
+
+    def test_platform_filter_apple(self):
+        ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
+        ios_artifact = self._create_installable_artifact(
+            file_id=ios_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        # Create an Android artifact that should not be returned
+        self._create_installable_artifact(
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            build_version="3.0.0",
+            build_number=99,
+        )
+
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "apple"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"] is not None
+        assert data["latest"]["buildId"] == str(ios_artifact.id)
+        assert data["latest"]["platform"] == "apple"
+
+    def test_platform_filter_android_includes_aab(self):
+        self._create_installable_artifact(
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            build_version="2.0.0",
+            build_number=1,
+        )
+        apk_artifact = self._create_installable_artifact(
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            build_version="2.0.0",
+            build_number=2,
+        )
+
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"] is not None
+        # Should pick the highest build number among same version
+        assert data["latest"]["buildId"] == str(apk_artifact.id)
+
+    def test_build_configuration_filter(self):
+        debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
+        self._create_installable_artifact(
+            build_configuration=self.build_config,
+            build_version="1.0.0",
+            build_number=1,
+        )
+        debug_artifact = self._create_installable_artifact(
+            build_configuration=debug_config,
+            build_version="2.0.0",
+            build_number=1,
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildConfiguration": "debug",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"]["buildId"] == str(debug_artifact.id)
+
+    def test_codesigning_type_filter(self):
+        self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+            extras={"codesigning_type": "development"},
+        )
+        enterprise_artifact = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+            extras={"codesigning_type": "enterprise"},
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "codesigningType": "enterprise",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"]["buildId"] == str(enterprise_artifact.id)
+
+    def test_install_groups_filter(self):
+        self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+            extras={"install_groups": ["internal"]},
+        )
+        beta_artifact = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+            extras={"install_groups": ["beta-testers"]},
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "installGroup": "beta-testers",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"]["buildId"] == str(beta_artifact.id)
+
+    def test_install_groups_inheritance_from_current(self):
+        current = self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+            extras={"install_groups": ["beta"]},
+        )
+        # This newer artifact is in the "beta" group too — should be found via inheritance
+        newer = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+            extras={"install_groups": ["beta"]},
+        )
+        # This newer artifact is in a different group — should NOT be found
+        self._create_installable_artifact(
+            build_version="3.0.0",
+            build_number=1,
+            extras={"install_groups": ["internal"]},
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updateAvailable"] is True
+        assert data["latest"]["buildId"] == str(newer.id)
+        assert data["current"]["buildId"] == str(current.id)
+
+    def test_semver_comparison_picks_highest_version(self):
+        # Create artifacts with different versions — not in semver order
+        self._create_installable_artifact(build_version="1.0.0", build_number=1)
+        highest = self._create_installable_artifact(build_version="10.0.0", build_number=1)
+        self._create_installable_artifact(build_version="2.0.0", build_number=1)
+        self._create_installable_artifact(build_version="1.9.0", build_number=1)
+
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"]["buildId"] == str(highest.id)
+
+    def test_build_number_tiebreaker(self):
+        self._create_installable_artifact(build_version="1.0.0", build_number=1)
+        highest_build = self._create_installable_artifact(build_version="1.0.0", build_number=5)
+        self._create_installable_artifact(build_version="1.0.0", build_number=3)
+
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"]["buildId"] == str(highest_build.id)
+
+    def test_main_binary_identifier_matching(self):
+        current = self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+            main_binary_identifier="com.example.app.binary",
+        )
+        newer = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "mainBinaryIdentifier": "com.example.app.binary",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current"]["buildId"] == str(current.id)
+        assert data["latest"]["buildId"] == str(newer.id)
+        assert data["updateAvailable"] is True
+
+    def test_excludes_non_installable_builds(self):
         # No installable file
         self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app",
-            build_number=2,
+            build_version="3.0.0",
+            build_number=99,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
         # Non-processed states
-        self._create_installable_artifact(state=PreprodArtifact.ArtifactState.UPLOADING)
-        self._create_installable_artifact(state=PreprodArtifact.ArtifactState.FAILED)
-
-        response = self.client.get(self._get_url())
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(self.artifact.id)
-
-    def test_filter_by_platform_apple(self):
-        ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
-        ios_artifact = self._create_installable_artifact(
-            file_id=ios_file.id,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            app_id="com.example.iosapp",
-        )
-
-        response = self.client.get(self._get_url(), {"platform": "apple"})
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(ios_artifact.id)
-        assert data[0]["platform"] == "apple"
-
-    def test_filter_by_platform_android(self):
         self._create_installable_artifact(
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            app_id="com.example.iosapp",
+            build_version="4.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
         )
-        aab_artifact = self._create_installable_artifact(
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
-            app_id="com.example.aab",
+        installable = self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
         )
 
-        response = self.client.get(self._get_url(), {"platform": "android"})
-        assert response.status_code == 200
-        data = response.json()
-        build_ids = [b["buildId"] for b in data]
-        assert len(build_ids) == 2
-        assert str(self.artifact.id) in build_ids
-        assert str(aab_artifact.id) in build_ids
-
-    def test_filter_by_app_id(self):
-        self._create_installable_artifact(app_id="com.other.app")
-
-        response = self.client.get(self._get_url(), {"appId": "com.example.app"})
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["appInfo"]["appId"] == "com.example.app"
-
-    def test_filter_by_branch(self):
-        other_cc = self.create_commit_comparison(
-            organization=self.organization,
-            head_ref="other-branch",
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
         )
-        self._create_installable_artifact(commit_comparison=other_cc)
-
-        response = self.client.get(self._get_url(), {"branch": "feature/test"})
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(self.artifact.id)
-
-    def test_filter_by_build_version(self):
-        self._create_installable_artifact(build_version="2.0.0")
-
-        response = self.client.get(self._get_url(), {"buildVersion": "1.0"})
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(self.artifact.id)
-
-    def test_filter_by_build_configuration(self):
-        debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
-        self._create_installable_artifact(build_configuration=debug_config)
-
-        response = self.client.get(self._get_url(), {"buildConfiguration": "release"})
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildConfiguration"] == "release"
-
-    def test_filter_by_pr_number(self):
-        other_cc = self.create_commit_comparison(
-            organization=self.organization,
-            pr_number=99,
-        )
-        self._create_installable_artifact(commit_comparison=other_cc)
-
-        response = self.client.get(self._get_url(), {"prNumber": "42"})
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["gitInfo"]["prNumber"] == 42
-
-    def test_pagination(self):
-        for _ in range(3):
-            self._create_installable_artifact()
-
-        response = self.client.get(self._get_url(), {"perPage": "2"})
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 2
+        assert data["latest"] is not None
+        assert data["latest"]["buildId"] == str(installable.id)
 
     def test_only_returns_builds_for_this_project(self):
         other_project = self.create_project(organization=self.organization)
-        self._create_installable_artifact(project=other_project)
+        self._create_installable_artifact(
+            project=other_project,
+            build_version="99.0.0",
+            build_number=1,
+        )
+        artifact = self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+        )
 
-        response = self.client.get(self._get_url())
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(self.artifact.id)
+        assert data["latest"]["buildId"] == str(artifact.id)
 
     def test_download_count(self):
         artifact = self._create_installable_artifact()
         self.create_installable_preprod_artifact(preprod_artifact=artifact, download_count=5)
 
-        response = self.client.get(self._get_url())
+        response = self.client.get(
+            self._get_url(), {"appId": "com.example.app", "platform": "android"}
+        )
         assert response.status_code == 200
         data = response.json()
-        artifact_data = next(b for b in data if b["buildId"] == str(artifact.id))
-        assert artifact_data["downloadCount"] == 5
+        assert data["latest"]["downloadCount"] == 5
+
+    def test_codesigning_type_inheritance_from_current(self):
+        current = self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+            extras={"codesigning_type": "development"},
+        )
+        newer_dev = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+            extras={"codesigning_type": "development"},
+        )
+        # Enterprise artifact with higher version should NOT be found
+        self._create_installable_artifact(
+            build_version="3.0.0",
+            build_number=1,
+            extras={"codesigning_type": "enterprise"},
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updateAvailable"] is True
+        assert data["latest"]["buildId"] == str(newer_dev.id)
+        assert data["current"]["buildId"] == str(current.id)
+
+    def test_build_configuration_inheritance_from_current(self):
+        debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
+        current = self._create_installable_artifact(
+            build_version="1.0.0",
+            build_number=1,
+            build_configuration=self.build_config,
+        )
+        newer_release = self._create_installable_artifact(
+            build_version="2.0.0",
+            build_number=1,
+            build_configuration=self.build_config,
+        )
+        # Debug artifact with higher version should NOT be found
+        self._create_installable_artifact(
+            build_version="3.0.0",
+            build_number=1,
+            build_configuration=debug_config,
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updateAvailable"] is True
+        assert data["latest"]["buildId"] == str(newer_release.id)
+        assert data["current"]["buildId"] == str(current.id)
+
+    def test_check_for_updates_no_builds_exist(self):
+        response = self.client.get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["latest"] is None
+        assert data["current"] is None
+        assert data["updateAvailable"] is False

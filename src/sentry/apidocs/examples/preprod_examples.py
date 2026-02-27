@@ -176,18 +176,53 @@ class PreprodExamples:
         "state": "PROCESSED",
         "appInfo": _APP_INFO,
         "gitInfo": _GIT_INFO,
-        "platform": "android",
+        "platform": "ANDROID",
         "projectId": "1",
         "projectSlug": "my-project",
         "buildConfiguration": "release",
         "downloadCount": 5,
         "releaseNotes": "Bug fixes and performance improvements.",
+        "installGroups": ["beta-testers"],
     }
 
-    GET_BUILDS = [
+    EXAMPLE_LATEST_BUILD_ONLY = {
+        "latest": EXAMPLE_BUILD_SUMMARY,
+        "current": None,
+        "updateAvailable": None,
+    }
+
+    EXAMPLE_UPDATE_AVAILABLE = {
+        "latest": {
+            **EXAMPLE_BUILD_SUMMARY,
+            "buildId": "12346",
+            "appInfo": {**_APP_INFO, "version": "1.3.0", "buildNumber": 50},
+        },
+        "current": EXAMPLE_BUILD_SUMMARY,
+        "updateAvailable": True,
+    }
+
+    EXAMPLE_NO_UPDATE = {
+        "latest": EXAMPLE_BUILD_SUMMARY,
+        "current": EXAMPLE_BUILD_SUMMARY,
+        "updateAvailable": False,
+    }
+
+    GET_LATEST_BUILD = [
         OpenApiExample(
-            "Build List",
-            value=[EXAMPLE_BUILD_SUMMARY],
+            "Latest Build Only",
+            value=EXAMPLE_LATEST_BUILD_ONLY,
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Update Available",
+            value=EXAMPLE_UPDATE_AVAILABLE,
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "No Update Available",
+            value=EXAMPLE_NO_UPDATE,
             status_codes=["200"],
             response_only=True,
         ),

@@ -119,3 +119,51 @@ class PreprodPublicBuildsValidator(serializers.Serializer[Any]):
         if value:
             return value.lower()
         return value
+
+
+class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
+    """Validator for the public latest installable build endpoint (camelCase params)."""
+
+    appId = serializers.CharField(required=True, help_text="App identifier")
+    platform = serializers.ChoiceField(
+        choices=[("apple", "Apple"), ("android", "Android")],
+        required=True,
+        help_text='Platform: "apple" or "android"',
+    )
+    buildVersion = serializers.CharField(
+        required=False,
+        help_text="Current build version. When provided, enables check-for-updates mode.",
+    )
+    buildNumber = serializers.CharField(
+        required=False,
+        help_text="Current build number. Required if buildVersion is provided and mainBinaryIdentifier is not.",
+    )
+    mainBinaryIdentifier = serializers.CharField(
+        required=False,
+        help_text="Main binary identifier. Required if buildVersion is provided and buildNumber is not.",
+    )
+    buildConfiguration = serializers.CharField(
+        required=False, help_text="Filter by build configuration name"
+    )
+    codesigningType = serializers.CharField(required=False, help_text="Filter by code signing type")
+    installGroup = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Filter by install group (repeatable for multiple groups)",
+    )
+
+    def validate_platform(self, value: str | None) -> str | None:
+        if value:
+            return value.lower()
+        return value
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        build_version = data.get("buildVersion")
+        if build_version:
+            main_binary_identifier = data.get("mainBinaryIdentifier")
+            build_number = data.get("buildNumber")
+            if not main_binary_identifier and not build_number:
+                raise serializers.ValidationError(
+                    "Either mainBinaryIdentifier or buildNumber is required when buildVersion is provided."
+                )
+        return data

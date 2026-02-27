@@ -9,18 +9,22 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.paginator import DateTimePaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.preprod.api.models.public.installable_builds import (
-    InstallableBuildResponseDict,
+    LatestInstallableBuildResponseDict,
     create_installable_build_dict,
+    create_latest_installable_build_response,
 )
-from sentry.preprod.api.validators import PreprodPublicBuildsValidator
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.api.validators import PreprodLatestInstallableBuildValidator
+from sentry.preprod.build_distribution_utils import (
+    find_current_artifact,
+    find_latest_installable_artifact,
+    get_download_count_for_artifact,
+)
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -32,34 +36,41 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="List latest installable builds for a project",
+        operation_id="Get the latest installable build for a project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             OpenApiParameter(
-                name="platform",
-                description='Filter by platform: "apple" or "android".',
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
                 name="appId",
-                description="Filter by app identifier (exact match).",
-                required=False,
+                description="App identifier (exact match).",
+                required=True,
                 type=str,
                 location="query",
             ),
             OpenApiParameter(
-                name="branch",
-                description="Filter by git branch (head ref).",
-                required=False,
+                name="platform",
+                description='Platform: "apple" or "android".',
+                required=True,
                 type=str,
                 location="query",
             ),
             OpenApiParameter(
                 name="buildVersion",
-                description="Filter by build version (contains match).",
+                description="Current build version. When provided, enables check-for-updates mode.",
+                required=False,
+                type=str,
+                location="query",
+            ),
+            OpenApiParameter(
+                name="buildNumber",
+                description="Current build number. Required if buildVersion is provided and mainBinaryIdentifier is not.",
+                required=False,
+                type=str,
+                location="query",
+            ),
+            OpenApiParameter(
+                name="mainBinaryIdentifier",
+                description="Main binary identifier. Required if buildVersion is provided and buildNumber is not.",
                 required=False,
                 type=str,
                 location="query",
@@ -72,36 +83,30 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 location="query",
             ),
             OpenApiParameter(
-                name="prNumber",
-                description="Filter by pull request number.",
-                required=False,
-                type=int,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="installGroup",
-                description="Filter by install group name (exact match).",
+                name="codesigningType",
+                description="Filter by code signing type.",
                 required=False,
                 type=str,
                 location="query",
             ),
             OpenApiParameter(
-                name="perPage",
-                description="Number of results per page (default 25, max 100).",
+                name="installGroup",
+                description="Filter by install group name (repeatable for multiple groups).",
                 required=False,
-                type=int,
+                type=str,
                 location="query",
+                many=True,
             ),
         ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "BuildsListResponse", list[InstallableBuildResponseDict]
+                "LatestInstallableBuildResponse", LatestInstallableBuildResponseDict
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=PreprodExamples.GET_BUILDS,
+        examples=PreprodExamples.GET_LATEST_BUILD,
     )
     def get(
         self,
@@ -109,10 +114,11 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         project: Project,
     ) -> Response:
         """
-        List latest installable builds for a project.
+        Get the latest installable build for a project.
 
-        Returns the latest installable builds matching filter criteria, paginated.
-        Only processed builds with an installable app file are returned.
+        Returns the latest installable build matching filter criteria.
+        When buildVersion is provided, also returns the current build and
+        whether an update is available.
         """
 
         if not features.has(
@@ -122,77 +128,93 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        validator = PreprodPublicBuildsValidator(data=request.GET)
+        # installGroup is a repeatable param — collect all values from the query string
+        query_params = request.GET.copy()
+        install_groups_raw = request.GET.getlist("installGroup")
+        if install_groups_raw:
+            query_params.setlist("installGroup", install_groups_raw)
+
+        validator = PreprodLatestInstallableBuildValidator(data=query_params)
         validator.is_valid(raise_exception=True)
         params = validator.validated_data
 
-        queryset = PreprodArtifact.objects.select_related(
-            "project", "build_configuration", "commit_comparison", "mobile_app_info"
-        ).filter(
-            project=project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            installable_app_file_id__isnull=False,
-            mobile_app_info__build_number__isnull=False,
-        )
+        app_id: str = params["appId"]
+        platform: str = params["platform"]
+        build_version: str | None = params.get("buildVersion")
+        build_number: str | None = params.get("buildNumber")
+        main_binary_identifier: str | None = params.get("mainBinaryIdentifier")
+        build_configuration: str | None = params.get("buildConfiguration")
+        codesigning_type: str | None = params.get("codesigningType")
+        install_groups: list[str] | None = params.get("installGroup")
 
-        platform = params.get("platform")
-        if platform:
-            if platform == "apple":
-                queryset = queryset.filter(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE)
-            elif platform == "android":
-                queryset = queryset.filter(
-                    artifact_type__in=[
-                        PreprodArtifact.ArtifactType.AAB,
-                        PreprodArtifact.ArtifactType.APK,
-                    ]
-                )
+        current_artifact = None
+        latest_artifact = None
+        update_available: bool | None = None
 
-        app_id = params.get("appId")
-        if app_id:
-            queryset = queryset.filter(app_id__exact=app_id)
+        # Determine effective filters for latest lookup
+        effective_build_configuration = build_configuration
+        effective_codesigning_type = codesigning_type
+        effective_install_groups = install_groups
 
-        branch = params.get("branch")
-        if branch:
-            queryset = queryset.filter(
-                commit_comparison__head_ref=branch,
-                commit_comparison__organization_id=project.organization_id,
-            )
-
-        build_version = params.get("buildVersion")
         if build_version:
-            queryset = queryset.filter(mobile_app_info__build_version__icontains=build_version)
-
-        build_configuration = params.get("buildConfiguration")
-        if build_configuration:
-            queryset = queryset.filter(build_configuration__name__exact=build_configuration)
-
-        pr_number = params.get("prNumber")
-        if pr_number is not None:
-            queryset = queryset.filter(
-                commit_comparison__pr_number=pr_number,
-                commit_comparison__organization_id=project.organization_id,
+            # Check-for-updates mode
+            current_artifact = find_current_artifact(
+                project=project,
+                app_id=app_id,
+                platform=platform,
+                build_version=build_version,
+                build_number=build_number,
+                main_binary_identifier=main_binary_identifier,
+                build_configuration=build_configuration,
+                codesigning_type=codesigning_type,
             )
 
-        install_group = params.get("installGroup")
-        if install_group:
-            queryset = queryset.filter(extras__install_groups__contains=[install_group])
+            # Inherit filters from current artifact when not explicitly provided
+            if current_artifact:
+                if not effective_build_configuration and current_artifact.build_configuration:
+                    effective_build_configuration = current_artifact.build_configuration.name
 
-        annotated_queryset = queryset.annotate_download_count().order_by(  # type: ignore[attr-defined]
-            "-date_added"
+                if not effective_codesigning_type and current_artifact.extras:
+                    effective_codesigning_type = current_artifact.extras.get("codesigning_type")
+
+                if not effective_install_groups and current_artifact.extras:
+                    current_groups = current_artifact.extras.get("install_groups")
+                    if current_groups and isinstance(current_groups, list):
+                        effective_install_groups = current_groups
+
+        latest_artifact = find_latest_installable_artifact(
+            project=project,
+            app_id=app_id,
+            platform=platform,
+            build_configuration_name=effective_build_configuration,
+            codesigning_type=effective_codesigning_type,
+            install_groups=effective_install_groups,
         )
 
-        def on_results(results: list[PreprodArtifact]) -> list[InstallableBuildResponseDict]:
-            return [
-                create_installable_build_dict(artifact, artifact.download_count)  # type: ignore[attr-defined]
-                for artifact in results
-            ]
+        # Build response dicts
+        latest_dict = None
+        if latest_artifact:
+            download_count = get_download_count_for_artifact(latest_artifact)
+            latest_dict = create_installable_build_dict(latest_artifact, download_count)
 
-        return self.paginate(
-            request=request,
-            queryset=annotated_queryset,
-            order_by="-date_added",
-            on_results=on_results,
-            paginator_cls=DateTimePaginator,
-            default_per_page=params.get("perPage", 25),
-            max_per_page=100,
+        current_dict = None
+        if current_artifact:
+            download_count = get_download_count_for_artifact(current_artifact)
+            current_dict = create_installable_build_dict(current_artifact, download_count)
+
+        # Determine update availability
+        if build_version is not None:
+            if latest_artifact and current_artifact:
+                update_available = latest_artifact.id != current_artifact.id
+            elif latest_artifact and not current_artifact:
+                update_available = True
+            else:
+                update_available = False
+
+        return Response(
+            create_latest_installable_build_response(
+                latest=latest_dict,
+                current=current_dict,
+                update_available=update_available,
+            )
         )
