@@ -426,36 +426,38 @@ class WorkflowEngineRuleSerializer(Serializer):
         all_filters: list[dict[str, Any]] = []
 
         def update_condition_name(
-            condition_data: dict[str, Any], condition: DataCondition
+            condition_data: dict[str, Any], is_slow_condition: bool = False
         ) -> dict[str, Any]:
             from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
                 slow_condition_query_handler_registry,
             )
 
-            # TODO - I think I need to map the condition_data["id"] e.g. 'sentry.rules.filters.tagged_event.TaggedEventFilter'
-            # or 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions' to the condition type
-            # to look up the registry
+            condition_type = condition_data.pop("condition_type", None)
 
-            if is_slow_condition(condition):
+            if is_slow_condition:
                 try:
-                    handler = slow_condition_query_handler_registry.get(condition.type)
+                    handler = slow_condition_query_handler_registry.get(condition_type)
                 except NoRegistrationExistsError:
-                    raise serializers.ValidationError(f"Invalid condition type: {condition.type}")
+                    raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
             else:
                 try:
-                    handler = condition_handler_registry.get(condition.type)
+                    handler = condition_handler_registry.get(condition_type)
                 except NoRegistrationExistsError:
-                    raise serializers.ValidationError(f"Invalid condition type: {condition.type}")
+                    raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
             condition_data["name"] = handler.render_label(condition_data)
             return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
             for cond in conditions:
-                condition, filters = translate_to_rule_condition_filters(cond, is_filter=is_filter)
-                if condition:
-                    all_conditions.append(update_condition_name(condition, cond))
-                all_filters.extend([update_condition_name(f, cond) for f in filters])
+                condition_data, filters = translate_to_rule_condition_filters(
+                    cond, is_filter=is_filter
+                )
+                if condition_data.get("id"):
+                    all_conditions.append(
+                        update_condition_name(condition_data, is_slow_condition(cond))
+                    )
+                all_filters.extend([update_condition_name(f) for f in filters])
 
         trigger_conditions = (
             list(workflow.when_condition_group.conditions.all())

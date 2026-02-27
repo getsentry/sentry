@@ -1,6 +1,16 @@
 from typing import Any
 
 from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 
 ConditionAndFilters = tuple[dict[str, Any], list[dict[str, Any]]]
@@ -135,7 +145,7 @@ def create_issue_category_filter(
 ) -> ConditionAndFilters:
     payload: dict[str, Any] = {
         "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-        "value": data_condition.comparison["value"],
+        "value": str(data_condition.comparison["value"]),
     }
     include = data_condition.comparison.get("include")
     if isinstance(include, bool):
@@ -164,7 +174,7 @@ def create_issue_occurrences_filter(
     return {}, [
         {
             "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
-            "value": data_condition.comparison["value"],
+            "value": str(data_condition.comparison["value"]),
         }
     ]
 
@@ -241,7 +251,7 @@ def create_event_unique_user_frequency_condition(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
     filters: list[dict[str, Any]] = []
-    if data_condition.comparison.get("filters") is not None:
+    if data_condition.comparison.get("filters"):
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
             "comparisonType": (
@@ -307,6 +317,18 @@ data_condition_to_rule_condition_mapping = {
     Condition.PERCENT_SESSIONS_COUNT: create_percent_sessions_condition,
     Condition.PERCENT_SESSIONS_PERCENT: create_percent_sessions_condition,
 }
+filter_id_to_condition_type_mapping = {
+    TaggedEventFilter.id: Condition.TAGGED_EVENT.value,
+    EventAttributeFilter.id: Condition.EVENT_ATTRIBUTE.value,
+    AgeComparisonFilter.id: Condition.AGE_COMPARISON.value,
+    AssignedToFilter.id: Condition.ASSIGNED_TO.value,
+    IssueCategoryFilter.id: Condition.ISSUE_CATEGORY.value,
+    IssueOccurrencesFilter.id: Condition.ISSUE_OCCURRENCES.value,
+    IssueTypeFilter.id: Condition.ISSUE_TYPE.value,
+    LatestAdoptedReleaseFilter.id: Condition.LATEST_ADOPTED_RELEASE.value,
+    LatestReleaseFilter.id: Condition.LATEST_RELEASE.value,
+    LevelFilter.id: Condition.LEVEL.value,
+}
 
 
 def translate_to_rule_condition_filters(
@@ -316,4 +338,10 @@ def translate_to_rule_condition_filters(
     if not translator:
         raise ValueError(f"Unsupported condition: {data_condition.type}")
 
-    return translator(data_condition, is_filter)
+    condition_data, filters = translator(data_condition, is_filter)
+    condition_data["condition_type"] = data_condition.type
+
+    for f in filters:
+        f["condition_type"] = filter_id_to_condition_type_mapping[f["id"]]
+
+    return condition_data, filters

@@ -1,7 +1,7 @@
 from typing import Any, Callable
 
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
-from sentry.rules import MATCH_CHOICES, MatchType
+from sentry.rules import LEVEL_MATCH_CHOICES, MatchType
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -61,6 +61,6 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
     def render_label(cls, condition_data: dict[str, Any]) -> str:
         data = {
             "level": LEVEL_CHOICES[condition_data["level"]],
-            "match": MATCH_CHOICES[condition_data["match"]],
+            "match": LEVEL_MATCH_CHOICES[condition_data["match"]],
         }
         return cls.label_template.format(**data)

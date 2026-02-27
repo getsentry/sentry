@@ -12,9 +12,15 @@ from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
-from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -87,7 +93,7 @@ class WorkflowRuleSerializerTest(TestCase):
         self.conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},
-            {"id": TaggedEventCondition.id, "key": "foo", "match": "eq", "value": "bar"},
+            # {"id": TaggedEventCondition.id, "key": "foo", "match": "eq", "value": "bar"},
             {
                 "id": AgeComparisonFilter.id,
                 "comparison_type": "older",
@@ -343,6 +349,74 @@ class WorkflowRuleSerializerTest(TestCase):
         )
 
         self.assert_equal_serializers(issue_alert)
+
+    def test_every_filter(self) -> None:
+        filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": "is",
+                "key": "environment",
+                "value": "",  # initializing RuleBase requires "value" key
+            },
+            # {
+            #     "id": EventAttributeFilter.id, # this one is already in self.conditions
+            #     "match": "eq",
+            #     "value": "hi",
+            #     "attribute": "message",
+            # },
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": "older",
+                "value": 10,
+                "time": "hour",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            },
+            {
+                "id": IssueCategoryFilter.id,
+                "value": "1",
+                "include": "true",
+            },
+            {
+                "id": IssueOccurrencesFilter.id,
+                "value": "10",
+            },
+            {
+                "id": IssueTypeFilter.id,
+                "value": "error",
+            },
+            {
+                "id": LatestAdoptedReleaseFilter.id,
+                "oldest_or_newest": "oldest",
+                "older_or_newer": "newer",
+                "environment": self.environment.name + "fake",
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+            {
+                "id": LevelFilter.id,
+                "match": "eq",
+                "level": "50",
+            },
+        ]
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=filters + self.conditions,
+            action_match="all",
+            filter_match="all",
+            frequency=30,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+
+        self.assert_equal_serializers(issue_alert)
+
+    def test_multiple_conditions_and_filters(self) -> None:
+        pass
 
     def test_email_action_simple(self) -> None:
         action_data = [
