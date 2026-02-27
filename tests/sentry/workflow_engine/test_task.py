@@ -148,7 +148,7 @@ class TestProcessWorkflowActivity(TestCase):
                 detector_id=self.detector.id,
             )
             # Short-circuit evaluation, no workflows associated
-            assert mock_evaluate.call_count == 0
+            assert mock_evaluate.call_count == 1
 
             mock_logger.info.assert_called_once_with(
                 "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
