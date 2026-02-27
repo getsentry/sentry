@@ -26,7 +26,7 @@ from urllib3 import Retry
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.seer_api import seer_summarization_connection_pool
+from sentry.replays.lib.seer_api import ReplayDeleteSeerDataRequest, make_replay_delete_request
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -36,8 +36,6 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -54,8 +52,6 @@ SNUBA_RETRY_EXCEPTIONS = (
     QueryExecutionError,
     UnexpectedResponseError,
 )
-
-SEER_DELETE_SUMMARIES_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/delete"
 
 logger = logging.getLogger(__name__)
 
@@ -200,17 +196,15 @@ def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: l
 
     Returns True if the request was successful, False otherwise.
     """
-    seer_request = {
-        "replay_ids": replay_ids,
-        "organization_id": organization_id,
-        "project_id": project_id,
-    }
+    seer_request = ReplayDeleteSeerDataRequest(
+        replay_ids=replay_ids,
+        organization_id=organization_id,
+        project_id=project_id,
+    )
 
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_summarization_connection_pool,
-            path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
-            body=json.dumps(seer_request).encode("utf-8"),
+        response = make_replay_delete_request(
+            seer_request,
             timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
             retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
         )

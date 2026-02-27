@@ -5,9 +5,11 @@ import random
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel, Field
+from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -20,7 +22,6 @@ from sentry.seer.explorer.utils import normalize_description
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
@@ -101,6 +102,24 @@ class IssueDetectionRequest(BaseModel):
     organization_id: int
     project_id: int
     org_slug: str
+
+
+def make_issue_detection_request(
+    request: IssueDetectionRequest,
+    timeout: int | float | None = None,
+    retries: int | None = None,
+) -> BaseHTTPResponse:
+    extra_kwargs: dict[str, int | float | None] = {}
+    if timeout is not None:
+        extra_kwargs["timeout"] = timeout
+    if retries is not None:
+        extra_kwargs["retries"] = retries
+    return make_signed_seer_api_request(
+        seer_issue_detection_connection_pool,
+        SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
+        body=orjson.dumps(request.dict()),
+        **extra_kwargs,
+    )
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -299,10 +318,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         org_slug=organization_slug,
     )
 
-    response = make_signed_seer_api_request(
-        connection_pool=seer_issue_detection_connection_pool,
-        path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-        body=json.dumps(seer_request.dict()).encode("utf-8"),
+    response = make_issue_detection_request(
+        seer_request,
         timeout=SEER_TIMEOUT_S,
         retries=0,
     )
