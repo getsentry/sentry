@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
 from sentry.preprod.models import (
@@ -55,9 +53,7 @@ class FormatPrCommentTest(TestCase):
             "mobile_app_info", "build_configuration", "project", "project__organization"
         ).get(id=artifact.id)
 
-    @patch("sentry.preprod.vcs.pr_comments.templates.get_download_url_for_artifact")
-    def test_single_ios_artifact(self, mock_download_url):
-        mock_download_url.return_value = "https://sentry.io/install/abc123/"
+    def test_single_ios_artifact(self):
         artifact = self._create_artifact()
 
         result = format_pr_comment([artifact])
@@ -67,14 +63,10 @@ class FormatPrCommentTest(TestCase):
         assert "MyApp" in result
         assert "1.2.3 (456)" in result
         assert "Release" in result
-        assert "[Install](https://sentry.io/install/abc123/)" in result
-        assert "Install links expire after 12 hours" in result
         # Single platform — no subheader
         assert "### iOS" not in result
 
-    @patch("sentry.preprod.vcs.pr_comments.templates.get_download_url_for_artifact")
-    def test_single_android_artifact(self, mock_download_url):
-        mock_download_url.return_value = "https://sentry.io/install/def456/"
+    def test_single_android_artifact(self):
         artifact = self._create_artifact(
             artifact_type=PreprodArtifact.ArtifactType.AAB,
             app_name="AndroidApp",
@@ -83,12 +75,9 @@ class FormatPrCommentTest(TestCase):
         result = format_pr_comment([artifact])
 
         assert "AndroidApp" in result
-        assert "[Install](https://sentry.io/install/def456/)" in result
         assert "### Android" not in result
 
-    @patch("sentry.preprod.vcs.pr_comments.templates.get_download_url_for_artifact")
-    def test_multiple_platforms_shows_subheaders(self, mock_download_url):
-        mock_download_url.return_value = "https://sentry.io/install/xxx/"
+    def test_multiple_platforms_shows_subheaders(self):
         ios_artifact = self._create_artifact(app_name="iOSApp")
         android_artifact = self._create_artifact(
             artifact_type=PreprodArtifact.ArtifactType.APK,
@@ -122,10 +111,7 @@ class FormatPrCommentTest(TestCase):
         with pytest.raises(ValueError, match="No installable artifacts"):
             format_pr_comment([artifact])
 
-    @patch("sentry.preprod.vcs.pr_comments.templates.get_download_url_for_artifact")
-    def test_filters_non_installable_from_mixed_list(self, mock_download_url):
-        mock_download_url.return_value = "https://sentry.io/install/xxx/"
-
+    def test_filters_non_installable_from_mixed_list(self):
         installable = self._create_artifact(app_name="Installable")
         non_installable = PreprodArtifact.objects.create(
             project=self.project,

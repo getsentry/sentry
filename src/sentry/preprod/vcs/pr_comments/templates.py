@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from sentry.preprod.build_distribution_utils import (
-    get_download_url_for_artifact,
-    is_installable_artifact,
-)
+from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 
@@ -25,12 +22,10 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
         version_string = _format_version_string(artifact)
         config = artifact.build_configuration.name if artifact.build_configuration else "--"
         artifact_url = get_preprod_artifact_url(artifact, view_type="distribution")
-        download_url = get_download_url_for_artifact(artifact)
 
         name_cell = f"[{app_name or app_id}]({artifact_url})"
-        install_cell = f"[Install]({download_url})"
 
-        row = f"| {name_cell} | {version_string} | {config} | {install_cell} |"
+        row = f"| {name_cell} | {version_string} | {config} |"
 
         if artifact.is_android():
             android_rows.append(row)
@@ -39,25 +34,20 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
 
     sections: list[str] = [COMMENT_ANCHOR, "## Sentry Build Distribution"]
 
+    header = "| App | Version | Configuration |"
+    separator = "|-----|---------|---------------|"
+
     if ios_rows:
-        header = "| App | Version | Configuration | Install |"
-        separator = "|-----|---------|---------------|---------|"
         if android_rows:
             sections.append(f"### iOS\n\n{header}\n{separator}\n" + "\n".join(ios_rows))
         else:
             sections.append(f"{header}\n{separator}\n" + "\n".join(ios_rows))
 
     if android_rows:
-        header = "| App | Version | Configuration | Install |"
-        separator = "|-----|---------|---------------|---------|"
         if ios_rows:
             sections.append(f"### Android\n\n{header}\n{separator}\n" + "\n".join(android_rows))
         else:
             sections.append(f"{header}\n{separator}\n" + "\n".join(android_rows))
-
-    sections.append(
-        "> Install links expire after 12 hours. View builds on Sentry to generate new links."
-    )
 
     return "\n\n".join(sections)
 
