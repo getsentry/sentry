@@ -12,17 +12,15 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.exceptions import MethodNotAllowed, NotFound, ParseError, PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentStatus,
@@ -49,10 +47,6 @@ class CursorWebhookEndpoint(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, organization_id: int) -> Response:
-        organization = Organization.objects.get(id=organization_id)
-        if not features.has("organizations:seer-coding-agent-integrations", organization):
-            raise NotFound("Coding agent feature not enabled for this organization")
-
         try:
             payload = orjson.loads(request.body)
         except orjson.JSONDecodeError:

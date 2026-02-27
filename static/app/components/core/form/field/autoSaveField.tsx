@@ -5,9 +5,14 @@ import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import {type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
-import {useScrapsForm, type BoundFieldComponents} from '@sentry/scraps/form/scrapsForm';
+import {
+  setFieldErrors,
+  useScrapsForm,
+  type BoundFieldComponents,
+} from '@sentry/scraps/form/scrapsForm';
 
 import {openConfirmModal} from 'sentry/components/confirm';
+import {t} from 'sentry/locale';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
@@ -153,11 +158,11 @@ export function AutoSaveField<
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 >(props: AutoSaveFieldProps<TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
-
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals
   const pendingConfirmRef = useRef(false);
+  const resetOnErrorRef = useRef(false);
 
   const form = useScrapsForm({
     formId: `${name}-${id}-(auto-save)`,
@@ -175,10 +180,17 @@ export function AutoSaveField<
         }
       },
     },
-    onSubmit: ({value}) => {
+    onSubmit: ({value, formApi}) => {
       if (mutation.status === 'pending' || pendingConfirmRef.current) {
         return Promise.resolve();
       }
+
+      const onError = () => {
+        if (resetOnErrorRef.current) {
+          formApi.reset();
+        }
+        setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
+      };
 
       const fieldValue = value[name];
 
@@ -196,7 +208,7 @@ export function AutoSaveField<
               pendingConfirmRef.current = false;
               // Resolve on both success and failure - error handling is done by
               // TanStack Query (onError callback, mutation.isError state)
-              mutation.mutateAsync(value).then(() => resolve(), resolve);
+              mutation.mutateAsync(value, {onError}).then(() => resolve(), resolve);
             },
             onClose: () => {
               // onClose is always called, even after confirming,
@@ -214,16 +226,14 @@ export function AutoSaveField<
 
       // Resolve on both success and failure - error handling is done by
       // TanStack Query (onError callback, mutation.isError state)
-      return mutation.mutateAsync(value).catch(() => {});
+      return mutation.mutateAsync(value, {onError}).catch(() => {});
     },
   });
 
   return (
-    <form.AppForm>
-      <AutoSaveContextProvider value={{status: mutation.status}}>
-        <form.FormWrapper>
-          <form.AppField name={name}>{field => children(field as never)}</form.AppField>
-        </form.FormWrapper>
+    <form.AppForm form={form as never}>
+      <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
+        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
       </AutoSaveContextProvider>
     </form.AppForm>
   );

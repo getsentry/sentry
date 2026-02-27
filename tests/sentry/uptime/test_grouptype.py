@@ -238,6 +238,32 @@ class TestUptimeHandler(UptimeTestCase):
             MOCK_ASSERTION_FAILURE_DATA
         )
 
+    def test_check_id_evidence_data(self) -> None:
+        check_id = uuid.uuid4().hex
+        detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
+        uptime_subscription = get_uptime_subscription(detector)
+
+        now = datetime.now()
+
+        self.handle_result(
+            detector,
+            uptime_subscription,
+            self.create_uptime_result(
+                scheduled_check_time=now - timedelta(minutes=5), guid=check_id
+            ),
+        )
+
+        evaluation = self.handle_result(
+            detector,
+            uptime_subscription,
+            self.create_uptime_result(
+                scheduled_check_time=now - timedelta(minutes=4), guid=check_id
+            ),
+        )
+        assert evaluation is not None
+        assert isinstance(evaluation.result, IssueOccurrence)
+        assert evaluation.result.evidence_data["check_id"] == check_id
+
     def test_occurrence_excludes_old_response_capture(self) -> None:
         detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)

@@ -21,7 +21,6 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -72,7 +71,11 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
+            "app": {
+                "uuid": self.unpublished_app.uuid,
+                "slug": self.unpublished_app.slug,
+                "sentryAppId": self.unpublished_app.id,
+            },
             "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
             "status": "pending",
@@ -87,7 +90,11 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
+            "app": {
+                "uuid": self.unpublished_app.uuid,
+                "slug": self.unpublished_app.slug,
+                "sentryAppId": self.unpublished_app.id,
+            },
             "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
             "code": self.installation2.api_grant.code,
@@ -130,7 +137,6 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.installation2.sentry_app_id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

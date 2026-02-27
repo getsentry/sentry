@@ -9,7 +9,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 
@@ -110,7 +109,7 @@ function RelocationForm() {
           <li>This API has a ratelimit of 1 request per org per day</li>
           <li>Owner must be a single username</li>
           <li>Orgs can be entered as a comma separated list of slugs</li>
-          <li>Uploaded files have a maximum size of 200 MB</li>
+          <li>Uploaded files have a maximum size of 100 MB</li>
           <li>Files must be tar archives (.tar) </li>
         </ul>
         <CompactSelect
@@ -174,11 +173,11 @@ function RelocationForm() {
 }
 
 const UploadWell = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space['2xl']};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.secondary};
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   border-radius: 3px;
   text-align: center;
 `;
@@ -190,11 +189,11 @@ const UploadInput = styled('input')`
 
 const InputLabel = styled('label')`
   display: block;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const SubmitButton = styled(Button)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 function RelocationCreate() {

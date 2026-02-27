@@ -1,4 +1,5 @@
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
@@ -56,7 +57,12 @@ export function useMonitorsScheduleSampleBuckets({
   };
 
   return useApiQuery<Array<CheckInBucket<SchedulePreviewStatus>>>(
-    [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-schedule-buckets/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query},
+    ],
     {
       staleTime: 0,
       enabled: !!(start && end && interval),

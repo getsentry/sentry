@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from rest_framework import status
 
+from sentry import audit_log
 from sentry.auth import access
 from sentry.core.endpoints.organization_member_team_details import ERR_INSUFFICIENT_ROLE
 from sentry.models.groupassignee import GroupAssignee
@@ -14,9 +15,11 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -853,15 +856,20 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_promote_member(self) -> None:
         self.login_as(self.owner)
 
-        resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
-        )
+        with outbox_runner():
+            resp = self.get_response(
+                self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+            )
         assert resp.status_code == 200
 
         updated_omt = OrganizationMemberTeam.objects.get(
             team=self.team, organizationmember=self.member_on_team
         )
         assert updated_omt.role == "admin"
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("MEMBER_EDIT"),
+        )
 
     @with_feature("organizations:team-roles")
     def test_team_admin_can_promote_member(self) -> None:
@@ -1120,6 +1128,25 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         resp = self.get_response(
             self.org.slug,
             self.team_admin.id,
+            self.team.slug,
+            teamRole="contributor",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+    @with_feature("organizations:team-roles")
+    def test_member_cannot_downgrade_org_admin_without_explicit_team_role(self) -> None:
+        """VULN-734: A contributor must not be able to downgrade an org admin
+        who has no explicit team role (their effective role comes from their
+        org role's minimum team role mapping)."""
+        # Access cached_property to create the user attribute
+        _ = self.member_on_team
+        self.login_as(self.member_on_team_user)
+
+        resp = self.get_response(
+            self.org.slug,
+            self.admin_on_team.id,
             self.team.slug,
             teamRole="contributor",
         )

@@ -7,6 +7,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {GroupSubstatus} from 'sentry/types/group';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   useApiQuery,
@@ -139,7 +140,9 @@ export function useClusterStatsMap(clusters: ClusterSummary[]) {
 
     return queryChunks.map(
       (groupIdsChunk): ApiQueryKey => [
-        `/organizations/${organization.slug}/issues/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             group: groupIdsChunk,
@@ -216,7 +219,9 @@ export function useClusterStats(groupIds: number[]): ClusterStats {
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           group: groupIds,

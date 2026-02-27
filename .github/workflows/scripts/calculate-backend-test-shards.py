@@ -72,6 +72,12 @@ def collect_test_count() -> int | None:
             print(f"Collected {count} tests", file=sys.stderr)
             return count
 
+        if result.returncode == 5:
+            # Exit code 5 indicates no tests collected (https://docs.pytest.org/en/stable/reference/exit-codes.html)
+            # This can stem from files being deleted in a branch/PR.
+            print("No tests collected (exit 5)", file=sys.stderr)
+            return 0
+
         if result.returncode != 0:
             print(
                 f"Pytest collection failed (exit {result.returncode})",
@@ -93,8 +99,8 @@ def calculate_shards(test_count: int | None) -> int:
         return DEFAULT_SHARDS
 
     if test_count == 0:
-        print(f"No tests to run, using minimum: {MIN_SHARDS}", file=sys.stderr)
-        return MIN_SHARDS
+        print("No tests to run, skipping (0 shards)", file=sys.stderr)
+        return 0
 
     if test_count > MAX_SHARDS * TESTS_PER_SHARD:
         print(

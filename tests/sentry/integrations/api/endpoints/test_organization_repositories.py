@@ -26,6 +26,8 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
+        assert "X-Hits" in response
+        assert int(response["X-Hits"]) == 1
         assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
@@ -67,6 +69,8 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
+        assert "X-Hits" in response
+        assert int(response["X-Hits"]) == 2
 
         first_row = response.data[0]
         assert first_row["id"] == str(repo1.id)

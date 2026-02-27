@@ -12,7 +12,12 @@ import {Text} from '@sentry/scraps/text';
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
-import type {GroupOp, LogicalOp, Op} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeOpType,
+  type UptimeGroupOp,
+  type UptimeLogicalOp,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
 import {AssertionsDndContext, DropHandler, DroppableHitbox} from './dragDrop';
@@ -23,16 +28,17 @@ import {AssertionOpStatusCode} from './opStatusCode';
 import {getGroupOpLabel} from './utils';
 
 interface AssertionOpGroupProps {
-  onChange: (op: LogicalOp) => void;
-  value: LogicalOp;
+  onChange: (op: UptimeLogicalOp) => void;
+  value: UptimeLogicalOp;
   disableDropping?: boolean;
+  erroredOp?: UptimeOp;
   onRemove?: () => void;
   root?: boolean;
 }
 
-const GROUP_TYPE_OPTIONS: Array<SelectOption<'and' | 'or'>> = [
-  {value: 'and', label: t('Assert All')},
-  {value: 'or', label: t('Assert Any')},
+const GROUP_TYPE_OPTIONS: Array<SelectOption<UptimeOpType.AND | UptimeOpType.OR>> = [
+  {value: UptimeOpType.AND, label: t('Assert All')},
+  {value: UptimeOpType.OR, label: t('Assert Any')},
 ];
 
 export function AssertionOpGroup({
@@ -41,16 +47,17 @@ export function AssertionOpGroup({
   onRemove,
   root,
   disableDropping,
+  erroredOp,
 }: AssertionOpGroupProps) {
-  const isNegated = value.op === 'not';
+  const isNegated = value.op === UptimeOpType.NOT;
 
   const groupOp = isNegated
     ? // Negated ops could technically contain something other than a logic group,
       // the UI right now only lets you structure the logic this way, but it is
       // possible that someone could send something to the API that we can't
       // render, in which case we'll just render this as an empty group
-      value.operand.op !== 'and' && value.operand.op !== 'or'
-      ? {id: value.id, op: 'and' as const, children: []}
+      value.operand.op !== UptimeOpType.AND && value.operand.op !== UptimeOpType.OR
+      ? {id: value.id, op: UptimeOpType.AND as const, children: []}
       : value.operand
     : value;
 
@@ -60,37 +67,45 @@ export function AssertionOpGroup({
   // Use existing value.id when already negated, or the generated ID for new negations
   const notId = isNegated ? value.id : newNotId;
 
-  const handleAddOp = (newOp: Op) => {
-    const newGroupOp: GroupOp = {
+  const handleAddOp = (newOp: UptimeOp) => {
+    const newGroupOp: UptimeGroupOp = {
       ...groupOp,
       children: [...groupOp.children, newOp],
     };
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
-  const handleUpdateChild = (index: number, updatedOp: Op) => {
+  const handleUpdateChild = (index: number, updatedOp: UptimeOp) => {
     const newChildren = [...groupOp.children];
     newChildren[index] = updatedOp;
-    const newGroupOp: GroupOp = {...groupOp, children: newChildren};
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    const newGroupOp: UptimeGroupOp = {...groupOp, children: newChildren};
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
   const handleRemoveChild = (index: number) => {
     const newChildren = groupOp.children.filter((_, i) => i !== index);
-    const newGroupOp: GroupOp = {...groupOp, children: newChildren};
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    const newGroupOp: UptimeGroupOp = {...groupOp, children: newChildren};
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
-  const handleGroupTypeChange = (newType: 'and' | 'or') => {
-    const newGroupOp: GroupOp = {
+  const handleGroupTypeChange = (newType: UptimeOpType.AND | UptimeOpType.OR) => {
+    const newGroupOp: UptimeGroupOp = {
       ...groupOp,
       op: newType,
     };
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
   const handleNegationToggle = (negated: boolean) => {
-    onChange(negated ? {id: newNotId, op: 'not', operand: groupOp} : groupOp);
+    onChange(negated ? {id: newNotId, op: UptimeOpType.NOT, operand: groupOp} : groupOp);
   };
 
   const triggerLabel = getGroupOpLabel(groupOp, isNegated);
@@ -103,42 +118,46 @@ export function AssertionOpGroup({
 
   const innerDroppableDisabled = !root && (isDragging || !!disableDropping);
 
-  const renderOp = (op: Op, index: number) => {
+  const renderOp = (op: UptimeOp, index: number) => {
     switch (op.op) {
-      case 'status_code_check':
+      case UptimeOpType.STATUS_CODE_CHECK:
         return (
           <AssertionOpStatusCode
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
           />
         );
-      case 'json_path':
+      case UptimeOpType.JSON_PATH:
         return (
           <AssertionOpJsonPath
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
           />
         );
-      case 'header_check':
+      case UptimeOpType.HEADER_CHECK:
         return (
           <AssertionOpHeader
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
           />
         );
-      case 'and':
-      case 'or':
-      case 'not':
+      case UptimeOpType.AND:
+      case UptimeOpType.OR:
+      case UptimeOpType.NOT:
         return (
           <AssertionOpGroup
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
             disableDropping={innerDroppableDisabled}

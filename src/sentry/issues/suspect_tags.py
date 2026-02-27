@@ -325,7 +325,18 @@ def query_error_counts(
             organization_id, project_id, start, end, environment_names, group_id
         )
         error_count = EAPOccurrencesComparator.check_and_choose(
-            snuba_count, eap_count, "issues.suspect_tags.query_error_counts"
+            snuba_count,
+            eap_count,
+            "issues.suspect_tags.query_error_counts",
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "group_id": group_id,
+                "environment_names": environment_names,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            },
         )
 
     return error_count

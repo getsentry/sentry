@@ -7,7 +7,12 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import type {HeaderCheckOp, HeaderOperand} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  type UptimeHeaderCheckOp,
+  type UptimeHeaderOperand,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
 import {
@@ -18,19 +23,28 @@ import {
 } from './utils';
 
 interface AssertionOpHeaderProps {
-  onChange: (op: HeaderCheckOp) => void;
+  onChange: (op: UptimeHeaderCheckOp) => void;
   onRemove: () => void;
-  value: HeaderCheckOp;
+  value: UptimeHeaderCheckOp;
+  erroredOp?: UptimeOp;
 }
 
-export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeaderProps) {
+export function AssertionOpHeader({
+  value,
+  onChange,
+  onRemove,
+  erroredOp,
+}: AssertionOpHeaderProps) {
   const inputId = useId();
 
   const headerKeyComparisonOptions = COMPARISON_OPTIONS.filter(
-    opt => !['less_than', 'greater_than'].includes(opt.value)
+    opt =>
+      ![UptimeComparisonType.LESS_THAN, UptimeComparisonType.GREATER_THAN].includes(
+        opt.value
+      )
   );
   const headerValueComparisonOptions = COMPARISON_OPTIONS.filter(opt =>
-    ['equals', 'not_equal'].includes(opt.value)
+    [UptimeComparisonType.EQUALS, UptimeComparisonType.NOT_EQUAL].includes(opt.value)
   );
 
   const showValueInput = shouldShowHeaderValueInput(value);
@@ -70,8 +84,14 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 label={t('Key is')}
                 value={value.key_op.cmp}
                 onChange={option => {
-                  const isAlwaysNever = ['always', 'never'].includes(option.value);
-                  const wasAlwaysNever = ['always', 'never'].includes(value.key_op.cmp);
+                  const isAlwaysNever = [
+                    UptimeComparisonType.ALWAYS,
+                    UptimeComparisonType.NEVER,
+                  ].includes(option.value);
+                  const wasAlwaysNever = [
+                    UptimeComparisonType.ALWAYS,
+                    UptimeComparisonType.NEVER,
+                  ].includes(value.key_op.cmp);
 
                   onChange({
                     ...value,
@@ -79,7 +99,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                     value_op: isAlwaysNever
                       ? {cmp: option.value}
                       : wasAlwaysNever
-                        ? {cmp: 'equals'}
+                        ? {cmp: UptimeComparisonType.EQUALS}
                         : value.value_op,
                     value_operand: isAlwaysNever
                       ? {header_op: 'none'}
@@ -94,7 +114,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 label={t('String type')}
                 value={keyOperandType === 'none' ? 'literal' : keyOperandType}
                 onChange={option => {
-                  const newOperand: HeaderOperand =
+                  const newOperand: UptimeHeaderOperand =
                     option.value === 'literal'
                       ? {header_op: 'literal', value: keyOperandValue}
                       : {header_op: 'glob', pattern: {value: keyOperandValue}};
@@ -108,7 +128,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
             id={inputId}
             value={keyOperandValue}
             onChange={e => {
-              const newOperand: HeaderOperand =
+              const newOperand: UptimeHeaderOperand =
                 keyOperandType === 'glob'
                   ? {header_op: 'glob', pattern: {value: e.target.value}}
                   : {header_op: 'literal', value: e.target.value};
@@ -153,7 +173,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                   label={t('String type')}
                   value={valueOperandType}
                   onChange={option => {
-                    const newOperand: HeaderOperand =
+                    const newOperand: UptimeHeaderOperand =
                       option.value === 'literal'
                         ? {header_op: 'literal', value: valueOperandValue}
                         : {header_op: 'glob', pattern: {value: valueOperandValue}};
@@ -167,7 +187,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
           <InputGroup.Input
             value={valueOperandValue}
             onChange={e => {
-              const newOperand: HeaderOperand =
+              const newOperand: UptimeHeaderOperand =
                 valueOperandType === 'glob'
                   ? {header_op: 'glob', pattern: {value: e.target.value}}
                   : {header_op: 'literal', value: e.target.value};
@@ -182,7 +202,13 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
   );
 
   return (
-    <OpContainer label={t('Header')} onRemove={onRemove} inputId={inputId} op={value}>
+    <OpContainer
+      label={t('Header')}
+      onRemove={onRemove}
+      inputId={inputId}
+      op={value}
+      erroredOp={erroredOp}
+    >
       <Flex gap="sm" align="center" width="100%">
         {keyInput}
         {showValueInput && valueInput}

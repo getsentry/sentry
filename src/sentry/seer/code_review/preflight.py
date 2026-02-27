@@ -30,7 +30,6 @@ class PreflightDenialReason(StrEnum):
     REPO_CODE_REVIEW_DISABLED = "repo_code_review_disabled"
     BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
     BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
-    ORG_CONTRIBUTOR_IS_BOT = "org_contributor_is_bot"
     ORG_CONTRIBUTOR_NOT_FOUND = "org_contributor_not_found"
 
 
@@ -126,11 +125,18 @@ class CodeReviewPreflightService:
 
     def _check_billing(self) -> PreflightDenialReason | None:
         """
-        Check if contributor exists and is not a bot, and if there's either a seat or quota available.
+        Check if contributor exists and if there's either a seat or quota available.
         NOTE: We explicitly check billing as the source of truth because if the contributor exists,
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
         """
+        # Code review beta and legacy usage-based plan orgs are exempt from quota checks
+        # as long as they haven't purchased the new seat-based plan
+        if not self._is_seat_based_seer_plan_org and (
+            self._is_code_review_beta_org or self._is_legacy_usage_based_seer_plan_org
+        ):
+            return None
+
         if self.integration_id is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
@@ -142,17 +148,6 @@ class CodeReviewPreflightService:
             )
         except OrganizationContributors.DoesNotExist:
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
-
-        # Bot check applies to all organization types
-        if contributor.is_bot:
-            return PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
-
-        # Code review beta and legacy usage-based plan orgs are exempt from quota checks
-        # as long as they haven't purchased the new seat-based plan
-        if not self._is_seat_based_seer_plan_org and (
-            self._is_code_review_beta_org or self._is_legacy_usage_based_seer_plan_org
-        ):
-            return None
 
         has_quota = quotas.backend.check_seer_quota(
             org_id=self.organization.id,

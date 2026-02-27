@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import {updateUser} from 'sentry/actionCreators/account';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -134,7 +133,6 @@ function AccountDetails() {
     },
     onSuccess: data => {
       handleSubmitSuccess(data);
-      addSuccessMessage(t('Account details updated'));
     },
   });
 
@@ -148,7 +146,6 @@ function AccountDetails() {
     },
     onSuccess: data => {
       handleSubmitSuccess(data);
-      addSuccessMessage(t('Preferences saved'));
     },
   });
 
@@ -163,7 +160,6 @@ function AccountDetails() {
     onSuccess: data => {
       handleSubmitSuccess(data);
       removeBodyTheme();
-      addSuccessMessage(t('Preferences saved'));
     },
   });
 
@@ -171,178 +167,179 @@ function AccountDetails() {
     <Fragment>
       <SentryDocumentTitle title={t('Account Details')} />
       <SettingsPageHeader title={t('Account Details')} />
-      <FieldGroup title={t('Account Details')}>
-        <AutoSaveField
-          name="name"
-          schema={accountDetailsSchema}
-          initialValue={user.name}
-          mutationOptions={userMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
-              <field.Input
-                value={field.state.value}
-                onChange={field.handleChange}
-                placeholder="e.g. John Doe"
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
-
-        {user.email !== user.username && (
+      <FormSearch route="/settings/account/details/">
+        <FieldGroup title={t('Account Details')}>
           <AutoSaveField
-            name="username"
+            name="name"
             schema={accountDetailsSchema}
-            initialValue={user.username}
+            initialValue={user.name}
             mutationOptions={userMutationOptions}
           >
             {field => (
-              <field.Layout.Row label={t('Username')} required>
+              <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder="e.g. name@example.com"
-                  disabled={user.isManaged}
+                  placeholder="e.g. John Doe"
                 />
               </field.Layout.Row>
             )}
           </AutoSaveField>
-        )}
 
-        <AutoSaveField
-          name="id"
-          schema={accountDetailsSchema}
-          initialValue={user.id}
-          mutationOptions={userMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('User ID')}
-              hintText={t(
-                'The unique identifier for your account. It cannot be modified.'
+          {user.email !== user.username && (
+            <AutoSaveField
+              name="username"
+              schema={accountDetailsSchema}
+              initialValue={user.username}
+              mutationOptions={userMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row label={t('Username')} required>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder="e.g. name@example.com"
+                    disabled={user.isManaged}
+                  />
+                </field.Layout.Row>
               )}
-            >
-              <field.Input
-                value={field.state.value}
-                onChange={field.handleChange}
-                disabled
-              />
-            </field.Layout.Row>
+            </AutoSaveField>
           )}
-        </AutoSaveField>
-      </FieldGroup>
 
-      <FieldGroup title={t('Preferences')}>
-        <AutoSaveField
-          name="theme"
-          schema={preferencesSchema}
-          initialValue={user.options.theme}
-          mutationOptions={themeMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Theme')}
-              hintText={t(
-                "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
-              )}
-            >
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={THEME_OPTIONS}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
+          <AutoSaveField
+            name="id"
+            schema={accountDetailsSchema}
+            initialValue={user.id}
+            mutationOptions={userMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('User ID')}
+                hintText={t(
+                  'The unique identifier for your account. It cannot be modified.'
+                )}
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+        </FieldGroup>
 
-        <AutoSaveField
-          name="language"
-          schema={preferencesSchema}
-          initialValue={user.options.language}
-          mutationOptions={userOptionsMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row label={t('Language')}>
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={LANGUAGE_OPTIONS}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
+        <FieldGroup title={t('Preferences')}>
+          <AutoSaveField
+            name="theme"
+            schema={preferencesSchema}
+            initialValue={user.options.theme}
+            mutationOptions={themeMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Theme')}
+                hintText={t(
+                  "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
+                )}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={THEME_OPTIONS}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
 
-        <AutoSaveField
-          name="timezone"
-          schema={preferencesSchema}
-          initialValue={user.options.timezone}
-          mutationOptions={userOptionsMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row label={t('Timezone')}>
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={timezoneOptions}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
+          <AutoSaveField
+            name="language"
+            schema={preferencesSchema}
+            initialValue={user.options.language}
+            mutationOptions={userOptionsMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row label={t('Language')}>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={LANGUAGE_OPTIONS}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
 
-        <AutoSaveField
-          name="clock24Hours"
-          schema={preferencesSchema}
-          initialValue={user.options.clock24Hours}
-          mutationOptions={userOptionsMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row label={t('Use a 24-hour clock')}>
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
+          <AutoSaveField
+            name="timezone"
+            schema={preferencesSchema}
+            initialValue={user.options.timezone}
+            mutationOptions={userOptionsMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row label={t('Timezone')}>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={timezoneOptions}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
 
-        <AutoSaveField
-          name="stacktraceOrder"
-          schema={preferencesSchema}
-          initialValue={String(user.options.stacktraceOrder)}
-          mutationOptions={userOptionsMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Stack Trace Order')}
-              hintText={t('Choose the default ordering of frames in stack traces')}
-            >
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={STACKTRACE_ORDER_OPTIONS}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
+          <AutoSaveField
+            name="clock24Hours"
+            schema={preferencesSchema}
+            initialValue={user.options.clock24Hours}
+            mutationOptions={userOptionsMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row label={t('Use a 24-hour clock')}>
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
 
-        <AutoSaveField
-          name="defaultIssueEvent"
-          schema={preferencesSchema}
-          initialValue={user.options.defaultIssueEvent}
-          mutationOptions={userOptionsMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Default Issue Event')}
-              hintText={t('Choose what event gets displayed by default')}
-            >
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={DEFAULT_ISSUE_EVENT_OPTIONS}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveField>
-      </FieldGroup>
+          <AutoSaveField
+            name="stacktraceOrder"
+            schema={preferencesSchema}
+            initialValue={String(user.options.stacktraceOrder)}
+            mutationOptions={userOptionsMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Stack Trace Order')}
+                hintText={t('Choose the default ordering of frames in stack traces')}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={STACKTRACE_ORDER_OPTIONS}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
 
+          <AutoSaveField
+            name="defaultIssueEvent"
+            schema={preferencesSchema}
+            initialValue={user.options.defaultIssueEvent}
+            mutationOptions={userOptionsMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Default Issue Event')}
+                hintText={t('Choose what event gets displayed by default')}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={DEFAULT_ISSUE_EVENT_OPTIONS}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+        </FieldGroup>
+      </FormSearch>
       <AvatarChooser
         endpoint="/users/me/avatar/"
         supportedTypes={['letter_avatar', 'gravatar', 'upload']}
