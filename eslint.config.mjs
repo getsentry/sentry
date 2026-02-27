@@ -462,6 +462,51 @@ export default typescript.config([
         'error',
         {enabledCategories: ['background', 'border', 'content']},
       ],
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'error',
+        {
+          slots: [
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuFooter'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.CTAButton',
+                    'MenuComponents.CTALinkButton',
+                    'MenuComponents.ApplyButton',
+                    'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
   },
   {
@@ -627,7 +672,6 @@ export default typescript.config([
       // Stylistic overrides
       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 

@@ -2757,7 +2757,7 @@ export const ISSUE_FIELDS: FieldKey[] = [
  * Search locations are defined in sentry/snuba/events.py, anything that
  * references a tag should not be defined here.
  */
-export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new Set([
+export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>([
   FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,

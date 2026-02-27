@@ -10,13 +10,16 @@ import {Text} from '@sentry/scraps/text';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ComparisonType, type Op} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 interface AnimatedOpProps
   extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
   children: React.ReactNode;
   isDragging: boolean;
-  op: Op;
+  op: UptimeOp;
   ref: React.Ref<HTMLDivElement>;
 }
 
@@ -53,7 +56,7 @@ interface OpContainerProps {
   children: React.ReactNode;
   label: React.ReactNode;
   onRemove: () => void;
-  op: Op;
+  op: UptimeOp;
   inputId?: string;
   tooltip?: React.ReactNode;
 }
@@ -107,45 +110,46 @@ export function OpContainer({
   );
 }
 
-export const COMPARISON_OPTIONS: Array<SelectOption<ComparisonType> & {symbol: string}> =
-  [
-    {
-      value: ComparisonType.EQUALS,
-      label: t('equal'),
-      symbol: '=',
-      trailingItems: <Text monospace>=</Text>,
-    },
-    {
-      value: ComparisonType.NOT_EQUAL,
-      label: t('not equal'),
-      symbol: '\u2260',
-      trailingItems: <Text monospace>{'\u2260'}</Text>,
-    },
-    {
-      value: ComparisonType.LESS_THAN,
-      label: t('less than'),
-      symbol: '<',
-      trailingItems: <Text monospace>{'<'}</Text>,
-    },
-    {
-      value: ComparisonType.GREATER_THAN,
-      label: t('greater than'),
-      symbol: '>',
-      trailingItems: <Text monospace>{'>'}</Text>,
-    },
-    {
-      value: ComparisonType.ALWAYS,
-      label: t('present'),
-      symbol: '\u22A4',
-      trailingItems: <Text monospace>{'\u22A4'}</Text>,
-    },
-    {
-      value: ComparisonType.NEVER,
-      label: t('not present'),
-      symbol: '\u2205',
-      trailingItems: <Text monospace>{'\u2205'}</Text>,
-    },
-  ];
+export const COMPARISON_OPTIONS: Array<
+  SelectOption<UptimeComparisonType> & {symbol: string}
+> = [
+  {
+    value: UptimeComparisonType.EQUALS,
+    label: t('equal'),
+    symbol: '=',
+    trailingItems: <Text monospace>=</Text>,
+  },
+  {
+    value: UptimeComparisonType.NOT_EQUAL,
+    label: t('not equal'),
+    symbol: '\u2260',
+    trailingItems: <Text monospace>{'\u2260'}</Text>,
+  },
+  {
+    value: UptimeComparisonType.LESS_THAN,
+    label: t('less than'),
+    symbol: '<',
+    trailingItems: <Text monospace>{'<'}</Text>,
+  },
+  {
+    value: UptimeComparisonType.GREATER_THAN,
+    label: t('greater than'),
+    symbol: '>',
+    trailingItems: <Text monospace>{'>'}</Text>,
+  },
+  {
+    value: UptimeComparisonType.ALWAYS,
+    label: t('present'),
+    symbol: '\u22A4',
+    trailingItems: <Text monospace>{'\u22A4'}</Text>,
+  },
+  {
+    value: UptimeComparisonType.NEVER,
+    label: t('not present'),
+    symbol: '\u2205',
+    trailingItems: <Text monospace>{'\u2205'}</Text>,
+  },
+];
 
 export const STRING_OPERAND_OPTIONS: Array<
   SelectOption<'literal' | 'glob'> & {symbol: string}

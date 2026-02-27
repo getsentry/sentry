@@ -10,7 +10,7 @@ import {
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
@@ -179,19 +179,14 @@ Sentry.init({
           ],
         },
         {
-          type: 'text',
-          text: tct(
-            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-              ),
-            }
-          ),
-        },
-        {
           type: 'custom',
-          content: <CopyLLMPromptButton />,
+          content: (
+            <ManualInstrumentationNote
+              docsLink={
+                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+              }
+            />
+          ),
         },
       ],
     },

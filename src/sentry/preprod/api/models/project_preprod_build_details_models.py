@@ -59,6 +59,8 @@ class DistributionInfo(BaseModel):
     is_installable: bool
     download_count: int
     release_notes: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
 
 
 class StatusCheckResultSuccess(BaseModel):
@@ -303,10 +305,18 @@ def transform_preprod_artifact_to_build_details(
 
     app_info = create_build_details_app_info(artifact)
     is_installable = is_installable_artifact(artifact)
+
+    error_code_str = None
+    if artifact.installable_app_error_code is not None:
+        error_code_map = dict(PreprodArtifact.InstallableAppErrorCode.as_choices())
+        error_code_str = error_code_map.get(artifact.installable_app_error_code)
+
     distribution_info = DistributionInfo(
         is_installable=is_installable,
         download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+        error_code=error_code_str,
+        error_message=artifact.installable_app_error_message,
     )
 
     vcs_info = BuildDetailsVcsInfo(

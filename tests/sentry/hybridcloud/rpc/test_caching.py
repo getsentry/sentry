@@ -177,8 +177,8 @@ def test_caching_many() -> None:
     users = [Factories.create_user() for _ in range(3)]
     user_ids = [u.id for u in users]
 
-    wrapped_result = get_users(user_ids)
-    direct_result = get_users.cb(user_ids)
+    wrapped_result = sorted(get_users(user_ids), key=lambda u: u.id)
+    direct_result = sorted(get_users.cb(user_ids), key=lambda u: u.id)
     assert len(wrapped_result) == len(direct_result)
     for wrapped, direct in zip(wrapped_result, direct_result):
         assert wrapped == direct
@@ -196,8 +196,9 @@ def test_caching_many() -> None:
             region_name=get_local_region().name, key=get_users.key_from(u.id)
         )
 
-    cached_users = get_users(user_ids)
-    for user, cached in zip(users, cached_users):
+    cached_users = sorted(get_users(user_ids), key=lambda u: u.id)
+    users_by_id = sorted(users, key=lambda u: u.id)
+    for user, cached in zip(users_by_id, cached_users):
         assert cached
         assert cached.username.endswith("moo")
         assert cached.username == user.username
@@ -303,8 +304,8 @@ def test_caching_list() -> None:
             Factories.create_member(organization=org, user=user, role="owner") for user in users
         ]
 
-    wrapped_result = get_org_members(org.id)
-    direct_result = get_org_members.cb(org.id)
+    wrapped_result = sorted(get_org_members(org.id), key=lambda m: m.id)
+    direct_result = sorted(get_org_members.cb(org.id), key=lambda m: m.id)
 
     assert len(wrapped_result) == len(direct_result)
     for wrapped, direct in zip(wrapped_result, direct_result):

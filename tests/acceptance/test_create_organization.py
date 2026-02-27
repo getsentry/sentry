@@ -1,4 +1,4 @@
-from django.conf import settings
+from django.test import override_settings
 
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -11,9 +11,10 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
+    @override_settings(
+        PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
+    )
     def test_simple(self) -> None:
-        settings.PRIVACY_URL = "https://sentry.io/privacy/"
-        settings.TERMS_URL = "https://sentry.io/terms/"
         self.browser.get("/organizations/new/")
         assert self.browser.wait_until('input[name="name"]')
         assert self.browser.element_exists('input[name="name"]')

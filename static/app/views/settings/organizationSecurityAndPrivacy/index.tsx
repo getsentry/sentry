@@ -425,80 +425,78 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
 
   return (
     <FormSearch route="/settings/:orgId/security-and-privacy/">
-      <scrubbingConfiguration.AppForm>
-        <scrubbingConfiguration.FormWrapper>
-          <FieldGroup title={t('Scrubbing Configuration')}>
-            <scrubbingConfiguration.AppField name="sensitiveFields">
-              {field => (
-                <field.Layout.Row
-                  label={t('Global Sensitive Fields')}
-                  hintText={t(
-                    'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
-                  )}
-                >
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder="e.g. email"
-                    disabled={!hasOrgWrite}
-                    autosize
-                  />
-                </field.Layout.Row>
-              )}
-            </scrubbingConfiguration.AppField>
+      <scrubbingConfiguration.AppForm form={scrubbingConfiguration}>
+        <FieldGroup title={t('Scrubbing Configuration')}>
+          <scrubbingConfiguration.AppField name="sensitiveFields">
+            {field => (
+              <field.Layout.Row
+                label={t('Global Sensitive Fields')}
+                hintText={t(
+                  'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+                )}
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. email"
+                  disabled={!hasOrgWrite}
+                  autosize
+                />
+              </field.Layout.Row>
+            )}
+          </scrubbingConfiguration.AppField>
 
-            <scrubbingConfiguration.AppField name="safeFields">
-              {field => (
-                <field.Layout.Row
-                  label={t('Global Safe Fields')}
-                  hintText={t(
-                    'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
-                  )}
-                >
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder={t('e.g. business-email')}
-                    disabled={!hasOrgWrite}
-                    autosize
-                  />
-                </field.Layout.Row>
-              )}
-            </scrubbingConfiguration.AppField>
-            {hasOrgWrite ? (
-              <Flex gap="md" align="center" padding="sm">
-                <scrubbingConfiguration.Subscribe
-                  selector={state =>
-                    state.values.sensitiveFields !== initialSensitiveFields ||
-                    state.values.safeFields !== initialSafeFields
-                  }
-                >
-                  {hasChanged => (
-                    <Flex
-                      flex="1"
-                      minWidth={0}
-                      style={{visibility: hasChanged ? 'visible' : 'hidden'}}
-                    >
-                      <Alert variant="info">
-                        {t(
-                          'Changes to your scrubbing configuration will apply to all new events.'
-                        )}
-                      </Alert>
-                    </Flex>
-                  )}
-                </scrubbingConfiguration.Subscribe>
-                <Flex gap="sm" flexShrink={0}>
-                  <Button onClick={() => scrubbingConfiguration.reset()}>
-                    {t('Cancel')}
-                  </Button>
-                  <scrubbingConfiguration.SubmitButton>
-                    {t('Save')}
-                  </scrubbingConfiguration.SubmitButton>
-                </Flex>
+          <scrubbingConfiguration.AppField name="safeFields">
+            {field => (
+              <field.Layout.Row
+                label={t('Global Safe Fields')}
+                hintText={t(
+                  'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+                )}
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('e.g. business-email')}
+                  disabled={!hasOrgWrite}
+                  autosize
+                />
+              </field.Layout.Row>
+            )}
+          </scrubbingConfiguration.AppField>
+          {hasOrgWrite ? (
+            <Flex gap="md" align="center" padding="sm">
+              <scrubbingConfiguration.Subscribe
+                selector={state =>
+                  state.values.sensitiveFields !== initialSensitiveFields ||
+                  state.values.safeFields !== initialSafeFields
+                }
+              >
+                {hasChanged => (
+                  <Flex
+                    flex="1"
+                    minWidth={0}
+                    style={{visibility: hasChanged ? 'visible' : 'hidden'}}
+                  >
+                    <Alert variant="info">
+                      {t(
+                        'Changes to your scrubbing configuration will apply to all new events.'
+                      )}
+                    </Alert>
+                  </Flex>
+                )}
+              </scrubbingConfiguration.Subscribe>
+              <Flex gap="sm" flexShrink={0}>
+                <Button onClick={() => scrubbingConfiguration.reset()}>
+                  {t('Cancel')}
+                </Button>
+                <scrubbingConfiguration.SubmitButton>
+                  {t('Save')}
+                </scrubbingConfiguration.SubmitButton>
               </Flex>
-            ) : null}
-          </FieldGroup>
-        </scrubbingConfiguration.FormWrapper>
+            </Flex>
+          ) : null}
+        </FieldGroup>
       </scrubbingConfiguration.AppForm>
     </FormSearch>
   );

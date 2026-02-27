@@ -104,13 +104,13 @@ interface RelatedIssuesProps {
 }
 
 function calculateStartOfInterval({
-  eventDateCreated,
+  openPeriodStart,
   timeWindow,
 }: {
-  eventDateCreated: string;
+  openPeriodStart: string;
   timeWindow: number;
 }) {
-  const eventTimestamp = new Date(eventDateCreated).getTime();
+  const eventTimestamp = new Date(openPeriodStart).getTime();
   const startOfInterval = new Date(
     eventTimestamp -
       // Subtract the time window (which is in seconds)
@@ -193,23 +193,8 @@ function useZoomTimeRangeToOpenPeriod({
   }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
 }
 
-function ZoomToOpenPeriod({
-  eventId,
-  intervalSeconds,
-  openPeriodStart,
-  openPeriodEnd,
-}: {
-  eventId: string;
-  intervalSeconds: number | undefined;
-  openPeriodEnd: string;
-  openPeriodStart: string;
-}) {
-  useZoomTimeRangeToOpenPeriod({
-    eventId,
-    openPeriodStart,
-    openPeriodEnd,
-    intervalSeconds,
-  });
+function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>[0]) {
+  useZoomTimeRangeToOpenPeriod(props);
 
   return null;
 }
@@ -398,18 +383,20 @@ function TriggeredConditionDetails({
     detectionType,
   });
   const startDate = calculateStartOfInterval({
-    eventDateCreated,
+    openPeriodStart: openPeriod?.start ?? eventDateCreated,
     timeWindow: snubaQuery.timeWindow,
   }).toISOString();
 
   return (
     <Fragment>
-      <ZoomToOpenPeriod
-        eventId={eventId}
-        intervalSeconds={snubaQuery?.timeWindow}
-        openPeriodStart={startDate}
-        openPeriodEnd={endDate}
-      />
+      {!isOpenPeriodLoading && (
+        <ZoomToOpenPeriod
+          eventId={eventId}
+          intervalSeconds={snubaQuery?.timeWindow}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+        />
+      )}
       <InterimSection
         title="Triggered Condition"
         type="triggered_condition"

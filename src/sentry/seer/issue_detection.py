@@ -30,9 +30,9 @@ def create_issue_occurrence(
     Returns:
         Dict with "success": True on successful issue creation
     """
-    project = Project.objects.get(id=project_id, organization_id=organization_id)  # IDOR check
-
     issue = DetectedIssue.parse_obj(detected_issue)
+    effective_project_id = issue.project_id if issue.project_id is not None else project_id
+    project = Project.objects.get(id=effective_project_id, organization_id=organization_id)
     create_issue_occurrence_from_detection(detected_issue=issue, project=project)
 
     logger.info(
@@ -41,7 +41,7 @@ def create_issue_occurrence(
             "organization_id": organization_id,
             "title": issue.title,
             "trace_id": issue.trace_id,
-            "project_id": project_id,
+            "project_id": effective_project_id,
             "category": issue.category,
             "subcategory": issue.subcategory,
         },
