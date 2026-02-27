@@ -23,30 +23,29 @@ from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 #################
 ORG_SLUG = "sentry"
 PROJECT_SLUG = "internal"
-REPO_NAME = "runningcode/Test-github-sentry"
+REPO_NAME = "EmergeTools/hackernews"
 PR_NUMBER = 1
-# Use the HEAD SHA of the PR (visible on the PR's commits tab)
-COMMIT_SHA = "746a4f8b311bb179a2057272cae04855404b4137"
+COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
 
 # Build configurations - set to None to disable a build
 BUILDS = [
     {
         "artifact_id": 1,
-        "app_id": "com.emergetools.hackernews.debug",
-        "artifact_type": PreprodArtifact.ArtifactType.APK,
+        "app_id": "com.emerge.hackernews.android",
+        "artifact_type": PreprodArtifact.ArtifactType.AAB,
         "app_name": "HackerNews",
         "build_version": "1.0.3",
-        "build_number": 15,
-        "build_configuration": "Release",
+        "build_number": 42,
+        "build_configuration": "Debug",
     },
     # Uncomment to test multi-build (monorepo) comments:
     # {
     #     "artifact_id": 6,
-    #     "app_id": "com.emerge.hackernews.android",
-    #     "artifact_type": PreprodArtifact.ArtifactType.AAB,
+    #     "app_id": "com.emerge.hackernews.ios",
+    #     "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
     #     "app_name": "HackerNews",
     #     "build_version": "1.0.3",
-    #     "build_number": 42,
+    #     "build_number": 15,
     #     "build_configuration": "Release",
     # },
 ]
