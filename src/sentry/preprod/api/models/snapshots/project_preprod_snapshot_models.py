@@ -57,7 +57,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     unchanged: list[SnapshotImageResponse] = []
     unchanged_count: int = 0
 
-    errored: list[SnapshotImageResponse] = []
+    errored: list[SnapshotDiffPair] = []
     errored_count: int = 0
 
 
