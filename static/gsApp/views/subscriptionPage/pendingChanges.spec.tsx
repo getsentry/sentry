@@ -405,7 +405,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByText(/budget change/)).not.toBeInTheDocument();
   });
 
-  it('renders size analysis reserved changes with correct display name and units', () => {
+  it('renders size analysis reserved changes with correct display name', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
@@ -428,7 +428,7 @@ describe('Subscription > PendingChanges', () => {
 
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(
-      screen.getByText('Reserved size analysis change to 100 builds')
+      screen.getByText('Reserved size analysis builds change to 100')
     ).toBeInTheDocument();
   });
 
