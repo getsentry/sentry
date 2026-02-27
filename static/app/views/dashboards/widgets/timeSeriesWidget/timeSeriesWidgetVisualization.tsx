@@ -580,11 +580,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // from the actual chart series. Some plottables (e.g. Samples) use a
   // callback function for itemStyle.color; in that case we fall back to
   // a neutral theme color for the legend swatch.
-  const chartLegendItems: LegendItem[] = useMemo(() => {
-    if (!usesChartLegendComponent) {
-      return [];
-    }
-    const items: LegendItem[] = props.plottables.map(plottable => {
+  let chartLegendItems: LegendItem[] = [];
+  if (usesChartLegendComponent) {
+    chartLegendItems = props.plottables.map(plottable => {
       const series = seriesFromPlottables.find(s => s.name === plottable.name);
       const seriesColor =
         (series as {color?: unknown})?.color ??
@@ -601,20 +599,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
       const releaseColor =
         typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
-      items.push({
+      chartLegendItems.push({
         name: releaseName,
         label: releaseName,
         color: releaseColor,
       });
     }
-    return items;
-  }, [
-    usesChartLegendComponent,
-    props.plottables,
-    seriesFromPlottables,
-    releaseSeries,
-    theme.colors.gray300,
-  ]);
+  }
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
