@@ -75,7 +75,7 @@ class OrgProjectKnowledgeProjectData(TypedDict):
     transaction_count: int
     instrumentation: list[str]
     top_transactions: list[str]
-    top_span_operations: list[str]
+    top_span_operations: list[tuple[str, str]]
 
 
 class OrgProjectKnowledgeIndexRequest(TypedDict):
