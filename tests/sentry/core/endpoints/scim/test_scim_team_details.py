@@ -226,6 +226,74 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
+    def test_replace_members_keeps_overlapping_members(self) -> None:
+        # member_on_team is already on the team; replacing with member_on_team + member_one
+        # should keep member_on_team untouched and only add member_one
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "existing@example.com",
+                    },
+                    {
+                        "value": self.member_one.id,
+                        "display": "new@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_with_identical_list_is_noop(self) -> None:
+        # Replacing with the same member already on the team should change nothing
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "already@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(team_id=self.team.id).count() == 1
+
+    def test_replace_members_with_empty_list(self) -> None:
+        # Replacing with an empty list should remove all members
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert not OrganizationMemberTeam.objects.filter(team_id=self.team.id).exists()
+
     def test_team_member_doesnt_exist_add_to_team(self) -> None:
         self.base_data["Operations"] = [
             {
@@ -510,6 +578,10 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
 
+            self.user_one.is_staff = True
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                self.user_one.save()
+
             OrganizationMemberTeam.objects.create(
                 team=staff_team, organizationmember=self.member_one
             )
@@ -535,6 +607,10 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             # The new member gets granted staff
             self.user_two.refresh_from_db()
             assert self.user_two.is_staff
+
+            # The removed member gets staff revoked
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
 
     def test_adding_to_superuser_write_group_dispatches_task(self) -> None:
         from sentry.users.models.userpermission import UserPermission

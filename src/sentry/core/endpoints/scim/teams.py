@@ -485,21 +485,38 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         path = operation.get("path")
 
                         if path == "members":
-                            # delete all the current team members
-                            # and replace with the ones in the operation list
                             with transaction.atomic(router.db_for_write(OrganizationMember)):
-                                # TODO: We're not removing the members's privileges if they're removed here.
-                                # We should probably find the removed members list by diff-ing the
-                                # existing members and the members in this replace operation.
-                                existing_members = list(
-                                    OrganizationMemberTeam.objects.filter(team_id=team.id)
-                                )
-                                OrganizationMemberTeam.objects.bulk_delete(existing_members)
+                                existing_omts = {
+                                    omt.organizationmember_id: omt
+                                    for omt in OrganizationMemberTeam.objects.filter(
+                                        team_id=team.id
+                                    ).select_related("organizationmember")
+                                }
+                                desired_member_ids = {int(v["value"]) for v in operation["value"]}
+                                existing_member_ids = set(existing_omts.keys())
 
-                                added_members = self._add_members_operation(
-                                    request, operation, team
-                                )
-                                members_to_grant_privileges.extend(added_members)
+                                # Remove members no longer in the replace list
+                                for member_id in existing_member_ids - desired_member_ids:
+                                    omt = existing_omts[member_id]
+                                    if omt.organizationmember.user_id:
+                                        user_ids_to_revoke.append(omt.organizationmember.user_id)
+                                    self._remove_member_operation(request, member_id, team)
+
+                                # Only add members not already on the team
+                                member_ids_to_add = desired_member_ids - existing_member_ids
+                                if member_ids_to_add:
+                                    add_op = {
+                                        **operation,
+                                        "value": [
+                                            v
+                                            for v in operation["value"]
+                                            if int(v["value"]) in member_ids_to_add
+                                        ],
+                                    }
+                                    added_members = self._add_members_operation(
+                                        request, add_op, team
+                                    )
+                                    members_to_grant_privileges.extend(added_members)
 
                         # azure and okta handle team name change operation differently
                         elif path is None:
