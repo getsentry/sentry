@@ -5,11 +5,10 @@ import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
 
 import {mcp} from './mcp';
-import {onboarding, platformOptions, type PlatformOptions} from './onboarding';
+import {onboarding} from './onboarding';
 
-const docs: Docs<PlatformOptions> = {
+const docs: Docs = {
   onboarding,
-  platformOptions,
   profilingOnboarding: profilingFullStack({
     packageName: '@sentry/tanstackstart-react',
     browserProfilingLink:

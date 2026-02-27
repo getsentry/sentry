@@ -1,31 +1,10 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {
-  BasePlatformOptions,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export enum ServerPlatform {
-  NODE = 'node',
-  SERVERLESS = 'serverless',
-}
-
-export const platformOptions = {
-  serverPlatform: {
-    label: t('Server Platform'),
-    items: [
-      {label: t('Node.js Server'), value: ServerPlatform.NODE},
-      {label: t('Serverless'), value: ServerPlatform.SERVERLESS},
-    ],
-    defaultValue: ServerPlatform.NODE,
-  },
-} satisfies BasePlatformOptions;
-
-export type PlatformOptions = typeof platformOptions;
-
-export const onboarding: OnboardingConfig<PlatformOptions> = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     t("In this guide you'll set up the Sentry TanStack Start React SDK"),
   install: () => [
@@ -181,27 +160,41 @@ Sentry.init({
           ],
         },
         {
-          type: 'text',
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: true,
           text: tct(
-            'To capture server-side errors and traces, explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
+            "If you can't use the [code:--import] flag (e.g. in serverless environments like Vercel or Netlify), follow the [link:TanStack Start React guide] for alternative setup instructions.",
             {
               code: <code />,
-              serverEntryLink: (
-                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/" />
               ),
             }
           ),
         },
         {
-          type: 'text',
-          text: tct('Create a [code:src/server.ts] file in your project:', {
-            code: <code />,
-          }),
-        },
-        {
           type: 'conditional',
-          condition: params.platformOptions.serverPlatform === ServerPlatform.NODE,
+          condition: params.isPerformanceSelected,
           content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable tracing for server-side requests, you need to explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
+                {
+                  code: <code />,
+                  serverEntryLink: (
+                    <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'text',
+              text: tct('Create a [code:src/server.ts] file in your project:', {
+                code: <code />,
+              }),
+            },
             {
               type: 'code',
               tabs: [
@@ -221,50 +214,6 @@ export default createServerEntry(
 );`,
                 },
               ],
-            },
-          ],
-        },
-        {
-          type: 'conditional',
-          condition: params.platformOptions.serverPlatform === ServerPlatform.SERVERLESS,
-          content: [
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'TypeScript',
-                  language: 'typescript',
-                  filename: 'src/server.ts',
-                  code: `import "../instrument.server.mjs";
-
-import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
-import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
-
-export default createServerEntry(
-  wrapFetchWithSentry({
-    fetch(request: Request) {
-      return handler.fetch(request);
-    },
-  })
-);`,
-                },
-              ],
-            },
-            {
-              type: 'alert',
-              alertType: 'warning',
-              showIcon: true,
-              text: t(
-                'When using the serverless setup, only native Node.js APIs will be instrumented (e.g. http, fetch). Database calls, queues, ORMs, and other third-party library instrumentation will not work.'
-              ),
-            },
-            {
-              type: 'alert',
-              alertType: 'warning',
-              showIcon: true,
-              text: t(
-                'Cloudflare is currently not supported by the Sentry TanStack Start SDK.'
-              ),
             },
           ],
         },
@@ -300,69 +249,63 @@ export default defineConfig({
           ],
         },
         {
-          type: 'conditional',
-          condition: params.platformOptions.serverPlatform === ServerPlatform.NODE,
-          content: [
+          type: 'text',
+          text: tct(
+            'For production monitoring, you need to move the Sentry server config file to your build output. Since [hostingLink:TanStack Start is designed to work with any hosting provider], the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
             {
-              type: 'text',
-              text: tct(
-                'For production monitoring, you need to move the Sentry server config file to your build output. Since [hostingLink:TanStack Start is designed to work with any hosting provider], the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
-                {
-                  code: <code />,
-                  hostingLink: (
-                    <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/hosting" />
-                  ),
-                }
+              code: <code />,
+              hostingLink: (
+                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/hosting" />
               ),
-            },
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'For example, when using [nitroLink:Nitro], copy the instrumentation file to [code:.output/server]:',
             {
-              type: 'text',
-              text: tct(
-                'For example, when using [nitroLink:Nitro], copy the instrumentation file to [code:.output/server]:',
-                {
-                  code: <code />,
-                  nitroLink: <ExternalLink href="https://nitro.build/" />,
-                }
-              ),
-            },
+              code: <code />,
+              nitroLink: <ExternalLink href="https://nitro.build/" />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'JSON',
-                  language: 'json',
-                  filename: 'package.json',
-                  code: `{
+              label: 'JSON',
+              language: 'json',
+              filename: 'package.json',
+              code: `{
   "scripts": {
      "build": "vite build && cp instrument.server.mjs .output/server",
   }
 }`,
-                },
-              ],
             },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Add a [code:--import] flag directly or to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:instrument.server.mjs]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              type: 'text',
-              text: tct(
-                'Add a [code:--import] flag directly or to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:instrument.server.mjs]:',
-                {code: <code />}
-              ),
-            },
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'JSON',
-                  language: 'json',
-                  filename: 'package.json',
-                  code: `{
+              label: 'JSON',
+              language: 'json',
+              filename: 'package.json',
+              code: `{
   "scripts": {
      "build": "vite build && cp instrument.server.mjs .output/server",
      "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --port 3000",
      "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
   }
 }`,
-                },
-              ],
             },
           ],
         },
