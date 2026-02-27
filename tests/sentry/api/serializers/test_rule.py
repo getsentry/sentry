@@ -397,6 +397,12 @@ class WorkflowRuleSerializerTest(TestCase):
                 "match": "eq",
                 "level": "50",
             },
+            {
+                "attribute": "message",
+                "match": "ns",
+                "id": EventAttributeFilter.id,
+                "value": "",
+            },
         ]
         # self.conditions contains the remaining filters
         issue_alert = self.create_project_rule(
