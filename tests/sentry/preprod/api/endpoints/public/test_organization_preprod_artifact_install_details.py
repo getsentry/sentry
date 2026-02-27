@@ -74,7 +74,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
         assert data["downloadCount"] == 0
-        assert data["platform"] == "android"
+        assert data["platform"] == "ANDROID"
 
         app_info = data["appInfo"]
         assert app_info["appId"] == "com.example.app"
@@ -104,7 +104,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
-        assert data["platform"] == "android"
+        assert data["platform"] == "ANDROID"
         assert data["releaseNotes"] == "Bug fixes and improvements"
         assert data["isCodeSignatureValid"] is None
 
@@ -131,7 +131,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
-        assert data["platform"] == "apple"
+        assert data["platform"] == "APPLE"
         assert data["isCodeSignatureValid"] is True
         assert data["profileName"] == "iOS Team Provisioning Profile"
         assert data["codesigningType"] == "development"

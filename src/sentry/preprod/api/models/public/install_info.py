@@ -30,7 +30,8 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
     return {
         "buildId": str(artifact.id),
         "appInfo": create_app_info_dict(artifact),
-        "platform": artifact.platform,
+        # Uppercase for consistency with other enum fields (e.g. artifactType)
+        "platform": artifact.platform.upper() if artifact.platform else None,
         "isInstallable": info.is_installable,
         "installUrl": info.install_url,
         "downloadCount": info.download_count,

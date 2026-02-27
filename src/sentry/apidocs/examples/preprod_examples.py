@@ -108,7 +108,7 @@ class PreprodExamples:
     EXAMPLE_INSTALL_INFO_INSTALLABLE = {
         "buildId": "12345",
         "appInfo": _APP_INFO,
-        "platform": "android",
+        "platform": "ANDROID",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
         "downloadCount": 5,
@@ -122,7 +122,7 @@ class PreprodExamples:
     EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE = {
         "buildId": "12345",
         "appInfo": _APP_INFO,
-        "platform": "android",
+        "platform": "ANDROID",
         "isInstallable": False,
         "installUrl": None,
         "downloadCount": 0,
@@ -139,7 +139,7 @@ class PreprodExamples:
             **_APP_INFO,
             "artifactType": "XCARCHIVE",
         },
-        "platform": "apple",
+        "platform": "APPLE",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
         "downloadCount": 3,
