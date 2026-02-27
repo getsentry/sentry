@@ -1,6 +1,3 @@
-import type {Ref} from 'react';
-import {mergeRefs} from '@react-aria/utils';
-
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
@@ -8,7 +5,7 @@ import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField'
 
 export interface InputFieldProps
   extends
-    BaseFieldProps,
+    BaseFieldProps<HTMLInputElement>,
     Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> {
   onChange: (value: string) => void;
   value: string;
@@ -16,18 +13,22 @@ export interface InputFieldProps
   trailingItems?: React.ReactNode;
 }
 
-export function InputField(props: InputFieldProps) {
-  const {onChange, disabled, trailingItems, ...rest} = props;
+export function InputField({
+  onChange,
+  disabled,
+  trailingItems,
+  ref,
+  ...props
+}: InputFieldProps) {
   const indicator = useAutoSaveIndicator();
 
   return (
-    <BaseField disabled={disabled}>
+    <BaseField disabled={disabled} ref={ref}>
       {fieldProps => (
         <InputGroup style={{flex: 1}}>
           <InputGroup.Input
             {...fieldProps}
-            {...rest}
-            ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, rest.ref)}
+            {...props}
             onChange={e => onChange(e.target.value)}
           />
           <InputGroup.TrailingItems>

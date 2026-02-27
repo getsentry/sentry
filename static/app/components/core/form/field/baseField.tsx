@@ -1,4 +1,5 @@
 import {useEffect, useRef, type Ref} from 'react';
+import {mergeRefs} from '@react-aria/utils';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
@@ -7,20 +8,21 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {FieldMeta} from './meta';
 
-type BaseProps = {
+type BaseProps<T extends HTMLElement> = {
   disabled: boolean | string | undefined;
+  ref: Ref<T> | undefined;
 };
 
-export type BaseFieldProps = Partial<BaseProps>;
+export type BaseFieldProps<T extends HTMLElement> = Partial<BaseProps<T>>;
 
-type FieldChildrenProps = {
+type FieldChildrenProps<T extends HTMLElement> = {
   'aria-describedby': string;
   'aria-invalid': boolean;
   disabled: boolean;
   id: string;
   name: string;
   onBlur: () => void;
-  ref: Ref<HTMLElement>;
+  ref: Ref<T>;
 };
 
 export const useAutoSaveIndicator = () => {
@@ -80,14 +82,14 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
   }, [fieldName, ref]);
 }
 
-export function BaseField(
-  props: BaseProps & {
-    children: (props: FieldChildrenProps) => React.ReactNode;
+export function BaseField<T extends HTMLElement>(
+  props: BaseProps<T> & {
+    children: (props: FieldChildrenProps<T>) => React.ReactNode;
   }
 ) {
   const autoSaveContext = useAutoSaveContext();
   const field = useFieldContext();
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<T>(null);
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
   useScrollToHash(field.name, ref);
@@ -95,7 +97,7 @@ export function BaseField(
   return (
     <Flex gap="sm" align="center">
       {props.children({
-        ref,
+        ref: mergeRefs(ref, props.ref),
         disabled: !!props.disabled || autoSaveContext?.status === 'pending',
         'aria-invalid': !field.state.meta.isValid,
         'aria-describedby': hintTextId,

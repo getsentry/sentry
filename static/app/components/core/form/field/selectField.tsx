@@ -37,7 +37,7 @@ function SelectIndicatorsContainer({
 }
 
 // Base props shared by all select variants
-type BaseSelectFieldProps = BaseFieldProps &
+type BaseSelectFieldProps = BaseFieldProps<HTMLInputElement> &
   Omit<
     React.ComponentProps<typeof Select>,
     | 'value'
@@ -88,7 +88,7 @@ export type SelectFieldProps<TValue = string> =
 // This converts the `ref` value of SelectInput into a format
 // that works for BaseField, which expects `fieldProps.ref: Ref<HTMLElement>`
 const applyInputToRef =
-  (ref: Ref<HTMLElement>) =>
+  (ref: Ref<HTMLInputElement>) =>
   (instance: null | {input: HTMLInputElement}): void => {
     if (instance) {
       if (typeof ref === 'function') {
@@ -104,16 +104,17 @@ export function SelectField<TValue = string>({
   disabled,
   multiple,
   value,
+  ref,
   ...props
-}: SelectFieldProps<TValue>) {
+}: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
 
   return (
-    <BaseField disabled={disabled}>
-      {({id, ref, ...fieldProps}) => (
+    <BaseField disabled={disabled} ref={ref}>
+      {({id, ref: fieldRef, ...fieldProps}) => (
         <Container flex={1} minWidth={0}>
           <Select
             {...fieldProps}
@@ -121,7 +122,7 @@ export function SelectField<TValue = string>({
             inputId={id}
             multiple={multiple}
             value={value}
-            inputRef={applyInputToRef(ref)}
+            inputRef={applyInputToRef(fieldRef)}
             components={{
               ...props.components,
               Input: SelectInput,

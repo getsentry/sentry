@@ -1,5 +1,4 @@
-import {Fragment, type Ref} from 'react';
-import {mergeRefs} from '@react-aria/utils';
+import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
@@ -12,8 +11,9 @@ export function RangeField({
   onChange,
   disabled,
   value,
+  ref,
   ...props
-}: BaseFieldProps &
+}: BaseFieldProps<HTMLInputElement> &
   DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     onChange: (value: number) => void;
     value: number;
@@ -23,13 +23,12 @@ export function RangeField({
   const indicator = useAutoSaveIndicator();
 
   return (
-    <BaseField disabled={disabled}>
+    <BaseField disabled={disabled} ref={ref}>
       {fieldProps => (
         <Fragment>
           <Slider
             {...fieldProps}
             {...props}
-            ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
             value={value}
             onChange={onChange}
             onPointerUp={e => {
