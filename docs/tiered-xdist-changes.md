@@ -20,11 +20,11 @@
 
 ### 1c. Fix flaky dashboard widget ordering
 
-**File:** `tests/sentry/dashboards/endpoints/test_organization_dashboard_details.py` (lines 918, 924)
+**File:** `tests/sentry/dashboards/endpoints/test_organization_dashboard_details.py`
 
-**What:** Added `order=2` to `widget_3` and `order=3` to `widget_4` in `OrganizationDashboardDetailsPutTest.setUp()`.
+**What:** Added `order=0` to `widget_1`, `order=1` to `widget_2` in the parent `OrganizationDashboardDetailsTestCase.setUp()`, and `order=2` to `widget_3`, `order=3` to `widget_4` in `OrganizationDashboardDetailsPutTest.setUp()`.
 
-**Why:** `DashboardWidget.order` is `BoundedPositiveIntegerField(null=True)`. The parent class already sets `order=0` and `order=1` on `widget_1`/`widget_2`, but `widget_3`/`widget_4` were left as NULL. `ORDER BY order` with NULL values produces nondeterministic ordering in PostgreSQL, causing intermittent assertion failures on widget position.
+**Why:** `DashboardWidget.order` is `BoundedPositiveIntegerField(null=True)`. All four widgets were missing `order=`, leaving them as NULL. `get_widgets()` uses `ORDER BY (order, id)` — PostgreSQL's ordering of NULL values is nondeterministic (heap scan order), causing intermittent assertion failures on widget position. An initial grep for `order=` in the file found `order=0`/`order=1` at lines 70/80, but these were on `DashboardWidgetQuery` objects (queries within widgets), not on `DashboardWidget` itself.
 
 ### 1d. Conditional selenium plugin loading
 
