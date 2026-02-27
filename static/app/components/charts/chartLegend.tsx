@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -10,6 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import type {SpaceSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {LegendCheckbox} from './components/legendCheckbox';
@@ -24,6 +25,31 @@ interface ChartLegendProps {
   items: LegendItem[];
   onSelectionChange: (selected: Record<string, boolean>) => void;
   selected: Record<string, boolean>;
+}
+
+/** Gap between the items container and the overflow trigger. */
+const OUTER_GAP: SpaceSize = 'xs';
+
+/** Gap between individual legend items inside the container. */
+const INNER_GAP: SpaceSize = 'md';
+
+const MAX_LABEL_WIDTH = 180;
+
+/**
+ * Renders a leading checkbox for a legend item inside the overflow dropdown.
+ * Stateless — only depends on its arguments, so it lives outside the component.
+ */
+function renderLeadingCheckbox(item: LegendItem) {
+  return function LeadingCheckbox({isSelected}: {isSelected: boolean}) {
+    return (
+      <LegendCheckbox
+        color={item.color}
+        checked={isSelected}
+        onChange={() => {}}
+        aria-label={item.label}
+      />
+    );
+  };
 }
 
 /**
@@ -41,23 +67,27 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const outerGap = parseInt(theme.space.xs, 10);
-  const innerGap = parseInt(theme.space.md, 10);
+  const outerGap = parseInt(theme.space[OUTER_GAP], 10);
+  const innerGap = parseInt(theme.space[INNER_GAP], 10);
 
   // useDimensions handles ResizeObserver internally — when the wrapper or
   // trigger resize, these values update and the useMemo below recomputes.
   const {width: wrapperWidth} = useDimensions({elementRef: wrapperRef});
   const {width: triggerWidth} = useDimensions({elementRef: triggerRef});
 
-  // Pure derivation: recompute the overflow index whenever dimensions change.
-  const firstOverflowIndex = useMemo(() => {
+  // Measured after DOM commit so we read the actual (not stale) children.
+  const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) {
-      return null;
+      setFirstOverflowIndex(null);
+      return;
     }
 
     const children = Array.from(container.children);
     let usedWidth = 0;
+    let index: number | null = null;
 
     for (let i = 0; i < children.length; i++) {
       const childWidth = children[i]!.getBoundingClientRect().width;
@@ -71,83 +101,46 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
 
       if (usedWidth > wrapperWidth - reservedSpace) {
-        return i;
+        index = i;
+        break;
       }
     }
 
-    return null;
-    // `items` isn't read inside the memo, but when it changes the DOM children
-    // change and we must recompute.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setFirstOverflowIndex(index);
   }, [wrapperWidth, triggerWidth, items, innerGap, outerGap]);
 
-  const overflowItems = useMemo(
-    () => (firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex)),
-    [firstOverflowIndex, items]
-  );
+  const overflowItems =
+    firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex);
 
-  // Pre-computed set for O(1) lookups when deciding visibility of each item.
-  // Items that overflow are kept in the DOM (with visibility: hidden) so they
-  // still contribute to width measurement.
-  const overflowSet = useMemo(
-    () => new Set(overflowItems.map(item => item.name)),
-    [overflowItems]
-  );
+  const overflowSet = new Set(overflowItems.map(item => item.name));
 
-  const toggleItem = useCallback(
-    (name: string) => {
-      onSelectionChange({
-        ...selected,
-        [name]: selected[name] === false ? true : false,
-      });
-    },
-    [selected, onSelectionChange]
-  );
+  const toggleItem = (name: string) => {
+    onSelectionChange({
+      ...selected,
+      [name]: selected[name] === false ? true : false,
+    });
+  };
 
-  const renderLeadingCheckbox = useCallback(
-    (item: LegendItem) =>
-      function ({isSelected}: {isSelected: boolean}) {
-        return (
-          <LegendCheckbox
-            color={item.color}
-            checked={isSelected}
-            onChange={() => {}}
-            aria-label={item.label}
-          />
-        );
-      },
-    []
-  );
+  const overflowOptions: Array<SelectOption<string>> = overflowItems.map(item => ({
+    value: item.name,
+    label: item.label,
+    // Suppress the built-in checkmark; we render a custom LegendCheckbox via leadingItems
+    hideCheck: true,
+    leadingItems: renderLeadingCheckbox(item),
+  }));
 
-  const overflowOptions: Array<SelectOption<string>> = useMemo(
-    () =>
-      overflowItems.map(item => ({
-        value: item.name,
-        label: item.label,
-        // Suppress the built-in checkmark; we render a custom LegendCheckbox via leadingItems
-        hideCheck: true,
-        leadingItems: renderLeadingCheckbox(item),
-      })),
-    [overflowItems, renderLeadingCheckbox]
-  );
+  const overflowValues = overflowItems
+    .filter(item => selected[item.name] !== false)
+    .map(item => item.name);
 
-  const overflowValues = useMemo(
-    () =>
-      overflowItems.filter(item => selected[item.name] !== false).map(item => item.name),
-    [overflowItems, selected]
-  );
-
-  const handleOverflowSelectChange = useCallback(
-    (options: Array<{value: string}>) => {
-      const selectedSet = new Set(options.map(opt => opt.value));
-      const newSelected = {...selected};
-      for (const item of overflowItems) {
-        newSelected[item.name] = selectedSet.has(item.name);
-      }
-      onSelectionChange(newSelected);
-    },
-    [selected, overflowItems, onSelectionChange]
-  );
+  const handleOverflowSelectChange = (options: Array<{value: string}>) => {
+    const selectedSet = new Set(options.map(opt => opt.value));
+    const newSelected = {...selected};
+    for (const item of overflowItems) {
+      newSelected[item.name] = selectedSet.has(item.name);
+    }
+    onSelectionChange(newSelected);
+  };
 
   if (items.length === 0) {
     return null;
@@ -157,14 +150,14 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     <Flex
       ref={wrapperRef}
       align="center"
-      gap="xs"
+      gap={OUTER_GAP}
       wrap="nowrap"
       style={{height: theme.form.xs.height}}
     >
       <Flex
         ref={containerRef}
         align="center"
-        gap="md"
+        gap={INNER_GAP}
         wrap="nowrap"
         data-test-id="legend-items"
         style={{overflow: 'hidden', minWidth: 0, flex: 1}}
@@ -218,8 +211,6 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     </Flex>
   );
 }
-
-const MAX_LABEL_WIDTH = 180;
 
 const LegendItemButton = styled(Flex)`
   cursor: pointer;

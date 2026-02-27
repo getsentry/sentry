@@ -20,7 +20,7 @@ export function LegendCheckbox({
   'aria-label': ariaLabel,
 }: LegendCheckboxProps) {
   const theme = useTheme();
-  const colorBlendsIn = blendsIntoBackground(color, theme.type === 'dark');
+  const colorBlendsIn = blendsIntoBackground(color, theme.tokens.background.primary);
   const needsBorder = !checked || colorBlendsIn;
 
   return (
@@ -72,13 +72,12 @@ const CHECKBOX_SIZE = '12px';
 const ICON_SIZE = '7px';
 
 /**
- * Returns true if the color would be invisible against the page background —
- * very light colors in light mode, very dark colors in dark mode.
+ * Returns true if the color has too little contrast against the page background
+ * to be visible as a checkbox swatch (WCAG contrast ratio < 1.3).
  */
-function blendsIntoBackground(color: string, isDark: boolean): boolean {
+function blendsIntoBackground(color: string, background: string): boolean {
   try {
-    const luminosity = Color(color).luminosity();
-    return isDark ? luminosity < 0.05 : luminosity > 0.9;
+    return Color(color).contrast(Color(background)) < 1.3;
   } catch {
     return false;
   }
