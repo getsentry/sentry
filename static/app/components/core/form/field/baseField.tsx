@@ -6,6 +6,8 @@ import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner} from '@sentry/scraps/form/icons';
 import {Flex} from '@sentry/scraps/layout';
 
+import {useLocation} from 'sentry/utils/useLocation';
+
 import {FieldMeta} from './meta';
 
 export type BaseFieldProps<T extends HTMLElement> = {
@@ -58,25 +60,15 @@ export const useLabelId = () => {
 };
 
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
+  const location = useLocation();
   useEffect(() => {
-    function handleHashChange() {
-      try {
-        const hash = decodeURIComponent(window.location.hash.slice(1));
-        if (hash !== fieldName) {
-          return;
-        }
-      } catch {
-        return;
-      }
-      ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
-      ref.current?.focus({focusVisible: true});
-      animateRowHighlight(ref.current);
+    if (location.hash.slice(1) !== fieldName) {
+      return;
     }
-    // Check on mount (page loaded with hash already in URL)
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [fieldName, ref]);
+    ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
+    ref.current?.focus({focusVisible: true});
+    animateRowHighlight(ref.current);
+  }, [fieldName, ref, location]);
 }
 
 type FieldState = {indicator: React.ReactNode};
