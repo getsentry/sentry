@@ -4,7 +4,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {
   NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   PRIMARY_SIDEBAR_WIDTH,
-  SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
@@ -89,7 +88,7 @@ const PopoverSecondaryNav = styled(SecondaryNav)`
 const PopoverWrapper = styled(motion.div)`
   position: fixed;
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
-  width: ${SECONDARY_SIDEBAR_WIDTH}px;
+  width: 240px;
   overflow-y: auto;
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
