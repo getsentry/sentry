@@ -366,53 +366,50 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             )
         )
 
-    def _add_members_operation(self, request: Request, operation, team) -> list[OrganizationMember]:
-        added_members = []
-
-        for member_data in operation["value"]:
-            member = OrganizationMember.objects.get(
-                organization=team.organization, id=member_data["value"]
-            )
-            if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
-                continue
-
-            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
-                omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-                self.create_audit_entry(
-                    request=request,
-                    organization=team.organization,
-                    target_object=omt.id,
-                    target_user_id=member.user_id,
-                    event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
-                    data=omt.get_audit_log_data(),
-                )
-
-            added_members.append(member)
-
-        return added_members
-
-    def _remove_member_operation(
-        self, request: Request, member_id, team
-    ) -> OrganizationMember | None:
-        member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
+    def _add_members_operation(
+        self,
+        request: Request,
+        members: list[OrganizationMember],
+        team: Team,
+    ) -> None:
+        if not members:
+            return
 
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
-            try:
-                omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
-            except OrganizationMemberTeam.DoesNotExist:
-                return None
+            new_omts = OrganizationMemberTeam.objects.bulk_create(
+                [OrganizationMemberTeam(team=team, organizationmember=m) for m in members]
+            )
 
+        for omt in new_omts:
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=omt.id,
-                target_user_id=member.user_id,
-                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
+                target_user_id=omt.organizationmember.user_id,
+                event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                 data=omt.get_audit_log_data(),
             )
-            omt.delete()
 
-        return member
+    def _remove_members_operation(
+        self,
+        request: Request,
+        omts: list[OrganizationMemberTeam],
+        team: Team,
+    ) -> None:
+        if not omts:
+            return
+
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
+            for omt in omts:
+                self.create_audit_entry(
+                    request=request,
+                    organization=team.organization,
+                    target_object=omt.id,
+                    target_user_id=omt.organizationmember.user_id,
+                    event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
+                    data=omt.get_audit_log_data(),
+                )
+            OrganizationMemberTeam.objects.bulk_delete(omts)
 
     def _rename_team_operation(self, request: Request, new_name, team):
         serializer = TeamSerializer(
@@ -457,9 +454,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
 
-        user_ids_to_revoke: list[int] = []
+        user_ids_to_revoke_privileges: list[int] = []
 
         members_to_grant_privileges: list[OrganizationMember] = []
+
         try:
             with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
@@ -469,17 +467,44 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     op = operation["op"].lower()
 
                     if op == TeamPatchOps.ADD and operation["path"] == "members":
-                        added_members = self._add_members_operation(request, operation, team)
-                        members_to_grant_privileges.extend(added_members)
+                        try:
+                            member_ids = [int(v["value"]) for v in operation["value"]]
+                        except (KeyError, TypeError, ValueError):
+                            return Response(
+                                {"detail": "Invalid member value format in add operation"},
+                                status=400,
+                            )
+                        members = list(
+                            OrganizationMember.objects.filter(
+                                organization=team.organization, id__in=member_ids
+                            )
+                        )
+                        if len(members) != len(member_ids):
+                            raise OrganizationMember.DoesNotExist
+                        existing = set(
+                            OrganizationMemberTeam.objects.filter(
+                                team=team, organizationmember__in=members
+                            ).values_list("organizationmember_id", flat=True)
+                        )
+                        new_members = [m for m in members if m.id not in existing]
+                        self._add_members_operation(request, new_members, team)
+                        members_to_grant_privileges.extend(new_members)
 
                     elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
                         member_id = self._get_member_id_for_remove_op(operation)
-                        member = OrganizationMember.objects.get(
-                            organization=team.organization, id=member_id
+                        omt = (
+                            OrganizationMemberTeam.objects.filter(
+                                team=team,
+                                organizationmember__organization=team.organization,
+                                organizationmember_id=member_id,
+                            )
+                            .select_related("organizationmember")
+                            .first()
                         )
-                        if member.user_id:
-                            user_ids_to_revoke.append(member.user_id)
-                        self._remove_member_operation(request, member_id, team)
+                        if omt is not None:
+                            if omt.organizationmember.user_id:
+                                user_ids_to_revoke_privileges.append(omt.organizationmember.user_id)
+                            self._remove_members_operation(request, [omt], team)
 
                     elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
@@ -496,27 +521,29 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                                 existing_member_ids = set(existing_omts.keys())
 
                                 # Remove members no longer in the replace list
+                                omts_to_remove = []
                                 for member_id in existing_member_ids - desired_member_ids:
                                     omt = existing_omts[member_id]
                                     if omt.organizationmember.user_id:
-                                        user_ids_to_revoke.append(omt.organizationmember.user_id)
-                                    self._remove_member_operation(request, member_id, team)
+                                        user_ids_to_revoke_privileges.append(
+                                            omt.organizationmember.user_id
+                                        )
+                                    omts_to_remove.append(omt)
+                                self._remove_members_operation(request, omts_to_remove, team)
 
                                 # Only add members not already on the team
                                 member_ids_to_add = desired_member_ids - existing_member_ids
                                 if member_ids_to_add:
-                                    add_op = {
-                                        **operation,
-                                        "value": [
-                                            v
-                                            for v in operation["value"]
-                                            if int(v["value"]) in member_ids_to_add
-                                        ],
-                                    }
-                                    added_members = self._add_members_operation(
-                                        request, add_op, team
+                                    new_members = list(
+                                        OrganizationMember.objects.filter(
+                                            organization=team.organization,
+                                            id__in=member_ids_to_add,
+                                        )
                                     )
-                                    members_to_grant_privileges.extend(added_members)
+                                    if len(new_members) != len(member_ids_to_add):
+                                        raise OrganizationMember.DoesNotExist
+                                    self._add_members_operation(request, new_members, team)
+                                    members_to_grant_privileges.extend(new_members)
 
                         # azure and okta handle team name change operation differently
                         elif path is None:
@@ -544,7 +571,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 team_slug=team.slug,
                 organization_id=team.organization.id,
                 user_ids_to_grant=user_ids_to_grant,
-                user_ids_to_revoke=user_ids_to_revoke,
+                user_ids_to_revoke=user_ids_to_revoke_privileges,
             )
 
         metrics.incr("sentry.scim.team.update", tags={"organization": organization})
