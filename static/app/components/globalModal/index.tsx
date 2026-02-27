@@ -136,6 +136,7 @@ function GlobalModal({onClose}: Props) {
     (e: KeyboardEvent) => {
       if (
         e.key !== 'Escape' ||
+        e.defaultPrevented ||
         closeEvents === 'none' ||
         closeEvents === 'backdrop-click'
       ) {
