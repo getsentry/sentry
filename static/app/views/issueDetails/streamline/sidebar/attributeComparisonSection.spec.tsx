@@ -53,16 +53,16 @@ describe('AttributeComparisonSection', () => {
     expect(requestOptions).toEqual(
       expect.objectContaining({
         query: expect.objectContaining({
-          project: ['1'],
-          start: '2023-12-25T00:00:00',
-          end: openPeriodEnd,
+          project: [1],
+          start: '2023-12-25T00:00:00.000',
+          end: '2024-01-01T00:10:00.000',
           dataset: 'spans',
           function: defaultProps.snubaQuery.aggregate,
           above: 1,
           sampling: 'NORMAL',
           aggregateExtrapolation: '1',
-          query_1: expect.stringContaining(`timestamp:>=${openPeriodStart}`),
-          query_2: expect.stringContaining('timestamp:>=2023-12-25T00:00:00'),
+          query_1: expect.stringContaining('timestamp:>=2024-01-01T00:00:00'),
+          query_2: 'is:unresolved event.type:error',
         }),
       })
     );

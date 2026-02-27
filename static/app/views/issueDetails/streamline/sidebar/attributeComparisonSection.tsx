@@ -11,17 +11,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDetectorAttributeComparison} from 'sentry/views/detectors/hooks/useDetectorAttributeComparison';
 import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {Chart} from 'sentry/views/explore/components/attributeBreakdowns/cohortComparisonChart';
 import {COHORT_2_COLOR} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {AttributeBreakdownsComponent} from 'sentry/views/explore/components/attributeBreakdowns/styles';
+import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
+const BASELINE_DAYS = 7;
 const CHARTS_COLUMN_COUNT = 2;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 3; // 6 charts per page
 
@@ -42,13 +43,28 @@ export function AttributeComparisonSection({
 }: AttributeComparisonSectionProps) {
   const organization = useOrganization();
   const theme = useTheme();
-  const {data, isLoading, error} = useDetectorAttributeComparison({
+
+  const openPeriodStartMs = new Date(openPeriodStart).getTime();
+  const openPeriodEndMs = new Date(openPeriodEnd).getTime();
+  const baselineStart = useMemo(
+    () => new Date(openPeriodStartMs - BASELINE_DAYS * 24 * 60 * 60 * 1000),
+    [openPeriodStartMs]
+  );
+
+  const {data, isLoading, error} = useAttributeBreakdownComparison({
     query: snubaQuery.query,
-    aggregate: snubaQuery.aggregate,
-    openPeriodStart,
-    openPeriodEnd,
-    projectId,
-    isOpenPeriodLoading,
+    aggregateFunction: isOpenPeriodLoading ? '' : snubaQuery.aggregate,
+    range: [openPeriodStartMs, openPeriodEndMs],
+    pageFilters: {
+      datetime: {
+        start: baselineStart,
+        end: openPeriodEnd,
+        period: null,
+        utc: null,
+      },
+      environments: snubaQuery.environment ? [snubaQuery.environment] : [],
+      projects: [Number(projectId)],
+    },
   });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,20 +82,12 @@ export function AttributeComparisonSection({
   });
 
   const exploreUrl = useMemo(() => {
-    const openPeriodStartMs = new Date(openPeriodStart).getTime();
-    const openPeriodEndMs = new Date(openPeriodEnd).getTime();
-
     const chartSelection: ChartSelectionQueryParam = {
       chartIndex: 0,
       range: [openPeriodStartMs, openPeriodEndMs],
       // panelId format matches what the explore chart grid generates
       panelId: 'grid--\u0000series\u00000\u00000',
     };
-
-    const BASELINE_DAYS = 7;
-    const baselineStart = new Date(
-      openPeriodStartMs - BASELINE_DAYS * 24 * 60 * 60 * 1000
-    );
 
     return getExploreUrl({
       organization,
@@ -104,7 +112,15 @@ export function AttributeComparisonSection({
       table: 'attribute_breakdowns',
       chartSelection,
     });
-  }, [organization, openPeriodStart, openPeriodEnd, snubaQuery, projectId]);
+  }, [
+    organization,
+    openPeriodStartMs,
+    openPeriodEndMs,
+    openPeriodEnd,
+    baselineStart,
+    snubaQuery,
+    projectId,
+  ]);
 
   return (
     <InterimSection
