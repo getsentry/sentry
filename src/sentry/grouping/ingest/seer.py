@@ -18,6 +18,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.config import (
     get_grouping_model_version,
+    get_new_model_version,
     should_send_new_model_embeddings,
 )
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -559,6 +560,7 @@ def maybe_check_seer_for_matching_grouphash(
                 seer_model=model_version.value,
                 seer_matched_grouphash=seer_matched_grouphash,
                 seer_match_distance=seer_match_distance,
+                seer_latest_training_model=model_version.value,
             )
 
     return seer_matched_grouphash
@@ -586,8 +588,13 @@ def maybe_send_seer_for_new_model_training(
     # Check if we should send embeddings for the new model
     gh_metadata = existing_grouphash.metadata
     grouphash_seer_model = gh_metadata.seer_model if gh_metadata else None
+    grouphash_seer_latest_training_model = (
+        gh_metadata.seer_latest_training_model if gh_metadata else None
+    )
 
-    if not should_send_new_model_embeddings(event.project, grouphash_seer_model):
+    if not should_send_new_model_embeddings(
+        event.project, grouphash_seer_model, grouphash_seer_latest_training_model
+    ):
         return
 
     # Send training mode request (honor all checks like rate limits, circuit breaker, etc.)
@@ -608,3 +615,12 @@ def maybe_send_seer_for_new_model_training(
                 "grouphash": existing_grouphash.hash,
             },
         )
+        return
+
+    # Mark the grouphash as sent to the new model so we don't send duplicate requests.
+    # We update seer_latest_training_model (not seer_model) to preserve the original
+    # grouping decision metadata.
+    if gh_metadata:
+        new_version = get_new_model_version()
+        if new_version is not None:
+            gh_metadata.update(seer_latest_training_model=new_version.value)
