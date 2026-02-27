@@ -12,12 +12,12 @@ import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentSty
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import {LetterAvatar} from '../letterAvatar/letterAvatar';
 
-export type GravatarDefinition = {
+type GravatarProps = {
   gravatarId: string;
   type: 'gravatar';
 };
 
-export type ImageDefinition = {
+type ImageProps = {
   src: string;
   type: 'image';
 };
@@ -28,7 +28,7 @@ export type ImageDefinition = {
  * histrically hijacked the ref and attached it to the container element, and we would need
  * to eliminate the wrapper before we can enable ref support.
  */
-export function useImageAvatar(definition: GravatarDefinition | ImageDefinition): {
+function useImageAvatar(definition: GravatarProps | ImageProps): {
   ref: React.RefCallback<HTMLImageElement>;
   src: string | null;
 } {
@@ -112,8 +112,8 @@ async function hashGravatarId(gravatarId: string): Promise<string> {
     .join('');
 }
 
-export interface ImageAvatarProps extends BaseAvatarStyleProps {
-  definition: GravatarDefinition | ImageDefinition;
+interface ImageAvatarProps extends BaseAvatarStyleProps {
+  definition: GravatarProps | ImageProps;
   identifier: string;
   name: string;
 }
