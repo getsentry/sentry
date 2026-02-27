@@ -284,8 +284,6 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     try:
         while True:
-            if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-                _refresh_drain_lock(payload.mailbox_name)
             # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
             # task.
             if timezone.now() >= deadline:
@@ -310,6 +308,11 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
             batch_count = 0
             for record in query[:100]:
                 batch_count += 1
+                # Refresh the lock on each delivery so a slow HTTP response in the
+                # inner loop (up to 30s timeout × 100 records) cannot outlast the
+                # 15s TTL and let the key expire mid-batch.
+                if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+                    _refresh_drain_lock(payload.mailbox_name)
                 try:
                     deliver_message(record)
                     delivered += 1
@@ -328,8 +331,12 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 )
                 return
     finally:
-        if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-            _release_drain_lock(payload.mailbox_name)
+        # Only release the lock if this is a push-triggered drain (mailbox_name is
+        # passed). Scheduler-triggered drains must not release a lock they didn't
+        # set — doing so would allow a concurrent push-triggered drain's lock to be
+        # deleted before it completes, opening a window for duplicate drains.
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            _release_drain_lock(mailbox_name)
 
 
 def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
@@ -458,7 +465,7 @@ def _run_parallel_delivery_batch(
     processing_deadline_duration=int(BATCH_SCHEDULE_OFFSET.total_seconds() + 10),
     silo_mode=SiloMode.CONTROL,
 )
-def drain_mailbox_parallel(payload_id: int) -> None:
+def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> None:
     """
     Deliver messages from a mailbox in small parallel batches.
 
@@ -470,6 +477,10 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     delay timeout is reached, or a message with a schedule_for greater than
     the current time is encountered. A message with a higher schedule_for value
     indicates that we have hit the start of another batch that has been scheduled.
+
+    `mailbox_name` is passed when the drain was push-triggered so the lock can be
+    released on completion (mirroring `drain_mailbox`). Scheduler-triggered calls
+    omit it and must not release a lock they did not acquire.
     """
     try:
         payload = WebhookPayload.objects.get(id=payload_id)
@@ -478,6 +489,8 @@ def drain_mailbox_parallel(payload_id: int) -> None:
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
         logger.info("deliver_webhook_parallel.potential_race", extra={"id": payload_id})
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            _release_drain_lock(mailbox_name)
         return
 
     _set_webhook_delivery_sentry_context(payload)
@@ -489,7 +502,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     extra = {**payload.as_dict(), "delivered": delivered}
     try:
         while True:
-            if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                 _refresh_drain_lock(payload.mailbox_name)
             if timezone.now() >= deadline:
                 logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
@@ -512,8 +525,12 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
                 return
     finally:
-        if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-            _release_drain_lock(payload.mailbox_name)
+        # Only release the lock if this is a push-triggered drain (mailbox_name is
+        # passed). Scheduler-triggered drains must not release a lock they didn't
+        # set — doing so would allow a concurrent push-triggered drain's lock to be
+        # deleted before it completes, opening a window for duplicate drains.
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            _release_drain_lock(mailbox_name)
 
 
 def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
