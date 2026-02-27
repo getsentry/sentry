@@ -237,6 +237,7 @@
     "jest-junit": "16.0.0",
     "knip": "5.85.0",
     "odiff-bin": "^4.3.2",
+    "playwright": "^1.58.2",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.18.0",
     "stylelint": "16.10.0",
