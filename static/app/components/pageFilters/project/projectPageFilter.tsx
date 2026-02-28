@@ -519,6 +519,10 @@ export function ProjectPageFilter({
     ]
   );
 
+  const filterOptionsOnSearch = useCallback((option: SelectOption<number>) => {
+    return option.value !== ALL_ACCESS_PROJECTS && option.value !== MY_PROJECTS_VALUE;
+  }, []);
+
   const stagedSelect = useStagedCompactSelect({
     value: committedSelection,
     options,
@@ -526,6 +530,7 @@ export function ProjectPageFilter({
     onStagedValueChange: setDraftSelection,
     onToggle,
     onReplace,
+    filterOptionsOnSearch,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });

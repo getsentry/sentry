@@ -82,8 +82,10 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
     // Trigger button & router are updated
-    expect(screen.getByRole('button', {name: 'project-3'})).toBeInTheDocument();
-    expect(router.location.query).toEqual({project: '3'});
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'project-3'})).toBeInTheDocument();
+      expect(router.location.query).toEqual({project: '3'});
+    });
   });
 
   it('renders keyboard-accessible trailing items', async () => {
@@ -381,6 +383,26 @@ describe('ProjectPageFilter', () => {
     expect(
       within(allProjectsRow).queryByRole('separator', {hidden: true})
     ).not.toBeInTheDocument();
+  });
+
+  it('hides special project options when search is active', async () => {
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.type(screen.getByPlaceholderText('Search…'), 'project-1');
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Select All Projects'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Select My Projects'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Select project-1'})).toBeInTheDocument();
   });
 
   it('does not show All Projects or My Projects options when only one project exists', async () => {
