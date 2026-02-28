@@ -22,6 +22,7 @@ from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
@@ -152,7 +153,6 @@ def _fetch_associated_groups_snuba(
     )
 
     from sentry.services.eventstore.base import EventStorage
-    from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.events import Columns
     from sentry.utils.snuba import DATASETS, raw_snql_query
@@ -240,7 +240,7 @@ def _fetch_associated_groups_eap(
 
     try:
         organization = Organization.objects.get(id=organization_id)
-        project = Project.objects.get(id=project_id)
+        project = Project.objects.get(id=project_id, organization_id=organization_id)
 
         snuba_params = SnubaParams(
             start=query_start,
@@ -255,10 +255,10 @@ def _fetch_associated_groups_eap(
         result = Occurrences.run_table_query(
             params=snuba_params,
             query_string=query_string,
-            selected_columns=["group_id", "trace", "count()"],
-            orderby=None,
-            offset=0,
-            limit=100,
+            selected_columns=["group_id", "trace", "timestamp"],
+            orderby=["-timestamp"],
+            offset=DEFAULT_OFFSET,
+            limit=DEFAULT_LIMIT,
             referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
             config=SearchResolverConfig(),
             occurrence_category=OccurrenceCategory.ERROR,
