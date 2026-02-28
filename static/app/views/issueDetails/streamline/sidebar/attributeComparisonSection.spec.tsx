@@ -14,6 +14,7 @@ describe('AttributeComparisonSection', () => {
   const defaultProps: ComponentProps<typeof AttributeComparisonSection> = {
     openPeriodStart,
     openPeriodEnd,
+    isOpenPeriodLoading: false,
     projectId: 1,
     snubaQuery: {
       aggregate: 'count()',
