@@ -367,6 +367,184 @@ describe('ProjectPageFilter', () => {
     expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
   });
 
+  it('does not show All Projects separator when My Projects is visible', async () => {
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+
+    const allProjectsRow = screen.getByRole('row', {name: /All Projects/i});
+    expect(
+      within(allProjectsRow).queryByRole('separator', {hidden: true})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not show All Projects or My Projects options when only one project exists', async () => {
+    const singleProject = [ProjectFixture({id: '3', slug: 'project-3', isMember: false})];
+    ProjectsStore.loadInitialData(singleProject);
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Select All Projects'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Select My Projects'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Select project-3'})).toBeInTheDocument();
+  });
+
+  it('shows selection limit warning when all projects are selected explicitly', async () => {
+    const manyProjects = Array.from({length: 52}, (_, index) =>
+      ProjectFixture({
+        id: String(index + 1),
+        slug: `project-${index + 1}`,
+        isMember: true,
+      })
+    );
+    ProjectsStore.loadInitialData(manyProjects);
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: Array.from({length: 51}, (_, index) => index + 1),
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {project: Array.from({length: 51}, (_, index) => String(index + 1))},
+        },
+      },
+    });
+
+    await userEvent.click(
+      screen.getByRole('button', {name: /project-1, project-2 \+49/i})
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-52'}));
+
+    expect(
+      screen.getByText(/only up to 50 can be selected at a time/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Apply'})).toBeDisabled();
+  });
+
+  it('does not show selection limit warning when loaded with All Projects sentinel', async () => {
+    const manyProjects = Array.from({length: 52}, (_, index) =>
+      ProjectFixture({
+        id: String(index + 1),
+        slug: `project-${index + 1}`,
+        isMember: true,
+      })
+    );
+    ProjectsStore.loadInitialData(manyProjects);
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [-1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {project: '-1'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+    expect(
+      screen.queryByText(/only up to 50 can be selected at a time/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Apply'})).toBeEnabled();
+  });
+
+  it('keeps All Projects sentinel in URL when opening and closing the menu', async () => {
+    const manyProjects = Array.from({length: 52}, (_, index) =>
+      ProjectFixture({
+        id: String(index + 1),
+        slug: `project-${index + 1}`,
+        isMember: true,
+      })
+    );
+    ProjectsStore.loadInitialData(manyProjects);
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [-1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    const {router} = render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {project: '-1'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(document.body);
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({project: '-1'});
+    });
+  });
+
+  it('shows selection limit warning after editing All Projects sentinel selection', async () => {
+    const manyProjects = Array.from({length: 52}, (_, index) =>
+      ProjectFixture({
+        id: String(index + 1),
+        slug: `project-${index + 1}`,
+        isMember: true,
+      })
+    );
+    ProjectsStore.loadInitialData(manyProjects);
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [-1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {project: '-1'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-52'}));
+
+    expect(
+      screen.getByText(/only up to 50 can be selected at a time/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Apply'})).toBeDisabled();
+  });
+
   it('sorts projects with bookmarked appearing before non-bookmarked', async () => {
     // Set up projects with different bookmark states
     const projectsWithBookmarks = [
