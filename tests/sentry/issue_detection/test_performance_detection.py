@@ -846,14 +846,34 @@ class WFEDetectorConfigTest(TestCase):
                 f"DetectorType.{detector_type.name} not found in get_merged_settings()"
             )
 
-    def test_no_shared_wfe_detector_types(self) -> None:
-        """Ensure each wfe_detector_type maps to exactly one DetectorType."""
+    def test_no_unwhitelisted_shared_wfe_detector_types(self) -> None:
+        """Ensure shared wfe_detector_type values are explicitly allowlisted."""
+        allowed_shared: dict[str, set[DetectorType]] = {
+            "query_injection_vulnerability": {
+                DetectorType.SQL_INJECTION,
+                DetectorType.QUERY_INJECTION,
+            },
+        }
+
         type_to_detectors: dict[str, set[DetectorType]] = {}
         for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
             type_to_detectors.setdefault(mapping.wfe_detector_type, set()).add(detector_type)
 
         for wfe_type, detectors in type_to_detectors.items():
-            assert len(detectors) == 1, f"wfe_detector_type '{wfe_type}' is shared by {detectors}"
+            if len(detectors) > 1:
+                assert wfe_type in allowed_shared, (
+                    f"wfe_detector_type '{wfe_type}' is shared by {detectors} "
+                    f"but not in the allowlist"
+                )
+                assert detectors == allowed_shared[wfe_type], (
+                    f"wfe_detector_type '{wfe_type}' shared by {detectors} "
+                    f"but allowlist has {allowed_shared[wfe_type]}"
+                )
+
+        for wfe_type in allowed_shared:
+            assert wfe_type in type_to_detectors and len(type_to_detectors[wfe_type]) > 1, (
+                f"allowlisted wfe_detector_type '{wfe_type}' is no longer shared — remove it from the allowlist"
+            )
 
     def test_no_unwhitelisted_shared_detection_enabled_keys(self) -> None:
         """Ensure shared detection_enabled_key values are explicitly allowlisted."""

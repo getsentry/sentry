@@ -182,7 +182,7 @@ PERFORMANCE_DETECTOR_CONFIG_MAPPINGS: dict[DetectorType, PerformanceDetectorConf
     ),
     DetectorType.SQL_INJECTION: PerformanceDetectorConfigMapping(
         settings_key=DetectorType.SQL_INJECTION,
-        wfe_detector_type="db_query_injection_vulnerability",
+        wfe_detector_type="query_injection_vulnerability",
         detection_enabled_key="db_query_injection_detection_enabled",
         option_keys={
             "query_value_length_threshold": "sql_injection_query_value_length_threshold",
