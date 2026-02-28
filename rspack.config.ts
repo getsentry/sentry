@@ -597,15 +597,8 @@ const appConfig: Configuration = {
         vendorReact: {
           name: 'vendor-react',
           chunks: 'all',
-          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom|@remix-run|framer-motion|@react-aria|@react-stately|@react-types)[\\/]/,
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom|@remix-run|framer-motion|@react-aria|@react-stately|@react-types|@emotion)[\\/]/,
           priority: 30,
-          enforce: true,
-        },
-        vendorEmotion: {
-          name: 'vendor-emotion',
-          chunks: 'all',
-          test: /[\\/]node_modules[\\/]@emotion[\\/]/,
-          priority: 20,
           enforce: true,
         },
         vendorTanstack: {
