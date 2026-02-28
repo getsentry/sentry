@@ -826,15 +826,14 @@ class WFEDetectorConfigTest(TestCase):
         for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
             detector_settings = detection_settings[detector_type]
 
-            # Every field name in option_keys must be a key in get_detection_settings
-            for field_name in mapping.option_keys:
+            for field_name, option_key in mapping.option_keys.items():
+                # Every field name in option_keys must be a key in get_detection_settings
                 assert field_name in detector_settings, (
                     f"option_keys field '{field_name}' for DetectorType.{detector_type.name} "
                     f"not found in get_detection_settings()[{detector_type}]"
                 )
 
-            # Every option key value must be a key in get_merged_settings
-            for field_name, option_key in mapping.option_keys.items():
+                # Every option key value must be a key in get_merged_settings
                 assert option_key in merged_settings, (
                     f"option_keys value '{option_key}' (for field '{field_name}') "
                     f"in DetectorType.{detector_type.name} not found in get_merged_settings()"

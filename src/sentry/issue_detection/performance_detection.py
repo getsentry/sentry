@@ -306,7 +306,7 @@ class SettingsMode(IntEnum):
 def get_merged_settings(
     project: Project | None = None,
     settings_mode: SettingsMode = SettingsMode.LEGACY,
-) -> dict[str | Any, Any]:
+) -> dict[str, Any]:
     """
     Get performance detection settings based on the specified mode.
 
@@ -377,7 +377,7 @@ def get_merged_settings(
         "web_vitals_count": options.get("performance.issues.web_vitals.count_threshold"),
     }
 
-    default_project_settings = (
+    default_project_settings: dict[str, Any] = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
             project=project,
