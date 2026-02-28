@@ -26,6 +26,10 @@ from sentry.utils import snuba
 logger = logging.getLogger(__name__)
 
 
+def _escape_search_query_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def get_errors_counts_timeseries_by_project_and_release(
     end: datetime,
     organization_id: int,
@@ -130,6 +134,9 @@ def _get_errors_counts_timeseries_eap(
     start: datetime,
     environments_list: list[str] | None = None,
 ) -> list[dict[str, Any]]:
+    if not release_value_list:
+        return []
+
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
@@ -143,22 +150,21 @@ def _get_errors_counts_timeseries_eap(
     if not projects:
         return []
 
-    if not release_value_list:
-        return []
-
     query_parts: list[str] = []
 
-    if len(release_value_list) == 1:
-        query_parts.append(f'release:"{release_value_list[0]}"')
+    escaped_releases = [_escape_search_query_value(value) for value in release_value_list]
+    if len(escaped_releases) == 1:
+        query_parts.append(f'release:"{escaped_releases[0]}"')
     else:
-        release_filter = ", ".join([f'"{r}"' for r in release_value_list])
+        release_filter = ", ".join([f'"{release}"' for release in escaped_releases])
         query_parts.append(f"release:[{release_filter}]")
 
     if environments_list:
-        if len(environments_list) == 1:
-            query_parts.append(f'environment:"{environments_list[0]}"')
+        escaped_environments = [_escape_search_query_value(value) for value in environments_list]
+        if len(escaped_environments) == 1:
+            query_parts.append(f'environment:"{escaped_environments[0]}"')
         else:
-            env_filter = ", ".join([f'"{e}"' for e in environments_list])
+            env_filter = ", ".join([f'"{environment}"' for environment in escaped_environments])
             query_parts.append(f"environment:[{env_filter}]")
 
     query_string = " ".join(query_parts)
