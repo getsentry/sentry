@@ -66,14 +66,14 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             ),
             OpenApiParameter(
                 name="buildNumber",
-                description="Current build number. Required if buildVersion is provided and mainBinaryIdentifier is not.",
+                description="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
                 required=False,
                 type=str,
                 location="query",
             ),
             OpenApiParameter(
                 name="mainBinaryIdentifier",
-                description="Main binary identifier. Required if buildVersion is provided and buildNumber is not.",
+                description="UUID of the main binary (e.g. Mach-O UUID for Apple builds). Either this or buildNumber must be provided when buildVersion is set.",
                 required=False,
                 type=str,
                 location="query",

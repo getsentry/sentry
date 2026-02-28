@@ -104,11 +104,11 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
     )
     buildNumber = serializers.CharField(
         required=False,
-        help_text="Current build number. Required if buildVersion is provided and mainBinaryIdentifier is not.",
+        help_text="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
     )
     mainBinaryIdentifier = serializers.CharField(
         required=False,
-        help_text="Main binary identifier. Required if buildVersion is provided and buildNumber is not.",
+        help_text="UUID of the main binary (e.g. Mach-O UUID for Apple builds). Either this or buildNumber must be provided when buildVersion is set.",
     )
     buildConfiguration = serializers.CharField(
         required=False, help_text="Filter by build configuration name"
