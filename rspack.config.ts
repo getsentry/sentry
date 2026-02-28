@@ -589,8 +589,40 @@ const appConfig: Configuration = {
       // django template.
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
-      maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      maxAsyncRequests: 30, // raised from 10; HTTP/2 handles parallel requests well
+      cacheGroups: {
+        ...localeChunkGroups,
+        // Extract stable, heavy dependencies into named vendor chunks so they
+        // can be cached independently of app code changes.
+        vendorReact: {
+          name: 'vendor-react',
+          chunks: 'all',
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom|@remix-run|framer-motion|@react-aria|@react-stately|@react-types)[\\/]/,
+          priority: 30,
+          enforce: true,
+        },
+        vendorEmotion: {
+          name: 'vendor-emotion',
+          chunks: 'all',
+          test: /[\\/]node_modules[\\/]@emotion[\\/]/,
+          priority: 20,
+          enforce: true,
+        },
+        vendorTanstack: {
+          name: 'vendor-tanstack',
+          chunks: 'all',
+          test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
+          priority: 20,
+          enforce: true,
+        },
+        vendorEcharts: {
+          name: 'vendor-echarts',
+          chunks: 'all',
+          test: /[\\/]node_modules[\\/](echarts|zrender)[\\/]/,
+          priority: 20,
+          enforce: true,
+        },
+      },
     },
 
     // This only runs in production mode
