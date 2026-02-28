@@ -602,8 +602,12 @@ export function ProjectPageFilter({
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-    clearDraftSelectionState();
-    commitSelection(stagedSelect.value);
+    // Committing the selection immediately causes the UI to block th thread (we update QS which rerenders the entire app)
+    // This is a workaround to ensure the UI is responsive and that the menu closes immediately after a user action
+    requestAnimationFrame(() => {
+      clearDraftSelectionState();
+      commitSelection(stagedSelect.value);
+    });
   }, [
     clearDraftSelectionState,
     commitSelection,
