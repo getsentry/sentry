@@ -258,11 +258,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
 
             result = response.dict()
-            result["org_id"] = str(organization.id)
             result["project_id"] = str(artifact.project_id)
             result["comparison_type"] = comparison_type
+
+            run_info: dict[str, Any] = {}
             if comparison_state is not None:
-                result["comparison_state"] = comparison_state
+                run_info["state"] = comparison_state
+            elif comparison is not None:
+                run_info["state"] = PreprodSnapshotComparison.State(comparison.state).name.lower()
+                run_info["completed_at"] = comparison.date_updated.isoformat()
+                duration = comparison.date_updated - comparison.date_added
+                run_info["duration_ms"] = int(duration.total_seconds() * 1000)
+            if run_info:
+                result["comparison_run_info"] = run_info
 
             return result
 
