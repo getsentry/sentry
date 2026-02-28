@@ -9,7 +9,17 @@ from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRul
 from sentry.integrations.models import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import (
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+    EventUniqueUserFrequencyConditionWithConditions,
+)
+from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
+from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
@@ -450,6 +460,69 @@ class WorkflowRuleSerializerTest(TestCase):
             include_workflow_id=False,
         )
 
+        self.assert_equal_serializers(issue_alert)
+
+    def test_every_condition(self) -> None:
+        conditions = [
+            {"id": ExistingHighPriorityIssueCondition.id},
+            {"id": NewHighPriorityIssueCondition.id},
+            {"id": FirstSeenEventCondition.id},
+            {"id": LevelCondition.id, "match": "eq", "level": "50"},
+            {
+                "id": EventAttributeCondition.id,
+                "attribute": "message",
+                "match": "eq",
+                "value": "test",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+        ]
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=conditions + self.conditions,
+            action_match="all",
+            filter_match="all",
+            frequency=30,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
         self.assert_equal_serializers(issue_alert)
 
     def test_email_action_simple(self) -> None:
