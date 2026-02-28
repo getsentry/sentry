@@ -9,7 +9,7 @@ from enum import IntEnum
 from typing import Any
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
@@ -575,7 +575,7 @@ def reset_wfe_detector_configs(
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
-@transaction.atomic
+@transaction.atomic(using=router.db_for_write(Detector))
 def update_performance_settings(
     project: Project,
     settings: dict[str, Any],
@@ -593,6 +593,7 @@ def update_performance_settings(
         Dict of DetectorType -> bool indicating which detectors were updated
         (empty if sync_detectors is False)
     """
+    # TODO: Fix potential cache inconsistency here. See ISWF-2156.
     project.update_option(SETTINGS_PROJECT_OPTION_KEY, settings)
 
     if sync_detectors:
@@ -601,7 +602,7 @@ def update_performance_settings(
     return {}
 
 
-@transaction.atomic
+@transaction.atomic(using=router.db_for_write(Detector))
 def reset_performance_settings(
     project: Project,
     unchanged_options: dict[str, Any],
