@@ -16,7 +16,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
-from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -145,7 +145,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
     @extend_schema(
         operation_id="List a Release's Deploys",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, CursorQueryParam],
         responses={200: DeployResponseSerializer(many=True)},
     )
     def get(self, request: Request, organization, version) -> Response:
