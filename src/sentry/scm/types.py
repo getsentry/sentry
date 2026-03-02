@@ -457,6 +457,7 @@ class Provider(Protocol):
 
     def get_issue_comment_reactions(
         self,
+        issue_id: str,
         comment_id: str,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -464,6 +465,7 @@ class Provider(Protocol):
 
     def get_pull_request_comment_reactions(
         self,
+        pull_request_id: str,
         comment_id: str,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -524,25 +526,29 @@ class Provider(Protocol):
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]: ...
 
-    def delete_issue_comment(self, comment_id: str) -> None: ...
+    def delete_issue_comment(self, issue_id: str, comment_id: str) -> None: ...
 
     def create_pull_request_comment(
         self, pull_request_id: str, body: str
     ) -> ActionResult[Comment]: ...
 
-    def delete_pull_request_comment(self, comment_id: str) -> None: ...
+    def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None: ...
 
     def create_issue_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, issue_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]: ...
 
-    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
+    def delete_issue_comment_reaction(
+        self, issue_id: str, comment_id: str, reaction_id: str
+    ) -> None: ...
 
     def create_pull_request_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, pull_request_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]: ...
 
-    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
+    def delete_pull_request_comment_reaction(
+        self, pull_request_id: str, comment_id: str, reaction_id: str
+    ) -> None: ...
 
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction

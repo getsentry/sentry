@@ -140,9 +140,9 @@ class SourceCodeManager:
         """Create a comment on an issue."""
         return self._exec(lambda p: p.create_issue_comment(issue_id, body))
 
-    def delete_issue_comment(self, comment_id: str) -> None:
+    def delete_issue_comment(self, issue_id: str, comment_id: str) -> None:
         """Delete a comment on an issue."""
-        return self._exec(lambda p: p.delete_issue_comment(comment_id))
+        return self._exec(lambda p: p.delete_issue_comment(issue_id, comment_id))
 
     def get_pull_request(
         self,
@@ -167,51 +167,69 @@ class SourceCodeManager:
         """Create a comment on a pull request."""
         return self._exec(lambda p: p.create_pull_request_comment(pull_request_id, body))
 
-    def delete_pull_request_comment(self, comment_id: str) -> None:
+    def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None:
         """Delete a comment on a pull request."""
-        return self._exec(lambda p: p.delete_pull_request_comment(comment_id))
+        return self._exec(lambda p: p.delete_pull_request_comment(pull_request_id, comment_id))
 
     def get_issue_comment_reactions(
         self,
+        issue_id: str,
         comment_id: str,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on an issue comment."""
         return self._exec(
-            lambda p: p.get_issue_comment_reactions(comment_id, pagination, request_options)
+            lambda p: p.get_issue_comment_reactions(
+                issue_id, comment_id, pagination, request_options
+            )
         )
 
     def create_issue_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, issue_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         """Create a reaction on an issue comment."""
-        return self._exec(lambda p: p.create_issue_comment_reaction(comment_id, reaction))
+        return self._exec(lambda p: p.create_issue_comment_reaction(issue_id, comment_id, reaction))
 
-    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_issue_comment_reaction(
+        self, issue_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         """Delete a reaction on an issue comment."""
-        return self._exec(lambda p: p.delete_issue_comment_reaction(comment_id, reaction_id))
+        return self._exec(
+            lambda p: p.delete_issue_comment_reaction(issue_id, comment_id, reaction_id)
+        )
 
     def get_pull_request_comment_reactions(
         self,
+        pull_request_id: str,
         comment_id: str,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on a pull request comment."""
         return self._exec(
-            lambda p: p.get_pull_request_comment_reactions(comment_id, pagination, request_options)
+            lambda p: p.get_pull_request_comment_reactions(
+                pull_request_id, comment_id, pagination, request_options
+            )
         )
 
     def create_pull_request_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, pull_request_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         """Create a reaction on a pull request comment."""
-        return self._exec(lambda p: p.create_pull_request_comment_reaction(comment_id, reaction))
+        return self._exec(
+            lambda p: p.create_pull_request_comment_reaction(pull_request_id, comment_id, reaction)
+        )
 
-    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_pull_request_comment_reaction(
+        self, pull_request_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         """Delete a reaction on a pull request comment."""
-        return self._exec(lambda p: p.delete_pull_request_comment_reaction(comment_id, reaction_id))
+        return self._exec(
+            lambda p: p.delete_pull_request_comment_reaction(
+                pull_request_id, comment_id, reaction_id
+            )
+        )
 
     def get_issue_reactions(
         self,

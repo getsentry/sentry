@@ -223,7 +223,7 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_issue_comment_reactions("42")
+        reactions = self.provider.get_issue_comment_reactions("1", "42")
 
         assert len(reactions["data"]) == 2
         assert reactions["data"][0]["id"] == "1"
@@ -256,7 +256,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_comment_reaction("42", "heart")
+        self.provider.create_issue_comment_reaction("1", "42", "heart")
 
         assert len(responses.calls) == 1
 
@@ -545,7 +545,7 @@ class TestGitHubProviderIntegration(TestCase):
             status=204,
         )
 
-        self.provider.delete_issue_comment("123")
+        self.provider.delete_issue_comment("1", "123")
 
         assert len(responses.calls) == 1
 
@@ -558,7 +558,7 @@ class TestGitHubProviderIntegration(TestCase):
             status=204,
         )
 
-        self.provider.delete_issue_comment_reaction("42", "1")
+        self.provider.delete_issue_comment_reaction("1", "42", "1")
 
         assert len(responses.calls) == 1
 

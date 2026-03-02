@@ -31,21 +31,27 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     # Issue comments
     ("get_issue_comments", {"issue_id": "1"}),
     ("create_issue_comment", {"issue_id": "1", "body": "test"}),
-    ("delete_issue_comment", {"comment_id": "1"}),
+    ("delete_issue_comment", {"issue_id": "1", "comment_id": "1"}),
     # Pull request
     ("get_pull_request", {"pull_request_id": "1"}),
     # Pull request comments
     ("get_pull_request_comments", {"pull_request_id": "1"}),
     ("create_pull_request_comment", {"pull_request_id": "1", "body": "test"}),
-    ("delete_pull_request_comment", {"comment_id": "1"}),
+    ("delete_pull_request_comment", {"pull_request_id": "1", "comment_id": "1"}),
     # Issue comment reactions
-    ("get_issue_comment_reactions", {"comment_id": "1"}),
-    ("create_issue_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
-    ("delete_issue_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
+    ("get_issue_comment_reactions", {"issue_id": "1", "comment_id": "1"}),
+    ("create_issue_comment_reaction", {"issue_id": "1", "comment_id": "1", "reaction": "eyes"}),
+    ("delete_issue_comment_reaction", {"issue_id": "1", "comment_id": "1", "reaction_id": "123"}),
     # Pull request comment reactions
-    ("get_pull_request_comment_reactions", {"comment_id": "1"}),
-    ("create_pull_request_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
-    ("delete_pull_request_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
+    ("get_pull_request_comment_reactions", {"pull_request_id": "1", "comment_id": "1"}),
+    (
+        "create_pull_request_comment_reaction",
+        {"pull_request_id": "1", "comment_id": "1", "reaction": "eyes"},
+    ),
+    (
+        "delete_pull_request_comment_reaction",
+        {"pull_request_id": "1", "comment_id": "1", "reaction_id": "123"},
+    ),
     # Issue reactions
     ("get_issue_reactions", {"issue_id": "1"}),
     ("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),
@@ -445,7 +451,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         {"issue_id": "1", "body": "test"},
         _check_created_comment,
     ),
-    (SourceCodeManager.delete_issue_comment, {"comment_id": "1"}, _check_none),
+    (SourceCodeManager.delete_issue_comment, {"issue_id": "1", "comment_id": "1"}, _check_none),
     (SourceCodeManager.get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
     (
         SourceCodeManager.get_pull_request_comments,
@@ -457,31 +463,39 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         {"pull_request_id": "1", "body": "test"},
         _check_created_pr_comment,
     ),
-    (SourceCodeManager.delete_pull_request_comment, {"comment_id": "1"}, _check_none),
-    (SourceCodeManager.get_issue_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
+    (
+        SourceCodeManager.delete_pull_request_comment,
+        {"pull_request_id": "1", "comment_id": "1"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.get_issue_comment_reactions,
+        {"issue_id": "1", "comment_id": "1"},
+        _check_comment_reactions,
+    ),
     (
         SourceCodeManager.create_issue_comment_reaction,
-        {"comment_id": "1", "reaction": "eyes"},
+        {"issue_id": "1", "comment_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_issue_comment_reaction,
-        {"comment_id": "1", "reaction_id": "123"},
+        {"issue_id": "1", "comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
     (
         SourceCodeManager.get_pull_request_comment_reactions,
-        {"comment_id": "1"},
+        {"pull_request_id": "1", "comment_id": "1"},
         _check_pr_comment_reactions,
     ),
     (
         SourceCodeManager.create_pull_request_comment_reaction,
-        {"comment_id": "1", "reaction": "eyes"},
+        {"pull_request_id": "1", "comment_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_pull_request_comment_reaction,
-        {"comment_id": "1", "reaction_id": "123"},
+        {"pull_request_id": "1", "comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
     (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),

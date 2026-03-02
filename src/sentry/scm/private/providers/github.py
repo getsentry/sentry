@@ -169,7 +169,7 @@ class GitHubProvider:
         return map_action(raw, map_comment)
 
     @catch_provider_exception
-    def delete_issue_comment(self, comment_id: str) -> None:
+    def delete_issue_comment(self, issue_id: str, comment_id: str) -> None:
         self.client.delete_issue_comment(self.repository["name"], comment_id)
 
     @catch_provider_exception
@@ -202,12 +202,13 @@ class GitHubProvider:
         return map_action(raw, map_comment)
 
     @catch_provider_exception
-    def delete_pull_request_comment(self, comment_id: str) -> None:
+    def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None:
         self.client.delete_issue_comment(self.repository["name"], comment_id)
 
     @catch_provider_exception
     def get_issue_comment_reactions(
         self,
+        issue_id: str,
         comment_id: str,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -222,7 +223,7 @@ class GitHubProvider:
 
     @catch_provider_exception
     def create_issue_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, issue_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         github_reaction = REACTION_MAP[reaction]
         raw = self.client.create_comment_reaction(
@@ -231,27 +232,34 @@ class GitHubProvider:
         return map_action(raw, map_reaction)
 
     @catch_provider_exception
-    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_issue_comment_reaction(
+        self, issue_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         self.client.delete_comment_reaction(self.repository["name"], comment_id, reaction_id)
 
     @catch_provider_exception
     def get_pull_request_comment_reactions(
         self,
+        pull_request_id: str,
         comment_id: str,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
-        return self.get_issue_comment_reactions(comment_id, pagination, request_options)
+        return self.get_issue_comment_reactions(
+            pull_request_id, comment_id, pagination, request_options
+        )
 
     @catch_provider_exception
     def create_pull_request_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, pull_request_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
-        return self.create_issue_comment_reaction(comment_id, reaction)
+        return self.create_issue_comment_reaction(pull_request_id, comment_id, reaction)
 
     @catch_provider_exception
-    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
-        return self.delete_issue_comment_reaction(comment_id, reaction_id)
+    def delete_pull_request_comment_reaction(
+        self, pull_request_id: str, comment_id: str, reaction_id: str
+    ) -> None:
+        return self.delete_issue_comment_reaction(pull_request_id, comment_id, reaction_id)
 
     @catch_provider_exception
     def get_issue_reactions(
@@ -306,21 +314,13 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitRef]:
         raw = self.client.get_branch(self.repository["name"], branch)
-        return ActionResult(
-            data=GitRef(ref=raw["name"], sha=raw["commit"]["sha"]),
-            type="github",
-            raw=raw,
-        )
+        return map_action(raw, lambda r: GitRef(ref=r["name"], sha=r["commit"]["sha"]))
 
     @catch_provider_exception
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
         branch_data = {"ref": f"refs/heads/{branch}", "sha": sha}
         raw = self.client.create_git_ref(self.repository["name"], branch_data)
-        return ActionResult(
-            data=GitRef(ref=raw["ref"], sha=raw["object"]["sha"]),
-            type="github",
-            raw=raw,
-        )
+        return map_action(raw, lambda r: GitRef(ref=r["ref"], sha=r["object"]["sha"]))
 
     @catch_provider_exception
     def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
