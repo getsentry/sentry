@@ -186,6 +186,18 @@ def test_parameterize_experimental(
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "hex without prefix - lowercase, no numbers until later",
+        "deadbeef 123",
+        "deadbeef <int>",
+        "<hex> <int>",
+    ),
+    (
+        "hex without prefix - uppercase, no numbers until later",
+        "DEADBEEF 123",
+        "DEADBEEF <int>",
+        "<hex> <int>",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
