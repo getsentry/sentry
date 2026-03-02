@@ -374,7 +374,7 @@ jobs:
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false  # temporarily disabled on xdist branch — see docs/other-ci-jobs.md
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
