@@ -1,4 +1,4 @@
-import {ESLintUtils, TSESTree} from '@typescript-eslint/utils';
+import {AST_NODE_TYPES, ESLintUtils, TSESTree} from '@typescript-eslint/utils';
 
 /**
  * ESLint rule: restrict-jsx-slot-children
@@ -108,14 +108,15 @@ function isReactFragment(nameNode: TSESTree.JSXTagNameExpression) {
 /**
  * Returns a human-readable display name for a JSX element's opening-tag name.
  */
-function getDisplayName(nameNode: TSESTree.JSXTagNameExpression) {
-  if (nameNode.type === 'JSXMemberExpression') {
-    return `${(nameNode.object as TSESTree.JSXIdentifier).name}.${nameNode.property.name}`;
+function getDisplayName(node: TSESTree.JSXTagNameExpression): string {
+  switch (node.type) {
+    case AST_NODE_TYPES.JSXMemberExpression:
+      return `${getDisplayName(node.object)}.${node.property.name}`;
+    case AST_NODE_TYPES.JSXNamespacedName:
+      return `${node.namespace.name}:${node.name.name}`;
+    default:
+      return node.name;
   }
-  if (nameNode.type === 'JSXIdentifier') {
-    return nameNode.name;
-  }
-  return '?';
 }
 
 /**
@@ -360,13 +361,8 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
 
         if (state.componentNames.size > 0) {
           const nameNode = node.parent.name; // JSXAttribute → JSXOpeningElement
-          let elementName = null;
-          if (nameNode.type === 'JSXIdentifier') {
-            elementName = nameNode.name;
-          } else if (nameNode.type === 'JSXMemberExpression') {
-            elementName = `${(nameNode.object as TSESTree.JSXIdentifier).name}.${nameNode.property.name}`;
-          }
-          if (!elementName || !state.componentNames.has(elementName)) {
+          const elementName = getDisplayName(nameNode);
+          if (!state.componentNames.has(elementName)) {
             return;
           }
         }
