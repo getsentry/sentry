@@ -172,10 +172,6 @@ class RegionDirectory:
     def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
         return (r.name for r in self.regions if (category is None or r.category == category))
 
-    def get_region_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        """Deprecated. Use get_cell_names."""
-        return self.get_cell_names(category)
-
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
 
