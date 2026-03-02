@@ -150,6 +150,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                 limit=len(batch),
                 referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
                 config=SearchResolverConfig(),
+                sampling_mode="HIGHEST_ACCURACY",
             )
 
             for parent_row in parent_result.get("data", []):
