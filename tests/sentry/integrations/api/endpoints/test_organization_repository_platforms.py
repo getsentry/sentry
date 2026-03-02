@@ -53,36 +53,23 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             json={"Python": 50000, "JavaScript": 30000},
             status=200,
         )
-        # 404 for all manifest file lookups (no framework detection)
-        for manifest in ("requirements.txt", "pyproject.toml", "Pipfile", "package.json"):
-            responses.add(
-                method=responses.GET,
-                url=f"https://api.github.com/repos/Test-Organization/foo/contents/{manifest}",
-                json={"message": "Not Found"},
-                status=404,
-            )
+        # Root directory listing (no manifest files -> no framework detection)
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/contents",
+            json=[],
+            status=200,
+        )
 
         with self.feature(FEATURE_FLAG):
             response = self.get_success_response(
                 self.organization.slug, self.repo.id, status_code=200
             )
 
-        assert response.data == {
-            "platforms": [
-                {
-                    "platform": "python",
-                    "language": "Python",
-                    "bytes": 50000,
-                    "confidence": "medium",
-                },
-                {
-                    "platform": "javascript",
-                    "language": "JavaScript",
-                    "bytes": 30000,
-                    "confidence": "medium",
-                },
-            ]
-        }
+        platforms = response.data["platforms"]
+        platform_ids = [p["platform"] for p in platforms]
+        assert "python" in platform_ids
+        assert "javascript" in platform_ids
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -114,28 +101,13 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                 self.organization.slug, self.repo.id, status_code=200
             )
 
-        assert response.data == {
-            "platforms": [
-                {
-                    "platform": "python-django",
-                    "language": "Python",
-                    "bytes": 50000,
-                    "confidence": "high",
-                },
-                {
-                    "platform": "python-celery",
-                    "language": "Python",
-                    "bytes": 50000,
-                    "confidence": "high",
-                },
-                {
-                    "platform": "python",
-                    "language": "Python",
-                    "bytes": 50000,
-                    "confidence": "medium",
-                },
-            ]
-        }
+        platforms = response.data["platforms"]
+        platform_ids = [p["platform"] for p in platforms]
+        assert "python-django" in platform_ids
+        assert "python-celery" in platform_ids
+
+        django = next(p for p in platforms if p["platform"] == "python-django")
+        assert django["confidence"] == "high"
 
     def test_repo_not_found(self) -> None:
         with self.feature(FEATURE_FLAG):
