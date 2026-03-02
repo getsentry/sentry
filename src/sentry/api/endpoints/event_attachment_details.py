@@ -78,7 +78,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response
 
-    def get(self, request: Request, project, event_id, attachment_id) -> Response:
+    def get(
+        self, request: Request, project, event_id, attachment_id
+    ) -> Response | StreamingHttpResponse:
         """
         Retrieve an Attachment
         ``````````````````````
