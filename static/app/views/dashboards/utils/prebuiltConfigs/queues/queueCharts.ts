@@ -17,6 +17,10 @@ export const QUEUE_CHARTS: Widget[] = [
           `avg(${SpanFields.SPAN_DURATION})`,
         ],
         columns: [],
+        fields: [
+          `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
+          `avg(${SpanFields.SPAN_DURATION})`,
+        ],
         conditions: `${SpanFields.SPAN_OP}:queue.process`,
         orderby: `avg(${SpanFields.SPAN_DURATION})`,
       },
@@ -32,6 +36,7 @@ export const QUEUE_CHARTS: Widget[] = [
       {
         name: '',
         aggregates: ['epm()'],
+        fields: ['epm()'],
         columns: [SpanFields.SPAN_OP],
         conditions: `${SpanFields.SPAN_OP}:[queue.publish, queue.process]`,
         orderby: 'epm()',
