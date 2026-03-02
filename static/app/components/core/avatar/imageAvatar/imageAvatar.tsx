@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -51,15 +51,14 @@ function useImageAvatar(definition: GravatarProps | ImageProps): {
 
   const [erroredSrc, setErroredSrc] = useState<string | null>(null);
 
-  // Always-fresh ref so the callback can capture the latest resolvedSrc without
-  // re-attaching the listener every time the src changes.
-  const resolvedSrcRef = useRef(resolvedSrc);
-  resolvedSrcRef.current = resolvedSrc;
-
   // React 19 callback refs can return a cleanup function, so no useEffect needed.
   // Optional chaining ensures no conditional return paths, satisfying consistent-return.
+  // Read img.getAttribute('src') at error time rather than a ref to resolvedSrc:
+  // resolvedSrcRef.current is updated during the render phase (before commit), so it
+  // can be "ahead" of the DOM in React Concurrent Mode. Using the DOM attribute avoids
+  // incorrectly marking a new, valid src as errored when an old request fails.
   const ref = useCallback((img: HTMLImageElement | null) => {
-    const handleError = () => setErroredSrc(resolvedSrcRef.current);
+    const handleError = () => setErroredSrc(img?.getAttribute('src') ?? null);
     img?.addEventListener('error', handleError);
     return () => img?.removeEventListener('error', handleError);
   }, []);
