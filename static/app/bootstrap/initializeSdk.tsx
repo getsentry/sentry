@@ -203,7 +203,11 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+      if (
+        isFilteredRequestErrorEvent(event) ||
+        isEventWithFileUrl(event) ||
+        isNullTupleUnhandledRejectionEvent(event)
+      ) {
         return null;
       }
 
@@ -296,6 +300,23 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/**
+ * Some unhandled rejections are serialized as `[null,null]`, which maps to
+ * an unhelpful `Error: ,` and is not actionable.
+ */
+function isNullTupleUnhandledRejectionEvent(event: Event): boolean {
+  if (event.message !== '[null,null]') {
+    return false;
+  }
+
+  const error = event.exception?.values?.at(-1);
+  return (
+    error?.type === 'Error' &&
+    error.value === ',' &&
+    error.mechanism?.type === 'auto.browser.global_handlers.onunhandledrejection'
+  );
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */
