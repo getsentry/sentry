@@ -139,6 +139,56 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ["Yes", "No"],
         )
 
+    def test_get_formatted_results_deduplicates_groups(self) -> None:
+        event_from_second_similar_group = save_new_event({"message": "example"}, self.project)
+        assert self.similar_event.group_id is not None
+        assert event_from_second_similar_group.group_id is not None
+
+        second_hash = GroupHash.objects.create(
+            project=self.project,
+            group_id=self.similar_event.group_id,
+            hash="duplicate_hash_for_same_group",
+        )
+
+        similar_issue_data_best = SeerSimilarIssueData(
+            parent_group_id=self.similar_event.group_id,
+            parent_hash=self.similar_event.get_primary_hash(),
+            should_group=True,
+            stacktrace_distance=0.01,
+        )
+        similar_issue_data_other = SeerSimilarIssueData(
+            parent_group_id=event_from_second_similar_group.group_id,
+            parent_hash=event_from_second_similar_group.get_primary_hash(),
+            should_group=False,
+            stacktrace_distance=0.05,
+        )
+        similar_issue_data_worse_dup = SeerSimilarIssueData(
+            parent_group_id=self.similar_event.group_id,
+            parent_hash=second_hash.hash,
+            should_group=True,
+            stacktrace_distance=0.10,
+        )
+
+        group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
+        formatted_results = group_similar_endpoint.get_formatted_results(
+            similar_issues_data=[
+                similar_issue_data_best,
+                similar_issue_data_other,
+                similar_issue_data_worse_dup,
+            ],
+            user=self.user,
+            group=self.group,
+        )
+
+        assert formatted_results == self.get_expected_response(
+            [
+                self.similar_event.group_id,
+                event_from_second_similar_group.group_id,
+            ],
+            [0.99, 0.95],
+            ["Yes", "No"],
+        )
+
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.logger")

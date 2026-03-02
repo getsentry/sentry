@@ -113,13 +113,17 @@ describe('RangeField disabled', () => {
     expect(screen.getByRole('slider')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Volume" disabled="Feature not available" />);
 
     expect(screen.getByRole('slider')).toBeDisabled();
 
-    // Hover on the slider to trigger tooltip
-    await userEvent.hover(screen.getByRole('slider'));
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();

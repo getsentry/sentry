@@ -262,7 +262,7 @@ function _getWidgetExploreUrl(
             field !== SpanFields.IS_STARRED_TRANSACTION // starred transactions are not supported in explore
         )
       : query.columns.filter(column => column !== SpanFields.IS_STARRED_TRANSACTION);
-  if (groupBy && groupBy.length === 0) {
+  if (groupBy?.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
     // is not present, the Explore UI will assign a default groupBy

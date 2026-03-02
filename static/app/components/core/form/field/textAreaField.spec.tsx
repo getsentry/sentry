@@ -108,16 +108,20 @@ describe('TextAreaField disabled', () => {
   it('is disabled when disabled prop is true', () => {
     render(<TestForm label="Bio" disabled />);
 
-    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Bio" disabled="Feature not available" />);
 
-    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox')).toBeDisabled();
 
-    // Hover on the textarea to trigger tooltip
-    await userEvent.hover(screen.getByRole('textbox'));
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -167,7 +171,7 @@ describe('TextAreaField auto-save', () => {
     await userEvent.tab();
 
     await waitFor(() => {
-      expect(textarea).toHaveAttribute('readonly');
+      expect(textarea).toBeDisabled();
     });
   });
 

@@ -81,17 +81,23 @@ describe('PasswordField', () => {
 });
 
 describe('PasswordField disabled', () => {
-  it('is read-only when disabled prop is true', () => {
+  it('is disabled when disabled prop is true', () => {
     render(<TestForm disabled />);
 
-    expect(screen.getByLabelText('Password')).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByLabelText('Password')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Password')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm disabled="Password changes are not allowed" />);
 
-    await userEvent.hover(screen.getByLabelText('Password'));
+    expect(screen.getByLabelText('Password')).toBeDisabled();
+
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     expect(
       await screen.findByText('Password changes are not allowed')

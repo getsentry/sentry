@@ -14,9 +14,6 @@ import {
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
@@ -141,31 +138,32 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
 
   return (
     <form.AppForm form={form}>
-      <form.AppField name="name">
-        {field => (
-          <field.Layout.Row
-            label={t('Name')}
-            hintText={t('A name to help you identify this token.')}
-            required
-          >
-            <field.Input value={field.state.value} onChange={field.handleChange} />
-          </field.Layout.Row>
-        )}
-      </form.AppField>
+      <form.FieldGroup title={t('Organization Token Details')}>
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Row
+              label={t('Name')}
+              hintText={t('A name to help you identify this token.')}
+              required
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <FieldGroup
+          label={t('Token')}
+          help={t('You can only view the token once after creation.')}
+        >
+          <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
+        </FieldGroup>
 
-      <FieldGroup
-        label={t('Token')}
-        help={t('You can only view the token once after creation.')}
-      >
-        <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
-      </FieldGroup>
-
-      <FieldGroup
-        label={t('Scopes')}
-        help={t('You cannot change the scopes of an existing token.')}
-      >
-        <div>{token.scopes.slice().sort().join(', ')}</div>
-      </FieldGroup>
+        <FieldGroup
+          label={t('Scopes')}
+          help={t('You cannot change the scopes of an existing token.')}
+        >
+          <div>{token.scopes.slice().sort().join(', ')}</div>
+        </FieldGroup>
+      </form.FieldGroup>
 
       <Flex justify="end" gap="md" padding="md">
         <Button onClick={handleGoBack}>{t('Cancel')}</Button>
@@ -209,22 +207,17 @@ function OrganizationAuthTokensDetails() {
           }
         )}
       </TextBlock>
-      <Panel>
-        <PanelHeader>{t('Organization Token Details')}</PanelHeader>
 
-        <PanelBody>
-          {isError && (
-            <LoadingError
-              message={t('Failed to load organization token.')}
-              onRetry={refetchToken}
-            />
-          )}
+      {isError && (
+        <LoadingError
+          message={t('Failed to load organization token.')}
+          onRetry={refetchToken}
+        />
+      )}
 
-          {isPending && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
 
-          {!isPending && !isError && token && <AuthTokenDetailsForm token={token} />}
-        </PanelBody>
-      </Panel>
+      {!isPending && !isError && token && <AuthTokenDetailsForm token={token} />}
     </div>
   );
 }

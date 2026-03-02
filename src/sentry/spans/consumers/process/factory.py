@@ -203,6 +203,7 @@ def process_batch(
                 payload=payload.value,
                 end_timestamp=cast(float, val["end_timestamp"]),
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_segment")),
+                partition=value.partition.index,
             )
 
             spans.append(span)

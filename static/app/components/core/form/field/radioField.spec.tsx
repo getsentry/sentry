@@ -147,8 +147,11 @@ describe('RadioField disabled', () => {
       expect(radio).toBeDisabled();
     });
 
-    // Hover on the radio group to trigger tooltip
-    await userEvent.hover(screen.getByRole('radiogroup'));
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
