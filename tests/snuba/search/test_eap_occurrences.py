@@ -419,6 +419,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
 
         assert params is not None
+        assert params.organization is not None
         assert params.organization.id == self.organization.id
         assert [project.id for project in params.projects] == [self.project.id]
 
