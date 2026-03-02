@@ -126,7 +126,7 @@ if [ -n "$WORKSPACE_JSON" ]; then
     echo "Workspace exists: ${WORKSPACE_ID} (status: ${WORKSPACE_STATUS})"
 
     # Wait for any in-progress build to finish before triggering a new one
-    while [[ "$WORKSPACE_STATUS" == "starting" || "$WORKSPACE_STATUS" == "stopping" || "$WORKSPACE_STATUS" == "canceling" || "$WORKSPACE_STATUS" == "pending" ]]; do
+    while [[ "$WORKSPACE_STATUS" == "starting" || "$WORKSPACE_STATUS" == "stopping" || "$WORKSPACE_STATUS" == "canceling" || "$WORKSPACE_STATUS" == "pending" || "$WORKSPACE_STATUS" == "deleting" ]]; do
         echo "  Build in progress (${WORKSPACE_STATUS}), waiting..."
         sleep 10
         WORKSPACE_STATUS=$(api \
@@ -134,13 +134,20 @@ if [ -n "$WORKSPACE_JSON" ]; then
             "${CODER_API}/workspaces/${WORKSPACE_ID}" | jq -r '.latest_build.status')
     done
 
-    echo "Workspace is ${WORKSPACE_STATUS}, triggering build with updated branch..."
-    api -X POST \
-        -H "${AUTH_HEADER}" \
-        -H "Content-Type: application/json" \
-        "${CODER_API}/workspaces/${WORKSPACE_ID}/builds" \
-        -d "$BUILD_PARAMS" > /dev/null
-else
+    if [ "$WORKSPACE_STATUS" = "deleted" ]; then
+        echo "Workspace was deleted, creating fresh..."
+        WORKSPACE_JSON=""
+    else
+        echo "Workspace is ${WORKSPACE_STATUS}, triggering build with updated branch..."
+        api -X POST \
+            -H "${AUTH_HEADER}" \
+            -H "Content-Type: application/json" \
+            "${CODER_API}/workspaces/${WORKSPACE_ID}/builds" \
+            -d "$BUILD_PARAMS" > /dev/null
+    fi
+fi
+
+if [ -z "$WORKSPACE_JSON" ]; then
     # ---------- Create new workspace ----------
     echo "Creating workspace '${WORKSPACE_NAME}'..."
     WORKSPACE_JSON=$(api -X POST \
