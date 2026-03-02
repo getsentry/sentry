@@ -24,7 +24,8 @@
   },
   "pnpm": {
     "overrides": {
-      "lodash": ">=4.17.23"
+      "lodash": ">=4.17.23",
+      "form-data": ">=4.0.2"
     }
   }
 }
