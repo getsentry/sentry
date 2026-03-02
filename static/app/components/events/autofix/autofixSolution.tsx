@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -325,7 +325,7 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      title="Copy plan as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy plan as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
@@ -390,8 +390,7 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
-  const codingDisabled =
-    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+  const enableSeerCoding = organization.enableSeerCoding !== false;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -552,7 +551,7 @@ function AutofixSolutionDisplay({
           <Button
             size="zero"
             priority="transparent"
-            title={t('Chat with Seer')}
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
             analyticsEventKey="autofix.solution.chat"
@@ -617,16 +616,13 @@ function AutofixSolutionDisplay({
             </SubmitButton>
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
           <Tooltip
             isHoverable
             title={
-              codingDisabled
-                ? t(
-                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
-                  )
-                : hasNoRepos
+              enableSeerCoding
+                ? hasNoRepos
                   ? tct(
                       'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
                       {
@@ -642,6 +638,16 @@ function AutofixSolutionDisplay({
                         "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                       )
                     : undefined
+                : tct(
+                    '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+                    {
+                      settings: (
+                        <Link
+                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                        />
+                      ),
+                    }
+                  )
             }
           >
             <Button
@@ -652,19 +658,19 @@ function AutofixSolutionDisplay({
                   : 'default'
               }
               busy={isPending}
-              disabled={hasNoRepos || cantReadRepos || codingDisabled}
+              disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
               analyticsParams={{
                 instruction_provided: hasInstructions,
               }}
-              title={t('Implement this solution in code with Seer')}
+              tooltipProps={{title: t('Implement this solution in code with Seer')}}
             >
               {t('Code It Up')}
             </Button>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}

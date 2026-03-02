@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {Tag} from '@sentry/scraps/badge';
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -134,12 +134,12 @@ export default function StreamlinedGroupHeader({
               </Tooltip>
             )}
           </Flex>
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             {!hasOnlyOneUIOption && !hasFeedbackForm && (
               <LinkButton
                 size="xs"
                 external
-                title={t('Learn more about the new UI')}
+                tooltipProps={{title: t('Learn more about the new UI')}}
                 href="https://docs.sentry.io/product/issues/issue-details/"
                 aria-label={t('Learn more about the new UI')}
                 icon={<IconInfo />}
@@ -167,7 +167,7 @@ export default function StreamlinedGroupHeader({
             ) : (
               <NewIssueExperienceButton />
             )}
-          </ButtonBar>
+          </Grid>
         </Flex>
         <HeaderGrid>
           <Title>
@@ -380,6 +380,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     left: 24px;
     bottom: unset;
     height: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
 `;

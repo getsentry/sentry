@@ -44,7 +44,6 @@ class OrganizationEventsMetaEndpoint(
         self.features = {"organizations:discover-basic": True}
 
     def test_simple(self) -> None:
-
         self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
 
         with self.feature(self.features):
@@ -520,7 +519,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
 
         def request():
-
             return self.client.get(
                 url,
                 {
@@ -540,7 +538,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert response.status_code == 200, response.content
 
         with mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query:
-
             response = request()
             assert response.status_code == 200, response.content
 
@@ -550,7 +547,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             override_options({"insights.span-samples-query.sample-rate": 100_000_000.0}),
             mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query,
         ):
-
             response = request()
             assert response.status_code == 200, response.content
 

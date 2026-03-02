@@ -1,4 +1,4 @@
-minVersion: '2.15.0'
+minVersion: '2.20.0'
 releaseBranchPrefix: releases
 changelog:
   filePath: CHANGES
@@ -23,3 +23,5 @@ targets:
     source: ghcr.io/getsentry/sentry
     target: ghcr.io/getsentry/sentry
     targetFormat: '{{{target}}}:latest'
+versioning:
+  policy: calver

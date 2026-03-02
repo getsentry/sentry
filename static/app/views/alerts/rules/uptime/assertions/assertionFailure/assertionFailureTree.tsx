@@ -5,7 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 
 import {Tree} from './models/tree';
 import type {Connector} from './models/treeNode';
@@ -70,10 +70,12 @@ function Connector({
   );
 }
 
-function AssertionFailureTreeContent({assertion}: {assertion: Assertion | string}) {
+function AssertionFailureTreeContent({assertion}: {assertion: UptimeAssertion | string}) {
   const tree = useMemo(() => {
     const parsedAssertion =
-      typeof assertion === 'string' ? (JSON.parse(assertion) as Assertion) : assertion;
+      typeof assertion === 'string'
+        ? (JSON.parse(assertion) as UptimeAssertion)
+        : assertion;
 
     return Tree.FromAssertion(parsedAssertion);
   }, [assertion]);
@@ -125,7 +127,7 @@ function AssertionFailureTreeContent({assertion}: {assertion: Assertion | string
   );
 }
 
-export function AssertionFailureTree({assertion}: {assertion: Assertion | string}) {
+export function AssertionFailureTree({assertion}: {assertion: UptimeAssertion | string}) {
   return (
     <ErrorBoundary mini message={t('Failed to display assertion failures')}>
       <AssertionFailureTreeContent assertion={assertion} />

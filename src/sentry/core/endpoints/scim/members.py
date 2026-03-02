@@ -216,7 +216,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         # in addition to removing the membership.
         if (
             settings.SENTRY_MODE == SentryMode.SAAS
-            and organization.id == settings.SENTRY_DEFAULT_ORGANIZATION_ID
+            and organization.id == settings.SUPERUSER_ORG_ID
             and user_id is not None
         ):
             user = user_service.get_user(user_id=user_id)
@@ -436,6 +436,16 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         member.flags["idp:role-restricted"] = idp_role_restricted
         member.flags["idp:provisioned"] = True
         member.save()
+
+        if previous_role != member.role:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_EDIT"),
+                data={"role": member.role, "email": member.get_email()},
+            )
 
         # only update metric if the role changed
         if (

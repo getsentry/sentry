@@ -85,12 +85,15 @@ class OAuthUserInfoEndpoint(Endpoint):
         except ApiToken.DoesNotExist:
             raise BearerTokenInvalid()
 
+        if token_details.is_expired():
+            raise BearerTokenInvalid()
+
         scopes = token_details.get_scopes()
         if "openid" not in scopes:
             raise BearerTokenInsufficientScope()
 
         user = token_details.user
-        user_output: dict[str, object] = {"sub": user.id}
+        user_output: dict[str, object] = {"sub": str(user.id)}
         if "profile" in scopes:
             user_output.update(
                 {

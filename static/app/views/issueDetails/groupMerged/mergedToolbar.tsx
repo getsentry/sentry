@@ -1,4 +1,5 @@
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -62,7 +63,7 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
 
   return (
     <PanelHeader hasButtons>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Confirm
           disabled={unmergeDisabled}
           onConfirm={onUnmerge}
@@ -70,7 +71,7 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
             'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
           )}
         >
-          <Button size="xs" title={unmergeDisabledReason}>
+          <Button size="xs" tooltipProps={{title: unmergeDisabledReason}}>
             {mergedItems.length <= 1
               ? t('Unmerge')
               : tct('Unmerge ([itemsSelectedQuantity])', {
@@ -83,15 +84,15 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
           size="xs"
           disabled={!enableFingerprintCompare}
           onClick={handleShowDiff}
-          title={
-            enableFingerprintCompare
+          tooltipProps={{
+            title: enableFingerprintCompare
               ? undefined
-              : t('To compare, exactly 2 items must be selected')
-          }
+              : t('To compare, exactly 2 items must be selected'),
+          }}
         >
           {t('Compare')}
         </Button>
-      </ButtonBar>
+      </Grid>
       <Button size="xs" onClick={onToggleCollapse}>
         {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
       </Button>

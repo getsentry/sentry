@@ -145,7 +145,11 @@ export function StreamlinedExternalIssueList({
                       size="zero"
                       icon={integration.displayIcon}
                       disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
+                      tooltipProps={{
+                        title: integration.disabled
+                          ? integration.disabledText
+                          : undefined,
+                      }}
                       onClick={() => {
                         action.onClick();
                         trackAnalytics('feedback.details-integration-issue-clicked', {
@@ -162,7 +166,11 @@ export function StreamlinedExternalIssueList({
                     <IssueActionButton
                       {...sharedButtonProps}
                       disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
+                      tooltipProps={{
+                        title: integration.disabled
+                          ? integration.disabledText
+                          : undefined,
+                      }}
                       onClick={() => {
                         action.onClick();
                         trackAnalytics('feedback.details-integration-issue-clicked', {
@@ -280,6 +288,7 @@ const LinkedIssueName = styled('div')`
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
 `;
 

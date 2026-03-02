@@ -7,7 +7,12 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
-from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
+from sentry.seer.explorer.client_models import (
+    Artifact,
+    MemoryBlock,
+    Message,
+    SeerRunState,
+)
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
@@ -304,6 +309,38 @@ class TestTriggerAutofixExplorer(TestCase):
         assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         assert call_kwargs["payload"]["run_id"] == 67890
 
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_passes_project_to_client(
+        self, mock_client_class, mock_broadcast
+    ):
+        """SeerExplorerClient is constructed with project from the group."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_explorer(group=self.group, step=AutofixStep.ROOT_CAUSE, run_id=None)
+
+        mock_client_class.assert_called_once()
+        call_kwargs = mock_client_class.call_args.kwargs
+        assert call_kwargs["project"] == self.group.project
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_passes_group_id_in_metadata(
+        self, mock_client_class, mock_broadcast
+    ):
+        """start_run is called with metadata containing group_id even without stopping_point."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_explorer(group=self.group, step=AutofixStep.ROOT_CAUSE, run_id=None)
+
+        mock_client.start_run.assert_called_once()
+        call_kwargs = mock_client.start_run.call_args.kwargs
+        assert call_kwargs["metadata"] == {"group_id": self.group.id}
+
 
 class TestTriggerCodingAgentHandoff(TestCase):
     """Tests for trigger_coding_agent_handoff function."""
@@ -439,7 +476,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 ),
             ]
         )
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         mock_get_prefs.return_value = self._make_preference_response()
 
         trigger_coding_agent_handoff(
@@ -463,7 +503,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         mock_get_prefs.return_value = self._make_preference_response()
 
         # Set a specific title on the group
@@ -488,7 +531,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
 
         # Set up preferences with auto_create_pr=True
         mock_get_prefs.return_value = self._make_preference_response(auto_create_pr=True)
@@ -511,7 +557,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         # Use helper with default args: repos are set but auto_create_pr=False (no handoff config)
         mock_get_prefs.return_value = self._make_preference_response()
 

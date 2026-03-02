@@ -4,6 +4,7 @@ from collections.abc import Mapping
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import options
@@ -33,6 +34,23 @@ logger = logging.getLogger(__name__)
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
 )
+
+
+def make_similar_issues_request(
+    body: SimilarIssuesEmbeddingsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    retries: int | None = None,
+    timeout: int | float | None = None,
+    metric_tags: dict[str, str | int | bool] | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_grouping_connection_pool,
+        SEER_SIMILAR_ISSUES_URL,
+        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **body}).encode("utf8"),
+        retries=retries,
+        timeout=timeout,
+        metric_tags=metric_tags,
+    )
 
 
 @sentry_sdk.tracing.trace
@@ -67,12 +85,8 @@ def get_similarity_data_from_seer(
     )
 
     try:
-        response = make_signed_seer_api_request(
-            seer_grouping_connection_pool,
-            SEER_SIMILAR_ISSUES_URL,
-            json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
-                "utf8"
-            ),
+        response = make_similar_issues_request(
+            similar_issues_request,
             retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},

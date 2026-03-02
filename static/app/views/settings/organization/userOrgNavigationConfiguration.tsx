@@ -132,11 +132,8 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="beta" />,
+          badge: () => <FeatureBadge type="new" />,
           recordAnalytics: true,
-          show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('data-forwarding-revamp-access'),
         },
         {
           path: `${organizationSettingsPathPrefix}/relay/`,
@@ -195,9 +192,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Console SDK Invites'),
           description: t('Manage access to our private console SDK repositories'),
           show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('github-console-sdk-self-invite') &&
-            (organization.enabledConsolePlatforms?.length ?? 0) > 0,
+            !!organization && (organization.enabledConsolePlatforms?.length ?? 0) > 0,
           id: 'console-sdk-invites',
         },
       ],

@@ -269,7 +269,6 @@ class ProjectOwnership(Model):
             return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
-
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)

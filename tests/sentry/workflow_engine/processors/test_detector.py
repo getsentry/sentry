@@ -898,6 +898,70 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.detector}
 
+    def test_metric_issue_with_feature_flag(self) -> None:
+        self.group_event.occurrence = self.occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        with self.feature("organizations:workflow-engine-metric-issue-ui"):
+            result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.issue_stream_detector, self.detector}
+
+    def test_activity_update_with_feature_flag(self) -> None:
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+        )
+        event_data = WorkflowEventData(event=activity, group=self.group)
+        with self.feature("organizations:workflow-engine-metric-issue-ui"):
+            result = get_detectors_for_event_data(event_data, detector=self.detector)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.issue_stream_detector, self.detector}
+
+    def test_metric_issue_with_disable_detector_flag(self) -> None:
+        """When the disable-detector flag is set, metric issues should not use the issue stream detector."""
+        self.group_event.occurrence = self.occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        with self.feature(
+            {
+                "organizations:workflow-engine-metric-issue-ui": True,
+                "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications": True,
+            }
+        ):
+            result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.detector}
+
+    def test_non_metric_issue_in_disable_list_with_feature_flag(self) -> None:
+        """Feature flag override only applies to MetricIssue, not other disabled group types."""
+        self.group.update(type=FeedbackGroup.type_id)
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+        )
+        event_data = WorkflowEventData(event=activity, group=self.group)
+        with (
+            self.feature("organizations:workflow-engine-metric-issue-ui"),
+            self.options(
+                {
+                    "workflow_engine.group.type_id.disable_issue_stream_detector": [
+                        MetricIssue.type_id,
+                        FeedbackGroup.type_id,
+                    ]
+                }
+            ),
+        ):
+            result = get_detectors_for_event_data(event_data)
+        assert result is None
+
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_event_without_detector(self, mock_logger: MagicMock) -> None:
         occurrence = IssueOccurrence(
@@ -1098,6 +1162,21 @@ class TestAssociateNewGroupWithDetector(TestCase):
         detector_group = DetectorGroup.objects.get(group_id=group.id)
         assert detector_group.detector_id is None
         assert detector_group.group_id == group.id
+
+    @patch("sentry.workflow_engine.processors.detector.metrics")
+    def test_error_group_with_missing_error_detector(self, mock_metrics: MagicMock) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+        self.error_detector.delete()
+
+        with self.options({"workflow_engine.associate_error_detectors": True}):
+            # Should return False and not raise an exception
+            assert not associate_new_group_with_detector(group)
+            assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+        mock_metrics.incr.assert_called_once_with(
+            "workflow_engine.associate_new_group_with_detector",
+            tags={"group_type": group.type, "result": "error_detector_not_found"},
+        )
 
 
 class TestEnsureAssociationWithDetector(TestCase):

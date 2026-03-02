@@ -71,7 +71,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Start a new chat (/new)')}
-          title={t('Start a new chat (/new)')}
+          tooltipProps={{title: t('Start a new chat (/new)')}}
         />
         <SessionHistoryButtonWrapper isSelected={isSessionHistoryOpen}>
           <Button
@@ -81,7 +81,7 @@ function TopBar({
             priority="transparent"
             size="sm"
             aria-label={t('Resume a previous chat (/resume)')}
-            title={t('Resume a previous chat (/resume)')}
+            tooltipProps={{title: t('Resume a previous chat (/resume)')}}
             aria-expanded={isSessionHistoryOpen}
           />
         </SessionHistoryButtonWrapper>
@@ -91,7 +91,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Copy conversation to clipboard')}
-          title={t('Copy conversation to clipboard')}
+          tooltipProps={{title: t('Copy conversation to clipboard')}}
           disabled={!isCopySessionEnabled}
         />
         <Button
@@ -100,7 +100,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Copy link to current chat and web page')}
-          title={t('Copy link to current chat and web page')}
+          tooltipProps={{title: t('Copy link to current chat and web page')}}
           disabled={!isCopyLinkEnabled}
         />
       </Flex>
@@ -124,7 +124,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Give the devs feedback (/feedback)')}
-          title={t('Give the devs feedback (/feedback)')}
+          tooltipProps={{title: t('Give the devs feedback (/feedback)')}}
         />
         <Button
           icon={panelSize === 'max' ? <IconContract /> : <IconExpand />}
@@ -137,11 +137,12 @@ function TopBar({
               ? t('Shrink to medium size (/med-size)')
               : t('Expand to full screen (/max-size)')
           }
-          title={
-            panelSize === 'max'
-              ? t('Shrink to medium size (/med-size)')
-              : t('Expand to full screen (/max-size)')
-          }
+          tooltipProps={{
+            title:
+              panelSize === 'max'
+                ? t('Shrink to medium size (/med-size)')
+                : t('Expand to full screen (/max-size)'),
+          }}
         />
         <Button
           icon={<IconClose />}
@@ -149,7 +150,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Close panel')}
-          title={t('Close panel')}
+          tooltipProps={{title: t('Close panel')}}
         />
       </Flex>
     </Flex>

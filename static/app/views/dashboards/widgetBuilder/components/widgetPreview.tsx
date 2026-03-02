@@ -1,13 +1,12 @@
 import {useState} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DisplayType,
   WidgetType,
@@ -19,6 +18,7 @@ import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -28,7 +28,7 @@ interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid?: boolean;
-  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   shouldForceDescriptionTooltip?: boolean;
 }
 
@@ -131,7 +131,7 @@ function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
-
+      tableItemLimit={widget.limit}
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}

@@ -14,7 +14,7 @@ from .errors import (
     NeedsExtension,
     UnsupportedFrameInfo,
 )
-from .utils.platform import PlatformConfig
+from .utils.platform import PlatformConfig, supported_platform
 
 NOT_FOUND = -1
 
@@ -24,7 +24,7 @@ UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
     """Factory function to create the appropriate FrameInfo instance."""
-    if platform:
+    if platform and supported_platform(platform):
         platform_config = PlatformConfig(platform)
         if platform_config.extracts_filename_from_module():
             return ModuleBasedFrameInfo(frame)

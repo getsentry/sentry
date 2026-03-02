@@ -48,7 +48,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
     owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         if not features.has(
             "organizations:performance-spans-suspect-attributes", organization, actor=request.user
         ):

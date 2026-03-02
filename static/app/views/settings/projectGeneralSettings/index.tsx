@@ -21,7 +21,7 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
 import LoadingError from 'sentry/components/loadingError';
-import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
+import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelHeader from 'sentry/components/panels/panelHeader';

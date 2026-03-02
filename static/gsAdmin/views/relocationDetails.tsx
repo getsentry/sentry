@@ -57,7 +57,7 @@ type RelocationArtifact = {
 };
 
 // A map of each expected relocation artifact to a user-legible description of what it is.
-const expectedRelocationArtifacts: Map<string, string> = new Map(
+const expectedRelocationArtifacts = new Map<string, string>(
   Object.entries({
     'conf/cloudbuild.yaml':
       'The execution script that Google CloudBuild will run when validating this relocation.',
@@ -553,7 +553,7 @@ function RelocationDetails() {
         panelTitle="Relocated Customers"
         path={`/_admin/relocations/${relocationData.uuid}/`}
         api={regionApi}
-        endpoint="/customers/"
+        endpoint={`/_admin/cells/${regionName}/customers/`}
         method="GET"
         columns={[
           <th key="customer">Customer</th>,

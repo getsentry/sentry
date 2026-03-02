@@ -1,7 +1,5 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
-import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -4867,16 +4865,6 @@ describe('SearchQueryBuilder', () => {
 
   describe('ask seer', () => {
     it('renders ask seer button when user has given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
           features: ['gen-ai-features'],
@@ -4891,86 +4879,11 @@ describe('SearchQueryBuilder', () => {
       expect(askSeer).toBeInTheDocument();
     });
 
-    it('renders enable ai button when user has not given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
-      });
-
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
-
-      await userEvent.click(getLastInput());
-
-      const enableAi = await screen.findByText(/Enable Gen AI/);
-      expect(enableAi).toBeInTheDocument();
-    });
-
-    describe('user clicks on enable gen ai button', () => {
-      it('calls promptsUpdate', async () => {
-        const organization = OrganizationFixture({
-          slug: 'org-slug',
-          features: ['gen-ai-features'],
-        });
-        const promptsUpdateMock = MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/prompts-activity/`,
-          method: 'PUT',
-        });
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: false,
-              userHasAcknowledged: false,
-            },
-          }),
-        });
-
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
-
-        await userEvent.click(getLastInput());
-
-        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
-        expect(enableAi).toBeInTheDocument();
-
-        await userEvent.hover(enableAi);
-        await userEvent.keyboard('{enter}');
-
-        await waitFor(() => {
-          expect(promptsUpdateMock).toHaveBeenCalledWith(
-            expect.any(String),
-            expect.objectContaining({
-              data: {
-                feature: 'seer_autofix_setup_acknowledged',
-                organization_id: organization.id,
-                project_id: undefined,
-                status: 'dismissed',
-              },
-            })
-          );
-        });
-      });
-    });
-
     describe('user clicks on ask seer button', () => {
       it('renders the seer combobox', async () => {
         MockApiClient.addMockResponse({
           url: `/organizations/org-slug/prompts-activity/`,
           method: 'PUT',
-        });
-        MockApiClient.addMockResponse({
-          url: `/organizations/org-slug/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          }),
         });
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
@@ -5104,16 +5017,6 @@ describe('SearchQueryBuilder', () => {
     describe('free text', () => {
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
-
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
@@ -5135,21 +5038,12 @@ describe('SearchQueryBuilder', () => {
     describe('consent flow changes enabled', () => {
       it('renders tooltip', async () => {
         const mockOnSearch = jest.fn();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -5702,6 +5596,97 @@ describe('SearchQueryBuilder', () => {
 
           expect(mockOnChange).toHaveBeenCalledTimes(1);
         });
+      });
+    });
+  });
+
+  describe('async filter keys (getTagKeys)', () => {
+    const asyncTags = [
+      {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+      {key: 'async_tag_two', name: 'Async Tag Two', kind: FieldKind.TAG},
+    ];
+
+    it('displays async keys in the filter key dropdown', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'async_tag_two'})).toBeInTheDocument();
+    });
+
+    it('deduplicates async keys that overlap with static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: FieldKey.BROWSER_NAME, name: 'Browser Name', kind: FieldKind.FIELD},
+        {key: 'novel_async_key', name: 'Novel Async Key', kind: FieldKind.TAG},
+      ]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('brow');
+
+      // browser.name should appear only once despite being in both static and async keys
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'browser.name'})).toHaveLength(1);
+      });
+    });
+
+    it('can select an async-only key to create a filter token', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
+
+      expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
+    });
+
+    it('shows async keys when editing an existing filter key', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'async_tag_two'})).toBeInTheDocument();
+    });
+
+    it('calls getTagKeys with the current search input', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('some_query');
+
+      await waitFor(() => {
+        expect(mockGetTagKeys).toHaveBeenCalledWith('some_query');
       });
     });
   });

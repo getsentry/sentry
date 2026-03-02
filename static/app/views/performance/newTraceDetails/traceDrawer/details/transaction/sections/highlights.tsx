@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import {Link} from '@sentry/scraps/link';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

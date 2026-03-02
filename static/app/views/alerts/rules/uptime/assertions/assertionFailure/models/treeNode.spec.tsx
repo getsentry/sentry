@@ -5,17 +5,21 @@ import {
   makeJsonPathOp,
   makeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/testUtils';
-import type {Op} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeOp} from 'sentry/views/alerts/rules/uptime/types';
 
 import {TreeNode} from './treeNode';
 
-class MockTreeNode<T extends Op = Op> extends TreeNode<T> {
+class MockTreeNode<T extends UptimeOp = UptimeOp> extends TreeNode<T> {
   renderRow() {
     return (
       <span>
         {this.value.op} - {this.value.id}
       </span>
     );
+  }
+
+  printNode(): string {
+    return `${this.value.op} - ${this.value.id}`;
   }
 }
 

@@ -1,10 +1,12 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -75,7 +77,6 @@ function EditPreviewHighlightSection({
           <EditButton
             aria-label="Remove from highlights"
             icon={<IconSubtract />}
-            size="xs"
             onClick={() => onRemoveContextKey(alias, item.key)}
             data-test-id="highlights-remove-ctx"
           />
@@ -103,7 +104,6 @@ function EditPreviewHighlightSection({
       <EditButton
         aria-label="Remove from highlights"
         icon={<IconSubtract />}
-        size="xs"
         onClick={() => onRemoveTag(content.originalTag.key)}
         data-test-id="highlights-remove-tag"
       />
@@ -166,29 +166,32 @@ function EditTagHighlightSection({
   for (let i = 0; i < tagData.length; i += tagColumnSize) {
     tagColumns.push(
       <EditHighlightColumn key={`tag-column-${i}`}>
-        {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => {
-          const isDisabled = highlightTagsSet.has(tagKey);
-          return (
-            <EditTagContainer key={`tag-${i}-${j}`}>
-              <EditButton
-                aria-label={`Add ${tagKey} tag to highlights`}
-                icon={<IconAdd />}
-                size="xs"
-                onClick={() => onAddTag(tagKey)}
-                disabled={isDisabled}
-                title={isDisabled && t('Already highlighted')}
-                tooltipProps={{delay: 500}}
-              />
-              <HighlightKey
-                disabled={isDisabled}
-                aria-disabled={isDisabled}
-                data-test-id="highlight-tag-option"
-              >
-                {tagKey}
-              </HighlightKey>
-            </EditTagContainer>
-          );
-        })}
+        <Stack gap="2xs">
+          {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => {
+            const isDisabled = highlightTagsSet.has(tagKey);
+            return (
+              <EditTagContainer key={`tag-${i}-${j}`}>
+                <EditButton
+                  aria-label={`Add ${tagKey} tag to highlights`}
+                  icon={<IconAdd />}
+                  onClick={() => onAddTag(tagKey)}
+                  disabled={isDisabled}
+                  tooltipProps={{
+                    title: isDisabled && t('Already highlighted'),
+                    delay: 500,
+                  }}
+                />
+                <HighlightKey
+                  disabled={isDisabled}
+                  aria-disabled={isDisabled}
+                  data-test-id="highlight-tag-option"
+                >
+                  {tagKey}
+                </HighlightKey>
+              </EditTagContainer>
+            );
+          })}
+        </Stack>
       </EditHighlightColumn>
     );
   }
@@ -275,11 +278,12 @@ function EditContextHighlightSection({
                       <EditButton
                         aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
                         icon={<IconAdd />}
-                        size="xs"
                         onClick={() => onAddContextKey(contextType, contextKey)}
                         disabled={isDisabled}
-                        title={isDisabled && t('Already highlighted')}
-                        tooltipProps={{delay: 500}}
+                        tooltipProps={{
+                          title: isDisabled && t('Already highlighted'),
+                          delay: 500,
+                        }}
                       />
                       <HighlightKey
                         disabled={isDisabled}
@@ -404,7 +408,7 @@ export default function EditHighlightsModal({
           <IconInfo />
           <div>{t('Changes are applied to all issues for this project')}</div>
         </FooterInfo>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             onClick={() => {
               trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
@@ -458,7 +462,7 @@ export default function EditHighlightsModal({
           >
             {isPending ? t('Saving...') : t('Apply to Project')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
@@ -512,11 +516,11 @@ const FooterInfo = styled('div')`
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.md};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
-  margin: 0 -${space(1.5)};
+  margin: 0 -${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;
 
@@ -552,10 +556,11 @@ const EditHighlightColumn = styled('div')`
 
 const EditPreviewColumn = styled(EditHighlightColumn)`
   display: grid;
-  grid-template-columns: 22px minmax(auto, 175px) 1fr;
+  grid-template-columns: min-content minmax(auto, 175px) 1fr;
   column-gap: 0;
+  row-gap: ${p => p.theme.space['2xs']};
   button {
-    margin-right: ${space(0.25)};
+    margin-right: ${p => p.theme.space['2xs']};
   }
 `;
 
@@ -575,28 +580,21 @@ const EditPreviewTagItem = styled(EventTagsTreeRow)`
 
 const EditTagContainer = styled('div')`
   display: grid;
-  grid-template-columns: 26px 1fr;
+  grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.font.size.sm};
   align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const EditContextContainer = styled(EditTagContainer)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space['2xs']};
+  column-gap: ${p => p.theme.space.sm};
 `;
 
-const EditButton = styled(Button)`
-  grid-column: span 1;
-  width: 18px;
-  height: 18px;
-  min-height: 18px;
-  border-radius: 4px;
-  margin: ${space(0.25)} 0;
-  align-self: start;
-  svg {
-    height: 10px;
-    width: 10px;
-  }
-`;
+function EditButton(props: DistributedOmit<ButtonProps, 'size'>) {
+  return <Button size="xs" {...props} />;
+}
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;

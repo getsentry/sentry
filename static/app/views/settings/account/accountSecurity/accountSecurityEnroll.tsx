@@ -2,7 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -116,12 +117,12 @@ const getFields = ({
       ...(hasSentCode ? [{...form[1]!, required: true}] : []),
       () => (
         <Actions key="sms-footer">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasSentCode && <Button onClick={onSmsReset}>{t('Start Over')}</Button>}
             <Button priority="primary" type="submit">
               {hasSentCode ? t('Confirm') : t('Send Code')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Actions>
       ),
     ];
@@ -181,10 +182,7 @@ export default function AccountSecurityEnroll() {
   const authenticatorName = authenticator?.name ?? 'Authenticator';
 
   const alreadyEnrolled =
-    error &&
-    error.status === 400 &&
-    error.responseJSON &&
-    error.responseJSON.details === 'Already enrolled';
+    error?.status === 400 && error.responseJSON?.details === 'Already enrolled';
 
   useEffect(() => {
     if (!isError) {

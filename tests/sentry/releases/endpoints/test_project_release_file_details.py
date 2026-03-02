@@ -131,7 +131,6 @@ class ReleaseFileDetailsTest(APITestCase):
         return self.client.get(url + postfix)
 
     def test_invalid_id(self) -> None:
-
         # Invalid base64
         self.login_as(user=self.user)
         response = self._get("foo666")

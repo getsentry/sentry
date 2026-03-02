@@ -11,9 +11,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -700,7 +700,7 @@ describe('ReleasesList', () => {
           query: expect.objectContaining({
             per_page: 25,
             statsPeriod: '14d',
-            query: 'sha:abcdef1',
+            query: 'sha:abcdef1 !size_state:not_ran',
           }),
         })
       )
@@ -720,7 +720,7 @@ describe('ReleasesList', () => {
           query: expect.objectContaining({
             per_page: 25,
             statsPeriod: '14d',
-            query: 'sha:abcdef1 branch:main',
+            query: 'sha:abcdef1 branch:main !size_state:not_ran',
           }),
         })
       )

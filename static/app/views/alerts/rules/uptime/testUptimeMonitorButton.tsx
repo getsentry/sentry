@@ -9,10 +9,17 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   PreviewCheckStatus,
-  type Assertion,
   type PreviewCheckPayload,
-  type PreviewCheckResponse,
+  type PreviewCheckResult,
+  type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
+
+import {
+  extractPreviewCheckError,
+  mapPreviewCheckErrorToMessage,
+  mapPreviewCheckResultToMessage,
+} from './formErrors';
+import {usePreviewCheckResult} from './previewCheckContext';
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -20,7 +27,7 @@ interface TestUptimeMonitorButtonProps {
    * The caller is responsible for providing fallback values appropriate to their context.
    */
   getFormData: () => {
-    assertion: Assertion | null;
+    assertion: UptimeAssertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     method: string;
@@ -32,6 +39,12 @@ interface TestUptimeMonitorButtonProps {
    */
   label?: string;
   /**
+   * Called when the preview check returns a validation error (e.g. assertion
+   * compilation errors). Receives the parsed response JSON so callers can
+   * surface the errors on form fields.
+   */
+  onValidationError?: (responseJson: any) => void;
+  /**
    * Button size
    */
   size?: ButtonProps['size'];
@@ -40,30 +53,46 @@ interface TestUptimeMonitorButtonProps {
 export function TestUptimeMonitorButton({
   getFormData,
   label,
+  onValidationError,
   size,
 }: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
+  const previewCheckResult = usePreviewCheckResult();
 
   const {mutate: runPreviewCheck, isPending} = useMutation<
-    PreviewCheckResponse,
+    PreviewCheckResult,
     RequestError,
     PreviewCheckPayload
   >({
     mutationFn: (payload: PreviewCheckPayload) =>
-      fetchMutation<PreviewCheckResponse>({
+      fetchMutation<PreviewCheckResult>({
         url: `/organizations/${organization.slug}/uptime-preview-check/`,
         method: 'POST',
         data: {...payload},
       }),
     onSuccess: response => {
+      previewCheckResult?.setPreviewCheckData(response);
       if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
         addSuccessMessage(t('Uptime check passed successfully'));
       } else {
-        addErrorMessage(t('Uptime check failed'));
+        const trailingMessage = mapPreviewCheckResultToMessage(response);
+        addErrorMessage(
+          t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
+        );
       }
     },
-    onError: () => {
-      addErrorMessage(t('Uptime check failed'));
+    onError: (error: RequestError) => {
+      const extractedError = extractPreviewCheckError(error.responseJSON);
+      previewCheckResult?.setPreviewCheckError(extractedError);
+
+      if (onValidationError && error.status === 400 && error.responseJSON) {
+        onValidationError(error.responseJSON);
+      } else {
+        const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
+        addErrorMessage(
+          t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
+        );
+      }
     },
   });
 

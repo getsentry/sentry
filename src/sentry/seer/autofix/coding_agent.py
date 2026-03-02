@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from typing import Any
 
-import orjson
-from django.conf import settings
+import sentry_sdk
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
@@ -19,7 +19,6 @@ from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -27,13 +26,14 @@ from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentState,
     CodingAgentStatus,
+    StoreCodingAgentStatesRequest,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
+    make_store_coding_agent_states_request,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -81,21 +81,11 @@ def store_coding_agent_states_to_seer(
     """Store multiple coding agent states via Seer batch API."""
     if not coding_agent_states:
         return
-    path = "/v1/automation/autofix/coding-agent/state/set"
-    body = orjson.dumps(
-        {
-            "run_id": run_id,
-            "coding_agent_states": [state.dict() for state in coding_agent_states],
-        }
+    body = StoreCodingAgentStatesRequest(
+        run_id=run_id,
+        coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-
-    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
-    response = make_signed_seer_api_request(
-        connection_pool,
-        path,
-        body=body,
-        timeout=30,
-    )
+    response = make_store_coding_agent_states_request(body, timeout=30)
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
@@ -239,14 +229,15 @@ def _launch_agents_for_repos(
 
     # Repos that were in the repos but not in the autofix state
     repos_not_found = repos - autofix_state_repos
-    logger.warning(
-        "coding_agent.post.repos_not_found",
-        extra={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "repos_not_found": repos_not_found,
-        },
-    )
+    if repos_not_found:
+        logger.warning(
+            "coding_agent.post.repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "repos_not_found": repos_not_found,
+            },
+        )
 
     validated_repos = repos - repos_not_found
 
@@ -292,6 +283,7 @@ def _launch_agents_for_repos(
                 {
                     "repo_name": repo_name,
                     "error_message": f"Repository {repo_name} not found in autofix state",
+                    "failure_type": "generic",
                 }
             )
             continue
@@ -320,19 +312,39 @@ def _launch_agents_for_repos(
                 },
             )
             error_message = str(e)
+            failure_type = "generic"
+            github_installation_id: str | None = None
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
-                if e.code == 401:
+                if e.code == 403 and client is not None:
+                    if e.text and "not licensed" in e.text.lower():
+                        failure_type = "github_copilot_not_licensed"
+                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                    else:
+                        failure_type = "github_app_permissions"
+                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                        if repo and repo.integration_id:
+                            try:
+                                sentry_integration = integration_service.get_integration(
+                                    integration_id=int(repo.integration_id)
+                                )
+                                if sentry_integration:
+                                    github_installation_id = sentry_integration.external_id
+                            except Exception:
+                                sentry_sdk.capture_exception(level="warning")
+                elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:
                     error_message = f"Failed to make request to coding agent{url_part}. {e.code} Error: {e.text}"
 
-            failures.append(
-                {
-                    "repo_name": repo_name,
-                    "error_message": error_message,
-                }
-            )
+            failure: dict = {
+                "repo_name": repo_name,
+                "error_message": error_message,
+                "failure_type": failure_type,
+            }
+            if github_installation_id:
+                failure["github_installation_id"] = github_installation_id
+            failures.append(failure)
             continue
 
         states_to_store.append(coding_agent_state)
@@ -385,7 +397,7 @@ def launch_coding_agents_for_run(
 
     Raises:
         NotFound: If organization, integration, autofix state, or repos are not found
-        PermissionDenied: If feature is not enabled for the organization
+        PermissionDenied: If GitHub Copilot is not enabled for the organization
         ValidationError: If integration is invalid
         APIException: If there's an error launching agents
     """
@@ -393,9 +405,6 @@ def launch_coding_agents_for_run(
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         raise NotFound("Organization not found")
-
-    if not features.has("organizations:seer-coding-agent-integrations", organization):
-        raise PermissionDenied("Feature not available")
 
     integration = None
     installation: CodingAgentIntegration | None = None
@@ -465,15 +474,17 @@ def launch_coding_agents_for_run(
 
 
 def poll_github_copilot_agents(
-    autofix_state: AutofixState,
-    user_id: int,
+    autofix_state: AutofixState | None = None,
+    user_id: int = 0,
+    coding_agents: dict[str, Any] | None = None,
 ) -> None:
-    if not autofix_state.coding_agents:
+    agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
+    if not agents:
         return
 
     user_access_token: str | None = None
 
-    for agent_id, agent_state in autofix_state.coding_agents.items():
+    for agent_id, agent_state in agents.items():
         if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
             continue
 

@@ -6,7 +6,7 @@ import {
 } from 'sentry/views/insights/mobile/screens/utils';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('Utils', () => {

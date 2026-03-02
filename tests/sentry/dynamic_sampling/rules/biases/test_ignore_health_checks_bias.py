@@ -166,9 +166,9 @@ def test_health_check_globs_match_health_endpoints(
     transaction_name: str, expected_glob: str
 ) -> None:
     """Verify that actual health check endpoints are matched by the glob patterns."""
-    assert matches_health_check_globs(
-        transaction_name
-    ), f"Expected '{transaction_name}' to match health check glob '{expected_glob}'"
+    assert matches_health_check_globs(transaction_name), (
+        f"Expected '{transaction_name}' to match health check glob '{expected_glob}'"
+    )
 
 
 @pytest.mark.parametrize(
@@ -208,6 +208,6 @@ def test_health_check_globs_match_health_endpoints(
 )
 def test_health_check_globs_do_not_match_regular_endpoints(transaction_name: str) -> None:
     """Verify that regular endpoints and URLs containing 'health' in domain names are NOT filtered."""
-    assert not matches_health_check_globs(
-        transaction_name
-    ), f"Expected '{transaction_name}' to NOT match health check globs"
+    assert not matches_health_check_globs(transaction_name), (
+        f"Expected '{transaction_name}' to NOT match health check globs"
+    )

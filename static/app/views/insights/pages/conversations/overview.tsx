@@ -6,9 +6,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
@@ -40,7 +40,6 @@ import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conve
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
-const DEFAULT_QUERY = 'has:user.email';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -90,13 +89,6 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
     });
   }, [organization]);
 
-  useEffect(() => {
-    if (searchQuery === null) {
-      setSearchQuery(DEFAULT_QUERY);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const {tags: numberTags = [], isLoading: numberTagsLoading} =
     useTraceItemTags('number');
   const {tags: stringTags = [], isLoading: stringTagsLoading} =
@@ -116,7 +108,9 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
         unsetCursor();
       },
       searchSource: 'conversations',
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: hasRawSearchReplacement
+        ? ['span.description', 'span.name']
+        : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},

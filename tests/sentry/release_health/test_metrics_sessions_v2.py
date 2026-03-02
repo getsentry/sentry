@@ -26,7 +26,7 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
                 Condition(Column("session.status"), Op.IN, ["abnormal", "errored"]),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {SessionStatus.ABNORMAL, SessionStatus.ERRORED},
+            frozenset({SessionStatus.ABNORMAL, SessionStatus.ERRORED}),
         ),
         (
             [
@@ -42,12 +42,14 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
                 Condition(Column("session.status"), Op.NEQ, "abnormal"),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {
-                SessionStatus.HEALTHY,
-                SessionStatus.ERRORED,
-                SessionStatus.CRASHED,
-                SessionStatus.UNHANDLED,
-            },
+            frozenset(
+                {
+                    SessionStatus.HEALTHY,
+                    SessionStatus.ERRORED,
+                    SessionStatus.CRASHED,
+                    SessionStatus.UNHANDLED,
+                }
+            ),
         ),
         (
             [
@@ -55,12 +57,14 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
                 Condition(Column("session.status"), Op.NOT_IN, ["abnormal", "bogus"]),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {
-                SessionStatus.HEALTHY,
-                SessionStatus.ERRORED,
-                SessionStatus.CRASHED,
-                SessionStatus.UNHANDLED,
-            },
+            frozenset(
+                {
+                    SessionStatus.HEALTHY,
+                    SessionStatus.ERRORED,
+                    SessionStatus.CRASHED,
+                    SessionStatus.UNHANDLED,
+                }
+            ),
         ),
         (
             [
@@ -75,7 +79,7 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 def test_transform_conditions(
     input: ConditionGroup,
     expected_output: ConditionGroup,
-    expected_status_filter: set[SessionStatus],
+    expected_status_filter: frozenset[SessionStatus],
 ) -> None:
     output, status_filter = _extract_status_filter_from_conditions(input)
     assert output == expected_output

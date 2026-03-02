@@ -28,13 +28,15 @@ ARGS:
 - set_timeout -- int
 - max_segment_bytes -- int -- The maximum number of bytes the segment can contain.
 - byte_count -- int -- The total number of bytes in the subsegment.
+- zero_copy_dest_threshold -- int -- When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set exceeds this many bytes.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
-- redirect_depth -- int
-- set_key -- str
-- has_root_span -- bool
-- latency_ms -- number (milliseconds elapsed during script execution)
+- set_key -- str -- The Redis key of the segment this subsegment was merged into.
+- has_root_span -- bool -- Whether this segment contains a root span.
+- latency_ms -- number -- Milliseconds elapsed during script execution.
+- latency_table -- table -- Per-step latency measurements.
+- metrics_table -- table -- Per-step gauge metrics.
 
 ]]--
 
@@ -46,7 +48,8 @@ local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
 local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
-local NUM_ARGS = 6
+local zero_copy_dest_threshold = tonumber(ARGV[7])
+local NUM_ARGS = 7
 
 local function get_time_ms()
     local time = redis.call("TIME")
@@ -59,7 +62,7 @@ local start_time_ms = get_time_ms()
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
-local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
+local main_redirect_key = string.format("span-buf:ssr:{%s}", project_and_trace)
 
 -- Navigates the tree up to the highest level parent span we can find. Such
 -- span is needed to know the segment we need to merge the subsegment into.
@@ -80,8 +83,8 @@ table.insert(metrics_table, {"redirect_depth", redirect_depth})
 local redirect_end_time_ms = get_time_ms()
 table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - start_time_ms})
 
-local set_key = string.format("span-buf:z:{%s}:%s", project_and_trace, set_span_id)
-local parent_key = string.format("span-buf:z:{%s}:%s", project_and_trace, parent_span_id)
+local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_id)
+local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
 
 -- Reset the set expiry as we saw a new subsegment for this set
 local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
@@ -99,7 +102,7 @@ local sunionstore_args = {}
 -- Updating the redirect set instead is needed when we receive higher level spans
 -- for a tree we are assembling as the segment root each span points at in the
 -- redirect set changes when a new root is found.
-if set_span_id ~= parent_span_id and redis.call("zcard", parent_key) > 0 then
+if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
     table.insert(sunionstore_args, parent_key)
 end
 
@@ -111,7 +114,7 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     table.insert(hset_args, set_span_id)
 
     if not is_root_span then
-        local span_key = string.format("span-buf:z:{%s}:%s", project_and_trace, span_id)
+        local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
         table.insert(sunionstore_args, span_key)
     end
 end
@@ -124,16 +127,55 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 
 -- Merge spans into the parent span set.
 -- Used outside the if statement
-local zpopmin_end_time_ms = -1
+local spop_end_time_ms = -1
 if #sunionstore_args > 0 then
-    local start_output_size = redis.call("zcard", set_key)
-    local output_size = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
-    redis.call("unlink", unpack(sunionstore_args))
+    local dest_memory = redis.call("memory", "usage", set_key) or 0
+    local already_oversized = dest_memory > max_segment_bytes
+    table.insert(metrics_table, {"parent_span_set_already_oversized", already_oversized and 1 or 0})
 
-    local zunionstore_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"zunionstore_step_latency_ms", zunionstore_end_time_ms - sunionstore_args_end_time_ms})
+    local use_zero_copy_dest = not already_oversized and zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
+
+    local start_output_size = redis.call("scard", set_key)
+    local scard_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"scard_step_latency_ms", scard_end_time_ms - sunionstore_args_end_time_ms})
+
+    local output_size
+    if already_oversized then
+        -- Dest already exceeds max_segment_bytes, skip merge entirely.
+        -- The SPOP loop would just remove what we added.
+        output_size = start_output_size
+    elseif use_zero_copy_dest then
+        -- Zero-copy: read each source set and SADD its members into dest.
+        -- Avoids SUNIONSTORE re-reading the entire large destination set.
+        local all_members = {}
+        for i = 1, #sunionstore_args do
+            local members = redis.call("smembers", sunionstore_args[i])
+            for j = 1, #members do
+                all_members[#all_members + 1] = members[j]
+            end
+        end
+        table.insert(metrics_table, {"zero_copy_dest_source_members", #all_members})
+        -- Batch SADD in chunks to avoid exceeding Lua's unpack() stack limit.
+        local BATCH = 7000
+        for i = 1, #all_members, BATCH do
+            local last = math.min(i + BATCH - 1, #all_members)
+            redis.call("sadd", set_key, unpack(all_members, i, last))
+        end
+        output_size = redis.call("scard", set_key)
+    else
+        output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
+    end
+    table.insert(metrics_table, {"used_zero_copy_dest", use_zero_copy_dest and 1 or 0})
+    local sunionstore_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"sunionstore_step_latency_ms", sunionstore_end_time_ms - scard_end_time_ms})
+
+    redis.call("unlink", unpack(sunionstore_args))
+    local unlink_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"unlink_step_latency_ms", unlink_end_time_ms - sunionstore_end_time_ms})
+
     table.insert(metrics_table, {"parent_span_set_before_size", start_output_size})
     table.insert(metrics_table, {"parent_span_set_after_size", output_size})
+    table.insert(metrics_table, {"elements_added", output_size - start_output_size})
 
     -- Merge ingested count keys for merged spans
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
@@ -155,17 +197,17 @@ if #sunionstore_args > 0 then
     end
 
     local arg_cleanup_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - zunionstore_end_time_ms})
+    table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - unlink_end_time_ms})
 
-    local zpopcalls = 0
+    local spopcalls = 0
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
-        redis.call("zpopmin", set_key)
-        zpopcalls = zpopcalls + 1
+        redis.call("spop", set_key)
+        spopcalls = spopcalls + 1
     end
 
-    zpopmin_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"zpopmin_step_latency_ms", zpopmin_end_time_ms - arg_cleanup_end_time_ms})
-    table.insert(metrics_table, {"zpopcalls", zpopcalls})
+    spop_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"spop_step_latency_ms", spop_end_time_ms - arg_cleanup_end_time_ms})
+    table.insert(metrics_table, {"spopcalls", spopcalls})
 end
 
 
@@ -181,8 +223,8 @@ redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
 local ingested_count_step_latency_ms = 0
-if zpopmin_end_time_ms >= 0 then
-    ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
+if spop_end_time_ms >= 0 then
+    ingested_count_step_latency_ms = ingested_count_end_time_ms - spop_end_time_ms
 else
     ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
 end

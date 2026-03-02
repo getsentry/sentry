@@ -27,7 +27,7 @@ export const noCoreImport = {
   create(context) {
     return {
       ImportDeclaration(node) {
-        if (!node || node.source.type !== 'Literal') return;
+        if (node?.source.type !== 'Literal') return;
 
         const importPath = node.source.value;
 

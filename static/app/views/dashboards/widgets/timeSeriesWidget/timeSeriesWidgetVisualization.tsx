@@ -19,6 +19,7 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -32,8 +33,8 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
@@ -66,7 +67,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
    * Default: `auto`
    */
-  axisRange?: 'auto' | 'dataMin';
+  axisRange?: AxisRange;
 
   /**
    * Reference to the chart instance
@@ -232,7 +233,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
-  const axisRangeProp = props.axisRange ?? 'auto';
+  const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
   const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
     {
@@ -472,6 +473,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showLegend =
     (showLegendProp !== 'never' && visibleSeriesCount > 1) || showLegendProp === 'always';
 
+  // The threshold maxOffset must account for the legend height so that threshold
+  // lines/areas drawn at pixel coordinates (for "infinite" thresholds) don't overlap
+  // the legend. These values must stay in sync with the `grid.top` config below.
+  const thresholdMaxOffset = showLegend ? 25 : 10;
+
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
   // plottable responsible for a given value in the tooltip formatter. The only
@@ -524,6 +530,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       yAxisPosition,
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
       theme,
+      maxOffset: thresholdMaxOffset,
     });
 
     seriesIndexToPlottableMapRanges.push({

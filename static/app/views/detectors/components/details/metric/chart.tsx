@@ -12,7 +12,7 @@ import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -98,6 +98,7 @@ const CHART_HEIGHT = 180;
 interface UseMetricDetectorChartProps {
   detector: MetricDetector;
   openPeriods: GroupOpenPeriod[];
+  enabled?: boolean;
   /**
    * Relative time period (e.g., '7d'). Use either statsPeriod or absolute start/end.
    */
@@ -178,6 +179,7 @@ export function useMetricDetectorChart({
   start,
   end,
   detector,
+  enabled = true,
   openPeriods,
   highlightedOpenPeriodId,
   height = CHART_HEIGHT,
@@ -206,6 +208,7 @@ export function useMetricDetectorChart({
     statsPeriod,
     start,
     end,
+    options: {enabled},
   });
 
   const metricTimestamps = useMetricTimestamps(series);
@@ -253,14 +256,14 @@ export function useMetricDetectorChart({
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();
       const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+      const zoomRange = computeZoomRangeMs({
         startMs,
         endMs,
         intervalSeconds,
       });
       navigate({
         pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+        query: buildDetectorZoomQuery(location.query, zoomRange),
       });
     },
   });
@@ -480,7 +483,7 @@ function OpenInButton({detector}: OpenInButtonProps) {
         size="xs"
         to={destination.to}
         disabled={isUsingMigratedExtrapolationMode}
-        title={disabledTooltip}
+        tooltipProps={{title: disabledTooltip}}
       >
         {destination.buttonText}
       </LinkButton>

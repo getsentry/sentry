@@ -82,11 +82,15 @@ from sentry.uptime.types import (
 )
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
+
+# Valid sort keys for combined rules endpoint
+VALID_COMBINED_RULE_SORT_KEYS = {"date_added", "name", "incident_status", "date_triggered"}
 
 
 def create_metric_alert(
@@ -104,8 +108,14 @@ def create_metric_alert(
             "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
 
-    if data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
-        raise ValidationError("server_weighted extrapolation mode is not supported for new alerts.")
+    extrapolation_mode = data.get("extrapolation_mode")
+    if extrapolation_mode in [
+        ExtrapolationMode.SERVER_WEIGHTED.name.lower(),
+        ExtrapolationMode.NONE.name.lower(),
+    ]:
+        raise ValidationError(
+            f"{extrapolation_mode} extrapolation mode is not supported for new alerts. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     if project:
         data["projects"] = [project.slug]
@@ -389,6 +399,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.getlist("sort", ["date_added"])
+        invalid_keys = [key for key in sort_key if key not in VALID_COMBINED_RULE_SORT_KEYS]
+        if invalid_keys:
+            return Response(
+                {"detail": f"Invalid sort key(s): {', '.join(invalid_keys)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         rule_sort_key = [
             "label" if x == "name" else x for x in sort_key
         ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
@@ -813,6 +829,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             alert_count = alert_count.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
+                log_alerting_quota_hit(
+                    object_type="metric_alert",
+                    organization=organization,
+                    actor=request.user if request.user.is_authenticated else None,
+                )
                 raise ValidationError(
                     f"You may not exceed {alert_limit} metric alerts on your current plan."
                 )

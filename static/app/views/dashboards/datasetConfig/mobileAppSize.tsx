@@ -1,3 +1,4 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -17,7 +18,6 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -246,6 +246,7 @@ export const MobileAppSizeConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData
 > = {
+  axisRange: 'dataMin',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,

@@ -11,6 +11,8 @@ import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
@@ -118,14 +120,19 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    overwriteDrawerConfig({renderer, options});
-    options.onOpen?.();
-  }, []);
-  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
-    () => overwriteDrawerConfig(undefined),
-    []
+  const scrollLock = useScrollLock(document.documentElement);
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => {
+      scrollLock.acquire();
+      overwriteDrawerConfig({renderer, options});
+      options.onOpen?.();
+    },
+    [scrollLock]
   );
+  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
+    scrollLock.release();
+    overwriteDrawerConfig(undefined);
+  }, [scrollLock]);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();

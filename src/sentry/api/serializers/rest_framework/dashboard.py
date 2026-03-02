@@ -29,7 +29,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
-from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder.discover import UnresolvedQuery
@@ -43,7 +42,6 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.users.models.user import User
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.strings import oxfordize_list
 
@@ -182,33 +180,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
     validate_id = validate_id
 
-    def get_metrics_features(
-        self, organization: Organization | None, user: User | None
-    ) -> dict[str, bool | None]:
-        if organization is None or user is None:
-            return {}
-
-        feature_names = [
-            "organizations:mep-rollout-flag",
-            "organizations:dynamic-sampling",
-            "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=user,
-        )
-
-        return (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {
-                feature_name: features.has(feature_name, organization=organization, actor=user)
-                for feature_name in feature_names
-            }
-        )
-
     def validate(self, data):
         if not data.get("id"):
             keys = set(data.keys())
@@ -264,17 +235,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["issue_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
 
         try:
-            batch_features = self.get_metrics_features(
-                self.context.get("organization"), self.context.get("user")
-            )
-            use_metrics = bool(
-                (
-                    batch_features.get("organizations:mep-rollout-flag", False)
-                    and batch_features.get("organizations:dynamic-sampling", False)
-                )
-                or batch_features.get("organizations:performance-use-metrics", False)
-                or batch_features.get("organizations:dashboards-mep", False)
-            )
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
@@ -293,7 +253,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             elif self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
                 DashboardWidgetTypes.TRANSACTION_LIKE
             ):
-                config.has_metrics = use_metrics
+                config.has_metrics = True
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
@@ -357,8 +317,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
-    limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
+    limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
+    axis_range = serializers.ChoiceField(
+        choices=[("auto", "auto"), ("dataMin", "dataMin")],
+        required=False,
+        allow_null=True,
+    )
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
         choices=DatasetSourcesTypes.as_text_choices(),
@@ -540,6 +505,20 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 {"limit": f"limit is required. The maximum limit is ${limit}."}
             )
+        # Validate limit based on display type: categorical bar charts allow up to 25,
+        # all other chart types allow up to 10.
+        widget_limit = data.get("limit")
+        if widget_limit is not None:
+            display_type = data.get("display_type")
+            if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
+                max_allowed = 25
+            else:
+                max_allowed = 10
+            if widget_limit > max_allowed:
+                raise serializers.ValidationError(
+                    {"limit": f"The maximum limit for this display type is {max_allowed}."}
+                )
+
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:
@@ -547,7 +526,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             allowed_max_keys = [key.value for key in ThresholdMaxKeys]
             if max_values:
                 for i in range(len(max_values)):
-                    max_key = f"max{i+1}"
+                    max_key = f"max{i + 1}"
 
                     if max_key not in allowed_max_keys:
                         raise serializers.ValidationError(
@@ -593,9 +572,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
-                    self.query_warnings["columns"][
-                        field
-                    ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+                    self.query_warnings["columns"][field] = (
+                        OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+                    )
 
         widget_type = data.get("widget_type")
         if widget_type and widget_type in {
@@ -858,7 +837,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
             discover_widget_split=widget_data.get("discover_widget_split", None),
             limit=widget_data.get("limit", None),
-            detail={"layout": widget_data.get("layout")},
+            detail={
+                "layout": widget_data.get("layout"),
+                "axis_range": widget_data.get("axis_range"),
+            },
             dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
         )
 
@@ -982,6 +964,23 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     "Linked dashboard does not appear in the fields of the query"
                 )
 
+            # Validate all linked dashboard IDs belong to this organization
+            linked_dashboard_ids = {
+                int(ld["dashboard_id"])
+                for ld in linked_dashboards
+                if ld.get("field") and ld.get("dashboard_id")
+            }
+            if linked_dashboard_ids:
+                valid_ids = set(
+                    Dashboard.objects.filter(
+                        id__in=linked_dashboard_ids,
+                        organization_id=organization.id,
+                    ).values_list("id", flat=True)
+                )
+                invalid_ids = linked_dashboard_ids - valid_ids
+                if invalid_ids:
+                    raise serializers.ValidationError("Linked dashboard does not exist")
+
             for link_data in linked_dashboards:
                 field = link_data.get("field")
                 dashboard_id = link_data.get("dashboard_id")
@@ -1027,6 +1026,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
     def update_widget(self, widget, data):
         prev_layout = widget.detail.get("layout") if widget.detail else None
+        prev_axis_range = widget.detail.get("axis_range") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
         widget.thresholds = data.get("thresholds", widget.thresholds)
@@ -1039,7 +1039,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.limit = data.get("limit", widget.limit)
         new_dataset_source = data.get("dataset_source", widget.dataset_source)
         widget.dataset_source = new_dataset_source
-        widget.detail = {"layout": data.get("layout", prev_layout)}
+        widget.detail = {
+            "layout": data.get("layout", prev_layout),
+            "axis_range": data.get("axis_range", prev_axis_range),
+        }
 
         if widget.widget_type == DashboardWidgetTypes.SPANS:
             if new_dataset_source == DatasetSourcesTypes.USER.value:

@@ -26,6 +26,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
+    log_alerting_quota_hit,
     toggle_detector,
 )
 from sentry.workflow_engine.models import (
@@ -35,7 +36,6 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.models.detector import enforce_config_schema
 from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
@@ -149,8 +149,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         """
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type=f"detector:{validated_data['type'].slug}",
+                organization=self.context["organization"],
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
-                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
             )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
@@ -196,7 +202,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             if "config" in validated_data:
                 instance.config = validated_data.get("config", instance.config)
                 try:
-                    enforce_config_schema(instance)
+                    instance.enforce_config_schema()
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
 
@@ -279,7 +285,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             )
 
             try:
-                enforce_config_schema(detector)
+                detector.enforce_config_schema()
             except JSONSchemaValidationError as error:
                 # Surface schema errors as a user-facing validation error
                 raise serializers.ValidationError({"config": [str(error)]})

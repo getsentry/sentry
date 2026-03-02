@@ -35,6 +35,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     slug = models.SlugField(unique=True, null=False)
     organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
     user_id = BoundedBigIntegerField(db_index=True, null=True)
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),
@@ -51,17 +52,17 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     __repr__ = sane_repr("slug", "organization_id", "reservation_type")
 
     def save(self, *args: Any, **kwds: Any) -> None:
-        assert kwds.get(
-            "unsafe_write", None
-        ), "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        assert kwds.get("unsafe_write", None), (
+            "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        )
 
         kwds.pop("unsafe_write")
         return super().save(*args, **kwds)
 
     def update(self, *args: Any, **kwds: Any):
-        assert kwds.get(
-            "unsafe_write", None
-        ), "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        assert kwds.get("unsafe_write", None), (
+            "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        )
 
         kwds.pop("unsafe_write")
         return super().update(*args, **kwds)

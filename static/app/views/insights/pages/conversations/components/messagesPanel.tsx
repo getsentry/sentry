@@ -1,224 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconFire, IconUser} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {
-  getIsAiGenerationSpan,
-  getIsExecuteToolSpan,
-} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
+import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
+import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-
-interface ToolCall {
-  hasError: boolean;
-  name: string;
-  nodeId: string;
-}
-
-interface ConversationMessage {
-  content: string;
-  id: string;
-  nodeId: string;
-  role: 'user' | 'assistant';
-  timestamp: number;
-  toolCalls?: ToolCall[];
-  userEmail?: string;
-}
-
-interface RequestMessage {
-  role: string;
-  content?: string | Array<{text: string}>;
-  parts?: Array<{type: string; content?: string; text?: string}>;
-}
-
-function getNodeTimestamp(node: AITraceSpanNode): number {
-  return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
-}
-
-function getGenAiOpType(node: AITraceSpanNode): string | undefined {
-  return node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined;
-}
-
-function partitionSpansByType(nodes: AITraceSpanNode[]): {
-  generationSpans: AITraceSpanNode[];
-  toolSpans: AITraceSpanNode[];
-} {
-  const generationSpans: AITraceSpanNode[] = [];
-  const toolSpans: AITraceSpanNode[] = [];
-
-  for (const node of nodes) {
-    const opType = getGenAiOpType(node);
-    if (getIsAiGenerationSpan(opType)) {
-      generationSpans.push(node);
-    } else if (getIsExecuteToolSpan(opType)) {
-      toolSpans.push(node);
-    }
-  }
-
-  generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
-  toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
-
-  return {generationSpans, toolSpans};
-}
-
-function findToolCallsBetween(
-  toolSpans: AITraceSpanNode[],
-  startTime: number,
-  endTime: number
-): ToolCall[] {
-  return toolSpans
-    .filter(span => {
-      const ts = getNodeTimestamp(span);
-      return ts > startTime && ts < endTime;
-    })
-    .map(span => {
-      const name = span.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
-      return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
-    })
-    .filter((tc): tc is ToolCall => tc !== null);
-}
-
-/**
- * Extracts text content from a message that may use the new parts format or old content format.
- */
-function extractTextFromMessage(msg: RequestMessage): string | null {
-  if (msg.parts && Array.isArray(msg.parts)) {
-    const textParts = msg.parts
-      .filter(p => p.type === 'text')
-      .map(p => p.content || p.text)
-      .filter(Boolean);
-    if (textParts.length > 0) {
-      return textParts.join('\n');
-    }
-  }
-
-  if (msg.content) {
-    return typeof msg.content === 'string' ? msg.content : (msg.content[0]?.text ?? null);
-  }
-
-  return null;
-}
-
-function parseUserContent(node: AITraceSpanNode): string | null {
-  const inputMessages = node.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES] as
-    | string
-    | undefined;
-
-  const requestMessages =
-    inputMessages ||
-    (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
-
-  if (!requestMessages) {
-    return null;
-  }
-
-  try {
-    const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
-    const userMessage = messagesArray.findLast(
-      msg => msg.role === 'user' && (msg.content || msg.parts)
-    );
-    if (!userMessage) {
-      return null;
-    }
-    return extractTextFromMessage(userMessage);
-  } catch {
-    return requestMessages;
-  }
-}
-
-function parseAssistantContent(node: AITraceSpanNode): string | null {
-  const outputMessages = node.attributes?.[SpanFields.GEN_AI_OUTPUT_MESSAGES] as
-    | string
-    | undefined;
-
-  if (outputMessages) {
-    try {
-      const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
-      const assistantMessage = messagesArray.findLast(
-        msg => msg.role === 'assistant' && (msg.content || msg.parts)
-      );
-      if (assistantMessage) {
-        const content = extractTextFromMessage(assistantMessage);
-        if (content) {
-          return content;
-        }
-      }
-    } catch {
-      // Parsing failed, fall through to legacy attributes
-    }
-  }
-
-  return (
-    (node.attributes?.[SpanFields.GEN_AI_RESPONSE_TEXT] as string | undefined) ||
-    (node.attributes?.[SpanFields.GEN_AI_RESPONSE_OBJECT] as string | undefined) ||
-    null
-  );
-}
-
-/**
- * Extracts messages from LLM generation spans.
- * User messages come from gen_ai.request.messages, assistant messages from gen_ai.response.text.
- * Tool calls are extracted from tool spans that occur just before each generation span.
- */
-function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage[] {
-  const messages: ConversationMessage[] = [];
-  const seenUserContent = new Set<string>();
-  const seenAssistantContent = new Set<string>();
-
-  const {generationSpans, toolSpans} = partitionSpansByType(nodes);
-
-  for (let i = 0; i < generationSpans.length; i++) {
-    const node = generationSpans[i];
-    if (!node) {
-      continue;
-    }
-
-    const timestamp = getNodeTimestamp(node);
-    const prevTimestamp = i > 0 ? getNodeTimestamp(generationSpans[i - 1]!) : 0;
-    const userEmail = node.attributes?.[SpanFields.USER_EMAIL] as string | undefined;
-    const toolCalls = findToolCallsBetween(toolSpans, prevTimestamp, timestamp);
-
-    const userContent = parseUserContent(node);
-    if (userContent && !seenUserContent.has(userContent)) {
-      seenUserContent.add(userContent);
-      messages.push({
-        id: `user-${node.id}`,
-        role: 'user',
-        content: userContent,
-        timestamp,
-        nodeId: node.id,
-        userEmail,
-      });
-    }
-
-    const assistantContent = parseAssistantContent(node);
-    if (assistantContent && !seenAssistantContent.has(assistantContent)) {
-      seenAssistantContent.add(assistantContent);
-      messages.push({
-        id: `assistant-${node.id}`,
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: timestamp + 1,
-        nodeId: node.id,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      });
-    }
-  }
-
-  messages.sort((a, b) => a.timestamp - b.timestamp);
-  return messages;
-}
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -267,15 +62,25 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   if (messages.length === 0) {
     return (
-      <PanelContainer direction="column">
+      <Flex
+        direction="column"
+        padding="lg lg md lg"
+        background="secondary"
+        minHeight="100%"
+      >
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
-      </PanelContainer>
+      </Flex>
     );
   }
 
   return (
-    <PanelContainer direction="column">
-      <Stack gap="md">
+    <Flex
+      direction="column"
+      padding="lg lg md lg"
+      background="secondary"
+      minHeight="100%"
+    >
+      <Stack gap="md" width="100%">
         {messages.map((message, index) => {
           const isSelected = message.id === effectiveSelectedMessageId;
           const isAssistant = message.role === 'assistant';
@@ -288,14 +93,21 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
               <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
-                {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
-                <Text bold size="sm">
-                  {message.role === 'user' ? t('User') : t('Assistant')}
-                </Text>
-                {message.role === 'user' && message.userEmail && (
-                  <Text size="sm" style={{color: 'inherit', opacity: 0.7}}>
-                    {message.userEmail}
+                {message.role === 'user' ? (
+                  <Text bold size="sm">
+                    {message.userEmail || t('User')}
                   </Text>
+                ) : (
+                  <Flex align="baseline" gap="sm" flex={1}>
+                    <Text bold size="sm">
+                      {t('Assistant')}
+                    </Text>
+                    {message.duration !== undefined && message.duration > 0 && (
+                      <Text size="xs" variant="muted">
+                        {getDuration(message.duration, 1, true)}
+                      </Text>
+                    )}
+                  </Flex>
                 )}
               </MessageHeader>
               <StyledClippedBox
@@ -303,8 +115,11 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 buttonProps={{priority: 'default', size: 'xs'}}
                 collapsible
               >
-                <Container padding="sm">
-                  <MessageText size="sm">
+                <Container padding="md">
+                  <MessageText
+                    size="sm"
+                    align={message.role === 'user' ? 'right' : 'left'}
+                  >
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
                       text={message.content}
@@ -312,53 +127,21 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   </MessageText>
                 </Container>
               </StyledClippedBox>
-              {message.role === 'assistant' &&
-                message.toolCalls &&
-                message.toolCalls.length > 0 && (
-                  <ToolCallsFooter
-                    direction="row"
-                    align="center"
-                    gap="xs"
-                    wrap="wrap"
-                    padding="xs sm"
-                  >
-                    <Text size="xs" style={{opacity: 0.7}}>
-                      {t('Tools called:')}
-                    </Text>
-                    {message.toolCalls.map(tool => {
-                      const toolNode = nodeMap.get(tool.nodeId);
-                      const isToolSelected = tool.nodeId === selectedNodeId;
-                      return (
-                        <ClickableTag
-                          key={tool.nodeId}
-                          variant={tool.hasError ? 'danger' : 'info'}
-                          icon={tool.hasError ? <IconFire /> : undefined}
-                          hasError={tool.hasError}
-                          isSelected={isToolSelected}
-                          onClick={e => {
-                            e.stopPropagation();
-                            if (toolNode) {
-                              onSelectNode(toolNode);
-                            }
-                          }}
-                        >
-                          {tool.name}
-                        </ClickableTag>
-                      );
-                    })}
-                  </ToolCallsFooter>
-                )}
+              {isAssistant && message.toolCalls && message.toolCalls.length > 0 && (
+                <MessageToolCalls
+                  toolCalls={message.toolCalls}
+                  selectedNodeId={selectedNodeId}
+                  nodeMap={nodeMap}
+                  onSelectNode={onSelectNode}
+                />
+              )}
             </MessageBubble>
           );
         })}
       </Stack>
-    </PanelContainer>
+    </Flex>
   );
 }
-
-const PanelContainer = styled(Flex)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
 
 const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
   display: flex;
@@ -366,8 +149,16 @@ const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: ${p => p.theme.space.md};
+    right: ${p => p.theme.space.md};
+    bottom: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+  position: relative;
 `;
 
 const MessageText = styled(Text)`
@@ -386,9 +177,9 @@ const MessageBubble = styled('div')<{
   width: 90%;
   align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
-    p.role === 'user'
-      ? p.theme.tokens.background.secondary
-      : p.theme.tokens.background.primary};
+    p.role === 'assistant'
+      ? p.theme.tokens.background.primary
+      : p.theme.tokens.background.secondary};
   &::after {
     content: '';
     position: absolute;
@@ -405,12 +196,7 @@ const MessageBubble = styled('div')<{
     cursor: pointer;
     &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
-    }
-    &:hover {
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-    &:active {
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      border-width: 2px;
     }
   `}
   ${p =>
@@ -428,21 +214,4 @@ const MessageBubble = styled('div')<{
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
-`;
-
-const ToolCallsFooter = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
-  cursor: pointer;
-  &:hover {
-    opacity: 0.8;
-  }
-  ${p =>
-    p.isSelected &&
-    `
-    outline: 2px solid ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
-    outline-offset: -2px;
-  `}
 `;

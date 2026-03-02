@@ -564,8 +564,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'data-forwarding/',
-      name: t('Data Forwarding'),
-      component: make(() => import('sentry/views/settings/projectDataForwarding')),
+      redirectTo: '/settings/:orgId/data-forwarding/',
     },
     {
       path: 'seer/',
@@ -1662,6 +1661,10 @@ function buildRoutes(): RouteObject[] {
         path: 'uptime/',
         component: make(() => import('sentry/views/detectors/list/uptime')),
       },
+      {
+        path: 'mobile-builds/',
+        component: make(() => import('sentry/views/detectors/list/mobileBuild')),
+      },
     ],
   };
 
@@ -2425,6 +2428,10 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'snapshots/:snapshotId/',
+      component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
+    },
     // TODO(EME-735): Remove old routes after backend deployment
     {
       path: ':projectId/:artifactId/',
@@ -2897,7 +2904,7 @@ function buildRoutes(): RouteObject[] {
           },
           {
             path: 'data-forwarding/',
-            redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
+            redirectTo: '/settings/:orgId/data-forwarding/',
           },
           {
             path: 'debug-symbols/',

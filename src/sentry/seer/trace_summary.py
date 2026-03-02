@@ -2,16 +2,13 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import orjson
-import requests
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.organization import Organization
-from sentry.seer.models import SummarizeTraceResponse
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError, SummarizeTraceResponse
+from sentry.seer.signed_seer_api import SummarizeTraceRequest, make_summarize_trace_request
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
@@ -66,28 +63,13 @@ def _call_seer(
     trace_content: list[Any],
     only_transaction: bool = False,
 ) -> SummarizeTraceResponse:
-
-    path = "/v1/automation/summarize/trace"
-    body = orjson.dumps(
-        {
-            "trace_id": trace_id,
-            "only_transaction": only_transaction,
-            "trace": {
-                "trace_id": trace_id,
-                "trace": trace_content,
-            },
-        },
-        option=orjson.OPT_NON_STR_KEYS,
+    body = SummarizeTraceRequest(
+        trace_id=trace_id,
+        only_transaction=only_transaction,
+        trace={"trace_id": trace_id, "trace": trace_content},
     )
-
-    response = requests.post(
-        f"{settings.SEER_SUMMARIZATION_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-    response.raise_for_status()
+    response = make_summarize_trace_request(body)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
 
     return SummarizeTraceResponse.validate(response.json())

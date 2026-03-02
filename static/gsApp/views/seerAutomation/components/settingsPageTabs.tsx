@@ -16,8 +16,8 @@ export default function SettingsPageTabs() {
 
   const tabs: Array<[string, Path]> = [
     [t('Settings'), `/settings/${organization.slug}/seer/`],
-    [t('Projects'), `/settings/${organization.slug}/seer/projects/`],
-    [t('Repos'), `/settings/${organization.slug}/seer/repos/`],
+    [t('Issue Autofix'), `/settings/${organization.slug}/seer/projects/`],
+    [t('Code Review'), `/settings/${organization.slug}/seer/repos/`],
   ];
 
   return (

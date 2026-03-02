@@ -3,6 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import type {ResponseMeta} from 'sentry/api';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -16,7 +17,6 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -78,7 +78,7 @@ export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
   rawData: any[];
 };
 
-export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
+type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
@@ -109,6 +109,9 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
+  // Optional override for the widget interval (e.g., '1m', '5m', '1h')
+  // If not provided, widget interval will be calculated automatically
+  widgetInterval?: string;
 };
 
 /**
@@ -170,6 +173,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     samplingMode,
     selection: propsSelection,
     skipDashboardFilterParens,
+    widgetInterval,
   } = props;
 
   const organization = useOrganization();
@@ -204,6 +208,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     enabled: isTimeSeriesData && !disabled && !propsLoading,
     limit,
     cursor,
+    widgetInterval,
   });
 
   const hookTableResults = config.useTableQuery?.({
@@ -218,6 +223,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
+    widgetInterval,
   });
 
   const hookResults = isTimeSeriesData ? hookSeriesResults : hookTableResults;

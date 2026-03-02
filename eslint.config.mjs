@@ -169,6 +169,10 @@ const restrictedImportPaths = [
     message:
       'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
   },
+  {
+    name: '@tanstack/react-form',
+    message: 'Use @sentry/scraps/form instead',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -456,7 +460,52 @@ export default typescript.config([
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/use-semantic-token': [
         'error',
-        {enabledCategories: ['background', 'content']},
+        {enabledCategories: ['background', 'border', 'content']},
+      ],
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'error',
+        {
+          slots: [
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuFooter'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.CTAButton',
+                    'MenuComponents.CTALinkButton',
+                    'MenuComponents.ApplyButton',
+                    'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   },
@@ -623,7 +672,6 @@ export default typescript.config([
       // Stylistic overrides
       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 

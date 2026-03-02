@@ -1,3 +1,4 @@
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,7 +13,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueCategoryCondition(ConditionTestCase):
     condition = Condition.ISSUE_CATEGORY
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": IssueCategoryFilter.id,
         "value": "1",
     }
@@ -35,6 +36,20 @@ class TestIssueCategoryCondition(ConditionTestCase):
         assert dc.type == self.condition
         assert dc.comparison == {
             "value": 1,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_exclude(self) -> None:
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(
+            {"id": IssueCategoryFilter.id, "value": "1", "include": False}, dcg
+        )
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "value": 1,
+            "include": False,
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg

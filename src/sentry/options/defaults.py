@@ -106,6 +106,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Data Forwarding
+register(
+    "data-forwarding.project-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
@@ -514,13 +522,6 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Whether or not Relay replay-event publishing to Snuba is disabled.
-register(
-    "replay.relay-snuba-publishing-disabled.sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Disables replay-video for a specific organization.
 register(
     "replay.replay-video.slug-denylist",
@@ -638,6 +639,36 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for moving accepted outcome emission from Relay to EAP.
+register(
+    "relay.eap-outcomes.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
+register(
+    "relay.eap-span-outcomes.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for double writing sessions to EAP.
+register(
+    "relay.sessions-eap.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "relay.objectstore-attachments.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -693,6 +724,13 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# GitHub owners whose webhooks we skip forwarding to Codecov (payload is still deleted)
+register(
+    "codecov.forward-webhooks.skip-github-owners",
+    type=Sequence,
+    default=["getsentry"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # GitHub Integration
@@ -707,6 +745,16 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.mailbox-bucketing.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.drop-unprocessed-events.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Console SDK App (separate app for repository invitations)
@@ -951,6 +999,9 @@ register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODI
 # A rate that enables statsd item sending (DDM data) to s4s
 register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
+register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1125,6 +1176,37 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Explorer context engine indexing options
+register(
+    "explorer.context_engine_indexing.enable",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.allowed_organizations",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.max_edges",
+    default=5000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.max_segments",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.parent_span_batch_size",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
@@ -1384,14 +1466,6 @@ register(
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Option which rolls out counting transactions based on the span usage metric.
-register(
-    "ingest.billing_metrics_consumer.use_only_span_metric_orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -1401,6 +1475,16 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# When True, schedule_invalidate_project_config calls the invalidation callback
+# directly when outside an atomic block, instead of going through
+# transaction.on_commit(). This fixes TransactionManagementError in the
+# taskworker where autocommit is off.
+register(
+    "relay.invalidation-direct-outside-atomic",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
@@ -2288,6 +2372,12 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
+register(
+    "dynamic-sampling.transactions.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of organization IDs that should be using segment metrics for recalibrate_orgs.
 register(
@@ -2296,12 +2386,38 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of organization IDs that should be using segment metrics for sliding_window_org.
 register(
     "dynamic-sampling.sliding_window_org.segment-metric-orgs",
     default=[],
     type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2354,6 +2470,12 @@ register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Break glass controls
@@ -3016,22 +3138,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
-# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
-# these two options.
-register(
-    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
-    type=Sequence,
-    default=[60, 120, 600],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
-    type=Sequence,
-    default=[60, 120, 600],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -3137,6 +3243,16 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Threshold in bytes for out-of-band storage of large compressed span payloads.
+# Payloads larger than this are stored in separate Redis string keys instead of
+# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
+# Only applies when compression is enabled (compression.level >= 0).
+register(
+    "spans.buffer.oob-threshold-bytes",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Maximum number of subsegments to process in each Redis pipeline. Each
 # subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
 register(
@@ -3153,6 +3269,15 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
+# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
+# re-serialisation of the entire destination set during SUNIONSTORE.
+register(
+    "spans.buffer.zero-copy-dest-threshold-bytes",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
@@ -3165,6 +3290,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.flusher-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3173,23 +3303,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# ZSET to SET migration options.
-register(
-    "spans.buffer.write-to-zset",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.write-to-set",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.read-from-set",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
@@ -3360,6 +3473,7 @@ register(
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
+# DEPRECATED: will be removed after the shared secret is confirmed to always be set.
 register(
     "seer.api.use-shared-secret",
     default=0.0,
@@ -3464,13 +3578,6 @@ register(
 )
 
 register(
-    "workflow_engine.issue_alert.group.type_id.rollout",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
     default=[8001],  # MetricIssue.type_id
@@ -3479,13 +3586,6 @@ register(
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3516,6 +3616,22 @@ register(
     "workflow_engine.evaluation_logs_direct_to_sentry",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Safe default limit for workflows. Should be high enough to cover almost all orgs,
+# low enough to have no concerns about stability impact.
+register(
+    "workflow_engine.max_workflows_per_org",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
+# generally set to 'as high as we think we can safely handle for a handful of orgs'.
+register(
+    "workflow_engine.max_more_workflows_per_org",
+    type=Int,
+    default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3842,6 +3958,29 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Lists all the consumers we need verbose multiprocess logs for.
+# We observed some consumers hanging after restarts. We narrowed down the
+# issue to the shared memory manager initialization. Specifically,
+# the consumer hangs when the shared memory manager initializes a subprocess.
+register(
+    "consumer.verbose_multiprocessing_logs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Forces ArroyoRunTaskWithMultiprocessing steps to instruct the SharedMemoryManager to
+# spawn processes rather than forking.
+# As this impacts the shared memory manager initialization, which happens during
+# the creation of the strategy, a rebalance or a restart is needed for this
+# option change to take effect.
+register(
+    "consumer.shared_memory_spawn_process",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -3979,10 +4118,26 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Project ID allowlist to enable trace instrumentation detector for specific projects.
+register(
+    "autopilot.trace-instrumentation.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global flag to enable API token async flush
 register(
     "api-token-async-flush",
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO(telkins): Remove once we no longer need integration_id on SLO metrics
+register(
+    "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

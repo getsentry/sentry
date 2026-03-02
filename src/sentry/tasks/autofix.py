@@ -94,10 +94,6 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
-    from sentry.api.serializers.rest_framework.base import (
-        camel_to_snake_case,
-        convert_dict_key_case,
-    )
     from sentry.seer.autofix.issue_summary import (
         get_and_update_group_fixability_score,
         get_issue_summary,
@@ -120,21 +116,12 @@ def generate_issue_summary_only(group_id: int) -> None:
             )
         )
 
-    summary_data, status_code = get_issue_summary(
+    # Generate and cache the summary
+    get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
 
-    summary_payload = None
-    if status_code == 200:
-        summary_snake = convert_dict_key_case(summary_data, camel_to_snake_case)
-        required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
-        if all(summary_snake.get(k) is not None for k in required_fields):
-            summary_payload = {
-                "group_id": group.id,
-                **{k: summary_snake[k] for k in required_fields},
-            }
-
-    get_and_update_group_fixability_score(group, force_generate=True, summary=summary_payload)
+    get_and_update_group_fixability_score(group, force_generate=True)
 
 
 @instrumented_task(
@@ -197,17 +184,19 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     Configure Seer settings for a new or existing organization migrating to new Seer pricing.
 
     Sets:
-    - Org-level: enable_seer_coding=True - to override old check
     - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
     - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
+
+    Ignores:
+    - Org-level: enable_seer_coding
     """
+
     organization = Organization.objects.get(id=organization_id)
 
     sentry_sdk.set_tag("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
 
     # Set org-level options
-    organization.update_option("sentry:enable_seer_coding", True)
     organization.update_option(
         "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
     )

@@ -23,8 +23,10 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,16 +35,18 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
-import {mapAssertionFormErrors} from './assertionFormErrors';
+import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
+import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
+import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
+import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 
 interface Props {
   handleDelete?: () => void;
@@ -95,14 +99,21 @@ function getFormDataFromRule(rule: UptimeRule) {
 }
 
 export function UptimeAlertForm({handleDelete, rule}: Props) {
+  return (
+    <PreviewCheckResultProvider>
+      <UptimeAlertFormContent handleDelete={handleDelete} rule={rule} />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const hasRuntimeAssertions = organization.features.includes(
-    'uptime-runtime-assertions'
-  );
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -113,6 +124,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
     : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -206,7 +218,8 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
+      onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
@@ -214,7 +227,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         // When runtime assertions are disabled, the assertions field is not mounted,
         // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
         if (!hasRuntimeAssertions) {
-          const assertion = formModel.getValue<Assertion | null>('assertion');
+          const assertion = formModel.getValue<UptimeAssertion | null>('assertion');
           if (!assertion?.root || assertion.root.children?.length === 0) {
             formModel.setValue('assertion', null);
           }
@@ -235,6 +248,27 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             >
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
+          )}
+          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
+            <AssertionSuggestionsButton
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                };
+              }}
+              getCurrentAssertion={() =>
+                formModel.getValue<UptimeAssertion | null>('assertion')
+              }
+              onApplySuggestion={newAssertion => {
+                // Cast to any to satisfy FormModel's FieldValue type
+                formModel.setValue('assertion', newAssertion as any);
+              }}
+            />
           )}
           {hasRuntimeAssertions && (
             <TestUptimeMonitorButton

@@ -183,9 +183,9 @@ class AuthProvider(ReplicatedControlModel):
                     organization_id=self.organization_id, provider=f"{self.provider}_scim"
                 )
                 sentry_app = install.sentry_app_installation.sentry_app
-                assert (
-                    sentry_app.is_internal
-                ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
+                assert sentry_app.is_internal, (
+                    "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
+                )
                 sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
                 ScheduledDeletion.schedule(sentry_app, days=0)
             except SentryAppInstallationForProvider.DoesNotExist:

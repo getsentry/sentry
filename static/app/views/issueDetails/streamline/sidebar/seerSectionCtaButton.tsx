@@ -112,7 +112,7 @@ export function SeerSectionCtaButton({
       step => step.type === AutofixStepType.DEFAULT
     );
 
-    if (processingStep && processingStep.status === AutofixStatus.COMPLETED) {
+    if (processingStep?.status === AutofixStatus.COMPLETED) {
       // Check if this is a new completion (wasn't completed in previous state)
       const prevProcessingStep = prevSteps.findLast(
         step => step.type === AutofixStepType.DEFAULT
@@ -221,6 +221,7 @@ export function SeerSectionCtaButton({
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
       analyticsParams={{
+        group_id: group.id,
         has_streamlined_ui: hasStreamlinedUI,
         autofix_exists: Boolean(autofixData?.steps?.length),
         autofix_step_type: lastStep?.type ?? null,

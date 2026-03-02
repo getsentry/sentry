@@ -700,6 +700,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
@@ -805,6 +806,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
@@ -830,6 +832,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
@@ -1039,7 +1042,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
-      &.occurence {
+      &.occurrence {
         --pattern-odd: ${p => p.theme.tokens.content.accent};
         --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
@@ -1081,7 +1084,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
-      &.occurence {
+      &.occurrence {
         --pattern-odd: ${p => p.theme.tokens.content.accent};
         --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
@@ -1138,7 +1141,7 @@ const TraceStylingWrapper = styled('div')`
     }
     &.error,
     &.fatal,
-    &.occurence {
+    &.occurrence {
       color: ${p => p.theme.tokens.content.danger};
       --autogrouped: ${p => p.theme.tokens.content.danger};
       --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
@@ -1189,8 +1192,8 @@ const TraceStylingWrapper = styled('div')`
       &.fatal {
         background-color: var(--error);
       }
-      &.occurence {
-        background-color: var(--occurence);
+      &.occurrence {
+        background-color: var(--occurrence);
       }
       &.default {
         background-color: var(--default);
@@ -1214,7 +1217,7 @@ const TraceStylingWrapper = styled('div')`
 
       &.info,
       &.warning,
-      &.occurence,
+      &.occurrence,
       &.default,
       &.unknown {
         svg {
@@ -1272,10 +1275,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.focus.default} !important;
       }
     }
 
@@ -1582,6 +1585,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;

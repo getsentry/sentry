@@ -1,17 +1,21 @@
 from dataclasses import asdict
 from typing import Any
 
+from rest_framework import serializers
+
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
-    SentryAppIdentifier,
 )
+
+ValidationError = serializers.ValidationError
 
 
 @issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
@@ -33,23 +37,9 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             if target_identifier is None:
                 raise ValueError(f"No target identifier found for action type: {action.type}")
 
-            # Figure out what type of key we are dealing with
-            sentry_app_installations = None
-            if (
-                action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            ):
-                # It is a sentry app installation uuid
-                sentry_app_installations = app_service.get_many(
-                    filter=dict(
-                        uuids=[target_identifier],
-                    )
-                )
-            else:
-                # It is a sentry app id
-                sentry_app_installations = app_service.get_many(
-                    filter=dict(app_ids=[target_identifier], organization_id=organization_id)
-                )
+            sentry_app_installations = app_service.get_many(
+                filter=dict(app_ids=[int(target_identifier)], organization_id=organization_id)
+            )
 
             if sentry_app_installations is None or len(sentry_app_installations) != 1:
                 raise ValueError(
@@ -89,3 +79,36 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             settings = cls.process_settings(blob.settings)
             return {"settings": settings}
         return {}
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        """
+        blob: {
+            'id': 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
+            'sentryAppInstallationUuid': 'str,
+        }
+        """
+        sentry_app_installation_uuid = blob.get("sentryAppInstallationUuid")
+
+        installations = app_service.get_many(
+            filter=dict(uuids=[sentry_app_installation_uuid], organization_id=organization_id)
+        )
+        if not installations:
+            raise SentryAppError(
+                f"Sentry App installation with UUID {sentry_app_installation_uuid} not found."
+            )
+
+        sentry_app = installations[0].sentry_app
+        alert_rule_component = None
+        for component in app_service.find_app_components(app_id=sentry_app.id):
+            if component.type == "alert-rule-action":
+                alert_rule_component = component
+                break
+
+        if not alert_rule_component:
+            raise ValidationError(
+                f"Alert Actions are not enabled for the {sentry_app.name} integration."
+            )
+
+        schema_title = alert_rule_component.app_schema.get("title")
+        return schema_title if schema_title is not None else sentry_app.name

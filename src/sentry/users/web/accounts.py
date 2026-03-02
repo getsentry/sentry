@@ -324,9 +324,9 @@ def start_confirm_email(request: HttpRequest) -> HttpResponse:
             status=429,
         )
 
-    assert isinstance(
-        request.user, User
-    ), "User must have an associated email to send confirm emails to"
+    assert isinstance(request.user, User), (
+        "User must have an associated email to send confirm emails to"
+    )
     if "primary-email" in request.POST:
         email = request.POST.get("email")
         try:

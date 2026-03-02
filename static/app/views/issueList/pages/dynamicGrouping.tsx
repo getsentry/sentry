@@ -22,11 +22,12 @@ import useDrawer from 'sentry/components/globalDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
   IconArrow,
   IconCalendar,
@@ -48,6 +49,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -56,7 +58,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
@@ -550,7 +551,7 @@ function ClusterCard({
               </Tooltip>
             )}
             <Flex align="center" gap="md">
-              <ButtonBar merged gap="0">
+              <ButtonBar>
                 <SeerButton
                   size="sm"
                   priority="primary"
@@ -657,7 +658,11 @@ function DynamicGrouping() {
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
-    [`/organizations/${organization.slug}/top-issues/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/top-issues/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: 60000,
       enabled: customClusterData === null, // Only fetch if no custom data

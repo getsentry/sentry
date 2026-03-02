@@ -39,7 +39,7 @@ export function useFilteredAnomalyThresholdSeries({
 
     if (detector) {
       const condition = detector.conditionGroup?.conditions[0];
-      if (!condition || condition.type !== 'anomaly_detection') {
+      if (condition?.type !== 'anomaly_detection') {
         return [];
       }
 

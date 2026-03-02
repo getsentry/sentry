@@ -83,7 +83,12 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.subscriptions import (
@@ -543,6 +548,7 @@ def create_alert_rule(
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
+    extrapolation_mode: ExtrapolationMode | None = None,
     **kwargs: Any,
 ) -> AlertRule:
     """
@@ -626,6 +632,7 @@ def create_alert_rule(
             resolution=timedelta(minutes=resolution),
             environment=environment,
             event_types=event_types,
+            extrapolation_mode=extrapolation_mode,
         )
 
         alert_rule = AlertRule.objects.create(
@@ -697,7 +704,7 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
 
         TODO: Refactor to not violate the type system
         """
-        model.id = None  # type: ignore[assignment]
+        model.id = None
 
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
@@ -800,6 +807,7 @@ def update_alert_rule(
     sensitivity: AlertRuleSensitivity | None | NotSet = NOT_SET,
     seasonality: AlertRuleSeasonality | None | NotSet = NOT_SET,
     detection_type: AlertRuleDetectionType | None = None,
+    extrapolation_mode: ExtrapolationMode | None = None,
     **kwargs: Any,
 ) -> AlertRule:
     """
@@ -860,6 +868,8 @@ def update_alert_rule(
         updated_query_fields["query_type"] = query_type
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
+    if extrapolation_mode is not None:
+        updated_query_fields["extrapolation_mode"] = extrapolation_mode
     if owner is not NOT_SET:
         updated_fields["owner"] = owner
     if comparison_delta is not NOT_SET:
@@ -969,6 +979,9 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
+            updated_query_fields.setdefault(
+                "extrapolation_mode", ExtrapolationMode(snuba_query.extrapolation_mode)
+            )
             if (
                 detection_type == AlertRuleDetectionType.DYNAMIC
                 and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
@@ -1840,9 +1853,11 @@ EAP_FUNCTIONS = [
     "min",
     "sum",
     "epm",
+    "failure_count",
     "failure_rate",
     "eps",
     "apdex",
+    "user_misery",
 ]
 
 
@@ -1982,7 +1997,7 @@ def get_slack_channel_ids(
     slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
-        if not action["target_identifier"] in mapped_slack_channels:
+        if action["target_identifier"] not in mapped_slack_channels:
             target = get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],

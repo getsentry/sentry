@@ -1,4 +1,3 @@
-import {createParser} from 'nuqs';
 import * as qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -161,13 +160,3 @@ export function decodeBoolean(
 
   return fallback;
 }
-
-export const parseAsSort = createParser({
-  parse: value => {
-    const sorts = decodeSorts(value);
-    return sorts[0] ? sorts[0] : null;
-  },
-  serialize: (value: Sort) => {
-    return value.kind === 'desc' ? `-${value.field}` : value.field;
-  },
-});

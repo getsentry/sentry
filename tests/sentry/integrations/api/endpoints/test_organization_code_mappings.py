@@ -169,7 +169,6 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
     def test_basic_get_with_no_integrationId_and_projectId(self) -> None:
-
         self.create_code_mapping(
             project=self.project1,
             repo=self.repo1,
@@ -191,15 +190,13 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert len(response.data) == 2
 
     def test_basic_get_with_invalid_integrationId(self) -> None:
-
-        url_path = f"{self.url}?integrationId=100"
+        url_path = f"{self.url}?integrationId=999999999"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 404, response.content
 
     def test_basic_get_with_invalid_projectId(self) -> None:
-
-        url_path = f"{self.url}?project=100"
+        url_path = f"{self.url}?project=999999999"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 403, response.content
@@ -273,7 +270,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 403, response.content
 
     def test_basic_post_with_invalid_integrationId(self) -> None:
-        response = self.make_post({"integrationId": 100})
+        response = self.make_post({"integrationId": 999999999})
         assert response.status_code == 404, response.content
 
     def test_basic_post_with_no_integrationId(self) -> None:
@@ -422,3 +419,58 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(accessible_mapping.id)
         assert response.data[0]["projectId"] == str(self.project2.id)
+
+    def test_get_with_open_membership_includes_all_accessible_projects(self) -> None:
+        """GET returns mappings for all accessible projects when org has open membership."""
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        self.login_as(user=self.user2)
+
+        mapping1 = self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="stack/root",
+            source_root="source/root",
+        )
+        mapping2 = self.create_code_mapping(
+            project=self.project2,
+            repo=self.repo1,
+            stack_root="another/path",
+            source_root="source/root",
+        )
+
+        url_path = f"{self.url}?integrationId={self.integration.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        returned_ids = {item["id"] for item in response.data}
+        assert returned_ids == {str(mapping1.id), str(mapping2.id)}
+
+    def test_get_no_params_with_open_membership_includes_all_accessible_projects(self) -> None:
+        """GET without integrationId or project params returns all accessible mappings."""
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        self.login_as(user=self.user2)
+
+        mapping1 = self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="stack/root",
+            source_root="source/root",
+        )
+        mapping2 = self.create_code_mapping(
+            project=self.project2,
+            repo=self.repo1,
+            stack_root="another/path",
+            source_root="source/root",
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        returned_ids = {item["id"] for item in response.data}
+        assert returned_ids == {str(mapping1.id), str(mapping2.id)}
