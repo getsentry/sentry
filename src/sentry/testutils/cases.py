@@ -83,10 +83,7 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.db.models import NodeData
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import (
-    _build_occurrence_attributes,
-    serialize_event_data_as_item,
-)
+from sentry.eventstream.item_helpers import _build_occurrence_attributes, serialize_event_data_as_item
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -170,7 +167,12 @@ from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
-
+from .asserts import assert_status_code
+from .factories import Factories
+from .fixtures import Fixtures
+from .helpers import Feature, TaskRunner, override_options
+from .silo import assume_test_silo_mode
+from .skips import requires_snuba
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
     DeprecatingMetricsQuery,
@@ -181,12 +183,6 @@ from ..snuba.metrics import (
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
-from .asserts import assert_status_code
-from .factories import Factories
-from .fixtures import Fixtures
-from .helpers import Feature, TaskRunner, override_options
-from .silo import assume_test_silo_mode
-from .skips import requires_snuba
 
 __all__ = (
     "TestCase",
@@ -1167,6 +1163,17 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+
+    def store_occurrences(self, occurrences):
+        files = {
+            f"occurrence_{i}": occurrence.SerializeToString()
+            for i, occurrence in enumerate(occurrences)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files=files,
+        )
+        assert response.status_code == 200
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
