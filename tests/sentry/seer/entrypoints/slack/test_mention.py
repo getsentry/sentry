@@ -1,4 +1,4 @@
-from sentry.integrations.slack.webhooks.mention import (
+from sentry.seer.entrypoints.slack.mention import (
     build_thread_context,
     extract_issue_links,
     extract_prompt,
