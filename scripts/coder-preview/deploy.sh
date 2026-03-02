@@ -232,18 +232,14 @@ echo "Waiting for devserver health check..."
 MAX_HEALTH_WAIT=600  # 10 minutes — devserver takes a while to start
 HEALTH_ELAPSED=0
 
-OWNER_NAME=$(api \
-    -H "${AUTH_HEADER}" \
-    "${CODER_API}/users/me" | jq -r '.username')
-
-PREVIEW_URL="https://sentry-dev--${WORKSPACE_NAME}--${OWNER_NAME}.coder.sentry.dev"
-
 while [ "$HEALTH_ELAPSED" -lt "$MAX_HEALTH_WAIT" ]; do
-    HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" "${PREVIEW_URL}/_health/" 2>/dev/null || echo "000")
+    APP_HEALTH=$(api \
+        -H "${AUTH_HEADER}" \
+        "${CODER_API}/workspaces/${WORKSPACE_ID}" | jq -r '.latest_build.resources[]?.agents[]?.apps[]? | select(.slug == "sentry-dev") | .health' | head -1)
 
-    echo "  Health check: HTTP ${HTTP_CODE} (${HEALTH_ELAPSED}s elapsed)"
+    echo "  Devserver app health: ${APP_HEALTH:-unknown} (${HEALTH_ELAPSED}s elapsed)"
 
-    if [ "$HTTP_CODE" = "200" ]; then
+    if [ "$APP_HEALTH" = "healthy" ]; then
         echo "Devserver is healthy!"
         break
     fi
@@ -258,6 +254,11 @@ if [ "$HEALTH_ELAPSED" -ge "$MAX_HEALTH_WAIT" ]; then
     exit 1
 fi
 
+OWNER_NAME=$(api \
+    -H "${AUTH_HEADER}" \
+    "${CODER_API}/users/me" | jq -r '.username')
+
+PREVIEW_URL="https://sentry-dev--${WORKSPACE_NAME}--${OWNER_NAME}.coder.sentry.dev"
 echo "Preview URL: ${PREVIEW_URL}"
 
 # ---------- GitHub Deployment: success ----------
