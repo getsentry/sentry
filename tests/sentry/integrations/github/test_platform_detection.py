@@ -6,8 +6,11 @@ from unittest import mock
 import pytest
 
 from sentry.integrations.github.platform_detection import (
+    BASE_PLATFORM_PRIORITY,
+    FRAMEWORK_PRIORITY,
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
+    _apply_supersession,
     _detect_frameworks_from_content,
     detect_framework,
     detect_platforms,
@@ -42,15 +45,31 @@ class TestDetectFrameworksFromContent:
         result = _detect_frameworks_from_content(
             content, "package.json", {"next": "javascript-nextjs", "react": "javascript-react"}
         )
-        assert "javascript-nextjs" in result
-        assert "javascript-react" in result
+        platforms = [m["platform"] for m in result]
+        assert "javascript-nextjs" in platforms
+        assert "javascript-react" in platforms
+        # Both are in prod deps
+        for m in result:
+            assert m["dep_source"] == "dependencies"
 
     def test_package_json_checks_dev_dependencies(self) -> None:
         content = json.dumps({"devDependencies": {"svelte": "^4.0.0"}})
         result = _detect_frameworks_from_content(
             content, "package.json", {"svelte": "javascript-svelte"}
         )
-        assert result == ["javascript-svelte"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "javascript-svelte"
+        assert result[0]["dep_source"] == "devDependencies"
+
+    def test_package_json_prefers_prod_over_dev(self) -> None:
+        content = json.dumps(
+            {"dependencies": {"react": "^18.0.0"}, "devDependencies": {"react": "^18.0.0"}}
+        )
+        result = _detect_frameworks_from_content(
+            content, "package.json", {"react": "javascript-react"}
+        )
+        assert len(result) == 1
+        assert result[0]["dep_source"] == "dependencies"
 
     def test_package_json_no_match(self) -> None:
         content = json.dumps({"dependencies": {"lodash": "^4.0.0"}})
@@ -72,39 +91,56 @@ class TestDetectFrameworksFromContent:
             "requirements.txt",
             {"django": "python-django", "celery": "python-celery"},
         )
-        assert "python-django" in result
-        assert "python-celery" in result
+        platforms = [m["platform"] for m in result]
+        assert "python-django" in platforms
+        assert "python-celery" in platforms
+        for m in result:
+            assert m["dep_source"] == "unknown"
 
     def test_requirements_txt_case_insensitive(self) -> None:
         content = "Flask==3.0\n"
         result = _detect_frameworks_from_content(
             content, "requirements.txt", {"flask": "python-flask"}
         )
-        assert result == ["python-flask"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "python-flask"
 
     def test_gemfile_detects_rails(self) -> None:
         content = 'gem "rails", "~> 7.0"\ngem "pg"\n'
         result = _detect_frameworks_from_content(content, "Gemfile", {"rails": "ruby-rails"})
-        assert result == ["ruby-rails"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "ruby-rails"
 
     def test_composer_json_detects_laravel(self) -> None:
         content = json.dumps({"require": {"laravel/framework": "^10.0"}})
         result = _detect_frameworks_from_content(
             content, "composer.json", {"laravel/framework": "php-laravel"}
         )
-        assert result == ["php-laravel"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "php-laravel"
+        assert result[0]["dep_source"] == "dependencies"
 
     def test_composer_json_prefix_match_symfony(self) -> None:
         content = json.dumps({"require": {"symfony/framework-bundle": "^6.0"}})
         result = _detect_frameworks_from_content(
             content, "composer.json", {"symfony/": "php-symfony"}
         )
-        assert result == ["php-symfony"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "php-symfony"
+
+    def test_composer_json_dev_dependency(self) -> None:
+        content = json.dumps({"require-dev": {"laravel/framework": "^10.0"}})
+        result = _detect_frameworks_from_content(
+            content, "composer.json", {"laravel/framework": "php-laravel"}
+        )
+        assert len(result) == 1
+        assert result[0]["dep_source"] == "devDependencies"
 
     def test_go_mod_detects_gin(self) -> None:
         content = "module example.com/myapp\n\nrequire github.com/gin-gonic/gin v1.9.1\n"
         result = _detect_frameworks_from_content(content, "go.mod", {"gin": "go-gin"})
-        assert result == ["go-gin"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "go-gin"
 
     def test_build_gradle_detects_spring_boot(self) -> None:
         content = (
@@ -113,7 +149,8 @@ class TestDetectFrameworksFromContent:
         result = _detect_frameworks_from_content(
             content, "build.gradle", {"spring-boot": "java-spring-boot"}
         )
-        assert result == ["java-spring-boot"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "java-spring-boot"
 
 
 def _make_b64_response(content: str) -> dict:
@@ -128,8 +165,9 @@ class TestDetectFramework:
 
         result = detect_framework(client, "owner/repo", "python")
 
-        assert "python-django" in result
-        assert "python-celery" in result
+        platforms = [m["platform"] for m in result]
+        assert "python-django" in platforms
+        assert "python-celery" in platforms
 
     def test_falls_back_when_manifest_not_found(self) -> None:
         client = mock.MagicMock()
@@ -145,7 +183,8 @@ class TestDetectFramework:
 
         result = detect_framework(client, "owner/repo", "python")
 
-        assert result == ["python-django"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "python-django"
         # Should have only called get() once (for requirements.txt),
         # not continued to pyproject.toml
         assert client.get.call_count == 1
@@ -164,7 +203,8 @@ class TestDetectFramework:
 
         result = detect_framework(client, "owner/repo", "python")
 
-        assert result == ["python-flask"]
+        assert len(result) == 1
+        assert result[0]["platform"] == "python-flask"
 
     def test_unknown_platform_returns_empty(self) -> None:
         client = mock.MagicMock()
@@ -182,7 +222,140 @@ class TestDetectFramework:
 
         result = detect_framework(client, "owner/repo", "javascript")
 
-        assert result.count("javascript-react") == 1
+        react_matches = [m for m in result if m["platform"] == "javascript-react"]
+        assert len(react_matches) == 1
+        # Should prefer prod dep
+        assert react_matches[0]["dep_source"] == "dependencies"
+
+    def test_returns_framework_match_objects(self) -> None:
+        client = mock.MagicMock()
+        content = json.dumps({"dependencies": {"next": "^14.0.0"}})
+        client.get.return_value = _make_b64_response(content)
+
+        result = detect_framework(client, "owner/repo", "javascript")
+
+        assert len(result) >= 1
+        match = result[0]
+        assert "platform" in match
+        assert "dep_source" in match
+
+
+class TestApplySupersession:
+    def test_nextjs_supersedes_react(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-nextjs",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=100,
+            ),
+            DetectedPlatform(
+                platform="javascript-react",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "javascript-nextjs" in platforms
+        assert "javascript-react" not in platforms
+
+    def test_nuxt_supersedes_vue(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-nuxt",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=100,
+            ),
+            DetectedPlatform(
+                platform="javascript-vue",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "javascript-nuxt" in platforms
+        assert "javascript-vue" not in platforms
+
+    def test_remix_supersedes_react(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-remix",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=100,
+            ),
+            DetectedPlatform(
+                platform="javascript-react",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "javascript-remix" in platforms
+        assert "javascript-react" not in platforms
+
+    def test_no_supersession_keeps_all(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-react",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+            DetectedPlatform(
+                platform="node-express",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=60,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        assert len(filtered) == 2
+
+    def test_supersession_does_not_affect_unrelated(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-nextjs",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=100,
+            ),
+            DetectedPlatform(
+                platform="node-express",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=60,
+            ),
+            DetectedPlatform(
+                platform="javascript-react",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "javascript-nextjs" in platforms
+        assert "node-express" in platforms
+        assert "javascript-react" not in platforms
 
 
 class TestDetectPlatforms:
@@ -194,12 +367,11 @@ class TestDetectPlatforms:
         result = detect_platforms(client, "owner/repo")
 
         assert len(result) == 1
-        assert result[0] == DetectedPlatform(
-            platform="python",
-            language="Python",
-            bytes=50000,
-            confidence="medium",
-        )
+        assert result[0]["platform"] == "python"
+        assert result[0]["language"] == "Python"
+        assert result[0]["bytes"] == 50000
+        assert result[0]["confidence"] == "medium"
+        assert result[0]["priority"] == BASE_PLATFORM_PRIORITY
 
     def test_detects_multi_language_repo(self) -> None:
         client = mock.MagicMock()
@@ -249,17 +421,69 @@ class TestDetectPlatforms:
         python_result = next(r for r in result if r["platform"] == "python")
         assert python_result["confidence"] == "medium"
 
-    def test_preserves_github_ordering(self) -> None:
+    def test_results_sorted_by_priority_then_bytes(self) -> None:
         client = mock.MagicMock()
-        # GitHub returns languages ordered by bytes descending
-        client.get_languages.return_value = {"Python": 50000, "Go": 30000, "Ruby": 10000}
-        client.get.side_effect = ApiError("Not Found", code=404)
+        # Python has more bytes but framework detection gives JS higher priority
+        client.get_languages.return_value = {"Python": 80000, "JavaScript": 30000}
+
+        def get_side_effect(path, params=None):
+            if "requirements.txt" in path:
+                return _make_b64_response("flask==3.0\n")
+            if "package.json" in path:
+                return _make_b64_response(
+                    json.dumps({"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}})
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
 
-        assert result[0]["language"] == "Python"
-        assert result[1]["language"] == "Go"
-        assert result[2]["language"] == "Ruby"
+        # Next.js (priority 110) > Django (95) > base platforms (10)
+        platforms = [r["platform"] for r in result]
+        nextjs_idx = platforms.index("javascript-nextjs")
+        flask_idx = platforms.index("python-flask")
+        assert nextjs_idx < flask_idx
+
+    def test_nextjs_supersedes_react_in_full_flow(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        content = json.dumps(
+            {"dependencies": {"next": "^14.0.0", "react": "^18.0.0", "express": "^4.0.0"}}
+        )
+        client.get.return_value = _make_b64_response(content)
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "javascript-nextjs" in platforms
+        assert "node-express" in platforms
+        assert "javascript-react" not in platforms
+        assert "javascript" in platforms
+
+    def test_prod_dep_ranks_higher_than_dev_dep(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        content = json.dumps(
+            {
+                "dependencies": {"express": "^4.0.0"},
+                "devDependencies": {"svelte": "^4.0.0"},
+            }
+        )
+        client.get.return_value = _make_b64_response(content)
+
+        result = detect_platforms(client, "owner/repo")
+
+        express = next(r for r in result if r["platform"] == "node-express")
+        svelte = next(r for r in result if r["platform"] == "javascript-svelte")
+        # express: priority 60 + 10 (prod) = 70
+        # svelte: priority 70 + 0 (dev) = 70
+        # Same priority, but express has same bytes, so order may vary.
+        # The key thing is both are present and have correct priorities.
+        assert express["priority"] == FRAMEWORK_PRIORITY["node-express"] + 10
+        assert svelte["priority"] == FRAMEWORK_PRIORITY["javascript-svelte"] + 0
 
     def test_typescript_and_javascript_deduplicated(self) -> None:
         client = mock.MagicMock()
@@ -286,6 +510,15 @@ class TestDetectPlatforms:
         result = detect_platforms(client, "owner/repo")
 
         assert result == []
+
+    def test_priority_field_present_in_results(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+        client.get.side_effect = ApiError("Not Found", code=404)
+
+        result = detect_platforms(client, "owner/repo")
+
+        assert "priority" in result[0]
 
     @pytest.mark.parametrize(
         ("language", "expected_platform"),

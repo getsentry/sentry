@@ -69,6 +69,61 @@ class DetectedPlatform(TypedDict):
     language: str  # GitHub Linguist name, e.g. "Python"
     bytes: int  # Bytes of code in that language
     confidence: str  # "high" (framework detected) or "medium" (language only)
+    priority: int  # Higher = more relevant for onboarding
+
+
+# Priority weights: higher = more specific/useful for onboarding
+FRAMEWORK_PRIORITY: dict[str, int] = {
+    # JS meta-frameworks (most specific, include routing/SSR)
+    "javascript-nextjs": 100,
+    "javascript-remix": 100,
+    "javascript-nuxt": 100,
+    # JS UI frameworks
+    "javascript-react": 70,
+    "javascript-vue": 70,
+    "javascript-angular": 70,
+    "javascript-svelte": 70,
+    # JS server frameworks
+    "node-express": 60,
+    "node-hono": 60,
+    "node-koa": 60,
+    # Python web frameworks
+    "python-django": 90,
+    "python-fastapi": 90,
+    "python-flask": 80,
+    "python-starlette": 70,
+    "python-tornado": 70,
+    # Python task queues (useful but secondary)
+    "python-celery": 40,
+    # Ruby
+    "ruby-rails": 90,
+    # PHP
+    "php-laravel": 90,
+    "php-symfony": 80,
+    # Java
+    "java-spring-boot": 90,
+    "java-spring": 80,
+    # Go
+    "go-echo": 80,
+    "go-gin": 80,
+    "go-fiber": 80,
+}
+
+# Base platform priority (used when no framework detected)
+BASE_PLATFORM_PRIORITY = 10
+
+# When a parent framework is detected, child frameworks are redundant.
+# e.g. Next.js includes React, so don't also suggest React.
+SUPERSEDED_BY: dict[str, list[str]] = {
+    "javascript-nextjs": ["javascript-react"],
+    "javascript-remix": ["javascript-react"],
+    "javascript-nuxt": ["javascript-vue"],
+}
+
+
+class FrameworkMatch(TypedDict):
+    platform: str
+    dep_source: str  # "dependencies", "devDependencies", or "unknown"
 
 
 # Maps base_platform -> list of (manifest_file, {dependency_name: sentry_platform_id})
@@ -192,33 +247,47 @@ def _detect_frameworks_from_content(
     content: str,
     manifest_file: str,
     dependency_map: dict[str, str],
-) -> list[str]:
-    """Check manifest file content for known framework dependencies."""
-    detected: list[str] = []
+) -> list[FrameworkMatch]:
+    """Check manifest file content for known framework dependencies.
+
+    Returns FrameworkMatch objects that include which dependency section
+    the framework was found in (dependencies vs devDependencies).
+    """
+    detected: list[FrameworkMatch] = []
 
     if manifest_file == "package.json":
         try:
             pkg = json.loads(content)
-            all_deps: dict[str, str] = {}
-            all_deps.update(pkg.get("dependencies", {}))
-            all_deps.update(pkg.get("devDependencies", {}))
+            prod_deps = set(pkg.get("dependencies", {}).keys())
+            dev_deps = set(pkg.get("devDependencies", {}).keys())
             for dep_name, platform_id in dependency_map.items():
-                if dep_name in all_deps:
-                    detected.append(platform_id)
+                if dep_name in prod_deps:
+                    detected.append(FrameworkMatch(platform=platform_id, dep_source="dependencies"))
+                elif dep_name in dev_deps:
+                    detected.append(
+                        FrameworkMatch(platform=platform_id, dep_source="devDependencies")
+                    )
         except (json.JSONDecodeError, TypeError):
             pass
 
     elif manifest_file == "composer.json":
         try:
             composer = json.loads(content)
-            all_deps = {}
-            all_deps.update(composer.get("require", {}))
-            all_deps.update(composer.get("require-dev", {}))
+            prod_deps = set(composer.get("require", {}).keys())
+            dev_deps = set(composer.get("require-dev", {}).keys())
             for dep_name, platform_id in dependency_map.items():
-                for pkg_name in all_deps:
+                source = None
+                for pkg_name in prod_deps:
                     if pkg_name == dep_name or pkg_name.startswith(dep_name):
-                        detected.append(platform_id)
+                        source = "dependencies"
                         break
+                if source is None:
+                    for pkg_name in dev_deps:
+                        if pkg_name == dep_name or pkg_name.startswith(dep_name):
+                            source = "devDependencies"
+                            break
+                if source is not None:
+                    detected.append(FrameworkMatch(platform=platform_id, dep_source=source))
         except (json.JSONDecodeError, TypeError):
             pass
 
@@ -228,7 +297,7 @@ def _detect_frameworks_from_content(
         content_lower = content.lower()
         for dep_name, platform_id in dependency_map.items():
             if dep_name.lower() in content_lower:
-                detected.append(platform_id)
+                detected.append(FrameworkMatch(platform=platform_id, dep_source="unknown"))
 
     return detected
 
@@ -238,15 +307,15 @@ def detect_framework(
     repo: str,
     base_platform: str,
     ref: str | None = None,
-) -> list[str]:
+) -> list[FrameworkMatch]:
     """
     Refine a base platform (e.g. "python") into specific framework
     platforms (e.g. "python-django") by reading manifest files.
 
-    Returns detected framework platform IDs, or an empty list if none found.
+    Returns FrameworkMatch objects, or an empty list if none found.
     """
     detectors = FRAMEWORK_DETECTORS.get(base_platform, [])
-    detected: list[str] = []
+    detected: list[FrameworkMatch] = []
 
     for manifest_file, dependency_map in detectors:
         content = _get_repo_file_content(client, repo, manifest_file, ref)
@@ -259,13 +328,35 @@ def detect_framework(
 
     # Deduplicate while preserving order
     seen: set[str] = set()
-    unique: list[str] = []
-    for platform_id in detected:
-        if platform_id not in seen:
-            seen.add(platform_id)
-            unique.append(platform_id)
+    unique: list[FrameworkMatch] = []
+    for match in detected:
+        if match["platform"] not in seen:
+            seen.add(match["platform"])
+            unique.append(match)
 
     return unique
+
+
+def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatform]:
+    """Remove platforms that are superseded by more specific ones.
+
+    e.g. if Next.js is detected, React is redundant since Next.js includes it.
+    """
+    detected_ids = {r["platform"] for r in results}
+    superseded: set[str] = set()
+    for platform_id in detected_ids:
+        for child_id in SUPERSEDED_BY.get(platform_id, []):
+            superseded.add(child_id)
+
+    return [r for r in results if r["platform"] not in superseded]
+
+
+# Bonus priority for frameworks found in production dependencies vs devDependencies
+_DEP_SOURCE_BONUS = {
+    "dependencies": 10,
+    "devDependencies": 0,
+    "unknown": 5,
+}
 
 
 def detect_platforms(
@@ -279,7 +370,8 @@ def detect_platforms(
     Calls the GitHub Languages API, maps languages to Sentry platform IDs,
     and attempts framework refinement via manifest file inspection.
 
-    Returns platforms ordered by relevance (bytes of code, descending).
+    Results are ranked by priority (descending), then bytes (descending).
+    Superseded frameworks (e.g. React when Next.js is present) are removed.
     """
     languages = client.get_languages(repo)
 
@@ -294,17 +386,21 @@ def detect_platforms(
         if base_platform is None:
             continue
 
-        frameworks = detect_framework(client, repo, base_platform, ref)
+        framework_matches = detect_framework(client, repo, base_platform, ref)
 
-        for framework_id in frameworks:
+        for match in framework_matches:
+            framework_id = match["platform"]
             if framework_id not in seen_platforms:
                 seen_platforms.add(framework_id)
+                base_priority = FRAMEWORK_PRIORITY.get(framework_id, 50)
+                dep_bonus = _DEP_SOURCE_BONUS.get(match["dep_source"], 0)
                 results.append(
                     DetectedPlatform(
                         platform=framework_id,
                         language=language,
                         bytes=byte_count,
                         confidence="high",
+                        priority=base_priority + dep_bonus,
                     )
                 )
 
@@ -316,7 +412,11 @@ def detect_platforms(
                     language=language,
                     bytes=byte_count,
                     confidence="medium",
+                    priority=BASE_PLATFORM_PRIORITY,
                 )
             )
+
+    results = _apply_supersession(results)
+    results.sort(key=lambda r: (r["priority"], r["bytes"]), reverse=True)
 
     return results
