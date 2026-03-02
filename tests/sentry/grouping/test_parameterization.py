@@ -192,33 +192,136 @@ def test_experimental_parameterization(
     )
 
 
-# These are test cases that we should fix
-@pytest.mark.xfail(strict=True)
-@pytest.mark.parametrize(
-    ("name", "input", "expected"),
-    [
-        (
-            "URL - non-http protocol user/pass/port",
-            """blah tcp://user:pass@email.com:10 had a problem""",
-            """blah <url> had a problem""",
-        ),
-    ],
-)
-def test_fail_parameterize(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
-) -> None:
-    assert parameterizer.parameterize_all(input) == expected
+# Known problems, which we should fix if we can (might not always be possible). Includes false
+# positives (cases where we parameterize too aggressively), false negatives (cases where miss
+# parameterizing something), and otherwise incorrect parameterizations.
+#
+# TODO: Move as many of these as possible up to `standard_cases` above by improving
+# parameterization. (Remember to remove the last item in each tuple for the cases you fix.)
+incorrect_cases = [
+    # ("name", "input", "desired", "actual")
+    (
+        "date - datetime space-separated UTC",
+        "2006-01-02 15:04:05Z",
+        "<date>",
+        "<date>Z",
+    ),
+    (
+        "date - datetime space-separated w offset",
+        "2006-01-02 15:04:05+01:00",
+        "<date>",
+        "<date>+<int>:<int>",
+    ),
+    (
+        "date - datetime compressed space-separated",
+        "20060102 150405",
+        "<date>",
+        "<hex> <int>",
+    ),
+    (
+        "date - datetime compressed space-separated UTC",
+        "20060102 150405Z",
+        "<date>",
+        "<hex> 150405Z",
+    ),
+    (
+        "date - datetime compressed space-separated w offset",
+        "20060102 150405+0100",
+        "<date>",
+        "<hex> <int>+<int>",
+    ),
+    (
+        "date - datetime compressed T-separated",
+        "20060102T150405",
+        "<date>",
+        "20060102T150405",
+    ),
+    (
+        "date - datetime compressed T-separated UTC",
+        "20060102T150405Z",
+        "<date>",
+        "20060102T150405Z",
+    ),
+    (
+        "date - datetime compressed T-separated w offset",
+        "20060102T150405+0100",
+        "<date>",
+        "20060102T150405+<int>",
+    ),
+    (
+        "git sha",
+        "commit a93c7d2",
+        "commit <git_sha>",
+        "commit a93c7d2",
+    ),
+    (
+        "hex without prefix - lowercase, no numbers until later",
+        "deadbeef 123",
+        "deadbeef <int>",
+        "<hex> <int>",
+    ),
+    (
+        "hex without prefix - uppercase, no numbers until later",
+        "DEADBEEF 123",
+        "DEADBEEF <int>",
+        "<hex> <int>",
+    ),
+    (
+        "int - number in word",
+        "Encoding: utf-8",
+        "Encoding: utf-8",
+        "Encoding: utf<int>",
+    ),
+    (
+        "int - with commas",
+        "4,150,908",
+        "<int>",
+        "<int>,<int>,<int>",
+    ),
+    (
+        "ip - double colon object property",
+        "Option::unwrap()",
+        "Option::unwrap()",
+        "Option<ip>unwrap()",
+    ),
+    (
+        "ip - double colon object property including hex",
+        "Bee::buzz()",
+        "Bee::buzz()",
+        "<ip>buzz()",
+    ),
+    (
+        "json - double quotes",
+        '{"dogs are great": true, "dog_id": "greatdog1231"}',
+        '{"dogs are great": <bool>, "dog_id": <id>}',
+        '{"dogs are great": true, "dog_id": "greatdog1231"}',
+    ),
+    # Single quotes make this not valid JSON, but when the JSON is stringified, sometimes it comes
+    # out that way
+    (
+        "json - single quotes",
+        "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
+        "{'dogs are great': <bool>, 'dog_id': '<id>'}",
+        "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
+    ),
+    (
+        "random sequence as id",
+        "invoice k9Mtd2gDcgG",
+        "invoice <random_str>",
+        "invoice k9Mtd2gDcgG",
+    ),
+    (
+        "URL - non-http protocol user/pass/port",
+        "tcp://user:pass@email.com:10 had a problem",
+        "<url> had a problem",
+        "tcp://user:<email>:<int> had a problem",
+    ),
+]
 
 
-# These are test cases where we're too aggressive
-@pytest.mark.xfail(strict=True)
-@pytest.mark.parametrize(
-    ("name", "input", "expected"),
-    [
-        ("Not an Int", "Encoding: utf-8", "Encoding: utf-8"),  # produces "Encoding: utf<int>"
-    ],
-)
-def test_too_aggressive_parameterize(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
+@pytest.mark.parametrize(("name", "input", "desired", "actual"), incorrect_cases)
+def test_incorrect_parameterization(
+    name: str, input: str, desired: str, actual: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) == expected
+    assert parameterizer.parameterize_all(input) != desired
+    assert parameterizer.parameterize_all(input) == actual
