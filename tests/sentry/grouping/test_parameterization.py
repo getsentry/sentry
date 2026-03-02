@@ -177,33 +177,32 @@ def test_parameterize_experimental(
     )
 
 
-# These are test cases that we should fix
-@pytest.mark.xfail(strict=True)
-@pytest.mark.parametrize(
-    ("name", "input", "expected"),
-    [
-        (
-            "URL - non-http protocol user/pass/port",
-            """blah tcp://user:pass@email.com:10 had a problem""",
-            """blah <url> had a problem""",
-        ),
-    ],
-)
-def test_fail_parameterize(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
-) -> None:
-    assert parameterizer.parameterize_all(input) == expected
+# Known problems, which we should fix if we can (might not always be possible). Includes false
+# positives (cases where we parameterize too aggressively), false negatives (cases where miss
+# parameterizing something), and otherwise incorrect parameterizations.
+#
+# TODO: Move as many of these as possible up to `standard_cases` above by improving
+# parameterization. (Remember to remove the last item in each tuple for the cases you fix.)
+incorrect_cases = [
+    # ("name", "input", "desired", "actual")
+    (
+        "int - number in word",
+        "Encoding: utf-8",
+        "Encoding: utf-8",
+        "Encoding: utf<int>",
+    ),
+    (
+        "URL - non-http protocol user/pass/port",
+        "tcp://user:pass@email.com:10 had a problem",
+        "<url> had a problem",
+        "tcp://user:<email>:<int> had a problem",
+    ),
+]
 
 
-# These are test cases where we're too aggressive
-@pytest.mark.xfail(strict=True)
-@pytest.mark.parametrize(
-    ("name", "input", "expected"),
-    [
-        ("Not an Int", "Encoding: utf-8", "Encoding: utf-8"),  # produces "Encoding: utf<int>"
-    ],
-)
-def test_too_aggressive_parameterize(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
+@pytest.mark.parametrize(("name", "input", "desired", "actual"), incorrect_cases)
+def test_incorrect_parameterization(
+    name: str, input: str, desired: str, actual: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) == expected
+    assert parameterizer.parameterize_all(input) != desired
+    assert parameterizer.parameterize_all(input) == actual
