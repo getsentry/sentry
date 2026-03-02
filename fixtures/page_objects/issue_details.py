@@ -2,6 +2,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sentry.utils import json
+
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 
@@ -11,6 +13,12 @@ class IssueDetailsPage(BasePage):
         super().__init__(browser)
         self.client = client
         self.global_selection = GlobalSelectionPage(browser)
+        # Prevent the issue details tour from appearing by marking it as viewed in the backend
+        self.client.put(
+            "/api/0/assistant/",
+            content_type="application/json",
+            data=json.dumps({"guide": "tour.issue_details", "status": "viewed", "useful": True}),
+        )
 
     def visit_issue(self, org, groupid):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
@@ -61,12 +69,12 @@ class IssueDetailsPage(BasePage):
     def resolve_issue(self):
         self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
-        self.browser.wait_until('[aria-label="Resolved"]')
+        self.browser.wait_until('[aria-label="Unresolve"]')
 
     def archive_issue(self):
         self.browser.click('[aria-label="Archive"]')
-        # Ignore should become unresolve
-        self.browser.wait_until('[aria-label="Archived"]')
+        # Archive should become unarchive
+        self.browser.wait_until('[aria-label="Unarchive"]')
 
     def bookmark_issue(self):
         self.browser.click('button[aria-label="More Actions"]')
@@ -114,8 +122,6 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_not('[data-test-id="event-errors-loading"]')
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
-        if self.browser.element_exists("#grouping-info"):
-            self.browser.wait_until_test_id("loaded-grouping-info")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def mark_reviewed(self):
