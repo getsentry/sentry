@@ -209,6 +209,10 @@ export function ProjectPageFilter({
 
     const memberProjectList = memberProjects(projects);
     const nonMemberProjectList = nonMemberProjects(projects);
+    const memberProjectIdSet = new Set(memberProjectList.map(p => parseInt(p.id, 10)));
+    const selectedMemberCount = optionSelectionIntent.ids.filter(id =>
+      memberProjectIdSet.has(id)
+    ).length;
 
     const specialItems = [
       ...(projects.length > 1 && nonMemberProjectList.length > 0
@@ -242,12 +246,18 @@ export function ProjectPageFilter({
               leadingItems: () => (
                 <Fragment>
                   <MenuComponents.Checkbox
-                    checked={optionSelectionIntent.kind === 'all'}
+                    checked={
+                      optionSelectionIntent.kind === 'all'
+                        ? true
+                        : optionSelectionIntent.kind === 'my' ||
+                            optionSelectionIntent.kind === 'custom'
+                          ? 'indeterminate'
+                          : false
+                    }
                     onChange={() => {
                       dispatchRef.current?.({
                         type: 'set staged',
                         value:
-                          // The inverse of All Projects is an empty array
                           optionSelectionIntent.kind === 'all'
                             ? []
                             : [ALL_ACCESS_PROJECTS],
@@ -292,7 +302,14 @@ export function ProjectPageFilter({
                   <MenuComponents.Checkbox
                     checked={
                       optionSelectionIntent.kind === 'all' ||
-                      optionSelectionIntent.kind === 'my'
+                      optionSelectionIntent.kind === 'my' ||
+                      (optionSelectionIntent.kind === 'custom' &&
+                        selectedMemberCount === memberProjectList.length)
+                        ? true
+                        : optionSelectionIntent.kind === 'custom' &&
+                            selectedMemberCount > 0
+                          ? 'indeterminate'
+                          : false
                     }
                     onChange={() => {
                       if (optionSelectionIntent.kind === 'all') {
@@ -311,7 +328,20 @@ export function ProjectPageFilter({
                         });
                         return;
                       }
-                      // For 'custom' or 'none': select My Projects
+                      if (
+                        optionSelectionIntent.kind === 'custom' &&
+                        selectedMemberCount === memberProjectList.length
+                      ) {
+                        // Remove member projects from the custom selection, keeping non-members
+                        dispatchRef.current?.({
+                          type: 'set staged',
+                          value: optionSelectionIntent.ids.filter(
+                            id => !memberProjectIdSet.has(id)
+                          ),
+                        });
+                        return;
+                      }
+                      // indeterminate or none: select all My Projects
                       dispatchRef.current?.({
                         type: 'set staged',
                         value: [MY_PROJECTS_VALUE],
