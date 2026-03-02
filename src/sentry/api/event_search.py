@@ -1889,7 +1889,7 @@ def parse_search_query(
     ).visit(tree)
 
 
-def _contains_or(tokens):
+def _contains_or(tokens: Sequence[QueryToken]) -> bool:
     for token in tokens:
         if isinstance(token, str) and SearchBoolean.is_or_operator(token):
             return True
@@ -1898,7 +1898,7 @@ def _contains_or(tokens):
     return False
 
 
-def _collect_pinned(tokens):
+def _collect_pinned(tokens: Sequence[QueryToken]) -> set[str]:
     pinned: set[str] = set()
     for token in tokens:
         if isinstance(token, SearchFilter):
