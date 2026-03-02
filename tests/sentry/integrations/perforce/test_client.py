@@ -632,14 +632,17 @@ class PerforceClientTest(TestCase):
         assert os.path.isdir(client_a._p4_home)
         assert os.path.isdir(client_b._p4_home)
 
-    def test_tmpdir_cleaned_up_when_client_dereferenced(self):
-        """Temp directory is cleaned up when the PerforceClient is garbage collected."""
-        client = PerforceClient(integration=self.integration, org_integration=self.org_integration)
-        tmpdir_path = client._p4_home
-        assert os.path.isdir(tmpdir_path)
+    def test_tmpdir_cleaned_up_via_atexit(self):
+        """Temp directory cleanup is registered via atexit."""
+        import shutil
 
-        del client  # trigger __del__ / TemporaryDirectory cleanup
-        assert not os.path.exists(tmpdir_path)
+        with mock.patch("sentry.integrations.perforce.client.atexit") as mock_atexit:
+            client = PerforceClient(
+                integration=self.integration, org_integration=self.org_integration
+            )
+            mock_atexit.register.assert_called_once_with(
+                shutil.rmtree, client._p4_home, ignore_errors=True
+            )
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_connect_sets_isolated_trust_and_ticket_paths(self, mock_p4_class):

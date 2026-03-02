@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import atexit
 import logging
 import os
+import shutil
 import tempfile
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
@@ -142,8 +144,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         # leakage when multiple customers connect concurrently.
         # The directory is bound to this client's lifetime so trust/ticket
         # state is cached across multiple _connect() calls.
-        self._tmpdir = tempfile.TemporaryDirectory(prefix="sentry-p4-")
-        self._p4_home = self._tmpdir.name
+        # We use mkdtemp + atexit instead of TemporaryDirectory to avoid
+        # ResourceWarning from implicit GC cleanup in Python 3.13+.
+        self._p4_home = tempfile.mkdtemp(prefix="sentry-p4-")
+        atexit.register(shutil.rmtree, self._p4_home, ignore_errors=True)
 
     @contextmanager
     def _connect(self) -> Generator[P4]:
