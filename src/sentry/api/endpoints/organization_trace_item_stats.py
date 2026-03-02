@@ -14,9 +14,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
-from sentry.api.event_search import translate_escape_sequences
+from sentry.api.event_search import (
+    ParenExpression,
+    SearchBoolean,
+    SearchFilter,
+    parse_search_query,
+    translate_escape_sequences,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
@@ -34,6 +41,56 @@ logger = logging.getLogger(__name__)
 
 
 MAX_THREADS = 4
+
+
+def _contains_or(tokens):
+    for token in tokens:
+        if isinstance(token, str) and SearchBoolean.is_or_operator(token):
+            return True
+        if isinstance(token, ParenExpression) and _contains_or(token.children):
+            return True
+    return False
+
+
+def _collect_pinned(tokens, pinned):
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if (
+                token.operator == "="
+                and not token.is_negation
+                and not token.is_in_filter
+                and isinstance(token.value.raw_value, str)
+                and token.value.raw_value != ""
+                and not token.value.is_wildcard()
+            ):
+                pinned.add(token.key.name)
+        elif isinstance(token, ParenExpression):
+            _collect_pinned(token.children, pinned)
+
+
+def get_pinned_attributes(query: str) -> set[str]:
+    """Return the set of attribute public aliases that are pinned to a single value in the query.
+
+    An attribute is "pinned" when it is filtered with ``=`` to a single non-wildcard value
+    (e.g. ``span.op:db``).  These attributes always show 100% one value in breakdown
+    results and should be excluded.
+
+    If the query contains any ``OR`` operator we conservatively return an empty set
+    because the pinned assumption no longer holds.
+    """
+    if not query:
+        return set()
+    try:
+        tokens = parse_search_query(query)
+    except InvalidSearchQuery:
+        return set()
+
+    if _contains_or(tokens):
+        return set()
+
+    pinned: set[str] = set()
+    _collect_pinned(tokens, pinned)
+    return pinned
 
 
 class TraceItemStatsPaginator:
@@ -161,6 +218,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         def data_fn(offset: int, limit: int):
+            query_string = serialized.get("query", "")
             table_results = get_table_results()
             if not table_results["data"]:
                 return {"data": []}, 0
@@ -176,6 +234,8 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             except (IndexError, KeyError):
                 return {"data": []}, 0
 
+            pinned_attributes = get_pinned_attributes(query_string)
+
             sanitized_keys = []
             for internal_name in internal_alias_attr_keys:
                 public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string", {}).get(
@@ -183,6 +243,9 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
                 if public_alias in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+                    continue
+
+                if public_alias in pinned_attributes:
                     continue
 
                 if value_substring_match:
