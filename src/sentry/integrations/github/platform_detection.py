@@ -5,7 +5,7 @@ import re
 from base64 import b64decode
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
@@ -81,13 +81,13 @@ class DetectorRule(TypedDict, total=False):
     match_package: str  # Package name in package.json/composer.json deps
 
 
-class FrameworkDef(TypedDict, total=False):
+class FrameworkDef(TypedDict):
     platform: str  # Sentry platform ID, e.g. "javascript-nextjs"
     sort: int  # Lower = higher priority (Vercel convention)
     base_platform: str  # Language group, e.g. "javascript"
-    every: list[DetectorRule]  # ALL must match (AND)
-    some: list[DetectorRule]  # At least ONE must match (OR)
-    supersedes: list[str]  # Platform IDs this makes redundant
+    every: NotRequired[list[DetectorRule]]  # ALL must match (AND)
+    some: NotRequired[list[DetectorRule]]  # At least ONE must match (OR)
+    supersedes: NotRequired[list[str]]  # Platform IDs this makes redundant
 
 
 # Each framework is a self-contained definition with composable detector rules.
@@ -376,14 +376,14 @@ def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifes
         if manifest_file == "package.json":
             pkg = json.loads(content)
             return _PackageManifest(
-                dependencies=set(pkg.get("dependencies", {}).keys()),
-                dev_dependencies=set(pkg.get("devDependencies", {}).keys()),
+                dependencies=set((pkg.get("dependencies") or {}).keys()),
+                dev_dependencies=set((pkg.get("devDependencies") or {}).keys()),
             )
         elif manifest_file == "composer.json":
             composer = json.loads(content)
             return _PackageManifest(
-                dependencies=set(composer.get("require", {}).keys()),
-                dev_dependencies=set(composer.get("require-dev", {}).keys()),
+                dependencies=set((composer.get("require") or {}).keys()),
+                dev_dependencies=set((composer.get("require-dev") or {}).keys()),
             )
     except (json.JSONDecodeError, TypeError):
         pass

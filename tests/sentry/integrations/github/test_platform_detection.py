@@ -67,6 +67,20 @@ class TestParsePackageManifest:
     def test_unsupported_manifest_returns_none(self) -> None:
         assert _parse_package_manifest("{}", "requirements.txt") is None
 
+    def test_null_dependencies_handled(self) -> None:
+        content = json.dumps({"dependencies": None, "devDependencies": None})
+        result = _parse_package_manifest(content, "package.json")
+        assert result is not None
+        assert result["dependencies"] == set()
+        assert result["dev_dependencies"] == set()
+
+    def test_null_composer_require_handled(self) -> None:
+        content = json.dumps({"require": None, "require-dev": None})
+        result = _parse_package_manifest(content, "composer.json")
+        assert result is not None
+        assert result["dependencies"] == set()
+        assert result["dev_dependencies"] == set()
+
 
 class TestPackageInManifest:
     def test_exact_match_in_dependencies(self) -> None:
