@@ -156,7 +156,7 @@ experimental_cases: list[tuple[str, str, str]] = [
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases)
-def test_parameterize_standard(
+def test_default_parameterization(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
     assert parameterizer.parameterize_all(input) == expected
@@ -166,7 +166,7 @@ def test_parameterize_standard(
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
-def test_parameterize_standard_not_experimental(
+def test_default_parameterizer_misses_experimental_cases(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
     assert parameterizer.parameterize_all(input) != expected
@@ -180,7 +180,7 @@ def test_parameterize_standard_not_experimental(
     reason="no experimental regexes to test",
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
-def test_parameterize_experimental(
+def test_experimental_parameterization(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
     assert experimental_parameterizer.parameterize_all(input) == expected
