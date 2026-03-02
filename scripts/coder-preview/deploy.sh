@@ -226,6 +226,38 @@ if [ "$AGENT_ELAPSED" -ge "$MAX_AGENT_WAIT" ]; then
     exit 1
 fi
 
+# ---------- Wait for devserver to be healthy ----------
+
+echo "Waiting for devserver health check..."
+MAX_HEALTH_WAIT=600  # 10 minutes — devserver takes a while to start
+HEALTH_ELAPSED=0
+
+OWNER_NAME=$(api \
+    -H "${AUTH_HEADER}" \
+    "${CODER_API}/users/me" | jq -r '.username')
+
+PREVIEW_URL="https://sentry-dev--${WORKSPACE_NAME}--${OWNER_NAME}.coder.sentry.dev"
+
+while [ "$HEALTH_ELAPSED" -lt "$MAX_HEALTH_WAIT" ]; do
+    HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" "${PREVIEW_URL}/_health/" 2>/dev/null || echo "000")
+
+    echo "  Health check: HTTP ${HTTP_CODE} (${HEALTH_ELAPSED}s elapsed)"
+
+    if [ "$HTTP_CODE" = "200" ]; then
+        echo "Devserver is healthy!"
+        break
+    fi
+
+    sleep 15
+    HEALTH_ELAPSED=$((HEALTH_ELAPSED + 15))
+done
+
+if [ "$HEALTH_ELAPSED" -ge "$MAX_HEALTH_WAIT" ]; then
+    echo "ERROR: Devserver did not become healthy within timeout" >&2
+    update_deployment_status "failure" "" "Devserver health check timed out"
+    exit 1
+fi
+
 # ---------- Get owner name for URL ----------
 
 OWNER_NAME=$(api \
