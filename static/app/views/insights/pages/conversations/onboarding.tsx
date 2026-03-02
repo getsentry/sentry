@@ -68,10 +68,8 @@ const serverSideNodeIntegrations = new Set([
   AgentIntegration.MASTRA,
 ]);
 
-const PYTHON_AUTO_CONVERSATION_ID: Set<string> = new Set([
-  AgentIntegration.OPENAI_AGENTS,
-]);
-const NODE_AUTO_CONVERSATION_ID: Set<string> = new Set([AgentIntegration.OPENAI]);
+const PYTHON_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI_AGENTS]);
+const NODE_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI]);
 
 function needsManualConversationId(integration: string, isPython: boolean): boolean {
   const autoSet = isPython ? PYTHON_AUTO_CONVERSATION_ID : NODE_AUTO_CONVERSATION_ID;
