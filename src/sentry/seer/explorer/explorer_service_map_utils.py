@@ -140,7 +140,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         span.set_data("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
-            span_ids = ",".join([f'"{span_id}"' for span_id in batch])
+            span_ids = ",".join([f"{span_id}" for span_id in batch])
             parent_result = Spans.run_table_query(
                 params=snuba_params,
                 query_string=f"id:[{span_ids}]",
