@@ -298,7 +298,7 @@ function BlockComponent({
           block_message: block.message.content.slice(0, 100),
           langfuse_url: getLangfuseUrl(runId),
           explorer_url: getExplorerUrl(runId),
-          conversations_url: getConversationsUrl(organization.slug, runId),
+          conversations_url: getConversationsUrl('sentry', runId),
         });
         setFeedbackSubmitted(true); // disable button for rest of the session
       }

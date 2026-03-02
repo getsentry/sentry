@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.analytics.events.rule_disable_opt_out import (
     RuleDisableOptOutEdit,
     RuleDisableOptOutExplicit,
@@ -17,11 +17,11 @@ from sentry.analytics.events.rule_disable_opt_out import (
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.rule import RuleEndpoint
+from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import (
@@ -38,12 +38,14 @@ from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketActio
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.models.project import Project
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -99,7 +101,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
-class ProjectRuleDetailsEndpoint(RuleEndpoint):
+class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -122,7 +124,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
-    def get(self, request: Request, project, rule) -> Response:
+    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated
         🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
@@ -135,13 +137,23 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        # Serialize Rule object
-        rule_serializer = RuleSerializer(
-            expand=request.GET.getlist("expand", []),
-            prepare_component_fields=True,
-            project_slug=project.slug,
-        )
-        serialized_rule = serialize(rule, request.user, rule_serializer)
+        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
+                expand=request.GET.getlist("expand", []),
+                prepare_component_fields=True,
+                project_slug=project.slug,
+            )
+            # XXX: Note 'rule' here is actually a workflow object
+            serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
+        else:
+            # Serialize Rule object
+            rule_serializer = RuleSerializer(
+                expand=request.GET.getlist("expand", []),
+                prepare_component_fields=True,
+                project_slug=project.slug,
+            )
+            serialized_rule = serialize(rule, request.user, rule_serializer)
+
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
@@ -174,7 +186,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
-    def put(self, request: Request, project, rule) -> Response:
+    def put(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated
         🚧 Use [Update an Alert by ID](/api/monitors/update-an-alert-by-id) instead.
@@ -188,6 +200,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
+        if isinstance(rule, Workflow):
+            return Response(
+                {
+                    "rule": [
+                        "Passing a workflow through this endpoint is not yet supported",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
@@ -383,7 +405,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
     )
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
-    def delete(self, request: Request, project, rule) -> Response:
+    def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated
          🚧 Use [Delete an Alert](/api/monitors/delete-an-alert) instead.
@@ -396,6 +418,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        if isinstance(rule, Workflow):
+            return Response(
+                {
+                    "rule": [
+                        "Passing a workflow through this endpoint is not yet supported",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         report_used_legacy_models()
         with transaction.atomic(router.db_for_write(Rule)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
