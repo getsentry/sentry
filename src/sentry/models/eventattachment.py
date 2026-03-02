@@ -184,9 +184,8 @@ class EventAttachment(Model):
         """Return a streamable blob, negotiating content-encoding for V2 blobs.
 
         For pure V2 blobs, passes ``accept_encoding`` to the objectstore so compressed
-        bytes can be transferred directly to the client. Falls back to identity encoding
-        on request error. For all other blob types (inline, V1, V1+V2 double-write),
-        delegates to :meth:`getfile`.
+        bytes can be transferred directly to the client. For all other blob types
+        (inline, V1, V1+V2 double-write), delegates to :meth:`getfile`.
         """
         if self.blob_path and self.blob_path.startswith(V2_PREFIX):
             key = self.blob_path.removeprefix(V2_PREFIX)
