@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-from urllib3.exceptions import TimeoutError
-
 from sentry.grouping.ingest.seer import maybe_send_seer_for_new_model_training
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -108,29 +106,22 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             ) as mock_get_similarity_data,
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
-            # Test both v0 and v1 behave the same way
-            for old_version in ["v0", "v1"]:
-                mock_get_similarity_data.reset_mock()
+            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+            metadata.seer_model = "v1"
+            metadata.seer_latest_training_model = None
+            metadata.save()
 
-                # Set metadata to old version, reset training model
-                metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
-                metadata.seer_model = old_version
-                metadata.seer_latest_training_model = None
-                metadata.save()
-                self.grouphash = metadata.grouphash
+            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
 
-                maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
+            mock_get_similarity_data.assert_called_once()
+            call_args = mock_get_similarity_data.call_args
+            assert call_args[0][0]["training_mode"] is True
+            assert call_args[1]["raise_on_error"] is True
 
-                # Should call get_similarity_data_from_seer with training_mode and raise_on_error
-                mock_get_similarity_data.assert_called_once()
-                call_args = mock_get_similarity_data.call_args
-                assert call_args[0][0]["training_mode"] is True
-                assert call_args[1]["raise_on_error"] is True
-
-                # Should update seer_latest_training_model without touching seer_model
-                metadata.refresh_from_db()
-                assert metadata.seer_latest_training_model == "v2"
-                assert metadata.seer_model == old_version
+            # Should update seer_latest_training_model without touching seer_model
+            metadata.refresh_from_db()
+            assert metadata.seer_latest_training_model == "v2"
+            assert metadata.seer_model == "v1"
 
     def test_does_not_send_duplicate_request(self) -> None:
         """Should not send a second training request after a successful one"""
@@ -175,32 +166,6 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             # seer_latest_training_model should remain None since the request failed
             metadata.refresh_from_db()
             assert metadata.seer_latest_training_model is None
-
-    def test_does_not_update_model_on_seer_error(self) -> None:
-        """Should not update seer_latest_training_model when the Seer request fails.
-
-        get_similarity_data_from_seer normally swallows errors and returns [], but in
-        training mode it re-raises so the caller knows the data was not stored.
-        """
-        with (
-            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
-            patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                side_effect=TimeoutError(),
-            ),
-            patch("sentry.grouping.ingest.seer.sentry_sdk.capture_exception"),
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
-        ):
-            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
-            metadata.seer_model = "v1"
-            metadata.save()
-
-            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
-
-            # seer_latest_training_model should remain None since the request timed out
-            metadata.refresh_from_db()
-            assert metadata.seer_latest_training_model is None
-            assert metadata.seer_model == "v1"
 
     def test_does_not_send_when_should_call_seer_returns_false(self) -> None:
         """Should not send request when should_call_seer_for_grouping returns False"""

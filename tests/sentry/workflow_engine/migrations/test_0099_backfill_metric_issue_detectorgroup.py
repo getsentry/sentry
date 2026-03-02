@@ -10,7 +10,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @pytest.mark.skip(
-    reason="Conflicts with sentry migration 1036 adding seer_latest_training_model column"
+    reason="Conflicts with sentry migration 1037 adding seer_latest_training_model column"
 )
 class BackfillMetricIssueDetectorGroupTest(TestMigrations, OccurrenceTestMixin):
     migrate_from = "0098_detectorgroup_detector_set_null"
