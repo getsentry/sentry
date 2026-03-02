@@ -125,7 +125,7 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         if build_version:
             main_binary_identifier = data.get("mainBinaryIdentifier")
             build_number = data.get("buildNumber")
-            if not main_binary_identifier and not build_number:
+            if not main_binary_identifier and build_number is None:
                 raise serializers.ValidationError(
                     "Either mainBinaryIdentifier or buildNumber is required when buildVersion is provided."
                 )

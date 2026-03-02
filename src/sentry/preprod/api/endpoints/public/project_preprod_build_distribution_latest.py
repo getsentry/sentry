@@ -152,7 +152,9 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         main_binary_identifier: str | None = params.get("mainBinaryIdentifier")
         build_configuration: str | None = params.get("buildConfiguration")
         codesigning_type: str | None = params.get("codesigningType")
-        install_groups: list[str] | None = request.GET.getlist("installGroups") or None
+        install_groups: list[str] | None = [
+            g for g in request.GET.getlist("installGroups") if g
+        ] or None
 
         current_artifact = None
         latest_artifact = None
