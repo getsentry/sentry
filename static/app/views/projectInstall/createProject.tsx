@@ -443,7 +443,9 @@ export function CreateProject() {
         key: value.id,
       });
 
-      const newName = hasUserModifiedProjectName.current ? formData.projectName : value.id;
+      const newName = hasUserModifiedProjectName.current
+        ? formData.projectName
+        : value.id;
 
       updateFormData('projectName', newName);
     },
