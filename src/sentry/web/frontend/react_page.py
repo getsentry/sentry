@@ -17,8 +17,7 @@ from sentry.organizations.absolute_url import customer_domain_path, generate_org
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.types.region import (
-    find_all_multitenant_region_names,
-    get_locality_name_for_cell,
+    find_all_multitenant_locality_names,
     subdomain_is_region,
 )
 from sentry.utils.http import is_using_customer_domain, query_string
@@ -77,13 +76,10 @@ class ReactMixin:
         return preconnects
 
     def dns_prefetch(self) -> list[str]:
-        regions = find_all_multitenant_region_names()
-        if len(regions) < 2:
+        localities = find_all_multitenant_locality_names()
+        if len(localities) < 2:
             return []
-        return [
-            generate_locality_url(get_locality_name_for_cell(region_name))
-            for region_name in regions
-        ]
+        return [generate_locality_url(locality_name) for locality_name in localities]
 
     def handle_react(
         self, request: HttpRequest, *, organization: Organization | None = None, **kwargs
