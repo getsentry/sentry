@@ -127,7 +127,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         workflow_resp_1 = response.data[0]
         workflow_resp_2 = response.data[1]
 
-        if workflow_resp_1["id"] == self.rule.id:
+        if workflow_resp_1["id"] == str(self.rule.id):
             is_rule_resp = True
 
         if not is_rule_resp:
@@ -196,6 +196,19 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             == ExistingHighPriorityIssueCondition.id
         )
         assert len(issue_resolved_trigger_resp["filters"]) == 1
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_only_fetch_workflows_in_project(self) -> None:
+        another_rule = self.create_project_rule(
+            project=self.create_project(), name="other project rule"
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        for resp in response.data:
+            assert not resp["name"] == another_rule.label
 
 
 class GetMaxAlertsTest(ProjectRuleBaseTestCase):

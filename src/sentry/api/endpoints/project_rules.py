@@ -723,9 +723,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
             queryset = Workflow.objects.filter(
-                organization=project.organization,
-                status=ObjectStatus.ACTIVE,
-            )
+                detectorworkflow__detector__project=project, status=ObjectStatus.ACTIVE
+            ).distinct()
             serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
         else:
             queryset = Rule.objects.filter(
