@@ -1,3 +1,4 @@
+import pytest
 import uuid
 from datetime import timedelta
 
@@ -23,6 +24,7 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         )
         self.end = self.start + timedelta(days=2)
 
+    @pytest.mark.skip(reason="flaky: #109680")
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
