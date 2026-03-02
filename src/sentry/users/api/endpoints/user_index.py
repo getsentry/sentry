@@ -74,6 +74,7 @@ class UserIndexEndpoint(Endpoint):
 
         sort_by = request.GET.get("sortBy", "date")
         if sort_by == "lastActive":
+            queryset = queryset.exclude(last_active__isnull=True)
             order_by = "-last_active"
         else:
             order_by = "-date_joined"
