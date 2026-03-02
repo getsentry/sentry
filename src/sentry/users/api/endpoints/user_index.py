@@ -72,7 +72,11 @@ class UserIndexEndpoint(Endpoint):
         elif status == "disabled":
             queryset = queryset.filter(is_active=False)
 
-        order_by = "-date_joined"
+        sort_by = request.GET.get("sortBy", "date")
+        if sort_by == "lastActive":
+            order_by = "-last_active"
+        else:
+            order_by = "-date_joined"
         paginator_cls = DateTimePaginator
 
         return self.paginate(
