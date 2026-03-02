@@ -24,6 +24,7 @@ from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
+    SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
@@ -216,6 +217,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_manifest, images_by_file_name, base_manifest
             )
         else:
+            if comparison is not None:
+                base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
             categorized = CategorizedComparison()
             pending_or_failed_state = (
                 PreprodSnapshotComparison.objects.filter(
@@ -231,9 +234,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 .first()
             )
             if pending_or_failed_state is not None:
-                comparison_state = PreprodSnapshotComparison.State(
-                    pending_or_failed_state
-                ).name.lower()
+                comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
 
         comparison_type = "diff" if comparison_manifest is not None else "solo"
 
@@ -261,16 +262,18 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             result["project_id"] = str(artifact.project_id)
             result["comparison_type"] = comparison_type
 
-            run_info: dict[str, Any] = {}
+            run_info: SnapshotComparisonRunInfo | None = None
             if comparison_state is not None:
-                run_info["state"] = comparison_state
+                run_info = SnapshotComparisonRunInfo(state=comparison_state)
             elif comparison is not None:
-                run_info["state"] = PreprodSnapshotComparison.State(comparison.state).name.lower()
-                run_info["completed_at"] = comparison.date_updated.isoformat()
                 duration = comparison.date_updated - comparison.date_added
-                run_info["duration_ms"] = int(duration.total_seconds() * 1000)
-            if run_info:
-                result["comparison_run_info"] = run_info
+                run_info = SnapshotComparisonRunInfo(
+                    state=PreprodSnapshotComparison.State(comparison.state).name,
+                    completed_at=comparison.date_updated.isoformat(),
+                    duration_ms=int(duration.total_seconds() * 1000),
+                )
+            if run_info is not None:
+                result["comparison_run_info"] = run_info.dict(exclude_none=True)
 
             return result
 
