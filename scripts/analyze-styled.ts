@@ -458,7 +458,8 @@ class CoreComponentImportsDetector extends BaseDetector {
       if (moduleSpecifier.kind === ts.SyntaxKind.StringLiteral) {
         const moduleName = (moduleSpecifier as ts.StringLiteral).text;
         if (
-          moduleName.includes('sentry/components/core') &&
+          (moduleName.includes('sentry/components/core') ||
+            moduleName.startsWith('@sentry/scraps')) &&
           importDecl.importClause?.namedBindings
         ) {
           const namedBindings = importDecl.importClause.namedBindings;
