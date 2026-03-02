@@ -82,7 +82,7 @@ x-sentry-service-config:
       description: Chartcuterie is a service that generates charts
       remote:
         repo_name: chartcuterie
-        branch: master
+        branch: build/switch-to-dhi-base-images
         repo_link: https://github.com/getsentry/chartcuterie.git
     taskbroker:
       description: Service used to process asynchronous tasks
