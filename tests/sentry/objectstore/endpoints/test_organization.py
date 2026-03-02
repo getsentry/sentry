@@ -132,6 +132,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         )
         get_resp.raise_for_status()
         assert get_resp.headers.get("Content-Encoding") is None
+        assert get_resp.headers.get("Content-Length") is None  # compressed size would be wrong
         assert get_resp.content == data
 
         # With Accept-Encoding: zstd, proxy passes through compressed bytes

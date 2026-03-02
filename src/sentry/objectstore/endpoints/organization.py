@@ -180,8 +180,8 @@ def stream_response(
     for header, value in external_response.headers.items():
         if header.lower() == "server":
             continue
-        if decode_content and header.lower() == "content-encoding":
-            continue  # Body was decompressed; don't advertise the original encoding
+        if decode_content and header.lower() in ("content-encoding", "content-length"):
+            continue  # Body was decompressed; length and encoding no longer match
         if not is_hop_by_hop(header):
             response[header] = value
 
