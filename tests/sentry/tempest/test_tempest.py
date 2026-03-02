@@ -96,6 +96,8 @@ class TempestTasksTest(TestCase):
                 "message": "...",
             }
         }
+        mock_fetch.return_value.content = b'{"error": {"type": "invalid_scope"}}'
+        mock_fetch.return_value.status_code = 403
 
         fetch_latest_item_id(self.credentials.id)
 

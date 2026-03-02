@@ -160,7 +160,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
                 credentials.save(update_fields=["message", "message_type"])
                 return
 
-            elif result["error"]["type"] == "invalid_scope":
+            elif error_type == "invalid_scope":
                 credentials.message = "Seems like the provided credentials have the wrong scope."
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
@@ -275,7 +275,13 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
 
 def _poll_tempest_crashes_impl(credentials_id: int) -> None:
     """Implementation of poll_tempest_crashes, separated for locking."""
-    credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
+    credentials = (
+        TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()
+    )
+    if credentials is None:
+        # Credentials deleted between task scheduling and execution - skip silently
+        metrics.incr("tempest.poll_crashes.skipped", tags={"reason": "credentials_deleted"})
+        return
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
