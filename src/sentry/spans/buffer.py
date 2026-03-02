@@ -597,16 +597,19 @@ class SpansBuffer:
             except Exception:
                 logger.exception("flush_segments: Failed to log debug trace flush info")
 
-            if flusher_logger_enabled and segment:
-                project_id, trace_id, _ = parse_segment_key(segment_key)
-                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
-                flusher_log_entries.append(
-                    FlusherLogEntry(
-                        project_and_trace,
-                        len(segment),
-                        sum(len(s) for s in segment),
+            if flusher_logger_enabled:
+                if segment:
+                    project_id, trace_id, _ = parse_segment_key(segment_key)
+                    project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                    flusher_log_entries.append(
+                        FlusherLogEntry(
+                            project_and_trace,
+                            len(segment),
+                            sum(len(s) for s in segment),
+                        )
                     )
-                )
+                else:
+                    metrics.incr("spans.buffer.flush_segments.no_segment")
 
         if flusher_logger_enabled and flusher_log_entries:
             self._flusher_logger.log(
