@@ -31,7 +31,7 @@ export interface SnapshotDetailsApiResponse {
   state: string;
   vcs_info: BuildDetailsVcsInfo;
 
-  comparison_run_info?: SnapshotComparisonRunInfo;
+  comparison_run_info?: SnapshotComparisonRunInfo | null;
 
   // Diff fields
   added: SnapshotImage[];

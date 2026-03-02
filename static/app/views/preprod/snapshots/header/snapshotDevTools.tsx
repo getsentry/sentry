@@ -30,7 +30,7 @@ type Props = {
   projectSlug: string;
   refetch: () => void;
   snapshotId: string;
-  comparisonRunInfo?: SnapshotComparisonRunInfo;
+  comparisonRunInfo?: SnapshotComparisonRunInfo | null;
 };
 
 export function SnapshotDevTools({
