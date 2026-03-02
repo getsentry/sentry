@@ -86,7 +86,7 @@ def log_snuba_info(content):
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
     else:
-        print(content)  # NOQA: only prints when an env variable is set
+        print(content)  # noqa: S002, T201 -- only prints when an env variable is set
 
 
 SNUBA_INFO = (
@@ -614,7 +614,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
         if dataset == Dataset.Events:
             return name
         else:
-            return f"tags[{name.replace("[", "").replace("]", "").replace('"', "")}]"
+            return f"tags[{name.replace('[', '').replace(']', '').replace('"', '')}]"
 
     measurement_name = get_measurement_name(name)
     span_op_breakdown_name = get_span_op_breakdown_name(name)
@@ -652,9 +652,9 @@ def get_function_index(column_expr, depth=0):
             # The assumption here is that a list that follows a string means
             # the string is a function name
             if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
-                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(
+                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(column_expr[i]), (
                     column_expr[i]
-                ), column_expr[i]
+                )
                 index = i
                 break
             else:
@@ -1646,7 +1646,7 @@ def resolve_column(dataset) -> Callable:
             if dataset == Dataset.Events:
                 return col
             else:
-                return f"tags[{col.replace("[", "").replace("]", "").replace('"', "")}]"
+                return f"tags[{col.replace('[', '').replace(']', '').replace('"', '')}]"
 
         return f"tags[{col}]"
 

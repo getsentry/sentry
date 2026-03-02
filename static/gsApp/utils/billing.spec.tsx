@@ -941,6 +941,20 @@ describe('getActiveProductTrial', () => {
     expect(replay_pt).toBeNull();
   });
 
+  it('returns null when trial is isStarted but startDate is in the future', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 4001,
+        startDate: moment().utc().add(5, 'days').format(),
+        endDate: moment().utc().add(35, 'days').format(),
+      },
+    ];
+    const pt = getActiveProductTrial(trials, DataCategory.SPANS);
+    expect(pt).toBeNull();
+  });
+
   it('returns null trial when no trials for category', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
@@ -1013,9 +1027,11 @@ describe('getOnDemandCategories', () => {
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
     });
-    expect(categories).toHaveLength(plan.onDemandCategories.length - 2);
+    expect(categories).toHaveLength(plan.onDemandCategories.length - 4);
     expect(categories).not.toContain(DataCategory.SEER_SCANNER);
     expect(categories).not.toContain(DataCategory.SEER_AUTOFIX);
+    expect(categories).not.toContain(DataCategory.SIZE_ANALYSIS);
+    expect(categories).not.toContain(DataCategory.INSTALLABLE_BUILD);
   });
 
   it('does not filter out any categories for shared budget mode', () => {

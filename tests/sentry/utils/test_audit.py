@@ -541,3 +541,31 @@ class CreateAuditEntryTest(TestCase):
         assert entry.organization_id == self.org.id
         assert entry.target_object == self.org.id
         assert audit_log.get(entry.event).render(entry) == "disabled sso (GitHub)"
+
+    def test_repo_settings_edit_legacy_data_renders(self) -> None:
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
+            data={"repository_count": 3},
+        )
+        audit_log_event = audit_log.get(entry.event)
+        assert audit_log_event.render(entry) == "updated repository settings for 3 repositories"
+
+    def test_repo_settings_edit_new_data_renders(self) -> None:
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
+            data={
+                "repository_names": "repo-a, repo-b",
+                "code_review_change": " (enabled code review)",
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+        assert (
+            audit_log_event.render(entry)
+            == "updated repository settings for repo-a, repo-b (enabled code review)"
+        )

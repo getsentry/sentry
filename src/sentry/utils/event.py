@@ -17,19 +17,22 @@ def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
 
     Ignores empty stacktraces, and stacktraces whose frame list is empty.
     """
-    if event_data.get("stacktrace") and event_data["stacktrace"].get("frames"):
+    if get_path(event_data, "stacktrace", "frames"):
         return True
 
-    exception_or_threads = event_data.get("exception") or event_data.get("threads")
+    # Check both exception and threads for stacktraces
+    # This is important for native crashes where exception exists but has no stacktrace,
+    # while the actual stacktrace is in threads
+    for container_name in ["exception", "threads"]:
+        container = event_data.get(container_name)
+        if not container:
+            continue
 
-    if not exception_or_threads:
-        return False
-
-    # Search for a stacktrace with frames, intentionally ignoring empty values because they're
-    # not helpful
-    for value in exception_or_threads.get("values", []):
-        if value.get("stacktrace", {}).get("frames"):
-            return True
+        # Search for a stacktrace with frames, intentionally ignoring empty values because
+        # they're not helpful
+        for value in container.get("values", []):
+            if get_path(value, "stacktrace", "frames"):
+                return True
 
     return False
 

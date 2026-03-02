@@ -17,6 +17,7 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
     is_graphql_response,
 )
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
@@ -25,6 +26,10 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -32,7 +37,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiRateLimitedError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -98,7 +108,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
             token = self.jwt
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         return prepared_request
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
@@ -177,6 +187,18 @@ class GithubProxyClient(IntegrationProxyClient):
                 "permissions": permissions,
             }
         )
+
+        if integration.debug_data is None:
+            integration.debug_data = {}
+
+        integration.debug_data.update(
+            {
+                "permissions": permissions,
+                "expires_at": expires_at,
+                "last_refresh_at": datetime.utcnow().isoformat(),
+            }
+        )
+
         integration.save()
         logger.info(
             "token.refresh_end",
@@ -278,7 +300,7 @@ class GithubProxyClient(IntegrationProxyClient):
             return prepared_request
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
             prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
@@ -313,12 +335,15 @@ class GitHubBaseClient(
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
-        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
+        return self._get_with_pagination(
+            f"/repos/{repo}/compare/{start_sha}...{end_sha}",
+            response_key="commits",
+        )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
         """
@@ -398,7 +423,12 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -408,23 +438,33 @@ class GitHubBaseClient(
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        # We do not cache this call since it is a rather large object
-        contents: dict[str, Any] = self.get(
-            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-            # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-            params={"recursive": 1},
-        )
-        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-        if contents.get("truncated"):
-            # e.g. getsentry/DataForThePeople
-            logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
-                repo_full_name,
-            )
-        return contents["tree"]
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture() as lifecycle:
+            try:
+                # We do not cache this call since it is a rather large object
+                contents: dict[str, Any] = self.get(
+                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                    params={"recursive": 1},
+                )
+            except ApiConflictError as e:
+                # Empty repos return a 409 which is expected
+                lifecycle.record_halt(e)
+                raise
+            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+            if contents.get("truncated"):
+                # e.g. getsentry/DataForThePeople
+                logger.warning(
+                    "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                    repo_full_name,
+                )
+            return contents["tree"]
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
@@ -441,11 +481,14 @@ class GitHubBaseClient(
             "Bad credentials",  # No permission granted for this repo
         ):
             logger.warning(error_message, extra=extra)
-        elif error_message in (
-            "Server Error",  # Github failed to respond
-            "Connection reset by peer",  # Connection reset by GitHub
-            "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
-            "Unable to reach host:",  # Unable to reach host at the moment
+        elif (
+            error_message
+            in (
+                "Server Error",  # Github failed to respond
+                "Connection reset by peer",  # Connection reset by GitHub
+                "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
+                "Unable to reach host:",  # Unable to reach host at the moment
+            )
         ):
             should_count_error = True
         elif error_message and error_message.startswith(
@@ -468,11 +511,16 @@ class GitHubBaseClient(
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=page_number_limit,
-        )
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+            )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -573,6 +621,25 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/issues/{issue_number}"
         return self.patch(endpoint, data={"state": status})
+
+    def get_issue_reactions(self, repo: str, issue_number: str) -> list[Any]:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue
+        """
+        return self._get_with_pagination(f"/repos/{repo}/issues/{issue_number}/reactions")
+
+    def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_reaction(self, repo: str, issue_number: str, reaction_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-reaction
+        """
+        return self.delete(f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}")
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
@@ -680,7 +747,7 @@ class GitHubBaseClient(
                 metrics.incr(
                     "integrations.github.get_blame_for_files.not_enough_requests_remaining"
                 )
-                logger.error(
+                logger.warning(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
                         "provider": IntegrationProviderSlug.GITHUB,
@@ -711,7 +778,7 @@ class GitHubBaseClient(
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(str(e), log_info)
+                logger.warning(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)
@@ -765,6 +832,15 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/check-runs"
         return self.post(endpoint, data=data)
+
+    def get_check_run(self, repo: str, check_run_id: int) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#get-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs/{check_run_id}"
+        return self.get(endpoint)
 
     def get_check_runs(self, repo: str, sha: str) -> Any:
         """

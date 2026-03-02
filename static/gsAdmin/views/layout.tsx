@@ -3,8 +3,9 @@ import {Outlet} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import ListLink from 'sentry/components/links/listLink';
@@ -83,7 +84,7 @@ export default function Layout() {
             </Navigation>
             <div>
               <ThemeToggle
-                borderless
+                priority="transparent"
                 size="zero"
                 onClick={toggleTheme}
                 icon={
@@ -146,13 +147,13 @@ const Logo = styled(Link)`
   gap: ${space(1)};
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
 `;
 
 const ThemeToggle = styled(Button)`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -161,7 +162,7 @@ const Navigation = styled('ul')`
   display: flex;
   flex-direction: column;
   list-style: none;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   overflow-y: auto;
   gap: ${space(0.25)};
@@ -188,7 +189,8 @@ const NavLink = styled(ListLink)`
     height: ${space(3)};
     position: relative;
     top: -1px;
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: currentColor;
   }
 
   &:hover {

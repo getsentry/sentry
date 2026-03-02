@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -216,14 +215,14 @@ function SpikeProtectionProjects({subscription}: Props) {
           disabled={!hasOrgWrite}
           priority={isEnabling ? 'primary' : 'default'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
-          title={
-            hasOrgWrite
+          tooltipProps={{
+            title: hasOrgWrite
               ? undefined
               : tct(
                   `You do not have permission to [action] spike protection for all projects.`,
                   {action: action.toLowerCase()}
-                )
-          }
+                ),
+          }}
         >
           {tct('[action] All', {action})}
         </Button>
@@ -269,10 +268,10 @@ function SpikeProtectionProjects({subscription}: Props) {
     <Fragment>
       <Flex justify="between" marginBottom="xl">
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
-        <StyledButtonBar gap="0" merged>
+        <ButtonBar marginLeft="xl">
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
-        </StyledButtonBar>
+        </ButtonBar>
       </Flex>
       <StyledPanelTable
         disablePadding={
@@ -350,7 +349,7 @@ const StyledAccordionDetails = styled('div')`
   margin-right: ${space(3)};
   margin-top: ${space(2)};
   padding-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledPanelTableHeader = styled('div')`
@@ -363,8 +362,4 @@ const StyledPanelToggle = styled(SpikeProtectionProjectToggle)`
   padding: 0;
   padding-left: ${space(1)};
   align-items: start;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  margin-left: ${space(2)};
 `;

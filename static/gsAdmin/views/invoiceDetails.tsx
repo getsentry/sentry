@@ -1,12 +1,14 @@
 import moment from 'moment-timezone';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -40,7 +42,9 @@ export default function InvoiceDetails() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const QUERY_KEY: ApiQueryKey = [
-    `/_admin/cells/${region}/admin-invoices/${invoiceId}/`,
+    getApiUrl(`/_admin/cells/$region/admin-invoices/$invoiceId/`, {
+      path: {region, invoiceId},
+    }),
     {
       host: regionInfo ? regionInfo.url : '',
     },
@@ -73,9 +77,10 @@ export default function InvoiceDetails() {
   const handleClose = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/close/`,
+        `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
         {
           method: 'PUT',
+          host: regionInfo ? regionInfo.url : '',
         }
       );
       updateCache(updatedInvoice);

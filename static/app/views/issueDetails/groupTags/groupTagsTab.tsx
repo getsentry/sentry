@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
@@ -108,21 +108,21 @@ export function GroupTagsTab() {
                   <UnstyledUnorderedList>
                     {tag.topValues.map((tagValue, tagValueIdx) => {
                       const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
-                      const query = tagValue.query
-                        ? {
-                            ...location.query,
-                            query: tagValue.query,
-                          }
+                      const baseQuery = tagValue.query
+                        ? {query: tagValue.query}
                         : generateQueryWithTag(location.query, {
                             key: tag.key,
                             value: tagValue.value,
                           });
                       return (
                         <li key={tagValueIdx} data-test-id={tag.key}>
-                          <TagBarGlobalSelectionLink
+                          <TagBarLink
                             to={{
                               pathname: `${baseUrl}events/`,
-                              query,
+                              query: {
+                                ...extractSelectionParameters(location.query),
+                                ...baseQuery,
+                              },
                             }}
                           >
                             <TagBarBackground
@@ -140,7 +140,7 @@ export function GroupTagsTab() {
                             <TagBarCount>
                               <Count value={tagValue.count} />
                             </TagBarCount>
-                          </TagBarGlobalSelectionLink>
+                          </TagBarLink>
                         </li>
                       );
                     })}
@@ -180,7 +180,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const TagHeading = styled('h5')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: 0;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
@@ -205,7 +205,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   width: ${p => p.widthPercent};
 `;
 
-const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
+const TagBarLink = styled(Link)`
   position: relative;
   display: flex;
   line-height: 2.2;
@@ -227,7 +227,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
 
 const TagBarLabel = styled('div')`
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   position: relative;
   flex-grow: 1;
   display: block;
@@ -238,7 +238,7 @@ const TagBarLabel = styled('div')`
 `;
 
 const TagBarCount = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   position: relative;
   padding-left: ${space(2)};
   padding-right: ${space(1)};

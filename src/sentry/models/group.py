@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-import warnings
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -125,6 +124,11 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         }
     else:
         short_id = None
+        # Validate that the numeric ID doesn't exceed the max value for the
+        # bounded field, otherwise the ORM will raise an AssertionError.
+        max_id = Group._meta.get_field("id").MAX_VALUE
+        if int(id_or_qualified_short_id) > max_id:
+            raise Group.DoesNotExist()
         params = {"id": id_or_qualified_short_id}
 
     try:
@@ -220,15 +224,15 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["project_id", "-timestamp", "-event_id"]
-    OLDEST = ["project_id", "timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-id"]
+    OLDEST = ["project_id", "timestamp", "id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
         "num_processing_errors",
         "-profile.id",
         "-timestamp",
-        "-event_id",
+        "-id",
     ]
 
 
@@ -604,7 +608,7 @@ class GroupManager(BaseManager["Group"]):
                 id__in=group_ids,
                 project_id__in=project_ids,
                 project__organization=organization,
-            )
+            ).select_related("project")
         }
 
 
@@ -1040,11 +1044,6 @@ class Group(Model):
         return et.get_location(self.get_event_metadata())
 
     @property
-    def message_short(self):
-        warnings.warn("Group.message_short is deprecated, use Group.title", DeprecationWarning)
-        return self.title
-
-    @property
     def organization(self):
         return self.project.organization
 
@@ -1056,11 +1055,6 @@ class Group(Model):
             return self.get_event_metadata()["sdk"]["name_normalized"]
         except KeyError:
             return None
-
-    @property
-    def checksum(self):
-        warnings.warn("Group.checksum is no longer used", DeprecationWarning)
-        return ""
 
     def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"

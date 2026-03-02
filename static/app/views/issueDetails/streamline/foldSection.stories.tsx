@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CodeBlock} from 'sentry/components/core/code';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

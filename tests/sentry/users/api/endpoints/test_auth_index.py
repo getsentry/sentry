@@ -13,10 +13,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
 
-def create_authenticator(user) -> None:
+def create_authenticator(user: User) -> None:
     Authenticator.objects.create(
         type=3,  # u2f
         user=user,
@@ -180,7 +181,6 @@ class AuthVerifyEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         with freeze_time("2025-02-13"):
-
             for _ in range(5 + 1):
                 response = self.client.put(self.path, data={"password": "wrongguess"})
             assert response.status_code == 429
@@ -225,8 +225,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product(
-        self, validate_response, is_available
-    ):
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -273,8 +273,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product_customer_domain(
-        self, validate_response, is_available
-    ):
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         # An organization that a superuser is not a member of, but will try to access.
         other_org = self.create_organization(name="other_org")
 
@@ -445,8 +445,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     @mock.patch("sentry.api.endpoints.auth_index.has_completed_sso", return_value=True)
     @mock.patch("sentry.auth.superuser.has_completed_sso", return_value=True)
     def test_superuser_no_sso_user_no_password_or_u2f_sso_disabled_local_dev_saas(
-        self, mock_endpoint_has_completed_sso, mock_superuser_has_completed_sso
-    ):
+        self,
+        mock_endpoint_has_completed_sso: mock.MagicMock,
+        mock_superuser_has_completed_sso: mock.MagicMock,
+    ) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -569,39 +571,45 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
     path = "/api/0/auth/"
 
     def setUp(self) -> None:
-        self.normal_user = self.create_user("foo@example.com", id=1)
-        self.readonly_user = self.create_user("bar@example.com", id=2)
+        self.normal_user = self.create_user("foo@example.com")
+        self.readonly_user = self.create_user("bar@example.com")
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_authenticate(self) -> None:
-        self.login_as(self.normal_user)
-        response = self.client.post(self.path)
-        assert response.status_code == 200
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.login_as(self.normal_user)
+            response = self.client.post(self.path)
+            assert response.status_code == 200
 
-        self.login_as(self.readonly_user)
-        response = self.client.post(self.path)
-        assert response.status_code == 403
+            self.login_as(self.readonly_user)
+            response = self.client.post(self.path)
+            assert response.status_code == 403
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_log_out_single_session(self) -> None:
-        self.login_as(self.normal_user)
-        response = self.client.delete(self.path)
-        assert response.status_code == 204
-        assert list(self.client.session.keys()) == []
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.login_as(self.normal_user)
+            response = self.client.delete(self.path)
+            assert response.status_code == 204
+            assert list(self.client.session.keys()) == []
 
-        self.login_as(self.readonly_user)
-        response = self.client.delete(self.path)
-        assert response.status_code == 204
-        assert list(self.client.session.keys()) == []
+            self.login_as(self.readonly_user)
+            response = self.client.delete(self.path)
+            assert response.status_code == 204
+            assert list(self.client.session.keys()) == []
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_log_out_all_sessions(self) -> None:
-        self.login_as(self.normal_user)
-        response = self.client.delete(self.path, {"all": True})
-        assert response.status_code == 204
-        assert list(self.client.session.keys()) == []
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.login_as(self.normal_user)
+            response = self.client.delete(self.path, {"all": True})
+            assert response.status_code == 204
+            assert list(self.client.session.keys()) == []
 
-        self.login_as(self.readonly_user)
-        response = self.client.delete(self.path, {"all": True})
-        assert response.status_code == 403
-        assert len(list(self.client.session.keys())) > 0
+            self.login_as(self.readonly_user)
+            response = self.client.delete(self.path, {"all": True})
+            assert response.status_code == 403
+            assert len(list(self.client.session.keys())) > 0

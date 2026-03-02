@@ -1,11 +1,10 @@
 import logging
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import orjson
 import pydantic
-import requests
 from django.conf import settings
 from pydantic import BaseModel
 from rest_framework import serializers
@@ -28,7 +27,7 @@ from sentry.seer.models import (
     SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -39,6 +38,7 @@ logger = logging.getLogger(__name__)
 class AutofixIssue(TypedDict):
     id: int
     title: str
+    short_id: NotRequired[str | None]
 
 
 class AutofixStoppingPoint(StrEnum):
@@ -95,6 +95,7 @@ class CodingAgentResult(BaseModel):
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
+    GITHUB_COPILOT_AGENT = "github_copilot_agent"
 
 
 class CodingAgentState(BaseModel):
@@ -355,16 +356,14 @@ def get_autofix_state(
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     result = response.json()
 
@@ -394,16 +393,14 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         }
     ).encode("utf-8")
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
     result = response.json()
 
     if not result:
@@ -428,9 +425,6 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     Returns:
         bool: Whether the seer scanner is rate limited.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     limit = options.get("seer.max_num_scanner_autotriggered_per_ten_seconds", 15)
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
@@ -469,9 +463,6 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
     Check if organization has Seer seat-based pricing via billing.
     """
-    if features.has("organizations:triage-signals-v0-org", organization):
-        return True
-
     cache_key = get_seer_seat_based_tier_cache_key(organization.id)
     cached_value = cache.get(cache_key)
     if cached_value is not None:
@@ -488,23 +479,25 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     return has_seat_based_seer
 
 
-def is_issue_eligible_for_seer_automation(group: Group) -> bool:
-    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
-    from sentry import quotas
+def is_issue_category_eligible(group: Group) -> bool:
+    """Check if the issue category is eligible for Seer."""
     from sentry.issues.grouptype import GroupCategory
 
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
+    return group.issue_category in {
         GroupCategory.ERROR,
         GroupCategory.PERFORMANCE,
         GroupCategory.MOBILE,
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
+    }
+
+
+def is_issue_eligible_for_seer_automation(group: Group) -> bool:
+    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
+    from sentry import quotas
+
+    if not is_issue_category_eligible(group):
         return False
 
     if not features.has("organizations:gen-ai-features", group.organization):
@@ -519,12 +512,6 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
         not project.get_option("sentry:seer_scanner_automation")
         and not group.issue_type.always_trigger_seer_automation
     ):
-        return False
-
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement_for_scanner
-
-    seer_enabled = get_seer_org_acknowledgement_for_scanner(group.organization)
-    if not seer_enabled:
         return False
 
     has_budget: bool = quotas.backend.check_seer_quota(
@@ -547,23 +534,14 @@ AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
 }
 
 
-def is_seer_autotriggered_autofix_rate_limited(
-    project: Project, organization: Organization
-) -> bool:
-    """
-    Check if Seer Autofix automation is rate limited for a given project and organization.
-    Calling this method increments the counter used to enforce the rate limit, and tracks rate limited outcomes.
+class AutoTriggerRateLimitConfig(TypedDict):
+    limit: int
+    key: str
+    window: int
 
-    Args:
-        project: The project to check.
-        organization: The organization to check.
 
-    Returns:
-        bool: Whether Autofix is rate limited.
-    """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
+def _get_autofix_rate_limit_config(project: Project) -> AutoTriggerRateLimitConfig:
+    """Returns the computed rate limit for autotriggered autofix runs for a project."""
     limit = options.get("seer.max_num_autofix_autotriggered_per_hour", 20)
 
     # The more selective automation is, the higher the limit we allow.
@@ -572,19 +550,52 @@ def is_seer_autotriggered_autofix_rate_limited(
     option = project.get_option("sentry:autofix_automation_tuning")
     multiplier = AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.get(option, 1)
     limit *= multiplier
+    return AutoTriggerRateLimitConfig(limit=limit, key="autofix.auto_triggered", window=60 * 60)
+
+
+def is_seer_autotriggered_autofix_rate_limited(project: Project) -> bool:
+    """
+    Read-only check of whether the autofix rate limit has been reached.
+    Does NOT increment the counter. Safe to call from non-triggering code paths.
+    """
+    config = _get_autofix_rate_limit_config(project)
+    current = ratelimits.backend.current_value(
+        key=config["key"],
+        project=project,
+        window=config["window"],
+    )
+    return current >= config["limit"]
+
+
+def is_seer_autotriggered_autofix_rate_limited_and_increment(
+    project: Project, organization: Organization
+) -> bool:
+    """
+    Check if Seer Autofix automation is rate limited for a given project and organization.
+    Calling this method increments the counter used to enforce the rate limit, and tracks rate limited outcomes.
+    Only call this when you are actually about to trigger an automation run.
+
+    Args:
+        project: The project to check.
+        organization: The organization to check.
+
+    Returns:
+        bool: Whether Autofix is rate limited.
+    """
+    config = _get_autofix_rate_limit_config(project)
 
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
-        key="autofix.auto_triggered",
-        limit=limit,
-        window=60 * 60,  # 1 hour
+        key=config["key"],
+        limit=config["limit"],
+        window=config["window"],
     )
     if is_rate_limited:
         logger.info(
             "Autofix auto-trigger rate limit hit",
             extra={
                 "auto_run_count": current,
-                "auto_run_limit": limit,
+                "auto_run_limit": config["limit"],
                 "org_slug": organization.slug,
                 "project_slug": project.slug,
             },
@@ -629,7 +640,10 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
 
 
 def get_coding_agent_prompt(
-    run_id: int, trigger_source: AutofixTriggerSource, instruction: str | None = None
+    run_id: int,
+    trigger_source: AutofixTriggerSource,
+    instruction: str | None = None,
+    short_id: str | None = None,
 ) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
@@ -641,6 +655,11 @@ def get_coding_agent_prompt(
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
     base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
+
+    if short_id:
+        base_prompt = (
+            f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the pull request description."
+        )
 
     if instruction and instruction.strip():
         base_prompt = f"{base_prompt}\n\n{instruction.strip()}"

@@ -3,11 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import ProgressBar from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -206,11 +207,11 @@ function PaygCard({
                   <Button
                     size="xs"
                     disabled={!hasPaymentSource}
-                    title={
-                      hasPaymentSource
+                    tooltipProps={{
+                      title: hasPaymentSource
                         ? undefined
-                        : t('You must add a payment method to edit the limit')
-                    }
+                        : t('You must add a payment method to edit the limit'),
+                    }}
                     onClick={() => {
                       handleEditPayg(false);
                     }}
@@ -263,7 +264,7 @@ const Currency = styled('div')`
     padding: 9px ${p => p.theme.space.xl} ${p => p.theme.space.md};
     content: '$';
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     font-weight: bold;
   }
 `;

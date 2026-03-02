@@ -1,5 +1,6 @@
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 
 import type {NormalizedInvite} from './types';

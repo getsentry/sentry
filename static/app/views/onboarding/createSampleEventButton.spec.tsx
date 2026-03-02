@@ -55,7 +55,7 @@ describe('CreateSampleEventButton', () => {
     expect(createRequest).toHaveBeenCalled();
 
     const latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       body: {},
     });
 
@@ -94,7 +94,7 @@ describe('CreateSampleEventButton', () => {
 
     // Start with no latest event
     let latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 404,
       body: {},
     });
@@ -106,7 +106,7 @@ describe('CreateSampleEventButton', () => {
     // Second request will be successful
     MockApiClient.clearMockResponses();
     latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 200,
       body: {},
     });

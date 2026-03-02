@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 

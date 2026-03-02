@@ -1,7 +1,12 @@
 /**
- * Font size constraint for typography.
+ * Font size constraint for body typography.
  */
-export type FontSize = SizeRange<'xs', '2xl'>;
+export type TextSize = SizeRange<'xs', '2xl'>;
+
+/**
+ * Font size constraint for heading typography.
+ */
+export type HeadingSize = SizeRange<'xs', '4xl'>;
 
 /**
  * Responsive breakpoint size constraint.
@@ -51,12 +56,15 @@ type SemanticVariant =
 /**
  * Content/text color variant.
  */
-export type ContentVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+export type ContentVariant =
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'primary'
+  | 'secondary';
 
 /**
  * Graphics/icon color variant.
  */
-export type GraphicsVariant = Exclude<SemanticVariant, 'neutral'> | 'muted';
+export type GraphicsVariant = SemanticVariant;
 
 /**
  * Border color variant.
@@ -75,7 +83,7 @@ export type IconSize = SizeRange<'xs', '2xl'>;
 /**
  * Form element size constraint.
  *
- * Unless you are implementing a new component in the `sentry/components/core`
+ * Unless you are implementing a new component in the `@sentry/scraps`
  * directory, use `ComponentProps['size']` instead.
  * @internal
  */
@@ -97,23 +105,11 @@ export type TagVariant =
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
-/**
- * Error/event severity level.
- */
-export type LevelVariant =
-  | 'sample'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'fatal'
-  | 'default'
-  | 'unknown';
-
 // -----------------------------------------------------------------------------
 // Internal types
 // -----------------------------------------------------------------------------
 
-type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'];
 type Size = SizeKeys[number];
 
 // Extracts a contiguous range of keys from the size scale

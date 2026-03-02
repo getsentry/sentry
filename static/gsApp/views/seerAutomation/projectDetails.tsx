@@ -1,13 +1,13 @@
-import {Fragment} from 'react';
-
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -17,8 +17,8 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import OldProjectDetails from 'sentry/views/settings/projectSeer/index';
 
+import AutofixAgent from 'getsentry/views/seerAutomation/components/projectDetails/autofixAgent';
 import AutofixRepositories from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
-import SeerSettingsContainer from 'getsentry/views/seerAutomation/components/projectDetails/seerSettingsContainer';
 
 export default function SeerProjectDetailsPage() {
   const organization = useOrganization();
@@ -38,37 +38,42 @@ function SeerProjectDetails() {
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
 
-  if (!organization.features.includes('autofix-seer-preferences')) {
-    return (
-      <FeatureDisabled
-        featureName={t('Autofix')}
-        features={['autofix-seer-preferences']}
-        hideHelpToggle
-        message={t('Autofix is not enabled for this organization.')}
-      />
-    );
-  }
-
   return (
-    <Fragment>
+    <AnalyticsArea name="project-details">
       <SentryDocumentTitle
         title={t('Project Seer Settings')}
         projectSlug={project.slug}
       />
       <SettingsPageHeader
         title={tct('Seer Settings for [projectName]', {
-          projectName: <code>{project.slug}</code>,
+          projectName: (
+            <Text as="span" monospace>
+              {project.slug}
+            </Text>
+          ),
         })}
         subtitle={t(
           'Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them.'
         )}
         action={
-          <LinkButton
-            href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/"
-            external
-          >
-            {t('Read the docs')}
-          </LinkButton>
+          <Flex gap="lg">
+            <FeedbackButton
+              size="md"
+              feedbackOptions={{
+                messagePlaceholder: t('How can we make Seer better for you?'),
+                tags: {
+                  ['feedback.source']: 'seer-settings-project-details',
+                  ['feedback.owner']: 'coding-workflows',
+                },
+              }}
+            />
+            <LinkButton
+              href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/"
+              external
+            >
+              {t('Read the docs')}
+            </LinkButton>
+          </Flex>
         }
       />
       {canWrite ? null : (
@@ -84,19 +89,19 @@ function SeerProjectDetails() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl">
-          <SeerSettingsContainer
-            canWrite={canWrite}
-            preference={preference ?? DEFAULT_PREFERENCE}
-            project={project}
-          />
           <AutofixRepositories
             canWrite={canWrite}
             codeMappingRepos={codeMappingRepos}
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
+          <AutofixAgent
+            canWrite={canWrite}
+            preference={preference ?? DEFAULT_PREFERENCE}
+            project={project}
+          />
         </Stack>
       )}
-    </Fragment>
+    </AnalyticsArea>
   );
 }

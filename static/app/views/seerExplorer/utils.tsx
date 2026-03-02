@@ -5,6 +5,7 @@ import queryString from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -33,9 +34,16 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId?: number
+  runId: number | null
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  runId
+    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: orgSlug, runId},
+      })
+    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+
   {},
 ];
 
@@ -59,7 +67,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading) => {
+  telemetry_live_search: (args, isLoading, linkParams) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -85,10 +93,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
-    // Default to spans
+    // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : `Queried spans${projectInfo}: '${question}'`;
+      : linkParams?.mode === 'traces'
+        ? `Queried traces${projectInfo}: '${question}'...`
+        : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -588,6 +598,9 @@ export function buildToolLinkUrl(
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
       }
+      if (mode === 'traces') {
+        queryParams.table = 'trace';
+      }
 
       if (aggregateFields.length > 0) {
         queryParams.aggregateField = aggregateFields;
@@ -775,26 +788,29 @@ export function usePageReferrer(): {getPageReferrer: () => string} {
 
 export function useCopySessionDataToClipboard({
   blocks,
+  status,
   organization,
   projects,
   enabled,
 }: {
-  blocks: Block[];
+  blocks: Block[] | undefined;
   enabled: boolean;
   organization: Organization | null;
+  status: string | undefined;
   projects?: Array<{id: string; slug: string}>;
 }) {
   const [isError, setIsError] = useState(false);
 
   const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !organization || !blocks) {
+    if (!enabled || !organization) {
       return;
     }
     setIsError(false);
     try {
-      await navigator.clipboard.writeText(
-        formatSessionData(blocks, organization.slug, projects)
-      );
+      const text = blocks
+        ? formatSessionData(blocks, organization.slug, projects)
+        : `No data available. Status: ${status ?? 'unknown'}`;
+      await navigator.clipboard.writeText(text);
       addSuccessMessage('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
@@ -802,7 +818,7 @@ export function useCopySessionDataToClipboard({
     }
 
     trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
-  }, [enabled, blocks, organization, projects]);
+  }, [enabled, blocks, status, organization, projects]);
 
   return {copySessionToClipboard, isError};
 }
@@ -910,5 +926,16 @@ export function getExplorerUrl(runId: number | string): string {
 }
 
 export function getLangfuseUrl(runId: number | string): string {
-  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`;
+  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
+}
+
+/**
+ * Checks if Seer Explorer is enabled for the organization.
+ * Requires all of the following conditions:
+ * - 'seer-explorer' feature flag
+ * - Organization has open membership
+ * Does not check general AI features access or org consent.
+ */
+export function isSeerExplorerEnabled(organization: Organization): boolean {
+  return organization.openMembership && organization.features.includes('seer-explorer');
 }

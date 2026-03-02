@@ -2,8 +2,8 @@ import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 type Entry = {
   ref: HTMLElement;
@@ -272,8 +272,8 @@ const StoryIndexContainer = styled('div')`
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
   height: 28px;
   display: flex;
@@ -322,7 +322,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
         height: 16px;
         border-radius: 4px;
         transform: translateX(-2px);
-        background: ${p.theme.tokens.graphics.accent};
+        background: ${p.theme.tokens.graphics.accent.vibrant};
       }
     `}
 `;

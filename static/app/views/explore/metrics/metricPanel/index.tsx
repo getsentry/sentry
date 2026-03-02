@@ -2,8 +2,8 @@ import {useState} from 'react';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {TraceSamplesTableColumns} from 'sentry/views/explore/metrics/constants';
@@ -84,7 +84,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
         {orientation === 'right' ? (
           <SideBySideOrientation
             timeseriesResult={timeseriesResult}
-            queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
@@ -95,7 +94,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
         ) : (
           <StackedOrientation
             timeseriesResult={timeseriesResult}
-            queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setUserPreferenceOrientation}
             orientation={orientation}

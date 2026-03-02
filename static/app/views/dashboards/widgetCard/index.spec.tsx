@@ -13,6 +13,7 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -132,6 +133,8 @@ describe('Dashboards > WidgetCard', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(selection);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {meta: {isMetricsData: false}},
@@ -825,7 +828,7 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         organization={{
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         }}
         widget={multipleQueryWidget}
         selection={selection}

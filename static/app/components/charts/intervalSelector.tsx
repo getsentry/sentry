@@ -1,7 +1,9 @@
 import {useState} from 'react';
 
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {getInterval} from 'sentry/components/charts/utils';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {
   _timeRangeAutoCompleteFilter,
   makeItem,
@@ -213,23 +215,26 @@ export default function IntervalSelector({
 
   return (
     <CompactSelect
-      searchPlaceholder={t('Provide a time interval')}
+      search={{
+        placeholder: t('Provide a time interval'),
+        filter: false,
+        onChange: filterValue => setItems(intervalAutoComplete(filterValue)),
+      }}
       value={interval}
       options={items}
       onChange={option => onIntervalChange(option.value)}
-      searchable
-      disableSearchFilter
-      onSearch={filterValue => {
-        setItems(intervalAutoComplete(filterValue));
-      }}
       size="sm"
       position="bottom-end"
       menuWidth={200}
-      triggerProps={{
-        prefix: t('Interval'),
-        borderless: true,
-        children: interval,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Interval')}
+          priority="transparent"
+        >
+          {interval}
+        </OverlayTrigger.Button>
+      )}
       disabled={false}
     />
   );

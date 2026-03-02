@@ -82,7 +82,7 @@ PROJECT_SLUG_MAX_LENGTH = 100
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 10081
+MAX_ROLLUP_POINTS = 10100
 
 
 # Organization slugs which may not be used. Generally these are top level URL patterns
@@ -141,9 +141,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "from",
         "get-cli",
         "github-deployment-gate",
-        "gsnlink",
         "go",
         "guide",
+        "healthcheck",
         "help",
         "ingest",
         "ingest-beta",
@@ -311,6 +311,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_type.IssueTypeFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -728,8 +729,6 @@ DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
     "on_ready_for_review",
     "on_new_commit",
 ]
-# Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
-ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False

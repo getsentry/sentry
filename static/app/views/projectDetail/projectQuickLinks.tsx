@@ -1,16 +1,21 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
@@ -100,13 +105,37 @@ function ProjectQuickLinks({organization, project}: Props) {
   );
 }
 
-const QuickLink = styled((p: any) =>
-  p.disabled ? (
-    <span className={p.className}>{p.children}</span>
-  ) : (
-    <GlobalSelectionLink {...p} />
-  )
-)<{
+interface QuickLinkProps extends Omit<LinkProps, 'to'> {
+  to: LocationDescriptor;
+  disabled?: boolean;
+}
+
+function QuickLinkComponent({
+  disabled,
+  to,
+  className,
+  children,
+  ...props
+}: QuickLinkProps) {
+  const location = useLocation();
+
+  if (disabled) {
+    return <span className={className}>{children}</span>;
+  }
+
+  const toWithQuery =
+    typeof to === 'string'
+      ? {pathname: to, query: extractSelectionParameters(location.query)}
+      : {...to, query: {...extractSelectionParameters(location.query), ...to.query}};
+
+  return (
+    <Link to={toWithQuery} className={className} {...props}>
+      {children}
+    </Link>
+  );
+}
+
+const QuickLink = styled(QuickLinkComponent)<{
   disabled?: boolean;
 }>`
   margin-bottom: ${space(1)};
@@ -124,7 +153,7 @@ const QuickLink = styled((p: any) =>
 `;
 
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: block;
   width: 100%;
   white-space: nowrap;

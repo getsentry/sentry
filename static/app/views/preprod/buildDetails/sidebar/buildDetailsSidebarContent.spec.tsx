@@ -17,7 +17,7 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     name: 'Test App',
     version: '1.0.0',
     build_number: '100',
-    platform: 'ios',
+    platform: 'apple',
     artifact_type: 0,
     build_configuration: 'Release',
     date_built: '2023-01-01T00:00:00Z',
@@ -243,7 +243,7 @@ describe('BuildDetailsSidebarContent', () => {
       const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
       expect(baseBuildLink).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/preprod/${defaultProps.projectId}/base-artifact-id/`
+        `/organizations/${organization.slug}/preprod/size/base-artifact-id/?project=${defaultProps.projectId}`
       );
 
       // Should be an internal link (not opening in a new tab)

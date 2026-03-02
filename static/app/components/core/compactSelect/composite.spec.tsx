@@ -2,8 +2,8 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CompositeSelect} from './composite';
-import {SelectTrigger} from './trigger';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 describe('CompositeSelect', () => {
   it('renders', async () => {
@@ -11,7 +11,7 @@ describe('CompositeSelect', () => {
       <CompositeSelect
         menuTitle="Menu title"
         trigger={props => (
-          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}
       >
         <CompositeSelect.Region
@@ -77,7 +77,7 @@ describe('CompositeSelect', () => {
       <CompositeSelect
         disabled
         trigger={props => (
-          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}
       >
         <CompositeSelect.Region
@@ -100,7 +100,7 @@ describe('CompositeSelect', () => {
     render(
       <CompositeSelect
         trigger={props => (
-          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}
       >
         <CompositeSelect.Region
@@ -165,7 +165,7 @@ describe('CompositeSelect', () => {
       return (
         <CompositeSelect
           trigger={props => (
-            <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+            <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
           )}
         >
           <CompositeSelect.Region
@@ -247,10 +247,9 @@ describe('CompositeSelect', () => {
   it('can search', async () => {
     render(
       <CompositeSelect
-        searchable
-        searchPlaceholder="Search placeholder…"
+        search={{placeholder: 'Search placeholder…'}}
         trigger={props => (
-          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}
       >
         <CompositeSelect.Region
@@ -300,7 +299,7 @@ describe('CompositeSelect', () => {
         <CompositeSelect
           grid
           trigger={props => (
-            <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+            <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
           )}
         >
           <CompositeSelect.Region
@@ -377,7 +376,7 @@ describe('CompositeSelect', () => {
     render(
       <CompositeSelect
         trigger={props => (
-          <SelectTrigger.Button {...props}>Open menu</SelectTrigger.Button>
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}
       >
         <CompositeSelect.Region

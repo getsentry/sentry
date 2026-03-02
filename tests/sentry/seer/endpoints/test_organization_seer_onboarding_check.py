@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from sentry.constants import ObjectStatus
-from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
@@ -70,7 +69,7 @@ class TestIsCodeReviewEnabled(TestCase):
     def test_code_review_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
         )
@@ -80,7 +79,7 @@ class TestIsCodeReviewEnabled(TestCase):
     def test_code_review_disabled(self) -> None:
         repo = self.create_repo(project=self.project)
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=False,
         )
@@ -91,12 +90,12 @@ class TestIsCodeReviewEnabled(TestCase):
         repo1 = self.create_repo(project=self.project)
         repo2 = self.create_repo(project=self.project)
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo1,
             enabled_code_review=True,
         )
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo2,
             enabled_code_review=False,
         )
@@ -111,7 +110,7 @@ class TestIsCodeReviewEnabled(TestCase):
         repo.status = ObjectStatus.DISABLED
         repo.save()
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
         )
@@ -132,12 +131,12 @@ class TestIsCodeReviewEnabled(TestCase):
         repo1 = self.create_repo(project=project1)
         repo2 = self.create_repo(project=project2)
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo1,
             enabled_code_review=True,
         )
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo2,
             enabled_code_review=False,
         )
@@ -250,6 +249,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
+            "needsConfigReminder": False,
             "isSeerConfigured": False,
         }
 
@@ -262,7 +262,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         )
 
         repo = self.create_repo(project=self.project)
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
         )
@@ -278,6 +278,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": True,
+            "needsConfigReminder": False,
             "isSeerConfigured": True,
         }
 
@@ -296,12 +297,13 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
+            "needsConfigReminder": False,
             "isSeerConfigured": False,
         }
 
     def test_code_review_enabled_only(self) -> None:
         repo = self.create_repo(project=self.project)
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
         )
@@ -313,6 +315,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
+            "needsConfigReminder": False,
             "isSeerConfigured": False,
         }
 
@@ -328,6 +331,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
+            "needsConfigReminder": False,
             "isSeerConfigured": False,
         }
 
@@ -340,7 +344,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         )
 
         repo = self.create_repo(project=self.project)
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
         )
@@ -352,6 +356,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
+            "needsConfigReminder": False,
             "isSeerConfigured": True,
         }
 
@@ -374,12 +379,13 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
+            "needsConfigReminder": False,
             "isSeerConfigured": True,
         }
 
     def test_code_review_and_autofix_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
         )
@@ -395,5 +401,79 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": True,
+            "needsConfigReminder": False,
             "isSeerConfigured": False,
         }
+
+    def test_needs_config_reminder_forces_configured(self) -> None:
+        """When org is in force-config-reminder list, needsConfigReminder is True but isSeerConfigured follows normal logic."""
+        with self.options({"seer.organizations.force-config-reminder": [self.organization.slug]}):
+            response = self.get_response(self.organization.slug)
+
+            assert response.status_code == 200
+            assert response.data == {
+                "hasSupportedScmIntegration": False,
+                "isCodeReviewEnabled": False,
+                "isAutofixEnabled": False,
+                "needsConfigReminder": True,
+                "isSeerConfigured": False,
+            }
+
+    def test_needs_config_reminder_with_scm_integration(self) -> None:
+        """When org is in config reminder list with SCM integration but no code review/autofix, isSeerConfigured is False."""
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+        )
+
+        with self.options({"seer.organizations.force-config-reminder": [self.organization.slug]}):
+            response = self.get_response(self.organization.slug)
+
+            assert response.status_code == 200
+            assert response.data == {
+                "hasSupportedScmIntegration": True,
+                "isCodeReviewEnabled": False,
+                "isAutofixEnabled": False,
+                "needsConfigReminder": True,
+                "isSeerConfigured": False,
+            }
+
+    def test_not_in_config_reminder_list(self) -> None:
+        """When org is not in config reminder list, isSeerConfigured follows normal logic."""
+        with self.options({"seer.organizations.force-config-reminder": ["other-org"]}):
+            response = self.get_response(self.organization.slug)
+
+            assert response.status_code == 200
+            assert response.data == {
+                "hasSupportedScmIntegration": False,
+                "isCodeReviewEnabled": False,
+                "isAutofixEnabled": False,
+                "needsConfigReminder": False,
+                "isSeerConfigured": False,
+            }
+
+    def test_config_reminder_with_complete_setup(self) -> None:
+        """Config reminder flag is independent of isSeerConfigured logic."""
+        # Set up SCM and code review
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+        )
+
+        repo = self.create_repo(project=self.project)
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        with self.options({"seer.organizations.force-config-reminder": [self.organization.slug]}):
+            response = self.get_response(self.organization.slug)
+
+            assert response.status_code == 200
+            # needsConfigReminder is independent - it can be True even when configured
+            assert response.data["needsConfigReminder"] is True
+            assert response.data["isSeerConfigured"] is True

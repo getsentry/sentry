@@ -133,7 +133,6 @@ def test_merge_symbolicator_image_errors(code_file: str, error: EventError) -> N
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_cocoa_function_name(mock_symbolicator, default_project) -> None:
-
     data = {
         "platform": "cocoa",
         "project": default_project.id,
@@ -164,7 +163,6 @@ def test_cocoa_function_name(mock_symbolicator, default_project) -> None:
 
 
 def test_filter_frames() -> None:
-
     frames = [
         {
             "instruction_addr": None,
@@ -272,7 +270,6 @@ def test_rewrite_electron_debug_file() -> None:
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
-
     data = {
         "event_id": "c87700da71534177b92bd912f21a062f",
         "timestamp": "2022-06-15T10:13:46.963575+00:00",

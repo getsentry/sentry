@@ -37,12 +37,12 @@ const HeaderInfo = styled('div')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin: 0;
 `;
 
 const SectionBody = styled('div')<{alignment?: boolean}>`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   text-align: ${p => (p.alignment ? 'right' : 'left')};
   padding: ${p => p.theme.space.xs} 0;
   max-height: 32px;

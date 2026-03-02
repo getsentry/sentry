@@ -14,6 +14,7 @@ class ApiApplicationSerializer(Serializer):
             "id": obj.client_id,
             "clientID": obj.client_id,
             "clientSecret": obj.client_secret if is_secret_visible else None,
+            "isPublic": obj.is_public,
             "name": obj.name,
             "homepageUrl": obj.homepage_url,
             "privacyUrl": obj.privacy_url,

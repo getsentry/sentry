@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -361,7 +361,6 @@ function SetupCta({
   organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
 }) {
-  // TODO(isabella): refactor this whole file to be more reusable
   if (selectedProduct !== AddOnCategory.SEER) {
     return null;
   }

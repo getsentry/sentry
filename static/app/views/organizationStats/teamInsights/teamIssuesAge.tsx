@@ -3,8 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {BarChart} from 'sentry/components/charts/barChart';
-import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -16,6 +18,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -58,7 +61,9 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     refetch: refetchOldestIssues,
   } = useApiQuery<Group[]>(
     [
-      `/teams/${organization.slug}/${teamSlug}/issues/old/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           limit: 7,
@@ -74,7 +79,11 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     isError: isUnresolvedIssueAgeError,
     refetch: refetchUnresolvedIssueAge,
   } = useApiQuery<Record<string, number>>(
-    [`/teams/${organization.slug}/${teamSlug}/unresolved-issue-age/`],
+    [
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/unresolved-issue-age/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
+    ],
     {staleTime: 5000}
   );
 
@@ -135,11 +144,15 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
         emptyMessage={t('No unresolved issues for this team’s projects')}
         headers={[
           t('Oldest Issues'),
-          <RightAligned key="events">{t('Events')}</RightAligned>,
-          <RightAligned key="users">{t('Users')}</RightAligned>,
-          <RightAligned key="age">
+          <Flex as="span" justify="end" align="center" key="events">
+            {t('Events')}
+          </Flex>,
+          <Flex as="span" justify="end" align="center" key="users">
+            {t('Users')}
+          </Flex>,
+          <Flex as="span" justify="end" align="center" key="age">
             {t('Age')} <IconArrow direction="down" size="xs" variant="muted" />
-          </RightAligned>,
+          </Flex>,
         ]}
         isLoading={isLoading}
       >
@@ -165,15 +178,15 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
                   </Link>
                 </TitleOverflow>
               </ProjectTitleContainer>
-              <RightAligned>
+              <Flex as="span" justify="end" align="center">
                 <Count value={issue.count} />
-              </RightAligned>
-              <RightAligned>
+              </Flex>
+              <Flex as="span" justify="end" align="center">
                 <Count value={issue.userCount} />
-              </RightAligned>
-              <RightAligned>
+              </Flex>
+              <Flex as="span" justify="end" align="center">
                 <TimeSince date={issue.firstSeen} />
-              </RightAligned>
+              </Flex>
             </Fragment>
           );
         })}
@@ -194,7 +207,7 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   box-shadow: unset;
 
   > * {
@@ -208,12 +221,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const RightAligned = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 `;
 
 const ProjectTitleContainer = styled('div')`

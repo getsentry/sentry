@@ -1,13 +1,15 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Tag} from '@sentry/scraps/badge/tag';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
@@ -17,14 +19,6 @@ interface MetricSelectOption extends SelectOption<string> {
   metricName: string;
   metricType: TraceMetricTypeValue;
   metricUnit?: string;
-}
-
-export function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}) {
-  if (!metricType) {
-    return null;
-  }
-
-  return <Tag variant="muted">{metricType}</Tag>;
 }
 
 export function MetricSelector({
@@ -96,11 +90,11 @@ export function MetricSelector({
 
   return (
     <CompactSelect
-      searchable
+      search={{onChange: debouncedSetSearch}}
       options={isFetching ? previousOptions : (metricOptions ?? [])}
       value={traceMetricSelectValue}
       loading={isFetching}
-      onSearch={debouncedSetSearch}
+      menuTitle={t('Metrics')}
       onChange={option => {
         if ('metricType' in option) {
           const typedOption = option as MetricSelectOption;
@@ -110,6 +104,13 @@ export function MetricSelector({
           });
         }
       }}
+      style={{width: '100%'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          style={{width: '100%', fontWeight: 'bold'}}
+        />
+      )}
     />
   );
 }

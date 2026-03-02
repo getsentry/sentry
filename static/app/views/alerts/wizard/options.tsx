@@ -1,6 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -23,7 +24,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {
   deprecateTransactionAlerts,
   hasEAPAlerts,
@@ -50,7 +51,8 @@ export type AlertType =
   | 'trace_item_duration'
   | 'trace_item_failure_rate'
   | 'trace_item_lcp'
-  | 'trace_item_logs';
+  | 'trace_item_logs'
+  | 'trace_item_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -106,6 +108,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trace_item_lcp: t('Largest Contentful Paint'),
   eap_metrics: t('Spans'),
   trace_item_logs: t('Logs'),
+  trace_item_metrics: t('Custom Metrics'),
   crons_monitor: t('Cron Monitor'),
 };
 
@@ -115,6 +118,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
+  trace_item_metrics: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
@@ -167,6 +171,13 @@ export const getAlertWizardCategories = (org: Organization) => {
       result.push({
         categoryHeading: t('Logs'),
         options: ['trace_item_logs' as const],
+      });
+    }
+
+    if (hasTraceMetricsAlerts(org)) {
+      result.push({
+        categoryHeading: t('Metrics'),
+        options: ['trace_item_metrics' as const],
       });
     }
 
@@ -292,6 +303,11 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: 'count(message)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRACE_ITEM_LOG,
+  },
+  trace_item_metrics: {
+    aggregate: 'sum(value)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_METRIC,
   },
 };
 

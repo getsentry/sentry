@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -14,7 +15,6 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   RPCQueryExtras,
   SamplingMode,
@@ -484,7 +484,7 @@ function mergeIntervals(first: Interval[], second: Interval[]) {
   return target;
 }
 
-function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
+export function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
   if (!defined(statsPeriod)) {
     return Infinity;
   }

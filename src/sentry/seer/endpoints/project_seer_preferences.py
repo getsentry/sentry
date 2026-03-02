@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,8 +15,12 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import PreferenceResponse, SeerProjectPreference
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
+from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -108,12 +110,30 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        for repo_data in serializer.validated_data.get("repositories", []):
+            provider = repo_data.get("provider")
+            external_id = repo_data.get("external_id")
+            repo_org_id = repo_data.get("organization_id")
+            owner = repo_data.get("owner")
+            name = repo_data.get("name")
+
+            if repo_org_id is not None and repo_org_id != project.organization.id:
+                return Response({"detail": "Invalid repository"}, status=400)
+
+            repo_data["organization_id"] = project.organization.id
+
+            repo_exists = filter_repo_by_provider(
+                project.organization.id, provider, external_id, owner, name
+            ).exists()
+
+            if not repo_exists:
+                return Response({"detail": "Invalid repository"}, status=400)
+
         path = "/v1/project-preference/set"
         body = orjson.dumps(
             {
                 "preference": SeerProjectPreference.validate(
                     {
-                        # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,
@@ -122,16 +142,14 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         return Response(status=204)
 
@@ -143,16 +161,14 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         result = response.json()
 

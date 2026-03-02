@@ -2,13 +2,15 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
 import {
   useHandleAssigneeChange,
   type OnAssignCallback,
@@ -249,9 +251,9 @@ function AssignedTo({
               size={24}
             />
           ) : (
-            <IconWrapper>
+            <Flex padding="2xs">
               <IconUser size="md" />
-            </IconWrapper>
+            </Flex>
           )}
           <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
         </ActorWrapper>
@@ -284,7 +286,7 @@ function AssignedTo({
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
-              borderless
+              priority="transparent"
               size="xs"
             />
           </GuideAnchor>
@@ -325,11 +327,6 @@ const ActorWrapper = styled('div')`
   gap: ${space(1)};
   max-width: 100%;
   line-height: 1;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  padding: ${space(0.25)};
 `;
 
 const ActorName = styled('div')`

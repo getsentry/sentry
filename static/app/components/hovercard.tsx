@@ -45,11 +45,10 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
 
 type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
 
-interface HovercardContentProps
-  extends Pick<
-    HovercardProps,
-    'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
-  > {
+interface HovercardContentProps extends Pick<
+  HovercardProps,
+  'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
+> {
   hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
 }
 
@@ -188,17 +187,17 @@ const StyledHovercard = styled(Overlay)`
   line-height: 1.2;
   h6 {
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     margin-bottom: ${space(1)};
     text-transform: uppercase;
   }
 `;
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   word-wrap: break-word;
   padding: ${space(1.5)};
 `;

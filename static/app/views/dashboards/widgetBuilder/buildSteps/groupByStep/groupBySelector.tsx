@@ -3,10 +3,9 @@ import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -28,6 +28,7 @@ import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hook
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import {QueryField} from './queryField';
 import {SortableQueryField} from './sortableQueryField';
@@ -159,11 +160,7 @@ export function GroupBySelector({
         if (!('dataType' in meta)) {
           return null;
         }
-        return (
-          <Tag variant={meta.dataType === 'number' ? 'info' : 'warning'}>
-            {meta.dataType}
-          </Tag>
-        );
+        return <TypeBadge valueType={meta.dataType as FieldValueType} />;
       }
     : undefined;
 

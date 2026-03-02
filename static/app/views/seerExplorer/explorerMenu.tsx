@@ -6,6 +6,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
@@ -22,6 +23,7 @@ interface ExplorerMenuProps {
     onMaxSize: () => void;
     onMedSize: () => void;
     onNew: () => void;
+    onSentryTrace: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
@@ -266,10 +268,10 @@ export function useExplorerMenu({
         left: `${relativeLeft}px`,
       });
     } else if (menuMode === 'pr-widget') {
-      // Position below anchor, centered
+      // Position above anchor (since button is at bottom of panel)
       setMenuPosition({
-        top: `${relativeTop + rect.height + spacing}px`,
-        left: `${relativeLeft - rect.width - spacing}px`,
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        right: `${panelRect.width - relativeLeft - rect.width}px`,
       });
     } else {
       setMenuPosition({
@@ -346,12 +348,14 @@ function useSlashCommands({
   onNew,
   onFeedback,
   onLangfuse,
+  onSentryTrace,
 }: {
   onFeedback: (() => void) | undefined;
   onLangfuse: () => void;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
+  onSentryTrace: () => void;
 }): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -399,10 +403,16 @@ function useSlashCommands({
               description: 'Open Langfuse to view session details',
               handler: onLangfuse,
             },
+            {
+              title: '/sentry-conversation',
+              key: '/sentry-conversation',
+              description: 'Open Sentry AI trace (conversation view)',
+              handler: onSentryTrace,
+            },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, isSentryEmployee]
+    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, onSentryTrace, isSentryEmployee]
   );
 }
 
@@ -414,7 +424,7 @@ function useSessions({
   enabled?: boolean;
 }) {
   const organization = useOrganization({allowNull: true});
-  const hasFeature = organization?.features.includes('seer-explorer');
+  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
 
   const {data, isPending, isError, refetch} = useExplorerSessions({
     limit: 20,
@@ -487,7 +497,7 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
 `;
 
 const ItemName = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -495,5 +505,5 @@ const ItemName = styled('div')`
 
 const ItemDescription = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;

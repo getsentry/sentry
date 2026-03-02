@@ -1,7 +1,6 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +39,7 @@ export function PlaceHolder({
               view,
             })}
           />
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <FeedbackButton
               size="xs"
               feedbackOptions={{
@@ -51,7 +50,7 @@ export function PlaceHolder({
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
           <Stack gap="xs">

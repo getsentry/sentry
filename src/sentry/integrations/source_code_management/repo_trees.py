@@ -7,7 +7,7 @@ from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -153,7 +153,7 @@ class RepoTreesIntegration(ABC):
                     connection_error_count += 1
             except Exception:
                 # Report for investigation but do not stop processing
-                logger.exception(
+                logger.warning(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
 
@@ -199,7 +199,17 @@ class RepoTreesIntegration(ABC):
         repo_files: list[str] = cache.get(key, [])
         if use_api:
             # Cache miss – fetch from API
-            tree = self.get_client().get_tree(repo_full_name, tree_sha)
+            try:
+                tree = self.get_client().get_tree(repo_full_name, tree_sha)
+            except ApiConflictError:
+                # Empty repos return 409 — cache the empty result so we don't
+                # keep burning API calls on repos we know have no files.
+                logger.info(
+                    "Caching empty files result for repo",
+                    extra={"repo": repo_full_name},
+                )
+                cache.set(key, [], self.CACHE_SECONDS + shifted_seconds)
+                tree = None
             if tree:
                 # Keep files; discard directories
                 repo_files = [node["path"] for node in tree if node["type"] == "blob"]
@@ -261,7 +271,7 @@ def filter_source_code_files(files: list[str]) -> list[str]:
             if should_include(file_path):
                 supported_files.append(file_path)
         except Exception:
-            logger.exception("We've failed to store the file path.")
+            logger.warning("We've failed to store the file path.")
 
     return supported_files
 

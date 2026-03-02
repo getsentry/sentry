@@ -653,8 +653,264 @@ class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
+    """Tests for SentrySwizzleWrapper conditional SDK crash detection.
+
+    SentrySwizzleWrapper is used for method swizzling to intercept UI events.
+    When it's the only SDK frame, it's highly unlikely the crash stems from the SDK.
+    Only report as SDK crash if there are other SDK frames anywhere in the stacktrace.
+    We prefer to overreport rather than underreport SDK crashes.
+
+    Note: Frames are ordered from oldest (caller) to youngest (exception).
+    """
+
+    def test_swizzle_wrapper_only_sdk_frame_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentrySwizzleWrapper is the only SDK frame in the stack.
+        It's highly unlikely the crash stems from SentrySwizzleWrapper.
+        """
+        # Frames ordered from oldest (caller) to youngest (exception)
+        frames = [
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "-[UIGestureRecognizer _updateGestureForActiveEvents]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "-[UITextMultiTapRecognizer onStateUpdate:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UITextInputController insertDictationResult:withCorrectionIdentifier:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSString substringWithRange:]",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "objc_exception_throw",
+                "package": "/usr/lib/libobjc.A.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            False,  # Should NOT be reported
+            mock_sdk_crash_reporter,
+        )
+
+    def test_swizzle_wrapper_with_other_sdk_frames_above_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentrySwizzleWrapper is in the stack, but there are other SDK frames above it
+        (closer to the crash origin). This IS an SDK crash.
+        """
+        # Frames ordered from oldest (caller) to youngest (exception)
+        frames = [
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UITextInputController insertDictationResult:withCorrectionIdentifier:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                # This is another SDK frame ABOVE SentrySwizzleWrapper (closer to crash)
+                "function": "-[SentryHub captureEvent:]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "objc_exception_throw",
+                "package": "/usr/lib/libobjc.A.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            True,  # Should be reported
+            mock_sdk_crash_reporter,
+        )
+
+    def test_swizzle_wrapper_with_sdk_frame_below_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentrySwizzleWrapper is in the stack, with another SDK frame below it (further from crash).
+        Since there's another SDK frame anywhere in the stacktrace, this IS an SDK crash.
+        We prefer to overreport rather than underreport SDK crashes.
+        """
+        # Frames ordered from oldest (caller) to youngest (exception)
+        frames = [
+            {
+                # This SDK frame is BELOW SentrySwizzleWrapper (further from crash origin)
+                "function": "-[SentryHub captureEvent:]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSString substringWithRange:]",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            True,  # Should be reported - there's another SDK frame in the stack
+            mock_sdk_crash_reporter,
+        )
+
+    def test_swizzle_wrapper_with_always_ignored_sdk_frame_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentrySwizzleWrapper with an always-ignored SDK frame ([SentrySDK crash]).
+        The always-ignored frame should not count as another SDK frame.
+        """
+        frames = [
+            {
+                "function": "+[SentrySDK crash]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSString substringWithRange:]",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_multiple_swizzle_wrapper_frames_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        Multiple SentrySwizzleWrapper frames in the stack.
+        Even though each individual frame would be ignored when it's the only SDK frame,
+        having multiple SDK frames (even if all conditional) should be reported.
+        """
+        # Frames ordered from oldest (caller) to youngest (exception)
+        frames = [
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UIGestureRecognizer _updateGestureForActiveEvents]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                # Second SentrySwizzleWrapper frame
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_3",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSString substringWithRange:]",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            True,  # Should be reported - multiple SDK frames even if all conditional
+            mock_sdk_crash_reporter,
+        )
+
+
 class SDKCrashDetectionCocoaTest(
-    TestCase, CococaSDKFilenameTestMixin, CococaSDKFramesTestMixin, CococaSDKFunctionTestMixin
+    TestCase,
+    CococaSDKFilenameTestMixin,
+    CococaSDKFramesTestMixin,
+    CococaSDKFunctionTestMixin,
+    CocoaSDKSwizzleWrapperTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

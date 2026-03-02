@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import useProjects from 'sentry/utils/useProjects';
 
 export default function ProjectPicker({
@@ -21,9 +23,11 @@ export default function ProjectPicker({
     <CompactSelect
       onChange={selected => onChange(selected.value)}
       options={options}
-      searchable
+      search
       size="xs"
-      triggerProps={{prefix: 'Project'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix="Project" />
+      )}
       value={project}
     />
   );

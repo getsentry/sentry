@@ -2,12 +2,12 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -178,7 +178,9 @@ function RootAllocationCard({
                         }
                       >
                         &nbsp;
-                        <span style={{color: theme.red400, marginLeft: theme.space.md}}>
+                        <span
+                          style={{color: theme.colors.red500, marginLeft: theme.space.md}}
+                        >
                           {tct('([overCount] over)', {
                             overCount: bigNumFormatter(
                               rootAllocation.consumedQuantity -

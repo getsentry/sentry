@@ -11,7 +11,9 @@ from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -79,6 +81,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
+    @deprecated(
+        CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-similar-issues-embeddings"]
+    )
     def get(self, request: Request, group: Group) -> Response:
         if killswitch_enabled(group.project.id, ReferrerOptions.SIMILAR_ISSUES_TAB):
             return Response([])
@@ -86,11 +91,13 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
 
+        model_version = get_grouping_model_version(group.project)
+
         if latest_event and event_content_has_stacktrace(latest_event):
             variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
 
             if not stacktrace_exceeds_limits(
-                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
+                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB, model_version
             ):
                 grouping_info = get_grouping_info_from_variants_legacy(variants)
                 try:
@@ -100,8 +107,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
-
-        model_version = get_grouping_model_version(group.project)
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "event_id": latest_event.event_id,

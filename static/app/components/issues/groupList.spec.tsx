@@ -56,9 +56,9 @@ describe('GroupList', () => {
     expect(screen.getByText(group.shortId)).toBeInTheDocument();
     expect(screen.getByText(group.culprit)).toBeInTheDocument();
     // Event count
-    expect(screen.getByText('327k')).toBeInTheDocument();
+    expect(screen.getByText('327K')).toBeInTheDocument();
     // Users
-    expect(screen.getByText('35k')).toBeInTheDocument();
+    expect(screen.getByText('35K')).toBeInTheDocument();
   });
 
   it('renders empty state when no groups are returned', async () => {

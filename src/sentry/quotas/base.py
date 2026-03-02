@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from django.core.cache import cache
 
@@ -76,6 +76,16 @@ RETENTIONS_CONFIG_MAPPING = {
     DataCategory.SPAN: "span",
     DataCategory.TRACE_METRIC: "traceMetric",
 }
+
+
+class TrimmingConfig(TypedDict):
+    maxSize: int
+
+
+# This mirrors the TrimmingConfigs struct in Relay
+# https://github.com/getsentry/relay/blob/73e5f9816b10c518b4451d46ebffa709f9f7e897/relay-dynamic-config/src/project.rs#L297-L301
+class TrimmingConfigs(TypedDict, total=False):
+    span: TrimmingConfig
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
@@ -432,6 +442,12 @@ class Quota(Service):
     ) -> Mapping[DataCategory, RetentionSettings]:
         return {}
 
+    def get_trimming_configs(self, organization: Organization, **kwargs) -> TrimmingConfigs:
+        """
+        Returns per-data-category trimming settings.
+        """
+        return {}
+
     def validate(self):
         """
         Validates that the quota service is operational.
@@ -583,9 +599,7 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
-    def check_assign_seat(
-        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
-    ) -> SeatAssignmentResult:
+    def check_assign_seat(self, seat_object: SeatObject) -> SeatAssignmentResult:
         """
         Determines if an assignable seat object can be assigned a seat.
         If it is not possible to assign a monitor a seat, a reason
@@ -602,8 +616,7 @@ class Quota(Service):
 
     def check_assign_seats(
         self,
-        data_category: DataCategory | None = None,
-        seat_objects: Sequence[SeatObject] | None = None,
+        seat_objects: Sequence[SeatObject],
     ) -> SeatAssignmentResult:
         """
         Determines if a list of assignable seat objects can be assigned seat.
@@ -622,9 +635,7 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
-    def assign_seat(
-        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
-    ) -> int:
+    def assign_seat(self, seat_object: SeatObject) -> int:
         """
         Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
         If the object cannot be assigned a seat it will be
@@ -639,16 +650,12 @@ class Quota(Service):
         Removes a monitor from it's assigned seat.
         """
 
-    def disable_seat(
-        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
-    ) -> None:
+    def disable_seat(self, seat_object: SeatObject) -> None:
         """
         Disables an assigned seat.
         """
 
-    def remove_seat(
-        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
-    ) -> None:
+    def remove_seat(self, seat_object: SeatObject) -> None:
         """
         Removes an assigned seat.
         """
@@ -696,6 +703,27 @@ class Quota(Service):
     def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
         """
         Determines if the organization has enough reserved budget for the given data category operation.
+        """
+        return True
+
+    def has_usage_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Check if organization has available quota for a usage-based category.
+
+        This is for categories with TallyType.USAGE (not SEAT-based). Unlike
+        has_available_reserved_budget (which is for cost-based Reserved Budgets
+        where reserved=-2), this checks usage-based quotas where reserved=N
+        means N events are allocated.
+
+        Use for usage-based categories like SIZE_ANALYSIS, INSTALLABLE_BUILD, and
+        similar categories that are not rate-limited in Relay.
+
+        Args:
+            org_id: The organization ID
+            data_category: The data category to check quota for
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
         """
         return True
 

@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
@@ -15,7 +15,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +28,7 @@ from rest_framework.request import Request
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {
+        "GET": ["org:read"],
         "POST": ["org:read"],
     }
 
@@ -39,15 +44,13 @@ def fire_setup_request(org_id: int, project_ids: list[int]) -> None:
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/create-cache",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/create-cache",
+        body,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
 
 
 @region_silo_endpoint
@@ -63,15 +66,25 @@ class TraceExplorerAISetup(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        raw_project_ids = request.data.get("project_ids", [])
+        if raw_project_ids:
+            try:
+                project_ids = {int(x) for x in raw_project_ids}
+            except (ValueError, TypeError):
+                raise ParseError("Invalid project_id value")
+            if any(pid <= 0 for pid in project_ids):
+                raise ParseError("Invalid project_id value")
+            projects = self.get_projects(request, organization, project_ids=project_ids)
+            validated_project_ids = [p.id for p in projects]
+        else:
+            validated_project_ids = []
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
@@ -92,6 +105,6 @@ class TraceExplorerAISetup(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        fire_setup_request(organization.id, project_ids)
+        fire_setup_request(organization.id, validated_project_ids)
 
         return Response({"status": "ok"})

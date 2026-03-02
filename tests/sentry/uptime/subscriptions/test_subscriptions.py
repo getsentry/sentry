@@ -33,6 +33,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     enable_uptime_detector,
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
+    set_response_capture_enabled,
     update_uptime_detector,
     update_uptime_subscription,
 )
@@ -873,7 +874,11 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
             detector.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(seat_object=detector)
+        # Use assert_any_call because remove_seat is called from multiple
+        # places (delete_uptime_detector, UptimeSubscriptionDeletionTask, and
+        # DetectorDeletionTask). The last call's reference gets mutated when
+        # instance.delete() sets pk=None, so assert_called_with would fail.
+        mock_remove_seat.assert_any_call(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.remove_seat")
     def test_single_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
@@ -896,7 +901,11 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
-        mock_remove_seat.assert_called_with(seat_object=detector)
+        # Use assert_any_call because remove_seat is called from multiple
+        # places (delete_uptime_detector, UptimeSubscriptionDeletionTask, and
+        # DetectorDeletionTask). The last call's reference gets mutated when
+        # instance.delete() sets pk=None, so assert_called_with would fail.
+        mock_remove_seat.assert_any_call(seat_object=detector)
 
 
 class IsUrlMonitoredForProjectTest(UptimeTestCase):
@@ -1353,3 +1362,43 @@ class CheckAndUpdateRegionsTest(UptimeTestCase):
             },
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
         )
+
+
+class SetResponseCaptureEnabledTest(UptimeTestCase):
+    def test_toggle_disabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+        )
+        assert sub.capture_response_on_failure is True
+
+        set_response_capture_enabled(sub, enabled=False)
+        sub.refresh_from_db()
+        assert sub.capture_response_on_failure is False
+
+    def test_toggle_enabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+            capture_response_on_failure=False,
+        )
+        assert sub.capture_response_on_failure is False
+
+        set_response_capture_enabled(sub, enabled=True)
+        sub.refresh_from_db()
+        assert sub.capture_response_on_failure is True
+
+    def test_no_op_when_already_set(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+        )
+        original_date_updated = sub.date_updated
+
+        set_response_capture_enabled(sub, enabled=True)
+        sub.refresh_from_db()
+        # Should not have updated since value was already True
+        assert sub.date_updated == original_date_updated

@@ -1,14 +1,16 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding';
 import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
@@ -30,7 +32,6 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -138,19 +139,23 @@ function SidebarContent() {
                   platform: newProject?.platform,
                 });
               }}
-              triggerProps={{
-                'aria-label': currentProject?.slug,
-                children: currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </OverlayTrigger.Button>
+              )}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -191,10 +196,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     label?: ReactNode;
   }>(sdkProviderOptions[0]!);
 
-  const defaultTab = 'sdkSelect';
-  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+  const [setupMode, setSetupMode] = useQueryState(
     'mode',
-    defaultTab
+    parseAsString.withDefault('sdkSelect').withOptions({history: 'push', throttleMs: 0})
   );
 
   const currentPlatform = currentProject.platform
@@ -214,7 +218,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   const header = (
-    <ContentHeader>
+    <Container padding="xl 0">
       <h3>{t('Set Up Evaluation Tracking')}</h3>
       <p>{t('Configure Sentry to track feature flag evaluations on error events.')}</p>
       <RadioGroup
@@ -227,7 +231,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 sdkSelect: (
                   <CompactSelect
                     size="xs"
-                    triggerProps={{children: sdkProvider.label}}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps}>
+                        {sdkProvider.label ?? triggerProps.children}
+                      </OverlayTrigger.Button>
+                    )}
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);
@@ -240,7 +248,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                     options={sdkProviderOptions}
                     position="bottom-end"
                     key={sdkProvider.value}
-                    disabled={setupMode() === 'generic'}
+                    disabled={setupMode === 'generic'}
                   />
                 ),
               })}
@@ -253,7 +261,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             </div>,
           ],
         ]}
-        value={setupMode()}
+        value={setupMode}
         onChange={value => {
           setSetupMode(value);
           if (value === 'generic') {
@@ -266,7 +274,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           window.location.hash = ORIGINAL_HASH;
         }}
       />
-    </ContentHeader>
+    </Container>
   );
 
   if (isProjKeysLoading) {
@@ -316,7 +324,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <FeatureFlagOtherPlatformOnboarding
           projectSlug={currentProject.slug}
           integration={
-            setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
+            setupMode === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
           }
         />
       </Fragment>
@@ -339,7 +347,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         platformKey={currentPlatform.id}
         project={currentProject}
         integration={
-          setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
+          setupMode === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
         }
         configType="featureFlagOnboarding"
       />
@@ -366,9 +374,9 @@ const TaskList = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -377,8 +385,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const ContentHeader = styled('div')`
-  padding: ${space(2)} 0;
 `;

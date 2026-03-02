@@ -1169,7 +1169,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
             ),
             "sentry:preprod_size_status_checks_enabled": options.get(
-                "sentry:preprod_size_status_checks_enabled", False
+                "sentry:preprod_size_status_checks_enabled", True
             ),
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
@@ -1178,6 +1178,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
             "sentry:preprod_distribution_enabled_query": options.get(
                 "sentry:preprod_distribution_enabled_query"
+            ),
+            "sentry:preprod_size_enabled_by_customer": self.get_value_with_default(
+                attrs, "sentry:preprod_size_enabled_by_customer"
+            ),
+            "sentry:preprod_distribution_enabled_by_customer": self.get_value_with_default(
+                attrs, "sentry:preprod_distribution_enabled_by_customer"
             ),
         }
 

@@ -2,6 +2,8 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 
@@ -18,16 +20,13 @@ const Z_INDEX_STICKY_HEADER = 2;
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
 
-export const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
+export function Header(props: FlexProps<'div'>) {
+  return <Flex justify="between" align="center" marginBottom="md" {...props} />;
+}
 
 export const HeaderTitle = styled('h4')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -117,8 +116,8 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
 
   background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   text-transform: uppercase;
   user-select: none;
@@ -179,8 +178,7 @@ export const GridHeadCellStatic = styled('th')`
   justify-content: center;
 
   &:first-child {
-    padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
-      ${p => p.theme.space['2xl']};
+    padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
   }
 `;
 
@@ -234,15 +232,14 @@ export const GridBodyCell = styled('td')`
   flex-direction: column;
   justify-content: center;
 
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export const GridBodyCellStatic = styled(GridBodyCell)`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
-      ${p => p.theme.space['2xl']};
+    padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
   }
 `;
 
@@ -289,11 +286,11 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   height: ${p => {
     const numOfRows = p.dataRows;
     // 1px for the border
-    const totalRowHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
-    const height = GRID_HEAD_ROW_HEIGHT + totalRowHeight;
+    const fixedBodyHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
+    const fallbackTotalHeight = GRID_HEAD_ROW_HEIGHT + fixedBodyHeight;
 
-    return height;
-  }}px;
+    return `var(--grid-editable-resizer-height, ${fallbackTotalHeight}px)`;
+  }};
 
   padding-left: 5px;
   padding-right: 5px;

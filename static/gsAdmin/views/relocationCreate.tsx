@@ -1,11 +1,13 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -108,11 +110,13 @@ function RelocationForm() {
           <li>This API has a ratelimit of 1 request per org per day</li>
           <li>Owner must be a single username</li>
           <li>Orgs can be entered as a comma separated list of slugs</li>
-          <li>Uploaded files have a maximum size of 200 MB</li>
+          <li>Uploaded files have a maximum size of 100 MB</li>
           <li>Files must be tar archives (.tar) </li>
         </ul>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region.url}
           options={regions.map((r: any) => ({
             label: r.name,

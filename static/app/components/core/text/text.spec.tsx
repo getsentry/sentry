@@ -3,8 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TextProps} from './text';
-import {Text} from './text';
+import {Text, type TextProps} from '@sentry/scraps/text';
 
 describe('Text', () => {
   it('Defaults to span', () => {

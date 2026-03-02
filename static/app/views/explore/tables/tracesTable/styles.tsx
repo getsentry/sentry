@@ -129,7 +129,7 @@ export const EmptyStateText = styled('div')<{
   textAlign?: CSSProperties['textAlign'];
 }>`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize[p.size]};
+  font-size: ${p => p.theme.font.size[p.size]};
   padding-bottom: ${p => p.theme.space.md};
   ${p => p.textAlign && `text-align: ${p.textAlign}`};
 `;

@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Placeholder from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
@@ -180,7 +181,7 @@ function TransactionDetails({
   const theme = useTheme();
 
   if (isControllerLoading) {
-    return <Placeholder height={theme.fontSize.sm} width="200px" />;
+    return <Placeholder height={theme.font.size.sm} width="200px" />;
   }
 
   if (!controller) {
@@ -207,6 +208,6 @@ const ControllerText = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-width: 0px;
 `;

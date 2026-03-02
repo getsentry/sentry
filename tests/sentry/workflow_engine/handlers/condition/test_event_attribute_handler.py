@@ -1,3 +1,4 @@
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,14 +16,14 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestEventAttributeCondition(ConditionTestCase):
     condition = Condition.EVENT_ATTRIBUTE
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": EventAttributeCondition.id,
         "match": MatchType.EQUAL,
         "value": "php",
         "attribute": "platform",
     }
 
-    def get_event(self, **kwargs):
+    def get_event(self, **kwargs: Any) -> Any:
         data = {
             "message": "hello world",
             "request": {"method": "GET", "url": "http://example.com/"},
@@ -92,7 +93,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         event = self.store_event(data, project_id=self.project.id)
         return event
 
-    def setup_group_event_and_job(self):
+    def setup_group_event_and_job(self) -> None:
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(
             event=self.group_event,
@@ -107,7 +108,7 @@ class TestEventAttributeCondition(ConditionTestCase):
             ),
         )
 
-    def error_setup(self):
+    def error_setup(self) -> None:
         self.event = self.get_event(
             exception={
                 "values": [
@@ -159,9 +160,11 @@ class TestEventAttributeCondition(ConditionTestCase):
         assert dc.condition_group == dcg
 
     def test_dual_write_filter(self) -> None:
-        self.payload["id"] = EventAttributeFilter.id
+        payload_copy = dict(self.payload)
+        payload_copy["id"] = EventAttributeFilter.id
+
         dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
+        dc = self.translate_to_data_condition(payload_copy, dcg)
 
         assert dc.type == self.condition
         assert dc.comparison == {

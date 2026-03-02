@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -11,6 +11,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -40,7 +41,11 @@ interface TermsProps {
 }
 
 function makeFetchPoliciesQueryKey(subscription: Subscription): ApiQueryKey {
-  return [`/customers/${subscription.slug}/policies/`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/policies/`, {
+      path: {organizationIdOrSlug: subscription.slug},
+    }),
+  ];
 }
 
 export function TermsAndConditions({subscription}: TermsProps) {
@@ -242,6 +247,6 @@ export function TermsAndConditions({subscription}: TermsProps) {
 
 const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;

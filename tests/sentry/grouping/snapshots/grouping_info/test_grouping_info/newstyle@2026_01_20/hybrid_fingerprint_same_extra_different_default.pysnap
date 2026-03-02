@@ -1,0 +1,65 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_message_hybrid_fingerprint": {
+      "client_values": [
+        "{{ default }}",
+        "dogs are great"
+      ],
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "FailedToFetchError"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": [
+                  "FailedToFetchError: Maisey can't see the ball anymore :-("
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": []
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception message and custom client fingerprint",
+      "hash": "c5578778212497f1ff3435405e2a4a98",
+      "hint": null,
+      "key": "app_exception_message_hybrid_fingerprint",
+      "type": "salted_component",
+      "values": [
+        "{{ default }}",
+        "dogs are great"
+      ]
+    }
+  }
+}

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Coverage} from 'sentry/types/integrations';
@@ -48,7 +49,7 @@ const Wrapper = styled('div')`
   width: 58px;
   display: inline-block;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-right: ${space(1)};
 
   .line-number {
@@ -97,7 +98,7 @@ const Wrapper = styled('div')`
   }
 
   &.active.uncovered .line-number {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
     mix-blend-mode: screen;
     background: ${p => p.theme.colors.red400};
   }

@@ -2,14 +2,15 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   Score,
@@ -124,17 +125,17 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             hideOverflow
             disableLink={!hasProjectAccess}
           />
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             <SettingsButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
-              title={t('Settings')}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
             />
             <BookmarkStar organization={organization} project={project} />
-          </ButtonBar>
+          </Grid>
         </HeaderRow>
         <SummaryLinks data-test-id="summary-links">
           {stats ? (
@@ -246,7 +247,7 @@ const HeaderRow = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 
@@ -270,10 +271,10 @@ const SummaryLinks = styled('div')`
   gap: ${space(1)};
   position: relative;
   top: -${space(2)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
@@ -315,7 +316,7 @@ const ScoreCardWrapper = styled('div')`
     margin: 0;
   }
   ${Title} {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     color: ${p => p.theme.tokens.content.secondary};
     margin-bottom: ${space(0.5)};
   }
@@ -334,7 +335,7 @@ const ScoreCardWrapper = styled('div')`
 
 const SubHeading = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(0.5)};
 `;
 

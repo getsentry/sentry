@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,7 +16,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +40,13 @@ def send_translate_request(
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/translate",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/translate",
+        body,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
@@ -62,8 +63,7 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Request to translate a natural language query into a sentry EQS query.
         """
@@ -73,17 +73,26 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        raw_project_ids = request.data.get("project_ids", [])
         natural_language_query = request.data.get("natural_language_query")
         limit = request.data.get("limit", 1)
 
-        if len(project_ids) == 0 or not natural_language_query:
+        # Validate required parameters before calling get_projects()
+        if len(raw_project_ids) == 0 or not natural_language_query:
             return Response(
                 {
                     "detail": "Missing one or more required parameters: project_ids, natural_language_query"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Validate project access after confirming valid input
+        projects = self.get_projects(
+            request=request,
+            organization=organization,
+            project_ids={int(x) for x in raw_project_ids},
+        )
+        project_ids = [p.id for p in projects]
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(

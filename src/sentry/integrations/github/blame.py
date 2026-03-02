@@ -88,7 +88,7 @@ def create_blame_query(
         try:
             [repo_owner, repo_name] = full_repo_name.split("/", maxsplit=1)
         except ValueError:
-            logger.exception(
+            logger.warning(
                 "get_blame_for_files.create_blame_query.invalid_repo_name",
                 extra={**extra, "repo_name": full_repo_name},
             )
@@ -161,7 +161,7 @@ def extract_commits_from_blame_response(
                     f"blame{file_path_index}"
                 )
                 if not blame:
-                    logger.error(
+                    logger.warning(
                         "get_blame_for_files.extract_commits_from_blame.missing_file_blame",
                         extra={
                             **extra,
@@ -220,7 +220,7 @@ def _get_matching_file_blame(
 
     commit: GitHubFileBlameCommit | None = matching_blame_range.get("commit", None)
     if not commit:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.no_commit_data",
             extra=extra,
         )
@@ -230,7 +230,7 @@ def _get_matching_file_blame(
     commit_id = commit.get("oid")
 
     if not commit_id:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
             extra={
                 **extra,
@@ -239,7 +239,7 @@ def _get_matching_file_blame(
         )
         return None
     if not committed_date_str:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
             extra={
                 **extra,
@@ -252,7 +252,7 @@ def _get_matching_file_blame(
     try:
         committed_date = datetime.fromisoformat(committed_date_str).astimezone(timezone.utc)
     except Exception:
-        logger.exception(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
             extra={
                 **extra,

@@ -1,10 +1,10 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logs} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metrics} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/profiling';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {onboarding} from './onboarding';
@@ -34,7 +34,9 @@ const docs: Docs = {
     docsPlatform: 'react',
     packageName: '@sentry/react',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/react',
+  }),
 };
 
 export default docs;

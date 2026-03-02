@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
@@ -71,7 +72,7 @@ function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
           trackAnalytics('breadcrumbs.menu.opened', {organization: null});
         }
       }}
-      onSearch={onSearch}
+      search={{onChange: onSearch}}
       options={projects.map(project => ({
         value: project.slug,
         leadingItems: <ProjectAvatar project={project} size={20} />,

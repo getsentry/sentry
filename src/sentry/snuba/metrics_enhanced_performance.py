@@ -41,14 +41,12 @@ def query(
     transform_alias_to_input_format: bool = False,
     sample: float | None = None,
     has_metrics: bool = False,
-    use_metrics_layer: bool = False,
     skip_tag_resolution: bool = False,
     extra_columns: list[Column] | None = None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
     *,
     referrer: str,
 ) -> EventsResponse:
@@ -74,11 +72,9 @@ def query(
                 functions_acl=functions_acl,
                 transform_alias_to_input_format=transform_alias_to_input_format,
                 has_metrics=has_metrics,
-                use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
-                debug=debug,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -117,7 +113,6 @@ def query(
             transform_alias_to_input_format=transform_alias_to_input_format,
             has_metrics=has_metrics,
             query_source=query_source,
-            debug=debug,
         )
         results["meta"]["isMetricsData"] = False
         results["meta"]["isMetricsExtractedData"] = False
@@ -142,7 +137,6 @@ def timeseries_query(
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
@@ -168,7 +162,6 @@ def timeseries_query(
                 allow_metric_aggregates=allow_metric_aggregates,
                 comparison_delta=comparison_delta,
                 functions_acl=functions_acl,
-                use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
@@ -336,7 +329,6 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
-    use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
@@ -366,7 +358,6 @@ def histogram_query(
                 histogram_rows,
                 extra_conditions,
                 normalize_results,
-                use_metrics_layer,
                 query_source=query_source,
                 referrer=referrer,
             )

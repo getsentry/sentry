@@ -2,27 +2,32 @@ import {useEffect} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import {
   getDatetimeFromState,
   normalizeDateTimeString,
-} from 'sentry/components/organizations/pageFilters/parse';
-import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
+} from 'sentry/components/pageFilters/parse';
+import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
 
 function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
-  return [`/organizations/${organization.slug}/discover/homepage/`];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
 }
 
 function Homepage() {

@@ -33,7 +33,7 @@ export const InlineCode = styled('code')`
   background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.accent};
 `;

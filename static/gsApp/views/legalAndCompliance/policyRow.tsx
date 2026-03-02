@@ -4,12 +4,10 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -142,14 +140,14 @@ export function PolicyRow({
           </Body>
           <Footer>
             {curPolicy.hasSignature ? (
-              <PolicyActions>
+              <Flex justify="between" align="center" flexGrow={1}>
                 <small>
                   {tct('You are agreeing as [email]', {
                     email: <strong>{user.email}</strong>,
                   })}
                 </small>
 
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <Button size="sm" onClick={closeModal}>
                     {t('Cancel')}
                   </Button>
@@ -163,8 +161,8 @@ export function PolicyRow({
                   >
                     {t('I Accept')}
                   </Button>
-                </ButtonBar>
-              </PolicyActions>
+                </Grid>
+              </Flex>
             ) : (
               <Button size="sm" onClick={closeModal}>
                 {t('Close')}
@@ -218,13 +216,13 @@ export function PolicyRow({
               priority="primary"
               onClick={showModal}
               disabled={activeSuperUser || !hasBillingAccess}
-              title={
-                activeSuperUser
+              tooltipProps={{
+                title: activeSuperUser
                   ? t("Superusers can't consent to policies")
                   : hasBillingAccess
                     ? undefined
-                    : t("You don't have access to accept policies.")
-              }
+                    : t("You don't have access to accept policies."),
+              }}
             >
               {t('Review and Accept')}
             </Button>
@@ -247,21 +245,14 @@ const PolicyFrame = styled('iframe')`
 `;
 
 const PolicySubtext = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
-`;
-
-const PolicyActions = styled('div')`
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const modalCss = (theme: Theme) => css`
@@ -270,8 +261,6 @@ const modalCss = (theme: Theme) => css`
     max-width: 1200px;
   }
 `;
-export const PolicyStatusRow = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-`;
+export function PolicyStatusRow(props: FlexProps<'div'>) {
+  return <Flex align="center" height="100%" {...props} />;
+}

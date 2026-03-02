@@ -4,18 +4,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {ControlProps, GeneralSelectValue, StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/core/button';
-import type {
-  ControlProps,
-  GeneralSelectValue,
-  StylesConfig,
-} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -64,7 +60,7 @@ const getOptionValue = (option: TeamOption) => option.value;
 const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
   option: (provided, state) => ({
     ...provided,
-    svg: {color: state.isSelected ? theme.white : undefined},
+    svg: {color: state.isSelected ? theme.colors.white : undefined},
   }),
 });
 
@@ -285,7 +281,7 @@ export function TeamSelector(props: Props) {
           >
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               disabled={!canAddTeam}
               onClick={() => handleAddTeamToProject(team)}
               icon={<IconAdd />}

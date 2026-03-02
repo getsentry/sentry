@@ -3,8 +3,8 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -164,8 +164,8 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
@@ -182,13 +182,13 @@ const VitalPillValue = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 0 ${space(1)};
 `;
 
 const SecondaryVitalsCount = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SecondaryVitalsCountContainer = styled('div')`

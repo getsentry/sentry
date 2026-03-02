@@ -804,9 +804,14 @@ export class VirtualizedViewManager {
     }
 
     // Holding shift key allows for horizontal scrolling
-    const distance = event.shiftKey ? event.deltaY : event.deltaX;
+    const distance = event.shiftKey
+      ? getHorizontalDelta(event.deltaX, event.deltaY)
+      : event.deltaX;
 
-    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+    if (
+      event.shiftKey ||
+      (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+    ) {
       // Prevents firing back/forward navigation
       event.preventDefault();
     } else {
@@ -1696,10 +1701,10 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const occurence of node.occurrences) {
+  for (const occurrence of node.occurrences) {
     // Occurences render icons at the start timestamp
     const start_timestamp =
-      'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+      'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
     if (typeof start_timestamp === 'number') {
       min_icon_timestamp = Math.min(
         min_icon_timestamp,

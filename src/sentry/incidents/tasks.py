@@ -37,7 +37,7 @@ def handle_snuba_query_update(
 
     # noinspection SpellCheckingInspection
     with metrics.timer("incidents.subscription_procesor.process_update"):
-        SubscriptionProcessor(subscription).process_update(subscription_update)
+        SubscriptionProcessor.process(subscription, subscription_update)
 
 
 @instrumented_task(
@@ -89,9 +89,7 @@ def handle_trigger_action(
     # We should only fire using the legacy registry if we are not using the workflow engine
     if not should_fire_workflow_actions(incident.organization, MetricIssue.type_id):
         metrics.incr(
-            "incidents.alert_rules.action.{}.{}".format(
-                AlertRuleTriggerAction.Type(action.type).name.lower(), method
-            )
+            f"incidents.alert_rules.action.{AlertRuleTriggerAction.Type(action.type).name.lower()}.{method}"
         )
 
         getattr(action, method)(

@@ -2,14 +2,16 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
@@ -153,6 +155,7 @@ function EventTagsTreeRowDropdown({
       key: escapeIssueTagKey(originalTag.key),
     }
   );
+  const globalSelectionParams = extractSelectionParameters(location.query);
 
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
@@ -177,7 +180,7 @@ function EventTagsTreeRowDropdown({
       hidden: !event.groupID || isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -186,7 +189,7 @@ function EventTagsTreeRowDropdown({
       hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -195,7 +198,7 @@ function EventTagsTreeRowDropdown({
       hidden: !isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/feedback/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -427,9 +430,7 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors
-        ? p.theme.alert.danger.backgroundLight
-        : p.theme.tokens.background.secondary};
+      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;
@@ -440,14 +441,11 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p =>
-    p.hasErrors ? p.theme.alert.danger.color : p.theme.tokens.content.secondary};
+  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>
-    p.hasErrors
-      ? p.theme.alert.danger.backgroundLight
-      : p.theme.tokens.background.primary};
+    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.danger.border : 'transparent')};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
@@ -462,7 +460,7 @@ const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
   border: 1px solid
-    ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.tokens.border.primary)};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -492,8 +490,8 @@ const TreeValueTrunk = styled('div')`
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};

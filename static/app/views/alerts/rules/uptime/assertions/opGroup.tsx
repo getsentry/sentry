@@ -1,34 +1,43 @@
 import {useState} from 'react';
+import {DragOverlay, useDraggable} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {type SelectOption} from 'sentry/components/core/compactSelect';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {SelectTrigger} from 'sentry/components/core/compactSelect/trigger';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
-import type {GroupOp, LogicalOp, Op} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeOpType,
+  type UptimeGroupOp,
+  type UptimeLogicalOp,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
+import {AssertionsDndContext, DropHandler, DroppableHitbox} from './dragDrop';
+import {AnimatedOp} from './opCommon';
 import {AssertionOpHeader} from './opHeader';
 import {AssertionOpJsonPath} from './opJsonPath';
 import {AssertionOpStatusCode} from './opStatusCode';
+import {getGroupOpLabel} from './utils';
 
 interface AssertionOpGroupProps {
-  onChange: (op: LogicalOp) => void;
-  value: LogicalOp;
+  onChange: (op: UptimeLogicalOp) => void;
+  value: UptimeLogicalOp;
+  disableDropping?: boolean;
   onRemove?: () => void;
   root?: boolean;
 }
 
-const GROUP_TYPE_OPTIONS: Array<SelectOption<'and' | 'or'>> = [
-  {value: 'and', label: t('Assert All')},
-  {value: 'or', label: t('Assert Any')},
+const GROUP_TYPE_OPTIONS: Array<SelectOption<UptimeOpType.AND | UptimeOpType.OR>> = [
+  {value: UptimeOpType.AND, label: t('Assert All')},
+  {value: UptimeOpType.OR, label: t('Assert Any')},
 ];
 
 export function AssertionOpGroup({
@@ -36,66 +45,80 @@ export function AssertionOpGroup({
   onChange,
   onRemove,
   root,
+  disableDropping,
 }: AssertionOpGroupProps) {
-  const isNegated = value.op === 'not';
+  const isNegated = value.op === UptimeOpType.NOT;
 
   const groupOp = isNegated
     ? // Negated ops could technically contain something other than a logic group,
       // the UI right now only lets you structure the logic this way, but it is
       // possible that someone could send something to the API that we can't
       // render, in which case we'll just render this as an empty group
-      value.operand.op !== 'and' && value.operand.op !== 'or'
-      ? {id: value.id, op: 'and' as const, children: []}
+      value.operand.op !== UptimeOpType.AND && value.operand.op !== UptimeOpType.OR
+      ? {id: value.id, op: UptimeOpType.AND as const, children: []}
       : value.operand
     : value;
 
-  const [notId] = useState(() => uniqueId());
+  // Generate a stable ID for new negations only (when toggling from non-negated to negated)
+  const [newNotId] = useState(() => uniqueId());
 
-  const handleAddOp = (newOp: Op) => {
-    const newGroupOp: GroupOp = {
+  // Use existing value.id when already negated, or the generated ID for new negations
+  const notId = isNegated ? value.id : newNotId;
+
+  const handleAddOp = (newOp: UptimeOp) => {
+    const newGroupOp: UptimeGroupOp = {
       ...groupOp,
       children: [...groupOp.children, newOp],
     };
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
-  const handleUpdateChild = (index: number, updatedOp: Op) => {
+  const handleUpdateChild = (index: number, updatedOp: UptimeOp) => {
     const newChildren = [...groupOp.children];
     newChildren[index] = updatedOp;
-    const newGroupOp: GroupOp = {...groupOp, children: newChildren};
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    const newGroupOp: UptimeGroupOp = {...groupOp, children: newChildren};
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
   const handleRemoveChild = (index: number) => {
     const newChildren = groupOp.children.filter((_, i) => i !== index);
-    const newGroupOp: GroupOp = {...groupOp, children: newChildren};
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    const newGroupOp: UptimeGroupOp = {...groupOp, children: newChildren};
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
-  const handleGroupTypeChange = (newType: 'and' | 'or') => {
-    const newGroupOp: GroupOp = {
+  const handleGroupTypeChange = (newType: UptimeOpType.AND | UptimeOpType.OR) => {
+    const newGroupOp: UptimeGroupOp = {
       ...groupOp,
       op: newType,
     };
-    onChange(isNegated ? {id: notId, op: 'not', operand: newGroupOp} : newGroupOp);
+    onChange(
+      isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
+    );
   };
 
   const handleNegationToggle = (negated: boolean) => {
-    onChange(negated ? {id: notId, op: 'not', operand: groupOp} : groupOp);
+    onChange(negated ? {id: newNotId, op: UptimeOpType.NOT, operand: groupOp} : groupOp);
   };
 
-  // Generate label based on negation and group type
-  const triggerLabel = isNegated
-    ? groupOp.op === 'and'
-      ? t('Assert None')
-      : t('Assert Not Any')
-    : groupOp.op === 'and'
-      ? t('Assert All')
-      : t('Assert Any');
+  const triggerLabel = getGroupOpLabel(groupOp, isNegated);
 
-  const renderOp = (op: Op, index: number) => {
+  const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
+    useDraggable({
+      id: groupOp.id,
+      data: value,
+    });
+
+  const innerDroppableDisabled = !root && (isDragging || !!disableDropping);
+
+  const renderOp = (op: UptimeOp, index: number) => {
     switch (op.op) {
-      case 'status_code_check':
+      case UptimeOpType.STATUS_CODE_CHECK:
         return (
           <AssertionOpStatusCode
             key={op.id}
@@ -104,7 +127,7 @@ export function AssertionOpGroup({
             onRemove={() => handleRemoveChild(index)}
           />
         );
-      case 'json_path':
+      case UptimeOpType.JSON_PATH:
         return (
           <AssertionOpJsonPath
             key={op.id}
@@ -113,7 +136,7 @@ export function AssertionOpGroup({
             onRemove={() => handleRemoveChild(index)}
           />
         );
-      case 'header_check':
+      case UptimeOpType.HEADER_CHECK:
         return (
           <AssertionOpHeader
             key={op.id}
@@ -122,15 +145,16 @@ export function AssertionOpGroup({
             onRemove={() => handleRemoveChild(index)}
           />
         );
-      case 'and':
-      case 'or':
-      case 'not':
+      case UptimeOpType.AND:
+      case UptimeOpType.OR:
+      case UptimeOpType.NOT:
         return (
           <AssertionOpGroup
             key={op.id}
             value={op}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
+            disableDropping={innerDroppableDisabled}
           />
         );
       default:
@@ -138,30 +162,53 @@ export function AssertionOpGroup({
     }
   };
 
+  const opList = groupOp.children.map((child, index) => {
+    const dropProps = {
+      disabled: innerDroppableDisabled,
+      groupId: value.id,
+      idIndex: index,
+      op: child,
+    };
+
+    return (
+      <Container position="relative" key={child.id}>
+        <DroppableHitbox {...dropProps} position="before" />
+        {renderOp(child, index)}
+        <DroppableHitbox {...dropProps} position="after" />
+      </Container>
+    );
+  });
+
   if (root) {
     return (
-      <Stack gap="md">
-        {groupOp.children.map((child, index) => renderOp(child, index))}
-        <div>
-          <AddOpButton
-            triggerProps={{icon: <IconAdd />}}
-            triggerLabel={t('Add Assertion')}
-            onAddOp={handleAddOp}
-          />
-        </div>
-      </Stack>
+      <AssertionsDndContext>
+        <Stack gap="md">
+          {opList}
+          <div>
+            <AddOpButton
+              triggerProps={{icon: <IconAdd />}}
+              triggerLabel={t('Add Assertion')}
+              onAddOp={handleAddOp}
+            />
+          </div>
+        </Stack>
+        <DropHandler rootOp={value} onChange={onChange} />
+        <DragOverlay dropAnimation={null} />
+      </AssertionsDndContext>
     );
   }
 
+  const isEmptyGroup = groupOp.children.length === 0;
+
   return (
-    <GroupContainer role="group">
+    <GroupContainer op={groupOp} isDragging={isDragging} role="group" ref={setNodeRef}>
       <GroupHeading>
         <CompositeSelect
           size="xs"
           trigger={props => (
-            <SelectTrigger.Button {...props} size="zero" borderless>
+            <OverlayTrigger.Button {...props} size="zero" priority="transparent">
               {triggerLabel}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
         >
           <CompositeSelect.Region
@@ -178,22 +225,20 @@ export function AssertionOpGroup({
             options={[{value: 'negated', label: t('Negate result')}]}
           />
         </CompositeSelect>
-        <AddOpButton
-          size="xs"
-          triggerProps={{
-            borderless: true,
-            size: 'zero',
-            icon: <IconAdd size="xs" />,
-            title: t('Add assertion to group'),
-            'aria-label': t('Add assertion to group'),
-          }}
-          onAddOp={handleAddOp}
+        <Button
+          size="zero"
+          priority="transparent"
+          icon={<IconGrabbable size="xs" />}
+          aria-label={t('Reorder assertion group')}
+          ref={setActivatorNodeRef}
+          {...listeners}
+          {...attributes}
         />
         <TopBorder rightBorder={!onRemove} />
         {onRemove && (
           <Button
             size="sm"
-            borderless
+            priority="transparent"
             icon={<IconDelete />}
             aria-label={t('Remove Group')}
             onClick={onRemove}
@@ -201,16 +246,39 @@ export function AssertionOpGroup({
         )}
       </GroupHeading>
       <Stack gap="md">
-        {groupOp.children.length === 0 && (
-          <Text size="xs">{t('Empty assertion group')}</Text>
+        {isEmptyGroup && (
+          <Container position="relative">
+            <DroppableHitbox
+              op={groupOp}
+              groupId={groupOp.id}
+              idIndex={-1}
+              position="inside"
+              disabled={innerDroppableDisabled}
+            />
+            <Text size="xs">{t('Empty assertion group')}</Text>
+          </Container>
         )}
-        {groupOp.children.map((child, index) => renderOp(child, index))}
+        {opList}
+        <Container paddingTop="md">
+          <AddOpButton
+            size="xs"
+            triggerProps={{
+              priority: 'transparent',
+              size: 'zero',
+              icon: <IconAdd size="xs" />,
+              tooltipProps: {title: t('Add assertion to group')},
+              'aria-label': t('Add assertion to group'),
+            }}
+            triggerLabel={t('Add Assertion')}
+            onAddOp={handleAddOp}
+          />
+        </Container>
       </Stack>
     </GroupContainer>
   );
 }
 
-const GroupContainer = styled('div')`
+const GroupContainer = styled(AnimatedOp)`
   --margin-right-align: calc(${p => p.theme.space.xl} + 2px);
   --container-padding: ${p => p.theme.space.lg};
   --border-radius: ${p => p.theme.radius.md};

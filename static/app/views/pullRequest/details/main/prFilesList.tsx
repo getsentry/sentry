@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import type {PullRequestDetailsSuccessResponse} from 'sentry/views/pullRequest/types/pullRequestDetailsTypes';
 
@@ -184,7 +184,7 @@ const DiffTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin: 0;
 `;
 
@@ -243,7 +243,7 @@ const DiffRow = styled('tr')`
 
     td {
       color: ${p => p.theme.tokens.content.accent};
-      font-weight: ${p => p.theme.fontWeight.bold};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
     }
   }
 `;

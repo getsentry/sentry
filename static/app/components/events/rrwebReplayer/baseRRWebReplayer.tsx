@@ -187,6 +187,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
     &:before {
       content: '';
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background: ${p => p.theme.tokens.border.secondary};
       border-radius: 3px;
       display: block;
@@ -228,7 +229,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     gap: ${space(0.75)};
     align-items: center;
     justify-content: center;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 
   .rr-controller__btns button {
@@ -246,17 +247,18 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     transition: background 200ms ease;
 
     > svg {
-      fill: ${p => p.theme.tokens.content.primary};
+      fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
     }
   }
 
   .rr-controller__btns button:active {
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 
   .rr-controller__btns button.active {
-    color: ${p => p.theme.white};
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    color: ${p => p.theme.colors.white};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rr-controller__btns button:disabled {
@@ -314,12 +316,13 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     height: 10px;
     border-radius: 50%;
     transition: all 200ms ease;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 2;
   }
 
   .switch input[type='checkbox']:checked + label:after {
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
     transform: translateX(16px);
   }
 `;

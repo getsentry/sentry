@@ -41,6 +41,8 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
         {events: 25, unitPrice: 25, price: 600},
       ],
       monitorSeats: [{events: 1, unitPrice: 60, price: 0, onDemandPrice: 78}],
+      sizeAnalyses: [{events: 100, unitPrice: 0, price: 0, onDemandPrice: 0}],
+      installableBuilds: [{events: 0, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
     price: 0,
     reservedMinimum: 0,

@@ -16,6 +16,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   fetchMutation,
@@ -42,6 +43,7 @@ import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
+import CustomerIntegrationDebugDetails from 'admin/components/customers/customerIntegrationDebugDetails';
 import CustomerIntegrations from 'admin/components/customers/customerIntegrations';
 import CustomerInvoices from 'admin/components/customers/customerInvoices';
 import CustomerMembers from 'admin/components/customers/customerMembers';
@@ -84,15 +86,29 @@ import {
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+  ];
 }
 
 function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [`/organizations/${orgId}/`, {query: {detailed: 0, include_feature_flags: 1}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {detailed: 0, include_feature_flags: 1}},
+  ];
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/billing-config/?tier=all`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {tier: 'all'}},
+  ];
 }
 
 export default function CustomerDetails() {
@@ -166,7 +182,7 @@ export default function CustomerDetails() {
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/_admin/${orgId}/queue-spike-projection/`,
+        url: `/_admin/customers/${orgId}/queue-spike-projection/`,
         method: 'POST',
       }),
     onSuccess: () => {
@@ -891,6 +907,10 @@ export default function CustomerDetails() {
           {
             noPanel: true,
             content: <CustomerProjects orgId={orgId} />,
+          },
+          {
+            noPanel: true,
+            content: <CustomerIntegrationDebugDetails orgId={orgId} />,
           },
           {
             noPanel: true,

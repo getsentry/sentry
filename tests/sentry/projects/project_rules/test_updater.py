@@ -54,9 +54,10 @@ class TestUpdater(TestCase):
         assert self.rule.owner_user_id is None
 
     def test_update_environment(self) -> None:
-        self.updater.environment = 3
+        new_env = self.create_environment(project=self.project)
+        self.updater.environment = new_env.id
         self.updater.run()
-        assert self.rule.environment_id == 3
+        assert self.rule.environment_id == new_env.id
 
     def test_update_environment_when_none(self) -> None:
         self.rule.environment_id = 3
@@ -120,8 +121,6 @@ class TestUpdater(TestCase):
         assert self.rule.data["frequency"] == 5
 
     def test_dual_update_workflow_engine(self) -> None:
-        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
-
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",

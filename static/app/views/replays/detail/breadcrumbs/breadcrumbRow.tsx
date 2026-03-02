@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
 import classNames from 'classnames';
 
@@ -21,7 +20,6 @@ interface Props {
   onShowSnippet: (index: number) => void;
   showSnippet: boolean;
   startTimestampMs: number;
-  style: CSSProperties;
   breadcrumbIndex?: number[][];
   className?: string;
   expandPaths?: string[];
@@ -38,7 +36,6 @@ function BreadcrumbRow({
   onInspectorExpanded,
   showSnippet,
   startTimestampMs,
-  style,
   ref,
   onShowSnippet,
   updateDimensions,
@@ -65,13 +62,13 @@ function BreadcrumbRow({
   return (
     <BreadcrumbItem
       ref={ref}
+      index={index}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
         beforeHoverTime: currentHoverTime === undefined ? undefined : isBeforeHover,
         afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
-      style={style}
       frame={frame}
       onClick={onClick}
       onMouseEnter={onMouseEnter}

@@ -11,6 +11,8 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
@@ -21,7 +23,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
@@ -55,6 +56,7 @@ export default function MonitorCreateForm() {
       transformData: transformMonitorFormData,
     })
   );
+  const {onFieldChange} = useFormEagerValidation(form.current);
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
@@ -91,6 +93,7 @@ export default function MonitorCreateForm() {
       apiEndpoint={`/organizations/${organization.slug}/monitors/`}
       apiMethod="POST"
       model={form.current}
+      onFieldChange={onFieldChange}
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,
@@ -153,7 +156,7 @@ export default function MonitorCreateForm() {
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={css`
                             input {
-                              font-family: ${theme.text.familyMono};
+                              font-family: ${theme.font.family.mono};
                             }
                           `}
                           required={selectedCrontab}
@@ -262,17 +265,17 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
 `;
 
 const ScheduleLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(2)};
 `;
 
 const Label = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubHeading = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
@@ -304,7 +307,7 @@ const IntervalInputs = styled(MultiColumnInput)`
 
 const CronstrueText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   grid-column: auto / span 2;
 `;

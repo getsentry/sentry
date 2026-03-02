@@ -58,9 +58,7 @@ def get_serialized_and_stats(group: Group, stats_period: str) -> tuple[Mapping[s
 def get_release_url(group: Group, release: str) -> str:
     project = group.project
     return absolute_uri(
-        "/organizations/{}/releases/{}/?project={}".format(
-            project.organization.slug, quote(release), project.id
-        )
+        f"/organizations/{project.organization.slug}/releases/{quote(release)}/?project={project.id}"
     )
 
 

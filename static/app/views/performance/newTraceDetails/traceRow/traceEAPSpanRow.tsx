@@ -12,11 +12,8 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
-  const otelFriendlyUI = useOTelFriendlyUI();
-
   const spanId = props.node.id;
 
   const childrenCount = getChildrenCount(props.node);
@@ -25,10 +22,7 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
     <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
   );
 
-  // Prefer description over name if it exists for OTel-friendly UI
-  const description = otelFriendlyUI
-    ? props.node.description || props.node.value.name
-    : props.node.description;
+  const description = props.node.description || props.node.value.name;
 
   return (
     <div
@@ -58,7 +52,9 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
                   props.node.canFetchChildren ? (
                     '+'
                   ) : (
-                    <TraceIcons.Chevron direction={props.node.expanded ? 'up' : 'down'} />
+                    <TraceIcons.Chevron
+                      direction={props.node.expanded ? 'down' : 'right'}
+                    />
                   )
                 }
                 status={props.node.fetchStatus}

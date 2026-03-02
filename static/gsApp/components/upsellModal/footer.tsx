@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
@@ -35,7 +36,7 @@ function Footer({
   const canTrial = subscription.canTrial && !subscription.isTrial;
 
   return (
-    <FooterWrapper>
+    <Flex align="end" gap="md">
       <UpgradeOrTrialButton data-test-id="upgrade-or-trial" {...buttonProps} />
       {/* if the trial was reset, just show them a maybe later button */}
       {canTrial && !showTrialResetContent ? (
@@ -69,29 +70,23 @@ function Footer({
           {t('Learn more and compare plans')}
         </a>
       </SidebarFooter>
-    </FooterWrapper>
+    </Flex>
   );
 }
 
-const FooterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: flex-end;
-`;
-
 const SidebarFooter = styled('div')`
   margin-left: auto;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
   h1 {
     text-transform: uppercase;
     font-weight: bold;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     margin-bottom: 0.5rem;
   }
   h2 {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     font-weight: normal;
     margin-bottom: 0.5rem;
   }

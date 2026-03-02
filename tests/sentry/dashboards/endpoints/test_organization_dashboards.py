@@ -1285,7 +1285,56 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400
-        assert b"Ensure this value is less than or equal to 10" in response.content
+        assert b"The maximum limit for this display type is 10" in response.content
+
+    def test_add_categorical_bar_widget_with_valid_limit(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 20,
+                    "title": "Categorical Bar Widget",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+    def test_add_categorical_bar_widget_with_invalid_limit_above_maximum(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 26,
+                    "title": "Categorical Bar Widget",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {
@@ -1422,77 +1471,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400
 
-    def test_integrity_error(self) -> None:
+    def test_duplicate_title_auto_increments(self) -> None:
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
-        assert response.status_code == 409
-        assert response.data == "Dashboard title already taken"
-
-    def test_duplicate_dashboard(self) -> None:
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
+        response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
 
     def test_many_duplicate_dashboards(self) -> None:
         title = "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard copy"
 
         for i in range(1, 10):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": title, "duplicate": True},
-            )
-
+            response = self.do_request("post", self.url, data={"title": title})
             assert response.status_code == 201, response.data
             assert response.data["title"] == f"My Awesome Dashboard copy {i}"
 
     def test_duplicate_a_duplicate(self) -> None:
         title = "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 4"
 
@@ -1712,9 +1723,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(response.data) > 1
         # Ensure the "permissions" field exists in each dashboard
         for dashboard in response.data:
-            assert (
-                "permissions" in dashboard
-            ), f"Permissions field not found in dashboard: {dashboard}"
+            assert "permissions" in dashboard, (
+                f"Permissions field not found in dashboard: {dashboard}"
+            )
         self.assert_equal_dashboards(self.dashboard, response.data[1])
         assert response.data[1]["permissions"] is None
 

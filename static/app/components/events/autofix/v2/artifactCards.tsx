@@ -2,16 +2,14 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {assignToActor} from 'sentry/actionCreators/group';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   ImpactAssessmentArtifact,
@@ -50,7 +48,8 @@ import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {
   ExplorerCodingAgentState,
@@ -207,12 +206,12 @@ function TreeRowWithDescription({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <ImpactTreeKeyContainer>
+          <Flex align="center" gap="xs">
             <ImpactTreeKey as="div">
               <StyledMarkedText text={title} inline as="span" />
             </ImpactTreeKey>
             {showIcon && icon}
-          </ImpactTreeKeyContainer>
+          </Flex>
         </TreeKeyTrunk>
       </TreeRow>
 
@@ -293,7 +292,7 @@ function ImpactTreeRow({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <ImpactTreeKeyContainer>
+          <Flex align="center" gap="xs">
             {isCollapsible && hasSubItems && (
               <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
             )}
@@ -301,7 +300,7 @@ function ImpactTreeRow({
               <StyledMarkedText text={impact.label} inline as="span" />
             </ImpactTreeKey>
             {getSeverityIcon()}
-          </ImpactTreeKeyContainer>
+          </Flex>
         </TreeKeyTrunk>
       </TreeRow>
 
@@ -469,10 +468,11 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
   const {data: memberDataByEmail} = useApiQuery<Member[]>(
     email
       ? [
-          `/organizations/${organization.slug}/members/`,
-          {query: {query: `email:${email}`}},
+          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
         ]
-      : [''],
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!email,
       staleTime: 0,
@@ -483,8 +483,13 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
   const shouldTryNameMatch = name && !memberDataByEmail?.length;
   const {data: memberDataByName} = useApiQuery<Member[]>(
     shouldTryNameMatch
-      ? [`/organizations/${organization.slug}/members/`, {query: {query: name}}]
-      : [''],
+      ? [
+          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {query: {query: name}},
+        ]
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!shouldTryNameMatch,
       staleTime: 0,
@@ -546,11 +551,15 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   const typedData = data as unknown as TriageArtifact;
   const hasSuspect = typedData.suspect_commit;
   const hasAssignee = typedData.suggested_assignee;
-  const [isAssigning, setIsAssigning] = useState(false);
-
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
     group,
     organization,
+    onError: () => {
+      addErrorMessage(t('Failed to assign issue'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Issue assigned successfully'));
+    },
   });
 
   const commit = useSuspectCommitData(typedData.suspect_commit, organization);
@@ -561,26 +570,20 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
     typedData.suggested_assignee?.name
   );
 
-  const handleAssign = async () => {
+  const handleAssignSuggested = () => {
     if (!assigneeUser) {
       addErrorMessage(t('Unable to find user to assign'));
       return;
     }
 
-    setIsAssigning(true);
-    try {
-      await assignToActor({
-        id: group.id,
-        orgSlug: organization.slug,
-        actor: {id: String(assigneeUser.id), type: 'user'},
-        assignedBy: 'suggested_assignee',
-      });
-      addSuccessMessage(t('Issue assigned successfully'));
-    } catch (error) {
-      addErrorMessage(t('Failed to assign issue'));
-    } finally {
-      setIsAssigning(false);
-    }
+    handleAssigneeChange(
+      {
+        assignee: assigneeUser,
+        id: assigneeUser.id,
+        type: 'user',
+      },
+      {assignedBy: 'suggested_assignee'}
+    );
   };
 
   // Create a minimal user object for avatar display
@@ -644,7 +647,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                     <Flex justify="between">
                       <Flex align="center" gap="md" paddingLeft="xs">
                         {hasAssigneeMatch && userForAvatar ? (
-                          <UserAvatar user={userForAvatar} size={24} gravatar />
+                          <UserAvatar user={userForAvatar} size={24} />
                         ) : (
                           <IconUser size="md" variant="muted" />
                         )}
@@ -673,8 +676,12 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
 
                     <Flex justify="end">
                       {hasAssigneeMatch ? (
-                        <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
-                          {isAssigning
+                        <Button
+                          size="sm"
+                          onClick={handleAssignSuggested}
+                          disabled={assigneeLoading}
+                        >
+                          {assigneeLoading
                             ? t('Assigning...')
                             : t(
                                 'Assign to %s',
@@ -734,7 +741,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
 
         return (
           <RepoSection key={repoName}>
-            <RepoHeader>
+            <Flex justify="between" align="center" marginBottom="xl">
               <RepoName>{repoName}</RepoName>
               {hasPR ? (
                 <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
@@ -749,7 +756,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
                   {isCreatingPR ? t('Creating PR...') : t('Create PR')}
                 </Button>
               ) : null}
-            </RepoHeader>
+            </Flex>
 
             <Flex direction="column" gap="sm">
               {repoPatches.map((patch, index) => (
@@ -891,16 +898,16 @@ const CodingAgentStatusTag = styled('span')<{
   align-items: center;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   background-color: ${p => {
     switch (p.$status) {
       case 'completed':
-        return p.theme.alert.success.backgroundLight;
+        return p.theme.colors.green100;
       case 'failed':
-        return p.theme.alert.danger.backgroundLight;
+        return p.theme.colors.red100;
       default:
-        return p.theme.blue100;
+        return p.theme.colors.blue100;
     }
   }};
   color: ${p => {
@@ -910,7 +917,7 @@ const CodingAgentStatusTag = styled('span')<{
       case 'failed':
         return p.theme.tokens.content.danger;
       default:
-        return p.theme.blue400;
+        return p.theme.tokens.content.accent;
     }
   }};
 `;
@@ -983,7 +990,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 const TreeValue = styled('div')`
   padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => p.theme.tokens.content.primary};
@@ -994,13 +1001,7 @@ const TreeKey = styled(TreeValue)`
 `;
 
 const ImpactTreeKey = styled(TreeKey)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const ImpactTreeKeyContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TreeSubValue = styled(TreeValue)`
@@ -1023,19 +1024,12 @@ const RepoSection = styled('div')`
   }
 `;
 
-const RepoHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
 const AnimatedCard = styled(motion.div)`
   transform-origin: top center;
 `;
 
 const NonBoldTitle = styled(Text)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-top: ${p => p.theme.space.xs};
 `;
 

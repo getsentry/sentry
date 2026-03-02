@@ -5,7 +5,7 @@ import type {ECharts, TreemapSeriesOption} from 'echarts';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
-import {Separator} from '@sentry/scraps/separator/separator';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
@@ -76,7 +76,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       label: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: theme.white,
+        color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
@@ -85,7 +85,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       },
       upperLabel: {
         show: true,
-        color: theme.white,
+        color: theme.colors.white,
         backgroundColor: 'transparent',
         height: 24,
         fontSize: 12,
@@ -141,7 +141,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Rubik',
-            color: theme.white,
+            color: theme.colors.white,
           },
         },
       },
@@ -199,11 +199,10 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
     },
     formatter: function (params: any) {
       const sizeDiff = params.data?.size_diff || 0;
-      const diffType = params.data?.diff_type || 'unchanged';
-      const diffCategoryInfo = getAppSizeDiffCategoryInfo(theme)[diffType];
-      if (!diffCategoryInfo) {
-        throw new Error(`Diff type ${diffType} not found`);
-      }
+      const diffType = params.data?.diff_type;
+      const diffCategoryInfo = diffType
+        ? getAppSizeDiffCategoryInfo(theme)[diffType]
+        : null;
 
       const diffString = formattedSizeDiff(sizeDiff);
       let tagType: TagType = 'muted';
@@ -219,7 +218,11 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
             <Text bold>{params.name}</Text>
           </Flex>
           {params.data?.path ? <Text size="sm">{params.data.path}</Text> : null}
-          <Tag variant={tagType}>{`${diffString} (${diffCategoryInfo.displayName})`}</Tag>
+          {diffCategoryInfo ? (
+            <Tag
+              variant={tagType}
+            >{`${diffString} (${diffCategoryInfo.displayName})`}</Tag>
+          ) : null}
         </Stack>
       );
     },

@@ -292,6 +292,28 @@ describe('TagDetailsDrawerContent', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('falls back to tagValue.value when user has no identifiable fields', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {
+          count: 5,
+          firstSeen: '2024-01-01T00:00:00Z',
+          lastSeen: '2024-01-01T00:00:00Z',
+          name: '',
+          value: 'id:123',
+          key: 'user',
+        },
+      ],
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    expect(await screen.findByText('id:123')).toBeInTheDocument();
+  });
+
   it('renders empty tag value label and hides copy action', async () => {
     const makeTopValue = (value: string, count: number) => ({
       count,

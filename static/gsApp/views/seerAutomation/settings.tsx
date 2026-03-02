@@ -1,5 +1,6 @@
-import {Flex} from '@sentry/scraps/layout/flex';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -27,8 +28,6 @@ export default function SeerAutomationSettings() {
           // Project<->Repo settings:
           defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
           autoOpenPrs: organization.autoOpenPrs ?? false,
-          allowBackgroundAgentDelegation:
-            organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
           autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
@@ -37,6 +36,7 @@ export default function SeerAutomationSettings() {
 
           // Third section
           enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
+          enableSeerCoding: organization.enableSeerCoding ?? true,
         }}
       >
         <JsonForm
@@ -81,25 +81,32 @@ export default function SeerAutomationSettings() {
                 },
                 {
                   name: 'autoOpenPrs',
-                  label: t('Enable Autofix PR Creation by Default'),
-                  help: t(
-                    'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                  label: t('Allow Root Cause Analysis to create PRs by Default'),
+                  help: (
+                    <Stack gap="sm">
+                      {t(
+                        'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                      )}
+                      {organization.enableSeerCoding === false && (
+                        <Alert variant="warning">
+                          {tct(
+                            '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                            {
+                              settings: (
+                                <Link
+                                  to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                />
+                              ),
+                            }
+                          )}
+                        </Alert>
+                      )}
+                    </Stack>
                   ),
                   type: 'boolean',
-                },
-                {
-                  visible: false, // TODO(ryan953): Disabled until the backend is fully ready
-                  name: 'allowBackgroundAgentDelegation',
-                  label: t('Allow Delegation to Background Agents'),
-                  help: tct(
-                    'Enable this to allow projects to use Agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
-                    {
-                      docs: (
-                        <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
-                      ),
-                    }
-                  ),
-                  type: 'boolean',
+                  disabled: !canWrite || organization.enableSeerCoding === false,
+                  setValue: (value: boolean): boolean =>
+                    organization.enableSeerCoding === false ? false : value,
                 },
               ],
             },
@@ -154,6 +161,32 @@ export default function SeerAutomationSettings() {
                   label: t('Enable Seer Context in Alerts'),
                   help: t('Seer will provide extra context in supported alerts.'),
                   type: 'boolean',
+                },
+                {
+                  name: 'enableSeerCoding',
+                  label: t('Enable Code Generation'),
+                  help: (
+                    <Flex gap="sm">
+                      <span>
+                        {tct(
+                          'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
+                          {
+                            docs: (
+                              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#code-generation" />
+                            ),
+                          }
+                        )}
+                      </span>
+                      <QuestionTooltip
+                        size="xs"
+                        title={t(
+                          'This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input.'
+                        )}
+                      />
+                    </Flex>
+                  ),
+                  type: 'boolean',
+                  defaultValue: true, // See ENABLE_SEER_CODING_DEFAULT in sentry/src/sentry/constants.py
                 },
               ],
             },

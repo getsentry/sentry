@@ -1,7 +1,8 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import type FormModel from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
@@ -22,12 +23,6 @@ export default function AutomationForm({model}: {model: FormModel}) {
     [model]
   );
 
-  const [environment, setEnvironment] = useState<string>('');
-  const updateEnvironment = (env: string) => {
-    setEnvironment(env);
-    model.setValue('environment', env || null);
-  };
-
   useSetAutomaticAutomationName();
 
   return (
@@ -47,7 +42,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             )}
           </Text>
         </Flex>
-        <EnvironmentSelector value={environment} onChange={updateEnvironment} />
+        <EnvironmentSelector />
       </Card>
       <Card>
         <Heading as="h2" size="lg">

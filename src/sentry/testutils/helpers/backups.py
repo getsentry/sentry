@@ -100,12 +100,13 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -474,6 +475,7 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
+        SeerOrganizationSettings.objects.create(organization=org)
 
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
@@ -645,7 +647,7 @@ class ExhaustiveFixtures(Fixtures):
         repo.external_id = "https://git.example.com:1234"
         repo.save()
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=[
@@ -952,6 +954,10 @@ class ExhaustiveFixtures(Fixtures):
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
+
+    def json_of_org_and_project(self) -> Any:
+        with open(get_fixture_path("backup", "org-and-project.json")) as backup_file:
+            return json.load(backup_file)
 
     @cached_property
     def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:

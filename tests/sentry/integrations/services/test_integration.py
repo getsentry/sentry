@@ -366,7 +366,6 @@ class StartGracePeriodForProviderTest(TestCase):
             self.org3 = self.create_organization(name="Test Org 3")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-
             self.github_integration_1 = self.create_integration(
                 organization=self.org2,
                 name="GitHub Integration 1",
@@ -575,9 +574,9 @@ class StartGracePeriodForProviderTest(TestCase):
             assert oi.id in lof_grace_perioded_ois
             assert oi.grace_period_end == grace_period_end
 
-        assert (
-            len(lof_grace_perioded_ois) == 1
-        ), "Only org1_github_oi_1 should be grace perioded since it's NOT the oldest OI for its integration"
+        assert len(lof_grace_perioded_ois) == 1, (
+            "Only org1_github_oi_1 should be grace perioded since it's NOT the oldest OI for its integration"
+        )
 
         assert self.org1_github_oi_1.id in lof_grace_perioded_ois
         assert self.org1_github_oi_1.grace_period_end == grace_period_end

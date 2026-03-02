@@ -4,15 +4,16 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -61,6 +62,7 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: AggregateField[];
   numberTags: TagCollection;
   onColumnsChange: (columns: WritableAggregateField[]) => void;
@@ -74,6 +76,7 @@ export function AggregateColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  booleanTags,
   numberTags,
   stringTags,
 }: AggregateColumnEditorModalProps) {
@@ -129,6 +132,7 @@ export function AggregateColumnEditorModal({
                   options={[]}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
+                  booleanTags={booleanTags}
                   numberTags={numberTags}
                   stringTags={stringTags}
                   groupBys={groupBys}
@@ -178,14 +182,14 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Footer>
         </Fragment>
       )}
@@ -194,6 +198,7 @@ export function AggregateColumnEditorModal({
 }
 
 interface ColumnEditorRowProps {
+  booleanTags: TagCollection;
   canDelete: boolean;
   column: Column<AggregateField>;
   groupBys: string[];
@@ -214,6 +219,7 @@ function ColumnEditorRow({
   onColumnDelete,
   numberTags,
   stringTags,
+  booleanTags,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
@@ -232,7 +238,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -244,19 +250,21 @@ function ColumnEditorRow({
           numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
+          booleanTags={booleanTags}
         />
       ) : (
         <VisualizeSelector
           organization={organization}
           visualize={column.column}
           onChange={onColumnChange}
+          booleanTags={booleanTags}
           numberTags={numberTags}
           stringTags={stringTags}
         />
       )}
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        priority="transparent"
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -267,6 +275,7 @@ function ColumnEditorRow({
 }
 
 interface GroupBySelectorProps {
+  booleanTags: TagCollection;
   groupBy: GroupBy;
   groupBys: string[];
   numberTags: TagCollection;
@@ -280,11 +289,13 @@ function GroupBySelector({
   numberTags,
   onChange,
   stringTags,
+  booleanTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -306,19 +317,24 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      searchable
-      triggerProps={{
-        children: label,
-        prefix: t('Group By'),
-        style: {
-          width: '100%',
-        },
-      }}
+      search
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Group By')}
+          style={{
+            width: '100%',
+          }}
+        >
+          {label}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
 
 interface VisualizeSelectorProps {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   onChange: (visualize: Visualize) => void;
   organization: Organization;
@@ -338,6 +354,7 @@ function AggregateSelector({
   onChange,
   numberTags,
   stringTags,
+  booleanTags,
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
@@ -360,6 +377,7 @@ function AggregateSelector({
   const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
@@ -399,13 +417,16 @@ function AggregateSelector({
         options={aggregateOptions}
         value={parsedFunction?.name}
         onChange={handleFunctionChange}
-        searchable
-        triggerProps={{
-          prefix: t('Function'),
-          style: {
-            width: '100%',
-          },
-        }}
+        search
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Function')}
+            style={{
+              width: '100%',
+            }}
+          />
+        )}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
         return (
@@ -415,13 +436,16 @@ function AggregateSelector({
             options={argumentOptions}
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => handleArgumentChange(index, option)}
-            searchable
+            search
             disabled={argumentOptions.length === 1}
-            triggerProps={{
-              style: {
-                width: '100%',
-              },
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                style={{
+                  width: '100%',
+                }}
+              />
+            )}
           />
         );
       })}
@@ -431,13 +455,16 @@ function AggregateSelector({
           options={argumentOptions}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => handleArgumentChange(0, option)}
-          searchable
+          search
           disabled
-          triggerProps={{
-            style: {
-              width: '100%',
-            },
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
         />
       )}
     </Fragment>
@@ -447,6 +474,7 @@ function AggregateSelector({
 function EquationSelector({
   numberTags,
   stringTags,
+  booleanTags,
   onChange,
   visualize,
 }: VisualizeSelectorProps) {
@@ -489,6 +517,7 @@ function EquationSelector({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (

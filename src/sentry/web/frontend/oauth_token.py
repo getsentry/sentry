@@ -147,72 +147,71 @@ class OAuthTokenView(View):
             },
         )
 
-        # Device flow supports public clients per RFC 8628 §5.6.
-        # Public clients only provide client_id to identify themselves.
-        # If client_secret is provided, we still validate it for confidential clients.
-        if grant_type == GrantTypes.DEVICE_CODE:
-            if not client_id:
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="missing client_id",
-                    status=401,
-                )
+        if not client_id:
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="missing client_id",
+                status=401,
+            )
 
-            # Build query - validate secret only if provided (confidential client)
-            query = {"client_id": client_id}
-            if client_secret:
-                query["client_secret"] = client_secret
-
+        if client_secret:
             try:
-                application = ApiApplication.objects.get(**query)
-            except ApiApplication.DoesNotExist:
-                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
-                if client_secret:
-                    logger.warning(
-                        "Invalid client_id / secret pair",
-                        extra={"client_id": client_id},
-                    )
-                    reason = "invalid client_id or client_secret"
-                else:
-                    logger.warning("Invalid client_id", extra={"client_id": client_id})
-                    reason = "invalid client_id"
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason=reason,
-                    status=401,
-                )
-        else:
-            # Other grant types require confidential client authentication
-            if not client_id or not client_secret:
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="missing client credentials",
-                    status=401,
-                )
-
-            try:
-                # Note: We don't filter by status here to distinguish between invalid
-                # credentials (unknown client) and inactive applications. This allows
-                # proper grant cleanup per RFC 6749 §10.5 and clearer metrics.
                 application = ApiApplication.objects.get(
                     client_id=client_id,
                     client_secret=client_secret,
                 )
+                is_public_client = False
             except ApiApplication.DoesNotExist:
-                metrics.incr(
-                    "oauth_token.post.invalid",
-                    sample_rate=1.0,
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning(
+                    "Invalid client_id / secret pair",
+                    extra={"client_id": client_id},
                 )
-                logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
                 return self.error(
                     request=request,
                     name="invalid_client",
                     reason="invalid client_id or client_secret",
                     status=401,
                 )
+        else:
+            try:
+                application = ApiApplication.objects.get(client_id=client_id)
+            except ApiApplication.DoesNotExist:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning("Invalid client_id", extra={"client_id": client_id})
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
+
+            is_public_client = application.is_public
+
+            if not is_public_client:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning(
+                    "Confidential client missing secret",
+                    extra={"client_id": client_id},
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
+
+        if is_public_client and grant_type not in [
+            GrantTypes.AUTHORIZATION,
+            GrantTypes.DEVICE_CODE,
+            GrantTypes.REFRESH,
+        ]:
+            return self.error(
+                request=request,
+                name="unauthorized_client",
+                reason="public clients cannot use this grant type",
+            )
 
         # Check application status separately from credential validation.
         # This preserves metric clarity and provides consistent error handling.
@@ -272,8 +271,11 @@ class OAuthTokenView(View):
             token_data = self.get_access_tokens(request=request, application=application)
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
-        else:
+        elif grant_type == GrantTypes.REFRESH:
             token_data = self.get_refresh_token(request=request, application=application)
+        else:
+            # Should not reach here due to earlier grant_type validation
+            return self.error(request=request, name="unsupported_grant_type")
         if "error" in token_data:
             return self.error(
                 request=request,
@@ -581,7 +583,7 @@ class OAuthTokenView(View):
                 # are atomic. This prevents duplicate tokens if delete fails after
                 # token creation succeeds.
                 with transaction.atomic(router.db_for_write(ApiToken)):
-                    # Create the access token
+                    # Create the access token for the device flow
                     token = ApiToken.objects.create(
                         application=application,
                         user_id=device_code.user.id,

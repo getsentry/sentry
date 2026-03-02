@@ -4,9 +4,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -64,20 +65,20 @@ export interface SpendLimitSettingsProps {
   isOpen?: boolean;
 }
 
-interface BudgetModeSettingsProps
-  extends Omit<
-    SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
-  > {}
+interface BudgetModeSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
+> {}
 
-interface InnerSpendLimitSettingsProps
-  extends Omit<SpendLimitSettingsProps, 'header' | 'subscription'> {}
+interface InnerSpendLimitSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'subscription'
+> {}
 
-interface SharedSpendLimitPriceTableProps
-  extends Pick<
-    SpendLimitSettingsProps,
-    'activePlan' | 'currentReserved' | 'organization'
-  > {
+interface SharedSpendLimitPriceTableProps extends Pick<
+  SpendLimitSettingsProps,
+  'activePlan' | 'currentReserved' | 'organization'
+> {
   includedAddOns: AddOnCategory[];
 }
 interface SpendLimitInputProps extends Pick<SpendLimitSettingsProps, 'activePlan'> {
@@ -620,7 +621,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="xl">
+    <Grid columns={{xs: '1fr', lg: 'repeat(2, 1fr)'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -637,25 +638,14 @@ function BudgetModeSettings({
                 onDemandBudgets: nextOnDemandBudget,
               });
             }}
-          >
-            <Flex align="start" gap="md" padding="xl">
-              <Container paddingTop="2xs">
-                <RadioMarker
-                  width="16px"
-                  height="16px"
-                  border={isSelected ? 'accent' : 'primary'}
-                  radius="full"
-                  background="primary"
-                  isSelected={isSelected}
-                />
-              </Container>
+            optionHeader={
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
                 {budgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('Set a spending limit for each product')
                   : t('Set a spending limit shared across all products')}
               </Heading>
-            </Flex>
-          </CheckoutOption>
+            }
+          />
         );
       })}
     </Grid>
@@ -716,10 +706,6 @@ function SpendLimitSettings({
 
 export default SpendLimitSettings;
 
-const RadioMarker = styled(Container)<{isSelected: boolean}>`
-  border-width: ${p => (p.isSelected ? '4px' : '1px')};
-`;
-
 const InnerContainer = styled(Flex)`
   border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
@@ -740,6 +726,6 @@ const Currency = styled('div')`
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;

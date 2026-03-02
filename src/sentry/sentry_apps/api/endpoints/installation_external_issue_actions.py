@@ -5,16 +5,13 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
-from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
-from sentry.sentry_apps.utils.errors import SentryAppError
+from sentry.sentry_apps.services.region import sentry_app_region_service
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -39,7 +36,7 @@ class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer
     uri = serializers.CharField(required=True, allow_null=False)
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
@@ -56,20 +53,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         if not external_issue_action_serializer.is_valid():
             return Response(external_issue_action_serializer.errors, status=400)
 
-        group_id = data.get("groupId")
-        del data["groupId"]
-
-        try:
-            group = Group.objects.get(
-                id=group_id,
-                project_id__in=Project.objects.filter(organization_id=installation.organization_id),
-            )
-        except Group.DoesNotExist:
-            raise SentryAppError(
-                message="Could not find the corresponding issue for the given groupId",
-                status_code=404,
-            )
-
+        group_id = data.pop("groupId")
         action = data.pop("action")
         uri = data.pop("uri")
 
@@ -77,15 +61,22 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         if isinstance(user, User):
             user = serialize_rpc_user(user)
 
-        external_issue = IssueLinkCreator(
-            install=installation,
-            group=group,
+        result = sentry_app_region_service.create_issue_link(
+            organization_id=installation.organization_id,
+            installation=installation,
+            group_id=int(group_id),
             action=action,
             fields=data,
             uri=uri,
             user=user,
-        ).run()
+        )
+
+        if result.error:
+            return self.respond_rpc_sentry_app_error(result.error)
+
+        if not result.external_issue:
+            return Response({"detail": "Failed to create external issue"}, status=500)
 
         return Response(
-            serialize(objects=external_issue, serializer=PlatformExternalIssueSerializer())
+            serialize(objects=result.external_issue, serializer=PlatformExternalIssueSerializer())
         )

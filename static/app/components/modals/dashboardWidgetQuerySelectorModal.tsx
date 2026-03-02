@@ -2,11 +2,13 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Link} from 'sentry/components/core/link';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,7 +53,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
       );
       return (
         <Fragment key={index}>
-          <QueryContainer>
+          <Flex marginBottom="md">
             <Container>
               <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
                 <IconSearch />
@@ -71,7 +73,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
                 aria-label={t('Open in Discover')}
               />
             </Link>
-          </QueryContainer>
+          </Flex>
         </Fragment>
       );
     });
@@ -104,10 +106,6 @@ const StyledInput = styled(Input)`
     border: none;
     cursor: default;
   }
-`;
-const QueryContainer = styled('div')`
-  display: flex;
-  margin-bottom: ${space(1)};
 `;
 const OpenInDiscoverButton = styled(Button)`
   margin-left: ${space(1)};

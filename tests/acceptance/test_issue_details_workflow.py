@@ -9,6 +9,7 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
 
 
@@ -23,6 +24,9 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
+        UserOption.objects.set_value(
+            user=self.user, key="prefers_issue_details_streamlined_ui", value=False
+        )
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
@@ -52,7 +56,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.page.resolve_issue()
         self.wait_for_loading()
 
-        res = self.page.api_issue_get(event.group.id)
+        res = self.page.api_issue_get(event.group)
         assert res.status_code == 200, res
         assert res.data["status"] == "resolved"
 
@@ -63,7 +67,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.page.archive_issue()
         self.wait_for_loading()
 
-        res = self.page.api_issue_get(event.group.id)
+        res = self.page.api_issue_get(event.group)
         assert res.status_code == 200, res
         assert res.data["status"] == "ignored"
 
@@ -74,7 +78,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.page.bookmark_issue()
         self.wait_for_loading()
 
-        res = self.page.api_issue_get(event.group.id)
+        res = self.page.api_issue_get(event.group)
         assert res.status_code == 200, res
         assert res.data["isBookmarked"]
 
@@ -84,7 +88,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.assign_to(self.user.email)
 
-        res = self.page.api_issue_get(event.group.id)
+        res = self.page.api_issue_get(event.group)
         assert res.status_code == 200, res
         assert res.data["assignedTo"]
 
@@ -106,6 +110,6 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.mark_reviewed()
 
-        res = self.page.api_issue_get(event.group.id)
+        res = self.page.api_issue_get(event.group)
         assert res.status_code == 200, res
         assert "inbox" not in res.data

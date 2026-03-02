@@ -728,10 +728,8 @@ describe('autogrouping', () => {
         expect(tree.build().serialize()).toMatchSnapshot();
       });
 
-      it('groups spans with the same op and name if OTel UI is enabled', () => {
-        const OTELOrganization = OrganizationFixture({
-          features: [...OrganizationFixture().features, 'performance-otel-friendly-ui'],
-        });
+      it('groups spans with the same op and name', () => {
+        const EAPOrganization = OrganizationFixture();
 
         const tree = TraceTree.FromTrace(
           makeEAPTrace([
@@ -766,7 +764,7 @@ describe('autogrouping', () => {
                   parent_span_id: '0000',
                 }),
                 makeEAPSpan({
-                  event_id: '0003',
+                  event_id: '0004',
                   op: 'db',
                   name: 'GET',
                   start_timestamp: start,
@@ -774,7 +772,7 @@ describe('autogrouping', () => {
                   parent_span_id: '0000',
                 }),
                 makeEAPSpan({
-                  event_id: '0003',
+                  event_id: '0005',
                   op: 'db',
                   name: 'GET',
                   start_timestamp: start,
@@ -786,12 +784,12 @@ describe('autogrouping', () => {
           ]),
           {
             ...traceMetadata,
-            organization: OTELOrganization,
+            organization: EAPOrganization,
           }
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, {
-          organization: OTELOrganization,
+          organization: EAPOrganization,
         });
         expect(tree.build().serialize()).toMatchSnapshot();
       });

@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -45,19 +46,20 @@ function FilterBar({
         {hasTypeFilter && (
           <CompactSelect
             multiple
-            triggerProps={{
-              prefix: t('Alert Type'),
-              children: selectedAlertTypes.length === 0 ? t('All') : undefined,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Alert Type')}>
+                {selectedAlertTypes.length === 0 ? t('All') : triggerProps.children}
+              </OverlayTrigger.Button>
+            )}
             menuFooter={
-              <ButtonBar>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
+              <Flex gap="md" align="center" justify="end">
+                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
-                </LinkButton>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
+                </MenuComponents.CTALinkButton>
+                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/uptime/">
                   {t('Uptime Overview')}
-                </LinkButton>
-              </ButtonBar>
+                </MenuComponents.CTALinkButton>
+              </Flex>
             }
             options={[
               {
@@ -83,9 +85,9 @@ function FilterBar({
         )}
         {hasStatusFilters && onChangeStatus && (
           <CompactSelect
-            triggerProps={{
-              prefix: t('Status'),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+            )}
             options={[
               {
                 value: 'all',
@@ -126,7 +128,9 @@ const Wrapper = styled('div')`
   }
 `;
 
-const FilterButtons = styled(ButtonBar)`
+const FilterButtons = styled((props: GridProps) => (
+  <Grid flow="column" align="center" {...props} />
+))`
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     align-items: flex-start;

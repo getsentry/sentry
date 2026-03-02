@@ -1,13 +1,12 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
@@ -283,7 +282,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
           size="xs"
           onClick={toggleDrawer}
           disabled={!canEditWorkflowConnections}
-          title={permissionTooltipText}
+          tooltipProps={{title: permissionTooltipText}}
         >
           {t('Edit Connected Alerts')}
         </Button>
@@ -300,7 +299,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                   size="sm"
                   onClick={toggleDrawer}
                   disabled={!canEditWorkflowConnections}
-                  title={permissionTooltipText}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
@@ -312,7 +311,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                   size="sm"
                   icon={<IconAdd />}
                   disabled={!canEditWorkflowConnections}
-                  title={permissionTooltipText}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Create a New Alert')}
                 </LinkButton>

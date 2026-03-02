@@ -1,16 +1,17 @@
 import {Fragment, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -42,7 +43,16 @@ export function InstallDetailsContent({
     refetch,
   } = useApiQuery<InstallDetailsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/install-details/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/install-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,
@@ -112,7 +122,7 @@ export function InstallDetailsContent({
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
                 value={
-                  installDetails.platform === 'ios'
+                  installDetails.platform === 'apple'
                     ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
                     : installDetails.install_url
                 }

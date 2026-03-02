@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,10 +11,13 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -27,7 +29,7 @@ type IssueProps = {
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
-const issueOrderPriority: Record<keyof Theme['level'], number> = {
+const issueOrderPriority: Record<Level | 'default', number> = {
   fatal: 0,
   error: 1,
   warning: 2,
@@ -56,7 +58,7 @@ function Issue(props: IssueProps) {
     error,
   } = useApiQuery<Group>(
     [
-      `/issues/${props.issue.issue_id}/`,
+      getApiUrl(`/issues/$issueId/`, {path: {issueId: props.issue.issue_id}}),
       {
         query: {
           collapse: 'release',
@@ -70,8 +72,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  const iconClassName: string =
-    props.issue.event_type === 'error' ? props.issue.level : 'occurence';
+  const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
@@ -110,7 +111,7 @@ const IconBackground = styled('div')`
   svg {
     width: 16px;
     height: 16px;
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
   }
 `;
 
@@ -143,10 +144,10 @@ const IconWrapper = styled('div')`
       background-color: var(--error);
     }
   }
-  &.occurence {
-    border: 1px solid var(--occurence);
+  &.occurrence {
+    border: 1px solid var(--occurrence);
     ${IconBackground} {
-      background-color: var(--occurence);
+      background-color: var(--occurrence);
     }
   }
   &.default {
@@ -164,7 +165,7 @@ const IconWrapper = styled('div')`
 
   &.info,
   &.warning,
-  &.occurence,
+  &.occurrence,
   &.default,
   &.unknown {
     svg {

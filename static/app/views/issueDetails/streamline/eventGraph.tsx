@@ -10,15 +10,15 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {Flex, Grid, type FlexProps} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -29,6 +29,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -182,7 +183,9 @@ export function EventGraph({
     data: Array<{'count_unique(user)': number}>;
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
@@ -365,7 +368,7 @@ export function EventGraph({
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.tokens.border.transparent.neutral.muted,
-            color: theme.tokens.dataviz.semantic.neutral,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -408,7 +411,7 @@ export function EventGraph({
           borderColor: theme.tokens.border.transparent.neutral.muted,
           color: isUnfilteredStatsEnabled
             ? theme.tokens.dataviz.semantic.accent
-            : theme.tokens.dataviz.semantic.neutral,
+            : theme.tokens.dataviz.semantic.other,
         },
         data: eventSeries,
         animation: false,
@@ -455,7 +458,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.tokens.content.muted,
+    inactiveColor: theme.tokens.content.secondary,
   });
 
   const onLegendSelectChanged = useMemo(

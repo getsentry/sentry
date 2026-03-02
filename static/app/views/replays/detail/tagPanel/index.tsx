@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
@@ -61,9 +61,10 @@ export default function TagPanel() {
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
         query: `${name}:"${value}"`,
+        project: replayRecord?.project_id,
       },
     }),
-    [organization]
+    [organization, replayRecord?.project_id]
   );
 
   if (!replayRecord) {
@@ -75,7 +76,7 @@ export default function TagPanel() {
     <Stack wrap="nowrap" minHeight="0">
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
-        <OverflowBody>
+        <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
             <KeyValueTable noMargin>
               {filteredTags.map(([key, values]) => (
@@ -90,7 +91,7 @@ export default function TagPanel() {
           ) : (
             <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
           )}
-        </OverflowBody>
+        </Container>
       </TabItemContainer>
     </Stack>
   );
@@ -98,9 +99,4 @@ export default function TagPanel() {
 
 const PaddedPlaceholder = styled(Placeholder)`
   padding-top: ${space(1)};
-`;
-
-const OverflowBody = styled('section')`
-  flex: 1 1 auto;
-  overflow: auto;
 `;

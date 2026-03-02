@@ -6,6 +6,9 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -21,7 +24,6 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingMask from 'sentry/components/loadingMask';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
@@ -106,6 +108,7 @@ type Props = {
   header?: React.ReactNode;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  isPreloading?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   seriesSamplingInfo?: SeriesSamplingInfo;
@@ -434,10 +437,13 @@ class TriggersChart extends PureComponent<Props, State> {
               value={period}
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
               position="bottom-end"
-              triggerProps={{
-                borderless: true,
-                prefix: t('Display'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  priority="transparent"
+                  prefix={t('Display')}
+                />
+              )}
             />
           </InlineContainer>
         </ChartControls>
@@ -467,9 +473,20 @@ class TriggersChart extends PureComponent<Props, State> {
       isQueryValid,
       isOnDemandMetricAlert,
       traceItemType,
+      isPreloading,
+      header,
     } = this.props;
 
     const {adjustedExtrapolationMode} = this.state;
+
+    if (isPreloading) {
+      return (
+        <Fragment>
+          {header}
+          <ChartPlaceholder />
+        </Fragment>
+      );
+    }
 
     const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(

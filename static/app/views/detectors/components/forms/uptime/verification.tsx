@@ -1,27 +1,30 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {UptimeAssertionsField} from 'sentry/views/alerts/rules/uptime/assertions/field';
+import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
+import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
 export function UptimeDetectorVerificationSection() {
-  const org = useOrganization();
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
 
-  if (!org.features.includes('uptime-runtime-assertions')) {
+  if (!hasRuntimeAssertions) {
     return null;
   }
 
   return (
     <Container>
       <Section title={t('Verification')}>
-        <UptimeAssertionsField
-          name="assertion"
-          label={t('Assertions')}
-          help={t(
-            'Define conditions that must be met for the check to be considered successful.'
-          )}
-          flexibleControlStateSize
-        />
+        <UptimeSectionGrid>
+          <UptimeAssertionsField
+            name="assertion"
+            label={t('Assertions')}
+            help={t(
+              'Define conditions that must be met for the check to be considered successful.'
+            )}
+            flexibleControlStateSize
+          />
+        </UptimeSectionGrid>
       </Section>
     </Container>
   );

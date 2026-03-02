@@ -22,7 +22,7 @@ import {
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
-  background?: Responsive<SurfaceVariant>;
+  background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<
     | 'block'
     | 'inline'
@@ -84,6 +84,11 @@ interface ContainerLayoutProps {
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
 
+  // Text Wrapping
+  whiteSpace?: Responsive<
+    'break-spaces' | 'normal' | 'nowrap' | 'pre' | 'pre-line' | 'pre-wrap'
+  >;
+
   /**
    * Prefer using Flex or Grid gap as opposed to margin.
    * @deprecated
@@ -117,6 +122,7 @@ export type ContainerElement =
   | 'aside'
   | 'blockquote'
   | 'div'
+  | 'fieldset'
   | 'figure'
   | 'footer'
   | 'header'
@@ -131,18 +137,26 @@ export type ContainerElement =
   | 'ul'
   | 'hr';
 
-type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
-  ContainerLayoutProps & {
-    as?: T;
-    children?: React.ReactNode;
-    htmlFor?: T extends 'label' ? string : never;
-    ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
-  } & React.DetailedHTMLProps<
+export type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayoutProps & {
+  as?: T;
+  children?: React.ReactNode;
+  htmlFor?: T extends 'label' ? string : never;
+  ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
+  /**
+   * Deprecated in favor of the Container component API.
+   * If you have an is an unsupported use-case, please contact design engineering for support.
+   * @deprecated
+   */
+  style?: React.CSSProperties;
+} & Omit<
+    React.DetailedHTMLProps<
       React.HTMLAttributes<HTMLElementTagNameMap[T]>,
       HTMLElementTagNameMap[T]
-    >;
+    >,
+    'style'
+  >;
 
-type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
+export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
     children: (props: {className: string}) => React.ReactNode | undefined;
     as?: never;
@@ -162,10 +176,6 @@ type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
         never
       >
     >;
-
-export type ContainerProps<T extends ContainerElement = 'div'> =
-  | ContainerPropsWithChildren<T>
-  | ContainerPropsWithRenderProp<T>;
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
@@ -213,10 +223,13 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'row',
   'top',
   'width',
+  'whiteSpace',
 ]);
 
 export const Container = styled(
-  <T extends ContainerElement = 'div'>(props: ContainerProps<T>) => {
+  <T extends ContainerElement = 'div'>(
+    props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
+  ) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
       return props.children({className: (props as any).className});
@@ -234,7 +247,7 @@ export const Container = styled(
       return isPropValid(prop);
     },
   }
-)`
+)<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
 
@@ -296,11 +309,13 @@ export const Container = styled(
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
 
+  ${p => rc('white-space', p.whiteSpace, p.theme)};
+
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: ContainerProps<T>
+  props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
 ) => React.ReactElement;

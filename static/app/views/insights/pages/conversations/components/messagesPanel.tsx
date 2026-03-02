@@ -1,199 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconUser} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {
-  getIsAiGenerationSpan,
-  getIsExecuteToolSpan,
-} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
+import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
+import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-
-interface ToolCall {
-  name: string;
-  nodeId: string;
-}
-
-interface ConversationMessage {
-  content: string;
-  id: string;
-  nodeId: string;
-  role: 'user' | 'assistant';
-  timestamp: number;
-  toolCalls?: ToolCall[];
-  userEmail?: string;
-}
-
-interface RequestMessage {
-  content: string | Array<{text: string}>;
-  role: string;
-}
-
-// often injected into AI prompts to indicate the role of the message
-const AI_PROMPT_TAGS = new Set([
-  'thinking',
-  'reasoning',
-  'instructions',
-  'user_message',
-  'maybe_relevant_context',
-]);
-
-/**
- * Escapes known AI prompt tags so they display as literal text rather than
- * being stripped by the HTML sanitizer.
- */
-function escapeXmlTags(text: string): string {
-  return text.replace(
-    /<(\/?)([a-z_][a-z0-9_:-]*)([^>]*)>/gi,
-    (match, slash, tagName, rest) => {
-      if (AI_PROMPT_TAGS.has(tagName.toLowerCase())) {
-        return `&lt;${slash}${tagName}${rest}&gt;`;
-      }
-      return match;
-    }
-  );
-}
-
-function getNodeTimestamp(node: AITraceSpanNode): number {
-  return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
-}
-
-function getGenAiOpType(node: AITraceSpanNode): string | undefined {
-  return node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined;
-}
-
-function partitionSpansByType(nodes: AITraceSpanNode[]): {
-  generationSpans: AITraceSpanNode[];
-  toolSpans: AITraceSpanNode[];
-} {
-  const generationSpans: AITraceSpanNode[] = [];
-  const toolSpans: AITraceSpanNode[] = [];
-
-  for (const node of nodes) {
-    const opType = getGenAiOpType(node);
-    if (getIsAiGenerationSpan(opType)) {
-      generationSpans.push(node);
-    } else if (getIsExecuteToolSpan(opType)) {
-      toolSpans.push(node);
-    }
-  }
-
-  generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
-  toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
-
-  return {generationSpans, toolSpans};
-}
-
-function findToolCallsBetween(
-  toolSpans: AITraceSpanNode[],
-  startTime: number,
-  endTime: number
-): ToolCall[] {
-  return toolSpans
-    .filter(span => {
-      const ts = getNodeTimestamp(span);
-      return ts > startTime && ts < endTime;
-    })
-    .map(span => {
-      const name = span.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
-      return name ? {name, nodeId: span.id} : null;
-    })
-    .filter((tc): tc is ToolCall => tc !== null);
-}
-
-function parseUserContent(node: AITraceSpanNode): string | null {
-  const requestMessages = node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as
-    | string
-    | undefined;
-
-  if (!requestMessages) {
-    return null;
-  }
-
-  try {
-    const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
-    const userMessage = messagesArray.findLast(msg => msg.role === 'user' && msg.content);
-    if (!userMessage?.content) {
-      return null;
-    }
-    return typeof userMessage.content === 'string'
-      ? userMessage.content
-      : (userMessage.content[0]?.text ?? null);
-  } catch {
-    return requestMessages;
-  }
-}
-
-function parseAssistantContent(node: AITraceSpanNode): string | null {
-  return (
-    (node.attributes?.[SpanFields.GEN_AI_RESPONSE_TEXT] as string | undefined) ||
-    (node.attributes?.[SpanFields.GEN_AI_RESPONSE_OBJECT] as string | undefined) ||
-    null
-  );
-}
-
-/**
- * Extracts messages from LLM generation spans.
- * User messages come from gen_ai.request.messages, assistant messages from gen_ai.response.text.
- * Tool calls are extracted from tool spans that occur just before each generation span.
- */
-function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage[] {
-  const messages: ConversationMessage[] = [];
-  const seenUserContent = new Set<string>();
-  const seenAssistantContent = new Set<string>();
-
-  const {generationSpans, toolSpans} = partitionSpansByType(nodes);
-
-  for (let i = 0; i < generationSpans.length; i++) {
-    const node = generationSpans[i];
-    if (!node) {
-      continue;
-    }
-
-    const timestamp = getNodeTimestamp(node);
-    const prevTimestamp = i > 0 ? getNodeTimestamp(generationSpans[i - 1]!) : 0;
-    const userEmail = node.attributes?.[SpanFields.USER_EMAIL] as string | undefined;
-    const toolCalls = findToolCallsBetween(toolSpans, prevTimestamp, timestamp);
-
-    const userContent = parseUserContent(node);
-    if (userContent && !seenUserContent.has(userContent)) {
-      seenUserContent.add(userContent);
-      messages.push({
-        id: `user-${node.id}`,
-        role: 'user',
-        content: userContent,
-        timestamp,
-        nodeId: node.id,
-        userEmail,
-      });
-    }
-
-    const assistantContent = parseAssistantContent(node);
-    if (assistantContent && !seenAssistantContent.has(assistantContent)) {
-      seenAssistantContent.add(assistantContent);
-      messages.push({
-        id: `assistant-${node.id}`,
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: timestamp + 1,
-        nodeId: node.id,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      });
-    }
-  }
-
-  messages.sort((a, b) => a.timestamp - b.timestamp);
-  return messages;
-}
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -242,123 +62,103 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   if (messages.length === 0) {
     return (
-      <PanelContainer direction="column">
-        <Container padding="md xl">
-          <Heading as="h6">{t('Messages')}</Heading>
-        </Container>
+      <Flex
+        direction="column"
+        padding="lg lg md lg"
+        background="secondary"
+        minHeight="100%"
+      >
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
-      </PanelContainer>
+      </Flex>
     );
   }
 
   return (
-    <PanelContainer direction="column">
-      <Container padding="md xl">
-        <Heading as="h6" size="xl">
-          {t('Messages')}
-        </Heading>
-      </Container>
-      <ScrollableContent direction="column" padding="md">
-        <Stack gap="md">
-          {messages.map((message, index) => {
-            const isSelected = message.id === effectiveSelectedMessageId;
-            return (
-              <MessageBubble
-                key={index}
-                role={message.role}
-                isClickable
-                isSelected={isSelected}
-                onClick={() => handleMessageClick(message)}
-              >
-                <MessageHeader
-                  align="center"
-                  gap="sm"
-                  padding="sm md"
-                  justify={message.role === 'assistant' ? 'end' : 'start'}
-                >
-                  {message.role === 'user' ? (
-                    <IconUser size="sm" />
-                  ) : (
-                    <IconBot size="sm" />
-                  )}
+    <Flex
+      direction="column"
+      padding="lg lg md lg"
+      background="secondary"
+      minHeight="100%"
+    >
+      <Stack gap="md" width="100%">
+        {messages.map((message, index) => {
+          const isSelected = message.id === effectiveSelectedMessageId;
+          const isAssistant = message.role === 'assistant';
+          return (
+            <MessageBubble
+              key={index}
+              role={message.role}
+              isClickable={isAssistant}
+              isSelected={isAssistant && isSelected}
+              onClick={isAssistant ? () => handleMessageClick(message) : undefined}
+            >
+              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
+                {message.role === 'user' ? (
                   <Text bold size="sm">
-                    {message.role === 'user' ? t('User') : t('Assistant')}
+                    {message.userEmail || t('User')}
                   </Text>
-                  {message.role === 'user' && message.userEmail && (
-                    <Text size="sm" style={{color: 'inherit', opacity: 0.7}}>
-                      {message.userEmail}
+                ) : (
+                  <Flex align="baseline" gap="sm" flex={1}>
+                    <Text bold size="sm">
+                      {t('Assistant')}
                     </Text>
-                  )}
-                </MessageHeader>
-                <StyledClippedBox
-                  clipHeight={200}
-                  buttonProps={{priority: 'default', size: 'xs'}}
-                  collapsible
-                >
-                  <Container padding="sm">
-                    <MessageText size="sm">
-                      <MarkedText
-                        as={TraceDrawerComponents.MarkdownContainer}
-                        text={escapeXmlTags(message.content)}
-                      />
-                    </MessageText>
-                  </Container>
-                </StyledClippedBox>
-                {message.role === 'assistant' &&
-                  message.toolCalls &&
-                  message.toolCalls.length > 0 && (
-                    <ToolCallsFooter
-                      direction="row"
-                      align="center"
-                      gap="xs"
-                      wrap="wrap"
-                      padding="xs sm"
-                    >
-                      <Text size="xs" style={{opacity: 0.7}}>
-                        {t('Tools called:')}
+                    {message.duration !== undefined && message.duration > 0 && (
+                      <Text size="xs" variant="muted">
+                        {getDuration(message.duration, 1, true)}
                       </Text>
-                      {message.toolCalls.map(tool => {
-                        const toolNode = nodeMap.get(tool.nodeId);
-                        return (
-                          <ClickableTag
-                            key={tool.nodeId}
-                            variant="info"
-                            onClick={e => {
-                              e.stopPropagation();
-                              if (toolNode) {
-                                onSelectNode(toolNode);
-                              }
-                            }}
-                          >
-                            {tool.name}
-                          </ClickableTag>
-                        );
-                      })}
-                    </ToolCallsFooter>
-                  )}
-              </MessageBubble>
-            );
-          })}
-        </Stack>
-      </ScrollableContent>
-    </PanelContainer>
+                    )}
+                  </Flex>
+                )}
+              </MessageHeader>
+              <StyledClippedBox
+                clipHeight={200}
+                buttonProps={{priority: 'default', size: 'xs'}}
+                collapsible
+              >
+                <Container padding="md">
+                  <MessageText
+                    size="sm"
+                    align={message.role === 'user' ? 'right' : 'left'}
+                  >
+                    <MarkedText
+                      as={TraceDrawerComponents.MarkdownContainer}
+                      text={message.content}
+                    />
+                  </MessageText>
+                </Container>
+              </StyledClippedBox>
+              {isAssistant && message.toolCalls && message.toolCalls.length > 0 && (
+                <MessageToolCalls
+                  toolCalls={message.toolCalls}
+                  selectedNodeId={selectedNodeId}
+                  nodeMap={nodeMap}
+                  onSelectNode={onSelectNode}
+                />
+              )}
+            </MessageBubble>
+          );
+        })}
+      </Stack>
+    </Flex>
   );
 }
 
-const PanelContainer = styled(Flex)`
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
-`;
+const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
 
-const ScrollableContent = styled(Flex)`
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-`;
-
-const MessageHeader = styled(Flex)`
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  &::after {
+    content: '';
+    position: absolute;
+    left: ${p => p.theme.space.md};
+    right: ${p => p.theme.space.md};
+    bottom: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+  position: relative;
 `;
 
 const MessageText = styled(Text)`
@@ -370,40 +170,48 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  position: relative;
+  z-index: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
+  width: 90%;
+  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
+  background-color: ${p =>
+    p.role === 'assistant'
+      ? p.theme.tokens.background.primary
+      : p.theme.tokens.background.secondary};
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: inherit;
+    box-sizing: border-box;
+    z-index: 1;
+    pointer-events: none;
+  }
   ${p =>
     p.isClickable &&
     `
     cursor: pointer;
-    &:hover {
+    &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-    &:active {
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      border-width: 2px;
     }
   `}
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
-    outline-offset: -2px;
+    &::after {
+      border-color: ${p.theme.tokens.focus.default};
+      border-width: 2px;
+    }
+    &:hover::after {
+      border-color: ${p.theme.tokens.focus.default};
+    }
   `}
 `;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
-`;
-
-const ToolCallsFooter = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ClickableTag = styled(Tag)`
-  cursor: pointer;
-  &:hover {
-    opacity: 0.8;
-  }
 `;

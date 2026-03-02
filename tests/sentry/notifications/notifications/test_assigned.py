@@ -10,7 +10,6 @@ from sentry.models.activity import Activity
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -87,7 +86,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.setup_user(user, self.team)
         self.login_as(user)
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -107,7 +106,6 @@ class AssignedNotificationAPITest(APITestCase):
         assert self.group.title in blocks[1]["text"]["text"]
         assert self.project.slug in blocks[-2]["elements"][0]["text"]
 
-    @with_feature("organizations:suspect-commits-in-emails")
     def test_sends_assignment_notification_with_suspect_commits(self, mock_post):
         """
         Test that suspect commits are included in assignment notification emails
@@ -140,7 +138,7 @@ class AssignedNotificationAPITest(APITestCase):
             context={"commitId": commit.id},
         )
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -162,7 +160,6 @@ class AssignedNotificationAPITest(APITestCase):
         assert "abc123d" in html_content  # shortened commit ID
         assert user.get_display_name() in html_content  # commit author
 
-    @with_feature("organizations:suspect-commits-in-emails")
     def test_sends_assignment_notification_without_suspect_commits(self, mock_post):
         """
         Test that assignment notifications work normally when no suspect commits exist.
@@ -171,7 +168,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.setup_user(user, self.team)
         self.login_as(user)
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -188,7 +185,6 @@ class AssignedNotificationAPITest(APITestCase):
         # But assignment notification should still work
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
-    @with_feature("organizations:suspect-commits-in-emails")
     def test_enhanced_privacy_hides_suspect_commits_in_emails(self, mock_post):
         user = self.create_user()
         self.setup_user(user, self.team)
@@ -219,7 +215,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.organization.refresh_from_db()
         assert self.organization.flags.enhanced_privacy.is_set is True
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -240,7 +236,6 @@ class AssignedNotificationAPITest(APITestCase):
         # assignment notification should still work normally
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
-    @with_feature("organizations:suspect-commits-in-emails")
     def test_enhanced_privacy_default_shows_suspect_commits_in_emails(self, mock_post):
         """
         Test that suspect commits are shown by default in assignment notification emails
@@ -272,7 +267,7 @@ class AssignedNotificationAPITest(APITestCase):
 
         assert self.organization.flags.enhanced_privacy.is_set is False
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -293,7 +288,6 @@ class AssignedNotificationAPITest(APITestCase):
         # assignment notification should still work normally
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
-    @with_feature("organizations:suspect-commits-in-emails")
     def test_sends_assignment_notification_with_multiple_suspect_commits(self, mock_post):
         """
         Test that when multiple suspect commits exist, the most recent one is displayed in notifications.
@@ -341,7 +335,7 @@ class AssignedNotificationAPITest(APITestCase):
             context={"commitId": commit2.id},
         )
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user1.username})
         assert response.status_code == 200, response.content
@@ -368,7 +362,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.setup_user(user2, self.team)
         self.login_as(user1)
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
 
         # assign to user 1
         with self.tasks():
@@ -446,7 +440,7 @@ class AssignedNotificationAPITest(APITestCase):
 
         self.login_as(user1)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         # assign to team1
         with self.tasks():

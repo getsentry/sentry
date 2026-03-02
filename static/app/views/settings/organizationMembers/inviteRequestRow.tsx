@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -103,11 +104,11 @@ function InviteRequestRow({
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
           disabled={!canApprove}
-          title={
-            canApprove
+          tooltipProps={{
+            title: canApprove
               ? undefined
-              : t('This request needs to be reviewed by a privileged user')
-          }
+              : t('This request needs to be reviewed by a privileged user'),
+          }}
         >
           {t('Deny')}
         </Button>
@@ -128,16 +129,16 @@ function InviteRequestRow({
             priority="primary"
             size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
-            title={
-              canApprove
+            tooltipProps={{
+              title: canApprove
                 ? roleDisallowed
                   ? t(
                       `You do not have permission to approve a user of this role.
                       Select a different role to approve this user.`
                     )
                   : undefined
-                : t('This request needs to be reviewed by a privileged user')
-            }
+                : t('This request needs to be reviewed by a privileged user'),
+            }}
             icon={<IconCheckmark />}
           >
             {t('Approve')}
@@ -166,7 +167,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const UserName = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

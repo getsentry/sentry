@@ -179,9 +179,9 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             self.project.slug,
             event.event_id,
         )
-        assert (
-            resp.data["sdk_debug_id_support"] == "needs-upgrade"
-        ), MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
+        assert resp.data["sdk_debug_id_support"] == "needs-upgrade", (
+            MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
+        )
 
     def test_sdk_debug_id_support_unsupported(self) -> None:
         event = self.store_event(

@@ -13,7 +13,6 @@ from math import floor
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
-from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
@@ -24,8 +23,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -146,8 +144,9 @@ def group_categories_from_search_filters(
 
     if not group_categories:
         group_categories = set(get_search_strategies().keys())
-        # if we're not searching for feedbacks, then hide them by default
+        # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
+        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
 
     if not features.has("organizations:performance-issues-search", organization):
         group_categories.discard(GroupCategory.PERFORMANCE.value)
@@ -371,7 +370,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization.id,
+            organization,
             project_ids,
             environments,
             group_ids,
@@ -426,7 +425,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sf
             for sf in search_filters or ()
             # remove any search_filters that are only available in postgres, we special case date
-            if not (sf.key.name in self.postgres_only_fields.union(["date", "timestamp"]))
+            if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
         ]
 
         # common pinned parameters that won't change based off datasource
@@ -770,13 +769,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if end_params:
             end = min(end_params)
 
+        allow_postgres_only_search = False
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
             allow_postgres_only_search = True
-        else:
-            allow_postgres_only_search = features.has(
-                "organizations:issue-search-allow-postgres-only-search", projects[0].organization
-            )
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -827,21 +823,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 .filter(last_seen__gte=start, last_seen__lte=end)
                 .order_by("-last_seen")
             )
-
-            for sf in search_filters or ():
-                # general search query:
-                if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
-                    group_queryset = group_queryset.filter(
-                        Q(type=ErrorGroupType.type_id)
-                        | (
-                            Q(type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value))
-                            and (
-                                ~Q(message__icontains=sf.value.raw_value)
-                                if sf.is_negation
-                                else Q(message__icontains=sf.value.raw_value)
-                            )
-                        )
-                    )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
 

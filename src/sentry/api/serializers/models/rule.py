@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from functools import reduce
 from typing import Any, TypedDict
 
 from django.db.models import Max, Prefetch, Q, prefetch_related_objects
@@ -22,14 +21,16 @@ from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     Workflow,
     WorkflowDataConditionGroup,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
 def generate_rule_label(project, rule, data):
@@ -217,20 +218,15 @@ class RuleSerializer(Serializer):
                     )
                 )
 
-                workflow_fire_results = (
-                    WorkflowFireHistory.objects.filter(workflow_id__in=workflow_rule_lookup.keys())
-                    .values("workflow_id")
-                    .annotate(date_added=Max("date_added"))
-                )
+                workflow_fire_dates = get_last_fired_dates(list(workflow_rule_lookup.keys()))
 
-                for wfh in workflow_fire_results:
-                    rule_id = workflow_rule_lookup.get(wfh["workflow_id"])
-                    if rule_id:
+                for workflow_id, last_fire in workflow_fire_dates.items():
+                    rule_id = workflow_rule_lookup.get(workflow_id)
+                    if rule_id and last_fire:
                         # Take the maximum date between RuleFireHistory and WorkflowFireHistory
                         existing_date = last_triggered_lookup.get(rule_id)
-                        new_date = wfh["date_added"]
-                        if (existing_date and new_date > existing_date) or not existing_date:
-                            last_triggered_lookup[rule_id] = new_date
+                        if (existing_date and last_fire > existing_date) or not existing_date:
+                            last_triggered_lookup[rule_id] = last_fire
 
             # Set the results
             for rule in item_list:
@@ -265,6 +261,9 @@ class RuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
+        # Mark that we're using legacy Rule models
+        report_used_legacy_models()
+
         environment = attrs["environment"]
         all_conditions = [
             dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
@@ -385,9 +384,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return dict(
             AlertRuleWorkflow.objects.filter(
                 workflow_id__in=[wf.id for wf in item_list], rule_id__isnull=False
-            ).values_list(
-                "workflow_id", "rule_id"
-            )  # type: ignore[arg-type]
+            ).values_list("workflow_id", "rule_id")  # type: ignore[arg-type]
         )
 
     def _fetch_workflow_created_by(
@@ -411,6 +408,9 @@ class WorkflowEngineRuleSerializer(Serializer):
         if actor:
             return actor.identifier
         return None
+
+    def _fetch_actions(self, condition_group: DataConditionGroup) -> BaseQuerySet[Action]:
+        return Action.objects.filter(dataconditiongroupaction__condition_group=condition_group)
 
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
@@ -445,25 +445,19 @@ class WorkflowEngineRuleSerializer(Serializer):
         return all_conditions, all_filters
 
     def _fetch_workflow_last_triggered(self, item_list: Sequence[Workflow]) -> dict[int, datetime]:
-        result_qs = reduce(
-            lambda q1, q2: q1.union(q2),
-            [
-                WorkflowFireHistory.objects.filter(workflow=item)
-                .order_by("-date_added")
-                .values("workflow_id", "date_added")[:1]
-                for item in item_list
-            ],
-        )
-        return {wfh["workflow_id"]: wfh["date_added"] for wfh in result_qs}
+        results = get_last_fired_dates([w.id for w in item_list])
+        return {wf_id: date for wf_id, date in results.items() if date is not None}
 
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
+        from sentry.notifications.notification_action.registry import issue_alert_handler_registry
+
         # Bulk fetch users that created workflows
         users = self._fetch_workflow_users(item_list)
 
         # Bulk fetch projects for workflows (attached through detectors)
         workflow_to_projects = self._fetch_workflow_projects(item_list)
 
-        # Bulk fetch wokflows with trigger and filter conditionx
+        # Bulk fetch workflows with trigger and filter conditions
         workflows = self._fetch_workflows(item_list)
 
         # Bulk fetch workflow -> rule ids
@@ -473,15 +467,13 @@ class WorkflowEngineRuleSerializer(Serializer):
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
 
-        # TODO: SERIALIZE ACTIONS
-
         result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
         for workflow in workflows:
             result[workflow]["created_by"] = self._fetch_workflow_created_by(workflow, users)
 
             owner = self._fetch_workflow_owner(workflow)
             if owner:
-                result[workflow]["created_by"] = owner
+                result[workflow]["owner"] = owner
 
             result[workflow]["environment"] = workflow.environment
             result[workflow]["projects"] = list(workflow_to_projects[workflow])
@@ -494,6 +486,37 @@ class WorkflowEngineRuleSerializer(Serializer):
             workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
+            serialized_actions = []
+            for action in self._fetch_actions(workflow_dcg.condition_group):
+                try:
+                    handler = issue_alert_handler_registry.get(action.type)
+                except Exception:
+                    # just keep iterating through the actions in case we have valid ones in there
+                    continue
+
+                action_data = handler.build_rule_action_blob(action, workflow.organization_id)
+                action_data["name"] = handler.render_label(workflow.organization_id, action_data)
+
+                # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
+
+                # XXX: convert fallthrough_type to fallthroughType
+                if action_data.get("fallthrough_type"):
+                    action_data["fallthroughType"] = action_data.get("fallthrough_type")
+                    del action_data["fallthrough_type"]
+
+                # XXX: add a targetIdentifier empty string for email only
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and action_data.get("targetIdentifier") is None
+                ):
+                    action_data["targetIdentifier"] = ""
+
+                # XXX: remove notes unless it actually has content
+                if action.data.get("notes") == "":
+                    action_data.pop("notes", None)
+
+                serialized_actions.append(action_data)
+
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
@@ -504,6 +527,8 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             if workflow.id in last_triggered_lookup:
                 result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
+
+            result[workflow]["actions"] = serialized_actions
 
         return result
 
@@ -522,7 +547,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             "id": str(attrs["rule_id"]) if attrs.get("rule_id") else None,
             "conditions": attrs["conditions"],
             "filters": attrs["filters"],
-            "actions": [],  # TODO: reverse translate actions
+            "actions": attrs["actions"],
             "actionMatch": action_match,
             "filterMatch": filter_match,
             "frequency": obj.config.get("frequency", 0),

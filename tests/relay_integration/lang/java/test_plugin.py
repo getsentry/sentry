@@ -509,7 +509,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[1].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
 
         assert event.culprit == (
-            "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
+            "org.slf4j.helpers.Util$ClassContextSecurityManager in getExtraClassContext"
         )
 
     @requires_symbolicator

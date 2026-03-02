@@ -2,18 +2,21 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {AlertBadge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -21,7 +24,7 @@ import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
-import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
@@ -95,7 +98,9 @@ function ProjectLatestAlerts({
     isError: unresolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      `/organizations/${organization.slug}/incidents/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {...query, status: 'open'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
@@ -106,7 +111,9 @@ function ProjectLatestAlerts({
     isError: resolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      `/organizations/${organization.slug}/incidents/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {...query, status: 'closed'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
@@ -120,7 +127,9 @@ function ProjectLatestAlerts({
   // This is only used to determine if we should show the "Create Alert" button
   const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
     [
-      `/organizations/${organization.slug}/alert-rules/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pick(location.query, Object.values(URL_PARAM)),
@@ -169,13 +178,14 @@ function ProjectLatestAlerts({
       <SectionHeadingWrapper>
         <SectionHeading>{t('Latest Alerts')}</SectionHeading>
         {/* as this is a link to latest alerts, we want to only preserve project and environment */}
-        <SectionHeadingLink
+        <StyledIconLink
           to={{
             pathname: makeAlertsPathname({
               path: `/`,
               organization,
             }),
             query: {
+              ...extractSelectionParameters(location.query),
               statsPeriod: undefined,
               start: undefined,
               end: undefined,
@@ -184,13 +194,17 @@ function ProjectLatestAlerts({
           }}
         >
           <IconOpen aria-label={t('Metric Alert History')} />
-        </SectionHeadingLink>
+        </StyledIconLink>
       </SectionHeadingWrapper>
 
       <div>{renderAlertRules()}</div>
     </SidebarSection>
   );
 }
+
+const StyledIconLink = styled(Link)`
+  display: flex;
+`;
 
 const AlertRowLink = styled(Link)`
   display: flex;
@@ -223,7 +237,7 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 `;
 
 const AlertDetails = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-left: ${space(1.5)};
   display: block;
   width: 100%;
@@ -234,7 +248,7 @@ const AlertDetails = styled('div')`
 `;
 
 const AlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

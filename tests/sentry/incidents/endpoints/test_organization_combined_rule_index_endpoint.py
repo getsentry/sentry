@@ -5,7 +5,7 @@ import requests
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
-from sentry.models.rule import Rule, RuleSource
+from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.monitors.models import MonitorStatus
 from sentry.snuba.dataset import Dataset
@@ -86,12 +86,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     def test_no_cron_monitor_rules(self) -> None:
         """
         Tests that the shadow cron monitor rules are NOT returned as part of
-        the the list of alert rules.
+        the list of alert rules.
         """
         self.create_alert_rule()
-        cron_rule = Rule.objects.create(
-            project=self.project,
-            label="Cron Rule",
+        cron_rule = self.create_project_rule(
+            name="Cron Rule",
             source=RuleSource.CRON_MONITOR,
         )
 
@@ -1357,3 +1356,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 )
                 assert response.status_code == 200, response.content
                 assert {r["id"] for r in response.data} == expected_ids
+
+    def test_invalid_sort_key(self) -> None:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            response = self.get_error_response(
+                self.organization.slug, sort=["invalid_field"], status_code=400
+            )
+            assert "Invalid sort key" in response.data["detail"]

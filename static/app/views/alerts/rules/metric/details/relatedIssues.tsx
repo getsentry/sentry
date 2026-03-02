@@ -1,8 +1,10 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
@@ -45,8 +47,8 @@ export default function RelatedIssues({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Add environment to the query parameters to be picked up by GlobalSelectionLink
-  // GlobalSelectionLink uses the current query parameters to build links to issue details
+  // Add environment to the query parameters to be picked up by extractSelectionParameters
+  // Links using extractSelectionParameters will preserve these query parameters when navigating to issue details
   useEffect(() => {
     const env = rule.environment ?? '';
     if (env !== (location.query.environment ?? '')) {
@@ -115,12 +117,12 @@ export default function RelatedIssues({
   return (
     <Fragment>
       {!skipHeader && (
-        <ControlsWrapper>
+        <Flex justify="between" align="center" marginBottom="md">
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
             {t('Open in Issues')}
           </LinkButton>
-        </ControlsWrapper>
+        </Flex>
       )}
 
       <TableWrapper>
@@ -142,13 +144,6 @@ export default function RelatedIssues({
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
 
 const TableWrapper = styled('div')`
   margin-bottom: ${space(4)};

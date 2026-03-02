@@ -1,4 +1,5 @@
-"""This module has the logic for querying Snuba for the hourly event count for a list of groups.
+"""
+This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
 
@@ -102,6 +103,12 @@ def query_groups_past_counts(groups: Iterable[Group]) -> list[GroupsCountRespons
             eap_results,
             "issues.escalating.query_groups_past_counts",
             is_experimental_data_a_null_result=len(eap_results) == 0,
+            reasonable_match_comparator=_reasonable_groups_past_counts_match,
+            debug_context={
+                "organization_ids": sorted({g.project.organization_id for g in groups_list}),
+                "project_ids": sorted({g.project_id for g in groups_list}),
+                "group_ids": sorted({g.id for g in groups_list}),
+            },
         )
 
     return results
@@ -179,8 +186,7 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
         if len(all_group_ids) == 1:
             query_string = f"group_id:{all_group_ids[0]}"
         else:
-            group_id_filter = " OR ".join([f"group_id:{gid}" for gid in all_group_ids])
-            query_string = f"({group_id_filter})"
+            query_string = f"group_id:[{', '.join(str(gid) for gid in all_group_ids)}]"
 
         snuba_params = SnubaParams(
             start=start_date,
@@ -229,6 +235,22 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
     all_results.sort(key=lambda x: (x["project_id"], x["group_id"], x["hourBucket"]))
 
     return all_results
+
+
+def _reasonable_groups_past_counts_match(
+    snuba_results: list[GroupsCountResponse], eap_results: list[GroupsCountResponse]
+) -> bool:
+    snuba_by_key = {
+        (r["project_id"], r["group_id"], r["hourBucket"]): r["count()"] for r in snuba_results
+    }
+    eap_by_key = {
+        (r["project_id"], r["group_id"], r["hourBucket"]): r["count()"] for r in eap_results
+    }
+
+    if not set(eap_by_key).issubset(set(snuba_by_key)):
+        return False
+
+    return all(eap_count <= snuba_by_key[key] for key, eap_count in eap_by_key.items())
 
 
 def _process_groups(
@@ -450,7 +472,15 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     if EAPOccurrencesComparator.should_check_experiment("issues.escalating.is_escalating"):
         eap_count = get_group_hourly_count_eap(group)
         group_hourly_count = EAPOccurrencesComparator.check_and_choose(
-            snuba_count, eap_count, "issues.escalating.is_escalating"
+            snuba_count,
+            eap_count,
+            "issues.escalating.is_escalating",
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "organization_id": group.project.organization_id,
+                "project_id": group.project.id,
+                "group_id": group.id,
+            },
         )
 
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)

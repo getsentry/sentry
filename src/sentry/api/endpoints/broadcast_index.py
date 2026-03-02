@@ -156,12 +156,18 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                     id__in=queryset.filter(broadcastseen__user_id=request.user.id).values("id")
                 )
 
-            for broadcast in unseen_queryset:
-                try:
-                    with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
-                        BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
-                except IntegrityError:
-                    pass
+            broadcast_ids = list(unseen_queryset.values_list("id", flat=True))
+            if broadcast_ids:
+                seen_at = timezone.now()
+                db = router.db_for_write(BroadcastSeen)
+                seen_rows = [
+                    BroadcastSeen(
+                        broadcast_id=broadcast_id, user_id=request.user.id, date_seen=seen_at
+                    )
+                    for broadcast_id in broadcast_ids
+                ]
+                with transaction.atomic(using=db):
+                    BroadcastSeen.objects.using(db).bulk_create(seen_rows, ignore_conflicts=True)
 
         return self.respond(result)
 

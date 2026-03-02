@@ -20,6 +20,6 @@ export const navigationAnalyticsEventMap: Record<NavigationEventKey, string | nu
     'Navigation: Help Menu Opt Out Of Stacked Navigation Clicked',
   'navigation.primary_item_clicked': 'Navigation: Primary Item Clicked',
   'navigation.secondary_item_clicked': 'Navigation: Secondary Item Clicked',
-  'navigation.tour_modal_shown': 'Navigation: Tour Modal Shown',
   'navigation.tour_modal_dismissed': 'Navigation: Tour Modal Dismissed',
+  'navigation.tour_modal_shown': 'Navigation: Tour Modal Shown',
 };

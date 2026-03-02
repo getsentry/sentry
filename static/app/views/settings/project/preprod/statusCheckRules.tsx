@@ -1,28 +1,33 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Switch} from 'sentry/components/core/switch';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {StatusCheckRuleItem} from './statusCheckRuleItem';
+import {DEFAULT_ARTIFACT_TYPE} from './types';
 import {useStatusCheckRules} from './useStatusCheckRules';
 
 export function StatusCheckRules() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const location = useLocation();
   const {data: repositories, isPending: isLoadingRepos} = useRepositories({
     orgSlug: organization.slug,
   });
@@ -31,11 +36,53 @@ export function StatusCheckRules() {
 
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
+  const expandedRuleIds = useMemo(() => {
+    const expanded = location.query.expanded;
+    if (!expanded) {
+      return new Set<string>();
+    }
+    return new Set(Array.isArray(expanded) ? expanded : [expanded]);
+  }, [location.query.expanded]);
+
   const handleAddRule = () => {
     const newRule = createEmptyRule();
     addRule(newRule);
+    trackAnalytics('preprod.settings.status_check_rule_created', {
+      organization,
+      project_slug: project.slug,
+    });
     setNewRuleId(newRule.id);
+    updateExpandedInUrl([...expandedRuleIds, newRule.id]);
   };
+
+  const updateExpandedInUrl = useCallback(
+    (expandedIds: string[]) => {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          expanded: expandedIds,
+        },
+      });
+    },
+    [location.pathname, location.query]
+  );
+
+  const handleToggleExpanded = useCallback(
+    (ruleId: string, isExpanded: boolean) => {
+      const newExpanded = new Set(expandedRuleIds);
+      if (isExpanded) {
+        newExpanded.add(ruleId);
+      } else {
+        newExpanded.delete(ruleId);
+        if (ruleId === newRuleId) {
+          setNewRuleId(null);
+        }
+      }
+      updateExpandedInUrl([...newExpanded]);
+    },
+    [expandedRuleIds, newRuleId, updateExpandedInUrl]
+  );
 
   const hasRepositories = !isLoadingRepos && repositories && repositories.length > 0;
 
@@ -70,18 +117,36 @@ export function StatusCheckRules() {
                       <StatusCheckRuleItem
                         key={rule.id}
                         rule={rule}
-                        defaultExpanded={rule.id === newRuleId}
+                        isExpanded={rule.id === newRuleId || expandedRuleIds.has(rule.id)}
+                        onToggleExpanded={isExpanded =>
+                          handleToggleExpanded(rule.id, isExpanded)
+                        }
                         onSave={updated => {
                           updateRule(rule.id, updated);
+                          trackAnalytics('preprod.settings.status_check_rule_updated', {
+                            organization,
+                            project_slug: project.slug,
+                            metric: updated.metric,
+                            measurement: updated.measurement,
+                            artifact_type: updated.artifactType ?? DEFAULT_ARTIFACT_TYPE,
+                            value: updated.value,
+                          });
                           if (rule.id === newRuleId) {
                             setNewRuleId(null);
                           }
                         }}
                         onDelete={() => {
+                          trackAnalytics('preprod.settings.status_check_rule_deleted', {
+                            organization,
+                            project_slug: project.slug,
+                          });
                           deleteRule(rule.id);
                           if (rule.id === newRuleId) {
                             setNewRuleId(null);
                           }
+                          const newExpanded = new Set(expandedRuleIds);
+                          newExpanded.delete(rule.id);
+                          updateExpandedInUrl([...newExpanded]);
                         }}
                       />
                     ))}
@@ -101,7 +166,7 @@ export function StatusCheckRules() {
                   </Container>
                 )}
 
-                <Flex style={{padding: '12px 16px'}} borderTop="primary">
+                <Flex padding="lg xl" borderTop="primary">
                   <AddRuleButton icon={<IconAdd />} onClick={handleAddRule}>
                     {t('Create Status Check Rule')}
                   </AddRuleButton>
@@ -117,7 +182,7 @@ export function StatusCheckRules() {
           </Fragment>
         ) : (
           <EmptyStateContainer>
-            <ContentWrapper>
+            <Stack align="start" gap="lg">
               <Heading as="h3">{t('Get the most out of Size Analysis')}</Heading>
               <Text>
                 {t('Connect at least one repository to get Size Analysis status checks')}
@@ -125,7 +190,7 @@ export function StatusCheckRules() {
               <LinkButton to={`/settings/${organization.slug}/repos/`} priority="primary">
                 {t('Add Repo')}
               </LinkButton>
-            </ContentWrapper>
+            </Stack>
             <ImageContainer />
           </EmptyStateContainer>
         )}
@@ -144,13 +209,6 @@ const EmptyStateContainer = styled('div')`
   align-items: center;
   padding: 56px 48px;
   gap: ${p => p.theme.space.xl};
-`;
-
-const ContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const ImageContainer = styled('div')`

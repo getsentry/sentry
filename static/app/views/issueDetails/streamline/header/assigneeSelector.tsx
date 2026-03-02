@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
   AssigneeSelector,
@@ -66,8 +67,7 @@ export function GroupHeaderAssigneeSelector({
       handleAssigneeChange={handleAssigneeChange}
       showLabel
       additionalMenuFooterItems={
-        <Button
-          type="button"
+        <MenuComponents.CTAButton
           onClick={() => {
             openIssueOwnershipRuleModal({
               project,
@@ -78,10 +78,9 @@ export function GroupHeaderAssigneeSelector({
             });
           }}
           icon={<IconSettings />}
-          size="xs"
         >
           {t('Ownership')}
-        </Button>
+        </MenuComponents.CTAButton>
       }
     />
   );

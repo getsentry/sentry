@@ -17,6 +17,9 @@ from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
+from sentry.models.organizationcontributors import OrganizationContributors
+from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.seer.code_review.utils import get_pr_author_id
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -137,19 +140,33 @@ class GitHubWebhookTestCase(APITestCase):
 
 
 class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
+    # Code review features are org features as set in options automator
     CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+    # Options to set are regional options as set in options automator
     OPTIONS_TO_SET: dict[str, Any] = {}
+    # Org options are org options as set via OrganizationOption.objects.set_value
+    ORG_OPTIONS: dict[str, Any] = {"sentry:enable_pr_review_test_generation": True}
+    # Code review triggers are the allowed triggers as set via RepositorySettings.objects.create
+    _triggers: list[CodeReviewTrigger] = []
 
     @contextmanager
     def code_review_setup(
         self,
         features: Collection[str] | Mapping[str, Any] | None = None,
         options: dict[str, Any] | None = None,
+        org_options: dict[str, Any] | None = None,
+        triggers: list[CodeReviewTrigger] | None = None,
     ) -> Generator[None]:
         """Helper to set up code review test context."""
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        self._triggers = list(self._triggers) if triggers is None else triggers
         features_to_enable = self.CODE_REVIEW_FEATURES if features is None else features
         options_to_set = dict(self.OPTIONS_TO_SET) | (options or {})
+        org_options_to_set = dict(self.ORG_OPTIONS) | (org_options or {})
+
+        if org_options_to_set:
+            for k, v in org_options_to_set.items():
+                self.organization.update_option(k, v)
+
         with (
             self.feature(features_to_enable),
             self.options(options_to_set),
@@ -163,15 +180,39 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
         self.event_dict = (
             orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
         )
-        repo_id = int(self.event_dict["repository"]["id"])
-
+        repo_id = str(self.event_dict["repository"]["id"])
         integration = self.create_github_integration()
-        self.create_repo(
+        repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
             external_id=repo_id,
             integration_id=integration.id,
         )
+
+        if self._triggers:
+            trigger_values = [t.value for t in self._triggers]
+            self.create_repository_settings(
+                repository=repo,
+                enabled_code_review=True,
+                code_review_triggers=trigger_values,
+            )
+
+        pr_author_external_id = get_pr_author_id(self.event_dict)
+        if pr_author_external_id:
+            OrganizationContributors.objects.get_or_create(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                external_identifier=pr_author_external_id,
+                defaults={
+                    "alias": (
+                        self.event_dict.get("sender", {}).get("login")
+                        or self.event_dict.get("issue", {}).get("user", {}).get("login")
+                        or self.event_dict.get("pull_request", {}).get("user", {}).get("login")
+                        or "test-user"
+                    ),
+                },
+            )
+
         response = self.send_github_webhook_event(github_event, event_data)
         assert response.status_code == 204
         return response

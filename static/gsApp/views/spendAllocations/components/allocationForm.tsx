@@ -1,17 +1,16 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {APIRequestMethod} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -302,7 +301,7 @@ function AllocationForm({
                   displayType: showPrice ? 'Spend' : 'Amount',
                 })}
               </Text>
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <Button
                   aria-label="reduce-allocation"
                   size="sm"
@@ -349,7 +348,7 @@ function AllocationForm({
                     );
                   }}
                 />
-              </ButtonBar>
+              </Grid>
             </HalvedGrid>
           </form>
         </Container>
@@ -458,7 +457,7 @@ function AllocationForm({
         </PanelTable>
       </Container>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {((exhaustedEvents && !overBudgetedEvents) ||
             (initializedData && allocationVolume < initializedData.consumedQuantity)) && (
             // attempting to increase, but remaining available events have been exhausted (but still under budget)
@@ -503,7 +502,7 @@ function AllocationForm({
           >
             {initializedData ? t('Save Changes') : t('Submit')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </div>
   );
@@ -513,7 +512,7 @@ export default withOrganization(AllocationForm);
 
 const FancyInput = styled('input')`
   line-height: 1.4;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

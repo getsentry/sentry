@@ -5,13 +5,17 @@ from uuid import uuid4
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -272,7 +276,7 @@ class OrganizationEventsTraceEndpointTest(
         assert response.status_code == 404, response.content
 
     def test_simple(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -286,13 +290,13 @@ class OrganizationEventsTraceEndpointTest(
         {
             "performance.traces.pagination.max-iterations": 30,
             "performance.traces.pagination.max-timeout": 15,
-            "performance.traces.pagination.query-limit": 5,
+            "performance.traces.pagination.query-limit": 1,
         }
     )
     def test_pagination(self) -> None:
         """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
         all of the trace"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -303,7 +307,7 @@ class OrganizationEventsTraceEndpointTest(
         self.assert_trace_data(data[0])
 
     def test_ignore_project_param(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
             response = self.client_get(
@@ -315,7 +319,7 @@ class OrganizationEventsTraceEndpointTest(
         self.assert_trace_data(data[0])
 
     def test_with_errors_data(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
@@ -347,7 +351,7 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event["start_timestamp"] == error_data["timestamp"]
 
     def test_with_errors_data_with_overlapping_span_id(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
@@ -378,7 +382,7 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event_1["event_id"] != error_event_2["event_id"]
 
     def test_with_performance_issues(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -422,7 +426,7 @@ class OrganizationEventsTraceEndpointTest(
         assert data[0]["event_id"] == error.event_id
 
     def test_with_additional_attributes(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={
@@ -488,7 +492,7 @@ class OrganizationEventsTraceEndpointTest(
         assert response.status_code == 400, response.content
 
     def test_orphan_trace(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         orphan_event = self.create_event(
             trace_id=self.trace_id,
             transaction="/transaction/orphan",
@@ -497,7 +501,6 @@ class OrganizationEventsTraceEndpointTest(
             # Random span id so there's no parent
             parent_span_id=uuid4().hex[:16],
             milliseconds=500,
-            is_eap=True,
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -553,9 +556,9 @@ class OrganizationEventsTraceEndpointTest(
             expected = self._trace_item_to_api_span(expected_item)
             actual_without_children = {k: v for k, v in actual.items() if k != "children"}
             expected_without_children = {k: v for k, v in expected.items() if k != "children"}
-            assert (
-                actual_without_children == expected_without_children
-            ), f"Span {i} differs (excluding children)"
+            assert actual_without_children == expected_without_children, (
+                f"Span {i} differs (excluding children)"
+            )
 
         if expected_children_ids:
             final_span = max(
@@ -563,15 +566,15 @@ class OrganizationEventsTraceEndpointTest(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", -1),
             )
             actual_children = final_span.get("children", [])
-            assert len(actual_children) == len(
-                expected_children_ids
-            ), f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            assert len(actual_children) == len(expected_children_ids), (
+                f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            )
 
             actual_child_txns = {child.get("transaction") for child in actual_children}
             for expected_id in expected_children_ids:
-                assert (
-                    expected_id in actual_child_txns
-                ), f"Expected '{expected_id}' transaction in children"
+                assert expected_id in actual_child_txns, (
+                    f"Expected '{expected_id}' transaction in children"
+                )
 
     def _trace_item_to_api_span(self, trace_item: TraceItem, children=None) -> dict:
         """Convert a TraceItem to the exact format returned by the API."""
@@ -605,7 +608,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_with_uptime_results(self):
         """Test that uptime results are included when include_uptime=1"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         features = self.FEATURES
         redirect_result = self._create_uptime_result_with_original_url(
@@ -652,7 +655,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_without_uptime_results(self):
         """Test that uptime results are not queried when include_uptime is not set"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
         uptime_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
             project=self.project,
@@ -683,7 +686,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_uptime_root_tree_with_orphaned_spans(self):
         """Test that orphaned spans are parented to the final uptime request"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         self.create_event(
             trace_id=self.trace_id,
@@ -692,7 +695,6 @@ class OrganizationEventsTraceEndpointTest(
             project_id=self.project.id,
             parent_span_id=uuid4().hex[:16],
             milliseconds=500,
-            is_eap=True,
         )
         redirect_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
@@ -739,7 +741,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_uptime_root_tree_without_orphans(self):
         """Test uptime results when there are no orphaned spans"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         uptime_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
@@ -767,3 +769,57 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
 
         self.assert_expected_results(data, [uptime_result], expected_children_ids=["root"])
+
+    def test_uptime_occurrences(self):
+        """Test that uptime occurrences are included in the response"""
+        self.load_trace()
+
+        check_id = "check-occur-1"
+        uptime_result = self._create_uptime_result_with_original_url(
+            organization=self.organization,
+            project=self.project,
+            trace_id=self.trace_id,
+            guid=check_id,
+            check_id=check_id,
+            subscription_id="sub-occur-1",
+            check_status="failure",
+            http_status_code=500,
+            request_sequence=0,
+            request_url="https://test.com",
+            scheduled_check_time=self.day_ago,
+            check_duration_us=200000,
+        )
+        self.store_uptime_results([uptime_result])
+
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            resource_id=None,
+            project_id=self.project.id,
+            event_id=self.root_event.event_id,
+            fingerprint=[uuid4().hex],
+            type=UptimeDomainCheckFailure,
+            issue_title="Downtime detected for https://test.com",
+            subtitle="Your monitored domain is down",
+            evidence_display=[],
+            evidence_data={"check_id": check_id},
+            culprit="",
+            detection_time=timezone.now(),
+            level="error",
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), self.root_event)
+        assert group_info is not None
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago, "include_uptime": "1"})
+
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        uptime_checks = self._find_uptime_checks(data)
+        assert len(uptime_checks) == 1
+
+        occurrences = uptime_checks[0]["occurrences"]
+        assert len(occurrences) == 1
+        occurrence = occurrences[0]
+        assert occurrence["transaction"] == "uptime.check"
+        assert occurrence["level"] == "error"

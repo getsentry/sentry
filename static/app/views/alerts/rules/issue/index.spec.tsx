@@ -131,8 +131,9 @@ describe('IssueRuleEditor', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      url: `/projects/org-slug/project-slug/`,
       body: {},
+      match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/preview/',
@@ -141,13 +142,15 @@ describe('IssueRuleEditor', () => {
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: `/organizations/org-slug/integrations/`,
       body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        url: `/organizations/org-slug/config/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: providerKey})],
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
       });
     });
@@ -435,6 +438,36 @@ describe('IssueRuleEditor', () => {
         within(filtersContainer).getAllByText('production')[0]!,
         'staging'
       );
+    });
+
+    it('clears channel_id when Slack channel name is modified', async () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        body: ProjectAlertRuleFixture({
+          actions: [
+            {
+              id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+              workspace: '123',
+              channel: '#old-channel',
+              channel_id: 'C12345',
+            },
+          ],
+        }),
+      });
+      createWrapper();
+
+      const channelInput = await screen.findByPlaceholderText(
+        'i.e #critical, Jane Schmidt'
+      );
+      expect(channelInput).toHaveValue('#old-channel');
+
+      const channelIdInput = screen.getByPlaceholderText('i.e. CA2FRA079 or UA1J9RTE1');
+      expect(channelIdInput).toHaveValue('C12345');
+
+      await userEvent.clear(channelInput);
+      await userEvent.type(channelInput, '#new-channel');
+
+      expect(channelIdInput).toHaveValue('');
     });
   });
 

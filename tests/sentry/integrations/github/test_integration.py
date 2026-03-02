@@ -899,10 +899,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_trees(self, repo_info_list=None):
         result = {}
-        # bar and baz are defined to fail, thus, do not show up in the default case
+        # bar (409 empty repo) returns an empty RepoTree since we cache the result
+        # baz (404) still fails and is excluded
         list = repo_info_list or [
             ("xyz", "master", ["src/xyz.py"]),
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ("bar", "main", []),
         ]
         for repo, branch, files in list:
             result[f"{self.gh_org}/{repo}"] = RepoTree(
@@ -983,6 +985,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     ("xyz", "master", ["src/xyz.py"]),
                     # Now that the rate limit is reset we should get files for foo
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    ("bar", "main", []),
                 ]
             )
 
@@ -1007,12 +1010,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # This time the rate limit will not fail, thus, it will fetch the trees
+        # bar (409 empty repo) now returns an empty RepoTree since we cache the empty result
         self.set_rate_limit()
         trees = installation.get_trees_for_org()
         assert trees == self._expected_trees(
             [
                 ("xyz", "master", ["src/xyz.py"]),
                 ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
             ]
         )
 
@@ -1053,15 +1058,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
-
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [
                     # xyz is missing because its request errors
                     # foo has data because its API request is made in spite of xyz's error
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
-                    # bar and baz are missing because their API requests throw errors for
-                    # other reasons in the default mock responses
+                    # bar (409 empty repo) is present with empty files since we cache the result
+                    # baz (404) is missing because its API request throws an error
+                    ("bar", "main", []),
                 ]
             )
 
@@ -1087,7 +1092,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
-
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [
@@ -1339,21 +1343,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1494,21 +1503,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1539,21 +1553,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1574,7 +1593,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # We rendered the GithubOrganizationSelection UI and the user chose to skip
-        resp = self._setup_choose_installation("12345")
+        resp = self._setup_choose_installation("1")
 
         self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
         assert (
@@ -1583,6 +1602,41 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         assert b'window.opener.postMessage({"success":false' in resp.content
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+
+    @with_feature({"organizations:integrations-scm-multi-org": False})
+    @responses.activate
+    def test_allows_installing_orphaned_integration(self) -> None:
+        self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
+        OrganizationIntegration.objects.all().delete()
+
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/app/installations/1",
+            json={
+                "id": "1",
+                "app_id": self.app_id,
+                "account": {
+                    "id": "1",
+                    "login": "poggers-org",
+                    "avatar_url": "http://example.com/bufo-pog.png",
+                    "html_url": "https://github.com/pog-organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        self._setup_select_github_organization()
+        resp = self._setup_choose_installation("1")
+
+        self.assertDialogSuccess(resp)
+
+        integration = Integration.objects.get(external_id="1")
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()
 
     @with_feature("organizations:integrations-scm-multi-org")
     @responses.activate
@@ -1645,6 +1699,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         chosen_installation_id = "1"
 
         self._setup_select_github_organization()
@@ -1665,7 +1721,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
 
     @responses.activate
-    @with_feature("organizations:integrations-github-project-management")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)

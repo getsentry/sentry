@@ -14,7 +14,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -103,6 +103,7 @@ def _trace_connected_issues_eap(
             limit=100,
             referrer=Referrer.API_ISSUES_RELATED_ISSUES.value,
             config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ERROR,
         )
         group_ids: set[int] = set()
         for row in result["data"]:
@@ -160,6 +161,12 @@ def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[s
             "issues.related.trace_connected_issues",
             is_experimental_data_a_null_result=len(eap_results) == 0,
             reasonable_match_comparator=lambda snuba, eap: eap.issubset(snuba),
+            debug_context={
+                "trace_id": event.trace_id,
+                "organization_id": org_id,
+                "project_ids": project_ids,
+                "exclude_group_id": group.id,
+            },
         )
 
     return list(issues), meta

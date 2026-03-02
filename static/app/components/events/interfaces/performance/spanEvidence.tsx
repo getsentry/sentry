@@ -1,4 +1,5 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -52,7 +53,7 @@ function SpanEvidenceInterimSection({
             }}
             size="xs"
             icon={<IconSettings />}
-            title={t('Disable detector or adjust thresholds')}
+            tooltipProps={{title: t('Disable detector or adjust thresholds')}}
             analyticsEventName="Issue Details: Detector Settings Clicked"
             analyticsEventKey="issue_details.detector_settings_clicked"
             analyticsParams={{

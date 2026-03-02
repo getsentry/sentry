@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.models.environment import Environment
@@ -5,6 +6,7 @@ from sentry.models.environment import Environment
 ValidationError = serializers.ValidationError
 
 
+@extend_schema_field(str)
 class EnvironmentField(serializers.Field):
     def to_representation(self, value):
         return value

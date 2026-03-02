@@ -17,9 +17,9 @@ import {
 const LEARN_MORE = 'Learn More';
 const COLORS = {
   [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'muted',
-  [DISABLED]: 'muted',
-  [PENDING_DELETION]: 'muted',
+  [NOT_INSTALLED]: 'secondary',
+  [DISABLED]: 'secondary',
+  [PENDING_DELETION]: 'secondary',
   [PENDING]: 'promotion',
   [LEARN_MORE]: 'primary',
 } as const satisfies Record<string, keyof Theme['tokens']['content']>;

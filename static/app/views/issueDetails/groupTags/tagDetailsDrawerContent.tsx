@@ -3,17 +3,19 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
@@ -227,7 +229,7 @@ function TagDetailsValue({
   if (tagValue.value !== '') {
     if (tagKey === 'user') {
       valueComponent = (
-        <UserValue>
+        <Flex align="center" gap="sm" minWidth={0} overflow="hidden">
           {getContextIcon({
             alias: 'user',
             type: 'user',
@@ -237,9 +239,11 @@ function TagDetailsValue({
             },
             theme,
           })}
-          <div>{userValues.title}</div>
-          {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-        </UserValue>
+          <Flex wrap="wrap" gap="xs" minWidth={0}>
+            <Text>{userValues.title}</Text>
+            {userValues.subtitle && <Text variant="muted">{userValues.subtitle}</Text>}
+          </Flex>
+        </Flex>
       );
     } else if (tagKey === 'device') {
       valueComponent = <DeviceName value={tagValue.value} />;
@@ -247,7 +251,7 @@ function TagDetailsValue({
   }
 
   return (
-    <Flex gap="xs" align="center">
+    <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
@@ -272,6 +276,7 @@ function TagValueActionsMenu({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const {copy} = useCopyToClipboard();
 
   const referrer = 'tag-details-drawer';
@@ -281,6 +286,7 @@ function TagValueActionsMenu({
         query: tagValue.query,
       }
     : generateQueryWithTag({referrer}, {key, value: tagValue.value});
+  const globalSelectionParams = extractSelectionParameters(location.query);
   const eventView = useIssueDetailsEventView({group, queryProps: query});
   const [isVisible, setIsVisible] = useState(false);
 
@@ -311,7 +317,7 @@ function TagValueActionsMenu({
           label: t('View other events with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query,
+            query: {...globalSelectionParams, ...query},
           },
         },
         {
@@ -319,7 +325,7 @@ function TagValueActionsMenu({
           label: t('Search issues with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query,
+            query: {...globalSelectionParams, ...query},
           },
         },
         {
@@ -349,7 +355,7 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -362,7 +368,7 @@ const ColumnSort = styled(Link)`
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.tokens.content.primary};
@@ -405,14 +411,10 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const UserSubtitle = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  display: inline-block; /* Prevent inheriting text decoration */
-`;
-
 const ValueLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  word-break: break-all;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
@@ -425,10 +427,4 @@ const OverflowTimeSince = styled(TimeSince)`
 
 const ExternalLinkbutton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const UserValue = styled('div')`
-  display: flex;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
 `;

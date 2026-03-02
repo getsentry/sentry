@@ -1,10 +1,10 @@
 import {Component} from 'react';
 
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select, SelectOption} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {SelectOption} from 'sentry/components/core/select/option';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   OptionsType,
   OptionTypeBase,
@@ -22,8 +22,7 @@ import type {InputFieldProps} from './inputField';
 const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
-  extends InputFieldProps,
-    Omit<ControlProps<OptionType>, 'onChange'> {
+  extends InputFieldProps, Omit<ControlProps<OptionType>, 'onChange'> {
   /**
    * Should the select be clearable?
    */

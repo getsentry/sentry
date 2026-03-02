@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
-import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -87,6 +87,12 @@ export const HeaderActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: max-content;
     margin-bottom: ${space(2)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
   }
 `;
 

@@ -4,7 +4,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
@@ -52,12 +54,12 @@ function getEventColor(
       ? isActive
         ? theme.colors.green500
         : theme.tokens.content.primary
-      : theme.tokens.content.muted,
+      : theme.tokens.content.secondary,
     iconBorder: isSelected
       ? isActive
         ? theme.colors.green500
         : theme.tokens.content.primary
-      : theme.tokens.content.muted,
+      : theme.tokens.content.secondary,
   };
 }
 
@@ -137,7 +139,7 @@ export function SolutionEventItem({
           >
             <StyledSpan text={event.title} inline />
           </AutofixHighlightWrapper>
-          <IconWrapper>
+          <Flex justify="center" align="center" flexShrink={0} gap="md">
             {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
               <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
             )}
@@ -161,7 +163,7 @@ export function SolutionEventItem({
                 </SelectionButton>
               </Tooltip>
             </SelectionButtonWrapper>
-          </IconWrapper>
+          </Flex>
         </StyledTimelineHeader>
       }
       isActive={isActive}
@@ -209,14 +211,6 @@ const StyledIconChevron = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  gap: ${space(1)};
-`;
-
 const SelectionButtonWrapper = styled('div')`
   background: none;
   border: none;
@@ -258,7 +252,7 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     background-color: transparent;
     display: inline-block;
   }
@@ -273,7 +267,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   padding-right: 0;
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p =>
