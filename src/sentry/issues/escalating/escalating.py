@@ -35,12 +35,13 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.query_utils import (
+    build_snuba_params_from_ids,
+    keyed_counts_subset_match,
+)
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -170,16 +171,9 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
     for organization_id in sorted(groups_by_org.keys()):
         group_ids_by_project = groups_by_org[organization_id]
 
-        try:
-            organization = Organization.objects.get(id=organization_id)
-        except Organization.DoesNotExist:
-            continue
-
         project_ids = list(group_ids_by_project.keys())
         all_group_ids = [gid for gids in group_ids_by_project.values() for gid in gids]
-        projects = list(Project.objects.filter(id__in=project_ids))
-
-        if not projects or not all_group_ids:
+        if not all_group_ids:
             continue
 
         # Build query string for group_id filter
@@ -188,13 +182,15 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
         else:
             query_string = f"group_id:[{', '.join(str(gid) for gid in all_group_ids)}]"
 
-        snuba_params = SnubaParams(
+        snuba_params = build_snuba_params_from_ids(
+            organization_id=organization_id,
+            project_ids=project_ids,
             start=start_date,
             end=end_date,
-            organization=organization,
-            projects=projects,
-            granularity_secs=HOUR,  # 1 hour buckets
+            granularity_secs=HOUR,
         )
+        if snuba_params is None:
+            continue
 
         try:
             timeseries_results = Occurrences.run_grouped_timeseries_query(
@@ -240,17 +236,11 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
 def _reasonable_groups_past_counts_match(
     snuba_results: list[GroupsCountResponse], eap_results: list[GroupsCountResponse]
 ) -> bool:
-    snuba_by_key = {
-        (r["project_id"], r["group_id"], r["hourBucket"]): r["count()"] for r in snuba_results
-    }
-    eap_by_key = {
-        (r["project_id"], r["group_id"], r["hourBucket"]): r["count()"] for r in eap_results
-    }
-
-    if not set(eap_by_key).issubset(set(snuba_by_key)):
-        return False
-
-    return all(eap_count <= snuba_by_key[key] for key, eap_count in eap_by_key.items())
+    return keyed_counts_subset_match(
+        snuba_results,
+        eap_results,
+        key_fn=lambda row: (row["project_id"], row["group_id"], row["hourBucket"]),
+    )
 
 
 def _process_groups(
