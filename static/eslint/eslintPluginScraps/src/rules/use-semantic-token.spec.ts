@@ -1,6 +1,6 @@
-import {RuleTester} from 'eslint';
+import {RuleTester, type InvalidTestCase} from '@typescript-eslint/rule-tester';
 
-import {useSemanticToken} from './use-semantic-token.js';
+import {useSemanticToken, type Options} from './use-semantic-token';
 
 const ruleTester = new RuleTester();
 
@@ -45,24 +45,17 @@ const invalidInteractiveTokenPairs = [
   },
 ];
 
-/**
- * @param {string} property - CSS property name
- * @param {string} tokenPath - Token path (e.g., 'content.primary')
- * @returns {{code: string}}
- */
-const makeValidCase = (property, tokenPath) => ({
+const makeValidCase = (property: string, tokenPath: string) => ({
   code: `const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,
 });
 
-/**
- * @param {string} suggestedCategory - Data entry to suggest switching to
- * @param {string} property - CSS property name
- * @param {string} tokenPath - Token path (e.g., 'content.primary')
- * @returns {{code: string, errors: Array<{messageId: string, data: {suggestedCategory: string, tokenPath: string, property: string}}>}}
- */
-const makeInvalidCase = (suggestedCategory, property, tokenPath) => ({
+const makeInvalidCase = (
+  suggestedCategory: string,
+  property: string,
+  tokenPath: string
+): InvalidTestCase<'invalidProperty' | 'invalidPropertyWithSuggestion', [Options]> => ({
   code: `const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,

@@ -3,19 +3,16 @@
  *
  * Disallows imports from 'sentry/components/core' and autofixes them to '@sentry/scraps'.
  */
+import {ESLintUtils} from '@typescript-eslint/utils';
 
 const FORBIDDEN_PATH = 'sentry/components/core/';
 const REPLACEMENT_PATH = '@sentry/scraps';
 
-/**
- * @type {import('eslint').Rule.RuleModule}
- */
-export const noCoreImport = {
+export const noCoreImport = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',
     docs: {
       description: `Disallow imports from "${FORBIDDEN_PATH}" and autofix to "${REPLACEMENT_PATH}".`,
-      recommended: true,
     },
     fixable: 'code',
     schema: [],
@@ -23,7 +20,6 @@ export const noCoreImport = {
       forbidden: `Import from "${REPLACEMENT_PATH}" instead of "sentry/components/core".`,
     },
   },
-
   create(context) {
     return {
       ImportDeclaration(node) {
@@ -55,4 +51,4 @@ export const noCoreImport = {
       },
     };
   },
-};
+});

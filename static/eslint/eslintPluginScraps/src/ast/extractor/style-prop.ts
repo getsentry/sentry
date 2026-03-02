@@ -7,24 +7,28 @@
  * - <div style={getValue()} />
  */
 
-import {normalizePropertyName} from '../utils/normalizePropertyName.js';
+import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
-import {decomposeValue} from './value-decomposer.js';
+import {normalizePropertyName} from '../utils/normalizePropertyName';
+
+import type {ExtractorContext, StyleDeclaration} from './types';
+import {decomposeValue} from './value-decomposer';
 
 /**
  * Creates the style prop extractor with ESLint visitors.
- *
- * @param {import('./types.js').ExtractorContext} extractorContext
- * @returns {Record<string, Function>}
  */
-export function createStylePropExtractor({collector, themeTracker, ruleContext}) {
+export function createStylePropExtractor({
+  collector,
+  themeTracker,
+  ruleContext,
+}: ExtractorContext): TSESLint.RuleListener {
   /**
    * Process an object expression from style={{ ... }}
-   *
-   * @param {any} objNode
-   * @param {import('estree').Node} sourceNode
    */
-  function processObjectExpression(objNode, sourceNode) {
+  function processObjectExpression(
+    objNode: TSESTree.ObjectExpression,
+    sourceNode: TSESTree.Node
+  ) {
     for (const prop of objNode.properties) {
       if (prop.type !== 'Property') {
         continue;
@@ -43,8 +47,7 @@ export function createStylePropExtractor({collector, themeTracker, ruleContext})
 
       const values = decomposeValue(prop.value, themeTracker);
 
-      /** @type {import('./types.js').StyleDeclaration} */
-      const declaration = {
+      const declaration: StyleDeclaration = {
         kind: 'style-prop',
         property: {
           name: normalizePropertyName(propertyName),
@@ -67,10 +70,7 @@ export function createStylePropExtractor({collector, themeTracker, ruleContext})
   }
 
   return {
-    /**
-     * @param {import("estree-jsx").JSXAttribute} node
-     */
-    JSXAttribute(node) {
+    JSXAttribute(node: TSESTree.JSXAttribute) {
       if (node.name?.name !== 'style') {
         return;
       }
