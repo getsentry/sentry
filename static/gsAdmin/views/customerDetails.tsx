@@ -103,7 +103,12 @@ function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/billing-config/?tier=all`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {tier: 'all'}},
+  ];
 }
 
 export default function CustomerDetails() {
@@ -177,7 +182,7 @@ export default function CustomerDetails() {
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/_admin/${orgId}/queue-spike-projection/`,
+        url: `/_admin/customers/${orgId}/queue-spike-projection/`,
         method: 'POST',
       }),
     onSuccess: () => {
@@ -239,7 +244,7 @@ export default function CustomerDetails() {
       subscription.planDetails.categories
         .filter(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
-          return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+          return categoryInfo?.freeEventsMultiple;
         })
         .map(category => {
           const reserved = subscription.categories?.[category]?.reserved;

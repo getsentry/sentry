@@ -870,8 +870,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
-        assert self.alert_rule.projects.all().count() == 2
-        assert self.alert_rule.projects.all()[0] == updated_projects[0]
+        assert set(self.alert_rule.projects.all()) == set(updated_projects)
 
     def test_update_subscription(self) -> None:
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
@@ -2180,7 +2179,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.error.assert_called_with(
             "Request to delete alert rule from Seer was unsuccessful",
-            extra={"source_id": query_sub.id, "message": None},
+            extra={"source_id": query_sub.id, "seer_message": None},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",

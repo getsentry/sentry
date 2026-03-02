@@ -23,7 +23,7 @@ from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
-from sentry.conf.types.region_config import RegionConfig
+from sentry.conf.types.region_config import CellConfig, LocalityConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -457,6 +457,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.notifications",
     "sentry.flags",
     "sentry.monitors",
+    "sentry.processing_errors",
     "sentry.uptime",
     "sentry.tempest",
     "sentry.replays",
@@ -753,8 +754,11 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions
-SENTRY_REGION_CONFIG: list[RegionConfig] = []
+# List of the available cells (e.g. "us1", "us2", "de1")
+SENTRY_REGION_CONFIG: list[CellConfig] = []
+
+# Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
+SENTRY_LOCALITIES: list[LocalityConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -848,7 +852,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.feedback.tasks.update_user_reports",
@@ -885,6 +888,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
+    "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",
@@ -940,6 +944,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
+    "sentry.tasks.scim.privilege_sync",
     "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
@@ -960,6 +965,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer_explorer_index",
+    "sentry.tasks.context_engine_index",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1107,14 +1113,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-sliding-window-org": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.custom_rule_notifications",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "clean_custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
-        "schedule": task_crontab("*/7", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1391,13 +1389,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 
@@ -1436,13 +1429,17 @@ SENTRY_ORGANIZATION: int | None = None
 # Organization ID for granting superuser/staff privileges.
 SUPERUSER_ORG_ID: int | None = None
 
+# SCIM team slugs for managing privileged access.
+# When set, adding/removing members from these teams will grant/revoke the corresponding privileges.
+SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
-# DSN for tracking all client HTTP requests (which can be noisy) [experimental]
-SENTRY_FRONTEND_REQUESTS_DSN: str | None = None
 
 # Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None
@@ -2180,7 +2177,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.1.0"
+SELF_HOSTED_STABLE_VERSION = "26.2.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2401,19 +2398,6 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
-    },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "headers": {
-            "User-Agent": "curl/7.72.0",
-        },
-        "is_public": True,
-        "has_index": True,
     },
     "amd": {
         "type": "http",
@@ -2884,6 +2868,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+SENTRY_GITHUB_APP_USER_ID = 39604003
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 

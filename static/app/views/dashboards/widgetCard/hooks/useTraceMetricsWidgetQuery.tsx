@@ -2,6 +2,7 @@ import {useCallback, useMemo, useRef} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
@@ -41,6 +42,7 @@ export function useTraceMetricsSeriesQuery(
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -60,7 +62,8 @@ export function useTraceMetricsSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.TRACEMETRICS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       requestData.generatePathname = () =>
@@ -112,7 +115,9 @@ export function useTraceMetricsSeriesQuery(
 
       // Build the API query key for events-timeseries endpoint
       return [
-        `/organizations/${organization.slug}/events-timeseries/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-timeseries/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -120,7 +125,7 @@ export function useTraceMetricsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
@@ -219,7 +224,7 @@ export function useTraceMetricsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -289,7 +294,9 @@ export function useTraceMetricsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -384,7 +391,7 @@ export function useTraceMetricsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

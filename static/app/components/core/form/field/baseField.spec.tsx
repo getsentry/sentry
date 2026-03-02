@@ -22,13 +22,43 @@ function TestForm({label, hintText, required, defaultValue, validator}: TestForm
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="testField">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
+interface CompactTestFormProps {
+  label: string;
+  hintText?: string;
+  layout?: 'Row' | 'Stack';
+}
+
+function CompactTestForm({label, hintText, layout = 'Row'}: CompactTestFormProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      testField: '',
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="testField">
+        {field => {
+          const LayoutComponent = field.Layout[layout];
+          return (
+            <LayoutComponent label={label} hintText={hintText} variant="compact">
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </LayoutComponent>
+          );
+        }}
       </form.AppField>
     </form.AppForm>
   );
@@ -224,5 +254,55 @@ describe('BaseField onBlur', () => {
     await waitFor(() => {
       expect(input).toHaveAttribute('aria-invalid', 'true');
     });
+  });
+});
+
+describe('Compact variant a11y', () => {
+  it('associates the input with hint text via aria-describedby in Row layout', () => {
+    render(<CompactTestForm label="Username" hintText="Enter your username" />);
+
+    const input = screen.getByRole('textbox');
+
+    // The input should still have aria-describedby pointing to the hint text
+    expect(input).toHaveAttribute('aria-describedby');
+
+    // The hint text should exist in the DOM (visually hidden) with the correct id
+    const describedById = input.getAttribute('aria-describedby');
+    const hintElement = document.getElementById(describedById!);
+    expect(hintElement).toBeInTheDocument();
+    expect(hintElement).toHaveTextContent('Enter your username');
+  });
+
+  it('associates the input with hint text via aria-describedby in Stack layout', () => {
+    render(
+      <CompactTestForm label="Username" hintText="Enter your username" layout="Stack" />
+    );
+
+    const input = screen.getByRole('textbox');
+
+    // The input should still have aria-describedby pointing to the hint text
+    expect(input).toHaveAttribute('aria-describedby');
+
+    // The hint text should exist in the DOM (visually hidden) with the correct id
+    const describedById = input.getAttribute('aria-describedby');
+    const hintElement = document.getElementById(describedById!);
+    expect(hintElement).toBeInTheDocument();
+    expect(hintElement).toHaveTextContent('Enter your username');
+  });
+
+  it('hint text is visually hidden in compact mode', () => {
+    render(<CompactTestForm label="Username" hintText="Enter your username" />);
+
+    const input = screen.getByRole('textbox');
+    const describedById = input.getAttribute('aria-describedby');
+    const hintElement = document.getElementById(describedById!);
+
+    // The element should have visually hidden styles (checking common patterns)
+    expect(hintElement).toBeInTheDocument();
+    // React Aria's VisuallyHidden uses specific styles to hide content
+    const styles = window.getComputedStyle(hintElement!);
+    expect(styles.position).toBe('absolute');
+    expect(styles.width).toBe('1px');
+    expect(styles.height).toBe('1px');
   });
 });

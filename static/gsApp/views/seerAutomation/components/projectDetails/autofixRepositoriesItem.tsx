@@ -37,8 +37,7 @@ function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
   return a.every((override, idx) => {
     const other = b[idx];
     return (
-      other &&
-      override.branch_name === other.branch_name &&
+      override.branch_name === other?.branch_name &&
       override.tag_name === other.tag_name &&
       override.tag_value === other.tag_value
     );

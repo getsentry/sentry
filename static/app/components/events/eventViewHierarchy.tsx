@@ -13,6 +13,7 @@ import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import type getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -52,7 +53,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
             orgSlug: organization.slug,
             projectSlug: project.slug,
           })
-        : '',
+        : ('' as unknown as ReturnType<typeof getApiUrl>),
       {
         headers: {
           Accept: '*/*; charset=utf-8',

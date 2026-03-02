@@ -3,6 +3,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -38,6 +39,7 @@ export function useMobileAppSizeSeriesQuery(
     dashboardFilters,
     skipDashboardFilterParens,
     samplingMode,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -57,7 +59,8 @@ export function useMobileAppSizeSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.PREPROD_SIZE,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       if (samplingMode) {
@@ -86,7 +89,9 @@ export function useMobileAppSizeSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -94,7 +99,7 @@ export function useMobileAppSizeSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
@@ -202,7 +207,7 @@ export function useMobileAppSizeSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

@@ -98,6 +98,7 @@ const CHART_HEIGHT = 180;
 interface UseMetricDetectorChartProps {
   detector: MetricDetector;
   openPeriods: GroupOpenPeriod[];
+  enabled?: boolean;
   /**
    * Relative time period (e.g., '7d'). Use either statsPeriod or absolute start/end.
    */
@@ -178,6 +179,7 @@ export function useMetricDetectorChart({
   start,
   end,
   detector,
+  enabled = true,
   openPeriods,
   highlightedOpenPeriodId,
   height = CHART_HEIGHT,
@@ -206,6 +208,7 @@ export function useMetricDetectorChart({
     statsPeriod,
     start,
     end,
+    options: {enabled},
   });
 
   const metricTimestamps = useMetricTimestamps(series);
@@ -253,14 +256,14 @@ export function useMetricDetectorChart({
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();
       const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+      const zoomRange = computeZoomRangeMs({
         startMs,
         endMs,
         intervalSeconds,
       });
       navigate({
         pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+        query: buildDetectorZoomQuery(location.query, zoomRange),
       });
     },
   });

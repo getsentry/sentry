@@ -6,9 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import orjson
-import requests
 import sentry_sdk
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from rest_framework.response import Response
@@ -25,6 +23,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -34,9 +33,10 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
+    make_autofix_start_request,
+    make_autofix_update_request,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
@@ -416,6 +416,7 @@ def _call_autofix(
     trace_tree: dict[str, Any] | None,
     logs: dict[str, list[dict]] | None,
     tags_overview: dict[str, Any] | None,
+    referrer: AutofixReferrer,
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
@@ -423,7 +424,6 @@ def _call_autofix(
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
 ):
-    path = "/v1/automation/autofix/start"
     body = orjson.dumps(
         {
             "organization_id": group.organization.id,
@@ -455,6 +455,7 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
+                "referrer": referrer,
                 "disable_coding_step": not group.organization.get_option(
                     "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
@@ -464,16 +465,10 @@ def _call_autofix(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
+    response = make_autofix_start_request(body)
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     return response.json().get("run_id")
 
@@ -590,6 +585,7 @@ def trigger_autofix(
     group: Group,
     event_id: str | None = None,
     user: User | AnonymousUser | RpcUser,
+    referrer: AutofixReferrer,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
@@ -674,6 +670,7 @@ def trigger_autofix(
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=referrer,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url=pr_to_comment_on_url,
@@ -718,18 +715,11 @@ def update_autofix(
     Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
     """
 
-    path = "/v1/automation/autofix/update"
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
-    )
+    response = make_autofix_update_request(body)
 
-    try:
-        response.raise_for_status()
-    except Exception:
+    if response.status >= 400:
         return Response({"detail": "Failed to update autofix run"}, status=500)
 
     try:

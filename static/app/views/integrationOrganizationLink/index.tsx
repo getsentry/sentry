@@ -131,6 +131,7 @@ export default function IntegrationOrganizationLink() {
 
   const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
   const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
+    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
     [`/../../extensions/github/installation/${installationId}/`],
     {staleTime: Infinity, enabled: isInstallationQueryEnabled}
   );

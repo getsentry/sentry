@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
@@ -27,7 +28,7 @@ describe('NewIssueExperienceButton', () => {
     jest.clearAllMocks();
   });
 
-  it('appears correctly when organization has the single interface option', () => {
+  it('is hidden when no streamlined actions are available', () => {
     const {unmount: unmountOptionTrue} = render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
@@ -53,11 +54,12 @@ describe('NewIssueExperienceButton', () => {
         },
       }
     );
-    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
+    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
     unmountOptionFalse();
   });
 
-  it('appears when organization has flag', () => {
+  it('appears when feedback action is available', () => {
+    mockFeedbackForm.mockReturnValue(jest.fn());
     render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
@@ -72,6 +74,19 @@ describe('NewIssueExperienceButton', () => {
       url: '/users/me/',
       method: 'PUT',
     });
+
+    // Start with old UI preference so the "Switch to new" button appears
+    act(() =>
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersIssueDetailsStreamlinedUI: false,
+          },
+        })
+      )
+    );
 
     render(<NewIssueExperienceButton />, {organization});
 
@@ -95,40 +110,28 @@ describe('NewIssueExperienceButton', () => {
       );
     });
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Manage issue experience'}));
-    const oldExperienceButton = screen.getByRole('menuitemradio', {
-      name: 'Switch to the old issue experience',
-    });
-    // Clicking again toggles it off
-    await userEvent.click(oldExperienceButton);
-    // Old text should be back
-    expect(
-      screen.getByRole('button', {name: 'Switch to the new issue experience'})
-    ).toBeInTheDocument();
-    // And save the option as false
-    await waitFor(() => {
-      expect(mockChangeUserSettings).toHaveBeenCalledWith(
-        '/users/me/',
-        expect.objectContaining({
-          data: {
-            options: {
-              prefersIssueDetailsStreamlinedUI: false,
-            },
-          },
-        })
-      );
-    });
-    expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 
-  it('can switch back to the old UI via dropdown', async () => {
+  it('can submit feedback from the streamlined dropdown', async () => {
     const mockFormCallback = jest.fn();
     mockFeedbackForm.mockReturnValue(mockFormCallback);
     const mockChangeUserSettings = MockApiClient.addMockResponse({
       url: '/users/me/',
       method: 'PUT',
     });
+
+    // Start with old UI preference so the "Switch to new" button appears
+    act(() =>
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersIssueDetailsStreamlinedUI: false,
+          },
+        })
+      )
+    );
 
     render(<NewIssueExperienceButton />, {organization});
     await userEvent.click(
@@ -152,13 +155,6 @@ describe('NewIssueExperienceButton', () => {
       await screen.findByRole('menuitemradio', {name: 'Give feedback on the UI'})
     );
     expect(mockFeedbackForm).toHaveBeenCalled();
-
-    await userEvent.click(dropdownButton);
-    await userEvent.click(
-      screen.getByRole('menuitemradio', {
-        name: 'Switch to the old issue experience',
-      })
-    );
-    expect(mockChangeUserSettings).toHaveBeenCalledTimes(2);
+    expect(mockChangeUserSettings).toHaveBeenCalledTimes(1);
   });
 });

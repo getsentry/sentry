@@ -67,10 +67,7 @@ export function MetricAlertQuotaMessage() {
     );
   }
 
-  if (
-    metricAlertQuota &&
-    metricAlertQuota.detectorLimit === metricAlertQuota.detectorCount + 1
-  ) {
+  if (metricAlertQuota?.detectorLimit === metricAlertQuota.detectorCount + 1) {
     return tct(
       'You have used [count] of [limit] metric monitors for your plan. To increase the limit, [upgradeLink:upgrade your plan].',
       {

@@ -41,3 +41,12 @@ class OrganizationOnboardingContinuation(APITestCase):
         data = {"platforms": "not a list"}
         resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert resp.data["platforms"][0].code == "not_a_list"
+
+    @mock.patch("sentry.api.endpoints.organization_onboarding_continuation_email.MessageBuilder")
+    def test_non_member_rejected(self, builder: mock.MagicMock) -> None:
+        other_user = self.create_user()
+        other_org = self.create_organization(owner=other_user)
+        # self.user is not a member of other_org
+        data = {"platforms": ["javascript"]}
+        self.get_error_response(other_org.slug, status_code=403, **data)
+        builder.assert_not_called()

@@ -124,6 +124,12 @@ def main(context: dict[str, str]) -> int:
         colima.uninstall(binroot)
         limactl.uninstall(binroot)
 
+    if os.path.exists(f"{reporoot}/.devenv/bin/uv"):
+        os.remove(f"{reporoot}/.devenv/bin/uv")
+
+    if os.path.exists(f"{reporoot}/.devenv/bin/uvx"):
+        os.remove(f"{reporoot}/.devenv/bin/uvx")
+
     if not shutil.which("uv"):
         print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
         return 1
@@ -217,6 +223,19 @@ def main(context: dict[str, str]) -> int:
         verbose,
     ):
         return 1
+
+    # Agent skills are non-fatal — private skill repos may not be accessible in CI
+    if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
+        "pnpm", path=f"{reporoot}/.devenv/bin"
+    ):
+        if not run_procs(
+            repo,
+            reporoot,
+            venv_dir,
+            (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "install"), {}),),
+            verbose,
+        ):
+            print("⚠️  agent skills failed to install (non-fatal)")
 
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 

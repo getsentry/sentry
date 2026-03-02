@@ -585,13 +585,13 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.org,
         )
 
-        mock__filter_projects_by_permissions.assert_called_with(
-            projects=[self.project_1, self.project_2],
-            request=request,
-            filter_by_membership=False,
-            force_global_perms=False,
-            include_all_accessible=True,
-        )
+        mock__filter_projects_by_permissions.assert_called_once()
+        call_kwargs = mock__filter_projects_by_permissions.call_args.kwargs
+        assert set(call_kwargs["projects"]) == {self.project_1, self.project_2}
+        assert call_kwargs["request"] == request
+        assert call_kwargs["filter_by_membership"] is False
+        assert call_kwargs["force_global_perms"] is False
+        assert call_kwargs["include_all_accessible"] is True
         assert len(response) == 2
         assert self.project_1 in response
         assert self.project_2 in response

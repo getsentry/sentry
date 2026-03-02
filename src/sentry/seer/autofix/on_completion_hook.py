@@ -12,6 +12,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
@@ -22,8 +23,10 @@ from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
 )
 from sentry.seer.supergroups import trigger_supergroups_embedding
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.seer.explorer.client_models import SeerRunState
@@ -101,6 +104,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         webhook_payload = {"run_id": run_id}
 
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        if group_id is not None:
+            webhook_payload["group_id"] = group_id
+
         # Iterate through blocks in reverse order (most recent first)
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
@@ -115,42 +122,89 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         elif current_step == AutofixStep.SOLUTION:
             webhook_action_type = SeerActionType.SOLUTION_COMPLETED
         elif current_step == AutofixStep.CODE_CHANGES:
-            webhook_action_type = SeerActionType.CODING_COMPLETED
-            diffs_by_repo = state.get_diffs_by_repo()
-            webhook_payload["code_changes"] = {
-                repo: [
+            if state.repo_pr_states:
+                # When the current step is code changes and there are pr states,
+                # then we are actually in the PR created step.
+                #
+                # One caveat here is that re-running code changes step isn't
+                # handled but the expectation is that we only create PRs once
+                # per seer run.
+                webhook_action_type = SeerActionType.PR_CREATED
+                webhook_payload["pull_requests"] = [
                     {
-                        "path": p.patch.path,
-                        "type": p.patch.type,
-                        "added": p.patch.added,
-                        "removed": p.patch.removed,
+                        "provider": "unknown",  # TODO: we don't have the repo object readily accessible here
+                        "repo_name": pull_request.repo_name,
+                        "pull_request": {
+                            "pr_id": pull_request.pr_id,
+                            "pr_number": pull_request.pr_number,
+                            "pr_url": pull_request.pr_url,
+                        },
                     }
-                    for p in patches
+                    for pull_request in state.repo_pr_states.values()
                 ]
-                for repo, patches in diffs_by_repo.items()
-            }
+            else:
+                webhook_action_type = SeerActionType.CODING_COMPLETED
+                diffs_by_repo = state.get_diffs_by_repo()
+                webhook_payload["code_changes"] = {
+                    repo: [
+                        {
+                            "diff": p.diff,
+                            "path": p.patch.path,
+                            "type": p.patch.type,
+                            "added": p.patch.added,
+                            "removed": p.patch.removed,
+                        }
+                        for p in patches
+                    ]
+                    for repo, patches in diffs_by_repo.items()
+                }
         elif current_step == AutofixStep.IMPACT_ASSESSMENT:
             webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
         elif current_step == AutofixStep.TRIAGE:
             webhook_action_type = SeerActionType.TRIAGE_COMPLETED
 
-        if webhook_action_type:
-            try:
-                broadcast_webhooks_for_organization.delay(
-                    resource_name="seer",
-                    event_name=webhook_action_type.value,
-                    organization_id=organization.id,
-                    payload=webhook_payload,
+        if not webhook_action_type:
+            return
+
+        event_name = webhook_action_type.value
+
+        event_type = f"seer.{event_name}"
+        try:
+            sentry_app_event_type = SentryAppEventType(event_type)
+            if SeerOperator.has_access(organization=organization):
+                metrics.incr(
+                    "autofix.on_completion_hook.process_autofix_updates",
+                    tags={"event_type": str(event_type)},
                 )
-            except Exception:
-                logger.exception(
-                    "autofix.on_completion_hook.webhook_failed",
-                    extra={
-                        "run_id": run_id,
+                process_autofix_updates.apply_async(
+                    kwargs={
+                        "event_type": sentry_app_event_type,
+                        "event_payload": webhook_payload,
                         "organization_id": organization.id,
-                        "webhook_event": webhook_action_type.value,
-                    },
+                    }
                 )
+        except ValueError:
+            logger.exception(
+                "autofix.on_completion_hook.webhook_invalid_event_type",
+                extra={"event_type": event_type},
+            )
+
+        try:
+            broadcast_webhooks_for_organization.delay(
+                resource_name="seer",
+                event_name=event_name,
+                organization_id=organization.id,
+                payload=webhook_payload,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.webhook_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "webhook_event": event_name,
+                },
+            )
 
     @classmethod
     def _maybe_trigger_supergroups_embedding(
@@ -358,7 +412,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         try:
             client = SeerExplorerClient(organization=organization, user=None)
-            client.push_changes(run_id)
+            client.push_changes(run_id, blocking=False)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",

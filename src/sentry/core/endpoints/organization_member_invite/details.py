@@ -58,7 +58,8 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
 
         try:
             kwargs["invited_member"] = OrganizationMemberInvite.objects.get(
-                id=int(member_invite_id)
+                id=int(member_invite_id),
+                organization_id=kwargs["organization"].id,
             )
         except OrganizationMemberInvite.DoesNotExist:
             raise ResourceDoesNotExist

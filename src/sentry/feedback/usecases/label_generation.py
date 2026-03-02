@@ -1,18 +1,9 @@
 import logging
-from typing import TypedDict
 
-from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json, metrics
+from sentry.feedback.lib.seer_api import LabelGenerationRequest, make_label_generation_request
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-class LabelRequest(TypedDict):
-    """Corresponds to GenerateFeedbackLabelsRequest in Seer."""
-
-    organization_id: int
-    feedback_message: str
 
 
 AI_LABEL_TAG_PREFIX = "ai_categorization"
@@ -21,7 +12,6 @@ MAX_AI_LABELS = 15
 # Max length of the serialized list of labels, which matches the max length of a tag value, from https://docs.sentry.io/platforms/javascript/enriching-events/tags/
 MAX_AI_LABELS_JSON_LENGTH = 200
 
-SEER_LABEL_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/labels"
 SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0  # Do not retry since this is called in ingest.
 
@@ -33,16 +23,14 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
 
     Raises exception if anything goes wrong during the API call or response processing.
     """
-    request = LabelRequest(
+    request = LabelGenerationRequest(
         feedback_message=feedback_message,
         organization_id=organization_id,
     )
 
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_summarization_connection_pool,
-            path=SEER_LABEL_GENERATION_ENDPOINT_PATH,
-            body=json.dumps(request).encode("utf-8"),
+        response = make_label_generation_request(
+            request,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )

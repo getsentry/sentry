@@ -296,7 +296,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 2
-        condition = conditions[0]
+        condition = DataCondition.objects.get(
+            condition_group=condition_group, type=Condition.GREATER.value
+        )
         self.assert_data_condition_updated(condition)
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
@@ -521,7 +523,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
 
-        assert response.data["workflowIds"] == [str(workflow1.id), str(workflow2.id)]
+        assert sorted(response.data["workflowIds"]) == sorted(
+            [str(workflow1.id), str(workflow2.id)]
+        )
 
         detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
         assert detector_workflows.count() == 2
