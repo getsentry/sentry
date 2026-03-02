@@ -391,9 +391,14 @@ def get_local_locality() -> Locality:
 
 
 def get_locality_name_for_cell(cell_name: str) -> str:
-    """Get the locality name for a cell, falling back to the cell name if unmapped."""
+    """
+    Get the locality name for a cell
+    """
     locality = get_global_directory().get_locality_for_cell(cell_name)
-    return locality.name if locality is not None else cell_name
+    if locality is None:
+        raise RegionResolutionError(f"No locality found for cell {cell_name!r}")
+
+    return locality.name
 
 
 def get_local_region() -> Region:
