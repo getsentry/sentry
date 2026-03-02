@@ -7,6 +7,7 @@ from typing import Any
 import jsonschema
 import orjson
 import sentry_sdk
+from django.db.models import Sum
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,9 +17,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import internal_region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleGenericEvent
+from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
+    PREPROD_ARTIFACT_MAX_FILE_SIZE,
+)
 from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
@@ -125,6 +130,22 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                         "state": ChunkFileState.NOT_FOUND,
                         "missingChunks": missing_chunks,
                     }
+                )
+
+            # Check total file size before queuing assembly
+            total_size = (
+                FileBlob.objects.filter(
+                    checksum__in=chunks,
+                    fileblobowner__organization_id=project.organization_id,
+                ).aggregate(total=Sum("size"))["total"]
+                or 0
+            )
+            if total_size > PREPROD_ARTIFACT_MAX_FILE_SIZE:
+                return Response(
+                    {
+                        "error": f"File size ({total_size}) exceeds maximum allowed size ({PREPROD_ARTIFACT_MAX_FILE_SIZE})"
+                    },
+                    status=400,
                 )
 
             assemble_type = data.get("assemble_type")

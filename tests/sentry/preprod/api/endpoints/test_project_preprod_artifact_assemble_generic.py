@@ -1,9 +1,12 @@
+from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.core.files.base import ContentFile
 from django.test import override_settings
 
 from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.preprod import PreprodArtifactApiAssembleGenericEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
@@ -245,3 +248,49 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
 
         assert response.status_code == 200
         self._assert_task_called_with(mock_task, checksum, [blob.checksum], artifact_id=99999)
+
+    def test_file_size_exceeds_limit(self) -> None:
+        """Test that files exceeding the max size limit are rejected."""
+        content = b"test content for size limit"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        data = {
+            "checksum": total_checksum,
+            "chunks": [blob.checksum],
+            "assemble_type": "size_analysis",
+        }
+
+        with patch(
+            "sentry.preprod.api.endpoints.project_preprod_artifact_assemble_generic.PREPROD_ARTIFACT_MAX_FILE_SIZE",
+            1,  # Set limit to 1 byte to trigger the check
+        ):
+            response = self._make_request(data)
+
+        assert response.status_code == 400
+        assert "exceeds maximum allowed size" in response.json()["error"]
+
+    def test_file_size_within_limit(self) -> None:
+        """Test that files within the max size limit are accepted."""
+        content = b"small content"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        data = {
+            "checksum": total_checksum,
+            "chunks": [blob.checksum],
+            "assemble_type": "size_analysis",
+        }
+
+        with patch(
+            "sentry.preprod.api.endpoints.project_preprod_artifact_assemble_generic.assemble_preprod_artifact_size_analysis.apply_async"
+        ):
+            response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["state"] == ChunkFileState.CREATED
