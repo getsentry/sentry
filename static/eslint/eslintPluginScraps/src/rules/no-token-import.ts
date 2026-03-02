@@ -1,3 +1,5 @@
+import {ESLintUtils} from '@typescript-eslint/utils';
+
 /**
  * ESLint rule: no-token-import
  *
@@ -13,30 +15,25 @@ const EXCEPT_DIR_NAME = 'static/app/utils/theme';
  * @param {unknown} importPath
  * @returns {boolean}
  */
-function isForbiddenImportPath(importPath) {
+function isForbiddenImportPath(importPath: string) {
   if (typeof importPath !== 'string') return false;
 
   return importPath.includes(TOKEN_PATH);
 }
 
-/**
- * @type {import('eslint').Rule.RuleModule}
- */
-export const noTokenImport = {
+export const noTokenImport = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',
     docs: {
       description: `Disallow imports from "${TOKEN_PATH}" except within a directory named "${EXCEPT_DIR_NAME}".`,
-      recommended: false,
     },
     schema: [],
     messages: {
       forbidden: `Do not import scraps tokens directly - prefer using theme tokens.`,
     },
   },
-
   create(context) {
-    const importerIsInAllowedDir = context.filename?.includes(EXCEPT_DIR_NAME);
+    const importerIsInAllowedDir = context.filename.includes(EXCEPT_DIR_NAME);
 
     return {
       ImportDeclaration(node) {
@@ -54,4 +51,4 @@ export const noTokenImport = {
       },
     };
   },
-};
+});

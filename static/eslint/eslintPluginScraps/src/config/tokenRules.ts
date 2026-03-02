@@ -7,12 +7,22 @@
  * 3. Autofix suggestions (reverse lookup: property → correct category)
  */
 
-/**
- * @typedef {Object} TokenRule
- * @property {string} name - Human-readable name for error messages
- * @property {string[]} keywords - Keywords to match in token paths (e.g., 'content', 'link')
- * @property {Set<string>} allowedProperties - CSS properties these tokens can be used with
- */
+interface TokenRule {
+  /**
+   * CSS properties these tokens can be used with
+   */
+  allowedProperties: Set<string>;
+
+  /**
+   * Keywords to match in token paths (e.g., 'content', 'link')
+   */
+  keywords: string[];
+
+  /**
+   * Human-readable name for error messages
+   */
+  name: string;
+}
 
 /**
  * Token-to-property mapping configuration.
@@ -21,10 +31,8 @@
  * - Check if token path contains any known category keyword
  * - When multiple keywords match, the deepest/last one wins
  * - Example: 'interactive.border.content' → content rule (content is deeper)
- *
- * @type {TokenRule[]}
  */
-const TOKEN_RULES = [
+const TOKEN_RULES: TokenRule[] = [
   {
     name: 'content',
     keywords: ['content', 'link'],
@@ -118,10 +126,9 @@ const TOKEN_RULES = [
  * - If multiple keywords match, the deepest/last one wins
  * - Example: 'interactive.background.content' → content rule
  *
- * @param {string} tokenPath - e.g., 'content.primary' or 'interactive.chonky.neutral.content'
- * @returns {TokenRule | null}
+ * @param tokenPath - e.g., 'content.primary' or 'interactive.chonky.neutral.content'
  */
-export function findRuleForToken(tokenPath) {
+export function findRuleForToken(tokenPath: string): TokenRule | null {
   const pathParts = tokenPath.split('.');
 
   // Find the rule whose keyword appears deepest in the path
@@ -144,12 +151,9 @@ export function findRuleForToken(tokenPath) {
 /**
  * Build reverse mapping: property → rule name.
  * Used for autofix suggestions.
- * @param {TokenRule[]} rules
- * @returns {Map<string, string>}
  */
-function buildPropertyToRule(rules) {
-  /** @type {Map<string, string>} */
-  const result = new Map();
+function buildPropertyToRule(rules: TokenRule[]) {
+  const result = new Map<string, string>();
   for (const rule of rules) {
     for (const property of rule.allowedProperties) {
       result.set(property, rule.name);

@@ -10,25 +10,26 @@
  * - css`...`
  */
 
-import {normalizePropertyName} from '../utils/normalizePropertyName.js';
+import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
-import {decomposeValue} from './value-decomposer.js';
+import {normalizePropertyName} from '../utils/normalizePropertyName';
+
+import type {ExtractorContext, StyleDeclaration} from './types';
+import {decomposeValue} from './value-decomposer';
 
 /**
  * Creates the styled/css extractor with ESLint visitors.
- *
- * @param {import('./types.js').ExtractorContext} extractorContext
- * @returns {Record<string, Function>}
  */
-export function createStyledExtractor({collector, themeTracker, ruleContext}) {
+export function createStyledExtractor({
+  collector,
+  themeTracker,
+  ruleContext,
+}: ExtractorContext): TSESLint.RuleListener {
   /**
    * Extract CSS property from template literal quasi text.
    * Must correctly handle nested selectors (a:hover) and only match actual properties.
-   *
-   * @param {string} cssText
-   * @returns {string | null}
    */
-  function extractCssProperty(cssText) {
+  function extractCssProperty(cssText: string) {
     // Match a CSS property declaration: property-name: value
     // The property must appear after {, ;, or at line start (with optional whitespace)
     // This avoids matching pseudo-selectors like a:hover
@@ -38,11 +39,8 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
 
   /**
    * Check if a tagged template is a styled/css pattern.
-   *
-   * @param {import('estree').TaggedTemplateExpression} node
-   * @returns {boolean}
    */
-  function isStyledOrCssTag(node) {
+  function isStyledOrCssTag(node: TSESTree.TaggedTemplateExpression) {
     const tag = node.tag;
     return (
       (tag.type === 'Identifier' && tag.name === 'css') ||
@@ -58,17 +56,11 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
   /**
    * Check if we're in a lookup table pattern that should be excluded.
    * e.g., ({ none: theme.tokens.content.primary })[status]
-   *
-   * @param {import('estree').Node & {parent?: import('estree').Node}} node
-   * @returns {boolean}
    */
-  function isLookupTablePattern(node) {
-    /** @type {import('estree').Node & {parent?: import('estree').Node} | undefined} */
+  function isLookupTablePattern(node: TSESTree.Node) {
     let current = node;
     while (current?.parent) {
-      current = /** @type {import('estree').Node & {parent?: import('estree').Node}} */ (
-        current.parent
-      );
+      current = current.parent;
       if (
         current.type === 'MemberExpression' &&
         current.computed === true &&
@@ -82,68 +74,59 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
 
   /**
    * Process a template literal and extract style declarations.
-   *
-   * @param {import('estree').TemplateLiteral} templateNode
-   * @param {import('estree').Node} sourceNode
    */
-  function processTemplateLiteral(templateNode, sourceNode) {
-    templateNode.expressions?.forEach(
-      (
-        /** @type {import('estree').Expression | import('estree').PrivateIdentifier} */ expr,
-        /** @type {number} */ index
-      ) => {
-        const precedingQuasi = templateNode.quasis[index];
-        if (!precedingQuasi) {
-          return;
-        }
-
-        const cssText = precedingQuasi.value.cooked || precedingQuasi.value.raw;
-        if (!cssText) {
-          return;
-        }
-
-        const property = extractCssProperty(cssText);
-        if (!property) {
-          return;
-        }
-
-        // Decompose the expression into possible values
-        const values = decomposeValue(
-          /** @type {import('estree').Node} */ (expr),
-          themeTracker
-        );
-
-        /** @type {import('./types.js').StyleDeclaration} */
-        const declaration = {
-          kind: 'styled',
-          property: {
-            name: normalizePropertyName(property),
-            node: precedingQuasi,
-          },
-          values,
-          context: {
-            file: ruleContext.filename,
-            scopeId: themeTracker.getCurrentScopeId(),
-            themeBinding: themeTracker.getActiveBinding(),
-          },
-          raw: {
-            containerNode: templateNode,
-            sourceNode,
-          },
-        };
-
-        collector.add(declaration);
+  function processTemplateLiteral(
+    templateNode: TSESTree.TemplateLiteral,
+    sourceNode: TSESTree.Node
+  ) {
+    templateNode.expressions?.forEach((expr, index) => {
+      const precedingQuasi = templateNode.quasis[index];
+      if (!precedingQuasi) {
+        return;
       }
-    );
+
+      const cssText = precedingQuasi.value.cooked || precedingQuasi.value.raw;
+      if (!cssText) {
+        return;
+      }
+
+      const property = extractCssProperty(cssText);
+      if (!property) {
+        return;
+      }
+
+      // Decompose the expression into possible values
+      const values = decomposeValue(expr, themeTracker);
+
+      const declaration: StyleDeclaration = {
+        kind: 'styled',
+        property: {
+          name: normalizePropertyName(property),
+          node: precedingQuasi,
+        },
+        values,
+        context: {
+          file: ruleContext.filename,
+          scopeId: themeTracker.getCurrentScopeId(),
+          themeBinding: themeTracker.getActiveBinding(),
+        },
+        raw: {
+          containerNode: templateNode,
+          sourceNode,
+        },
+      };
+
+      collector.add(declaration);
+    });
   }
 
   /**
    * Process an object expression from styled.div({ ... }) syntax.
-   *
-   * @param {import('estree').ObjectExpression & {parent?: import('estree').Node}} objNode
-   * @param {import('estree').Node} sourceNode
    */
-  function processObjectExpression(objNode, sourceNode) {
+  function processObjectExpression(
+    objNode: TSESTree.ObjectExpression,
+    sourceNode: TSESTree.Node
+  ) {
     // Skip lookup table patterns
     if (isLookupTablePattern(objNode)) {
       return;
@@ -167,8 +150,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
 
       const values = decomposeValue(prop.value, themeTracker);
 
-      /** @type {import('./types.js').StyleDeclaration} */
-      const declaration = {
+      const declaration: StyleDeclaration = {
         kind: 'styled',
         property: {
           name: normalizePropertyName(propertyName),
@@ -191,8 +173,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
   }
 
   return {
-    /** @param {import('estree').TaggedTemplateExpression} node */
-    TaggedTemplateExpression(node) {
+    TaggedTemplateExpression(node: TSESTree.TaggedTemplateExpression) {
       if (!isStyledOrCssTag(node)) {
         return;
       }
@@ -200,8 +181,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
     },
 
     // Handle styled.div({ ... }) object syntax
-    /** @param {import('estree').CallExpression} node */
-    CallExpression(node) {
+    CallExpression(node: TSESTree.CallExpression) {
       const callee = node.callee;
 
       let isStyledCall = false;
@@ -231,12 +211,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
       // Process object argument
       const objectArg = node.arguments[0];
       if (objectArg?.type === 'ObjectExpression') {
-        processObjectExpression(
-          /** @type {import('estree').ObjectExpression & {parent?: import('estree').Node}} */ (
-            objectArg
-          ),
-          node
-        );
+        processObjectExpression(objectArg, node);
       }
     },
   };

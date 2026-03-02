@@ -1,7 +1,10 @@
-import {createCssPropExtractor} from './css-prop.js';
-import {createStylePropExtractor} from './style-prop.js';
-import {createStyledExtractor} from './styled.js';
-import {createThemeTracker} from './theme.js';
+import {TSESLint, TSESTree} from '@typescript-eslint/utils';
+
+import {createCssPropExtractor} from './css-prop';
+import {createStylePropExtractor} from './style-prop';
+import {createStyledExtractor} from './styled';
+import {createThemeTracker} from './theme';
+import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
 
 /**
  * @file Aggregates all style extractors and provides the collector factory.
@@ -11,13 +14,9 @@ import {createThemeTracker} from './theme.js';
  * Lightweight regex pre-scan to detect if file needs style analysis.
  * Returns false if file has no emotion/styled patterns.
  * False positives are acceptable; we just want to skip clearly unrelated files.
- *
- * @param {import('eslint').Rule.RuleContext} context
- * @returns {boolean}
  */
-export function shouldAnalyze(context) {
-  const sourceCode = context.sourceCode ?? context.getSourceCode();
-  const text = sourceCode.getText();
+export function shouldAnalyze(context: TSESLint.RuleContext<string, unknown[]>) {
+  const text = context.sourceCode.getText();
 
   // Check for emotion imports OR usage patterns
   // We check both because:
@@ -37,21 +36,17 @@ export function shouldAnalyze(context) {
 
 /**
  * Merge multiple visitor objects, combining handlers for same node types.
- *
- * @param  {...Record<string, Function>} visitorObjects
- * @returns {Record<string, Function>}
  */
-function mergeVisitors(...visitorObjects) {
-  /** @type {Record<string, Function>} */
-  const merged = {};
+function mergeVisitors(...visitorObjects: TSESLint.RuleListener[]) {
+  const merged: TSESLint.RuleListener = {};
 
   for (const visitors of visitorObjects) {
     for (const [nodeType, handler] of Object.entries(visitors)) {
       if (merged[nodeType]) {
-        const existing = merged[nodeType];
-        merged[nodeType] = (/** @type {import('estree').Node} */ node) => {
+        const existing = merged[nodeType] as TSESLint.RuleFunction<TSESTree.Node>;
+        merged[nodeType] = (node: TSESTree.Node) => {
           existing(node);
-          handler(node);
+          (handler as TSESLint.RuleFunction<TSESTree.Node>)(node);
         };
       } else {
         merged[nodeType] = handler;
@@ -64,20 +59,11 @@ function mergeVisitors(...visitorObjects) {
 
 /**
  * Creates a style collector that aggregates declarations from all extractors.
- *
- * @param {import('eslint').Rule.RuleContext} context
- * @returns {{
- *   collector: import('./types.js').StyleCollector,
- *   visitors: Record<string, Function>,
- *   themeTracker: import('./types.js').ThemeTracker
- * }}
  */
-export function createStyleCollector(context) {
-  /** @type {import('./types.js').StyleDeclaration[]} */
-  const declarations = [];
+export function createStyleCollector(context: TSESLint.RuleContext<string, unknown[]>) {
+  const declarations: StyleDeclaration[] = [];
 
-  /** @type {import('./types.js').StyleCollector} */
-  const collector = {
+  const collector: StyleCollector = {
     add(decl) {
       declarations.push(decl);
     },
@@ -90,11 +76,14 @@ export function createStyleCollector(context) {
   };
 
   // Create theme tracker first (extractors depend on it)
-  const themeTracker = createThemeTracker(context);
+  const themeTracker = createThemeTracker();
 
   // Create extractors with access to collector and theme tracker
-  /** @type {import('./types.js').ExtractorContext} */
-  const extractorContext = {collector, themeTracker, ruleContext: context};
+  const extractorContext: ExtractorContext = {
+    collector,
+    themeTracker,
+    ruleContext: context,
+  };
 
   const styledVisitors = createStyledExtractor(extractorContext);
   const cssPropVisitors = createCssPropExtractor(extractorContext);
@@ -111,8 +100,8 @@ export function createStyleCollector(context) {
   return {collector, visitors, themeTracker};
 }
 
-export {createStyledExtractor} from './styled.js';
-export {createCssPropExtractor} from './css-prop.js';
-export {createStylePropExtractor} from './style-prop.js';
-export {createThemeTracker} from './theme.js';
-export {decomposeValue} from './value-decomposer.js';
+export {createStyledExtractor} from './styled';
+export {createCssPropExtractor} from './css-prop';
+export {createStylePropExtractor} from './style-prop';
+export {createThemeTracker} from './theme';
+export {decomposeValue} from './value-decomposer';

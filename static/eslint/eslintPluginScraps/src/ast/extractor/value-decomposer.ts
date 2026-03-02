@@ -5,16 +5,15 @@
  * logical expressions, and nested member expressions.
  */
 
+import type {TSESTree} from '@typescript-eslint/utils';
+
+import type {StyleValue, ThemeTracker, TokenInfo} from './types';
+
 /**
  * Decompose an expression into all possible StyleValue entries.
- *
- * @param {import('estree').Node} node
- * @param {import('./types.js').ThemeTracker} themeTracker
- * @returns {import('./types.js').StyleValue[]}
  */
-export function decomposeValue(node, themeTracker) {
-  /** @type {import('./types.js').StyleValue[]} */
-  const values = [];
+export function decomposeValue(node: TSESTree.Node, themeTracker: ThemeTracker) {
+  const values: StyleValue[] = [];
 
   collectValues(node, values, themeTracker);
 
@@ -23,12 +22,12 @@ export function decomposeValue(node, themeTracker) {
 
 /**
  * Recursively collect values from an expression.
- *
- * @param {import('estree').Node} node
- * @param {import('./types.js').StyleValue[]} values
- * @param {import('./types.js').ThemeTracker} themeTracker
  */
-function collectValues(node, values, themeTracker) {
+function collectValues(
+  node: TSESTree.Node,
+  values: StyleValue[],
+  themeTracker: ThemeTracker
+) {
   if (!node || typeof node !== 'object') {
     return;
   }
@@ -98,11 +97,7 @@ function collectValues(node, values, themeTracker) {
         if (param?.type === 'Identifier') {
           themeTracker.registerCallbackBinding(param.name, node);
         }
-        collectValues(
-          /** @type {import('estree').Node} */ (node.body),
-          values,
-          themeTracker
-        );
+        collectValues(node.body, values, themeTracker);
       }
       break;
 
@@ -128,12 +123,11 @@ function collectValues(node, values, themeTracker) {
 
 /**
  * Create a StyleValue for a MemberExpression, extracting token info if present.
- *
- * @param {import('estree').MemberExpression} node
- * @param {import('./types.js').ThemeTracker} themeTracker
- * @returns {import('./types.js').StyleValue}
  */
-function createMemberValue(node, themeTracker) {
+function createMemberValue(
+  node: TSESTree.MemberExpression,
+  themeTracker: ThemeTracker
+): StyleValue {
   const tokenInfo = extractTokenInfo(node, themeTracker);
   return {
     node,
@@ -145,16 +139,13 @@ function createMemberValue(node, themeTracker) {
 
 /**
  * Extract token information from a MemberExpression if it's a theme token.
- *
- * @param {import('estree').MemberExpression} node
- * @param {import('./types.js').ThemeTracker} themeTracker
- * @returns {import('./types.js').TokenInfo | null}
  */
-function extractTokenInfo(node, themeTracker) {
-  /** @type {string[]} */
-  const pathParts = [];
-  /** @type {import('estree').Node} */
-  let current = node;
+function extractTokenInfo(
+  node: TSESTree.MemberExpression,
+  themeTracker: ThemeTracker
+): TokenInfo | null {
+  const pathParts: string[] = [];
+  let current: TSESTree.Node = node;
 
   // Walk up the member expression chain
   while (current.type === 'MemberExpression' && current.property?.type === 'Identifier') {

@@ -4,10 +4,8 @@
 
 /**
  * Convert camelCase to kebab-case
- * @param {string} str
- * @returns {string}
  */
-function camelToKebabCase(str) {
+function camelToKebabCase(str: string) {
   return str.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
 }
 
@@ -19,11 +17,8 @@ function camelToKebabCase(str) {
  * - 'color' → 'color' (unchanged)
  * - '--custom-prop' → '--custom-prop' (unchanged)
  * - '-webkit-text-fill-color' → '-webkit-text-fill-color' (unchanged)
- *
- * @param {string} property
- * @returns {string}
  */
-export function normalizePropertyName(property) {
+export function normalizePropertyName(property: string) {
   // CSS custom properties and vendor prefixes stay as-is (just lowercase)
   if (property.startsWith('-')) {
     return property.toLowerCase();
