@@ -57,6 +57,10 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="ip",
         raw_pattern=r"""
+            # This negative lookbehind ensures two things (depending on the pattern):
+            #     - We don't match starting in the middle of a valid set of initial characters
+            #     - We don't match things like `::` when they appear in expressions like `SomeClass::someMethod()`
+            (?<![0-9a-zA-Z_])
             (
                 ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
                 ([0-9a-fA-F]{1,4}:){1,7}:|
@@ -74,7 +78,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 ([0-9a-fA-F]{1,4}:){1,4}:
                 ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
                 (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            ) |
+            )
+            # This negative lookahead works with the negative lookbehind above to block false
+            # positives on expressions of the form `SomeClass::someMethod()`, ensuring that even if
+            # the class name is valid hex, the method name being invalid will block the match
+            (?![0-9a-zA-Z])
+            |
             (
                 \b((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
                 (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
