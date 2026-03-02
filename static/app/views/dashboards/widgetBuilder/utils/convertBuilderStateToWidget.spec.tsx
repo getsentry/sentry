@@ -228,4 +228,51 @@ describe('convertBuilderStateToWidget', () => {
 
     expect(widget.limit).toBeUndefined();
   });
+
+  it('uses explicit axisRange from state', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.ERRORS,
+      displayType: DisplayType.LINE,
+      axisRange: 'dataMin',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
+
+  it('falls back to dataset config axisRange when state.axisRange is undefined', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
+
+  it('preserves explicit auto axisRange on dataset with dataMin default', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+      axisRange: 'auto',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('auto');
+  });
+
+  it('falls back to dataset config axisRange when state.axisRange is invalid', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+      axisRange: 'invalid' as any,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
 });

@@ -217,8 +217,7 @@ export default function ReleasesList() {
       return projects[0];
     }
 
-    const selectedProjectId =
-      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    const selectedProjectId = selection.projects?.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 

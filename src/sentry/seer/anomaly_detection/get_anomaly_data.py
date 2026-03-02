@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from urllib3 import Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import (
@@ -20,6 +20,7 @@ from sentry.seer.anomaly_detection.types import (
     DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
+    GetAnomalyThresholdDataRequest,
     SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
@@ -61,6 +62,30 @@ SEER_RETRIES = Retry(
     status_forcelist=[408, 429, 502, 503, 504],
     allowed_methods=["GET", "POST"],
 )
+
+
+def make_detect_anomalies_request(
+    body: DetectAnomaliesRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+        SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+        body=json.dumps(body).encode("utf-8"),
+        retries=SEER_RETRIES,
+    )
+
+
+def make_get_anomaly_threshold_data_request(
+    body: GetAnomalyThresholdDataRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+        SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
+        body=json.dumps(body).encode("utf-8"),
+        retries=SEER_RETRIES,
+    )
 
 
 def get_anomaly_data_from_seer(
@@ -114,12 +139,7 @@ def get_anomaly_data_from_seer(
     extra_data["dataset"] = snuba_query.dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
-        response = make_signed_seer_api_request(
-            SEER_ANOMALY_DETECTION_CONNECTION_POOL,
-            SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-            json.dumps(detect_anomalies_request).encode("utf-8"),
-            retries=SEER_RETRIES,
-        )
+        response = make_detect_anomalies_request(detect_anomalies_request)
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
@@ -197,22 +217,13 @@ def get_anomaly_threshold_data_from_seer(
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
 
-    payload = {
-        "alert": {
-            "id": None,
-            "source_id": source_id,
-            "source_type": source_type,
-        },
-        "start": start,
-        "end": end,
-    }
+    body = GetAnomalyThresholdDataRequest(
+        alert=AlertInSeer(id=None, source_id=source_id, source_type=source_type),
+        start=start,
+        end=end,
+    )
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
-            path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
-            body=json.dumps(payload).encode("utf-8"),
-            retries=SEER_RETRIES,
-        )
+        response = make_get_anomaly_threshold_data_request(body)
     except (TimeoutError, MaxRetryError):
         logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None
@@ -222,7 +233,7 @@ def get_anomaly_threshold_data_from_seer(
             "anomaly_threshold.seer_http_error",
             extra={
                 "response_data": response.data,
-                "payload": payload,
+                "payload": body,
                 "status": response.status,
             },
         )
@@ -235,7 +246,7 @@ def get_anomaly_threshold_data_from_seer(
             "anomaly_threshold.failed_to_parse_seer_detector_data_response",
             extra={
                 "response_data": response.data,
-                "payload": payload,
+                "payload": body,
             },
         )
         return None

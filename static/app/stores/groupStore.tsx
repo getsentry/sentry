@@ -436,9 +436,7 @@ const storeConfig: GroupStoreDefinition = {
     // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
     // actually returns a 204, so there is no `response` body
     this.items = this.items.filter(
-      item =>
-        !mergedIdSet.has(item.id) ||
-        (response?.merge && item.id === response.merge.parent)
+      item => !mergedIdSet.has(item.id) || item.id === response?.merge?.parent
     );
 
     if (ids.length > 0) {

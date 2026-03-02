@@ -1,20 +1,27 @@
 import {useEffect, useRef, type Ref} from 'react';
+import {mergeRefs} from '@react-aria/utils';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
-import {DisabledTip} from '@sentry/scraps/info';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Checkmark, Spinner} from '@sentry/scraps/form/icons';
+import {Flex} from '@sentry/scraps/layout';
 
-export type BaseFieldProps = Record<never, unknown>;
+import {useLocation} from 'sentry/utils/useLocation';
 
-type FieldChildrenProps = {
+import {FieldMeta} from './meta';
+
+export type BaseFieldProps<T extends HTMLElement> = {
+  disabled?: boolean | string;
+  ref?: Ref<T>;
+};
+type FieldChildrenProps<T extends HTMLElement> = {
   'aria-describedby': string;
   'aria-invalid': boolean;
+  disabled: boolean;
   id: string;
   name: string;
   onBlur: () => void;
-  ref: Ref<HTMLElement>;
+  ref: Ref<T>;
 };
 
 export const useAutoSaveIndicator = () => {
@@ -33,27 +40,6 @@ export const useAutoSaveIndicator = () => {
 
   return null;
 };
-
-export function FieldStatus({disabled}: {disabled?: boolean | string}) {
-  const field = useFieldContext();
-
-  if (!field.state.meta.isValid) {
-    const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
-    return (
-      <Tooltip position="bottom" title={errorMessage} forceVisible skipWrapper>
-        <Warning variant="danger" size="sm" />
-      </Tooltip>
-    );
-  }
-
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
-
-  if (disabledReason) {
-    return <DisabledTip title={disabledReason} size="sm" />;
-  }
-
-  return null;
-}
 
 export const useFieldId = () => {
   const field = useFieldContext();
@@ -74,46 +60,55 @@ export const useLabelId = () => {
 };
 
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
+  const location = useLocation();
   useEffect(() => {
-    function handleHashChange() {
-      try {
-        const hash = decodeURIComponent(window.location.hash.slice(1));
-        if (hash !== fieldName) {
-          return;
-        }
-      } catch {
-        return;
-      }
-      ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
-      ref.current?.focus({focusVisible: true});
-      animateRowHighlight(ref.current);
+    let hash: string;
+    try {
+      hash = decodeURIComponent(location.hash.slice(1));
+    } catch {
+      return;
     }
-    // Check on mount (page loaded with hash already in URL)
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [fieldName, ref]);
+    if (hash !== fieldName) {
+      return;
+    }
+    ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
+    ref.current?.focus({focusVisible: true});
+    animateRowHighlight(ref.current);
+  }, [fieldName, ref, location.hash]);
 }
 
-export function BaseField(
-  props: BaseFieldProps & {
-    children: (props: FieldChildrenProps) => React.ReactNode;
+type FieldState = {indicator: React.ReactNode};
+
+export function BaseField<T extends HTMLElement>(
+  props: BaseFieldProps<T> & {
+    children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
   }
 ) {
+  const autoSaveContext = useAutoSaveContext();
+  const indicator = useAutoSaveIndicator();
   const field = useFieldContext();
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<T>(null);
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
   useScrollToHash(field.name, ref);
 
-  return props.children({
-    ref,
-    'aria-invalid': !field.state.meta.isValid,
-    'aria-describedby': hintTextId,
-    onBlur: field.handleBlur,
-    name: field.name,
-    id: fieldId,
-  });
+  return (
+    <Flex gap="sm" align="center">
+      {props.children(
+        {
+          ref: mergeRefs(ref, props.ref),
+          disabled: !!props.disabled || autoSaveContext?.status === 'pending',
+          'aria-invalid': !field.state.meta.isValid,
+          'aria-describedby': hintTextId,
+          onBlur: field.handleBlur,
+          name: field.name,
+          id: fieldId,
+        },
+        {indicator}
+      )}
+      <FieldMeta.Status disabled={props.disabled} />
+    </Flex>
+  );
 }
 
 function animateRowHighlight(node: HTMLElement | null) {

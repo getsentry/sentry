@@ -32,11 +32,11 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    autofix_connection_pool,
     get_autofix_repos_from_project_code_mappings,
+    make_autofix_start_request,
+    make_autofix_update_request,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
@@ -424,7 +424,6 @@ def _call_autofix(
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
 ):
-    path = "/v1/automation/autofix/start"
     body = orjson.dumps(
         {
             "organization_id": group.organization.id,
@@ -466,11 +465,7 @@ def _call_autofix(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = make_signed_seer_api_request(
-        autofix_connection_pool,
-        path,
-        body,
-    )
+    response = make_autofix_start_request(body)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -720,14 +715,9 @@ def update_autofix(
     Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
     """
 
-    path = "/v1/automation/autofix/update"
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
-    response = make_signed_seer_api_request(
-        autofix_connection_pool,
-        path,
-        body,
-    )
+    response = make_autofix_update_request(body)
 
     if response.status >= 400:
         return Response({"detail": "Failed to update autofix run"}, status=500)
