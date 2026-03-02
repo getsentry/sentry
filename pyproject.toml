@@ -206,49 +206,49 @@ indent-style = "space"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "B",   # flake8-bugbear
-    "LOG", # flake8-logging
-    "I",   # isort
-    "T20", # flake8-print (replaces S002)
-    "UP",  # pyupgrade
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "B",      # flake8-bugbear
+    "LOG",    # flake8-logging
+    "I",      # isort
+    "T20",    # flake8-print (replaces S002)
+    "UP",     # pyupgrade
 ]
 ignore = [
-    "E203", # whitespace before ':' (black compatibility)
-    "E402", # module level import not at top of file
-    "E501", # line too long (formatter handles this)
-    "E731", # do not assign a lambda expression
-    "B007", # unused loop control variable
-    "B009", # do not call getattr with a constant attribute value
-    "B010", # do not call setattr with a constant attribute value
-    "B011", # do not call assert False (we don't use PYTHONOPTIMIZE)
-    "B017", # assert-raises-exception (not enforced before)
-    "B018", # useless-expression (not enforced before)
-    "B020", # loop variable overwritten by assignment target
-    "B023", # function definition does not bind loop variable
-    "B024", # abstract base class with no abstract methods
-    "B026", # star-arg unpacking after a keyword argument
-    "B027", # empty method in abstract base class
-    "B904", # raise-without-from-inside-except (not enforced before)
-    "B905", # zip-without-explicit-strict (not enforced before)
-    "B911", # itertools.batched without strict (not enforced before)
-    "B028", # no explicit stacklevel in warnings (not enforced before)
-    "B033", # duplicate set items (not enforced before)
-    "B039", # mutable ContextVar default (not enforced before)
+    "E203",   # whitespace before ':' (black compatibility)
+    "E402",   # module level import not at top of file
+    "E501",   # line too long (formatter handles this)
+    "E731",   # do not assign a lambda expression
+    "B007",   # unused loop control variable
+    "B009",   # do not call getattr with a constant attribute value
+    "B010",   # do not call setattr with a constant attribute value
+    "B011",   # do not call assert False (we don't use PYTHONOPTIMIZE)
+    "B017",   # assert-raises-exception (not enforced before)
+    "B018",   # useless-expression (not enforced before)
+    "B020",   # loop variable overwritten by assignment target
+    "B023",   # function definition does not bind loop variable
+    "B024",   # abstract base class with no abstract methods
+    "B026",   # star-arg unpacking after a keyword argument
+    "B027",   # empty method in abstract base class
+    "B904",   # raise-without-from-inside-except (not enforced before)
+    "B905",   # zip-without-explicit-strict (not enforced before)
+    "B911",   # itertools.batched without strict (not enforced before)
+    "B028",   # no explicit stacklevel in warnings (not enforced before)
+    "B033",   # duplicate set items (not enforced before)
+    "B039",   # mutable ContextVar default (not enforced before)
     # --- flake8-logging rules not previously enforced ---
     "LOG014", # exc-info-outside-except-handler
     "LOG015", # root-logger-call
     # --- pyupgrade rules to ignore for now ---
-    "UP007", # use X | Y for union types (fix in future PR)
-    "UP017", # datetime-utc-alias
-    "UP031", # printf-string-formatting (fix with f-strings in future PR)
-    "UP035", # deprecated typing imports (fix in future PR)
-    "UP040", # use type keyword instead of TypeAlias (fix in future PR)
-    "UP045", # use X | None instead of Optional (fix in future PR)
-    "UP046", # non-pep695-generic-class (PEP 695 migration is a larger effort)
-    "UP047", # non-pep695-generic-function (PEP 695 migration is a larger effort)
+    "UP007",  # use X | Y for union types (fix in future PR)
+    "UP017",  # datetime-utc-alias
+    "UP031",  # printf-string-formatting (fix with f-strings in future PR)
+    "UP035",  # deprecated typing imports (fix in future PR)
+    "UP040",  # use type keyword instead of TypeAlias (fix in future PR)
+    "UP045",  # use X | None instead of Optional (fix in future PR)
+    "UP046",  # non-pep695-generic-class (PEP 695 migration is a larger effort)
+    "UP047",  # non-pep695-generic-function (PEP 695 migration is a larger effort)
 ]
 
 [tool.ruff.lint.per-file-ignores]
