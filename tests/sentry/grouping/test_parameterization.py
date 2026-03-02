@@ -118,6 +118,8 @@ standard_cases = [
     ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
     ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
+    ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
+    ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
