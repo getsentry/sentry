@@ -1,7 +1,7 @@
-import {createCssPropExtractor} from './css-prop.mjs';
-import {createStylePropExtractor} from './style-prop.mjs';
-import {createStyledExtractor} from './styled.mjs';
-import {createThemeTracker} from './theme.mjs';
+import {createCssPropExtractor} from './css-prop.js';
+import {createStylePropExtractor} from './style-prop.js';
+import {createStyledExtractor} from './styled.js';
+import {createThemeTracker} from './theme.js';
 
 /**
  * @file Aggregates all style extractors and provides the collector factory.
@@ -67,16 +67,16 @@ function mergeVisitors(...visitorObjects) {
  *
  * @param {import('eslint').Rule.RuleContext} context
  * @returns {{
- *   collector: import('./types.mjs').StyleCollector,
+ *   collector: import('./types.js').StyleCollector,
  *   visitors: Record<string, Function>,
- *   themeTracker: import('./types.mjs').ThemeTracker
+ *   themeTracker: import('./types.js').ThemeTracker
  * }}
  */
 export function createStyleCollector(context) {
-  /** @type {import('./types.mjs').StyleDeclaration[]} */
+  /** @type {import('./types.js').StyleDeclaration[]} */
   const declarations = [];
 
-  /** @type {import('./types.mjs').StyleCollector} */
+  /** @type {import('./types.js').StyleCollector} */
   const collector = {
     add(decl) {
       declarations.push(decl);
@@ -93,7 +93,7 @@ export function createStyleCollector(context) {
   const themeTracker = createThemeTracker(context);
 
   // Create extractors with access to collector and theme tracker
-  /** @type {import('./types.mjs').ExtractorContext} */
+  /** @type {import('./types.js').ExtractorContext} */
   const extractorContext = {collector, themeTracker, ruleContext: context};
 
   const styledVisitors = createStyledExtractor(extractorContext);
@@ -111,8 +111,8 @@ export function createStyleCollector(context) {
   return {collector, visitors, themeTracker};
 }
 
-export {createStyledExtractor} from './styled.mjs';
-export {createCssPropExtractor} from './css-prop.mjs';
-export {createStylePropExtractor} from './style-prop.mjs';
-export {createThemeTracker} from './theme.mjs';
-export {decomposeValue} from './value-decomposer.mjs';
+export {createStyledExtractor} from './styled.js';
+export {createCssPropExtractor} from './css-prop.js';
+export {createStylePropExtractor} from './style-prop.js';
+export {createThemeTracker} from './theme.js';
+export {decomposeValue} from './value-decomposer.js';

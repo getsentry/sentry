@@ -7,6 +7,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
@@ -42,6 +43,17 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 MIN_DAYS = 7
+
+
+def make_store_data_request(
+    body: StoreDataRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_anomaly_detection_connection_pool,
+        SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+        body=json.dumps(body).encode("utf-8"),
+    )
 
 
 class SeerMethod(StrEnum):
@@ -230,11 +242,7 @@ def send_historical_data_to_seer_legacy(
         },
     )
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-            body=json.dumps(body).encode("utf-8"),
-        )
+        response = make_store_data_request(body)
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(

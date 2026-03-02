@@ -7,14 +7,14 @@
  * - <div style={getValue()} />
  */
 
-import {normalizePropertyName} from '../utils/normalizePropertyName.mjs';
+import {normalizePropertyName} from '../utils/normalizePropertyName.js';
 
-import {decomposeValue} from './value-decomposer.mjs';
+import {decomposeValue} from './value-decomposer.js';
 
 /**
  * Creates the style prop extractor with ESLint visitors.
  *
- * @param {import('./types.mjs').ExtractorContext} extractorContext
+ * @param {import('./types.js').ExtractorContext} extractorContext
  * @returns {Record<string, Function>}
  */
 export function createStylePropExtractor({collector, themeTracker, ruleContext}) {
@@ -43,7 +43,7 @@ export function createStylePropExtractor({collector, themeTracker, ruleContext})
 
       const values = decomposeValue(prop.value, themeTracker);
 
-      /** @type {import('./types.mjs').StyleDeclaration} */
+      /** @type {import('./types.js').StyleDeclaration} */
       const declaration = {
         kind: 'style-prop',
         property: {
