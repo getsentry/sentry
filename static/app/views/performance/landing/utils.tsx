@@ -46,7 +46,7 @@ const LANDING_DISPLAYS = [
 ];
 
 export function excludeTransaction(
-  transaction: string | string | number,
+  transaction: string | number,
   props: {eventView: EventView; location: Location}
 ) {
   const {eventView, location} = props;

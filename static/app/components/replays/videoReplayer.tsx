@@ -232,7 +232,7 @@ export class VideoReplayer {
    * Pause timer only if replay is running. Otherwise, no need to
    * pause if timer is not already running.
    */
-  private pauseTimer(videoOffsetMs?: number | undefined) {
+  private pauseTimer(videoOffsetMs?: number) {
     // This is valid to run when replay is not playing (seeking to
     // a place in the replay). Due to ReplayContext and maintaining
     // compatibility with rrweb player, we need to update the time
@@ -381,7 +381,7 @@ export class VideoReplayer {
     };
   }
 
-  protected getSegment(index?: number | undefined): VideoEvent | undefined {
+  protected getSegment(index?: number): VideoEvent | undefined {
     if (index === undefined) {
       return undefined;
     }
