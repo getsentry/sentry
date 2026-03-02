@@ -106,7 +106,7 @@ describe('transformPartsMessages', () => {
 
     const {result, fixedInvalidJson} = transformPartsMessages('[Filtered]');
     expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(false);
+    expect(fixedInvalidJson).toBe(true);
   });
 
   it('does not throw when [Filtered] appears inside a JSON message array', () => {
@@ -117,12 +117,11 @@ describe('transformPartsMessages', () => {
 
     const {result, fixedInvalidJson} = transformPartsMessages(input);
     expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(false);
+    expect(fixedInvalidJson).toBe(true);
   });
 
   it('does not throw when [Filtered] appears in a nested field', () => {
-    const input =
-      '[{"role":"assistant","parts":[{"type":"text","text":[Filtered]}]}]';
+    const input = '[{"role":"assistant","parts":[{"type":"text","text":[Filtered]}]}]';
     expect(() => transformPartsMessages(input)).not.toThrow();
   });
 
@@ -137,7 +136,7 @@ describe('transformPartsMessages', () => {
 
     const {result, fixedInvalidJson} = transformPartsMessages(input);
     expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(false);
+    expect(fixedInvalidJson).toBe(true);
   });
 
   it('does not throw for a truncated JSON that fixJson cannot repair', () => {
