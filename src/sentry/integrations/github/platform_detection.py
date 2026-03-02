@@ -120,6 +120,35 @@ SUPERSEDED_BY: dict[str, list[str]] = {
     "javascript-nuxt": ["javascript-vue"],
 }
 
+# Priority bonus when a framework is detected via config file (strongest signal).
+# A config file like next.config.js is a definitive indicator vs. a dependency
+# which might be transitive or unused.
+CONFIG_FILE_BONUS = 20
+
+# Root-level config files that definitively indicate a specific framework.
+# Inspired by Vercel's framework detection: github.com/vercel/vercel/blob/main/packages/frameworks/src/frameworks.ts
+# Maps base_platform -> list of (config_filename, sentry_platform_id)
+CONFIG_FILE_DETECTORS: dict[str, list[tuple[str, str]]] = {
+    "javascript": [
+        ("next.config.js", "javascript-nextjs"),
+        ("next.config.mjs", "javascript-nextjs"),
+        ("next.config.ts", "javascript-nextjs"),
+        ("nuxt.config.ts", "javascript-nuxt"),
+        ("nuxt.config.js", "javascript-nuxt"),
+        ("svelte.config.js", "javascript-svelte"),
+        ("svelte.config.ts", "javascript-svelte"),
+        ("angular.json", "javascript-angular"),
+        ("remix.config.js", "javascript-remix"),
+        ("remix.config.mjs", "javascript-remix"),
+    ],
+    "python": [
+        ("manage.py", "python-django"),
+    ],
+    "php": [
+        ("artisan", "php-laravel"),
+    ],
+}
+
 
 class FrameworkMatch(TypedDict):
     platform: str
@@ -241,6 +270,40 @@ def _get_repo_file_content(
         return b64decode(response["content"]).decode("utf-8")
     except ApiError:
         return None
+
+
+def _get_root_file_names(client: GitHubBaseClient, repo: str, ref: str | None = None) -> set[str]:
+    """Fetch the list of file names in the repository root directory.
+
+    Uses the GitHub Contents API on the root path, which returns all
+    top-level files and directories in a single API call.
+    """
+    try:
+        params: dict[str, str] = {}
+        if ref:
+            params["ref"] = ref
+        response = client.get(f"/repos/{repo}/contents/", params=params)
+        return {item["name"] for item in response if item.get("type") == "file"}
+    except ApiError:
+        return set()
+
+
+def _detect_from_config_files(
+    root_files: set[str],
+    base_platform: str,
+) -> list[str]:
+    """Detect frameworks from config file presence in root directory.
+
+    Returns a list of platform IDs detected via config files.
+    """
+    detectors = CONFIG_FILE_DETECTORS.get(base_platform, [])
+    detected: list[str] = []
+    seen: set[str] = set()
+    for config_file, platform_id in detectors:
+        if config_file in root_files and platform_id not in seen:
+            seen.add(platform_id)
+            detected.append(platform_id)
+    return detected
 
 
 def _detect_frameworks_from_content(
@@ -367,13 +430,16 @@ def detect_platforms(
     """
     Detect Sentry platforms for a GitHub repository.
 
-    Calls the GitHub Languages API, maps languages to Sentry platform IDs,
-    and attempts framework refinement via manifest file inspection.
+    Uses three signals (inspired by Vercel's framework detection):
+    1. Config files — strongest signal (next.config.js, manage.py, etc.)
+    2. Manifest dependencies — package.json, requirements.txt, etc.
+    3. Language bytes — from GitHub's Languages API
 
     Results are ranked by priority (descending), then bytes (descending).
     Superseded frameworks (e.g. React when Next.js is present) are removed.
     """
     languages = client.get_languages(repo)
+    root_files = _get_root_file_names(client, repo, ref)
 
     results: list[DetectedPlatform] = []
     seen_platforms: set[str] = set()
@@ -386,21 +452,33 @@ def detect_platforms(
         if base_platform is None:
             continue
 
-        framework_matches = detect_framework(client, repo, base_platform, ref)
+        # Signal 1: Config file detection (one check against cached root listing)
+        config_detected = set(_detect_from_config_files(root_files, base_platform))
 
-        for match in framework_matches:
-            framework_id = match["platform"]
+        # Signal 2: Dependency detection from manifest files
+        framework_matches = detect_framework(client, repo, base_platform, ref)
+        dep_map: dict[str, str] = {m["platform"]: m["dep_source"] for m in framework_matches}
+
+        # Merge signals: union of all detected framework platform IDs
+        all_framework_ids = config_detected | set(dep_map.keys())
+
+        for framework_id in all_framework_ids:
             if framework_id not in seen_platforms:
                 seen_platforms.add(framework_id)
                 base_priority = FRAMEWORK_PRIORITY.get(framework_id, 50)
-                dep_bonus = _DEP_SOURCE_BONUS.get(match["dep_source"], 0)
+                has_config = framework_id in config_detected
+                dep_source = dep_map.get(framework_id)
+
+                config_bonus = CONFIG_FILE_BONUS if has_config else 0
+                dep_bonus = _DEP_SOURCE_BONUS.get(dep_source, 0) if dep_source else 0
+
                 results.append(
                     DetectedPlatform(
                         platform=framework_id,
                         language=language,
                         bytes=byte_count,
                         confidence="high",
-                        priority=base_priority + dep_bonus,
+                        priority=base_priority + config_bonus + dep_bonus,
                     )
                 )
 

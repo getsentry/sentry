@@ -46,6 +46,13 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             json={"Python": 50000, "JavaScript": 30000},
             status=200,
         )
+        # Root directory listing (no config files)
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/contents/",
+            json=[],
+            status=200,
+        )
         # Mock 404s for manifest file lookups (no framework detection)
         responses.add(
             method=responses.GET,
@@ -86,6 +93,13 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             method=responses.GET,
             url="https://api.github.com/repos/Test-Organization/foo/languages",
             json={"Python": 50000},
+            status=200,
+        )
+        # Root directory listing (no config files)
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/contents/",
+            json=[],
             status=200,
         )
 

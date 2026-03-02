@@ -7,11 +7,14 @@ import pytest
 
 from sentry.integrations.github.platform_detection import (
     BASE_PLATFORM_PRIORITY,
+    CONFIG_FILE_BONUS,
     FRAMEWORK_PRIORITY,
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
     _apply_supersession,
     _detect_frameworks_from_content,
+    _detect_from_config_files,
+    _get_root_file_names,
     detect_framework,
     detect_platforms,
 )
@@ -240,6 +243,85 @@ class TestDetectFramework:
         assert "dep_source" in match
 
 
+class TestGetRootFileNames:
+    def test_returns_file_names(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = [
+            {"name": "package.json", "type": "file"},
+            {"name": "next.config.js", "type": "file"},
+            {"name": "src", "type": "dir"},
+            {"name": "README.md", "type": "file"},
+        ]
+
+        result = _get_root_file_names(client, "owner/repo")
+
+        assert result == {"package.json", "next.config.js", "README.md"}
+
+    def test_excludes_directories(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = [
+            {"name": "src", "type": "dir"},
+            {"name": "lib", "type": "dir"},
+        ]
+
+        result = _get_root_file_names(client, "owner/repo")
+
+        assert result == set()
+
+    def test_returns_empty_on_api_error(self) -> None:
+        client = mock.MagicMock()
+        client.get.side_effect = ApiError("Not Found", code=404)
+
+        result = _get_root_file_names(client, "owner/repo")
+
+        assert result == set()
+
+    def test_passes_ref_param(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = []
+
+        _get_root_file_names(client, "owner/repo", ref="main")
+
+        client.get.assert_called_once_with("/repos/owner/repo/contents/", params={"ref": "main"})
+
+
+class TestDetectFromConfigFiles:
+    def test_detects_nextjs_from_config(self) -> None:
+        root_files = {"next.config.js", "package.json", "README.md"}
+        result = _detect_from_config_files(root_files, "javascript")
+        assert "javascript-nextjs" in result
+
+    def test_detects_nuxt_from_config(self) -> None:
+        root_files = {"nuxt.config.ts", "package.json"}
+        result = _detect_from_config_files(root_files, "javascript")
+        assert "javascript-nuxt" in result
+
+    def test_detects_django_from_manage_py(self) -> None:
+        root_files = {"manage.py", "requirements.txt"}
+        result = _detect_from_config_files(root_files, "python")
+        assert "python-django" in result
+
+    def test_detects_laravel_from_artisan(self) -> None:
+        root_files = {"artisan", "composer.json"}
+        result = _detect_from_config_files(root_files, "php")
+        assert "php-laravel" in result
+
+    def test_no_match_returns_empty(self) -> None:
+        root_files = {"README.md", "setup.py"}
+        result = _detect_from_config_files(root_files, "javascript")
+        assert result == []
+
+    def test_unknown_platform_returns_empty(self) -> None:
+        root_files = {"next.config.js"}
+        result = _detect_from_config_files(root_files, "unknown")
+        assert result == []
+
+    def test_deduplicates_multiple_config_variants(self) -> None:
+        root_files = {"next.config.js", "next.config.mjs"}
+        result = _detect_from_config_files(root_files, "javascript")
+        assert result.count("javascript-nextjs") == 1
+
+
 class TestApplySupersession:
     def test_nextjs_supersedes_react(self) -> None:
         results = [
@@ -452,7 +534,13 @@ class TestDetectPlatforms:
         content = json.dumps(
             {"dependencies": {"next": "^14.0.0", "react": "^18.0.0", "express": "^4.0.0"}}
         )
-        client.get.return_value = _make_b64_response(content)
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents/"):
+                return []
+            return _make_b64_response(content)
+
+        client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
 
@@ -472,7 +560,13 @@ class TestDetectPlatforms:
                 "devDependencies": {"svelte": "^4.0.0"},
             }
         )
-        client.get.return_value = _make_b64_response(content)
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents/"):
+                return []
+            return _make_b64_response(content)
+
+        client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
 
@@ -498,6 +592,7 @@ class TestDetectPlatforms:
     def test_empty_repo_returns_empty(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {}
+        client.get.return_value = []
 
         result = detect_platforms(client, "owner/repo")
 
@@ -506,6 +601,7 @@ class TestDetectPlatforms:
     def test_only_ignored_languages_returns_empty(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"Shell": 5000, "Makefile": 1000}
+        client.get.return_value = []
 
         result = detect_platforms(client, "owner/repo")
 
@@ -547,3 +643,95 @@ class TestDetectPlatforms:
 
         assert len(result) >= 1
         assert result[0]["platform"] == expected_platform
+
+    def test_config_file_detects_nextjs_without_dep(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents/"):
+                return [
+                    {"name": "next.config.js", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {"react": "^18.0.0"}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "javascript-nextjs" in platforms
+        # React is superseded by Next.js
+        assert "javascript-react" not in platforms
+
+    def test_config_file_gets_priority_bonus(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents/"):
+                return [
+                    {"name": "next.config.js", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {"next": "^14.0.0"}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
+        # base priority (100) + config bonus (20) + prod dep bonus (10) = 130
+        assert (
+            nextjs["priority"] == FRAMEWORK_PRIORITY["javascript-nextjs"] + CONFIG_FILE_BONUS + 10
+        )
+
+    def test_config_file_only_gets_config_bonus_without_dep(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents/"):
+                return [
+                    {"name": "next.config.js", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
+        # base priority (100) + config bonus (20) + no dep bonus (0) = 120
+        assert nextjs["priority"] == FRAMEWORK_PRIORITY["javascript-nextjs"] + CONFIG_FILE_BONUS
+
+    def test_manage_py_detects_django(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents/"):
+                return [
+                    {"name": "manage.py", "type": "file"},
+                    {"name": "requirements.txt", "type": "file"},
+                ]
+            if "requirements.txt" in path:
+                return _make_b64_response("Django==4.2\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        django = next(r for r in result if r["platform"] == "python-django")
+        assert django["confidence"] == "high"
+        # base priority (90) + config bonus (20) + unknown dep bonus (5) = 115
+        assert django["priority"] == FRAMEWORK_PRIORITY["python-django"] + CONFIG_FILE_BONUS + 5
