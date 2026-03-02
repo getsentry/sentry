@@ -1,7 +1,11 @@
 from django.urls import reverse
 
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.models import PreprodArtifact
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class LatestBuildTestBase(APITestCase):
@@ -11,7 +15,16 @@ class LatestBuildTestBase(APITestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
-        self.login_as(user=self.user)
+
+        token_str = generate_token(self.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="Test Token",
+                token_hashed=hash_token(token_str),
+                scope_list=["project:distribution"],
+            )
+        self.api_token = token_str
 
         self.file = self.create_file(name="test.apk", type="application/octet-stream")
         self.installable_file = self.create_file(
@@ -35,6 +48,9 @@ class LatestBuildTestBase(APITestCase):
             args=[self.organization.slug, self.project.slug],
         )
 
+    def _get(self, url, data=None):
+        return self.client.get(url, data, HTTP_AUTHORIZATION=f"Bearer {self.api_token}")
+
     def _create_installable_artifact(self, **kwargs):
         """Helper to create an installable artifact with sensible defaults."""
         defaults = {
@@ -55,24 +71,24 @@ class LatestBuildValidationTest(LatestBuildTestBase):
     def test_validation(self):
         # Feature flag disabled
         with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self.client.get(
+            response = self._get(
                 self._get_url(), {"appId": "com.example.app", "platform": "android"}
             )
             assert response.status_code == 403
             assert response.json()["detail"] == "Feature not enabled"
 
         # Missing all required params
-        assert self.client.get(self._get_url()).status_code == 400
+        assert self._get(self._get_url()).status_code == 400
 
         # Missing platform
-        assert self.client.get(self._get_url(), {"appId": "com.example.app"}).status_code == 400
+        assert self._get(self._get_url(), {"appId": "com.example.app"}).status_code == 400
 
         # Missing appId
-        assert self.client.get(self._get_url(), {"platform": "android"}).status_code == 400
+        assert self._get(self._get_url(), {"platform": "android"}).status_code == 400
 
         # buildVersion without buildNumber or mainBinaryIdentifier
         assert (
-            self.client.get(
+            self._get(
                 self._get_url(),
                 {"appId": "com.example.app", "platform": "android", "buildVersion": "1.0.0"},
             ).status_code
@@ -97,9 +113,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         )
         self.create_installable_preprod_artifact(preprod_artifact=artifact, download_count=5)
 
-        response = self.client.get(
-            self._get_url(), {"appId": "com.example.app", "platform": "android"}
-        )
+        response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.status_code == 200
         data = response.json()
         assert data["currentArtifact"] is None
@@ -128,7 +142,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         assert build["codesigningType"] is None
 
     def test_no_matching_build(self):
-        response = self.client.get(
+        response = self._get(
             self._get_url(), {"appId": "com.nonexistent.app", "platform": "android"}
         )
         assert response.status_code == 200
@@ -148,9 +162,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         highest = self._create_installable_artifact(build_version="10.0.0", build_number=5)
         self._create_installable_artifact(build_version="10.0.0", build_number=3)
 
-        response = self.client.get(
-            self._get_url(), {"appId": "com.example.app", "platform": "android"}
-        )
+        response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(highest.id)
 
     def test_excludes_non_installable_builds(self):
@@ -172,9 +184,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         )
         installable = self._create_installable_artifact(build_version="1.0.0", build_number=1)
 
-        response = self.client.get(
-            self._get_url(), {"appId": "com.example.app", "platform": "android"}
-        )
+        response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(installable.id)
 
     def test_only_returns_builds_for_this_project(self):
@@ -184,9 +194,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         )
         artifact = self._create_installable_artifact(build_version="1.0.0", build_number=1)
 
-        response = self.client.get(
-            self._get_url(), {"appId": "com.example.app", "platform": "android"}
-        )
+        response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(artifact.id)
 
 
@@ -206,9 +214,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             build_number=99,
         )
 
-        response = self.client.get(
-            self._get_url(), {"appId": "com.example.app", "platform": "apple"}
-        )
+        response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "apple"})
         data = response.json()
         assert data["latestArtifact"]["buildId"] == str(ios_artifact.id)
         assert data["latestArtifact"]["platform"] == "APPLE"
@@ -225,9 +231,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             build_number=2,
         )
 
-        response = self.client.get(
-            self._get_url(), {"appId": "com.example.app", "platform": "android"}
-        )
+        response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(apk_artifact.id)
 
     def test_explicit_filters(self):
@@ -241,7 +245,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
         )
 
         # Build configuration filter
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {"appId": "com.example.app", "platform": "android", "buildConfiguration": "debug"},
         )
@@ -253,7 +257,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             build_number=1,
             extras={"codesigning_type": "enterprise"},
         )
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {"appId": "com.example.app", "platform": "android", "codesigningType": "enterprise"},
         )
@@ -265,7 +269,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             build_number=1,
             extras={"install_groups": ["beta-testers"]},
         )
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {"appId": "com.example.app", "platform": "android", "installGroups": "beta-testers"},
         )
@@ -278,7 +282,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             build_configuration=debug_config,
             extras={"codesigning_type": "enterprise"},
         )
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -296,7 +300,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             extras={"codesigning_type": "development"},
         )
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {"appId": "com.example.app", "platform": "android", "codesigningType": "enterprise"},
         )
@@ -314,7 +318,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             extras={"install_groups": ["beta", "staging"]},
         )
 
-        response = self.client.get(
+        response = self._get(
             self._get_url() + "?appId=com.example.app&platform=android"
             "&installGroups=beta&installGroups=staging"
         )
@@ -329,7 +333,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         current = self._create_installable_artifact(build_version="1.0.0", build_number=1)
         newer = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -347,7 +351,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
     def test_already_on_latest(self):
         artifact = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -364,7 +368,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
     def test_current_not_found(self):
         latest = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -379,7 +383,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["currentArtifact"] is None
 
     def test_no_builds_exist(self):
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -401,7 +405,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         )
         newer = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -435,7 +439,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             build_configuration=debug_config,
         )
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -466,7 +470,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             extras={"codesigning_type": "enterprise"},
         )
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -497,7 +501,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             extras={"install_groups": ["internal"]},
         )
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",
@@ -538,7 +542,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
 
-        response = self.client.get(
+        response = self._get(
             self._get_url(),
             {
                 "appId": "com.example.app",

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -28,6 +28,8 @@ from sentry.preprod.build_distribution_utils import (
     find_current_artifact,
     find_latest_installable_artifact,
 )
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -37,6 +39,14 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (ProjectDistributionPermission,)
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
 
     @extend_schema(
         operation_id="Get the latest installable build for a project",
