@@ -49,6 +49,7 @@ from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
     DatasetSelectionError,
+    QueryBytesScannedExceeded,
     QueryConnectionFailed,
     QueryExecutionError,
     QueryExecutionTimeMaximum,
@@ -402,6 +403,11 @@ def handle_query_errors() -> Generator[None]:
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+        elif isinstance(error, QueryBytesScannedExceeded):
+            sentry_sdk.set_tag("query.error_reason", "QueryBytesScannedExceeded")
+            raise TimeoutException(
+                detail="Query has exceeded its bytes scanned limit. Please try your query with a smaller date range or fewer projects."
+            )
         if isinstance(
             error,
             (
