@@ -35,6 +35,7 @@ GITHUB_LANGUAGE_TO_SENTRY_PLATFORM: dict[str, str] = {
     "C": "native",
     "C++": "native",
     "Perl": "perl",
+    "PowerShell": "powershell",
 }
 
 # Languages with no Sentry SDK — filtered out of detection results
@@ -54,7 +55,6 @@ IGNORED_LANGUAGES = frozenset(
         "HCL",
         "Jsonnet",
         "Batchfile",
-        "PowerShell",
         "CMake",
         "M4",
         "Roff",
@@ -79,6 +79,8 @@ class DetectorRule(TypedDict, total=False):
     path: str  # File must exist in root directory
     match_content: str  # Regex pattern to match in file content (requires path)
     match_package: str  # Package name in package.json/composer.json deps
+    match_dir: str  # Directory must exist in root
+    match_ext: str  # File extension must exist in root (e.g., ".csproj")
 
 
 class FrameworkDef(TypedDict, total=False):
@@ -94,7 +96,9 @@ class FrameworkDef(TypedDict, total=False):
 # Inspired by Vercel's framework detection:
 # github.com/vercel/vercel/blob/main/packages/frameworks/src/frameworks.ts
 FRAMEWORKS: list[FrameworkDef] = [
-    # --- JavaScript meta-frameworks (sort=1, highest priority) ---
+    # ===================================================================
+    # JavaScript meta-frameworks (sort=1, highest priority)
+    # ===================================================================
     {
         "platform": "javascript-nextjs",
         "sort": 1,
@@ -129,7 +133,88 @@ FRAMEWORKS: list[FrameworkDef] = [
         ],
         "supersedes": ["javascript-vue"],
     },
-    # --- JavaScript UI frameworks (sort=30) ---
+    {
+        "platform": "javascript-astro",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "astro"},
+            {"path": "astro.config.mjs"},
+            {"path": "astro.config.ts"},
+            {"path": "astro.config.js"},
+        ],
+    },
+    {
+        "platform": "javascript-gatsby",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "gatsby"},
+            {"path": "gatsby-config.js"},
+            {"path": "gatsby-config.ts"},
+        ],
+        "supersedes": ["javascript-react"],
+    },
+    {
+        "platform": "javascript-sveltekit",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [{"match_package": "@sveltejs/kit"}],
+        "supersedes": ["javascript-svelte"],
+    },
+    {
+        "platform": "javascript-solidstart",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [{"match_package": "@solidjs/start"}],
+        "supersedes": ["javascript-solid"],
+    },
+    {
+        "platform": "javascript-tanstackstart-react",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [{"match_package": "@tanstack/react-start"}],
+        "supersedes": ["javascript-react"],
+    },
+    # --- Mobile / cross-platform (sort=1-10) ---
+    {
+        "platform": "react-native",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [{"match_package": "react-native"}],
+        "supersedes": ["javascript-react"],
+    },
+    {
+        "platform": "electron",
+        "sort": 5,
+        "base_platform": "javascript",
+        "some": [{"match_package": "electron"}],
+    },
+    {
+        "platform": "capacitor",
+        "sort": 5,
+        "base_platform": "javascript",
+        "some": [{"match_package": "@capacitor/core"}],
+    },
+    {
+        "platform": "javascript-react-router",
+        "sort": 5,
+        "base_platform": "javascript",
+        "every": [{"match_package": "react-router"}, {"match_package": "react"}],
+    },
+    {
+        "platform": "ionic",
+        "sort": 10,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "@ionic/angular"},
+            {"match_package": "@ionic/react"},
+            {"match_package": "@ionic/vue"},
+        ],
+    },
+    # ===================================================================
+    # JavaScript UI frameworks (sort=30)
+    # ===================================================================
     {
         "platform": "javascript-react",
         "sort": 30,
@@ -161,7 +246,24 @@ FRAMEWORKS: list[FrameworkDef] = [
             {"path": "svelte.config.ts"},
         ],
     },
-    # --- JavaScript server frameworks (sort=40) ---
+    {
+        "platform": "javascript-solid",
+        "sort": 30,
+        "base_platform": "javascript",
+        "some": [{"match_package": "solid-js"}],
+    },
+    {
+        "platform": "javascript-ember",
+        "sort": 30,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "ember-source"},
+            {"path": "ember-cli-build.js"},
+        ],
+    },
+    # ===================================================================
+    # JavaScript server frameworks (sort=40)
+    # ===================================================================
     {
         "platform": "node-express",
         "sort": 40,
@@ -180,7 +282,72 @@ FRAMEWORKS: list[FrameworkDef] = [
         "base_platform": "javascript",
         "every": [{"match_package": "koa"}],
     },
-    # --- Python frameworks ---
+    {
+        "platform": "node-nestjs",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "@nestjs/core"}],
+    },
+    {
+        "platform": "node-fastify",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "fastify"}],
+    },
+    {
+        "platform": "node-connect",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "connect"}],
+    },
+    {
+        "platform": "node-hapi",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "@hapi/hapi"}],
+    },
+    # ===================================================================
+    # JavaScript serverless / edge (sort=50)
+    # ===================================================================
+    {
+        "platform": "node-awslambda",
+        "sort": 50,
+        "base_platform": "javascript",
+        "some": [{"path": "serverless.yml"}],
+    },
+    {
+        "platform": "node-gcpfunctions",
+        "sort": 50,
+        "base_platform": "javascript",
+        "every": [{"match_package": "@google-cloud/functions-framework"}],
+    },
+    {
+        "platform": "node-azurefunctions",
+        "sort": 50,
+        "base_platform": "javascript",
+        "every": [{"path": "host.json"}],
+    },
+    {
+        "platform": "node-cloudflare-pages",
+        "sort": 50,
+        "base_platform": "javascript",
+        "every": [
+            {"path": "wrangler.toml", "match_content": r"pages_build_output_dir"},
+        ],
+        "supersedes": ["node-cloudflare-workers"],
+    },
+    {
+        "platform": "node-cloudflare-workers",
+        "sort": 50,
+        "base_platform": "javascript",
+        "some": [
+            {"path": "wrangler.toml"},
+            {"match_package": "wrangler"},
+        ],
+    },
+    # ===================================================================
+    # Python frameworks
+    # ===================================================================
     {
         "platform": "python-django",
         "sort": 10,
@@ -213,6 +380,66 @@ FRAMEWORKS: list[FrameworkDef] = [
         ],
     },
     {
+        "platform": "python-aiohttp",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\baiohttp\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\baiohttp\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\baiohttp\b"},
+        ],
+    },
+    {
+        "platform": "python-bottle",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bbottle\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bbottle\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bbottle\b"},
+        ],
+    },
+    {
+        "platform": "python-falcon",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bfalcon\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bfalcon\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bfalcon\b"},
+        ],
+    },
+    {
+        "platform": "python-pyramid",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bpyramid\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bpyramid\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bpyramid\b"},
+        ],
+    },
+    {
+        "platform": "python-quart",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bquart\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bquart\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bquart\b"},
+        ],
+    },
+    {
+        "platform": "python-sanic",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bsanic\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bsanic\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bsanic\b"},
+        ],
+    },
+    {
         "platform": "python-starlette",
         "sort": 30,
         "base_platform": "python",
@@ -233,6 +460,44 @@ FRAMEWORKS: list[FrameworkDef] = [
         ],
     },
     {
+        "platform": "python-tryton",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\btrytond?\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\btrytond?\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\btrytond?\b"},
+        ],
+    },
+    {
+        "platform": "python-chalice",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bchalice\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bchalice\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bchalice\b"},
+        ],
+    },
+    # --- Python serverless (sort=50) ---
+    {
+        "platform": "python-awslambda",
+        "sort": 50,
+        "base_platform": "python",
+        "some": [{"path": "serverless.yml"}],
+    },
+    {
+        "platform": "python-gcpfunctions",
+        "sort": 50,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bfunctions-framework\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bfunctions-framework\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bfunctions-framework\b"},
+        ],
+    },
+    # --- Python task queues / background (sort=60) ---
+    {
         "platform": "python-celery",
         "sort": 60,
         "base_platform": "python",
@@ -242,7 +507,19 @@ FRAMEWORKS: list[FrameworkDef] = [
             {"path": "Pipfile", "match_content": r"(?i)\bcelery\b"},
         ],
     },
-    # --- Ruby ---
+    {
+        "platform": "python-rq",
+        "sort": 60,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\brq\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\brq\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\brq\b"},
+        ],
+    },
+    # ===================================================================
+    # Ruby
+    # ===================================================================
     {
         "platform": "ruby-rails",
         "sort": 10,
@@ -251,7 +528,17 @@ FRAMEWORKS: list[FrameworkDef] = [
             {"path": "Gemfile", "match_content": r"(?i)\brails\b"},
         ],
     },
-    # --- PHP ---
+    {
+        "platform": "ruby-rack",
+        "sort": 30,
+        "base_platform": "ruby",
+        "some": [
+            {"path": "Gemfile", "match_content": r"(?i)\brack\b"},
+        ],
+    },
+    # ===================================================================
+    # PHP
+    # ===================================================================
     {
         "platform": "php-laravel",
         "sort": 10,
@@ -262,6 +549,12 @@ FRAMEWORKS: list[FrameworkDef] = [
         ],
     },
     {
+        "platform": "php-wordpress",
+        "sort": 10,
+        "base_platform": "php",
+        "some": [{"path": "wp-config.php"}],
+    },
+    {
         "platform": "php-symfony",
         "sort": 20,
         "base_platform": "php",
@@ -269,7 +562,9 @@ FRAMEWORKS: list[FrameworkDef] = [
             {"match_package": "symfony/"},
         ],
     },
-    # --- Java ---
+    # ===================================================================
+    # Java
+    # ===================================================================
     {
         "platform": "java-spring-boot",
         "sort": 10,
@@ -288,13 +583,33 @@ FRAMEWORKS: list[FrameworkDef] = [
             {"path": "pom.xml", "match_content": r"spring-framework"},
         ],
     },
-    # --- Go ---
+    {
+        "platform": "java-log4j2",
+        "sort": 60,
+        "base_platform": "java",
+        "some": [
+            {"path": "build.gradle", "match_content": r"log4j-core"},
+            {"path": "pom.xml", "match_content": r"log4j-core"},
+        ],
+    },
+    {
+        "platform": "java-logback",
+        "sort": 60,
+        "base_platform": "java",
+        "some": [
+            {"path": "build.gradle", "match_content": r"logback-core|logback-classic"},
+            {"path": "pom.xml", "match_content": r"logback-core|logback-classic"},
+        ],
+    },
+    # ===================================================================
+    # Go — using full module paths for precise matching
+    # ===================================================================
     {
         "platform": "go-echo",
         "sort": 20,
         "base_platform": "go",
         "some": [
-            {"path": "go.mod", "match_content": r"(?i)\becho\b"},
+            {"path": "go.mod", "match_content": r"github\.com/labstack/echo"},
         ],
     },
     {
@@ -302,7 +617,7 @@ FRAMEWORKS: list[FrameworkDef] = [
         "sort": 20,
         "base_platform": "go",
         "some": [
-            {"path": "go.mod", "match_content": r"(?i)\bgin\b"},
+            {"path": "go.mod", "match_content": r"github\.com/gin-gonic/gin"},
         ],
     },
     {
@@ -310,8 +625,77 @@ FRAMEWORKS: list[FrameworkDef] = [
         "sort": 20,
         "base_platform": "go",
         "some": [
-            {"path": "go.mod", "match_content": r"(?i)\bfiber\b"},
+            {"path": "go.mod", "match_content": r"github\.com/gofiber/fiber"},
         ],
+    },
+    {
+        "platform": "go-fasthttp",
+        "sort": 20,
+        "base_platform": "go",
+        "some": [
+            {"path": "go.mod", "match_content": r"github\.com/valyala/fasthttp"},
+        ],
+    },
+    {
+        "platform": "go-iris",
+        "sort": 20,
+        "base_platform": "go",
+        "some": [
+            {"path": "go.mod", "match_content": r"github\.com/kataras/iris"},
+        ],
+    },
+    {
+        "platform": "go-negroni",
+        "sort": 20,
+        "base_platform": "go",
+        "some": [
+            {"path": "go.mod", "match_content": r"github\.com/urfave/negroni"},
+        ],
+    },
+    # ===================================================================
+    # Dart / Flutter (requires pubspec.yaml manifest parsing)
+    # ===================================================================
+    {
+        "platform": "flutter",
+        "sort": 1,
+        "base_platform": "dart",
+        "some": [{"match_package": "flutter"}],
+    },
+    # ===================================================================
+    # Mobile / Desktop / Gaming — directory and extension-based detection
+    # ===================================================================
+    {
+        "platform": "unity",
+        "sort": 10,
+        "base_platform": "dotnet",
+        "every": [{"match_dir": "Assets"}, {"match_dir": "ProjectSettings"}],
+    },
+    {
+        "platform": "android",
+        "sort": 10,
+        "base_platform": "java",
+        "every": [
+            {"match_dir": "app"},
+            {"path": "build.gradle", "match_content": r"android"},
+        ],
+    },
+    {
+        "platform": "dotnet-aspnetcore",
+        "sort": 10,
+        "base_platform": "dotnet",
+        "some": [{"match_ext": ".csproj"}],
+    },
+    {
+        "platform": "unreal",
+        "sort": 10,
+        "base_platform": "native",
+        "some": [{"match_ext": ".uproject"}],
+    },
+    {
+        "platform": "godot",
+        "sort": 10,
+        "base_platform": "native",
+        "some": [{"path": "project.godot"}],
     },
 ]
 
@@ -329,6 +713,9 @@ for _fw in FRAMEWORKS:
 _PACKAGE_MANIFEST_FILES: dict[str, str] = {
     "javascript": "package.json",
     "php": "composer.json",
+    "dart": "pubspec.yaml",
+    "ruby": "Gemfile",
+    "go": "go.mod",
 }
 
 
@@ -354,24 +741,31 @@ def _get_repo_file_content(
         return None
 
 
-def _get_root_file_names(client: GitHubBaseClient, repo: str, ref: str | None = None) -> set[str]:
-    """Fetch the list of file names in the repository root directory.
+def _get_root_entries(
+    client: GitHubBaseClient, repo: str, ref: str | None = None
+) -> tuple[set[str], set[str]]:
+    """Fetch the file names and directory names in the repository root.
 
     Uses the GitHub Contents API on the root path, which returns all
     top-level files and directories in a single API call.
+
+    Returns:
+        Tuple of (file_names, dir_names).
     """
     try:
         params: dict[str, str] = {}
         if ref:
             params["ref"] = ref
         response = client.get(f"/repos/{repo}/contents", params=params)
-        return {item["name"] for item in response if item.get("type") == "file"}
+        files = {item["name"] for item in response if item.get("type") == "file"}
+        dirs = {item["name"] for item in response if item.get("type") == "dir"}
+        return files, dirs
     except ApiError:
-        return set()
+        return set(), set()
 
 
 def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifest | None:
-    """Parse a JSON package manifest into dependency sets."""
+    """Parse a package manifest into dependency sets."""
     try:
         if manifest_file == "package.json":
             pkg = json.loads(content)
@@ -385,9 +779,96 @@ def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifes
                 dependencies=set(composer.get("require", {}).keys()),
                 dev_dependencies=set(composer.get("require-dev", {}).keys()),
             )
+        elif manifest_file == "pubspec.yaml":
+            return _parse_pubspec_yaml(content)
+        elif manifest_file == "Gemfile":
+            return _parse_gemfile(content)
+        elif manifest_file == "go.mod":
+            return _parse_go_mod(content)
     except (json.JSONDecodeError, TypeError):
         pass
     return None
+
+
+def _parse_pubspec_yaml(content: str) -> _PackageManifest:
+    """Parse a pubspec.yaml file into dependency sets using line-based parsing.
+
+    Extracts package names from the dependencies: and dev_dependencies:
+    top-level sections. Direct dependencies are identified as lines indented
+    by exactly 2 spaces that contain a colon.
+    """
+    deps: set[str] = set()
+    dev_deps: set[str] = set()
+    section_re = re.compile(r"^(\w[\w_]*):")
+    dep_re = re.compile(r"^  (\w[\w_-]*):")
+
+    current_section: str | None = None
+    for line in content.splitlines():
+        section_match = section_re.match(line)
+        if section_match:
+            key = section_match.group(1)
+            if key == "dependencies":
+                current_section = "deps"
+            elif key == "dev_dependencies":
+                current_section = "dev_deps"
+            else:
+                current_section = None
+            continue
+
+        if current_section:
+            dep_match = dep_re.match(line)
+            if dep_match:
+                name = dep_match.group(1)
+                if current_section == "deps":
+                    deps.add(name)
+                else:
+                    dev_deps.add(name)
+
+    return _PackageManifest(dependencies=deps, dev_dependencies=dev_deps)
+
+
+def _parse_gemfile(content: str) -> _PackageManifest:
+    """Parse a Gemfile into dependency sets.
+
+    Extracts gem names from ``gem "name"`` or ``gem 'name'`` lines.
+    """
+    deps: set[str] = set()
+    gem_re = re.compile(r"""gem\s+['"]([^'"]+)['"]""")
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        match = gem_re.search(stripped)
+        if match:
+            deps.add(match.group(1))
+    return _PackageManifest(dependencies=deps, dev_dependencies=set())
+
+
+def _parse_go_mod(content: str) -> _PackageManifest:
+    """Parse a go.mod file into dependency sets.
+
+    Extracts module paths from ``require`` directives, both single-line
+    (``require path v1.0``) and block form (``require ( ... )``).
+    """
+    deps: set[str] = set()
+    in_require = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("require ("):
+            in_require = True
+            continue
+        if in_require:
+            if stripped == ")":
+                in_require = False
+                continue
+            parts = stripped.split()
+            if parts:
+                deps.add(parts[0])
+        elif stripped.startswith("require "):
+            parts = stripped.split()
+            if len(parts) >= 2:
+                deps.add(parts[1])
+    return _PackageManifest(dependencies=deps, dev_dependencies=set())
 
 
 def _package_in_manifest(package_name: str, manifest: _PackageManifest) -> bool:
@@ -398,6 +879,9 @@ def _package_in_manifest(package_name: str, manifest: _PackageManifest) -> bool:
     # Prefix match for composer.json patterns like "symfony/"
     if package_name.endswith("/"):
         return any(dep.startswith(package_name) for dep in all_deps)
+    # Go module version path matching: github.com/foo/bar matches github.com/foo/bar/v2
+    if "/" in package_name:
+        return any(dep.startswith(package_name + "/v") for dep in all_deps)
     return False
 
 
@@ -406,12 +890,22 @@ def _rule_matches(
     root_files: set[str],
     file_contents: dict[str, str],
     package_manifest: _PackageManifest | None,
+    root_dirs: set[str] | None = None,
 ) -> bool:
     """Evaluate a single detector rule against repository state."""
     if "match_package" in rule:
         if package_manifest is None:
             return False
         return _package_in_manifest(rule["match_package"], package_manifest)
+
+    if "match_dir" in rule:
+        if root_dirs is None:
+            return False
+        return rule["match_dir"] in root_dirs
+
+    if "match_ext" in rule:
+        ext = rule["match_ext"]
+        return any(f.endswith(ext) for f in root_files)
 
     path = rule.get("path")
     if path is None:
@@ -432,6 +926,7 @@ def _framework_matches(
     root_files: set[str],
     file_contents: dict[str, str],
     package_manifest: _PackageManifest | None,
+    root_dirs: set[str] | None = None,
 ) -> bool:
     """Evaluate whether a framework definition matches the repository."""
     every: Sequence[DetectorRule] = fw.get("every", [])
@@ -441,12 +936,12 @@ def _framework_matches(
         return False
 
     every_pass = (
-        all(_rule_matches(r, root_files, file_contents, package_manifest) for r in every)
+        all(_rule_matches(r, root_files, file_contents, package_manifest, root_dirs) for r in every)
         if every
         else True
     )
     some_pass = (
-        any(_rule_matches(r, root_files, file_contents, package_manifest) for r in some)
+        any(_rule_matches(r, root_files, file_contents, package_manifest, root_dirs) for r in some)
         if some
         else True
     )
@@ -477,16 +972,18 @@ def detect_platforms(
     Detect Sentry platforms for a GitHub repository.
 
     Uses composable framework definitions (inspired by Vercel's detection)
-    with three signal types:
+    with five signal types:
     1. Config files — path-only rules (next.config.js, manage.py, etc.)
     2. Manifest content — path + match_content rules (requirements.txt, go.mod, etc.)
-    3. Package dependencies — match_package rules (package.json, composer.json)
+    3. Package dependencies — match_package rules (package.json, composer.json, etc.)
+    4. Root directories — match_dir rules (Assets/, app/, etc.)
+    5. File extensions — match_ext rules (.csproj, .uproject, etc.)
 
     Results are ranked by priority (descending), then bytes (descending).
     Superseded frameworks (e.g. React when Next.js is present) are removed.
     """
     languages = client.get_languages(repo)
-    root_files = _get_root_file_names(client, repo, ref)
+    root_files, root_dirs = _get_root_entries(client, repo, ref)
 
     # Group languages by base platform
     active_platforms: dict[str, list[tuple[str, int]]] = defaultdict(list)
@@ -542,7 +1039,7 @@ def detect_platforms(
         manifest = package_manifests.get(manifest_file) if manifest_file else None
 
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
-            if _framework_matches(fw, root_files, file_contents, manifest):
+            if _framework_matches(fw, root_files, file_contents, manifest, root_dirs):
                 platform_id = fw["platform"]
                 if platform_id not in seen_platforms:
                     seen_platforms.add(platform_id)
