@@ -506,21 +506,6 @@ export function ProjectPageFilter({
     dispatch({type: 'remove staged'});
   }, [dispatch]);
 
-  const draftSelectionIntent = useMemo(
-    () =>
-      selectionToIntent({
-        projects,
-        selection: stagedSelect.value,
-        showNonMemberProjects,
-      }),
-    [stagedSelect.value, projects, showNonMemberProjects]
-  );
-
-  // Keep existing behavior: if committed state is "My Projects", deselecting everything
-  // should not auto-commit on outside click.
-  const isMyProjectsDeselectedOnly =
-    committedSelectionIntent.kind === 'my' && draftSelectionIntent.kind === 'none';
-
   // Merge the hook's onOpenChange (resets shift-click anchor) with the local
   // snapshot logic (freezes the bookmark sort order while the menu is open).
   const handleOpenChange = useCallback(
@@ -585,7 +570,6 @@ export function ProjectPageFilter({
   const canWrite = organization.access.includes('project:write');
 
   const hasUnstaggedChanges =
-    !isMyProjectsDeselectedOnly &&
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
   const menuFooterContent =
@@ -650,9 +634,9 @@ export function ProjectPageFilter({
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
       onInteractOutside={
-        isMyProjectsDeselectedOnly
-          ? clearDraftSelectionState
-          : stagedSelect.compactSelectProps.onInteractOutside
+        hasUnstaggedChanges
+          ? stagedSelect.compactSelectProps.onInteractOutside
+          : clearDraftSelectionState
       }
       onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
