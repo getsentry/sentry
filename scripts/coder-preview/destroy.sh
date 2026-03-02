@@ -34,7 +34,7 @@ api() {
 echo "Looking up workspace '${WORKSPACE_NAME}'..."
 WORKSPACE_JSON=$(api \
     -H "${AUTH_HEADER}" \
-    "${CODER_API}/users/me/workspaces?q=name:${WORKSPACE_NAME}" | jq -r '.workspaces[0] // empty')
+    "${CODER_API}/workspaces?q=owner:me+name:${WORKSPACE_NAME}" | jq -r '.workspaces[0] // empty')
 
 if [ -n "$WORKSPACE_JSON" ]; then
     WORKSPACE_ID=$(echo "$WORKSPACE_JSON" | jq -r '.id')
