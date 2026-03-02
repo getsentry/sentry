@@ -26,7 +26,7 @@ import {
 
 interface BuildInstallHeaderProps {
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectId?: string;
 }
 
 export function BuildInstallHeader(props: BuildInstallHeaderProps) {

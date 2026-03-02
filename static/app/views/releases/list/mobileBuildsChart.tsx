@@ -157,7 +157,6 @@ export function MobileBuildsChart({
 
       const path = getSizeBuildPath({
         organizationSlug,
-        projectId: build.project_id.toString(),
         baseArtifactId: build.id,
       });
 
