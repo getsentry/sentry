@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1036_orgmapping_date_updated_trunc_index"),
+        ("sentry", "1037_add_grouphashmetadata_seer_latest_training_model"),
     ]
 
     operations = [
