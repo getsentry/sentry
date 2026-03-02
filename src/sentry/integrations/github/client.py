@@ -574,7 +574,7 @@ class GitHubBaseClient(
 
     def get_git_ref(self, repo: str, ref: str) -> Any:
         """https://docs.github.com/en/rest/git/refs#get-a-reference"""
-        return self.get(f"/repos/{repo}/git/ref/heads/{ref}")
+        return self.get(f"/repos/{repo}/git/refs/heads/{ref}")
 
     def create_git_ref(self, repo: str, data: dict[str, Any]) -> Any:
         """https://docs.github.com/en/rest/git/refs#create-a-reference"""
