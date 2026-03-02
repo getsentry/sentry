@@ -119,7 +119,6 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     key = NotificationProviderKey.SLACK
     default_renderer = SlackRenderer
     target_class = IntegrationNotificationTarget
-    supports_threading = True
     target_resource_types = [
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,
@@ -160,7 +159,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             target=target, installation_cls=SlackIntegration
         )
 
-        if thread_context is not None and cls.supports_threading:
+        if thread_context is not None:
             return cls._send_with_threading(
                 slack_target=slack_target, renderable=renderable, thread_context=thread_context
             )

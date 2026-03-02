@@ -6,6 +6,7 @@ from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
     SendResult,
+    integration_error_result,
 )
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -26,6 +27,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block
@@ -122,7 +124,6 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
     key = NotificationProviderKey.MSTEAMS
     default_renderer = MSTeamsRenderer
     target_class = IntegrationNotificationTarget
-    supports_threading = False
     target_resource_types = [
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,
@@ -151,5 +152,10 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         msteams_target = PreparedIntegrationNotificationTarget[MsTeamsIntegration](
             target=target, installation_cls=MsTeamsIntegration
         )
-        msteams_target.integration_installation.send_notification(target=target, payload=renderable)
+        try:
+            msteams_target.integration_installation.send_notification(
+                target=target, payload=renderable
+            )
+        except IntegrationError as e:
+            return integration_error_result(e)
         return SendResult()

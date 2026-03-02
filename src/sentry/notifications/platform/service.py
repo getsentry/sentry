@@ -84,11 +84,9 @@ class NotificationService[T: NotificationData]:
 
             match result.status:
                 case SendStatus.HALT:
-                    lifecycle.record_halt(halt_reason=result.error_message, create_issue=False)
+                    lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
                 case SendStatus.FAILURE:
-                    lifecycle.record_failure(
-                        failure_reason=result.error_message, create_issue=False
-                    )
+                    lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
             return result
 
@@ -225,9 +223,9 @@ def notify_target_async(
 
         match result.status:
             case SendStatus.HALT:
-                lifecycle.record_halt(halt_reason=result.error_message, create_issue=False)
+                lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
             case SendStatus.FAILURE:
-                lifecycle.record_failure(failure_reason=result.error_message, create_issue=False)
+                lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
 
 @dataclass

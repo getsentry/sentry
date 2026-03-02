@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Protocol
 
-import sentry_sdk
-
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
@@ -55,7 +53,7 @@ class SendResult:
     is_threaded: bool = False
     """Whether the notification was sent with threading."""
 
-    error_message: str | None = None
+    exception: Exception | None = None
     """Human-readable error summary for lifecycle recording."""
 
     error_code: int | None = None
@@ -74,10 +72,9 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
         status = SendStatus.HALT
     else:
         status = SendStatus.FAILURE
-        sentry_sdk.capture_exception(e)
     return SendResult(
         status=status,
-        error_message=e.message,
+        exception=e,
         error_code=e.error_code,
         is_threaded=is_threaded,
     )
@@ -108,7 +105,6 @@ class NotificationProvider[RenderableT](Protocol):
     default_renderer: type[NotificationRenderer[RenderableT]]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
-    supports_threading: bool
 
     @classmethod
     def validate_target(cls, *, target: NotificationTarget) -> None:

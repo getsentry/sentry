@@ -26,7 +26,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.discord.provider import DiscordRenderable
-from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.provider import (
+    IntegrationNotificationClient,
+    ProviderThreadingContext,
+)
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
@@ -92,6 +95,14 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
             client.send_message(channel_id=target.resource_id, message=payload)
         except ApiError as e:
             translate_discord_api_error(e)
+
+    def send_notification_with_threading(
+        self,
+        target: IntegrationNotificationTarget,
+        payload: DiscordRenderable,
+        threading_context: ProviderThreadingContext,
+    ) -> dict[str, Any]:
+        raise NotImplementedError("Threading is not supported for Discord")
 
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove
