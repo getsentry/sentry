@@ -668,8 +668,8 @@ importers:
         specifier: 16.0.0
         version: 16.0.0
       knip:
-        specifier: 5.83.1
-        version: 5.83.1(@types/node@22.15.21)(typescript@5.9.3)
+        specifier: 5.85.0
+        version: 5.85.0(@types/node@22.15.21)(typescript@5.9.3)
       odiff-bin:
         specifier: ^4.3.2
         version: 4.3.2
@@ -1530,14 +1530,8 @@ packages:
   '@emmetio/scanner@1.0.4':
     resolution: {integrity: sha512-IqRuJtQff7YHHBk4G8YZ45uB9BaAGcwQeVzgj/zj8/UdOhtQpEIupUhSk8dys6spFIWVZVeK20CzGEnqR5SbqA==}
 
-  '@emnapi/core@1.5.0':
-    resolution: {integrity: sha512-sbP8GzB1WDzacS8fgNPpHlp6C9VZe+SJP3F90W9rLemaQj2PzIuTEl1qDOYQf58YIpyjViI24y9aPWCjEzY2cg==}
-
   '@emnapi/core@1.7.1':
     resolution: {integrity: sha512-o1uhUASyo921r2XtHYOHy7gdkGLge8ghBEQHMWmyJFoXlpU58kIrhhN3w26lpQb6dspetweapMn2CSNwQ8I4wg==}
-
-  '@emnapi/runtime@1.5.0':
-    resolution: {integrity: sha512-97/BJ3iXHww3djw6hYIfErCZFee7qCtrneuLa20UXFCOTCfBM2cvQHjWJ2EG0s0MtdNwInarqCTz35i4wWXHsQ==}
 
   '@emnapi/runtime@1.7.1':
     resolution: {integrity: sha512-PVtJr5CmLwYAU9PZDMITZoR5iAOShYREoR45EyyLrbntV50mdePTgUn4AmOw90Ifcj+x2kRjdzr1HP3RrNiHGA==}
@@ -6780,8 +6774,8 @@ packages:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
 
-  knip@5.83.1:
-    resolution: {integrity: sha512-av3ZG/Nui6S/BNL8Tmj12yGxYfTnwWnslouW97m40him7o8MwiMjZBY9TPvlEWUci45aVId0/HbgTwSKIDGpMw==}
+  knip@5.85.0:
+    resolution: {integrity: sha512-V2kyON+DZiYdNNdY6GALseiNCwX7dYdpz9Pv85AUn69Gk0UKCts+glOKWfe5KmaMByRjM9q17Mzj/KinTVOyxg==}
     engines: {node: '>=18.18.0'}
     hasBin: true
     peerDependencies:
@@ -10385,20 +10379,9 @@ snapshots:
 
   '@emmetio/scanner@1.0.4': {}
 
-  '@emnapi/core@1.5.0':
-    dependencies:
-      '@emnapi/wasi-threads': 1.1.0
-      tslib: 2.8.1
-    optional: true
-
   '@emnapi/core@1.7.1':
     dependencies:
       '@emnapi/wasi-threads': 1.1.0
-      tslib: 2.8.1
-    optional: true
-
-  '@emnapi/runtime@1.5.0':
-    dependencies:
       tslib: 2.8.1
     optional: true
 
@@ -11174,8 +11157,8 @@ snapshots:
 
   '@napi-rs/wasm-runtime@0.2.11':
     dependencies:
-      '@emnapi/core': 1.5.0
-      '@emnapi/runtime': 1.5.0
+      '@emnapi/core': 1.7.1
+      '@emnapi/runtime': 1.7.1
       '@tybys/wasm-util': 0.9.0
     optional: true
 
@@ -16938,7 +16921,7 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knip@5.83.1(@types/node@22.15.21)(typescript@5.9.3):
+  knip@5.85.0(@types/node@22.15.21)(typescript@5.9.3):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       '@types/node': 22.15.21
