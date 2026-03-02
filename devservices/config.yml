@@ -79,7 +79,7 @@ x-sentry-service-config:
     redis-cluster:
       description: Redis cluster used for testing
     chartcuterie:
-      description: Chartcuterie is a service that generates charts
+      description: Chartcuterie is a service that generates charts.
       remote:
         repo_name: chartcuterie
         branch: build/switch-to-dhi-base-images
