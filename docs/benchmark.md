@@ -21,6 +21,9 @@ Branch `mchen/tiered-xdist-v2-clean`. Configuration:
 
 | Run | Wall Clock | Spread | Average | Run ID |
 |-----|-----------|--------|---------|--------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| 1 | 13m42s | 212s | 12m12s | 22589935413 |
+| 2 | 13m09s | 144s | 12m16s | 22589936538 |
+| 3 | 13m19s | 186s | 12m02s | 22589937593 |
+| **Mean** | **13m23s** | **181s** | **12m10s** | |
+
+All 3 runs: 22/22 shards passed, 0 failures.
