@@ -102,7 +102,7 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         required=False,
         help_text="Current build version. When provided, enables check-for-updates mode.",
     )
-    buildNumber = serializers.CharField(
+    buildNumber = serializers.IntegerField(
         required=False,
         help_text="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
     )

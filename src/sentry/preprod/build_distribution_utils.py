@@ -203,7 +203,7 @@ def find_current_artifact(
     app_id: str,
     platform: str,
     build_version: str,
-    build_number: str | None = None,
+    build_number: int | None = None,
     main_binary_identifier: str | None = None,
     build_configuration: str | None = None,
     codesigning_type: str | None = None,
@@ -221,10 +221,7 @@ def find_current_artifact(
         filter_kwargs["main_binary_identifier"] = main_binary_identifier
 
     if build_number is not None:
-        try:
-            filter_kwargs["mobile_app_info__build_number"] = int(build_number)
-        except ValueError:
-            return None
+        filter_kwargs["mobile_app_info__build_number"] = build_number
 
     if build_configuration:
         filter_kwargs["build_configuration__name"] = build_configuration

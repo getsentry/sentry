@@ -78,7 +78,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 name="buildNumber",
                 description="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
                 required=False,
-                type=str,
+                type=int,
                 location="query",
             ),
             OpenApiParameter(
@@ -148,7 +148,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         app_id: str = params["appId"]
         platform: str = params["platform"]
         build_version: str | None = params.get("buildVersion")
-        build_number: str | None = params.get("buildNumber")
+        build_number: int | None = params.get("buildNumber")
         main_binary_identifier: str | None = params.get("mainBinaryIdentifier")
         build_configuration: str | None = params.get("buildConfiguration")
         codesigning_type: str | None = params.get("codesigningType")
