@@ -4,6 +4,7 @@ from django.db import router, transaction
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
+from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
 from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
 from sentry.workflow_engine.models import Detector
 
@@ -34,8 +35,6 @@ def invalidate_detector_cache(sender: type[Detector], instance: Detector, **kwar
     data_sources = list(instance.data_sources.values_list("source_id", "type"))
 
     def invalidate_cache() -> None:
-        from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
-
         for source_id, source_type in data_sources:
             invalidate_detectors_by_data_source_cache(source_id, source_type)
 

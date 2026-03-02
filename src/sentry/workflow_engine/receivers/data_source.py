@@ -5,6 +5,7 @@ from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
 from sentry.workflow_engine.models import DataSource
 from sentry.workflow_engine.registry import data_source_type_registry
 
@@ -40,8 +41,6 @@ def invalidate_detector_cache_on_data_source(
     source_type = instance.type
 
     def invalidate_cache() -> None:
-        from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
-
         invalidate_detectors_by_data_source_cache(source_id, source_type)
 
     transaction.on_commit(invalidate_cache, using=router.db_for_write(DataSource))
