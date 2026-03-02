@@ -48,4 +48,40 @@ describe('Breadcrumbs', () => {
     await userEvent.click(screen.getByText('Test 3'));
     expect(router.location.pathname).toBe(initialPathname);
   });
+
+  it('renders crumbs with openInNewTab as external links', () => {
+    render(
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: 'Issue Link',
+            to: '/organizations/sentry/issues/123/',
+            openInNewTab: true,
+          },
+          {
+            label: 'Event Link',
+            to: '/organizations/sentry/issues/123/events/456/',
+            openInNewTab: true,
+          },
+          {
+            label: 'Current',
+          },
+        ]}
+      />
+    );
+
+    const links = screen.getAllByTestId('breadcrumb-link');
+    expect(links).toHaveLength(2);
+
+    expect(links[0]).toHaveAttribute('target', '_blank');
+    expect(links[0]).toHaveAttribute('rel', 'noreferrer noopener');
+    expect(links[0]).toHaveAttribute('href', expect.stringContaining('/issues/123/'));
+
+    expect(links[1]).toHaveAttribute('target', '_blank');
+    expect(links[1]).toHaveAttribute('rel', 'noreferrer noopener');
+    expect(links[1]).toHaveAttribute(
+      'href',
+      expect.stringContaining('/issues/123/events/456/')
+    );
+  });
 });
