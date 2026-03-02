@@ -47,7 +47,6 @@ type AutofixOptions = {
 };
 
 interface CodingAgentResult {
-  branch_name: string | null;
   description: string;
   pr_url: string | null;
   repo_full_name: string;
@@ -63,6 +62,7 @@ export enum CodingAgentStatus {
 
 export enum CodingAgentProvider {
   CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
+  CLAUDE_CODE_AGENT = 'claude_code_agent',
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
 }
 
@@ -315,7 +315,7 @@ export interface SeerRepoDefinition {
 interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   integration_id: number;
-  target: 'cursor_background_agent';
+  target: 'cursor_background_agent' | 'claude_code_agent' | 'github_copilot_agent';
   auto_create_pr?: boolean;
 }
 

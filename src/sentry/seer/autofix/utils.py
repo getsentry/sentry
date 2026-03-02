@@ -13,6 +13,7 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
+from sentry.integrations.claude_code.utils import ClaudeSessionStatus
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
@@ -80,6 +81,20 @@ class CodingAgentStatus(StrEnum):
         }
 
         return status_mapping.get(cursor_status.upper(), None)
+
+    @classmethod
+    def from_claude_code_status(cls, claude_code_status: str) -> "CodingAgentStatus":
+        status_mapping = {
+            ClaudeSessionStatus.PENDING: cls.PENDING,
+            ClaudeSessionStatus.RUNNING: cls.RUNNING,
+            ClaudeSessionStatus.IDLE: cls.COMPLETED,
+            ClaudeSessionStatus.CLOSED: cls.COMPLETED,
+        }
+        try:
+            status = ClaudeSessionStatus(claude_code_status.lower())
+        except ValueError:
+            return cls.RUNNING
+        return status_mapping[status]
 
 
 class AutofixTriggerSource(StrEnum):

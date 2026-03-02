@@ -268,14 +268,16 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
 
     def get_organization_config(self) -> list[dict[str, Any]]:
         choices: list[tuple[str, str]] = [("", str(_("Create new automatically")))]
+        client = self.get_client()
+        environments = []
         try:
-            client = self.get_client()
             environments = client.list_environments()
-            choices.extend(
-                (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
-            )
         except Exception:
             logger.exception("claude_code.get_organization_config.fetch_environments_failed")
+
+        choices.extend(
+            (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
+        )
 
         return [
             {
