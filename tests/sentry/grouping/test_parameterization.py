@@ -1,6 +1,10 @@
 import pytest
 
-from sentry.grouping.parameterization import Parameterizer
+from sentry.grouping.parameterization import (
+    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
+    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
+    Parameterizer,
+)
 
 
 @pytest.fixture
@@ -164,6 +168,10 @@ def test_parameterize_standard_not_experimental(
     assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
+@pytest.mark.skipif(
+    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
+    reason="no experimental regexes to test",
+)
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_parameterize_experimental(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
