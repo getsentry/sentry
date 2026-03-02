@@ -118,6 +118,10 @@ class GroupHashMetadata(Model):
     )
     # The similarity between this hash's stacktrace and the parent (matched) hash's stacktrace
     seer_match_distance = models.FloatField(null=True)
+    # The latest Seer model version for which event data was sent (via either ingest or
+    # training_mode=True). Separate from seer_model to preserve the original grouping decision
+    # metadata.
+    seer_latest_training_model = models.CharField(null=True)
 
     class Meta:
         app_label = "sentry"

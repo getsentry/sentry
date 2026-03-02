@@ -20,7 +20,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.core.endpoints.organization_member_utils import (
@@ -191,6 +191,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         operation_id="List an Organization's Members",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

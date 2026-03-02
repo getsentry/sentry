@@ -1,14 +1,13 @@
 import {useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
-import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
+import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
 function SelectInput({
   selectProps,
@@ -28,7 +27,7 @@ function SelectInput({
 function SelectIndicatorsContainer({
   children,
 }: React.ComponentProps<typeof components.IndicatorsContainer>) {
-  const indicator = useFieldStateIndicator();
+  const indicator = useAutoSaveIndicator();
   return (
     <Flex padding="0 sm" gap="sm" align="center">
       {indicator}
@@ -38,7 +37,7 @@ function SelectIndicatorsContainer({
 }
 
 // Base props shared by all select variants
-type BaseSelectFieldProps = BaseFieldProps &
+type BaseSelectFieldProps = BaseFieldProps<HTMLInputElement> &
   Omit<
     React.ComponentProps<typeof Select>,
     | 'value'
@@ -89,7 +88,7 @@ export type SelectFieldProps<TValue = string> =
 // This converts the `ref` value of SelectInput into a format
 // that works for BaseField, which expects `fieldProps.ref: Ref<HTMLElement>`
 const applyInputToRef =
-  (ref: Ref<HTMLElement>) =>
+  (ref: Ref<HTMLInputElement>) =>
   (instance: null | {input: HTMLInputElement}): void => {
     if (instance) {
       if (typeof ref === 'function') {
@@ -105,27 +104,25 @@ export function SelectField<TValue = string>({
   disabled,
   multiple,
   value,
+  ref,
   ...props
-}: SelectFieldProps<TValue>) {
+}: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
-  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
 
   return (
-    <BaseField>
-      {({id, ref, ...fieldProps}) => {
-        const select = (
+    <BaseField disabled={disabled} ref={ref}>
+      {({id, ref: fieldRef, ...fieldProps}) => (
+        <Container flex={1} minWidth={0}>
           <Select
             {...fieldProps}
             {...props}
             inputId={id}
-            disabled={isDisabled}
             multiple={multiple}
             value={value}
-            inputRef={applyInputToRef(ref)}
+            inputRef={applyInputToRef(fieldRef)}
             components={{
               ...props.components,
               Input: SelectInput,
@@ -169,14 +166,8 @@ export function SelectField<TValue = string>({
               }
             }}
           />
-        );
-
-        if (disabledReason) {
-          return <Tooltip title={disabledReason}>{select}</Tooltip>;
-        }
-
-        return select;
-      }}
+        </Container>
+      )}
     </BaseField>
   );
 }

@@ -14,6 +14,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
+    Locality,
     Region,
     RegionCategory,
     RegionConfigurationError,
@@ -78,7 +79,7 @@ class RegionDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
-        assert directory.get_by_name("nowhere") is None
+        assert directory.get_cell_by_name("nowhere") is None
 
         with self._in_global_state(directory):
             assert get_region_by_name("eu") == self._EXPECTED_OUTPUTS[1]
@@ -140,14 +141,14 @@ class RegionDirectoryTest(TestCase):
         for region in self._EXPECTED_OUTPUTS:
             region.validate()
 
-    def test_region_to_url(self) -> None:
-        region = Region("us", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
+    def test_locality_to_url(self) -> None:
+        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
         with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
-            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+            assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
-            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+            assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
-            assert region.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
+            assert locality.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     @patch("sentry.types.region.sentry_sdk")
     def test_invalid_config(self, sentry_sdk_mock: MagicMock) -> None:

@@ -59,7 +59,7 @@ export function loadStats(api: Client, params: StatsParams) {
 
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
-export const _projectStatsToFetch: Set<string> = new Set();
+export const _projectStatsToFetch = new Set<string>();
 
 // Max projects to query at a time, otherwise if we fetch too many in the same request
 // it can timeout

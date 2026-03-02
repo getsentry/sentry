@@ -181,6 +181,7 @@ class StoredSeerMetadataTest(TestCase):
         assert metadata.seer_model == expected_seer_model
         assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
         assert metadata.seer_match_distance == expected_seer_match_distance
+        assert metadata.seer_latest_training_model == expected_seer_model
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_group_with_no_seer_match(self, _: MagicMock) -> None:

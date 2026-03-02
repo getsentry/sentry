@@ -211,7 +211,13 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  const savedQueries = useMemo(() => data?.map(q => new SavedQuery(q)), [data]);
+  const savedQueries = useMemo(
+    () =>
+      data
+        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+        .map(q => new SavedQuery(q)),
+    [data]
+  );
   return {data: savedQueries, isLoading, pageLinks, ...rest};
 }
 
@@ -243,7 +249,14 @@ export function useGetSavedQuery(id?: string) {
       enabled: defined(id),
     }
   );
-  const savedQuery = useMemo(() => (defined(data) ? new SavedQuery(data) : data), [data]);
+  const savedQuery = useMemo(() => {
+    if (!defined(data)) {
+      return undefined;
+    }
+    return Array.isArray(data.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : undefined;
+  }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
 

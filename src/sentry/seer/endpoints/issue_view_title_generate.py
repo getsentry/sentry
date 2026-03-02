@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import orjson
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,10 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 
 logger = logging.getLogger(__name__)
 
@@ -38,24 +34,16 @@ class IssueViewTitleGeneratePermission(OrganizationPermission):
 def generate_title_from_query(query: str) -> str | None:
     truncated_query = query[:MAX_QUERY_LENGTH] if len(query) > MAX_QUERY_LENGTH else query
 
-    body = orjson.dumps(
-        {
-            "provider": "gemini",
-            "model": "flash",
-            "referrer": "sentry.issue-views.title-generate",
-            "prompt": f"Generate a title for this Sentry issue search query: {truncated_query}",
-            "system_prompt": SYSTEM_PROMPT,
-            "temperature": 0.3,
-            "max_tokens": 50,
-        }
+    body = LlmGenerateRequest(
+        provider="gemini",
+        model="flash",
+        referrer="sentry.issue-views.title-generate",
+        prompt=f"Generate a title for this Sentry issue search query: {truncated_query}",
+        system_prompt=SYSTEM_PROMPT,
+        temperature=0.3,
+        max_tokens=50,
     )
-
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/llm/generate",
-        body,
-        timeout=10,
-    )
+    response = make_llm_generate_request(body, timeout=10)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     data = response.json()

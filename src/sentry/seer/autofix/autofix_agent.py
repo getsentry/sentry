@@ -192,9 +192,9 @@ def trigger_autofix_explorer(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = None
+        metadata = {"group_id": group.id}
         if stopping_point:
-            metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
+            metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
