@@ -83,7 +83,9 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
 
 def _fetch_latest_item_id_impl(credentials_id: int) -> None:
     """Implementation of fetch_latest_item_id, separated for locking."""
-    credentials = TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()
+    credentials = (
+        TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()
+    )
     if credentials is None:
         # Credentials deleted between task scheduling and execution - skip silently
         metrics.incr("tempest.latest_id.skipped", tags={"reason": "credentials_deleted"})
