@@ -184,7 +184,7 @@ def _get_repo_file_content(
             params=params,
         )
         return b64decode(response["content"]).decode("utf-8")
-    except ApiError:
+    except (ApiError, KeyError, UnicodeDecodeError, ValueError):
         return None
 
 

@@ -9,6 +9,7 @@ from sentry.integrations.github.platform_detection import (
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
     _detect_frameworks_from_content,
+    _get_repo_file_content,
     detect_framework,
     detect_platforms,
 )
@@ -119,6 +120,41 @@ class TestDetectFrameworksFromContent:
 def _make_b64_response(content: str) -> dict:
     """Helper to create a GitHub contents API response with base64-encoded content."""
     return {"content": b64encode(content.encode()).decode()}
+
+
+class TestGetRepoFileContent:
+    def test_returns_decoded_content(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = _make_b64_response("hello world")
+
+        result = _get_repo_file_content(client, "owner/repo", "README.md")
+
+        assert result == "hello world"
+
+    def test_returns_none_on_api_error(self) -> None:
+        client = mock.MagicMock()
+        client.get.side_effect = ApiError("Not Found", code=404)
+
+        assert _get_repo_file_content(client, "owner/repo", "missing.txt") is None
+
+    def test_returns_none_on_missing_content_key(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = {"name": "file.txt"}
+
+        assert _get_repo_file_content(client, "owner/repo", "file.txt") is None
+
+    def test_returns_none_on_invalid_base64(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = {"content": "not-valid-base64!!!"}
+
+        assert _get_repo_file_content(client, "owner/repo", "file.txt") is None
+
+    def test_returns_none_on_binary_content(self) -> None:
+        client = mock.MagicMock()
+        # Valid base64 but decodes to invalid UTF-8
+        client.get.return_value = {"content": b64encode(b"\x80\x81\x82").decode()}
+
+        assert _get_repo_file_content(client, "owner/repo", "binary.bin") is None
 
 
 class TestDetectFramework:
