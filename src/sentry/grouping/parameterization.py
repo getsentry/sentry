@@ -180,13 +180,15 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # then the <int> pattern would already have caught it. Given that we're here, it didn't,
             # so the only thing we need the lookahead to guard against is it being all letters.
             #
-            # Each regex consists of two parts:
-            # (?=.*[0-9])             The aforementioned lookahead - at least one `0-9` is present
-            # [0-9a-f/A-F]{8 | 16,64}   8 or 16-128 hex characters
-            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=.*[0-9])[0-9a-f]{16,128}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{8}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{16,128}\b)
+            # Each regex consists of two parts, the lookahead and the hex characters themselves. For
+            # example, for the lowercase 8-character pattern we have:
+            #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
+            #                         preceded by some number of hex letters
+            #     [0-9a-f]{8}         The matcher itself - 8 hex characters
+            (\b(?=[a-f]*[0-9])[0-9a-f]{8}\b) |
+            (\b(?=[a-f]*[0-9])[0-9a-f]{16,128}\b) |
+            (\b(?=[A-F]*[0-9])[0-9A-F]{8}\b) |
+            (\b(?=[A-F]*[0-9])[0-9A-F]{16,128}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
