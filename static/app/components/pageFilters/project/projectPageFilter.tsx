@@ -216,16 +216,7 @@ export function ProjectPageFilter({
             {
               value: ALL_ACCESS_PROJECTS,
               label: (
-                <Flex
-                  align="center"
-                  justify="between"
-                  width="100%"
-                  style={
-                    memberProjectList.length + nonMemberProjectList.length > 0
-                      ? {position: 'relative'}
-                      : undefined
-                  }
-                >
+                <Flex align="center" justify="between" width="100%">
                   <Text>{t('All Projects')}</Text>
                   <Text size="xs" variant="muted">
                     ({projects.length})
@@ -276,16 +267,7 @@ export function ProjectPageFilter({
             {
               value: MY_PROJECTS_VALUE,
               label: (
-                <Flex
-                  align="center"
-                  justify="between"
-                  width="100%"
-                  style={
-                    memberProjectList.length + nonMemberProjectList.length > 0
-                      ? {position: 'relative'}
-                      : undefined
-                  }
-                >
+                <Flex align="center" justify="between" width="100%">
                   <Text>{t('My Projects')}</Text>
                   <Text size="xs" variant="muted">
                     ({memberProjectList.length})
