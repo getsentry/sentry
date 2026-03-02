@@ -15,6 +15,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     ExplorerIndexProject,
     ExplorerIndexRequest,
+    SeerViewerContext,
     make_explorer_index_request,
 )
 from sentry.tasks.base import instrumented_task
@@ -229,10 +230,15 @@ def run_explorer_index_for_projects(
     ]
     payload = ExplorerIndexRequest(projects=project_list)
 
+    # Use the org_id from the first project tuple for viewer context
+    _, first_org_id = projects[0]
+    viewer_context = SeerViewerContext(organization_id=first_org_id)
+
     try:
         response = make_explorer_index_request(
             payload,
             timeout=30,
+            viewer_context=viewer_context,
         )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
