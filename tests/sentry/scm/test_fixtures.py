@@ -30,6 +30,7 @@ from sentry.scm.types import (
     PullRequestBranch,
     PullRequestCommit,
     PullRequestFile,
+    PullRequestState,
     Reaction,
     ReactionResult,
     Referrer,
@@ -940,7 +941,7 @@ class BaseTestProvider(Provider):
 
     def get_pull_requests(
         self,
-        state: str = "open",
+        state: PullRequestState | None = "open",
         head: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
