@@ -69,7 +69,10 @@ export default function Users() {
             ],
           },
         }}
-        sortOptions={[['date', 'Date Joined'], ['lastActive', 'Last Active']]}
+        sortOptions={[
+          ['date', 'Date Joined'],
+          ['lastActive', 'Last Active'],
+        ]}
         defaultSort="date"
       />
     </div>
