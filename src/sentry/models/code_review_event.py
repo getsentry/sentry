@@ -37,7 +37,7 @@ class CodeReviewEvent(DefaultFieldsModel):
     Tracks the full lifecycle from webhook receipt to review completion.
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     organization = FlexibleForeignKey("sentry.Organization")
     repository = FlexibleForeignKey("sentry.Repository")
