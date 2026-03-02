@@ -17,9 +17,10 @@ export function parseMetricAggregate(aggregate: string): {
   const args = parsed.arguments ?? [];
   const metricName = args[1] ?? '';
   const metricType = args[2] ?? '';
+  const metricUnit = args[3] === '-' ? undefined : args[3];
 
   return {
     aggregation: parsed.name,
-    traceMetric: {name: metricName, type: metricType},
+    traceMetric: {name: metricName, type: metricType, unit: metricUnit},
   };
 }

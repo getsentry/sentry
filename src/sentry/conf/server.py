@@ -457,6 +457,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.notifications",
     "sentry.flags",
     "sentry.monitors",
+    "sentry.processing_errors",
     "sentry.uptime",
     "sentry.tempest",
     "sentry.replays",
@@ -851,7 +852,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.feedback.tasks.update_user_reports",
@@ -888,6 +888,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
+    "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",
@@ -943,6 +944,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
+    "sentry.tasks.scim.privilege_sync",
     "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
@@ -963,6 +965,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer_explorer_index",
+    "sentry.tasks.context_engine_index",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1110,14 +1113,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-sliding-window-org": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.custom_rule_notifications",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "clean_custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
-        "schedule": task_crontab("*/7", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1394,13 +1389,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 
@@ -1450,8 +1440,6 @@ SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
-# DSN for tracking all client HTTP requests (which can be noisy) [experimental]
-SENTRY_FRONTEND_REQUESTS_DSN: str | None = None
 
 # Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None
@@ -2411,19 +2399,6 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "headers": {
-            "User-Agent": "curl/7.72.0",
-        },
-        "is_public": True,
-        "has_index": True,
-    },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -2893,6 +2868,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+SENTRY_GITHUB_APP_USER_ID = 39604003
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 

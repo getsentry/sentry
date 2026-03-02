@@ -72,8 +72,7 @@ function RuleListRow({
       : rule.projects[0]!;
 
   const ruleType =
-    rule &&
-    rule.type === CombinedAlertType.METRIC &&
+    rule?.type === CombinedAlertType.METRIC &&
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
@@ -333,7 +332,7 @@ function RuleListRow({
                 disabled={!hasEditAccess}
                 options={dropdownTeams}
                 value={assignee}
-                searchable
+                search={{placeholder: t('Filter teams')}}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button
                     {...triggerProps}
@@ -346,7 +345,6 @@ function RuleListRow({
                     {avatarElement}
                   </OverlayTrigger.Button>
                 )}
-                searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}
               />
             )}

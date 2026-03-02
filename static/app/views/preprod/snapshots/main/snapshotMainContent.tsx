@@ -14,7 +14,7 @@ interface SnapshotMainContentProps {
   currentGroupName: string | null;
   onVariantChange: (index: number) => void;
   organizationSlug: string;
-  projectSlug: string;
+  projectId: string;
   variantIndex: number;
 }
 
@@ -24,7 +24,7 @@ export function SnapshotMainContent({
   variantIndex,
   onVariantChange,
   organizationSlug,
-  projectSlug,
+  projectId,
 }: SnapshotMainContentProps) {
   const selectedImage = currentGroupImages[variantIndex];
   if (!currentGroupName || !selectedImage) {
@@ -35,9 +35,9 @@ export function SnapshotMainContent({
     );
   }
 
-  const imageUrl = `/api/0/projects/${organizationSlug}/${projectSlug}/files/images/${selectedImage.key}/`;
+  const imageUrl = `/api/0/projects/${organizationSlug}/${projectId}/files/images/${selectedImage.key}/`;
   const totalVariants = currentGroupImages.length;
-  const displayName = selectedImage.display_name ?? selectedImage.file_name;
+  const displayName = selectedImage.display_name ?? selectedImage.image_file_name;
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">

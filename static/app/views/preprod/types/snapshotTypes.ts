@@ -3,7 +3,7 @@ import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
 
 export interface SnapshotImage {
   display_name: string | null;
-  file_name: string;
+  image_file_name: string;
   height: number;
   key: string;
   width: number;
@@ -21,6 +21,7 @@ export interface SnapshotDetailsApiResponse {
   head_artifact_id: string;
   image_count: number;
   images: SnapshotImage[];
+  project_id: string;
   state: string;
   vcs_info: BuildDetailsVcsInfo;
 

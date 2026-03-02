@@ -26,6 +26,7 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -112,7 +113,6 @@ class SeerOperator[CachePayloadT]:
         """
         from sentry import quotas
         from sentry.seer.autofix.utils import is_issue_category_eligible
-        from sentry.seer.seer_setup import has_seer_access
 
         return (
             has_seer_access(group.organization)
@@ -212,24 +212,36 @@ class SeerOperator[CachePayloadT]:
                         )
                     return
 
-            if not run_id:
-                run_id = trigger_autofix_explorer(
-                    group=group,
-                    step=AutofixStep.ROOT_CAUSE,
-                    run_id=None,
-                )
-            elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                pass  # TODO: OPENING PRs is a little more complicated so putting it off for now
-            else:
-                # NOTE: Stopping point here is really just what
-                # step to run next. Not the same as the stopping_point
-                # argument supported by `trigger_autofix_explorer` which allows one
-                # to run multiple steps at once
-                run_id = trigger_autofix_explorer(
-                    group=group,
-                    step=AutofixStep.from_autofix_stopping_point(stopping_point),
-                    run_id=run_id,
-                )
+            try:
+                if not run_id:
+                    run_id = trigger_autofix_explorer(
+                        group=group,
+                        step=AutofixStep.ROOT_CAUSE,
+                        run_id=None,
+                    )
+                elif stopping_point == AutofixStoppingPoint.OPEN_PR:
+                    client = SeerExplorerClient(organization=group.organization)
+                    client.push_changes(run_id, blocking=False)
+                else:
+                    # NOTE: Stopping point here is really just what
+                    # step to run next. Not the same as the stopping_point
+                    # argument supported by `trigger_autofix_explorer` which allows one
+                    # to run multiple steps at once
+                    run_id = trigger_autofix_explorer(
+                        group=group,
+                        step=AutofixStep.from_autofix_stopping_point(stopping_point),
+                        run_id=run_id,
+                    )
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
 
             lifecycle.add_extra("run_id", str(run_id))
 
@@ -469,13 +481,24 @@ def process_autofix_updates(
             return
 
         for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+            logging_ctx = {
+                "organization_id": organization.id,
+                "group_id": group_id,
+                "run_id": run_id,
+                "entrypoint_key": str(entrypoint_key),
+            }
+
             if not entrypoint_cls.has_access(organization=organization):
+                logger.warning("seer.operator.no_access_entrypoint_key", extra=logging_ctx)
                 continue
+
             cache_result = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
             if not cache_result:
+                logger.warning("seer.operator.no_cache", extra=logging_ctx)
                 continue
+
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AUTOFIX_UPDATE,
                 entrypoint_key=entrypoint_key,

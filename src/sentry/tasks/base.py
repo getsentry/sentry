@@ -9,9 +9,11 @@ from typing import Any, TypeVar
 import sentry_sdk
 from django.db.models import Model
 
+from sentry.silo.base import SiloMode
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryTaskError, retry_task
+from sentry.taskworker.silolimiter import TaskSiloLimit
 from sentry.taskworker.state import current_task
 from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
@@ -44,7 +46,7 @@ def instrumented_task(
     at_most_once: bool = False,
     wait_for_delivery: bool = False,
     compression_type: CompressionType = CompressionType.PLAINTEXT,
-    silo_mode=None,
+    silo_mode: SiloMode | None = None,
     **kwargs,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
@@ -85,15 +87,20 @@ def instrumented_task(
             at_most_once=at_most_once,
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
-            silo_mode=silo_mode,
         )(func)
+
+        if silo_mode:
+            silo_limiter = TaskSiloLimit(silo_mode)
+            task = silo_limiter(task)
+            namespace._registered_tasks[name] = task
+
         # If an alias is provided, register the task for both "name" and "alias" under namespace
         # If an alias namespace is provided, register the task in both namespace and alias_namespace
         # When both are provided, register tasks namespace."name" and alias_namespace."alias"
         if alias or alias_namespace:
             target_alias = alias if alias else name
             target_alias_namespace = alias_namespace if alias_namespace else namespace
-            target_alias_namespace.register(
+            alias_task = target_alias_namespace.register(
                 name=target_alias,
                 retry=retry,
                 expires=expires,
@@ -101,8 +108,13 @@ def instrumented_task(
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
                 compression_type=compression_type,
-                silo_mode=silo_mode,
             )(func)
+
+            if silo_mode:
+                silo_limiter = TaskSiloLimit(silo_mode)
+                alias_task = silo_limiter(alias_task)
+                target_alias_namespace._registered_tasks[target_alias] = alias_task
+
         return task
 
     return wrapped

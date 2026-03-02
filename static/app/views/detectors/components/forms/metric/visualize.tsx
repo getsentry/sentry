@@ -27,6 +27,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -222,6 +223,16 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 }
 
 export function Visualize() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+
+  if (dataset === DetectorDataset.METRICS) {
+    return <MetricsVisualize />;
+  }
+
+  return <GenericVisualize />;
+}
+
+function GenericVisualize() {
   const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
@@ -396,7 +407,7 @@ export function Visualize() {
             </Tooltip>
           </div>
           <StyledAggregateSelect
-            searchable
+            search
             trigger={triggerProps => (
               <OverlayTrigger.Button {...triggerProps}>
                 {aggregate || t('Select aggregate')}
@@ -415,7 +426,7 @@ export function Visualize() {
             <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {lockedOption
@@ -436,7 +447,7 @@ export function Visualize() {
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {parameters[index] || param.defaultValue || t('Select value')}

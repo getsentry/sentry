@@ -504,7 +504,7 @@ class FlagAuditLogItem(TypedDict):
     flag: str
     created_at: datetime.datetime
     created_by: str
-    tags: dict[str, str]
+    tags: dict[str, Any]
 
 
 def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_id: int) -> None:

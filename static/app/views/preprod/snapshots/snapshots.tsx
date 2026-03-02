@@ -23,9 +23,7 @@ import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
-  const {projectId, projectSlug, snapshotId} = useParams<{
-    projectId: string;
-    projectSlug: string;
+  const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
 
@@ -34,11 +32,10 @@ export default function SnapshotsPage() {
       queryKey: [
         'infinite',
         getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+          '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
           {
             path: {
               organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectSlug,
               snapshotId,
             },
           }
@@ -46,7 +43,7 @@ export default function SnapshotsPage() {
         {query: {per_page: 20}},
       ],
       staleTime: 0,
-      enabled: !!projectSlug && !!snapshotId,
+      enabled: !!snapshotId,
     });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +59,7 @@ export default function SnapshotsPage() {
     const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of allImages) {
-      const name = image.display_name ?? image.file_name;
+      const name = image.display_name ?? image.image_file_name;
       const existing = groups.get(name);
       if (existing) {
         existing.push(image);
@@ -129,7 +126,10 @@ export default function SnapshotsPage() {
     <SentryDocumentTitle title={t('Snapshot')}>
       <Layout.Page>
         <Layout.Header>
-          <SnapshotHeaderContent projectId={projectId} data={firstPageData} />
+          <SnapshotHeaderContent
+            projectId={firstPageData.project_id}
+            data={firstPageData}
+          />
         </Layout.Header>
         <Flex direction="row" gap="0" height="100%" width="100%">
           <SnapshotSidebarContent
@@ -149,7 +149,7 @@ export default function SnapshotsPage() {
             variantIndex={variantIndex}
             onVariantChange={setVariantIndex}
             organizationSlug={organization.slug}
-            projectSlug={projectSlug}
+            projectId={firstPageData.project_id}
           />
         </Flex>
       </Layout.Page>

@@ -82,7 +82,7 @@ function TeamFilter({
     <CompactSelect
       multiple
       clearable
-      searchable
+      search={{onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}}
       disabled={isDemoModeActive()}
       loading={fetching}
       menuTitle={t('Filter teams')}
@@ -100,7 +100,6 @@ function TeamFilter({
           : [{value: '_teams', label: t('Other Teams'), options: otherTeamOptions}]),
       ]}
       value={selectedTeams}
-      onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       onChange={opts => {
         // Compact select type inference does not work - onChange type is actually T | null.
         if (!opts) {

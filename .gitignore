@@ -1,4 +1,3 @@
-.warden/logs
 .env
 .cache/
 .code-workspace
@@ -65,3 +64,32 @@ package-lock.json
 yarn.lock
 .claude/settings.local.json
 .claude/plans
+.warden/
+# Auto-updated agent skill dependencies — ignore to avoid dirty state
+.agents/.gitignore
+agents.lock
+# end
+
+# Temporary: mirror .agents/.gitignore contents to avoid breaking pre-existing installs. Remove that after a week
+.agents/skills/agents-md/
+.agents/skills/blog-writing-guide/
+.agents/skills/brand-guidelines/
+.agents/skills/claude-settings-audit/
+.agents/skills/code-review/
+.agents/skills/code-simplifier/
+.agents/skills/commit/
+.agents/skills/create-pr/
+.agents/skills/django-access-review/
+.agents/skills/django-perf-review/
+.agents/skills/doc-coauthoring/
+.agents/skills/find-bugs/
+.agents/skills/gh-review-requests/
+.agents/skills/iterate-pr/
+.agents/skills/security-review/
+.agents/skills/skill-creator/
+.agents/skills/skill-scanner/
+.agents/skills/sred-project-organizer/
+.agents/skills/sred-work-summary/
+.agents/skills/warden/
+.agents/skills/warden-sweep/
+# end

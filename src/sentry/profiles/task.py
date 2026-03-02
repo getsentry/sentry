@@ -36,7 +36,7 @@ from sentry.lang.native.symbolicator import (
     SymbolicatorTaskKind,
 )
 from sentry.lang.native.utils import native_images_from_data
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -685,7 +685,7 @@ def run_symbolicate(
 
             if not response:
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
             elif response["status"] == "completed":
@@ -696,7 +696,7 @@ def run_symbolicate(
                 )
             elif response["status"] == "failed":
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "type": EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
                     "status": response.get("status"),
                     "message": response.get("message"),
                 }
@@ -704,7 +704,7 @@ def run_symbolicate(
             else:
                 profile["symbolicator_error"] = {
                     "status": response.get("status"),
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
     except SymbolicationTimeout:

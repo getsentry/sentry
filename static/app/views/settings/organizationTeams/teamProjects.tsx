@@ -136,12 +136,13 @@ export default function TeamProjects() {
                   {t('Add Project')}
                 </OverlayTrigger.Button>
               )}
-              searchPlaceholder={t('Search Projects')}
+              search={{
+                placeholder: t('Search Projects'),
+                filter: false,
+                onChange: setQuery,
+              }}
               emptyMessage={t('No projects')}
               loading={loadingUnlinkedProjects}
-              searchable
-              disableSearchFilter
-              onSearch={setQuery}
             />
           </div>
         </PanelHeader>

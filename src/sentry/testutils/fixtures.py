@@ -30,7 +30,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import (
@@ -53,6 +52,7 @@ from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -214,9 +214,6 @@ class Fixtures:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
-
-    def create_project_template(self, **kwargs) -> ProjectTemplate:
-        return Factories.create_project_template(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:
@@ -1182,5 +1179,5 @@ class Fixtures:
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
     @pytest.fixture(autouse=True)
-    def _init_insta_snapshot(self, insta_snapshot):
+    def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot
