@@ -1,4 +1,5 @@
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +13,7 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.repository import RepositorySerializer
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
@@ -41,6 +43,10 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
+    @extend_schema(
+        operation_id="List an Organization's Repositories",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Repositories

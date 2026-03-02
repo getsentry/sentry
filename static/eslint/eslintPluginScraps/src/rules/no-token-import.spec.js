@@ -1,6 +1,6 @@
 import {RuleTester} from 'eslint';
 
-import {noTokenImport} from './no-token-import.mjs';
+import {noTokenImport} from './no-token-import.js';
 
 const ruleTester = new RuleTester();
 

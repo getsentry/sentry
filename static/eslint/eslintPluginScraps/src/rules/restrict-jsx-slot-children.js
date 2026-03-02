@@ -26,7 +26,7 @@
  *   - Block-body callbacks (`() => { return <Elem>; }`) are not checked.
  *   - Variable references (`slotProp={someVar}`) are not checked.
  *
- * Example configuration (in eslint.config.mjs):
+ * Example configuration (in eslint.config.js):
  *
  *   '@sentry/scraps/restrict-jsx-slot-children': [
  *     'warn',

@@ -9,11 +9,11 @@
  * Decompose an expression into all possible StyleValue entries.
  *
  * @param {import('estree').Node} node
- * @param {import('./types.mjs').ThemeTracker} themeTracker
- * @returns {import('./types.mjs').StyleValue[]}
+ * @param {import('./types.js').ThemeTracker} themeTracker
+ * @returns {import('./types.js').StyleValue[]}
  */
 export function decomposeValue(node, themeTracker) {
-  /** @type {import('./types.mjs').StyleValue[]} */
+  /** @type {import('./types.js').StyleValue[]} */
   const values = [];
 
   collectValues(node, values, themeTracker);
@@ -25,8 +25,8 @@ export function decomposeValue(node, themeTracker) {
  * Recursively collect values from an expression.
  *
  * @param {import('estree').Node} node
- * @param {import('./types.mjs').StyleValue[]} values
- * @param {import('./types.mjs').ThemeTracker} themeTracker
+ * @param {import('./types.js').StyleValue[]} values
+ * @param {import('./types.js').ThemeTracker} themeTracker
  */
 function collectValues(node, values, themeTracker) {
   if (!node || typeof node !== 'object') {
@@ -130,8 +130,8 @@ function collectValues(node, values, themeTracker) {
  * Create a StyleValue for a MemberExpression, extracting token info if present.
  *
  * @param {import('estree').MemberExpression} node
- * @param {import('./types.mjs').ThemeTracker} themeTracker
- * @returns {import('./types.mjs').StyleValue}
+ * @param {import('./types.js').ThemeTracker} themeTracker
+ * @returns {import('./types.js').StyleValue}
  */
 function createMemberValue(node, themeTracker) {
   const tokenInfo = extractTokenInfo(node, themeTracker);
@@ -147,8 +147,8 @@ function createMemberValue(node, themeTracker) {
  * Extract token information from a MemberExpression if it's a theme token.
  *
  * @param {import('estree').MemberExpression} node
- * @param {import('./types.mjs').ThemeTracker} themeTracker
- * @returns {import('./types.mjs').TokenInfo | null}
+ * @param {import('./types.js').ThemeTracker} themeTracker
+ * @returns {import('./types.js').TokenInfo | null}
  */
 function extractTokenInfo(node, themeTracker) {
   /** @type {string[]} */

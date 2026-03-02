@@ -7,6 +7,7 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.utils.functional import cached_property
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
@@ -240,6 +242,10 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
+    @extend_schema(
+        operation_id="List a Project Release's Files",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, project, version) -> Response:
         """
         List a Project Release's Files

@@ -499,9 +499,10 @@ class SeerExplorerClient:
         self,
         run_id: int,
         repo_name: str | None = None,
+        blocking=True,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
-    ) -> SeerRunState:
+    ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
 
@@ -530,6 +531,9 @@ class SeerExplorerClient:
         response = make_explorer_update_request(update_body)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
+
+        if not blocking:
+            return None
 
         # Poll until PR creation completes
         start_time = time.time()
