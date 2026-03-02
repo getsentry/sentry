@@ -15,7 +15,7 @@ from sentry.utils import metrics
 
 class SeerViewerContext(TypedDict, total=False):
     organization_id: int
-    user_id: int
+    user_id: int | None
 
 
 logger = logging.getLogger(__name__)
