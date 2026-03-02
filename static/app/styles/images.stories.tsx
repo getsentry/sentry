@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 const toCamelCase = function camalize(str: any) {
   return str
     .toLowerCase()
-    .replace(/[^a-zA-Z0-9]+(.)/g, (_m: any, chr: any) => chr.toUpperCase());
+    .replace(/[^\dA-Za-z]+(.)/g, (_m: any, chr: any) => chr.toUpperCase());
 };
 const nameOfFile = (file: string) => {
   return file.split('/').at(-1)?.split('.').at(0);

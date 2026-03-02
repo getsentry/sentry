@@ -29,7 +29,7 @@ const shouldSearchEventIds = (query?: string) =>
   typeof query === 'string' && query.length === 32;
 
 // STRING-HEXVAL
-const shouldSearchShortIds = (query: string) => /[\w\d]+-[\w\d]+/.test(query);
+const shouldSearchShortIds = (query: string) => /\w+-\w+/.test(query);
 
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,

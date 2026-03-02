@@ -20,7 +20,7 @@ import {RELATIVE_DAYS_WINDOW} from './consts';
 import Chart from './lineChart';
 
 function camelToUnderscore(key: string) {
-  return key.replace(/([A-Z\d])/g, '_$1').toLowerCase();
+  return key.replace(/([\dA-Z])/g, '_$1').toLowerCase();
 }
 
 type EventBreakpointChartProps = {

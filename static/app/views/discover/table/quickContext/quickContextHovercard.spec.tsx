@@ -42,7 +42,7 @@ describe('Quick Context', () => {
     it('Renders child', async () => {
       renderQuickContextContent();
 
-      expect(await screen.findByText(/Text from Child/i)).toBeInTheDocument();
+      expect(await screen.findByText(/text from child/i)).toBeInTheDocument();
     });
 
     it('Renders quick context hover body', async () => {
@@ -79,7 +79,7 @@ describe('Quick Context', () => {
       // Error is expected, do not fail when calling console.error
       jest.spyOn(console, 'error').mockImplementation();
       expect(
-        await screen.findByText(/Failed to load context for column./i)
+        await screen.findByText(/failed to load context for column./i)
       ).toBeInTheDocument();
     });
 
@@ -94,8 +94,8 @@ describe('Quick Context', () => {
 
       await userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
-      expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
+      expect(await screen.findByText(/issue/i)).toBeInTheDocument();
+      expect(screen.getByText(/sentry-vvy/i)).toBeInTheDocument();
       expect(
         screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('Quick Context', () => {
 
       await userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/Release/i)).toBeInTheDocument();
+      expect(await screen.findByText(/release/i)).toBeInTheDocument();
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
       expect(
@@ -144,7 +144,7 @@ describe('Quick Context', () => {
 
       await userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
+      expect(await screen.findByText(/event id/i)).toBeInTheDocument();
       expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();
       expect(
         screen.getByTestId('quick-context-hover-header-copy-button')

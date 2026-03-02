@@ -84,9 +84,9 @@ describe('AppSizeInsights', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     // Check formatted file sizes (using formatBytesBase10)
-    expect(screen.getByText(/-\s*768\s*KB/i)).toBeInTheDocument(); // duplicate_files
-    expect(screen.getByText(/-\s*512\s*KB/i)).toBeInTheDocument(); // large_images
-    expect(screen.getByText(/-\s*256\s*KB/i)).toBeInTheDocument(); // large_videos
+    expect(screen.getByText(/-\s*768\s*kb/i)).toBeInTheDocument(); // duplicate_files
+    expect(screen.getByText(/-\s*512\s*kb/i)).toBeInTheDocument(); // large_images
+    expect(screen.getByText(/-\s*256\s*kb/i)).toBeInTheDocument(); // large_videos
 
     // Check formatted percentages
     expect(screen.getByText('(-7.5%)')).toBeInTheDocument(); // 768000/10240000

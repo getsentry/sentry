@@ -383,13 +383,13 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  const shortIdPattern = /\b((?:[A-Z][\dA-Z_]+|[\d_]+[A-Z][\dA-Z_]*)-[\dA-Z]+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
 
   // Find all markdown code blocks (inline and block)
-  const codeBlockPattern = /(`+)([^`]+)\1|```[\s\S]*?```/g;
+  const codeBlockPattern = /(`+)([^`]+)\1|```[\S\s]*?```/g;
   for (const codeMatch of text.matchAll(codeBlockPattern)) {
     excludedRanges.push({
       end: codeMatch.index + codeMatch[0].length,
@@ -397,7 +397,7 @@ function linkifyIssueShortIds(text: string): string {
     });
   }
   // Find all markdown links [text](url)
-  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const markdownLinkPattern = /\[([^\]]+)]\(([^)]+)\)/g;
   for (const linkMatch of text.matchAll(markdownLinkPattern)) {
     excludedRanges.push({
       end: linkMatch.index + linkMatch[0].length,
@@ -405,7 +405,7 @@ function linkifyIssueShortIds(text: string): string {
     });
   }
   // Find all URLs (http://, https://, or starting with /)
-  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  const urlPattern = /(https?:\/\/\S+|\/[^\s)]+)/g;
   for (const urlMatch of text.matchAll(urlPattern)) {
     excludedRanges.push({
       end: urlMatch.index + urlMatch[0].length,

@@ -128,8 +128,8 @@ describe('SuspectCommits', () => {
         />
       );
 
-      expect(await screen.findByText(/Suspect Commit/i)).toBeInTheDocument();
-      expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
+      expect(await screen.findByText(/suspect commit/i)).toBeInTheDocument();
+      expect(screen.queryByText(/suspect commits/i)).not.toBeInTheDocument();
     });
 
     it('expands', async () => {

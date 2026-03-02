@@ -17,7 +17,7 @@ import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtens
  * Attempts to escape a string from any bash double quote special characters.
  */
 function escapeBashString(v: string) {
-  return v.replace(/(["$`\\])/g, '\\$1');
+  return v.replace(/(["$\\`])/g, '\\$1');
 }
 interface ImageForAddressProps {
   addrMode: Frame['addrMode'];

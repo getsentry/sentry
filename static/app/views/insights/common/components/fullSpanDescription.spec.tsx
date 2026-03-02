@@ -78,7 +78,7 @@ describe('FullSpanDescription', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     const queryCodeSnippet = screen.getByText(
-      /\{ "insert": "my_cool_collection😎", "a": \{\} \}/i
+      /{ "insert": "my_cool_collection😎", "a": {} }/i
     );
     expect(queryCodeSnippet).toBeInTheDocument();
     expect(queryCodeSnippet).toHaveClass('language-json');
@@ -107,7 +107,7 @@ describe('FullSpanDescription', () => {
 
     // The last truncated entry will have a null value assigned and the JSON document is properly closed
     const queryCodeSnippet = screen.getByText(
-      /\{ "insert": "my_cool_collection😎", "a": \{\}, "uh_oh": "the_query_is_truncated", "ohno\*": null \}/i
+      /{ "insert": "my_cool_collection😎", "a": {}, "uh_oh": "the_query_is_truncated", "ohno\*": null }/i
     );
     expect(queryCodeSnippet).toBeInTheDocument();
     expect(queryCodeSnippet).toHaveClass('language-json');

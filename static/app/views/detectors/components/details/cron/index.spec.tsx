@@ -227,7 +227,7 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(timeCell).toHaveTextContent('Dec 31, 2024 7:00:01 PM EST');
 
       // Switch to Monitor timezone
-      const timezoneButton = screen.getByRole('button', {name: /Date Display/i});
+      const timezoneButton = screen.getByRole('button', {name: /date display/i});
       await userEvent.click(timezoneButton);
       await userEvent.click(screen.getByRole('option', {name: 'Monitor'}));
 

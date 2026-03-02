@@ -80,7 +80,7 @@ describe('SeerAutomation', () => {
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Default for Auto-Triggered Fixes/i,
+      name: /default for auto-triggered fixes/i,
     });
 
     act(() => {
@@ -145,7 +145,7 @@ describe('SeerAutomation', () => {
 
     // Find the toggle for Default for Issue Scans
     const toggle = await screen.findByRole('checkbox', {
-      name: /Default for Issue Scans/i,
+      name: /default for issue scans/i,
     });
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();

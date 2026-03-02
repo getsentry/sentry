@@ -11,7 +11,7 @@ import {appendTagCondition} from 'sentry/utils/queryString';
  * Replaces slug special chars with a space
  */
 export function explodeSlug(slug: string): string {
-  return slug.replace(/[-_]+/g, ' ').trim();
+  return slug.replace(/[_-]+/g, ' ').trim();
 }
 
 export function defined<T>(item: T): item is Exclude<T, null | undefined> {
@@ -19,7 +19,7 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 }
 
 export function nl2br(str: string): string {
-  return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
+  return str.replace(/\r\n|\r|\n/g, '<br />');
 }
 
 export function escape(str: string): string {
@@ -154,7 +154,7 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
 
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
-  return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+  return str.replace(/\\([\S\s])|(")/g, '\\$1$2');
 }
 
 export function generateOrgSlugUrl(orgSlug: any) {
@@ -178,5 +178,5 @@ export function isNumericString(value: string): boolean {
     return false;
   }
 
-  return /^-?(?:\d+|\d*\.\d+)(?:[eE][+-]?\d+)?$/.test(s);
+  return /^-?(?:\d+|\d*\.\d+)(?:[Ee][+-]?\d+)?$/.test(s);
 }

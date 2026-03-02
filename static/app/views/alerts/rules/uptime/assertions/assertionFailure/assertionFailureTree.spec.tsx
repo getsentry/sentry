@@ -33,7 +33,7 @@ describe('AssertionFailureTree', () => {
 
     const statusText = rows[1]!.textContent ?? '';
     expect(statusText).toMatch(
-      /\[Failed\]\s*Status Code \| Rule:[\s\S]*status_code[\s\S]*=[\s\S]*500/
+      /\[Failed]\s*Status Code \| Rule:[\S\s]*status_code[\S\s]*=[\S\s]*500/
     );
   });
 
@@ -66,11 +66,11 @@ describe('AssertionFailureTree', () => {
     expect(rows[0]!).toHaveTextContent(/Assert Any/);
 
     expect(rows[1]!).toHaveTextContent(
-      /\[Failed\]\s*JSON Path \| Rule:\s*\$\.status\s*=\s*""\s*ok/
+      /\[Failed]\s*JSON Path \| Rule:\s*\$\.status\s*=\s*""\s*ok/
     );
 
     expect(rows[2]!).toHaveTextContent(
-      /\[Failed\]\s*Header Check \| Rule:\s*key\s*=\s*""\s*content-type,\s*value\s*=\s*""\s*application\/json/
+      /\[Failed]\s*Header Check \| Rule:\s*key\s*=\s*""\s*content-type,\s*value\s*=\s*""\s*application\/json/
     );
   });
 });

@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 
-export const DSN_PATTERN =
-  /^https?:\/\/([a-f0-9]{32})(:[a-f0-9]{32})?@[^/]+\/(?:[^/]+\/)*\d+$/;
+export const DSN_PATTERN = /^ht{2}ps?:\/{2}([\da-f]{32})(:[\da-f]{32})?@(?:[^/]+\/)+\d+$/;
 
 export interface DsnLookupResponse {
   keyId: string;

@@ -41,7 +41,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
     );
 
     expect(
-      screen.getByRole('link', {name: /View status check on Github/i})
+      screen.getByRole('link', {name: /view status check on github/i})
     ).toHaveAttribute('href', 'https://github.com/owner/repo/runs/12345');
   });
 
@@ -69,8 +69,8 @@ describe('BuildDetailsSidebarStatusCheck', () => {
     );
 
     expect(screen.getByText('Status check failed to post')).toBeInTheDocument();
-    expect(screen.getByText(/Github integration/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /View CI setup docs/i})).toHaveAttribute(
+    expect(screen.getByText(/github integration/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /view ci setup docs/i})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/product/size-analysis/integrating-into-ci/'
     );
@@ -87,8 +87,8 @@ describe('BuildDetailsSidebarStatusCheck', () => {
     );
 
     expect(screen.getByText('Status check failed to post')).toBeInTheDocument();
-    expect(screen.getByText(/temporary API error occurred/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /View CI setup docs/i})).toBeInTheDocument();
+    expect(screen.getByText(/temporary api error occurred/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /view ci setup docs/i})).toBeInTheDocument();
   });
 
   it('renders error message for unknown error', () => {
@@ -103,9 +103,9 @@ describe('BuildDetailsSidebarStatusCheck', () => {
 
     expect(screen.getByText('Status check failed to post')).toBeInTheDocument();
     expect(
-      screen.getByText(/error occurred while posting the status check to Github/i)
+      screen.getByText(/error occurred while posting the status check to github/i)
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /View CI setup docs/i})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /view ci setup docs/i})).toBeInTheDocument();
   });
 
   it('renders error message when error_type is null', () => {
@@ -120,9 +120,9 @@ describe('BuildDetailsSidebarStatusCheck', () => {
 
     expect(screen.getByText('Status check failed to post')).toBeInTheDocument();
     expect(
-      screen.getByText(/error occurred while posting the status check to Github/i)
+      screen.getByText(/error occurred while posting the status check to github/i)
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /View CI setup docs/i})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /view ci setup docs/i})).toBeInTheDocument();
   });
 
   it('capitalizes provider name in success message', () => {

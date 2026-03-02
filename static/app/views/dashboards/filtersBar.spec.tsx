@@ -60,7 +60,7 @@ describe('FiltersBar', () => {
     renderFilterBar({location: newLocation});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+      screen.getByRole('button', {name: /browser\.name.*chrome/i})
     ).toBeInTheDocument();
   });
 
@@ -95,7 +95,7 @@ describe('FiltersBar', () => {
     renderFilterBar({location: newLocation});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+      screen.getByRole('button', {name: /browser\.name.*chrome/i})
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
@@ -117,7 +117,7 @@ describe('FiltersBar', () => {
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+      screen.getByRole('button', {name: /browser\.name.*chrome/i})
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();

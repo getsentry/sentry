@@ -72,8 +72,8 @@ function StreamlinedNoteInput({
   const canSubmit = value.trim() !== '';
 
   const cleanMarkdown = value
-    .replace(/\[sentry\.strip:member\]/g, '@')
-    .replace(/\[sentry\.strip:team\]/g, '');
+    .replace(/\[sentry\.strip:member]/g, '@')
+    .replace(/\[sentry\.strip:team]/g, '');
 
   const existingItem = !!noteId;
 

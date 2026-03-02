@@ -422,7 +422,7 @@ describe('ProductSelectionAvailability', () => {
       expect(await screen.findByRole('button', {name: 'Session Replay'})).toBeDisabled();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
-      expect(await screen.findByText(/Manage Subscription/i)).toBeInTheDocument();
+      expect(await screen.findByText(/manage subscription/i)).toBeInTheDocument();
     });
 
     it('with profiling and without session replay', async () => {

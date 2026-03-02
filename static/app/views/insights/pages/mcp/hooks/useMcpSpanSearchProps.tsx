@@ -33,8 +33,8 @@ export function useMcpSpanSearchProps() {
         ? ['span.description', 'span.name']
         : undefined,
       matchKeySuggestions: [
-        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+        {key: 'trace', valuePattern: /^[\dA-Fa-f]{32}$/},
+        {key: 'id', valuePattern: /^[\dA-Fa-f]{16}$/},
       ],
     }),
     [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]

@@ -84,7 +84,7 @@ export function getQueryDatasource(
   query: string
 ): {query: string; source: Datasource} | null {
   let match = query.match(
-    /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
+    /\(?\bevent\.type:(error|default|transaction)\)?\Wor\W\(?event\.type:(error|default|transaction)\)?/i
   );
   if (match) {
     // should be [error, default] or [default, error]

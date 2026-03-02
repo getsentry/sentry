@@ -34,18 +34,18 @@ describe('TermsAndConditions', () => {
 
     // Expect no text at top of 'Terms & Conditions' section
     expect(
-      screen.queryByText(/A copy of our standard terms and privacy policies/i)
+      screen.queryByText(/a copy of our standard terms and privacy policies/i)
     ).not.toBeInTheDocument();
 
     // Expect pentest to be under 'Compliance & Security' rather than 'Terms & Conditions'
     expect(
       within(screen.getByTestId('terms-and-conditions')).queryByText(
-        /Penetration Test Summary/i
+        /penetration test summary/i
       )
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId('compliance-and-security')).getByText(
-        /Penetration Test Summary/i
+        /penetration test summary/i
       )
     ).toBeInTheDocument();
   });

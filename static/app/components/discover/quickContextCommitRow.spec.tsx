@@ -29,7 +29,7 @@ const defaultCommit: Commit = {
 describe('Quick Context Commit Row', () => {
   it('Renders author name specific avatar', () => {
     render(<QuickContextCommitRow commit={defaultCommit} />);
-    expect(screen.getByText(/AK/i)).toBeInTheDocument();
+    expect(screen.getByText(/ak/i)).toBeInTheDocument();
   });
 
   it('Renders commit link text with no PR', () => {
@@ -41,10 +41,10 @@ describe('Quick Context Commit Row', () => {
     expect(
       screen.queryByTestId('quick-context-commit-row-pr-link')
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/View commit/i)).toBeInTheDocument();
+    expect(screen.getByText(/view commit/i)).toBeInTheDocument();
     expect(screen.getByText(/f7f395d/i)).toBeInTheDocument();
     expect(screen.getByText(/by/i)).toBeInTheDocument();
-    expect(screen.getByText(/Abdullah Khan/i)).toBeInTheDocument();
+    expect(screen.getByText(/abdullah khan/i)).toBeInTheDocument();
   });
 
   it('Renders pull request link', () => {

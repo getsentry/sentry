@@ -83,7 +83,7 @@ function RelocationForm() {
       return;
     }
 
-    if (!/.*.tar/.test(newFile.name)) {
+    if (!/.+tar/.test(newFile.name)) {
       addErrorMessage('That is not a supported file type.');
       return;
     }

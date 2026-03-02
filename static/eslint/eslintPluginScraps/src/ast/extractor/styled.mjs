@@ -32,7 +32,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
     // Match a CSS property declaration: property-name: value
     // The property must appear after {, ;, or at line start (with optional whitespace)
     // This avoids matching pseudo-selectors like a:hover
-    const match = cssText.match(/(?:^|[{;])\s*([a-z-]+)\s*:\s*[^;{]*$/i);
+    const match = cssText.match(/(?:^|[;{])\s*([a-z-]+)\s*:\s*[^;{]*$/i);
     return match?.[1] ?? null;
   }
 

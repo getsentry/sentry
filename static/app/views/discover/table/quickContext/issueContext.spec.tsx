@@ -48,8 +48,8 @@ describe('Quick Context Content Issue Column', () => {
   it('Renders ignored issue status context', async () => {
     renderIssueContext();
 
-    expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ignored/i)).toBeInTheDocument();
+    expect(await screen.findByText(/issue status/i)).toBeInTheDocument();
+    expect(screen.getByText(/ignored/i)).toBeInTheDocument();
     expect(screen.getByTestId('quick-context-ignored-icon')).toBeInTheDocument();
   });
 
@@ -62,8 +62,8 @@ describe('Quick Context Content Issue Column', () => {
     });
     renderIssueContext();
 
-    expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
-    expect(screen.getByText(/Resolved/i)).toBeInTheDocument();
+    expect(await screen.findByText(/issue status/i)).toBeInTheDocument();
+    expect(screen.getByText(/resolved/i)).toBeInTheDocument();
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
   });
 
@@ -77,31 +77,31 @@ describe('Quick Context Content Issue Column', () => {
 
     renderIssueContext();
 
-    expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
-    expect(screen.getByText(/Unresolved/i)).toBeInTheDocument();
+    expect(await screen.findByText(/issue status/i)).toBeInTheDocument();
+    expect(screen.getByText(/unresolved/i)).toBeInTheDocument();
     expect(screen.getByTestId('quick-context-unresolved-icon')).toBeInTheDocument();
   });
 
   it('Renders event and user counts', async () => {
     renderIssueContext();
 
-    expect(await screen.findByText(/Events/i)).toBeInTheDocument();
+    expect(await screen.findByText(/events/i)).toBeInTheDocument();
     expect(screen.getByText(/2.5m/i)).toBeInTheDocument();
-    expect(screen.getByText(/Users/i)).toBeInTheDocument();
+    expect(screen.getByText(/users/i)).toBeInTheDocument();
     expect(screen.getByText(/64k/i)).toBeInTheDocument();
   });
 
   it('Renders assigned to context', async () => {
     renderIssueContext();
 
-    expect(await screen.findByText(/Assigned To/i)).toBeInTheDocument();
+    expect(await screen.findByText(/assigned to/i)).toBeInTheDocument();
     expect(screen.getByText(/#ingest/i)).toBeInTheDocument();
   });
 
   it('Renders title', async () => {
     renderIssueContext();
 
-    expect(await screen.findByText(/Title/i)).toBeInTheDocument();
-    expect(screen.getByText(/typeError: error description/i)).toBeInTheDocument();
+    expect(await screen.findByText(/title/i)).toBeInTheDocument();
+    expect(screen.getByText(/typeerror: error description/i)).toBeInTheDocument();
   });
 });

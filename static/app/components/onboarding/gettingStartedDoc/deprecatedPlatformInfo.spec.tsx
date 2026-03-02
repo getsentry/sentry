@@ -28,7 +28,7 @@ describe('DeprecatedPlatformInfo', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByText(dsn.public)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: /Copy snippet/i})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /copy snippet/i})).toBeInTheDocument();
     const docsLink = screen.getByRole('link', {name: 'docs'});
     expect(docsLink).toHaveAttribute('href', platform.link);
     const fullListLink = screen.getByRole('link', {name: 'full list'});

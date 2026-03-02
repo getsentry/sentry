@@ -31,7 +31,7 @@ describe('DataRequests', () => {
     expect(await screen.findByText('Results')).toBeInTheDocument();
     expect(screen.getByText('1 match found')).toBeInTheDocument();
 
-    const userLink = screen.getByRole('link', {name: /Jane Smith/i});
+    const userLink = screen.getByRole('link', {name: /jane smith/i});
     expect(userLink).toHaveAttribute('href', '/_admin/users/42/');
   });
 
@@ -60,7 +60,7 @@ describe('DataRequests', () => {
     expect(screen.getByText('1 match found')).toBeInTheDocument();
 
     const eventLink = screen.getByRole('link', {
-      name: /abc123 - Something bad happened/i,
+      name: /abc123 - something bad happened/i,
     });
     expect(eventLink).toHaveAttribute('href', '/organizations/acme/issues/1337/');
   });

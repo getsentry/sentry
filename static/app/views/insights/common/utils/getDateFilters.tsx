@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import type {PageFilters} from 'sentry/types/core';
 
-const PERIOD_REGEX = /^(\d+)([h,d])$/;
+const PERIOD_REGEX = /^(\d+)([,dh])$/;
 
 export function getDateFilters(selection: PageFilters) {
   const [_, num, unit] = selection.datetime.period?.match(PERIOD_REGEX) ?? [];

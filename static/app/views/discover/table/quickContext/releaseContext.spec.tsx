@@ -48,18 +48,18 @@ describe('Quick Context Content Release Column', () => {
   it('Renders Release details for release', async () => {
     renderReleaseContext();
 
-    expect(await screen.findByText(/Created/i)).toBeInTheDocument();
+    expect(await screen.findByText(/created/i)).toBeInTheDocument();
     expect(screen.getByText(/7 years ago/i)).toBeInTheDocument();
-    expect(screen.getByText(/Last Event/i)).toBeInTheDocument();
+    expect(screen.getByText(/last event/i)).toBeInTheDocument();
     expect(screen.getByText(/6 years ago/i)).toBeInTheDocument();
-    expect(screen.getByText(/New Issues/i)).toBeInTheDocument();
+    expect(screen.getByText(/new issues/i)).toBeInTheDocument();
     expect(screen.getByText(/21/i)).toBeInTheDocument();
   });
 
   it('Renders Last Commit', async () => {
     renderReleaseContext();
 
-    expect(await screen.findByText(/Last Commit/i)).toBeInTheDocument();
+    expect(await screen.findByText(/last commit/i)).toBeInTheDocument();
     expect(screen.getByTestId('quick-context-commit-row')).toBeInTheDocument();
   });
 
@@ -74,8 +74,8 @@ describe('Quick Context Content Release Column', () => {
     expect(authorsSectionHeader.getByText(/commits by/i)).toBeInTheDocument();
     expect(authorsSectionHeader.getByText(/2/i)).toBeInTheDocument();
     expect(authorsSectionHeader.getByText(/authors/i)).toBeInTheDocument();
-    expect(screen.getByText(/KN/i)).toBeInTheDocument();
-    expect(screen.getByText(/VN/i)).toBeInTheDocument();
+    expect(screen.getByText(/kn/i)).toBeInTheDocument();
+    expect(screen.getByText(/vn/i)).toBeInTheDocument();
   });
 
   it('Renders Commit Count and Author when user is in list of authors', async () => {
@@ -84,7 +84,7 @@ describe('Quick Context Content Release Column', () => {
 
     expect(await screen.findByText(/4/i)).toBeInTheDocument();
     expect(screen.getByText(/commits by you and 1 other/i)).toBeInTheDocument();
-    expect(screen.getByText(/KN/i)).toBeInTheDocument();
-    expect(screen.getByText(/VN/i)).toBeInTheDocument();
+    expect(screen.getByText(/kn/i)).toBeInTheDocument();
+    expect(screen.getByText(/vn/i)).toBeInTheDocument();
   });
 });

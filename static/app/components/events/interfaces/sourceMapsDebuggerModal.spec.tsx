@@ -75,7 +75,7 @@ const renderModal = async (props?: Partial<SourceMapsDebuggerModalProps>) => {
 
   await userEvent.click(screen.getByRole('button', {name: /unminify code/i}));
 
-  await screen.findByText(/Make Your Stack Traces Readable/i);
+  await screen.findByText(/make your stack traces readable/i);
 };
 
 describe('SourceMapsDebuggerModal', () => {

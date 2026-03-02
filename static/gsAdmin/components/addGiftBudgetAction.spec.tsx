@@ -160,6 +160,6 @@ describe('GiftBudgetAction', () => {
     expect(
       screen.getByText('Select a reserved budget to add gift amount.')
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/Reserved Budget:/i)).toHaveLength(2);
+    expect(screen.getAllByText(/reserved budget:/i)).toHaveLength(2);
   });
 });

@@ -186,7 +186,7 @@ describe('BillingPlans Component', () => {
     // Assert on the filename
     // For example: Self-Serve_Price_List_2024-10-18T22-44-24-897Z.csv
     const expectedFilenamePattern =
-      /^Self-Serve_Price_List_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.csv$/;
+      /^Self-Serve_Price_List_\d{4}(?:-\d{2}){2}T(?:\d{2}-){3}\d{3}Z\.csv$/;
     expect(downloadLink!.download).toMatch(expectedFilenamePattern);
 
     expect(TEST_BLOB_CONSTRUCTOR).toHaveBeenCalledWith(
@@ -231,7 +231,7 @@ describe('BillingPlans Component', () => {
     // Check that the 'NOT LIVE' badge is displayed next to the plan header
     const planHeader = screen.getByRole('heading', {
       level: 3,
-      name: /AM9000\s+Business\s+Plan/i,
+      name: /am9000\s+business\s+plan/i,
     });
     // eslint-disable-next-line testing-library/no-node-access
     const planNotLiveBadge = within(planHeader.parentElement!).getByText('NOT LIVE');
@@ -240,7 +240,7 @@ describe('BillingPlans Component', () => {
     // Check that the 'NOT LIVE' badge is displayed next to the data category header
     const dataCategoryHeader = screen.getByRole('heading', {
       level: 5,
-      name: /Errors\s+for\s+AM9000\s+Business/i,
+      name: /errors\s+for\s+am9000\s+business/i,
     });
     // eslint-disable-next-line testing-library/no-node-access
     const dataCategoryNotLiveBadge = within(dataCategoryHeader.parentElement!).getByText(
@@ -318,7 +318,7 @@ describe('BillingPlans Component', () => {
     });
 
     // Check that the LIVE badge is displayed for the plan
-    const planHeader = screen.getByRole('heading', {level: 2, name: /AM9000 Plans/i});
+    const planHeader = screen.getByRole('heading', {level: 2, name: /am9000 plans/i});
     // eslint-disable-next-line testing-library/no-node-access
     const headerLiveBadges = within(planHeader.parentElement!).getAllByText('LIVE');
     headerLiveBadges.forEach(badge => {

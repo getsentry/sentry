@@ -76,7 +76,7 @@ describe('java-spring-boot onboarding docs', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /libraryDependencies \+= "io\.sentry" % "sentry" % "4\.99\.9"/m
+          /libraryDependencies \+= "io\.(?:sentry" % "){2}4\.9{2}\.9"/m
         )
       )
     ).toBeInTheDocument();

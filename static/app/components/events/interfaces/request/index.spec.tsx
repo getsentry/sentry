@@ -469,7 +469,7 @@ describe('Request entry', () => {
           screen.getByText('There was 1 GraphQL error raised during this request.')
         ).toBeInTheDocument();
 
-        await userEvent.click(screen.getByText(/There was 1 GraphQL error/i));
+        await userEvent.click(screen.getByText(/there was 1 graphql error/i));
 
         expect(screen.getByText('Line 1 Column 2: Very bad error')).toBeInTheDocument();
       });

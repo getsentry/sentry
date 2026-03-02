@@ -652,7 +652,7 @@ describe('CreateProject', () => {
         teamSlug: teamWithAccess.slug,
       });
       render(<CreateProject />, {organization});
-      expect(screen.getByLabelText(/Alert me on high priority issues/i)).toBeChecked();
+      expect(screen.getByLabelText(/alert me on high priority issues/i)).toBeChecked();
       await userEvent.click(screen.getByTestId('platform-javascript-react'));
       await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
       expect(projectCreationMockRequest).toHaveBeenCalledWith(

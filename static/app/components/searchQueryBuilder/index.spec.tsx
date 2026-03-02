@@ -4843,7 +4843,7 @@ describe('SearchQueryBuilder', () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+          matchKeySuggestions={[{key: 'trace', valuePattern: /^[\dA-Fa-f]{32}$/}]}
         />
       );
 
@@ -5030,7 +5030,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
         expect(
-          screen.getByRole('option', {name: /Ask AI to build your query/i})
+          screen.getByRole('option', {name: /ask ai to build your query/i})
         ).toBeInTheDocument();
       });
     });

@@ -8,7 +8,7 @@
  */
 
 export function intervalToMilliseconds(interval: string): number {
-  const pattern = /^(\d+)(w|d|h|m)$/;
+  const pattern = /^(\d+)([dhmw])$/;
   const matches = pattern.exec(interval);
   if (!matches) {
     return 0;

@@ -307,7 +307,7 @@ const appConfig: Configuration = {
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
         // compiled via Babel. Re-processing with @swc/plugin-emotion causes
         // "illegal escape sequence" warnings in dev mode.
-        exclude: /node_modules[\\/](core-js|react-select)/,
+        exclude: /node_modules[/\\](core-js|react-select)/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -748,8 +748,7 @@ if (IS_UI_DEV_ONLY) {
   // XXX: If you change this also change its sibiling in:
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
-  const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
+  const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);

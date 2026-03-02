@@ -11,7 +11,7 @@ type Entry = {
 };
 
 function toAlphaNumeric(str: string): string {
-  return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  return str.replace(/[^\dA-Za-z]/g, '').toLowerCase();
 }
 
 function getContentEntries(main: HTMLElement): Entry[] {

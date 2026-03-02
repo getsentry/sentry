@@ -30,7 +30,7 @@ function decodeHtmlEntities(text: string): string {
   // Handle numeric entities like &#60; &#x3C; before &amp; to avoid
   // double-decoding (e.g. &amp;#60; → &#60; → <)
   result = result.replace(/&#(\d+);/g, (_match, dec) => String.fromCharCode(Number(dec)));
-  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_match, hex) =>
+  result = result.replace(/&#x([\dA-Fa-f]+);/g, (_match, hex) =>
     String.fromCharCode(parseInt(hex, 16))
   );
   // Decode &amp; last
@@ -49,9 +49,9 @@ export function simpleHtmlToMarkdown(html: string): string {
   result = result.replace(/<br\s*\/?>/gi, '\n');
 
   // Handle ordered lists - must come before generic tag stripping
-  result = result.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_match, inner: string) => {
+  result = result.replace(/<ol[^>]*>([\S\s]*?)<\/ol>/gi, (_match, inner: string) => {
     let index = 1;
-    const items = inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, content: string) => {
+    const items = inner.replace(/<li[^>]*>([\S\s]*?)<\/li>/gi, (_m, content: string) => {
       const line = `${index}. ${content.trim()}\n`;
       index++;
       return line;
@@ -61,9 +61,9 @@ export function simpleHtmlToMarkdown(html: string): string {
   });
 
   // Handle unordered lists
-  result = result.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_match, inner: string) => {
+  result = result.replace(/<ul[^>]*>([\S\s]*?)<\/ul>/gi, (_match, inner: string) => {
     const items = inner.replace(
-      /<li[^>]*>([\s\S]*?)<\/li>/gi,
+      /<li[^>]*>([\S\s]*?)<\/li>/gi,
       (_m, content: string) => `- ${content.trim()}\n`
     );
     return items.replace(/^\s+$/gm, '') + '\n';
@@ -71,25 +71,25 @@ export function simpleHtmlToMarkdown(html: string): string {
 
   // Handle anchor tags
   result = result.replace(
-    /<a\s+[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
+    /<a\s+[^>]*href=["']([^"']*)["'][^>]*>([\S\s]*?)<\/a>/gi,
     (_match, href: string, text: string) => `[${text}](${href})`
   );
 
   // Handle bold
   result = result.replace(
-    /<(?:strong|b)>([\s\S]*?)<\/(?:strong|b)>/gi,
+    /<(?:strong|b)>([\S\s]*?)<\/(?:strong|b)>/gi,
     (_match, text: string) => `**${text}**`
   );
 
   // Handle italic
   result = result.replace(
-    /<(?:em|i)>([\s\S]*?)<\/(?:em|i)>/gi,
+    /<(?:em|i)>([\S\s]*?)<\/(?:em|i)>/gi,
     (_match, text: string) => `*${text}*`
   );
 
   // Handle <pre> blocks containing <code> (fenced code blocks from CodeBlock component)
   result = result.replace(
-    /<pre[^>]*>\s*<code(?:\s+class="language-([^"]*)")?[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi,
+    /<pre[^>]*>\s*<code(?:\s+class="language-([^"]*)")?[^>]*>([\S\s]*?)<\/code>\s*<\/pre>/gi,
     (_match, lang: string | undefined, code: string) => {
       const language = lang ?? '';
       return `\n\`\`\`${language}\n${code.trim()}\n\`\`\`\n\n`;
@@ -98,19 +98,19 @@ export function simpleHtmlToMarkdown(html: string): string {
 
   // Handle inline code
   result = result.replace(
-    /<code>([\s\S]*?)<\/code>/gi,
+    /<code>([\S\s]*?)<\/code>/gi,
     (_match, text: string) => `\`${text}\``
   );
 
   // Handle paragraphs
   result = result.replace(
-    /<p[^>]*>([\s\S]*?)<\/p>/gi,
+    /<p[^>]*>([\S\s]*?)<\/p>/gi,
     (_match, text: string) => `${text.trim()}\n\n`
   );
 
   // Handle divs - convert to text with newline
   result = result.replace(
-    /<div[^>]*>([\s\S]*?)<\/div>/gi,
+    /<div[^>]*>([\S\s]*?)<\/div>/gi,
     (_match, text: string) => `${text.trim()}\n`
   );
 

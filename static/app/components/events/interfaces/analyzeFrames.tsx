@@ -47,9 +47,9 @@ const CULPRIT_FRAMES: SuspectFrame[] = [
     functions: [
       'nativeOpen',
       'nativeExecute',
-      /nativeExecuteFor[a-zA-Z]+/,
-      /nativeBind[a-zA-Z]+/,
-      /nativeGet[a-zA-Z]+/,
+      /nativeExecuteFor[A-Za-z]+/,
+      /nativeBind[A-Za-z]+/,
+      /nativeGet[A-Za-z]+/,
       'nativePrepareStatement',
     ],
     offendingThreadStates: [
@@ -74,7 +74,7 @@ const CULPRIT_FRAMES: SuspectFrame[] = [
     ),
   },
   {
-    module: /^android\.app\.SharedPreferencesImpl\$EditorImpl\$[0-9]/,
+    module: /^android\.app\.SharedPreferencesImpl\$EditorImpl\$\d/,
     functions: ['run'],
     offendingThreadStates: [
       ThreadStates.WAITING,
@@ -121,7 +121,7 @@ const CULPRIT_FRAMES: SuspectFrame[] = [
   },
   {
     module: 'android.content.res.AssetManager',
-    functions: [/^nativeGetResource[a-zA-Z]+/],
+    functions: [/^nativeGetResource[A-Za-z]+/],
     offendingThreadStates: [
       ThreadStates.WAITING,
       ThreadStates.TIMED_WAITING,

@@ -584,7 +584,7 @@ describe('logsTableRow', () => {
 
     expect(
       await screen.findByText(
-        /\[Replace\] \[MAC addresses\] with \[ITS_GONE\] from \[not_zzz_not_exact_match\]/
+        /\[Replace] \[MAC addresses] with \[ITS_GONE] from \[not_zzz_not_exact_match]/
       )
     ).toBeInTheDocument();
   });

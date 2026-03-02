@@ -74,7 +74,7 @@ describe('SchedulePreview', () => {
 
     expect(
       await screen.findByText(
-        /No preview available\. The provided schedule is invalid, or the thresholds are incompatible with it\./i
+        /no preview available\. the provided schedule is invalid, or the thresholds are incompatible with it\./i
       )
     ).toBeInTheDocument();
   });
@@ -98,7 +98,7 @@ describe('SchedulePreview', () => {
     );
 
     expect(
-      await screen.findByText(/Failed to load schedule preview/i)
+      await screen.findByText(/failed to load schedule preview/i)
     ).toBeInTheDocument();
   });
 });

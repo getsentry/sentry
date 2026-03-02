@@ -21,6 +21,6 @@ describe('GHAWorkflowExpandable', () => {
     expect(
       await screen.findByText(/name: Workflow for Sentry Prevent Action/)
     ).toBeInTheDocument();
-    expect(screen.getByText(/on: [push, pull_request]/)).toBeInTheDocument();
+    expect(screen.getByText(/on: [ ,_ehlp-u]/)).toBeInTheDocument();
   });
 });

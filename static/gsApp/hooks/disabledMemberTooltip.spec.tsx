@@ -22,6 +22,6 @@ describe('MemberListHeader', () => {
 
     // Activate the tooltip, check its contents.
     await userEvent.hover(screen.getByText('Inner text'));
-    expect(await screen.findByText(/Only 1 member allowed/i)).toBeInTheDocument();
+    expect(await screen.findByText(/only 1 member allowed/i)).toBeInTheDocument();
   });
 });

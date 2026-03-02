@@ -39,7 +39,7 @@ export function getFileName(path?: string | null) {
 }
 
 export function normalizeId(id?: string) {
-  return id?.trim().toLowerCase().replace(/[- ]/g, '') ?? '';
+  return id?.trim().toLowerCase().replace(/[ -]/g, '') ?? '';
 }
 
 export function getImageAddress(image: Image) {

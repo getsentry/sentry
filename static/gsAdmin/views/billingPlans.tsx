@@ -178,7 +178,7 @@ function BillingPlans() {
 
     const link = document.createElement('a');
     link.href = url;
-    const dateTime = new Date().toISOString().replace(/[:.]/g, '-');
+    const dateTime = new Date().toISOString().replace(/[.:]/g, '-');
     link.download = `Self-Serve_Price_List_${dateTime}.csv`;
     link.click();
     URL.revokeObjectURL(url);

@@ -85,7 +85,7 @@ describe('OrganizationGeneralSettings', () => {
     });
 
     await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/i})
+      screen.getByRole('checkbox', {name: /enable code coverage insights/i})
     );
 
     await waitFor(() => {

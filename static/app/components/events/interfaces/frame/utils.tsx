@@ -98,7 +98,7 @@ function isAnrEvent(event: Event) {
 
 export function hasFileExtension(filepath: string) {
   // Regular expression to match a file extension
-  const fileExtensionPattern = /\.[0-9a-z]+$/i;
+  const fileExtensionPattern = /\.[\da-z]+$/i;
 
   // Check if the filepath matches the pattern
   return fileExtensionPattern.test(filepath);

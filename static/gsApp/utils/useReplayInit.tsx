@@ -40,7 +40,7 @@ export default function useReplayInit() {
           networkDetailDenyUrls: [
             '/api/0/customers/',
             '/api/0/invoices/',
-            /\/api\/0\/projects\/[^/]*\/[^/]*\/replays\/[^/]*\/recording-segments\//,
+            /\/api\/0\/projects(?:\/[^/]*){2}\/replays\/[^/]*\/recording-segments\//,
           ],
           networkRequestHeaders: ['sentry-trace', 'origin'],
           networkResponseHeaders: [
@@ -58,7 +58,7 @@ export default function useReplayInit() {
             'x-served-by',
           ],
           maskFn: (text: string) =>
-            isStaticString(text) ? text : text.replace(/[\S]/g, '*'),
+            isStaticString(text) ? text : text.replace(/\S/g, '*'),
 
           slowClickIgnoreSelectors: [
             '[aria-label*="download" i]',

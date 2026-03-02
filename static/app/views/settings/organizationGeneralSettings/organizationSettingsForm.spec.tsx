@@ -418,7 +418,7 @@ describe('OrganizationSettingsForm', () => {
         );
 
         const preventAiField = screen.getByRole('checkbox', {
-          name: /Enable AI Code Review/i,
+          name: /enable ai code review/i,
         });
         expect(preventAiField).toBeInTheDocument();
         expect(preventAiField).toBeEnabled();
@@ -447,7 +447,7 @@ describe('OrganizationSettingsForm', () => {
 
         expect(
           screen.getByRole('checkbox', {
-            name: /Enable AI Code Review/i,
+            name: /enable ai code review/i,
           })
         ).toBeInTheDocument();
       });
@@ -473,7 +473,7 @@ describe('OrganizationSettingsForm', () => {
         );
 
         const preventAiField = screen.getByRole('checkbox', {
-          name: /Enable AI Code Review/i,
+          name: /enable ai code review/i,
         });
         expect(preventAiField).toBeInTheDocument();
         expect(preventAiField).toBeEnabled();
@@ -504,7 +504,7 @@ describe('OrganizationSettingsForm', () => {
         );
 
         const preventAiField = screen.getByRole('checkbox', {
-          name: /Enable AI Code Review/i,
+          name: /enable ai code review/i,
         });
         expect(preventAiField).toBeInTheDocument();
         expect(preventAiField).toBeEnabled();
@@ -535,7 +535,7 @@ describe('OrganizationSettingsForm', () => {
         );
 
         const preventAiField = await screen.findByRole('checkbox', {
-          name: /Enable AI Code Review/i,
+          name: /enable ai code review/i,
         });
         expect(preventAiField).toBeInTheDocument();
         expect(preventAiField).toBeDisabled();
@@ -562,7 +562,7 @@ describe('OrganizationSettingsForm', () => {
         );
 
         const preventAiField = screen.getByRole('checkbox', {
-          name: /Enable AI Code Review/i,
+          name: /enable ai code review/i,
         });
         expect(preventAiField).toBeInTheDocument();
         expect(preventAiField).toBeDisabled();
@@ -600,7 +600,7 @@ describe('OrganizationSettingsForm', () => {
 
         expect(
           screen.queryByRole('checkbox', {
-            name: /Enable AI Code Review/i,
+            name: /enable ai code review/i,
           })
         ).not.toBeInTheDocument();
       });

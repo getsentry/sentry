@@ -25,7 +25,7 @@ import styled from '@emotion/styled';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
-const formatRegExp = /%[csdj%]/g;
+const formatRegExp = /%[%cdjs]/g;
 interface FormatProps {
   args: any[];
   onExpand: OnExpandCallback;

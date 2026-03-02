@@ -65,7 +65,7 @@ describe('Quick Context Content: Event ID Column', () => {
     });
     renderEventContext(mockedLocation);
 
-    expect(await screen.findByText(/Transaction Duration/i)).toBeInTheDocument();
+    expect(await screen.findByText(/transaction duration/i)).toBeInTheDocument();
     expect(screen.getByText(/2.00s/i)).toBeInTheDocument();
   });
 
@@ -94,9 +94,9 @@ describe('Quick Context Content: Event ID Column', () => {
     });
     renderEventContext(mockedLocation);
 
-    expect(await screen.findByText(/Status/i)).toBeInTheDocument();
+    expect(await screen.findByText(/status/i)).toBeInTheDocument();
     expect(screen.getByText(/ok/i)).toBeInTheDocument();
-    expect(screen.getByText(/HTTP 200/i)).toBeInTheDocument();
+    expect(screen.getByText(/http 200/i)).toBeInTheDocument();
   });
 
   it('Renders NO stack trace message for error events without stackTraces', async () => {
@@ -109,7 +109,7 @@ describe('Quick Context Content: Event ID Column', () => {
     renderEventContext();
 
     expect(
-      await screen.findByText(/There is no stack trace available for this event./i)
+      await screen.findByText(/there is no stack trace available for this event./i)
     ).toBeInTheDocument();
   });
 

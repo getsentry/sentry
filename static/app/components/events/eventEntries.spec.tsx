@@ -54,10 +54,10 @@ describe('EventEntries', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button', {name: /Section/i})).toHaveLength(4);
+      expect(screen.getAllByRole('button', {name: /section/i})).toHaveLength(4);
     });
 
-    const sections = screen.getAllByRole('button', {name: /Section/i});
+    const sections = screen.getAllByRole('button', {name: /section/i});
 
     // Replay should be after message but before images loaded
     expect(sections[0]).toHaveTextContent(/message/i);

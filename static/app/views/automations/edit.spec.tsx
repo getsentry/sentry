@@ -177,7 +177,7 @@ describe('EditAutomation', () => {
       organization,
     });
 
-    expect(await screen.findAllByText(/Automation 1/i)).toHaveLength(2);
+    expect(await screen.findAllByText(/automation 1/i)).toHaveLength(2);
 
     // Update an existing filter value field
     const valueInput = screen.getByRole('textbox', {name: 'Value'});

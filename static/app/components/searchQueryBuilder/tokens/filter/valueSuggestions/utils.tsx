@@ -12,8 +12,8 @@ import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/token
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {FieldValueType} from 'sentry/utils/fields';
 
-const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[kmb]?$/i;
-const FILTER_VALUE_INT = /^-?\d+[kmb]?$/i;
+const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[bkm]?$/i;
+const FILTER_VALUE_INT = /^-?\d+[bkm]?$/i;
 
 export function getValueSuggestions({
   filterValue,

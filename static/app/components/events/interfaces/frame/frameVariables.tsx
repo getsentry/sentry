@@ -15,7 +15,7 @@ type Props = {
   platform?: PlatformKey;
 };
 
-const PYTHON_STRING_REGEX = /^['"](.*)['"]$/;
+const PYTHON_STRING_REGEX = /^["'](.*)["']$/;
 const NUMERIC_STRING_REGEX = /^-?\d+(\.\d+)?$/;
 
 const renderPythonBoolean = (value: unknown) => {

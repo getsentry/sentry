@@ -161,7 +161,7 @@ describe('CustomerInvoices', () => {
 
       // Wait for date to be displayed (moment format 'll')
       await waitFor(() => {
-        expect(screen.getByText(/Jan.*2024/i)).toBeInTheDocument();
+        expect(screen.getByText(/jan.*2024/i)).toBeInTheDocument();
       });
 
       // Check Stripe ID is displayed

@@ -92,7 +92,7 @@ describe('MetricIssueChart', () => {
 
     expect(
       await screen.findByText(
-        /The metric monitor which created this issue no longer exists./i
+        /the metric monitor which created this issue no longer exists./i
       )
     ).toBeInTheDocument();
     expect(screen.queryByTestId('area-chart')).not.toBeInTheDocument();

@@ -132,7 +132,7 @@ function ColorToken({
 function formatSnippet({token, scale}: {scale: string; token: string}) {
   const parts = token.split('.');
   const accessor = parts
-    .map(part => (/^[0-9]/.test(part) ? `["${part}"]` : `.${part}`))
+    .map(part => (/^\d/.test(part) ? `["${part}"]` : `.${part}`))
     .join('');
   return `\${p => p.theme.tokens.${scale}${accessor}}`;
 }

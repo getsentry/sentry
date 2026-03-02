@@ -288,7 +288,7 @@ describe('ProjectSeer', () => {
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Auto-Trigger Fixes/i,
+      name: /auto-trigger fixes/i,
     });
 
     act(() => {
@@ -335,7 +335,7 @@ describe('ProjectSeer', () => {
 
     // Find the toggle for Automate Issue Scans
     const toggle = await screen.findByRole('checkbox', {
-      name: /Scan Issues/i,
+      name: /scan issues/i,
     });
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();
@@ -380,7 +380,7 @@ describe('ProjectSeer', () => {
 
     // Find the select menu for Where should Seer stop?
     const select = await screen.findByRole('textbox', {
-      name: /Where should Seer stop/i,
+      name: /where should seer stop/i,
     });
 
     act(() => {
@@ -493,7 +493,7 @@ describe('ProjectSeer', () => {
 
     // Find the select menu for Where should Seer stop?
     const select = await screen.findByRole('textbox', {
-      name: /Where should Seer stop/i,
+      name: /where should seer stop/i,
     });
 
     act(() => {
@@ -548,12 +548,12 @@ describe('ProjectSeer', () => {
       });
 
       // Wait for the page to load
-      await screen.findByText(/Automation/i);
+      await screen.findByText(/automation/i);
 
       // The toggle should NOT be visible when stopping point is not cursor_handoff
       expect(
         screen.queryByRole('checkbox', {
-          name: /Auto-Create Pull Requests/i,
+          name: /auto-create pull requests/i,
         })
       ).not.toBeInTheDocument();
     });
@@ -628,7 +628,7 @@ describe('ProjectSeer', () => {
 
       // Wait for the toggle to load
       const toggle = await screen.findByRole('checkbox', {
-        name: /Auto-Create Pull Requests/i,
+        name: /auto-create pull requests/i,
       });
 
       // Verify it's checked
@@ -723,7 +723,7 @@ describe('ProjectSeer', () => {
 
       // Find and click the toggle
       const toggle = await screen.findByRole('checkbox', {
-        name: /Auto-Create Pull Requests/i,
+        name: /auto-create pull requests/i,
       });
       expect(toggle).not.toBeChecked();
 
@@ -825,13 +825,13 @@ describe('ProjectSeer', () => {
 
       // The integration selector should be visible with multiple integrations
       const integrationSelect = await screen.findByRole('textbox', {
-        name: /Select Configuration/i,
+        name: /select configuration/i,
       });
       expect(integrationSelect).toBeInTheDocument();
 
       // The auto-create PR toggle should also be visible
       expect(
-        screen.getByRole('checkbox', {name: /Auto-Create Pull Requests/i})
+        screen.getByRole('checkbox', {name: /auto-create pull requests/i})
       ).toBeInTheDocument();
     });
 
@@ -927,7 +927,7 @@ describe('ProjectSeer', () => {
 
       // Find and click the integration selector
       const integrationSelect = await screen.findByRole('textbox', {
-        name: /Select Configuration/i,
+        name: /select configuration/i,
       });
 
       act(() => {
@@ -1026,11 +1026,11 @@ describe('ProjectSeer', () => {
       });
 
       // Wait for the page to load
-      await screen.findByRole('checkbox', {name: /Auto-Create Pull Requests/i});
+      await screen.findByRole('checkbox', {name: /auto-create pull requests/i});
 
       // The integration selector should NOT be visible with only one integration
       expect(
-        screen.queryByRole('textbox', {name: /Select Configuration/i})
+        screen.queryByRole('textbox', {name: /select configuration/i})
       ).not.toBeInTheDocument();
     });
   });

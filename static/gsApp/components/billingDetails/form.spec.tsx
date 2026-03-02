@@ -99,7 +99,7 @@ describe('BillingDetailsForm', () => {
       <BillingDetailsForm {...defaultProps} initialData={detailsWithTax} isDetailed />
     );
 
-    await screen.findByRole('textbox', {name: /VAT Number/i});
+    await screen.findByRole('textbox', {name: /vat number/i});
   });
 
   it('renders custom submit label when provided', async () => {

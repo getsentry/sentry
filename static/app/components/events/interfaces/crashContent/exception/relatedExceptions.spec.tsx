@@ -54,8 +54,8 @@ describe('ExceptionGroupContext', () => {
     const children = screen.getAllByRole('button');
 
     // Order should be oldest to newest, opposite fo the previous test
-    expect(within(children[0]!).getByText(/ExceptionGroup 2/i)).toBeInTheDocument();
-    expect(within(children[1]!).getByText(/TypeError/i)).toBeInTheDocument();
+    expect(within(children[0]!).getByText(/exceptiongroup 2/i)).toBeInTheDocument();
+    expect(within(children[1]!).getByText(/typeerror/i)).toBeInTheDocument();
   });
 
   it('renders tree with child exception group', () => {

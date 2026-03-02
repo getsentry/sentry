@@ -22,7 +22,7 @@ describe('middleEllipsis', () => {
       middleEllipsis(
         'visual collector.console-running on_cloud.technology-task.with_luck',
         50,
-        / |\.|-|_|\s/
+        /[\s._-]/
       )
     ).toBe('visual collector.console…technology-task.with_luck');
   });

@@ -213,7 +213,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
-    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
+    event.platform === 'javascript' && /({snip}).*\1/.test(line ?? '');
 
   const hideErrors = isMinifiedJsError || disableSetup;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that

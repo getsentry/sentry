@@ -514,7 +514,7 @@ describe('IssueList', () => {
       });
 
       expect(
-        await screen.findByText(/Get out there and write some broken code!/i)
+        await screen.findByText(/get out there and write some broken code!/i)
       ).toBeInTheDocument();
     });
 
@@ -547,7 +547,7 @@ describe('IssueList', () => {
         );
       });
 
-      expect(await screen.findByText(/No issues match your search/i)).toBeInTheDocument();
+      expect(await screen.findByText(/no issues match your search/i)).toBeInTheDocument();
     });
 
     it('sets statsLoading to false when fetchStats returns early with empty groupIds', async () => {
@@ -591,7 +591,7 @@ describe('IssueList', () => {
 
       // Wait for the empty state to appear (not loading skeleton)
       await waitFor(() => {
-        expect(screen.getByText(/No issues match your search/i)).toBeInTheDocument();
+        expect(screen.getByText(/no issues match your search/i)).toBeInTheDocument();
       });
     });
   });

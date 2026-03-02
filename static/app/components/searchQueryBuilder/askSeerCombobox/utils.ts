@@ -72,8 +72,8 @@ export function formatQueryToNaturalLanguage(query: string): string {
       return `${result} ${token}`;
     }
 
-    const isCurrentFilter = /[:>=<!]/.test(currentOriginalToken);
-    const isPrevFilter = /[:>=<!]/.test(prevOriginalToken);
+    const isCurrentFilter = /[!:<=>]/.test(currentOriginalToken);
+    const isPrevFilter = /[!:<=>]/.test(prevOriginalToken);
 
     if (isCurrentFilter && isPrevFilter) {
       return `${result}, ${token}`;

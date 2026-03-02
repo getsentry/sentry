@@ -47,7 +47,7 @@ describe('IssueAlertOptions', () => {
 
   it('should provide fallthroughType with issue action', async () => {
     render(getComponent());
-    await userEvent.click(screen.getByLabelText(/When there are more than/i));
+    await userEvent.click(screen.getByLabelText(/when there are more than/i));
     expect(mockOnChange).toHaveBeenCalledWith('alertSetting', 1);
   });
 
@@ -63,7 +63,7 @@ describe('IssueAlertOptions', () => {
     ).toBeInTheDocument();
 
     // Select RuleAction.CUSTOMIZED_ALERTS
-    await userEvent.click(screen.getByLabelText(/When there are more than/i));
+    await userEvent.click(screen.getByLabelText(/when there are more than/i));
     expect(screen.getByRole('checkbox', {name: 'Notify via email'})).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', {

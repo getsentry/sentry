@@ -327,7 +327,7 @@ class _QueryField extends Component<Props> {
 
     const tagName =
       name.indexOf('tags[') === 0
-        ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
+        ? `tag:${name.replace(/tags\[(.*?)]/, '$1')}`
         : `tag:${name}`;
 
     if (fieldOptions[tagName]) {

@@ -914,7 +914,7 @@ describe('trace view', () => {
       initialRouterConfig,
     });
     expect(
-      await screen.findByText(/Woof, we failed to load your trace/i)
+      await screen.findByText(/woof, we failed to load your trace/i)
     ).toBeInTheDocument();
   });
 
@@ -943,7 +943,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We were unable to find any spans for this trace. Seeing this often?/i
+        /we were unable to find any spans for this trace. seeing this often?/i
       )
     ).toBeInTheDocument();
   });
@@ -973,7 +973,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We're still processing this trace. Please try refreshing after a minute/i
+        /we're still processing this trace. please try refreshing after a minute/i
       )
     ).toBeInTheDocument();
   });
@@ -1001,7 +1001,7 @@ describe('trace view', () => {
       mockQueryString('?node=span-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1015,7 +1015,7 @@ describe('trace view', () => {
       mockQueryString('?node=ag-redis0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1030,7 +1030,7 @@ describe('trace view', () => {
       mockQueryString('?node=span-redis0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1044,7 +1044,7 @@ describe('trace view', () => {
       mockQueryString('?node=ag-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1060,7 +1060,7 @@ describe('trace view', () => {
       mockQueryString('?node=span-http0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1075,7 +1075,7 @@ describe('trace view', () => {
       mockQueryString('?node=ms-queueprocess0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next ticks
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1089,7 +1089,7 @@ describe('trace view', () => {
       mockQueryString('?node=error-error0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next ticks
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1112,7 +1112,7 @@ describe('trace view', () => {
     it('supports expanded node path', async () => {
       mockQueryString('?node=span-span0&node=txn-1&span-0&node=txn-0');
       const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
       const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
@@ -1146,7 +1146,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
 
       await within(virtualizedContainer).findAllByText(/process/i);
-      expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/autogrouped/i)).not.toBeInTheDocument();
     });
 
     it('does not inject missing instrumentation if user preference is disabled', async () => {
@@ -1156,7 +1156,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
 
       await within(virtualizedContainer).findAllByText(/process/i);
-      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/missing instrumentation/i)).not.toBeInTheDocument();
     });
 
     describe('preferences', () => {
@@ -1165,7 +1165,7 @@ describe('trace view', () => {
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+        await within(virtualizedContainer).findAllByText(/autogrouped/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
         await userEvent.click(preferencesDropdownTrigger);
@@ -1190,7 +1190,7 @@ describe('trace view', () => {
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await within(virtualizedContainer).findAllByText(/No Instrumentation/i);
+        await within(virtualizedContainer).findAllByText(/no instrumentation/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
         await userEvent.click(preferencesDropdownTrigger);

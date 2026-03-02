@@ -41,7 +41,7 @@ describe('formatMongoDBQuery', () => {
     // It should be bolded and correctly spaced
     expect(boldedText).toContainHTML('<b>"find": "my_collection"</b>');
 
-    const objToken = screen.getByText(/"objectkey": \{/i);
+    const objToken = screen.getByText(/"objectkey": {/i);
 
     expect(objToken).toContainHTML(
       '<span>"objectKey": { "nestedObject": { "deeplyNested": {} } }</span>'
@@ -73,13 +73,13 @@ describe('formatMongoDBQuery', () => {
     const tokenizedQuery = formatMongoDBQuery(query, 'findOneAndDelete');
     render(<Fragment>{tokenizedQuery}</Fragment>);
 
-    const boldedText = screen.getByText(/"findOneAndDelete": "my_collection"/i);
+    const boldedText = screen.getByText(/"findoneanddelete": "my_collection"/i);
     expect(boldedText).toBeInTheDocument();
     // It should be bolded and correctly spaced
     expect(boldedText).toContainHTML('<b>"findOneAndDelete": "my_collection"</b>');
 
     const clusterFudgeToken = screen.getByText(
-      /"deeplynestedarraywithobjects": \[1, 2, 3, \[1, 2, \[null, true, \[\{\}, \{\}, \{ "test": \[\[1, 2\], \[3, 4\]\] \}, \{\}\]\]\], 4\]/i
+      /"deeplynestedarraywithobjects": \[1, 2, 3, \[1, 2, \[null, true, \[{}, {}, { "test": \[\[1, 2], \[3, 4]] }, {}]]], 4]/i
     );
 
     expect(clusterFudgeToken).toContainHTML(
@@ -97,7 +97,7 @@ describe('formatMongoDBQuery', () => {
 
     // The last entry in this case will be repaired by assigning a null value to the incomplete key
     const truncatedEntry = screen.getByText(
-      /"details": \{ "email": "\?", "nam\*": null \}/i
+      /"details": { "email": "\?", "nam\*": null }/i
     );
     expect(truncatedEntry).toBeInTheDocument();
   });
@@ -107,7 +107,7 @@ describe('formatMongoDBQuery', () => {
     const tokenizedQuery = formatMongoDBQuery(query, 'findOne');
     render(<Fragment>{tokenizedQuery}</Fragment>);
 
-    const boldedText = screen.getByText(/"findOne": "my_collection"/i);
+    const boldedText = screen.getByText(/"findone": "my_collection"/i);
     expect(boldedText).toContainHTML('<b>"findOne": "my_collection"</b>');
 
     const commaTokens = screen.getAllByText(',');

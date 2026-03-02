@@ -436,7 +436,7 @@ describe('Exception Content', () => {
       expect(
         screen.getByRole('button', {name: /show 1 related exception/i})
       ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: /ValueError: test/i}));
+      await userEvent.click(screen.getByRole('button', {name: /valueerror: test/i}));
 
       // After expanding, ValueError should be visible
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();

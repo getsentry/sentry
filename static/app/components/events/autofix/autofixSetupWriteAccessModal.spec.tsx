@@ -45,7 +45,7 @@ describe('AutofixSetupWriteAccessModal', () => {
       );
     });
 
-    expect(screen.getByText(/In order to create pull requests/i)).toBeInTheDocument();
+    expect(screen.getByText(/in order to create pull requests/i)).toBeInTheDocument();
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('getsentry/seer')).toBeInTheDocument();
 

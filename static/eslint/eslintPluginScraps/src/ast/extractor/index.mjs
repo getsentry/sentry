@@ -28,8 +28,8 @@ export function shouldAnalyze(context) {
 
   const hasUsagePattern =
     /\buseTheme\b/.test(text) || // useTheme hook
-    /\bstyled[.(`]/.test(text) || // styled.div, styled(, styled`
-    /\bcss[`({]/.test(text) || // css`, css(, css{
+    /\bstyled[(.`]/.test(text) || // styled.div, styled(, styled`
+    /\bcss[(`{]/.test(text) || // css`, css(, css{
     /\b(?:css|style)\s*=/.test(text); // css= or style= JSX attrs
 
   return hasEmotionImport || hasUsagePattern;

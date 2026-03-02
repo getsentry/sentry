@@ -145,7 +145,7 @@ function getPropertyStructure(property: any) {
 }
 
 function cleanTitle(title: any) {
-  const regex = /[^a-z0-9]/gi;
+  const regex = /[^\da-z]/gi;
   const formattedTitle = title.replace(regex, '-');
   const date = new Date();
   return `${formattedTitle}-${date.toISOString()}`;

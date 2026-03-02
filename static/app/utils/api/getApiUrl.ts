@@ -27,7 +27,7 @@ type PathParamOptions<TApiPath extends string> =
 export type OptionalPathParams<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never ? never[] : [PathParamOptions<TApiPath>];
 
-const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
+const paramRegex = /\$([\w-]+)/g;
 
 type ApiUrl = string & {__apiUrl: true};
 

@@ -555,7 +555,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
+        /editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
       )
     ).toBeInTheDocument();
 
@@ -596,7 +596,7 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(
         screen.queryByText(
-          /You may have limited functionality due to the ongoing migration of transactions to spans/i
+          /you may have limited functionality due to the ongoing migration of transactions to spans/i
         )
       ).not.toBeInTheDocument();
     });

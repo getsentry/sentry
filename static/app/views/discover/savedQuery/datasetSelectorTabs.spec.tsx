@@ -151,7 +151,7 @@ describe('Discover DatasetSelector', () => {
     await userEvent.hover(screen.getByRole('tab', {name: 'Transactions'}));
     expect(
       await screen.findByText(
-        /Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon/i
+        /discover\u2192transactions is going to be merged into explore\u2192traces soon/i
       )
     ).toBeInTheDocument();
   });

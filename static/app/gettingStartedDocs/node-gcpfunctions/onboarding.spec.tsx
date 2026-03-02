@@ -16,7 +16,7 @@ describe('gcpfunctions onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {name: /Upload Source Maps/i})
+      screen.getByRole('heading', {name: /upload source maps/i})
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 

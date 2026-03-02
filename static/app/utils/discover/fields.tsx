@@ -899,8 +899,8 @@ export const TRANSACTIONS_AGGREGATION_FUNCTIONS = [
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([\w.-]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([\w.-]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
@@ -1019,7 +1019,7 @@ function parseArguments(columnText: string): string[] {
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 export const EQUATION_PREFIX = 'equation|';
-const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
+const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)]$/;
 const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
@@ -1173,7 +1173,7 @@ export function getAggregateAlias(field: string): string {
     alias += '_' + result.arguments.join('_');
   }
 
-  return alias.replace(/[^\w]/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
+  return alias.replace(/\W/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
 }
 
 /**

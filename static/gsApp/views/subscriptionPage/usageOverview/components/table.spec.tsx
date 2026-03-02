@@ -44,7 +44,7 @@ describe('UsageOverviewTable', () => {
       screen.getByRole('columnheader', {name: 'Additional spend'})
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', {name: /^View .+ usage$/i}).length
+      screen.getAllByRole('button', {name: /^view .+ usage$/i}).length
     ).toBeGreaterThan(0);
   });
 
@@ -67,7 +67,7 @@ describe('UsageOverviewTable', () => {
       screen.getByRole('columnheader', {name: 'Additional spend'})
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', {name: /^View .+ usage$/i}).length
+      screen.getAllByRole('button', {name: /^view .+ usage$/i}).length
     ).toBeGreaterThan(0);
   });
 

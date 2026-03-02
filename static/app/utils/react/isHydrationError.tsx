@@ -1,5 +1,5 @@
 const REGEXP =
-  /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i;
+  /(does not match server-rendered html|hydration failed because|error while hydrating)/i;
 
 export default function isHydrationError(errorTitle: string) {
   // Hydration Errors captured by the errors-SDK will match the REGEXP above

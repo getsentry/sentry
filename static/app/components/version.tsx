@@ -70,7 +70,7 @@ function Version({
   const versionToDisplay = shouldFormatVersion
     ? formatVersion(version, withPackage)
     : version;
-  const isHashVersion = /\b[a-f0-9]{40}\b|\b[a-f0-9]{64}\b/.test(version);
+  const isHashVersion = /\b[\da-f]{40}\b|\b[\da-f]{64}\b/.test(version);
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {

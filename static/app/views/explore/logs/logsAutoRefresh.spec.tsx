@@ -144,7 +144,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Auto-refresh is only supported when sorting by time/i)
+        screen.getByText(/auto-refresh is only supported when sorting by time/i)
       ).toBeInTheDocument();
     });
   });
@@ -173,7 +173,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          /Auto-refresh is only supported when using a relative time period/i
+          /auto-refresh is only supported when using a relative time period/i
         )
       ).toBeInTheDocument();
     });
@@ -201,7 +201,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Auto-refresh is not available in the aggregates view./i)
+        screen.getByText(/auto-refresh is not available in the aggregates view./i)
       ).toBeInTheDocument();
     });
   });
@@ -230,7 +230,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          /Auto-refresh is only available when visualizing `count\(logs\)`./i
+          /auto-refresh is only available when visualizing `count\(logs\)`./i
         )
       ).toBeInTheDocument();
     });

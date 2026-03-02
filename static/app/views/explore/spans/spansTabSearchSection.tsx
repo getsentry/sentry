@@ -172,8 +172,8 @@ const SpansTabCrossEventSearchBar = memo(
         numberAttributes,
         stringAttributes,
         matchKeySuggestions: [
-          {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-          {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          {key: 'trace', valuePattern: /^[\dA-Fa-f]{32}$/},
+          {key: 'id', valuePattern: /^[\dA-Fa-f]{16}$/},
         ],
         booleanSecondaryAliases,
         numberSecondaryAliases,
@@ -425,8 +425,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
-        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+        {key: 'trace', valuePattern: /^[\dA-Fa-f]{32}$/},
+        {key: 'id', valuePattern: /^[\dA-Fa-f]{16}$/},
       ],
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,

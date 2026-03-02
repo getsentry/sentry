@@ -56,7 +56,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 
 const formatEntryTitle = (name: string) => {
   const spaceName = name.replace(/-|\./gm, ' ');
-  let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
+  let capitalizeName = spaceName.replace(/(^\w)|([\s-]\w)/g, match =>
     match.toUpperCase()
   );
   // Keep hypens back in pay-as-you-go title

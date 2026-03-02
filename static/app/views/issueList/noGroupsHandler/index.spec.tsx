@@ -54,6 +54,6 @@ describe('NoGroupsHandler', () => {
 
     render(<NoGroupsHandler {...defaultProps} />);
 
-    expect(await screen.findByText(/Waiting for events/i)).toBeInTheDocument();
+    expect(await screen.findByText(/waiting for events/i)).toBeInTheDocument();
   });
 });

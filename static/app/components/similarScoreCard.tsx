@@ -40,7 +40,7 @@ function SimilarScoreCard({scoreList = []}: Props) {
       {scoreList.map(([key, score]) => {
         const title =
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
+          scoreComponents[key.replace(/similarity:\d{4}-\d{2}-\d{2}/, 'similarity:*')];
 
         if (!title) {
           if (score !== null) {

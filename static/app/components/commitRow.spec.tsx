@@ -119,7 +119,7 @@ describe('commitRow', () => {
     const handlePullRequestClick = jest.fn();
     render(<CommitRow commit={commit} onPullRequestClick={handlePullRequestClick} />);
 
-    const prLink = screen.getByRole('link', {name: /ref\(commitRow\):/i});
+    const prLink = screen.getByRole('link', {name: /ref\(commitrow\):/i});
     expect(prLink).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/1');
     await userEvent.click(prLink);
     expect(handlePullRequestClick).toHaveBeenCalled();

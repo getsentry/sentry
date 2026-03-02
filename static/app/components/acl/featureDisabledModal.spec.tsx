@@ -43,7 +43,7 @@ describe('FeatureTourModal', () => {
 
     expect(screen.getByText(/# Enables the Custom Feature feature/)).toBeInTheDocument();
     expect(
-      screen.getByText(/SENTRY_FEATURES\['organization:custom-feature'\] = True/)
+      screen.getByText(/SENTRY_FEATURES\['organization:custom-feature'] = True/)
     ).toBeInTheDocument();
   });
 

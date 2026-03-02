@@ -57,7 +57,7 @@ describe('ChoiceMapperField', () => {
     render(<ChoiceMapperField {...defaultProps} />);
 
     // Should show the add button
-    expect(await screen.findByRole('button', {name: /Add Item/i})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: /add item/i})).toBeInTheDocument();
 
     // Should not show headers when empty
     expect(screen.queryByText('Column 1')).not.toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('ChoiceMapperField', () => {
   it('adds a row when selecting an item from the dropdown', async () => {
     render(<ChoiceMapperField {...defaultProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
+    await userEvent.click(screen.getByRole('button', {name: /add item/i}));
 
     await userEvent.click(await screen.findByText('Item 1'));
 
@@ -120,7 +120,7 @@ describe('ChoiceMapperField', () => {
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
 
-    await screen.findByRole('button', {name: /Add Item/i});
+    await screen.findByRole('button', {name: /add item/i});
   });
 
   describe('AsyncCompactSelectForIntegrationConfig', () => {
@@ -152,7 +152,7 @@ describe('ChoiceMapperField', () => {
       render(<ChoiceMapperField {...asyncProps} />);
 
       // Click the add button to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
+      await userEvent.click(screen.getByRole('button', {name: /add item/i}));
 
       // Type in the search box
       const searchInput = screen.getByRole('textbox');
@@ -175,7 +175,7 @@ describe('ChoiceMapperField', () => {
       render(<ChoiceMapperField {...asyncProps} />);
 
       // Open dropdown
-      await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
+      await userEvent.click(screen.getByRole('button', {name: /add item/i}));
 
       // Search and select
       const searchInput = screen.getByRole('textbox');
@@ -214,7 +214,7 @@ describe('ChoiceMapperField', () => {
       expect(screen.getByText('my-org/my-repo')).toBeInTheDocument();
 
       // Wait for any async updates to complete
-      await screen.findByRole('button', {name: /Add Item/i});
+      await screen.findByRole('button', {name: /add item/i});
     });
 
     it('shows no results message when search returns empty', async () => {
@@ -225,7 +225,7 @@ describe('ChoiceMapperField', () => {
 
       render(<ChoiceMapperField {...asyncProps} />);
 
-      await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
+      await userEvent.click(screen.getByRole('button', {name: /add item/i}));
 
       const searchInput = screen.getByRole('textbox');
       await userEvent.type(searchInput, 'nonexistent');
@@ -257,7 +257,7 @@ describe('ChoiceMapperField', () => {
         />
       );
 
-      await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
+      await userEvent.click(screen.getByRole('button', {name: /add item/i}));
 
       const searchInput = screen.getByPlaceholderText('Search…');
       await userEvent.type(searchInput, 'repo');
@@ -281,7 +281,7 @@ describe('ChoiceMapperField', () => {
 
       render(<ChoiceMapperField {...asyncProps} />);
 
-      await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
+      await userEvent.click(screen.getByRole('button', {name: /add item/i}));
 
       const searchInput = screen.getByRole('textbox');
 

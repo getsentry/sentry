@@ -25,7 +25,7 @@ describe('PolicyRow', () => {
       />
     );
     expect(screen.getByText('Terms of Service')).toBeInTheDocument();
-    expect(screen.queryByText(/Updated on/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/updated on/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review'})).toHaveAttribute(
       'href',
@@ -47,8 +47,8 @@ describe('PolicyRow', () => {
     );
     expect(screen.getByText(policy.name)).toBeInTheDocument();
     expect(screen.queryByText(/signed/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Updated on/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/New version available/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/updated on/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/new version available/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
   });
 
@@ -66,8 +66,8 @@ describe('PolicyRow', () => {
     );
     expect(screen.getByText(policy.name)).toBeInTheDocument();
     expect(screen.queryByText(/signed/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Updated on/i)).toBeInTheDocument();
-    expect(screen.queryByText(/New version available/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/updated on/i)).toBeInTheDocument();
+    expect(screen.queryByText(/new version available/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
   });
 
@@ -91,8 +91,8 @@ describe('PolicyRow', () => {
 
     expect(screen.getByText(policy.name)).toBeInTheDocument();
     expect(screen.queryByText(/signed/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Updated on/i)).toBeInTheDocument();
-    expect(screen.queryByText(/New version available/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/updated on/i)).toBeInTheDocument();
+    expect(screen.queryByText(/new version available/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
   });
   it('allows those with org write to accept policies', () => {
@@ -115,8 +115,8 @@ describe('PolicyRow', () => {
 
     expect(screen.getByText(policy.name)).toBeInTheDocument();
     expect(screen.queryByText(/signed/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Updated on/i)).toBeInTheDocument();
-    expect(screen.queryByText(/New version available/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/updated on/i)).toBeInTheDocument();
+    expect(screen.queryByText(/new version available/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review and Accept'})).toBeInTheDocument();
   });
 });

@@ -739,6 +739,8 @@ export default typescript.config([
     // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
     plugins: {unicorn},
     rules: {
+      'unicorn/better-regex': 'error',
+
       // The recommended rules are very opinionated. We don't need to enable them.
 
       'unicorn/custom-error-definition': 'error',

@@ -139,7 +139,7 @@ describe('DatabaseSpanDescription', () => {
 
     // expect(await screen.findBy).toBeInTheDocument();
     const mongoQuerySnippet = await screen.findByText(
-      /\{ "a": "\?", "insert": "documents" \}/i
+      /{ "a": "\?", "insert": "documents" }/i
     );
     expect(mongoQuerySnippet).toBeInTheDocument();
     expect(mongoQuerySnippet).toHaveClass('language-json');

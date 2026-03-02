@@ -10,7 +10,7 @@ import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([mhdw]?)/;
+const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([dhmw]?)/;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
 
 export function getDefaultAbsoluteDateValue(token: TokenResult<Token.FILTER>) {

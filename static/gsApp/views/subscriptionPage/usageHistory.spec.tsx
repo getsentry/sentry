@@ -70,7 +70,7 @@ describe('Subscription > UsageHistory', () => {
 
     render(<UsageHistory />, {organization});
     expect(
-      await screen.findByRole('heading', {name: /Usage History/i})
+      await screen.findByRole('heading', {name: /usage history/i})
     ).toBeInTheDocument();
   });
 
@@ -846,7 +846,7 @@ describe('Subscription > UsageHistory', () => {
     render(<UsageHistory />, {organization});
 
     // Should show 2% (100/6000 * 100)
-    expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
+    expect(await screen.findByText(/ui profile hours/i)).toBeInTheDocument();
     expect(await screen.findByText('2%')).toBeInTheDocument();
     expect(screen.queryByText('>100%')).not.toBeInTheDocument();
   });
@@ -881,7 +881,7 @@ describe('Subscription > UsageHistory', () => {
     render(<UsageHistory />, {organization});
 
     // Should show >100% when usage exceeds prepaid limit
-    expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
+    expect(await screen.findByText(/ui profile hours/i)).toBeInTheDocument();
     expect(await screen.findByText('>100%')).toBeInTheDocument();
   });
 });

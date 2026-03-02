@@ -66,7 +66,7 @@ describe('rails onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))
+      screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger]/))
     ).toBeInTheDocument();
   });
 });

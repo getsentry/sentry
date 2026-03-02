@@ -84,7 +84,7 @@ describe('RelatedIssues', () => {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));
 
-    expect(screen.getByText(/No new issues/i)).toBeInTheDocument();
+    expect(screen.getByText(/no new issues/i)).toBeInTheDocument();
   });
 
   it('remaps request.method to http.method when EAP is enabled', async () => {

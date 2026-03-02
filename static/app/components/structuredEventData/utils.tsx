@@ -23,7 +23,7 @@ export function naturalCaseInsensitiveSort(a: string, b: string) {
   return a === b ? 0 : a < b ? -1 : 1;
 }
 
-const STRIPPED_VALUE_REGEX = /^['"]?\*{8,}['"]?$/;
+const STRIPPED_VALUE_REGEX = /^["']?\*{8,}["']?$/;
 
 export function looksLikeStrippedValue(value: string) {
   return STRIPPED_VALUE_REGEX.test(value);

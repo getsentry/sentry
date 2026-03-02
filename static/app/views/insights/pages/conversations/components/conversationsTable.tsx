@@ -149,7 +149,7 @@ function TooltipContent({text}: {text: string}) {
 
 function cleanMarkdownForCell(text: string): string {
   return text
-    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/```[\S\s]*?```/g, '') // fenced code blocks
     .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
     .replace(/\s+/g, ' ')
     .trim();

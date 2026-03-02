@@ -177,7 +177,7 @@ function parseComponentTemplate(template: string): ParsedTemplate {
   let groupId = 1;
 
   function process(startPos: number, group: string, inGroup: boolean) {
-    const regex = /\[(.*?)(:|\])|\]/g;
+    const regex = /\[(.*?)(:|])|]/g;
     const buf: TemplateSubvalue[] = [];
 
     let satisfied = false;
