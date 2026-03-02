@@ -16,16 +16,11 @@ import {
 } from 'sentry/views/preprod/types/snapshotTypes';
 
 function formatDuration(ms: number): string {
-  if (ms < 60_000) {
-    return `${(ms / 1000).toFixed(1)}s`;
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
   }
-  let minutes = Math.floor(ms / 60_000);
-  let seconds = Math.round((ms % 60_000) / 1000);
-  if (seconds === 60) {
-    minutes += 1;
-    seconds = 0;
-  }
-  return `${minutes}m ${seconds}s`;
+  return `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`;
 }
 
 type Props = {

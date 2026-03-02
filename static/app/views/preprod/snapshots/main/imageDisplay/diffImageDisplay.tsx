@@ -67,7 +67,7 @@ export function DiffImageDisplay({
           {t('Diff: %s', diffPercent)}
         </Text>
       )}
-      <TwoColumnGrid gap="xl">
+      <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
         <Flex direction="column" gap="sm">
           <Heading as="h4">{t('Base')}</Heading>
           <Container
@@ -105,16 +105,10 @@ export function DiffImageDisplay({
             </ImageWrapper>
           </Container>
         </Flex>
-      </TwoColumnGrid>
+      </Grid>
     </Flex>
   );
 }
-
-const TwoColumnGrid = styled(Grid)`
-  grid-template-columns: 1fr 1fr;
-  flex: 1;
-  min-height: 0;
-`;
 
 const ImageWrapper = styled('div')`
   position: relative;
