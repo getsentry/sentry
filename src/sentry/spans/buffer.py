@@ -316,7 +316,32 @@ class SpansBuffer:
                     offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[segment_key] = now + offset
+
+                # Debug logging: read old deadline before updating
+                old_deadline = None
+                if self._debug_trace_logger is None:
+                    self._debug_trace_logger = DebugTraceLogger(self.client)
+                if self._debug_trace_logger._should_log_trace(project_and_trace):
+                    old_deadline_score = self.client.zscore(queue_key, segment_key)
+                    old_deadline = (
+                        int(old_deadline_score) if old_deadline_score is not None else None
+                    )
+
+                new_deadline = now + offset
+                zadd_items[segment_key] = new_deadline
+
+                # Debug logging: log deadline update
+                try:
+                    self._debug_trace_logger.log_deadline_update(
+                        segment_key=segment_key,
+                        project_and_trace=project_and_trace,
+                        old_deadline=old_deadline,
+                        new_deadline=new_deadline,
+                        message_timestamp=now,
+                        has_root_span=has_root_span,
+                    )
+                except Exception:
+                    logger.exception("process_spans: Failed to log deadline update")
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())

@@ -174,7 +174,7 @@ class TestDebugTraceLogger:
         assert extra["root_span_in_segment"] is True
         assert extra["num_spans"] == 5
         assert extra["shard_id"] == 0
-        assert extra["flusher_now"] == 1705320600
+        assert extra["flusher_timestamp"] == 1705320600
         assert extra["segment_deadline"] == 1705320610
         assert extra["ttl_remaining_seconds"] == 10
 
@@ -210,7 +210,7 @@ class TestDebugTraceLogger:
         assert extra["root_span_in_segment"] is False
         assert extra["num_spans"] == 3
         assert extra["shard_id"] == 7
-        assert extra["flusher_now"] == 1705320600
+        assert extra["flusher_timestamp"] == 1705320600
         assert extra["segment_deadline"] == 1705320660
         assert extra["ttl_remaining_seconds"] == 60
 
@@ -238,3 +238,16 @@ class TestDebugTraceLogger:
         mock_logger.info.assert_not_called()
         mock_client.exists.assert_not_called()
         mock_client.zscore.assert_not_called()
+
+    @mock.patch("sentry.spans.debug_trace_logger.logger")
+    def test_should_log_trace(self, mock_logger):
+        """Test _should_log_trace helper method."""
+        mock_client = mock.MagicMock()
+
+        with override_options({"spans.buffer.debug-traces": ["trace123", "trace456"]}):
+            debug_logger = DebugTraceLogger(mock_client)
+
+            assert debug_logger._should_log_trace("123:trace123") is True
+            assert debug_logger._should_log_trace("456:trace456") is True
+            assert debug_logger._should_log_trace("789:trace789") is False
+            assert debug_logger._should_log_trace("123:other_trace") is False
