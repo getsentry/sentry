@@ -41,7 +41,6 @@ function _evaluateJsonPos(stack: JsonToken[], json: string, pos: number): void {
     return;
   }
 
-  // eslint-disable-next-line default-case
   switch (char) {
     case '{':
       _handleObj(stack, curStep);

@@ -208,8 +208,6 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        default:
-          break;
       }
     },
     [activeGroup, navigate, organization]

@@ -79,7 +79,6 @@ function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
 }
 
 export function AlertLastIncidentActivationInfo({rule}: Props) {
-  // eslint-disable-next-line default-case
   switch (rule.type) {
     case CombinedAlertType.UPTIME:
       return <LastUptimeIncident rule={rule} />;

@@ -198,8 +198,6 @@ export function usePipeline<
             error: new Error((response.data?.detail as string) ?? 'Pipeline error'),
           });
           break;
-        default:
-          break;
       }
     },
     onError: (error: Error, _variables, context) => {

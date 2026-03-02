@@ -1176,8 +1176,6 @@ export function useWidgetBuilderState(): {
           setTextContent(action.payload);
           break;
         }
-        default:
-          break;
       }
     },
     [

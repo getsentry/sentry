@@ -360,7 +360,6 @@ function getInsightsModuleBreadcrumbs(
       });
       break;
 
-    case ModuleName.CACHE:
     default:
       break;
   }

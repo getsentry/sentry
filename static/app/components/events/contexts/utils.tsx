@@ -355,8 +355,6 @@ export function getContextIcon({
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
-    default:
-      break;
   }
   if (iconName.length === 0) {
     return null;
@@ -567,8 +565,6 @@ export function getContextSummary({
         subtitle = data?.version;
         subtitleType = t('Version');
       }
-      break;
-    default:
       break;
   }
   return {
