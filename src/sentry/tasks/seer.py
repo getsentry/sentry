@@ -2,13 +2,8 @@ from __future__ import annotations
 
 import logging
 
-import orjson
-
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import RemoveRepositoryRequest, make_remove_repository_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -32,21 +27,14 @@ def cleanup_seer_repository_preferences(
     is deleted from an organization's integration.
     """
     # Call Seer API to remove repository from organization preferences
-    path = "/v1/project-preference/remove-repository"
-    body = orjson.dumps(
-        {
-            "organization_id": organization_id,
-            "repo_provider": repo_provider,
-            "repo_external_id": repo_external_id,
-        }
+    body = RemoveRepositoryRequest(
+        organization_id=organization_id,
+        repo_provider=repo_provider,
+        repo_external_id=repo_external_id,
     )
 
     try:
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            path,
-            body,
-        )
+        response = make_remove_repository_request(body)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
         logger.info(

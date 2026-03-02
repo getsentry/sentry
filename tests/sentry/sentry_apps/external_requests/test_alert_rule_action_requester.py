@@ -348,3 +348,38 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         assert_many_failure_metrics(
             mock_record=mock_record, messages_or_errors=[Exception(), Exception()]
         )
+
+    @responses.activate
+    @patch("sentry.sentry_apps.external_requests.utils.safe_urlopen")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_failed_request_with_missing_url(
+        self, mock_record: MagicMock, mock_urlopen: MagicMock
+    ) -> None:
+        mock_urlopen.side_effect = Exception()
+        self.sentry_app.webhook_url = ""
+        self.sentry_app.save()
+
+        result = SentryAppAlertRuleActionRequester(
+            install=self.install,
+            uri="/sentry/alert-rule",
+            fields=self.fields,
+        ).run()
+
+        assert not result["success"]
+        assert result["message"] == "Sentry app webhook_url is not configured"
+        assert result["error_type"] == SentryAppErrorType.INTEGRATOR
+        assert result["webhook_context"] == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestFailureReason.MISSING_URL
+            ),
+            "uri": "/sentry/alert-rule",
+            "installation_uuid": self.install.uuid,
+            "sentry_app_slug": self.sentry_app.slug,
+        }
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )

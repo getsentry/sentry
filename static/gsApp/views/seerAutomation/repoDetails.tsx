@@ -1,10 +1,10 @@
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import NotFound from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -67,7 +67,7 @@ export default function SeerRepoDetails() {
         projectSlug={repoWithSettings?.name}
       />
       <SettingsPageHeader
-        title={tct('Seer Settings for [repoName] [providerLink]', {
+        title={tct('Seer Code Review for [repoName] [providerLink]', {
           repoName: <code>{repoWithSettings?.name}</code>,
           providerLink: (
             <ExternalLink href={repoWithSettings?.url}>

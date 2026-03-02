@@ -14,7 +14,7 @@ from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
-from sentry.apidocs.parameters import GlobalParams, IntegrationParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IntegrationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
@@ -71,6 +71,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
             IntegrationParams.PROVIDER_KEY,
             IntegrationParams.FEATURES,
             IntegrationParams.INCLUDE_CONFIG,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

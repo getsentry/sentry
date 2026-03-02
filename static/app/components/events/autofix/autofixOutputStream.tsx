@@ -136,8 +136,7 @@ function ActiveLogDisplay({
   const erroredStepIndex = erroredStep?.index ?? 0;
   let retainInsightCardIndex: number | null = null;
   if (
-    erroredStep &&
-    erroredStep.type === AutofixStepType.DEFAULT &&
+    erroredStep?.type === AutofixStepType.DEFAULT &&
     Array.isArray((erroredStep as any).insights)
   ) {
     const insights = (erroredStep as any).insights;

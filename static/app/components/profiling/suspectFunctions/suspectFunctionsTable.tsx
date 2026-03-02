@@ -118,11 +118,10 @@ export function SuspectFunctionsTable({
   const organization = useOrganization();
 
   const flamegraphQuery = useAggregateFlamegraphQuery({
-    // User query is only permitted when using transactions.
-    // If this is to be reused for strictly continuous profiling,
-    // it'll need to be swapped to use the `profiles` data source
-    // with no user query.
-    dataSource: 'transactions',
+    // Note: the 'profiles' data source does not support user queries.
+    // If reusing this for continuous profiling, remove the query param
+    // and switch to dataSource: 'profiles'.
+    dataSource: 'spans',
     query: eventView.query,
     metrics: true,
   });
@@ -132,7 +131,7 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples: Array<Array<Exclude<Profiling.ProfileReference, string>>> = new Array(
+    const examples = new Array<Array<Exclude<Profiling.ProfileReference, string>>>(
       frames.length
     );
 
@@ -270,7 +269,7 @@ export function SuspectFunctionsTable({
             <TableStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
-          ) : flamegraphQuery.isFetched ? (
+          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
                 key={i}

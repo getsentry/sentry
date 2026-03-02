@@ -124,9 +124,7 @@ class ReleaseSessionsChart extends Component<Props> {
     }
   }
 
-  getChart():
-    | React.ComponentType<StackedAreaChart['props']>
-    | React.ComponentType<AreaChartProps> {
+  getChart(): React.ComponentType<AreaChartProps> {
     const {chartType} = this.props;
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:

@@ -3,12 +3,6 @@ import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 
-__all__ = [
-    "ParameterizationCallable",
-    "ParameterizationRegex",
-    "Parameterizer",
-]
-
 
 @dataclasses.dataclass
 class ParameterizationRegex:
@@ -24,20 +18,21 @@ class ParameterizationRegex:
 
     @property
     def pattern(self) -> str:
-        return self._pattern(False)
+        return self._get_pattern(self.raw_pattern)
 
     @property
-    def experimental_pattern(self) -> str:
-        return self._pattern(self.raw_pattern_experimental is not None)
+    def experimental_pattern(self) -> str | None:
+        if not self.raw_pattern_experimental:
+            return None
+        return self._get_pattern(self.raw_pattern_experimental)
 
-    def _pattern(self, experimental: bool = False) -> str:
+    def _get_pattern(self, raw_pattern: str) -> str:
         """
         Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
-        pattern = self.raw_pattern_experimental if experimental else self.raw_pattern
         prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
         postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{pattern}){postfix}"
+        return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
@@ -198,37 +193,46 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
         name="quoted_str",
-        raw_pattern=r"""# Using `=`lookbehind which guarantees we'll only match the value half of key-value pairs,
-            # rather than all quoted strings
+        raw_pattern=r"""
             '([^']+)' | "([^"]+)"
         """,
+        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
+        # rather than all quoted strings
         lookbehind="=",
     ),
     ParameterizationRegex(
         name="bool",
-        raw_pattern=r"""# Using `=`lookbehind which guarantees we'll only match the value half of key-value pairs,
-            # rather than all instances of the words 'true' and 'false'.
+        raw_pattern=r"""
             True |
             true |
             False |
             false
         """,
+        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
+        # rather than all instances of the words 'true' and 'false'.
         lookbehind="=",
     ),
 ]
 
 
+# Patterns to use for each match type when not in experimental mode.
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
+
+# Patterns to use when in experimental mode. If no experimental pattern exists for a given type of
+# match, falls back to the default pattern.
 EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.experimental_pattern for r in DEFAULT_PARAMETERIZATION_REGEXES
+    r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
+    for r in DEFAULT_PARAMETERIZATION_REGEXES
 }
 
 
 @dataclasses.dataclass
 class ParameterizationCallable:
     """
-    Represents a callable that can be used to modify a string, which can give
-    us more flexibility than just using regex.
+    Represents a callable that can be used to modify a string, which can give us more flexibility
+    than just using regex.
+
+    Note: Future-proofing. Not currently in use.
     """
 
     name: str  # name of the pattern (also used as group name in combined regex)
@@ -239,7 +243,11 @@ class ParameterizationCallable:
 class Parameterizer:
     def __init__(
         self,
+        # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
+        # use all available parameterization, omit this argument.
         regex_pattern_keys: Sequence[str] | None = None,
+        # Whether to use experimental patterns, if available. (Pattern types without an experimental
+        # pattern will fall back to the standard pattern.)
         experimental: bool = False,
     ):
         self._experimental = experimental
@@ -268,15 +276,14 @@ class Parameterizer:
 
         return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
-    def parametrize_w_regex(self, content: str) -> str:
+    def parametrize_w_regex(self, input_str: str, parameterization_regex: re.Pattern[str]) -> str:
         """
-        Replace all matches of the given regex in the content with a placeholder string.
+        Replace all matches of the given regex in the input string with a placeholder.
 
-        @param content: The string to replace matches in.
+        @param input_str: The string to replace matches in.
         @param parameterization_regex: The compiled regex pattern to match.
-        @param match_callback: An optional callback function to call with the key of the matched pattern.
 
-        @returns: The content with all matches replaced with placeholders.
+        @returns: The input string with all matches replaced with placeholders.
         """
 
         def _handle_regex_match(match: re.Match[str]) -> str:
@@ -289,7 +296,7 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        return self._parameterization_regex.sub(_handle_regex_match, content)
+        return parameterization_regex.sub(_handle_regex_match, input_str)
 
-    def parameterize_all(self, content: str) -> str:
-        return self.parametrize_w_regex(content)
+    def parameterize_all(self, input_str: str) -> str:
+        return self.parametrize_w_regex(input_str, self._parameterization_regex)

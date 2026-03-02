@@ -155,8 +155,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         # Check that only primary email is present and no other email addresses are exposed
         assert response.data["email"] == "primary@example.com"
-        assert "emails" not in response.data["user"]
-        assert "emails" not in response.data.get("serializedUser", {})
+        assert response.data["user"]["emails"] == []
 
     def test_does_not_serialize_placeholder_member(self) -> None:
         invite = self.create_member_invite(organization=self.organization)
