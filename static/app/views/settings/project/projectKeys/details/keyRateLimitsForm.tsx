@@ -132,8 +132,7 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
                 validate={({form}: any) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    form?.rateLimit &&
-                    typeof form.rateLimit.count !== 'undefined' &&
+                    typeof form?.rateLimit?.count !== 'undefined' &&
                     typeof form.rateLimit.window !== 'undefined';
 
                   if (isValid) {

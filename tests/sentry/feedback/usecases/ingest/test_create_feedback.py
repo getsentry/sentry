@@ -822,7 +822,7 @@ def test_create_feedback_issue_title_from_seer(
 
 
 @django_db_all
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+@patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_create_feedback_issue_title_does_not_throw(
     mock_make_signed_seer_api_request,
     default_project,
@@ -839,7 +839,7 @@ def test_create_feedback_issue_title_does_not_throw(
 
 
 @django_db_all
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+@patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_create_feedback_issue_title_from_seer_skips_if_spam(
     mock_make_signed_seer_api_request,
     default_project,

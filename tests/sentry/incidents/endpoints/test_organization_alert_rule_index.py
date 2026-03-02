@@ -672,7 +672,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
         assert (
-            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)[0].type
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
+            .order_by("id")[0]
+            .type
             == SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
         )
 
@@ -801,7 +803,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp1.data == serialize(alert_rule1, self.user)
         assert resp1.data["aggregate"] == "per_second(value,metric_name_one,counter,-)"
         assert (
-            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule1.snuba_query_id)[0].type
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule1.snuba_query_id)
+            .order_by("id")[0]
+            .type
             == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
         )
 
@@ -810,7 +814,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp2.data == serialize(alert_rule2, self.user)
         assert resp2.data["aggregate"] == "count(metric.name,metric_name_two,distribution,-)"
         assert (
-            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule2.snuba_query_id)[0].type
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule2.snuba_query_id)
+            .order_by("id")[0]
+            .type
             == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
         )
 

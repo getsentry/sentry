@@ -5,7 +5,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import FormContext from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils';
 import {AssertionSuggestionsButton} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsButton';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
@@ -36,10 +36,10 @@ export function ConnectedAssertionSuggestionsButton({
     };
   };
 
-  const getCurrentAssertion = (): Assertion | null =>
-    (formRef.current?.getTransformedData()?.assertion as Assertion) ?? null;
+  const getCurrentAssertion = (): UptimeAssertion | null =>
+    (formRef.current?.getTransformedData()?.assertion as UptimeAssertion) ?? null;
 
-  const handleApplySuggestion = (newAssertion: Assertion) => {
+  const handleApplySuggestion = (newAssertion: UptimeAssertion) => {
     formRef.current?.setValue('assertion', newAssertion as any);
   };
 

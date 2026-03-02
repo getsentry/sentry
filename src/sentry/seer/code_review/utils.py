@@ -26,6 +26,8 @@ from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
 
+seer_code_review_connection_pool = connection_from_url(settings.SEER_PREVENT_AI_URL)
+
 
 class Log(enum.StrEnum):
     MISSING_INTEGRATION = "github.webhook.missing-integration"
@@ -104,7 +106,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
+        connection_pool=seer_code_review_connection_pool,
         path=path,
         body=orjson.dumps(payload),
     )
@@ -206,7 +208,7 @@ def transform_webhook_to_codegen_request(
     target_commit_sha: str,
 ) -> dict[str, Any] | None:
     """
-    Transform a GitHub webhook payload into SeerCodeReviewRequest format for Seer.
+    Transform a GitHub webhook payload into a code review request format for Seer.
 
     Args:
         github_event: The GitHub webhook event type
@@ -217,7 +219,8 @@ def transform_webhook_to_codegen_request(
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
-        Dictionary in SeerCodeReviewRequest format with request_type, data, and external_owner_id,
+        Dictionary with request_type, data, and external_owner_id that matches either
+        SeerCodeReviewTaskRequestForPrReview or SeerCodeReviewTaskRequestForPrClosed format,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
     """
     payload = None
@@ -269,7 +272,9 @@ def transform_issue_comment_to_codegen_request(
     target_commit_sha: str,
 ) -> dict[str, Any] | None:
     """
-    Transform an issue comment on a PR into a CodecovTaskRequest for Seer.
+    Transform an issue comment on a PR into a code review request for Seer.
+
+    Returns a dictionary matching SeerCodeReviewTaskRequestForPrReview format.
     """
     payload = _common_codegen_request_payload(
         SeerCodeReviewRequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
@@ -334,7 +339,7 @@ def transform_pull_request_to_codegen_request(
 
 def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str, Any]:
     """
-    Build the repository definition for the CodecovTaskRequest.
+    Build the repository definition for code review requests.
     """
     # Extract owner and repo name from full repository name (format: "owner/repo")
     repo_name_sections = repo.name.split("/")

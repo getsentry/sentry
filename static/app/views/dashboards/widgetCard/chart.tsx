@@ -71,6 +71,7 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -95,6 +96,7 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
@@ -139,6 +141,8 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
+
+const noop = () => void 0;
 
 function WidgetCardChart(props: WidgetCardChartProps) {
   const {
@@ -251,6 +255,19 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <TableWrapper>
+        <TracesTable
+          openTraceViewDrawer={noop}
+          limit={widget.limit}
+          tableWidths={widget.tableWidths}
+          frameless
+        />
+      </TableWrapper>
     );
   }
 
@@ -765,7 +782,20 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+  // When multiple aggregates exist, only plot the selected one (radio selection).
+  // This mirrors Big Number behavior — all aggregates are queried, but only
+  // one is rendered at a time.
+  const selectedIndex = getSelectedAggregateIndex(
+    query.selectedAggregate,
+    query.aggregates.length
+  );
+  const selectedAggregate = query.aggregates[selectedIndex];
+  // Filter query to only the selected aggregate.
+  const filteredQuery = selectedAggregate
+    ? {...query, aggregates: [selectedAggregate]}
+    : query;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
     meta: {
       fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],

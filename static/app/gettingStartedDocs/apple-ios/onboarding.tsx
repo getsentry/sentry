@@ -35,7 +35,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'list',
           items: [
-            t('Install the Sentry SDK via Swift Package Manager or Cocoapods'),
+            t('Install the Sentry SDK via Swift Package Manager or xcframeworks'),
             tct(
               'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
               {
@@ -88,10 +88,10 @@ export const onboarding: OnboardingConfig = {
   verify: () => [],
   nextSteps: () => [
     {
-      id: 'cocoapods-carthage',
-      name: t('CocoaPods/Carthage'),
+      id: 'alternate-installation',
+      name: t('Alternate Installation'),
       description: t(
-        'Learn about integrating Sentry into your project using CocoaPods or Carthage.'
+        'Learn about alternate ways to install the Sentry SDK, such as xcframeworks or Carthage.'
       ),
       link: 'https://docs.sentry.io/platforms/apple/install/',
     },

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -143,6 +143,7 @@ export function ListBox<T extends ObjectLike>({
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const [hasEverOverflowed, setHasEverOverflowed] = useState(false);
 
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -186,15 +187,27 @@ export function ListBox<T extends ObjectLike>({
 
   const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
+  const refs = useMemo(() => {
+    const scrollContainerRef = (scrollContainer: HTMLDivElement | null) => {
+      if (hasEverOverflowed || listItems.length === 0 || !scrollContainer) {
+        return;
+      }
+
+      setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
+    };
+    return mergeRefs(scrollContainerRef, virtualizer.scrollElementRef);
+  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems]);
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <Container
-        ref={virtualizer.scrollElementRef}
+        ref={refs}
         height="100%"
         overflowY="auto"
         className={className}
+        style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
       >
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
@@ -256,6 +269,13 @@ const heightEstimations = {
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
 
+/**
+ * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
+ * Passed to the virtualizer's wrapper to account for the padding,
+ * preventing a tiny scrollbar when few items remain after filtering.
+ */
+const listPaddingVertical = 4;
+
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualized = false,
@@ -293,7 +313,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize(),
+          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
           width: '100%',
           position: 'relative',
         },

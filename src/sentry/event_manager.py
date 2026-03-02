@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, overload
 
 import orjson
 import psycopg2.errors
@@ -19,7 +19,9 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
+from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import BaseHTTPResponse
 from usageaccountant import UsageUnit
 
 from sentry import (
@@ -1963,6 +1965,34 @@ severity_connection_pool = connection_from_url(
 )
 
 
+class SeverityScoreRequest(TypedDict):
+    message: str
+    has_stacktrace: int
+    handled: bool | None
+    org_id: int
+    project_id: int
+    trigger_timeout: NotRequired[bool]
+    trigger_error: NotRequired[bool]
+
+
+def make_severity_score_request(
+    body: SeverityScoreRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    payload: SeverityScoreRequest = {**body}
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+    return make_signed_seer_api_request(
+        connection_pool or severity_connection_pool,
+        "/v0/issues/severity-score",
+        body=orjson.dumps(payload),
+        timeout=timeout,
+    )
+
+
 def _get_severity_metadata_for_group(
     event: Event, project_id: int, group_type: int | None
 ) -> Mapping[str, Any]:
@@ -2163,18 +2193,13 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         )
         return 0.0, "bad_title"
 
-    payload = {
+    payload: SeverityScoreRequest = {
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
         "handled": is_handled(event.data),
         "org_id": event.project.organization_id,
         "project_id": event.project_id,
     }
-
-    if options.get("processing.severity-backlog-test.timeout"):
-        payload["trigger_timeout"] = True
-    if options.get("processing.severity-backlog-test.error"):
-        payload["trigger_error"] = True
 
     logger_data["payload"] = payload
 
@@ -2185,12 +2210,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                response = make_signed_seer_api_request(
-                    severity_connection_pool,
-                    "/v0/issues/severity-score",
-                    body=orjson.dumps(payload),
-                    timeout=timeout,
-                )
+                response = make_severity_score_request(payload, timeout=timeout)
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError:

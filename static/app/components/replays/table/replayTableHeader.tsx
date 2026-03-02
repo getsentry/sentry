@@ -32,9 +32,17 @@ export default function ReplayTableHeader({
   stickyHeader,
 }: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
-    listItemCheckboxState;
-  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
+  const {
+    countSelected,
+    isAllSelected,
+    isAnySelected,
+    queryKeyRef,
+    selectAll,
+    selectedIds,
+  } = listItemCheckboxState;
+  const queryOptions = queryKeyRef.current
+    ? parseQueryKey(queryKeyRef.current).options
+    : undefined;
   const queryString = queryOptions?.query?.query;
 
   const headerStyle: React.CSSProperties = stickyHeader

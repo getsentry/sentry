@@ -882,7 +882,7 @@ def _get_status_check_provider(
     organization_slug: str,
     integration_id: int,
 ) -> _StatusCheckProvider | None:
-    if provider == IntegrationProviderSlug.GITHUB:
+    if provider in (IntegrationProviderSlug.GITHUB, IntegrationProviderSlug.GITHUB_ENTERPRISE):
         return _GitHubStatusCheckProvider(
             client, provider, organization_id, organization_slug, integration_id
         )

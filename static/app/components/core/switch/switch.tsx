@@ -63,7 +63,7 @@ const NativeHiddenCheckbox = styled('input')<{
       background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
       border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
       transition: transform ${p => p.theme.motion.spring.moderate};
-      transform: translateY(-1px) translateX(-1px);
+      transform: translateY(-1px);
     }
   }
 

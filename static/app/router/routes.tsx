@@ -1661,6 +1661,10 @@ function buildRoutes(): RouteObject[] {
         path: 'uptime/',
         component: make(() => import('sentry/views/detectors/list/uptime')),
       },
+      {
+        path: 'mobile-builds/',
+        component: make(() => import('sentry/views/detectors/list/mobileBuild')),
+      },
     ],
   };
 
@@ -2425,7 +2429,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: ':projectSlug/snapshots/:snapshotId/',
+      path: 'snapshots/:snapshotId/',
       component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
     },
     // TODO(EME-735): Remove old routes after backend deployment

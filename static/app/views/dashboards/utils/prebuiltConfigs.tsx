@@ -21,6 +21,8 @@ import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from 'sentry/views/dashb
 import {NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/nextJsOverview';
 import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
 import {QUERIES_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/querySummary';
+import {QUEUES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
+import {QUEUE_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueSummary';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
 import {WEB_VITALS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageSummary';
 import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
@@ -51,6 +53,8 @@ export enum PrebuiltDashboardId {
   LARAVEL_OVERVIEW = 23,
   FRONTEND_ASSETS = 24,
   FRONTEND_ASSETS_SUMMARY = 25,
+  BACKEND_QUEUES = 26,
+  BACKEND_QUEUE_SUMMARY = 27,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -87,4 +91,6 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.LARAVEL_OVERVIEW]: LARAVEL_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.FRONTEND_ASSETS]: FRONTEND_ASSETS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY]: FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUEUES]: QUEUES_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_SUMMARY_PREBUILT_CONFIG,
 };

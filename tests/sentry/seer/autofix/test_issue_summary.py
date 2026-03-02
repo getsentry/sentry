@@ -127,7 +127,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_summarize_issue_request")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_call_seer_integration(
         self, mock_get_event: MagicMock, mock_request: MagicMock
@@ -166,8 +166,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert status_code == 200
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
         mock_request.assert_called_once()
-        # Body is the third positional argument
-        payload = orjson.loads(mock_request.call_args_list[0][0][2])
+        # Body is the first positional argument (a TypedDict)
+        payload = mock_request.call_args_list[0][0][0]
         assert payload["trace_tree"] is None
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_response_summary
@@ -309,7 +309,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Ensure generation was called directly
         mock_generate_summary.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_summarize_issue_request")
     def test_call_seer_routes_to_summarization_url(self, mock_request: MagicMock) -> None:
         resp = Mock()
         resp.status = 200
@@ -327,15 +327,12 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert result.group_id == str(self.group.id)
         assert mock_request.call_count == 1
-        # Verify path argument (second argument)
-        call_path = mock_request.call_args_list[0][0][1]
-        assert call_path == "/v1/automation/summarize/issue"
-        # Verify body payload (third argument)
-        payload = orjson.loads(mock_request.call_args_list[0][0][2])
+        # Verify body payload (first argument, a TypedDict)
+        payload = mock_request.call_args_list[0][0][0]
         assert payload["trace_tree"] == {"trace": "tree"}
 
     @patch(
-        "sentry.seer.autofix.issue_summary.make_signed_seer_api_request",
+        "sentry.seer.autofix.issue_summary.make_summarize_issue_request",
         side_effect=Exception("primary error"),
     )
     def test_call_seer_raises_exception_when_endpoint_fails(self, mock_request: MagicMock) -> None:
@@ -804,7 +801,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
 
 
 class TestFetchUserPreference:
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_success(self, mock_request):
         mock_response = Mock()
         mock_response.status = 200
@@ -818,7 +815,7 @@ class TestFetchUserPreference:
         assert result == "solution"
         mock_request.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_no_preference(self, mock_request):
         mock_response = Mock()
         mock_response.status = 200
@@ -829,7 +826,7 @@ class TestFetchUserPreference:
 
         assert result is None
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_empty_preference(self, mock_request):
         mock_response = Mock()
         mock_response.status = 200
@@ -840,7 +837,7 @@ class TestFetchUserPreference:
 
         assert result is None
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_api_error(self, mock_request):
         mock_request.side_effect = Exception("API error")
 
@@ -1149,7 +1146,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify group was updated with the new score
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.85
-        mock_generate.assert_called_once_with(self.group, summary=None)
+        mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_force_generate_regenerates_existing_score(self, mock_generate):
@@ -1172,11 +1169,11 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify the score was updated
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.90
-        mock_generate.assert_called_once_with(self.group, summary=None)
+        mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    def test_passes_summary_in_api_payload(self, mock_request):
-        """Test that summary is included in the API payload sent to Seer."""
+    def test_reads_summary_from_cache_and_passes_to_seer(self, mock_request):
+        """Test that summary is read from cache and included in the API payload sent to Seer."""
         mock_response = Mock()
         mock_response.status = 200
         mock_response.data = orjson.dumps(
@@ -1191,17 +1188,21 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         )
         mock_request.return_value = mock_response
 
-        summary = {
-            "group_id": self.group.id,
-            "headline": "Test Headline",
-            "whats_wrong": "Test whats wrong",
-            "trace": "Test trace",
-            "possible_cause": "Test cause",
-        }
+        # Populate the cache with a summary (snake_case, as stored by _generate_summary)
+        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+        from sentry.utils.cache import cache
 
-        result = get_and_update_group_fixability_score(
-            self.group, force_generate=True, summary=summary
+        cache.set(
+            get_issue_summary_cache_key(self.group.id),
+            {
+                "headline": "Test Headline",
+                "whats_wrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possible_cause": "Test cause",
+            },
         )
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
 
         assert result == 0.80
         mock_request.assert_called_once()
@@ -1216,11 +1217,38 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Verify summary structure matches Seer's SummarizeIssueResponse
         assert "summary" in payload
         summary_payload = payload["summary"]
-        assert summary_payload["group_id"] == self.group.id  # Must match outer group_id
+        assert summary_payload["group_id"] == self.group.id
         assert summary_payload["headline"] == "Test Headline"
         assert summary_payload["whats_wrong"] == "Test whats wrong"
         assert summary_payload["trace"] == "Test trace"
         assert summary_payload["possible_cause"] == "Test cause"
+
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_no_summary_in_cache_calls_seer_without_summary(self, mock_request):
+        """Test that when cache is empty, fixability is called without summary (Seer DB fallback)."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.data = orjson.dumps(
+            {
+                "group_id": str(self.group.id),
+                "headline": "Test",
+                "whats_wrong": "Something",
+                "trace": "Trace",
+                "possible_cause": "Cause",
+                "scores": {"fixability_score": 0.70},
+            }
+        )
+        mock_request.return_value = mock_response
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
+
+        assert result == 0.70
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args
+        payload = orjson.loads(call_args.kwargs["body"])
+
+        # Summary should NOT be in payload when cache is empty
+        assert "summary" not in payload
 
 
 @with_feature("organizations:gen-ai-features")

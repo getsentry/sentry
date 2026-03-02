@@ -15,7 +15,6 @@ from .authprovider import *  # NOQA
 from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
-from .code_review_event import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
 from .commitcomparison import *  # NOQA
@@ -114,6 +113,7 @@ from .rulefirehistory import *  # NOQA
 from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
+from sentry.seer.models import *  # NOQA
 from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA

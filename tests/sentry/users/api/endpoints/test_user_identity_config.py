@@ -391,3 +391,26 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
 
         self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=403)
         assert AuthIdentity.objects.get(id=ident_obj.id)
+
+    def test_delete_invalidates_session_nonce(self) -> None:
+        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
+        original_nonce = self.user.session_nonce
+
+        self.get_success_response(
+            self.user.id, "social-identity", str(social_obj.id), status_code=204
+        )
+
+        self.user.refresh_from_db()
+        assert self.user.session_nonce != original_nonce
+
+    def test_admin_delete_invalidates_target_user_session_nonce(self) -> None:
+        self.login_as(self.superuser, superuser=True)
+        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
+        original_nonce = self.user.session_nonce
+
+        self.get_success_response(
+            self.user.id, "social-identity", str(social_obj.id), status_code=204
+        )
+
+        self.user.refresh_from_db()
+        assert self.user.session_nonce != original_nonce

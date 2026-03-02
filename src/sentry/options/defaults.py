@@ -106,6 +106,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Data Forwarding
+register(
+    "data-forwarding.project-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
@@ -639,9 +647,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
+register(
+    "relay.eap-span-outcomes.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "relay.objectstore-attachments.sample-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -722,6 +745,16 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.mailbox-bucketing.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github.webhook.drop-unprocessed-events.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Console SDK App (separate app for repository invitations)
@@ -1167,7 +1200,12 @@ register(
     default=500,
     type=Int,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    ttl=60 * 5,
+)
+register(
+    "explorer.service_map.parent_span_batch_size",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.similarity.global-rate-limit",
@@ -3231,6 +3269,15 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
+# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
+# re-serialisation of the entire destination set during SUNIONSTORE.
+register(
+    "spans.buffer.zero-copy-dest-threshold-bytes",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
@@ -3857,9 +3904,6 @@ register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMAT
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored on objectstore for processing and long-term storage.
 register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# This forces symbolication to use the "stored attachment" codepath,
-# regardless of whether the attachment has already been stored.
-register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # option used to enable/disable tracking
