@@ -89,6 +89,7 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_ASSETS_SUMMARY = 25
     BACKEND_QUEUES = 26
     BACKEND_QUEUE_SUMMARY = 27
+    BACKEND_CACHES = 28
 
 
 class PrebuiltDashboard(TypedDict):
@@ -213,6 +214,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
         "title": "Queue Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
+        "title": "Caches",
     },
 ]
 
