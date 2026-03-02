@@ -270,7 +270,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
-            ).dict(exclude_none=True)
+            ).dict()
 
         return self.paginate(
             request=request,
