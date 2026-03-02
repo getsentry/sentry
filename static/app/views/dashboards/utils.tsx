@@ -650,6 +650,7 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.TABLE,
     DisplayType.WHEEL,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
   ].includes(displayType);
 };
 
@@ -666,6 +667,7 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   const widgetTypesThatFetchOwnData = [
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
   ];
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };
@@ -676,6 +678,7 @@ export const isWidgetEditable = (widgetType: DisplayType) => {
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
     DisplayType.WHEEL,
+    DisplayType.AGENTS_TRACES_TABLE,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
 };

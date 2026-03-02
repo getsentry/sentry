@@ -8,14 +8,14 @@
  * - <div css={(theme) => { ... }} />
  */
 
-import {normalizePropertyName} from '../utils/normalizePropertyName.mjs';
+import {normalizePropertyName} from '../utils/normalizePropertyName.js';
 
-import {decomposeValue} from './value-decomposer.mjs';
+import {decomposeValue} from './value-decomposer.js';
 
 /**
  * Creates the css prop extractor with ESLint visitors.
  *
- * @param {import('./types.mjs').ExtractorContext} extractorContext
+ * @param {import('./types.js').ExtractorContext} extractorContext
  * @returns {Record<string, Function>}
  */
 export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
@@ -44,7 +44,7 @@ export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
 
       const values = decomposeValue(prop.value, themeTracker);
 
-      /** @type {import('./types.mjs').StyleDeclaration} */
+      /** @type {import('./types.js').StyleDeclaration} */
       const declaration = {
         kind: 'css-prop',
         property: {

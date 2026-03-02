@@ -82,42 +82,44 @@ export function getUploadSourceMapsStep({
   };
 }
 
-function CopyRulesButton({rules}: {rules: string}) {
+const SENTRY_FOR_AI_BASE_URL =
+  'https://github.com/getsentry/sentry-for-ai/blob/main/skills';
+
+function CopyPromptButton({prompt}: {prompt: string}) {
   const {copy} = useCopyToClipboard();
   return (
     <Button
       size="xs"
       icon={<IconCopy />}
-      onClick={() => copy(rules, {successMessage: t('Rules copied to clipboard')})}
+      onClick={() => copy(prompt, {successMessage: t('Prompt copied to clipboard')})}
     >
-      {t('Copy Rules')}
+      {t('Copy Prompt')}
     </Button>
   );
 }
 
-export function getAIRulesForCodeEditorStep({rules}: {rules: string}): OnboardingStep {
+export function getAISetupStep({skillPath}: {skillPath: string}): OnboardingStep {
+  const skillUrl = `${SENTRY_FOR_AI_BASE_URL}/${skillPath}/SKILL.md`;
+  const prompt = `Read and follow: ${skillUrl}`;
+
   return {
     collapsible: true,
-    title: t('AI Rules for Code Editors (Optional)'),
-    trailingItems: <CopyRulesButton rules={rules} />,
+    title: t('AI-Assisted Setup (Optional)'),
+    trailingItems: <CopyPromptButton prompt={prompt} />,
     content: [
       {
         type: 'text',
-        text: tct(
-          'Sentry provides a set of rules you can use to help your LLM use Sentry correctly. Copy this file and add it to your projects rules configuration. When created as a rules file this should be placed alongside other editor specific rule files. For example, if you are using Cursor, place this file in the [code:.cursorrules] directory.',
-          {
-            code: <code />,
-          }
+        text: t(
+          'If you want your AI coding assistant to help you set up Sentry, copy this prompt and paste it into your agent:'
         ),
       },
       {
         type: 'code',
         tabs: [
           {
-            label: 'Markdown',
-            language: 'md',
-            filename: 'rules.md',
-            code: rules,
+            label: 'Prompt',
+            language: 'text',
+            code: prompt,
           },
         ],
       },

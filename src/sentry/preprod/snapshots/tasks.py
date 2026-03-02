@@ -13,7 +13,11 @@ from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.image_diff.compare import compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
-from sentry.preprod.snapshots.manifest import SnapshotManifest
+from sentry.preprod.snapshots.manifest import (
+    ComparisonManifest,
+    ComparisonSummary,
+    SnapshotManifest,
+)
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -353,10 +357,9 @@ def compare_snapshots(
                     )
                     diff_mask_bytes = base64.b64decode(diff_result.diff_mask_png)
                     logger.info(
-                        "compare_snapshots: uploading mask for %s (%d bytes, diff=%.4f, changed_px=%d)",
+                        "compare_snapshots: uploading mask for %s (%d bytes, changed_px=%d)",
                         name,
                         len(diff_mask_bytes),
-                        diff_result.diff_score,
                         diff_result.changed_pixels,
                         extra={
                             "head_artifact_id": head_artifact_id,
@@ -377,7 +380,6 @@ def compare_snapshots(
                         "status": "changed" if is_changed else "unchanged",
                         "head_hash": head_hash,
                         "base_hash": base_hash,
-                        "diff_score": diff_result.diff_score,
                         "changed_pixels": diff_result.changed_pixels,
                         "total_pixels": diff_result.total_pixels,
                         "diff_mask_key": diff_mask_key,
@@ -387,7 +389,6 @@ def compare_snapshots(
                         "after_width": diff_result.after_width,
                         "after_height": diff_result.after_height,
                         "aligned_height": diff_result.aligned_height,
-                        "width": diff_result.width,
                     }
 
         for name in sorted(added):
@@ -403,25 +404,25 @@ def compare_snapshots(
                 "before_height": base_meta.height,
             }
 
-        comparison_manifest = {
-            "head_artifact_id": head_artifact_id,
-            "base_artifact_id": base_artifact_id,
-            "summary": {
-                "total": len(matched) + len(added) + len(removed),
-                "changed": changed_count,
-                "unchanged": unchanged_count,
-                "added": len(added),
-                "removed": len(removed),
-                "errored": error_count,
-            },
-            "images": image_results,
-        }
+        comparison_manifest = ComparisonManifest(
+            head_artifact_id=head_artifact_id,
+            base_artifact_id=base_artifact_id,
+            summary=ComparisonSummary(
+                total=len(matched) + len(added) + len(removed),
+                changed=changed_count,
+                unchanged=unchanged_count,
+                added=len(added),
+                removed=len(removed),
+                errored=error_count,
+            ),
+            images=image_results,
+        )
 
         comparison_key = (
             f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/comparison.json"
         )
         session.put(
-            orjson.dumps(comparison_manifest),
+            orjson.dumps(comparison_manifest.dict()),
             key=comparison_key,
             content_type="application/json",
         )

@@ -105,6 +105,72 @@ class PreprodExamples:
         ],
     }
 
+    EXAMPLE_INSTALL_INFO_INSTALLABLE = {
+        "buildId": "12345",
+        "appInfo": _APP_INFO,
+        "platform": "ANDROID",
+        "isInstallable": True,
+        "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
+        "downloadCount": 5,
+        "releaseNotes": "Bug fixes and performance improvements.",
+        "installGroups": ["beta-testers"],
+        "isCodeSignatureValid": None,
+        "profileName": None,
+        "codesigningType": None,
+    }
+
+    EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE = {
+        "buildId": "12345",
+        "appInfo": _APP_INFO,
+        "platform": "ANDROID",
+        "isInstallable": False,
+        "installUrl": None,
+        "downloadCount": 0,
+        "releaseNotes": None,
+        "installGroups": None,
+        "isCodeSignatureValid": None,
+        "profileName": None,
+        "codesigningType": None,
+    }
+
+    EXAMPLE_INSTALL_INFO_APPLE = {
+        "buildId": "12346",
+        "appInfo": {
+            **_APP_INFO,
+            "artifactType": "XCARCHIVE",
+        },
+        "platform": "APPLE",
+        "isInstallable": True,
+        "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
+        "downloadCount": 3,
+        "releaseNotes": None,
+        "installGroups": None,
+        "isCodeSignatureValid": True,
+        "profileName": "iOS Team Provisioning Profile",
+        "codesigningType": "development",
+    }
+
+    GET_INSTALL_INFO = [
+        OpenApiExample(
+            "Installable Artifact",
+            value=EXAMPLE_INSTALL_INFO_INSTALLABLE,
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Non-Installable Artifact",
+            value=EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE,
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Apple Artifact with Code Signing",
+            value=EXAMPLE_INSTALL_INFO_APPLE,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
     GET_SIZE_ANALYSIS = [
         OpenApiExample(
             "Pending Analysis",

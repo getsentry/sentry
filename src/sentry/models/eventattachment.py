@@ -45,6 +45,12 @@ def event_attachment_screenshot_filter(
 
 
 @dataclass(frozen=True)
+class BlobStream:
+    payload: IO[bytes]
+    encoding: str | None
+
+
+@dataclass(frozen=True)
 class PutfileResult:
     content_type: str
     size: int
@@ -167,12 +173,27 @@ class EventAttachment(Model):
             return dctx.stream_reader(compressed_blob, read_across_frames=True)
 
         elif self.blob_path.startswith(V2_PREFIX):
-            id = self.blob_path.removeprefix(V2_PREFIX)
+            key = self.blob_path.removeprefix(V2_PREFIX)
             organization_id = _get_organization(self.project_id)
-            response = get_attachments_session(organization_id, self.project_id).get(id)
+            response = get_attachments_session(organization_id, self.project_id).get(key)
             return response.payload
 
         raise NotImplementedError()
+
+    def get_blob_stream(self, accept_encoding: list[str]) -> BlobStream:
+        """Return a streamable blob, negotiating content-encoding for V2 blobs.
+
+        For pure V2 blobs, passes ``accept_encoding`` to the objectstore so compressed
+        bytes can be transferred directly to the client. For all other blob types
+        (inline, V1, V1+V2 double-write), delegates to :meth:`getfile`.
+        """
+        if self.blob_path and self.blob_path.startswith(V2_PREFIX):
+            key = self.blob_path.removeprefix(V2_PREFIX)
+            session = get_attachments_session(_get_organization(self.project_id), self.project_id)
+            response = session.get(key, accept_encoding=accept_encoding or None)
+            return BlobStream(payload=response.payload, encoding=response.metadata.compression)
+        else:
+            return BlobStream(payload=self.getfile(), encoding=None)
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:

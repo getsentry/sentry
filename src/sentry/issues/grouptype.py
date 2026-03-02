@@ -82,6 +82,12 @@ class GroupCategory(IntEnum):
     """
     INSTRUMENTATION = 18
 
+    """
+    Issues detected from SDK/tooling configuration problems,
+    such as missing or broken source maps.
+    """
+    CONFIGURATION = 19
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,

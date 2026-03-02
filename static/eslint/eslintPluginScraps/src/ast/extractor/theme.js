@@ -13,13 +13,13 @@
  * Creates a theme tracker that monitors theme variable bindings across scopes.
  *
  * @param {import('eslint').Rule.RuleContext} _context
- * @returns {import('./types.mjs').ThemeTracker}
+ * @returns {import('./types.js').ThemeTracker}
  */
 export function createThemeTracker(_context) {
   /** @type {Set<string>} */
   const themeBindings = new Set();
 
-  /** @type {Map<number, import('./types.mjs').ThemeBinding>} */
+  /** @type {Map<number, import('./types.js').ThemeBinding>} */
   const scopeBindings = new Map();
 
   /** @type {number[]} */
@@ -29,7 +29,7 @@ export function createThemeTracker(_context) {
   let useThemeLocalName = 'useTheme';
   let scopeIdCounter = 0;
 
-  /** @type {import('./types.mjs').ThemeBinding | null} */
+  /** @type {import('./types.js').ThemeBinding | null} */
   let moduleBinding = null;
 
   return {
@@ -136,7 +136,7 @@ export function createThemeTracker(_context) {
 
     registerCallbackBinding(name, node) {
       const currentScope = scopeStack[scopeStack.length - 1] ?? 0;
-      /** @type {import('./types.mjs').ThemeBinding} */
+      /** @type {import('./types.js').ThemeBinding} */
       const binding = {
         localName: name,
         source: 'css-callback',
