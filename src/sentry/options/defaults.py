@@ -3109,32 +3109,11 @@ register(
 # grouphashes we want to use ones which are already there but not create new ones, so we track the
 # boolean result of their `.exists()` check. For all existing grouphashes, secondary or not, we know
 # that if they already have a group assigned they won't be modified, so in that case we also cache
-# the full `GroupHash` object. The killswitch below controls both caches, but they have separate
-# expiry times because the secondary grouphash existence cache is used less frequently and has a
-# lighter memory footprint, so we can afford to cache things there for longer.
-#
-# TODO: Check hit/miss rates for both caches and adjust the two expiry options accordingly.
+# the full `GroupHash` object.
 register(
     "grouping.use_ingest_grouphash_caching",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# How long to cache a boolean indicating whether or not a grouphash exists for a given secondary
-# hash value
-register(
-    "grouping.ingest_grouphash_existence_cache_expiry",
-    type=Int,
-    default=60,  # seconds
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# How long to cache actual `GroupHash` objects
-register(
-    "grouping.ingest_grouphash_object_cache_expiry",
-    type=Int,
-    default=60,  # seconds
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
