@@ -208,8 +208,10 @@ function transformPrompt(prompt: string): {
 /**
  * Transforms messages from the new parts-based format to the standard content format.
  * The new format uses a `parts` array with typed objects instead of a `content` field.
+ *
+ * Exported for testing purposes only.
  */
-function transformPartsMessages(messages: string): {
+export function transformPartsMessages(messages: string): {
   fixedInvalidJson: boolean;
   result: string | undefined;
 } {
