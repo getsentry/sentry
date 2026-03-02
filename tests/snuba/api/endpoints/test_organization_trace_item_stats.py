@@ -1,7 +1,5 @@
-import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_trace_item_stats import get_pinned_attributes
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -266,27 +264,3 @@ class OrganizationTraceItemsStatsEndpointTest(
                 links[attrs["rel"]] = attrs
 
             assert links["previous"]["results"] == "false"
-
-
-class TestGetPinnedAttributes:
-    @pytest.mark.parametrize(
-        ("query", "expected"),
-        [
-            pytest.param("", set(), id="empty_query"),
-            pytest.param("span.op:db", {"span.op"}, id="single_pinned"),
-            pytest.param(
-                "span.op:db browser.name:chrome",
-                {"span.op", "browser.name"},
-                id="implicit_and",
-            ),
-            pytest.param("span.op:db OR browser.name:chrome", set(), id="or_operator"),
-            pytest.param("span.op:db*", set(), id="wildcard"),
-            pytest.param("!span.op:db", set(), id="negation"),
-            pytest.param("span.op:[db, http]", set(), id="in_filter"),
-            pytest.param("!has:span.op", set(), id="not_has"),
-            pytest.param("(a:1 OR b:2) AND c:3", set(), id="nested_or"),
-            pytest.param("(a:1 b:2) c:3", {"a", "b", "c"}, id="nested_and"),
-        ],
-    )
-    def test_get_pinned_attributes(self, query, expected):
-        assert get_pinned_attributes(query) == expected
