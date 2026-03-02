@@ -116,8 +116,21 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # JavaScript
             ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2}\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT[+-]\d{4}(?:\s\([^)]+\))?)
             |
-            # Datetime:
-            (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
+            # Datetime with timezone offset (Z=UTC):
+            # (Note: These come before plain datetimes so the offset is seen as part of the time and
+            # not a separate int value.)
+            (
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d\.\d+([+-][0-2]\d:?[0-5]\d|Z))| # decimal seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d([+-][0-2]\d:?[0-5]\d|Z))| # seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d([+-][0-2]\d:?[0-5]\d|Z)) # no seconds
+            )
+            |
+            # Datetime
+            (
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d\.\d+)| # decimal seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d)| # seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d) # no seconds
+            )
             |
             # Kitchen
             ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
@@ -129,11 +142,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             ([0-2]\d:[0-5]\d:[0-5]\d)
             |
             # Old Date Formats, TODO: possibly safe to remove?
-            (
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))
-            ) |
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
                 (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
