@@ -673,8 +673,9 @@ def _check_get_commits(result: Any) -> None:
 
 
 def _check_compare_commits(result: Any) -> None:
-    assert result["data"]["ahead_by"] == 3
-    assert result["data"]["behind_by"] == 1
+    assert len(result["data"]) == 1
+    assert result["data"][0]["ahead_by"] == 3
+    assert result["data"][0]["behind_by"] == 1
     assert result["type"] == "github"
 
 
@@ -875,7 +876,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "compare_commits",
         {"start_sha": "aaa", "end_sha": "bbb"},
-        {"comparison_data": make_github_commit_comparison()},
+        {"comparison_data": [make_github_commit_comparison()]},
         _check_compare_commits,
     ),
     (

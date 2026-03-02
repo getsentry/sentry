@@ -1424,7 +1424,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._maybe_raise()
         if self.comparison_data is not None:
             return self.comparison_data
-        return make_github_commit_comparison()
+        return [make_github_commit_comparison()]
 
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         self._record_call("get_tree", repo_full_name, tree_sha)
