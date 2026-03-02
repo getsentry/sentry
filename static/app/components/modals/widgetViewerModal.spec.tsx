@@ -508,6 +508,21 @@ describe('Modals -> WidgetViewerModal', () => {
 
       it('renders widget chart with y axis formatter using provided seriesResultType', async () => {
         mockEvents();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          body: {
+            data: [
+              [[1646100000], [{count: 1}]],
+              [[1646120000], [{count: 1}]],
+            ],
+            start: 1646100000,
+            end: 1646120000,
+            isMetricsData: false,
+            meta: {
+              fields: {count: 'duration'},
+            },
+          },
+        });
         await renderModal({
           initialData: initialDataWithFlag,
           widget: mockWidget,
@@ -1240,9 +1255,9 @@ describe('Modals -> WidgetViewerModal', () => {
         initialData,
         widget: mockWidget,
       });
-      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(1));
-      await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
+      await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
+      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(3));
       expect(router.location.query).toEqual(
         expect.objectContaining({sort: '-sum(session)'})
       );
@@ -1386,6 +1401,15 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     it('links to the spans page when "View span samples" is clicked in the context menu', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [{transaction: 'test-transaction', 'count()': 10}],
+          meta: {
+            fields: {transaction: 'string', 'count()': 'integer'},
+          },
+        },
+      });
       const mockSpanWidget = WidgetFixture({
         widgetType: WidgetType.SPANS,
         title: 'Span Transactions Widget',
