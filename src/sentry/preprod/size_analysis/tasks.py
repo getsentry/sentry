@@ -9,9 +9,6 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.models.files.file import File
-from sentry.preprod.api.models.project_preprod_build_details_models import (
-    platform_from_artifact_type,
-)
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -540,13 +537,8 @@ def maybe_emit_issues(
         logger.exception("Error emitting issues")
 
 
-def _get_platform(artifact_type: PreprodArtifact.ArtifactType | None) -> str:
-    if artifact_type is None:
-        return "unknown"
-    try:
-        return platform_from_artifact_type(artifact_type)
-    except ValueError:
-        return "unknown"
+def _get_platform(artifact: PreprodArtifact) -> str:
+    return artifact.platform or "unknown"
 
 
 def _maybe_emit_issues(
@@ -587,7 +579,7 @@ def _maybe_emit_issues(
     base_artifact = base_metric.preprod_artifact
 
     metadata: SizeAnalysisMetadata = {
-        "platform": _get_platform(head_artifact.artifact_type),
+        "platform": _get_platform(head_artifact),
         "head_metric_id": head_metric.id,
         "base_metric_id": base_metric.id,
         "head_artifact_id": head_artifact.id,

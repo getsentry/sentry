@@ -282,6 +282,10 @@ function WidgetViewerModal(props: Props) {
   const tableWidget = {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
     displayType: DisplayType.TABLE,
+    // Strip `limit` for Table widgets to avoid stale values from previous display types
+    // (e.g., a widget that was previously a chart with limit 3). The viewer's own
+    // FULL_TABLE_ITEM_LIMIT / HALF_TABLE_ITEM_LIMIT will be used instead.
+    limit: isTableWidget ? undefined : widget.limit,
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
   const {orderby} = widget.queries[0]!;

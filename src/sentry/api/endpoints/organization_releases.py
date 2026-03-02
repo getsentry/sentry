@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.db import IntegrityError
 from django.db.models import F, Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,6 +38,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
 )
 from sentry.api.utils import get_auth_api_token_type
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -316,6 +318,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             include_all_accessible=False,
         )
 
+    @extend_schema(
+        operation_id="List an Organization's Releases",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         if (
             features.has("organizations:releases-serializer-v2", organization, actor=request.user)
@@ -455,14 +461,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             paginator_cls = ReleasesMergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset,
-                limit: release_health.backend.get_project_releases_by_stability(
-                    project_ids=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
-                    scope=sort,
-                    offset=offset,
-                    stats_period=summary_stats_period,
-                    limit=limit,
+                data_load_func=lambda offset, limit: (
+                    release_health.backend.get_project_releases_by_stability(
+                        project_ids=filter_params["project_id"],
+                        environments=filter_params.get("environment"),
+                        scope=sort,
+                        offset=offset,
+                        stats_period=summary_stats_period,
+                        limit=limit,
+                    )
                 ),
                 data_count_func=lambda: release_health.backend.get_project_releases_count(
                     organization_id=organization.id,
@@ -636,14 +643,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset,
-                limit: release_health.backend.get_project_releases_by_stability(
-                    project_ids=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
-                    scope=sort,
-                    offset=offset,
-                    stats_period=summary_stats_period,
-                    limit=limit,
+                data_load_func=lambda offset, limit: (
+                    release_health.backend.get_project_releases_by_stability(
+                        project_ids=filter_params["project_id"],
+                        environments=filter_params.get("environment"),
+                        scope=sort,
+                        offset=offset,
+                        stats_period=summary_stats_period,
+                        limit=limit,
+                    )
                 ),
                 data_count_func=lambda: release_health.backend.get_project_releases_count(
                     organization_id=organization.id,

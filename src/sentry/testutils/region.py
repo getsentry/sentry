@@ -25,7 +25,10 @@ class TestEnvRegionDirectory(RegionDirectory):
         )
 
     def localities_from_regions(self, regions: Collection[Region]) -> frozenset[Locality]:
-        return frozenset(Locality(name=cell.name, cells=frozenset([cell.name])) for cell in regions)
+        return frozenset(
+            Locality(name=cell.name, cells=frozenset([cell.name]), category=cell.category)
+            for cell in regions
+        )
 
     @contextmanager
     def swap_state(
@@ -73,6 +76,18 @@ class TestEnvRegionDirectory(RegionDirectory):
     def regions(self) -> frozenset[Region]:
         return self._tmp_state.regions
 
+    @property
+    def localities(self) -> frozenset[Locality]:
+        return frozenset(
+            Locality(
+                name=r.name,
+                cells=frozenset([r.name]),
+                category=r.category,
+                visible=r.visible,
+            )
+            for r in self._tmp_state.regions
+        )
+
     def get_by_name(self, region_name: str) -> Region | None:
         match = (r for r in self._tmp_state.regions if r.name == region_name)
         try:
@@ -80,11 +95,27 @@ class TestEnvRegionDirectory(RegionDirectory):
         except StopIteration:
             return None
 
+    def get_locality_by_name(self, locality_name: str) -> Locality | None:
+        region = self.get_by_name(locality_name)
+        if region is None:
+            return None
+        return Locality(
+            name=locality_name,
+            cells=frozenset([locality_name]),
+            category=region.category,
+            visible=region.visible,
+        )
+
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         region = self.get_by_name(cell_name)
         if region is None:
             return None
-        return Locality(name=cell_name, cells=frozenset([cell_name]))
+        return Locality(
+            name=cell_name,
+            cells=frozenset([cell_name]),
+            category=region.category,
+            visible=region.visible,
+        )
 
     def get_cells_for_locality(self, locality_name: str) -> Iterable[Region]:
         region = self.get_by_name(locality_name)

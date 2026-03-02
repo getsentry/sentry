@@ -124,6 +124,12 @@ class AnomalyThresholdDataPoint(TypedDict):
     yhat_upper: float
 
 
+class GetAnomalyThresholdDataRequest(TypedDict):
+    alert: AlertInSeer
+    start: float
+    end: float
+
+
 class SeerDetectorDataResponse(TypedDict):
     success: bool
     message: str | None
