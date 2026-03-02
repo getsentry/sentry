@@ -34,7 +34,7 @@ def get_detectors_by_data_source(source_id: str, query_type: str) -> list[Detect
             metrics_tags["cache_hit"] = "true"
 
         metrics_tags["source_type"] = query_type
-        metrics_tags["detector_type"] = detectors[0].type
+        metrics_tags["detector_type"] = detectors[0].type if detectors else None
     return detectors
 
 
