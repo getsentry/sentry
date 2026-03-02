@@ -198,6 +198,34 @@ if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
     exit 1
 fi
 
+# ---------- Wait for agent to connect ----------
+
+echo "Waiting for agent to connect..."
+MAX_AGENT_WAIT=300  # 5 minutes
+AGENT_ELAPSED=0
+
+while [ "$AGENT_ELAPSED" -lt "$MAX_AGENT_WAIT" ]; do
+    AGENT_STATUS=$(api \
+        -H "${AUTH_HEADER}" \
+        "${CODER_API}/workspaces/${WORKSPACE_ID}" | jq -r '.latest_build.resources[]?.agents[]?.status // empty' | head -1)
+
+    echo "  Agent: ${AGENT_STATUS:-no agent yet} (${AGENT_ELAPSED}s elapsed)"
+
+    if [ "$AGENT_STATUS" = "connected" ]; then
+        echo "Agent connected!"
+        break
+    fi
+
+    sleep 10
+    AGENT_ELAPSED=$((AGENT_ELAPSED + 10))
+done
+
+if [ "$AGENT_ELAPSED" -ge "$MAX_AGENT_WAIT" ]; then
+    echo "ERROR: Agent did not connect within timeout" >&2
+    update_deployment_status "failure" "" "Agent failed to connect"
+    exit 1
+fi
+
 # ---------- Get owner name for URL ----------
 
 OWNER_NAME=$(api \
