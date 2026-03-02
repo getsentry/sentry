@@ -1,5 +1,4 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -113,10 +112,6 @@ describe('CreateIssueViewModal', () => {
   }, 10_000);
 
   describe('AI name streaming animation', () => {
-    const aiOrganization = OrganizationFixture({
-      features: ['issue-view-ai-title'],
-    });
-
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -132,9 +127,7 @@ describe('CreateIssueViewModal', () => {
         body: {title: 'Generated View Title'},
       });
 
-      render(<CreateIssueViewModal {...defaultProps} />, {
-        organization: aiOrganization,
-      });
+      render(<CreateIssueViewModal {...defaultProps} />);
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
 
@@ -162,9 +155,7 @@ describe('CreateIssueViewModal', () => {
         body: {title: 'Generated View Title'},
       });
 
-      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />, {
-        organization: aiOrganization,
-      });
+      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />);
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
 
@@ -183,9 +174,7 @@ describe('CreateIssueViewModal', () => {
         body: {title: 'Generated View Title'},
       });
 
-      render(<CreateIssueViewModal {...defaultProps} />, {
-        organization: aiOrganization,
-      });
+      render(<CreateIssueViewModal {...defaultProps} />);
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
