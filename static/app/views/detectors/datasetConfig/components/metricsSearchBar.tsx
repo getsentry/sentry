@@ -55,18 +55,21 @@ export function MetricsDetectorSearchBar({
     type: 'number',
     enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,
+    projectIds,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
     enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,
+    projectIds,
   });
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
     enabled: Boolean(traceMetricFilter) && hasBooleanFilters,
     query: traceMetricFilter,
+    projectIds,
   });
 
   const visibleNumberTags = useMemo(() => {
