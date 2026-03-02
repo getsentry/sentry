@@ -1,0 +1,35 @@
+name: Coder PR Preview
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize, closed]
+
+jobs:
+  deploy:
+    if: |
+      (github.event.action == 'labeled' && github.event.label.name == 'deploy-preview') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
+    uses: getsentry/devinfra-coder-infra/.github/workflows/coder-preview.yml@5cc8ec32cfed61df08f8ef642a0bed5a2f801ddd # main
+    with:
+      repo: sentry
+      caller_repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_url: ${{ github.event.pull_request.html_url }}
+      action: deploy
+    secrets:
+      CODER_SESSION_TOKEN: ${{ secrets.CODER_SESSION_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  destroy:
+    if: |
+      github.event.action == 'closed' ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'deploy-preview')
+    uses: getsentry/devinfra-coder-infra/.github/workflows/coder-preview.yml@5cc8ec32cfed61df08f8ef642a0bed5a2f801ddd # main
+    with:
+      repo: sentry
+      caller_repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_url: ${{ github.event.pull_request.html_url }}
+      action: destroy
+    secrets:
+      CODER_SESSION_TOKEN: ${{ secrets.CODER_SESSION_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
