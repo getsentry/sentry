@@ -25,7 +25,7 @@ from sentry.seer.anomaly_detection.types import (
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
@@ -67,24 +67,28 @@ SEER_RETRIES = Retry(
 def make_detect_anomalies_request(
     body: DetectAnomaliesRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
         SEER_ANOMALY_DETECTION_ENDPOINT_URL,
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
+        viewer_context=viewer_context,
     )
 
 
 def make_get_anomaly_threshold_data_request(
     body: GetAnomalyThresholdDataRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
         SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
+        viewer_context=viewer_context,
     )
 
 
