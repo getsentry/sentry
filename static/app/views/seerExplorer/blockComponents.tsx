@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
@@ -525,7 +526,42 @@ const BlockChevronIcon = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const ResponseDot = styled('div')<{
+function getStatusTooltipText(
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending'
+): string {
+  switch (status) {
+    case 'loading':
+      return t('Running...');
+    case 'pending':
+      return t('Waiting for approval');
+    case 'content':
+      return t('Response received');
+    case 'success':
+      return t('Completed successfully');
+    case 'failure':
+      return t('Completed with errors');
+    case 'mixed':
+      return t('Completed with partial errors');
+    default:
+      return '';
+  }
+}
+
+function ResponseDot({
+  status,
+  hasOnlyTools,
+}: {
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
+  hasOnlyTools?: boolean;
+}) {
+  return (
+    <Tooltip title={getStatusTooltipText(status)}>
+      <ResponseDotIndicator status={status} hasOnlyTools={hasOnlyTools} />
+    </Tooltip>
+  );
+}
+
+const ResponseDotIndicator = styled('div')<{
   status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
   hasOnlyTools?: boolean;
 }>`
