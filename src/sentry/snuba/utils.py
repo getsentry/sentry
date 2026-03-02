@@ -17,6 +17,7 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.profile_functions import ProfileFunctions
@@ -33,6 +34,7 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
+    SupportedTraceItemType.OCCURRENCES.value: Occurrences,
     # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
     SupportedTraceItemType.LOGS.value: OurLogs,
@@ -54,6 +56,7 @@ RPC_DATASETS = {
     PreprodSize,
     Spans,
     TraceMetrics,
+    Occurrences,
     OurLogs,
     UptimeResults,
 }

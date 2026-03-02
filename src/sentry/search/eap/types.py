@@ -61,6 +61,7 @@ class SupportedTraceItemType(str, Enum):
     PROFILE_FUNCTIONS = "profile_functions"
     PREPROD = "preprod"
     ATTACHMENTS = "attachments"
+    OCCURRENCES = "occurrences"
 
 
 class AttributeSourceType(str, Enum):
