@@ -217,7 +217,7 @@ class GitHubProvider:
         return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
-            raw={"items": raw_reactions},
+            raw=raw_reactions,
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -265,7 +265,7 @@ class GitHubProvider:
         return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
-            raw={"items": raw_reactions},
+            raw=raw_reactions,
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -311,9 +311,8 @@ class GitHubProvider:
 
     @catch_provider_exception
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
-        raw = self.client.create_git_ref(
-            self.repository["name"], {"ref": f"refs/heads/{branch}", "sha": sha}
-        )
+        branch_data = {"ref": f"refs/heads/{branch}", "sha": sha}
+        raw = self.client.create_git_ref(self.repository["name"], branch_data)
         return map_action(raw, map_git_ref)
 
     @catch_provider_exception
@@ -357,7 +356,7 @@ class GitHubProvider:
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
-            raw={"items": raw_commits},
+            raw=raw_commits,
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -367,9 +366,14 @@ class GitHubProvider:
         start_sha: CommitSHA,
         end_sha: CommitSHA,
         request_options: RequestOptions | None = None,
-    ) -> ActionResult[CommitComparison]:
-        raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
-        return map_action(raw, map_commit_comparison)  # type: ignore[arg-type]
+    ) -> PaginatedActionResult[CommitComparison]:
+        raw_commits = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
+        return PaginatedActionResult(
+            data=[map_commit_comparison(c) for c in raw_commits],
+            type="github",
+            raw=raw_commits,
+            meta=_DEFAULT_PAGINATED_META,
+        )
 
     @catch_provider_exception
     def get_tree(
@@ -730,12 +734,7 @@ def map_reaction(raw: dict[str, Any]) -> ReactionResult:
 
 
 def map_git_ref(raw: dict[str, Any]) -> GitRef:
-    obj = raw.get("object", raw)
-    ref_str = raw.get("ref", "")
-    return GitRef(
-        ref=ref_str,
-        sha=obj.get("sha", raw.get("commit", {}).get("sha", "")),
-    )
+    return GitRef(ref=raw["name"], sha=raw["commit"]["sha"])
 
 
 def map_git_blob(raw: dict[str, Any]) -> GitBlob:

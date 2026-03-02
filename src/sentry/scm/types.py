@@ -224,7 +224,7 @@ class PaginatedActionResult[T](TypedDict):
 
     data: list[T]
     type: ProviderName
-    raw: dict[str, Any]
+    raw: Any
     meta: PaginatedResponseMeta
 
 
@@ -414,13 +414,6 @@ class Provider(Protocol):
         request_options: RequestOptions | None = None,
     ) -> ActionResult[Commit]: ...
 
-    def compare_commits(
-        self,
-        start_sha: CommitSHA,
-        end_sha: CommitSHA,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[CommitComparison]: ...
-
     def get_tree(
         self,
         tree_sha: CommitSHA,
@@ -519,6 +512,13 @@ class Provider(Protocol):
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequest]: ...
+
+    def compare_commits(
+        self,
+        start_sha: CommitSHA,
+        end_sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[CommitComparison]: ...
 
     # -- Mutations --------------------------------------------------------------
 

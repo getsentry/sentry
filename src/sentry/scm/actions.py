@@ -307,7 +307,7 @@ class SourceCodeManager:
         start_sha: CommitSHA,
         end_sha: CommitSHA,
         request_options: RequestOptions | None = None,
-    ) -> ActionResult[CommitComparison]:
+    ) -> PaginatedActionResult[CommitComparison]:
         return self._exec(lambda p: p.compare_commits(start_sha, end_sha, request_options))
 
     def get_tree(
