@@ -193,27 +193,33 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
         name="quoted_str",
-        raw_pattern=r"""# Using `=`lookbehind which guarantees we'll only match the value half of key-value pairs,
-            # rather than all quoted strings
+        raw_pattern=r"""
             '([^']+)' | "([^"]+)"
         """,
+        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
+        # rather than all quoted strings
         lookbehind="=",
     ),
     ParameterizationRegex(
         name="bool",
-        raw_pattern=r"""# Using `=`lookbehind which guarantees we'll only match the value half of key-value pairs,
-            # rather than all instances of the words 'true' and 'false'.
+        raw_pattern=r"""
             True |
             true |
             False |
             false
         """,
+        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
+        # rather than all instances of the words 'true' and 'false'.
         lookbehind="=",
     ),
 ]
 
 
+# Patterns to use for each match type when not in experimental mode.
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
+
+# Patterns to use when in experimental mode. If no experimental pattern exists for a given type of
+# match, falls back to the default pattern.
 EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
     r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
     for r in DEFAULT_PARAMETERIZATION_REGEXES
@@ -223,8 +229,10 @@ EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
 @dataclasses.dataclass
 class ParameterizationCallable:
     """
-    Represents a callable that can be used to modify a string, which can give
-    us more flexibility than just using regex.
+    Represents a callable that can be used to modify a string, which can give us more flexibility
+    than just using regex.
+
+    Note: Future-proofing. Not currently in use.
     """
 
     name: str  # name of the pattern (also used as group name in combined regex)
@@ -235,7 +243,11 @@ class ParameterizationCallable:
 class Parameterizer:
     def __init__(
         self,
+        # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
+        # use all available parameterization, omit this argument.
         regex_pattern_keys: Sequence[str] | None = None,
+        # Whether to use experimental patterns, if available. (Pattern types without an experimental
+        # pattern will fall back to the standard pattern.)
         experimental: bool = False,
     ):
         self._experimental = experimental
@@ -266,11 +278,10 @@ class Parameterizer:
 
     def parametrize_w_regex(self, input_str: str, parameterization_regex: re.Pattern[str]) -> str:
         """
-        Replace all matches of the given regex in the content with a placeholder string.
+        Replace all matches of the given regex in the input string with a placeholder.
 
         @param input_str: The string to replace matches in.
         @param parameterization_regex: The compiled regex pattern to match.
-        @param match_callback: An optional callback function to call with the key of the matched pattern.
 
         @returns: The input string with all matches replaced with placeholders.
         """
