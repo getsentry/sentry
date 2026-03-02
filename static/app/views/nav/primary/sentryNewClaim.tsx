@@ -406,7 +406,7 @@ const TimeBox = styled('div')<{urgency: 'critical' | 'warning' | 'info'}>`
       : p.urgency === 'warning'
         ? p.theme.yellow400
         : p.theme.purple400};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

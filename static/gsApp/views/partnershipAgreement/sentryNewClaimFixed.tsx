@@ -190,10 +190,10 @@ export default function SentryNewPartnershipAgreement({
                 margin: '16px 0',
               }}
             >
-              <h4 style={{margin: '0 0 12px 0', color: theme.textColor}}>
+              <h4 style={{margin: '0 0 12px 0', color: theme.tokens.content.primary}}>
                 {t('This action will:')}
               </h4>
-              <ul style={{margin: '0', paddingLeft: '20px', color: theme.textColor}}>
+              <ul style={{margin: '0', paddingLeft: '20px', color: theme.tokens.content.primary}}>
                 <li>{t('Prevent automatic deletion of this organization')}</li>
                 <li>{t('Convert it to a permanent free-tier organization')}</li>
                 <li>{t('Send a confirmation email to your registered address')}</li>
@@ -343,7 +343,7 @@ export default function SentryNewPartnershipAgreement({
             textAlign: 'left',
           }}
         >
-          <h3 style={{margin: '0 0 12px 0', color: theme.textColor}}>
+          <h3 style={{margin: '0 0 12px 0', color: theme.tokens.content.primary}}>
             {t('Your Options:')}
           </h3>
           <ul
@@ -351,7 +351,7 @@ export default function SentryNewPartnershipAgreement({
               margin: '0',
               paddingLeft: '20px',
               lineHeight: '1.8',
-              color: theme.textColor,
+              color: theme.tokens.content.primary,
             }}
           >
             <li>

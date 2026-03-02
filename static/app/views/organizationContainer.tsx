@@ -26,9 +26,13 @@ function OrganizationLoadingIndicator() {
    * the fallback state.
    */
   const root = document.getElementById(ROOT_ELEMENT);
-  // There is no scenario in which this component is rendering,
-  // but the root element where the app is mounted doesn't exist
-  const ssrLoader = root!.innerHTML;
+
+  // If the root element doesn't exist (edge case), fall back to a simple loader
+  if (!root) {
+    return <div>Loading...</div>;
+  }
+
+  const ssrLoader = root.innerHTML;
 
   return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
 }

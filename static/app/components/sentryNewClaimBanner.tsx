@@ -383,7 +383,7 @@ const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -445,14 +445,14 @@ const TimeRemaining = styled('div')<{urgency: 'info' | 'warning' | 'critical'}>`
       : p.urgency === 'warning'
         ? p.theme.yellow400
         : p.theme.purple400};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('p')`
   margin: 0 0 ${space(1.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.5;
 `;
 

@@ -8,11 +8,8 @@ and convert it to a permanent free-tier account.
 import logging
 
 import sentry_sdk
-from django.conf import settings
 from django.utils import timezone
 
-# Import from getsentry for PartnerAccount
-from getsentry.models.partneraccount import PartnerAccount, PartnerAccountType
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -26,44 +23,44 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.email import MessageBuilder
 
-# Import the cleanup service
-try:
-    from getsentry.tasks.sentrynew_cleanup import SentryNewCleanupService
-except ImportError:
-    # Fallback inline version if import fails
-    class SentryNewCleanupService:
-        """Fallback inline version if import fails"""
-
-        @classmethod
-        def mark_claimed(cls, partner_account, user_id=None, user_email=None):
-            from django.utils import timezone
-
-            try:
-                # Update metadata
-                metadata = partner_account.metadata or {}
-                metadata.update(
-                    {
-                        "claimed": True,
-                        "claimed_at": timezone.now().isoformat(),
-                        "claimed_by": user_id,
-                        "claimed_by_email": user_email,
-                        "sentrynew_session": True,
-                    }
-                )
-
-                # Save the claimed status in metadata
-                # Note: We do NOT change partnership_agreement_restricted here
-                # That field is only for whether the partnership modal was dismissed
-                partner_account.metadata = metadata
-                partner_account.save(update_fields=["metadata"])
-
-                return True
-            except Exception as e:
-                logger.error(f"Failed to claim org {partner_account.id}: {e}")
-                return False
-
-
 logger = logging.getLogger("sentry.api.sentrynew")
+
+
+def _get_cleanup_service():
+    """Deferred import to avoid loading getsentry models during URL resolution."""
+    try:
+        from getsentry.tasks.sentrynew_cleanup import SentryNewCleanupService
+
+        return SentryNewCleanupService
+    except ImportError:
+        logger.warning("sentrynew.claim.cleanup_service_unavailable, using fallback")
+        return None
+
+
+class _FallbackCleanupService:
+    """Fallback if getsentry cleanup service is unavailable."""
+
+    @classmethod
+    def mark_claimed(cls, partner_account, user_id=None, user_email=None):
+        from django.utils import timezone
+
+        try:
+            metadata = partner_account.metadata or {}
+            metadata.update(
+                {
+                    "claimed": True,
+                    "claimed_at": timezone.now().isoformat(),
+                    "claimed_by": user_id,
+                    "claimed_by_email": user_email,
+                    "sentrynew_session": True,
+                }
+            )
+            partner_account.metadata = metadata
+            partner_account.save(update_fields=["metadata"])
+            return True
+        except Exception as e:
+            logger.error(f"Failed to claim org {partner_account.id}: {e}")
+            return False
 
 
 @region_silo_endpoint
@@ -113,6 +110,9 @@ class OrganizationClaimSentryNewEndpoint(OrganizationEndpoint):
             )
 
         # Verify it's a SentryNew organization
+        # Import deferred to avoid circular import during URL resolution
+        from getsentry.models.partneraccount import PartnerAccount, PartnerAccountType
+
         try:
             partner_account = PartnerAccount.objects.get(
                 organization_id=organization.id, type=PartnerAccountType.SENTRYNEW, is_active=True
@@ -208,7 +208,7 @@ class OrganizationClaimSentryNewEndpoint(OrganizationEndpoint):
         )
 
     def _claim_organization(
-        self, partner_account: PartnerAccount, user, organization: Organization, request: Request
+        self, partner_account, user, organization: Organization, request: Request
     ) -> bool:
         """
         Mark the organization as claimed.
@@ -224,7 +224,8 @@ class OrganizationClaimSentryNewEndpoint(OrganizationEndpoint):
         """
         try:
             # Use the cleanup service to mark as claimed
-            service = SentryNewCleanupService()
+            CleanupService = _get_cleanup_service() or _FallbackCleanupService
+            service = CleanupService()
             success = service.mark_claimed(
                 partner_account=partner_account, user_id=user.id, user_email=user.email
             )
