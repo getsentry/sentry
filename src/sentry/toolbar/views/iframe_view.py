@@ -3,7 +3,7 @@ from typing import Any
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.absolute_url import generate_organization_url
@@ -64,7 +64,7 @@ class IframeView(ProjectView):
                 "organization_slug": self.organization_slug,
                 "project_id_or_slug": self.project_id_or_slug,
                 "organization_url": generate_organization_url(self.organization_slug),
-                "region_url": generate_region_url(),
+                "region_url": generate_locality_url(),
             },
         )
 

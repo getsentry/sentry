@@ -25,7 +25,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.types import SerializedAvatarFields
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
@@ -439,7 +439,7 @@ class OrganizationSerializer(Serializer):
             "allowSuperuserAccess": not obj.flags.prevent_superuser_access,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
             },
             "hasAuthProvider": has_auth_provider,
         }
