@@ -5,6 +5,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import tempfile
 import urllib.request
 import zipfile
 
@@ -91,12 +92,6 @@ def sync_chromedriver(reporoot: str) -> int:
         print(f"{CHROME} not found; install Google Chrome to enable acceptance testing")
         return 1
 
-    try:
-        if subprocess.check_output([install, "--version"], text=True).split()[1] == chrome_ver:
-            return 0
-    except (FileNotFoundError, subprocess.CalledProcessError, IndexError):
-        pass
-
     major = chrome_ver.split(".")[0]
     with urllib.request.urlopen(
         "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
@@ -122,14 +117,25 @@ def sync_chromedriver(reporoot: str) -> int:
         print(f"no mac-arm64 ChromeDriver download available for {entry['version']}")
         return 1
 
+    try:
+        if (
+            subprocess.check_output([install, "--version"], text=True).split()[1]
+            == entry["version"]
+        ):
+            return 0
+    except (FileNotFoundError, subprocess.CalledProcessError, IndexError):
+        pass
+
     print(f"⏳ chromedriver {entry['version']}")
-    tmp = "/tmp/chromedriver.zip"
-    urllib.request.urlretrieve(url, tmp)
-    with zipfile.ZipFile(tmp) as zf:
-        extracted = zf.extract("chromedriver-mac-arm64/chromedriver", "/tmp")
-    os.unlink(tmp)
-    shutil.move(extracted, install)
-    shutil.rmtree("/tmp/chromedriver-mac-arm64", ignore_errors=True)
+    tmpdir = tempfile.mkdtemp()
+    try:
+        tmp = os.path.join(tmpdir, "chromedriver.zip")
+        urllib.request.urlretrieve(url, tmp)
+        with zipfile.ZipFile(tmp) as zf:
+            extracted = zf.extract("chromedriver-mac-arm64/chromedriver", tmpdir)
+        shutil.move(extracted, install)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
     os.chmod(install, 0o755)
     print(f"✅ chromedriver {entry['version']}")
     return 0
