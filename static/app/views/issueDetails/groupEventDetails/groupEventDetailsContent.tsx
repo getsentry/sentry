@@ -20,7 +20,7 @@ import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
+import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';

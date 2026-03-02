@@ -43,15 +43,15 @@ type TableColumn = {
 interface EventRegressionTableProps {
   causeType: 'duration' | 'throughput';
   data: EventRegressionTableRow[];
-  isError: boolean;
   isLoading: boolean;
+  error?: Error | null;
   onDescriptionLink?: (row: EventRegressionTableRow) => LocationDescriptor | undefined;
 }
 
 export function EventRegressionTable({
   causeType,
   data,
-  isError,
+  error,
   isLoading,
   onDescriptionLink,
 }: EventRegressionTableProps) {
@@ -89,11 +89,11 @@ export function EventRegressionTable({
 
       {isLoading ? (
         <SkeletonRows columns={columns} />
-      ) : isError ? (
+      ) : error ? (
         <SimpleTable.Empty>
           <Flex align="center" gap="sm">
             <IconWarning />
-            {t('There was an error loading data.')}
+            {error?.message ?? t('There was an error loading data.')}
           </Flex>
         </SimpleTable.Empty>
       ) : data.length === 0 ? (

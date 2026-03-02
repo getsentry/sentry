@@ -78,7 +78,7 @@ interface AggregateSpanDiffProps {
   project: Project;
 }
 
-function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
+export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
   const isSpansOnly = organization.features.includes(
@@ -110,6 +110,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     data: spansData,
     isPending: isSpansDataLoading,
     isError: isSpansDataError,
+    error: spansError,
   } = useSpans(
     {
       search,
@@ -133,7 +134,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const {
     data: rcaData,
     isPending: isRcaLoading,
-    isError: isRcaError,
+    error: rcaError,
   } = useFetchAdvancedAnalysis({
     transaction,
     start: startISO,
@@ -243,7 +244,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         causeType={causeType}
         data={tableData}
         isLoading={shouldUseSpansData ? isSpansDataLoading : isRcaLoading}
-        isError={shouldUseSpansData ? isSpansDataError : isRcaError}
+        error={shouldUseSpansData ? spansError : rcaError}
         onDescriptionLink={getDescriptionLink}
       />
     </InterimSection>
@@ -289,5 +290,3 @@ const getSearchInExploreTargetForSpanDiff = ({
     },
   };
 };
-
-export default AggregateSpanDiff;
