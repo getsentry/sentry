@@ -37,7 +37,7 @@ export const metrics: OnboardingConfig = {
             {
               label: 'CocoaPods (Deprecated)',
               language: 'ruby',
-              code: `# CocoaPods is deprecated and will not receive updates after July 2026.
+              code: `# CocoaPods is deprecated and will not receive updates after June 2026.
 # Migrate to SPM or use xcframeworks instead.
 pod update`,
             },
