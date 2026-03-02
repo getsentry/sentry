@@ -303,6 +303,18 @@ class TestGetRootFileNames:
 
         client.get.assert_called_once_with("/repos/owner/repo/contents", params={"ref": "main"})
 
+    def test_returns_empty_on_malformed_item(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = [{"type": "file"}]  # missing "name" key
+
+        assert _get_root_file_names(client, "owner/repo") == set()
+
+    def test_returns_empty_on_non_list_response(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = {"message": "Not Found"}  # dict instead of list
+
+        assert _get_root_file_names(client, "owner/repo") == set()
+
 
 class TestApplySupersession:
     def test_nextjs_supersedes_react(self) -> None:
