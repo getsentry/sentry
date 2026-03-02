@@ -1,8 +1,9 @@
 'use strict';
 
+import fs from 'node:fs';
+
 // @ts-expect-error csv-parser has no types
-const csv = require('csv-parser');
-const fs = require('node:fs');
+import csv from 'csv-parser';
 
 /**
  * Transform CSV results into device mapping object

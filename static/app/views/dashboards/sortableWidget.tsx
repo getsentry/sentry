@@ -19,6 +19,7 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
 import {
+  DisplayType,
   WidgetType,
   type DashboardFilters,
   type DashboardPermissions,
@@ -148,7 +149,10 @@ function SortableWidget(props: Props) {
     },
     isMobile,
     windowWidth,
-    tableItemLimit: widget.limit ?? TABLE_ITEM_LIMIT,
+    tableItemLimit:
+      widget.displayType === DisplayType.TABLE
+        ? TABLE_ITEM_LIMIT
+        : (widget.limit ?? TABLE_ITEM_LIMIT),
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     useTimeseriesVisualization,

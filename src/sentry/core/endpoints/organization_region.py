@@ -11,7 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.types.region import get_region_by_name
+from sentry.types.region import RegionResolutionError, get_global_directory
 
 
 class OrganizationRegionEndpointPermissions(SentryPermission):
@@ -79,6 +79,9 @@ class OrganizationRegionEndpoint(Endpoint):
         return (args, kwargs)
 
     def get(self, request: Request, organization_mapping: OrganizationMapping) -> Response:
-        region_data = get_region_by_name(organization_mapping.region_name)
-
-        return self.respond(region_data.api_serialize())
+        locality = get_global_directory().get_locality_for_cell(organization_mapping.region_name)
+        if locality is None:
+            raise RegionResolutionError(
+                f"No locality found for cell: {organization_mapping.region_name!r}"
+            )
+        return self.respond(locality.api_serialize())

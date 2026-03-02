@@ -1,12 +1,18 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Locality, Region, RegionCategory
 
 us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 de = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 st = Region("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
 region_config = (us, de, st)
+
+us_locality = Locality(name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT)
+de_locality = Locality(name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT)
+st_locality = Locality(
+    name="acme", cells=frozenset(["acme"]), category=RegionCategory.SINGLE_TENANT
+)
 
 
 @control_silo_test
@@ -28,9 +34,9 @@ class UserUserRolesTest(APITestCase):
         assert response.status_code == 200
         assert "regions" in response.data
         assert response.data["regions"] == [
-            st.api_serialize(),
-            de.api_serialize(),
-            us.api_serialize(),
+            st_locality.api_serialize(),
+            de_locality.api_serialize(),
+            us_locality.api_serialize(),
         ]
 
     @override_regions(region_config)
@@ -43,7 +49,7 @@ class UserUserRolesTest(APITestCase):
         response = self.get_response("me")
         assert response.status_code == 200
         assert "regions" in response.data
-        assert response.data["regions"] == [de.api_serialize()]
+        assert response.data["regions"] == [de_locality.api_serialize()]
 
     @override_regions(region_config)
     def test_get_other_user_error(self) -> None:
@@ -69,9 +75,9 @@ class UserUserRolesTest(APITestCase):
         assert response.status_code == 200
         assert "regions" in response.data
         assert response.data["regions"] == [
-            st.api_serialize(),
-            de.api_serialize(),
-            us.api_serialize(),
+            st_locality.api_serialize(),
+            de_locality.api_serialize(),
+            us_locality.api_serialize(),
         ]
 
         response = self.get_response(test_user_2.id)
@@ -88,7 +94,10 @@ class UserUserRolesTest(APITestCase):
             "me", extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token.token}"}
         )
         assert "regions" in response.data
-        assert response.data["regions"] == [de.api_serialize(), us.api_serialize()]
+        assert response.data["regions"] == [
+            de_locality.api_serialize(),
+            us_locality.api_serialize(),
+        ]
 
     @override_regions(region_config)
     def test_get_other_user_with_auth_token_error(self) -> None:

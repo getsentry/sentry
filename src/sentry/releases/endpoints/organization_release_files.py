@@ -1,5 +1,6 @@
 import logging
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.models.release import Release
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.releases.endpoints.project_release_files import ReleaseFilesMixin
@@ -35,6 +37,10 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         }
     )
 
+    @extend_schema(
+        operation_id="List an Organization Release's Files",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization, version) -> Response:
         """
         List an Organization Release's Files
