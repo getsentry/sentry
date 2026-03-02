@@ -252,6 +252,12 @@ incorrect_cases = [
         "Encoding: utf<int>",
     ),
     (
+        "int - with commas",
+        "4,150,908",
+        "<int>",
+        "<int>,<int>,<int>",
+    ),
+    (
         "ip - double colon object property",
         "Option::unwrap()",
         "Option::unwrap()",
