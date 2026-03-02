@@ -69,7 +69,8 @@ class TestLaunchCodingAgents(TestCase):
 
         assert len(result["successes"]) == 0
         assert len(result["failures"]) == 1
-        assert "Invalid repository name format" in result["failures"][0]["error_message"]
+        assert result["failures"][0]["error_message"] == "Failed to launch coding agent"
+        assert result["failures"][0]["failure_type"] == "generic"
         mock_installation.launch.assert_called_once()
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
