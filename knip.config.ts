@@ -6,9 +6,6 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
-  // dynamic imports _not_ recognized by knip
-  'static/app/bootstrap/initializeMain.tsx',
-  'static/gsApp/initializeBundleMetrics.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
   'static/app/views/integrationPipeline/index.tsx',
@@ -17,8 +14,6 @@ const productionEntryPoints = [
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
-  // (WIP) design system tokens
-  'static/app/utils/theme/scraps/**/*.tsx',
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
   // Prevent exception until we build out coverage

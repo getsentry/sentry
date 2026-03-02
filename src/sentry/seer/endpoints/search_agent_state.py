@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
 from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
@@ -18,10 +17,7 @@ from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import SearchAgentStateRequest, make_search_agent_state_request
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +28,8 @@ def fetch_search_agent_state(run_id: int, organization_id: int) -> dict[str, Any
 
     Calls POST /v1/assisted-query/state with the run_id and organization_id.
     """
-    body = orjson.dumps({"run_id": run_id, "organization_id": organization_id})
-
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/state",
-        body,
-        timeout=10,
-    )
+    body = SearchAgentStateRequest(run_id=run_id, organization_id=organization_id)
+    response = make_search_agent_state_request(body, timeout=10)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()

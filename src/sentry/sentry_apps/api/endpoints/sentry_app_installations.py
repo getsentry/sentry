@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
@@ -37,6 +39,10 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="List an Organization's Sentry App Installations",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 

@@ -3904,9 +3904,6 @@ register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMAT
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored on objectstore for processing and long-term storage.
 register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# This forces symbolication to use the "stored attachment" codepath,
-# regardless of whether the attachment has already been stored.
-register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # option used to enable/disable tracking

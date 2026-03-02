@@ -246,7 +246,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      actions: read # used for DIM metadata
+      actions: read # used for DIM metadata and job URL lookup
+      pull-requests: write # used to post failure comments
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -289,6 +290,18 @@ jobs:
         run: |
           make test-python-ci
 
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
+          PYTEST_ARTIFACT_DIR: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
+
       - name: Inspect failure
         if: failure()
         run: |
@@ -313,6 +326,10 @@ jobs:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -326,6 +343,18 @@ jobs:
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
+          PYTEST_ARTIFACT_DIR: pytest-results-migration-${{ github.run_id }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()
@@ -474,6 +503,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -486,6 +517,18 @@ jobs:
       - name: Run test
         run: |
           make test-monolith-dbs
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.monolith-dbs.json
+          PYTEST_ARTIFACT_DIR: pytest-results-monolith-dbs-${{ github.run_id }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()

@@ -200,8 +200,6 @@ class StoreCodingAgentStatesToSeerTest(APITestCase):
         from datetime import UTC, datetime
         from unittest.mock import MagicMock, patch
 
-        import orjson
-
         from sentry.seer.autofix.coding_agent import store_coding_agent_states_to_seer
         from sentry.seer.autofix.utils import (
             CodingAgentProviderType,
@@ -229,16 +227,13 @@ class StoreCodingAgentStatesToSeerTest(APITestCase):
         mocked_response.data = b"{}"
 
         with patch(
-            "sentry.seer.autofix.coding_agent.make_signed_seer_api_request",
+            "sentry.seer.autofix.coding_agent.make_store_coding_agent_states_request",
             return_value=mocked_response,
         ) as mocked_call:
             store_coding_agent_states_to_seer(run_id=5, coding_agent_states=[state1, state2])
 
             mocked_call.assert_called_once()
-            args, kwargs = mocked_call.call_args
-            # path is the second positional arg
-            assert args[1] == "/v1/automation/autofix/coding-agent/state/set"
-            body = orjson.loads(kwargs["body"]) if "body" in kwargs else orjson.loads(args[2])
+            body = mocked_call.call_args[0][0]
             assert body["run_id"] == 5
             assert isinstance(body["coding_agent_states"], list)
             assert len(body["coding_agent_states"]) == 2
