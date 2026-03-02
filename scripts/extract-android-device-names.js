@@ -69,7 +69,7 @@ const content = fs.readFileSync('supported_devices.csv');
 const text = content.toString('utf16le').slice(1);
 const lines = text.split(LF);
 
-const headers = parseCsvLine(lines[0]);
+const headers = lines[0] ? parseCsvLine(lines[0]) : [];
 
 const nameIdx = headers.indexOf('Marketing Name');
 const modelIdx = headers.indexOf('Model');
@@ -84,11 +84,14 @@ if (nameIdx === -1 || modelIdx === -1) {
 const results = [];
 
 for (let i = 1; i < lines.length; i++) {
-  const line = lines[i].trim();
+  const line = lines[i]?.trim();
   if (!line) {
     continue;
   }
   const fields = parseCsvLine(line);
+  if (!fields[nameIdx] || !fields[modelIdx]) {
+    continue;
+  }
   results.push({name: fields[nameIdx], model: fields[modelIdx]});
 }
 
