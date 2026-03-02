@@ -1898,7 +1898,8 @@ def _contains_or(tokens):
     return False
 
 
-def _collect_pinned(tokens, pinned):
+def _collect_pinned(tokens):
+    pinned: set[str] = set()
     for token in tokens:
         if isinstance(token, SearchFilter):
             if (
@@ -1911,7 +1912,8 @@ def _collect_pinned(tokens, pinned):
             ):
                 pinned.add(token.key.name)
         elif isinstance(token, ParenExpression):
-            _collect_pinned(token.children, pinned)
+            pinned.update(_collect_pinned(token.children))
+    return pinned
 
 
 def get_pinned_attributes(query: str) -> set[str]:
@@ -1933,6 +1935,4 @@ def get_pinned_attributes(query: str) -> set[str]:
     if _contains_or(tokens):
         return set()
 
-    pinned: set[str] = set()
-    _collect_pinned(tokens, pinned)
-    return pinned
+    return _collect_pinned(tokens)
