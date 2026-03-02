@@ -68,27 +68,6 @@ def count_occurrences(
         return 0
 
 
-def count_occurrences_for_trace_id(
-    snuba_params: SnubaParams,
-    trace_id: str,
-    referrer: str,
-    occurrence_category: OccurrenceCategory | None = None,
-) -> int:
-    """
-    Count the number of occurrences for a given trace ID.
-
-    Returns:
-        The count of matching occurrences, or 0 if the query fails.
-    """
-    grouped_counts = count_occurrences_grouped_by_trace_ids(
-        snuba_params=snuba_params,
-        trace_ids=[trace_id],
-        referrer=referrer,
-        occurrence_category=occurrence_category,
-    )
-    return grouped_counts.get(trace_id, 0)
-
-
 def count_occurrences_grouped_by_trace_ids(
     snuba_params: SnubaParams,
     trace_ids: Sequence[str],

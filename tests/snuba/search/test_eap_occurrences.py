@@ -7,7 +7,6 @@ import pytest
 
 from sentry.search.eap.occurrences.common_queries import (
     count_occurrences,
-    count_occurrences_for_trace_id,
     count_occurrences_grouped_by_trace_ids,
     get_group_ids_for_trace_id,
     get_group_to_trace_ids_map,
@@ -329,30 +328,6 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             referrer=self.referrer,
         )
         assert grouped == {}
-
-    def test_count_occurrences_for_trace_id(self) -> None:
-        group = self.create_group(project=self.project)
-        trace_id = uuid4().hex
-        other_trace_id = uuid4().hex
-        self.store_occurrences(
-            [
-                self.create_eap_occurrence(group_id=group.id, trace_id=trace_id),
-                self.create_eap_occurrence(group_id=group.id, trace_id=trace_id),
-                self.create_eap_occurrence(group_id=group.id, trace_id=other_trace_id),
-            ]
-        )
-
-        count = count_occurrences_for_trace_id(
-            snuba_params=SnubaParams(
-                start=self.start,
-                end=self.end,
-                organization=self.organization,
-                projects=[self.project],
-            ),
-            trace_id=trace_id,
-            referrer=self.referrer,
-        )
-        assert count == 2
 
     def test_get_group_ids_for_trace_id(self) -> None:
         trace_id = uuid4().hex

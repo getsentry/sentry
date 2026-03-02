@@ -27,7 +27,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.search.eap.occurrences.common_queries import count_occurrences_for_trace_id
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
@@ -526,12 +526,12 @@ def count_performance_issues(
 
     callsite = "api.trace.count_performance_issues"
     if EAPOccurrencesComparator.should_check_experiment(callsite):
-        eap_count = count_occurrences_for_trace_id(
+        eap_count = count_occurrences_grouped_by_trace_ids(
             snuba_params=params,
-            trace_id=trace_id,
+            trace_ids=[trace_id],
             referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
             occurrence_category=OccurrenceCategory.GENERIC,
-        )
+        ).get(trace_id, 0)
         performance_issues_count = EAPOccurrencesComparator.check_and_choose(
             snuba_count,
             eap_count,
