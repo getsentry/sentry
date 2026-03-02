@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
-from typing import Any
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
@@ -16,13 +16,16 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
-from sentry.replays.lib.seer_api import seer_summarization_connection_pool
+from sentry.replays.lib.seer_api import (
+    ReplaySummaryStartRequest,
+    ReplaySummaryStateRequest,
+    make_replay_summary_start_request,
+    make_replay_summary_state_request,
+)
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -64,34 +67,31 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         )
         super().__init__(**kw)
 
-    def make_seer_request(self, path: str, post_body: dict[str, Any]) -> Response:
-        """Make a POST request to a Seer endpoint with retry logic. Raises HTTPError and logs non-200 status codes."""
-        data = json.dumps(post_body)
-
-        if len(data) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
+    def _make_seer_start_request(self, body: ReplaySummaryStartRequest) -> Response:
+        """Make a start-summary request to Seer with error handling."""
+        serialized = orjson.dumps(body)
+        if len(serialized) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
             logger.warning(
                 "Replay Summary: large Seer request.",
                 extra={
-                    "num_chars": len(data),
+                    "num_chars": len(serialized),
                     "threshold": SEER_REQUEST_SIZE_LOG_THRESHOLD,
-                    "replay_id": post_body.get("replay_id"),
-                    "organization_id": post_body.get("organization_id"),
-                    "project_id": post_body.get("project_id"),
+                    "replay_id": body.get("replay_id"),
+                    "organization_id": body.get("organization_id"),
+                    "project_id": body.get("project_id"),
                 },
             )
 
         try:
-            response = make_signed_seer_api_request(
-                connection_pool=seer_summarization_connection_pool,
-                path=path,
-                body=data.encode("utf-8"),
+            response = make_replay_summary_start_request(
+                body,
                 timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
                 retries=0,
             )
         except Exception:
             logger.exception(
                 "Seer replay breadcrumbs summary endpoint failed after retries",
-                extra={"path": path},
+                extra={"path": SEER_START_TASK_ENDPOINT_PATH},
             )
             return self.respond("Internal Server Error", status=500)
 
@@ -99,14 +99,41 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             logger.error(
                 "Seer replay breadcrumbs summary endpoint failed",
                 extra={
-                    "path": path,
+                    "path": SEER_START_TASK_ENDPOINT_PATH,
                     "status_code": response.status,
                     "response_data": response.data,
                 },
             )
             return self.respond("Internal Server Error", status=500)
 
-        # Note any headers in the Seer response aren't returned.
+        return Response(data=response.json(), status=response.status)
+
+    def _make_seer_state_request(self, body: ReplaySummaryStateRequest) -> Response:
+        """Make a poll-state request to Seer with error handling."""
+        try:
+            response = make_replay_summary_state_request(
+                body,
+                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                retries=0,
+            )
+        except Exception:
+            logger.exception(
+                "Seer replay breadcrumbs summary endpoint failed after retries",
+                extra={"path": SEER_POLL_STATE_ENDPOINT_PATH},
+            )
+            return self.respond("Internal Server Error", status=500)
+
+        if response.status < 200 or response.status >= 300:
+            logger.error(
+                "Seer replay breadcrumbs summary endpoint failed",
+                extra={
+                    "path": SEER_POLL_STATE_ENDPOINT_PATH,
+                    "status_code": response.status,
+                    "response_data": response.data,
+                },
+            )
+            return self.respond("Internal Server Error", status=500)
+
         return Response(data=response.json(), status=response.status)
 
     def has_replay_summary_access(self, project: Project, request: Request) -> bool:
@@ -140,13 +167,12 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             # Both the frontend and summary generation are gated by the same permissions.
 
             # Request Seer for the state of the summary task.
-            return self.make_seer_request(
-                SEER_POLL_STATE_ENDPOINT_PATH,
-                {
-                    "replay_id": replay_id,
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                },
+            return self._make_seer_state_request(
+                ReplaySummaryStateRequest(
+                    replay_id=replay_id,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
             )
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -228,15 +254,15 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                     },
                 )
 
-            return self.make_seer_request(
-                SEER_START_TASK_ENDPOINT_PATH,
-                {
-                    "replay_id": replay_id,
-                    "replay_start": replay_start,
-                    "replay_end": replay_end,
-                    "num_segments": num_segments,
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "temperature": temperature,
-                },
+            start_request = ReplaySummaryStartRequest(
+                replay_id=replay_id,
+                replay_start=replay_start,
+                replay_end=replay_end,
+                num_segments=num_segments,
+                organization_id=project.organization.id,
+                project_id=project.id,
             )
+            if temperature is not None:
+                start_request["temperature"] = temperature
+
+            return self._make_seer_start_request(start_request)

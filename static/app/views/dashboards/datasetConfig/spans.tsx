@@ -45,6 +45,7 @@ import {
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
+  isEventsStats,
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
@@ -194,7 +195,16 @@ function extractSeriesMetadata<T>({
     }
   });
 
-  if (isMultiSeriesEventsStats(data)) {
+  if (isEventsStats(data)) {
+    // Plain EventsStats: single aggregate, no grouping. Meta is at the top level.
+    if (data.meta) {
+      widgetQuery.aggregates?.forEach(aggregate => {
+        if (aggregate && !(aggregate in result)) {
+          result[aggregate] = getMetaField(data.meta, aggregate);
+        }
+      });
+    }
+  } else if (isMultiSeriesEventsStats(data)) {
     // If there's only one aggregate and multiple groupings, series names are group names
     // In this case, we can use the first meta value for all series
     const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);

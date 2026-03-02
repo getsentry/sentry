@@ -31,7 +31,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
             return_value=True,
         )
         self.mock_make_signed_seer_api_request_patcher = patch(
-            "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+            "sentry.feedback.endpoints.organization_feedback_categories.make_label_groups_request"
         )
         self.mock_threshold_to_get_associated_labels_patcher = patch(
             "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
