@@ -189,6 +189,49 @@ describe('getDetectorOpenInDestination', () => {
       });
     });
 
+    describe('Metrics', () => {
+      it('returns "Open in Metrics" with correct query parameters', () => {
+        const detector = MetricDetectorFixture({
+          dataSources: [
+            SnubaQueryDataSourceFixture({
+              queryObj: {
+                id: '1',
+                status: 1,
+                subscription: '1',
+                snubaQuery: {
+                  id: '1',
+                  aggregate: 'sum(value,my_metric,counter,-)',
+                  dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                  eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+                  query: '',
+                  timeWindow: 300,
+                  environment: 'prod',
+                },
+              },
+            }),
+          ],
+        });
+
+        const result = getDetectorOpenInDestination({
+          detectorName: detector.name,
+          organization,
+          projectId: detector.projectId,
+          snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
+          statsPeriod: '7d',
+        });
+
+        expect(result?.buttonText).toBe('Open in Metrics');
+        expect(result?.to).toContain('/explore/metrics/');
+        expect(result?.to).toContain('project=1');
+        expect(result?.to).toContain('environment=prod');
+        expect(result?.to).toContain('statsPeriod=7d');
+        expect(result?.to).toContain('interval=5m');
+        // Metric query params are JSON-encoded then URL-encoded
+        expect(result?.to).toContain('my_metric');
+        expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2C-%29');
+      });
+    });
+
     describe('Releases dataset', () => {
       it('returns null for releases/crash-free dataset', () => {
         const detector = MetricDetectorFixture({
