@@ -41,14 +41,26 @@ if [ -n "$WORKSPACE_JSON" ]; then
     WORKSPACE_STATUS=$(echo "$WORKSPACE_JSON" | jq -r '.latest_build.status')
     echo "Found workspace ${WORKSPACE_ID} (status: ${WORKSPACE_STATUS})"
 
-    echo "Deleting workspace..."
-    api -X POST \
-        -H "${AUTH_HEADER}" \
-        -H "Content-Type: application/json" \
-        "${CODER_API}/workspaces/${WORKSPACE_ID}/builds" \
-        -d '{"transition": "delete"}' > /dev/null
+    # Wait for any active build to finish before deleting
+    while [[ "$WORKSPACE_STATUS" == "starting" || "$WORKSPACE_STATUS" == "stopping" || "$WORKSPACE_STATUS" == "deleting" ]]; do
+        echo "  Build in progress (${WORKSPACE_STATUS}), waiting..."
+        sleep 10
+        WORKSPACE_STATUS=$(api \
+            -H "${AUTH_HEADER}" \
+            "${CODER_API}/workspaces/${WORKSPACE_ID}" | jq -r '.latest_build.status')
+    done
 
-    echo "Workspace deletion initiated."
+    if [ "$WORKSPACE_STATUS" = "deleted" ]; then
+        echo "Workspace already deleted."
+    else
+        echo "Deleting workspace..."
+        api -X POST \
+            -H "${AUTH_HEADER}" \
+            -H "Content-Type: application/json" \
+            "${CODER_API}/workspaces/${WORKSPACE_ID}/builds" \
+            -d '{"transition": "delete"}' > /dev/null
+        echo "Workspace deletion initiated."
+    fi
 else
     echo "Workspace '${WORKSPACE_NAME}' not found, nothing to delete."
 fi
