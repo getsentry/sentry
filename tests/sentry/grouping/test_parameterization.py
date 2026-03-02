@@ -234,6 +234,12 @@ incorrect_cases = [
         "20060102T150405+<int>",
     ),
     (
+        "git sha",
+        "commit a93c7d2",
+        "commit <git_sha>",
+        "commit a93c7d2",
+    ),
+    (
         "hex without prefix - lowercase, no numbers until later",
         "deadbeef 123",
         "deadbeef <int>",
