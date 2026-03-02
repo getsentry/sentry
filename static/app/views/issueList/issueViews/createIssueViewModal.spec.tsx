@@ -54,6 +54,11 @@ describe('CreateIssueViewModal', () => {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issue-view-title/generate/',
+      method: 'POST',
+      body: {},
+    });
     const mockCreateViewEndpoint = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
