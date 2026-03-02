@@ -75,7 +75,7 @@ class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
             }
         ]
         # create single written workflow
-        self.detector = self.create_detector()
+        self.detector = self.create_detector(project=self.project)
         self.workflow_triggers = self.create_data_condition_group()
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
