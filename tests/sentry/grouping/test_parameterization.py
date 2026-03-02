@@ -270,6 +270,20 @@ incorrect_cases = [
         "<ip>buzz()",
     ),
     (
+        "json - double quotes",
+        '{"dogs are great": true, "dog_id": "greatdog1231"}',
+        '{"dogs are great": <bool>, "dog_id": <id>}',
+        '{"dogs are great": true, "dog_id": "greatdog1231"}',
+    ),
+    # Single quotes make this not valid JSON, but when the JSON is stringified, sometimes it comes
+    # out that way
+    (
+        "json - single quotes",
+        "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
+        "{'dogs are great': <bool>, 'dog_id': '<id>'}",
+        "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
+    ),
+    (
         "random sequence as id",
         "invoice k9Mtd2gDcgG",
         "invoice <random_str>",
