@@ -192,7 +192,7 @@ export function CreateProject() {
 
   const [formData, setFormData] = useState<FormData>(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
-  const hasUserModifiedProjectName = useRef(false);
+  const hasUserModifiedProjectName = useRef(autoFill && !!createdProject?.name);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -246,6 +246,9 @@ export function CreateProject() {
 
   useEffect(() => {
     (Object.keys(initialData) as Array<keyof typeof initialData>).forEach(key => {
+      if (key === 'projectName' && hasUserModifiedProjectName.current) {
+        return;
+      }
       updateFormData(key, initialData[key]);
     });
   }, [initialData, updateFormData]);
