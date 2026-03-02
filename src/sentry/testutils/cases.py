@@ -83,7 +83,10 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.db.models import NodeData
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import _build_occurrence_attributes, serialize_event_data_as_item
+from sentry.eventstream.item_helpers import (
+    _build_occurrence_attributes,
+    serialize_event_data_as_item,
+)
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
