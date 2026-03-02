@@ -174,7 +174,7 @@ const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
   },
 ];
 
-export const getAiRulesConfig = (): OnboardingStep =>
+export const getAiSetupConfig = (): OnboardingStep =>
   getAISetupStep({skillPath: 'sentry-sdk-setup'});
 
 const getVerifyConfig = (params: Params) => [
@@ -310,7 +310,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         }
       },
     },
-    getAiRulesConfig(),
+    getAiSetupConfig(),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -429,7 +429,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       ...params,
     }),
-    getAiRulesConfig(),
+    getAiSetupConfig(),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
