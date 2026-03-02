@@ -258,13 +258,6 @@ if [ "$HEALTH_ELAPSED" -ge "$MAX_HEALTH_WAIT" ]; then
     exit 1
 fi
 
-# ---------- Get owner name for URL ----------
-
-OWNER_NAME=$(api \
-    -H "${AUTH_HEADER}" \
-    "${CODER_API}/users/me" | jq -r '.username')
-
-PREVIEW_URL="https://sentry-dev--${WORKSPACE_NAME}--${OWNER_NAME}.coder.sentry.dev"
 echo "Preview URL: ${PREVIEW_URL}"
 
 # ---------- GitHub Deployment: success ----------
