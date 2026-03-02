@@ -7,6 +7,7 @@ import BillingAdmins from 'admin/views/billingAdmins';
 import BillingPlans from 'admin/views/billingPlans';
 import BroadcastDetails from 'admin/views/broadcastDetails';
 import Broadcasts from 'admin/views/broadcasts';
+import CustomerContractDetails from 'admin/views/customerContractDetails';
 import CustomerDetails from 'admin/views/customerDetails';
 import Customers from 'admin/views/customers';
 import CustomerUpgradeRequest from 'admin/views/customerUpgradeRequest';
@@ -92,6 +93,10 @@ function buildRoutes() {
               {
                 path: 'upgrade-request/',
                 component: CustomerUpgradeRequest,
+              },
+              {
+                path: 'contract/',
+                component: CustomerContractDetails,
               },
               {
                 path: 'projects/:projectId/',
