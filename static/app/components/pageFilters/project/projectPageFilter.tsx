@@ -42,7 +42,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 const SELECTION_COUNT_LIMIT = 50;
 
 export interface ProjectPageFilterProps extends Partial<
-  Omit<MultipleSelectProps<number>, 'onChange' | 'sizeLimit' | 'trigger'>
+  Omit<MultipleSelectProps<number>, 'onChange' | 'sizeLimit' | 'trigger' | 'emptyMessage'>
 > {
   /**
    * Called when the selection changes
@@ -67,7 +67,6 @@ export function ProjectPageFilter({
   onChange,
   onReset,
   disabled,
-  emptyMessage,
   menuTitle,
   menuWidth,
   resetParamsOnChange,
@@ -208,8 +207,11 @@ export function ProjectPageFilter({
       } satisfies SelectOption<number>;
     };
 
+    const memberProjectList = memberProjects(projects);
+    const nonMemberProjectList = nonMemberProjects(projects);
+
     const specialItems = [
-      ...(projects.length > 1 && nonMemberProjects.length > 0
+      ...(projects.length > 1 && nonMemberProjectList.length > 0
         ? [
             {
               value: ALL_ACCESS_PROJECTS,
@@ -219,7 +221,7 @@ export function ProjectPageFilter({
                   justify="between"
                   width="100%"
                   style={
-                    memberProjects.length + nonMemberProjects.length > 0
+                    memberProjectList.length + nonMemberProjectList.length > 0
                       ? {position: 'relative'}
                       : undefined
                   }
@@ -229,7 +231,7 @@ export function ProjectPageFilter({
                     ({projects.length})
                   </Text>
                   {/* Show separator if we are not displaying My Projects */}
-                  {memberProjects.length < projects.length ? null : (
+                  {memberProjectList.length < projects.length ? null : (
                     <Separator
                       orientation="horizontal"
                       aria-hidden
@@ -269,7 +271,7 @@ export function ProjectPageFilter({
             } satisfies SelectOption<number>,
           ]
         : []),
-      ...(memberProjects.length < projects.length
+      ...(memberProjectList.length > 0 && memberProjectList.length < projects.length
         ? [
             {
               value: MY_PROJECTS_VALUE,
@@ -279,14 +281,14 @@ export function ProjectPageFilter({
                   justify="between"
                   width="100%"
                   style={
-                    memberProjects.length + nonMemberProjects.length > 0
+                    memberProjectList.length + nonMemberProjectList.length > 0
                       ? {position: 'relative'}
                       : undefined
                   }
                 >
                   <Text>{t('My Projects')}</Text>
                   <Text size="xs" variant="muted">
-                    ({memberProjects.length})
+                    ({memberProjectList.length})
                   </Text>
                   <Separator
                     orientation="horizontal"
@@ -311,8 +313,8 @@ export function ProjectPageFilter({
                       optionSelectionIntent.kind === 'my'
                     }
                     onChange={() => {
-                      // If all projects is selected, then remove the list member projects from the selection
                       if (optionSelectionIntent.kind === 'all') {
+                        // Remove member projects from the "all" selection
                         dispatchRef.current?.({
                           type: 'set staged',
                           value: nonMemberProjectIds(projects),
@@ -320,15 +322,18 @@ export function ProjectPageFilter({
                         return;
                       }
                       if (optionSelectionIntent.kind === 'my') {
+                        // Deselect My Projects
                         dispatchRef.current?.({
                           type: 'set staged',
                           value: [],
                         });
                         return;
                       }
-                      // if all projects is not selected, then add my projects to the selection
-                      // if my projects is selected, then remove all projects from the selection
-                      // if no projects are selected, then add my projects to the selection
+                      // For 'custom' or 'none': select My Projects
+                      dispatchRef.current?.({
+                        type: 'set staged',
+                        value: [MY_PROJECTS_VALUE],
+                      });
                     }}
                     aria-label={t('Select My Projects')}
                     tabIndex={-1}
@@ -363,7 +368,7 @@ export function ProjectPageFilter({
           ];
 
     const projectItems = sortBy(
-      [...memberProjects(projects), ...nonMemberProjects(projects)],
+      [...memberProjectList, ...nonMemberProjectList],
       listSort
     ).map(getProjectItem);
 
@@ -578,9 +583,11 @@ export function ProjectPageFilter({
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
   const canWrite = organization.access.includes('project:write');
+
   const hasUnstaggedChanges =
     !isMyProjectsDeselectedOnly &&
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
+
   const menuFooterContent =
     selectionLimitExceeded || canWrite || hasUnstaggedChanges ? (
       <Stack gap="md" direction="column">
@@ -623,7 +630,7 @@ export function ProjectPageFilter({
       {...selectProps}
       {...stagedSelect.compactSelectProps}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      emptyMessage={emptyMessage ?? t('No projects found')}
+      emptyMessage={t('No projects found')}
       menuTitle={
         menuTitle ?? (
           <Flex gap="xs" align="center">
@@ -760,14 +767,6 @@ function selectionToIntent({
   return {kind: 'custom', ids: selection};
 }
 
-function hasSameValues(left: number[], right: number[]): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-  const rightValues = new Set(right);
-  return left.every(value => rightValues.has(value));
-}
-
 /**
  * Converts an internal project selection (expanded IDs) to the URL encoding.
  * Detects when the selection equals "all projects" or "my projects" and collapses
@@ -797,7 +796,7 @@ function toURLSelection({
   // "My Projects"
   if (
     showNonMemberProjects &&
-    value.length === memberProjectIds.length &&
+    value.length === memberProjectIds(projects).length &&
     memberProjectsSelected
   ) {
     return [];
@@ -840,4 +839,12 @@ function nonMemberProjectIds(projects: Project[]): number[] {
 
 function allProjectIds(projects: Project[]): number[] {
   return projects.map(project => parseInt(project.id, 10));
+}
+
+function hasSameValues(left: number[], right: number[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const rightValues = new Set(right);
+  return left.every(value => rightValues.has(value));
 }
