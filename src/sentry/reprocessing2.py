@@ -95,6 +95,7 @@ from typing import Any, Literal, overload
 import sentry_sdk
 from django.conf import settings
 from django.db import router
+from django.utils import timezone
 
 from sentry import models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
@@ -104,11 +105,15 @@ from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
 from sentry.objectstore import get_attachments_session
 from sentry.options.rollout import in_random_rollout
+from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
 from sentry.utils.cache import cache_key_for_event
@@ -573,6 +578,9 @@ def start_group_reprocessing(
 
     with transaction.atomic(router.db_for_write(models.Group)):
         group = models.Group.objects.get(id=group_id)
+        project = group.project
+        organization = project.organization
+        group_first_seen = group.first_seen
         original_status = group.status
         original_substatus = group.substatus
         if original_status == models.GroupStatus.REPROCESSING:
@@ -628,14 +636,45 @@ def start_group_reprocessing(
         for model in GROUP_MODELS_TO_MIGRATE:
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 
-    # Get event counts of issue (for all environments etc). This was copypasted
+    # Get event counts of issue (for all environments etc). This was copy-pasted
     # and simplified from groupserializer.
-    event_count = sync_count = snuba.aliased_query(
+    referrer = Referrer.REPROCESSING2_START_GROUP_REPROCESSING.value
+    snuba_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
         dataset=Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
-        referrer="reprocessing2.start_group_reprocessing",
+        referrer=referrer,
     )["data"][0]["times_seen"]
+    event_count = sync_count = snuba_count
+
+    callsite = "reprocessing2.start_group_reprocessing"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        count_end = timezone.now()
+        eap_count = count_occurrences(
+            organization=organization,
+            projects=[project],
+            start=group_first_seen,
+            end=count_end,
+            referrer=referrer,
+            group_id=group_id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        event_count = sync_count = EAPOccurrencesComparator.check_and_choose(
+            control_data=snuba_count,
+            experimental_data=eap_count,
+            callsite=callsite,
+            is_experimental_data_a_null_result=eap_count == 0,
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "group_id": group_id,
+                "group_first_seen": (
+                    group_first_seen.isoformat() if group_first_seen is not None else None
+                ),
+                "count_end": count_end.isoformat(),
+            },
+        )
 
     sentry_sdk.set_extra("event_count", event_count)
 

@@ -4,7 +4,7 @@ from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.conf import settings
-from urllib3 import Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -71,12 +71,19 @@ class SnubaMetadata(TypedDict):
 SnubaTSEntry = tuple[int, tuple[SnubaMetadata]]
 
 
-def detect_breakpoints(breakpoint_request: BreakpointRequest) -> BreakpointResponse:
-    response = make_signed_seer_api_request(
-        seer_breakpoint_connection_pool,
+def make_breakpoint_detection_request(
+    body: BreakpointRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_breakpoint_connection_pool,
         "/trends/breakpoint-detector",
-        json.dumps(breakpoint_request).encode("utf-8"),
+        body=json.dumps(body).encode("utf-8"),
     )
+
+
+def detect_breakpoints(breakpoint_request: BreakpointRequest) -> BreakpointResponse:
+    response = make_breakpoint_detection_request(breakpoint_request)
 
     if response.status >= 200 and response.status < 300:
         try:

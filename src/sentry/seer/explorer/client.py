@@ -5,7 +5,6 @@ import time
 from datetime import datetime
 from typing import Any, Literal, overload
 
-import orjson
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
 from rest_framework.request import Request
@@ -15,9 +14,14 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
 from sentry.seer.explorer.client_utils import (
+    ExplorerChatRequest,
+    ExplorerRunsRequest,
+    ExplorerUpdateRequest,
     collect_user_org_context,
-    explorer_connection_pool,
     fetch_run_status,
+    make_explorer_chat_request,
+    make_explorer_runs_request,
+    make_explorer_update_request,
     poll_until_done,
 )
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
@@ -28,7 +32,6 @@ from sentry.seer.explorer.on_completion_hook import (
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -246,62 +249,56 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
-        path = "/v1/automation/explorer/chat"
-
-        payload: dict[str, Any] = {
-            "organization_id": self.organization.id,
-            "query": prompt,
-            "run_id": None,
-            "insert_index": None,
-            "on_page_context": on_page_context,
-            "user_org_context": collect_user_org_context(
+        chat_body: ExplorerChatRequest = ExplorerChatRequest(
+            organization_id=self.organization.id,
+            query=prompt,
+            run_id=None,
+            insert_index=None,
+            on_page_context=on_page_context,
+            user_org_context=collect_user_org_context(
                 self.user, self.organization, request=request
             ),
-            "intelligence_level": self.intelligence_level,
-            "is_interactive": self.is_interactive,
-            "enable_coding": self.enable_coding,
-        }
+            intelligence_level=self.intelligence_level,
+            is_interactive=self.is_interactive,
+            enable_coding=self.enable_coding,
+        )
 
         if self.project:
-            payload["project_id"] = self.project.id
+            chat_body["project_id"] = self.project.id
 
         if prompt_metadata:
-            payload["query_metadata"] = prompt_metadata
+            chat_body["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
-            payload["artifact_key"] = artifact_key
-            payload["artifact_schema"] = artifact_schema.schema()
+            chat_body["artifact_key"] = artifact_key
+            chat_body["artifact_schema"] = artifact_schema.schema()
 
         # Extract and add custom tool definitions
         if self.custom_tools:
-            payload["custom_tools"] = [
+            chat_body["custom_tools"] = [
                 extract_tool_schema(tool).dict() for tool in self.custom_tools
             ]
 
         # Add on-completion hook if provided
         if self.on_completion_hook:
-            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
+            chat_body["on_completion_hook"] = extract_hook_definition(
+                self.on_completion_hook
+            ).dict()
 
         if self.category_key and self.category_value:
-            payload["category_key"] = self.category_key
-            payload["category_value"] = self.category_value
+            chat_body["category_key"] = self.category_key
+            chat_body["category_value"] = self.category_value
 
         if metadata:
-            payload["metadata"] = metadata
+            chat_body["metadata"] = metadata
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
         ):
-            payload["is_context_engine_enabled"] = True
+            chat_body["is_context_engine_enabled"] = True
 
-        body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
-
-        response = make_signed_seer_api_request(
-            explorer_connection_pool,
-            path,
-            body,
-        )
+        response = make_explorer_chat_request(chat_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -339,40 +336,32 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
-        path = "/v1/automation/explorer/chat"
-
-        payload: dict[str, Any] = {
-            "organization_id": self.organization.id,
-            "query": prompt,
-            "run_id": run_id,
-            "insert_index": insert_index,
-            "on_page_context": on_page_context,
-            "is_interactive": self.is_interactive,
-            "enable_coding": self.enable_coding,
-        }
+        chat_body: ExplorerChatRequest = ExplorerChatRequest(
+            organization_id=self.organization.id,
+            query=prompt,
+            run_id=run_id,
+            insert_index=insert_index,
+            on_page_context=on_page_context,
+            is_interactive=self.is_interactive,
+            enable_coding=self.enable_coding,
+        )
 
         if prompt_metadata:
-            payload["query_metadata"] = prompt_metadata
+            chat_body["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
-            payload["artifact_key"] = artifact_key
-            payload["artifact_schema"] = artifact_schema.schema()
+            chat_body["artifact_key"] = artifact_key
+            chat_body["artifact_schema"] = artifact_schema.schema()
 
         if features.has(
             "organizations:seer-explorer-context-engine",
             self.organization,
             actor=self.user,
         ):
-            payload["is_context_engine_enabled"] = True
+            chat_body["is_context_engine_enabled"] = True
 
-        body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
-
-        response = make_signed_seer_api_request(
-            explorer_connection_pool,
-            path,
-            body,
-        )
+        response = make_explorer_chat_request(chat_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -467,39 +456,36 @@ class SeerExplorerClient:
         Raises:
             SeerApiError: If the Seer API request fails
         """
-        path = "/v1/automation/explorer/runs"
-
-        payload: dict[str, Any] = {
-            "organization_id": self.organization.id,
-        }
+        runs_body: ExplorerRunsRequest = ExplorerRunsRequest(
+            organization_id=self.organization.id,
+        )
 
         # Add optional filters
-        if only_current_user and self.user and hasattr(self.user, "id"):
-            payload["user_id"] = self.user.id
+        if (
+            only_current_user
+            and self.user
+            and hasattr(self.user, "id")
+            and self.user.id is not None
+        ):
+            runs_body["user_id"] = int(self.user.id)
         if category_key is not None:
-            payload["category_key"] = category_key
+            runs_body["category_key"] = category_key
         if category_value is not None:
-            payload["category_value"] = category_value
+            runs_body["category_value"] = category_value
         if offset is not None:
-            payload["offset"] = offset
+            runs_body["offset"] = offset
         if project_ids is not None:
-            payload["project_ids"] = project_ids
+            runs_body["project_ids"] = project_ids
         if limit is not None:
-            payload["limit"] = limit
+            runs_body["limit"] = limit
         if expand is not None:
-            payload["expand"] = expand
+            runs_body["expand"] = expand
         if start is not None:
-            payload["start"] = start
+            runs_body["start"] = start
         if end is not None:
-            payload["end"] = end
+            runs_body["end"] = end
 
-        body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
-
-        response = make_signed_seer_api_request(
-            explorer_connection_pool,
-            path,
-            body,
-        )
+        response = make_explorer_runs_request(runs_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -536,21 +522,12 @@ class SeerExplorerClient:
             SeerApiError: If the Seer API request fails
         """
         # Trigger PR creation
-        path = "/v1/automation/explorer/update"
-        payload = {
-            "run_id": run_id,
-            "organization_id": self.organization.id,
-            "payload": {
-                "type": "create_pr",
-                "repo_name": repo_name,
-            },
-        }
-        body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
-        response = make_signed_seer_api_request(
-            explorer_connection_pool,
-            path,
-            body,
+        update_body = ExplorerUpdateRequest(
+            run_id=run_id,
+            organization_id=self.organization.id,
+            payload={"type": "create_pr", "repo_name": repo_name},
         )
+        response = make_explorer_update_request(update_body)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 

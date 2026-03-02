@@ -21,6 +21,7 @@ export interface SnapshotDetailsApiResponse {
   head_artifact_id: string;
   image_count: number;
   images: SnapshotImage[];
+  project_id: string;
   state: string;
   vcs_info: BuildDetailsVcsInfo;
 
