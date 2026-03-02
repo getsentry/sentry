@@ -4,6 +4,7 @@ from typing import IO, ContextManager
 
 import sentry_sdk
 from django.http import StreamingHttpResponse
+from objectstore_client.client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,29 +20,10 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
-from objectstore_client.client import RequestError
-
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import get_attachments_session, parse_accept_encoding
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-
-
-def _parse_accept_encoding(header: str) -> list[str]:
-    """Parse an Accept-Encoding header value into a list of encoding names.
-    Strips q-values and normalizes to lowercase per RFC 7231.
-    Excludes encodings with q=0, which the client explicitly rejects (RFC 7231 §5.3.4)."""
-    result = []
-    for part in header.split(","):
-        segments = part.split(";")
-        name = segments[0].strip().lower()
-        if not name:
-            continue
-        # q=0 means explicitly not acceptable; don't treat it as a supported encoding
-        if any(s.strip().lower() == "q=0" for s in segments[1:]):
-            continue
-        result.append(name)
-    return result
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -86,7 +68,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     ) -> StreamingHttpResponse:
         name = posixpath.basename(" ".join(attachment.name.split()))
 
-        accept_encoding = _parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
+        accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
         blob_path = attachment.blob_path
         if accept_encoding and blob_path and blob_path.startswith(V2_PREFIX):
             v2_key = blob_path.removeprefix(V2_PREFIX)

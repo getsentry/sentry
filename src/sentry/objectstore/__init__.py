@@ -10,7 +10,7 @@ from objectstore_client.metrics import Tags
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
-__all__ = ["get_attachments_session"]
+__all__ = ["get_attachments_session", "parse_accept_encoding"]
 
 
 class SentryMetricsBackend(MetricsBackend):
@@ -43,6 +43,27 @@ _ATTACHMENTS_CLIENT: Client | None = None
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE = Usecase("attachments", expiration_policy=TimeToLive(timedelta(days=30)))
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(days=30)))
+
+
+def parse_accept_encoding(header: str) -> list[str]:
+    """Parse an Accept-Encoding header value for use in objectstore GET requests.
+
+    Returns a list of encoding names, normalized to lowercase and stripped of q-values,
+    per RFC 7231. Encodings with q=0 — which the client explicitly rejects (RFC 7231 §5.3.4) —
+    are excluded. Note: ``identity;q=0`` is not supported and will be silently ignored
+    (i.e., treated as acceptable), since objectstore always serves an identity fallback.
+    """
+    result = []
+    for part in header.split(","):
+        segments = part.split(";")
+        name = segments[0].strip().lower()
+        if not name:
+            continue
+        # q=0 means explicitly not acceptable; don't treat it as a supported encoding
+        if any(s.strip().lower() == "q=0" for s in segments[1:]):
+            continue
+        result.append(name)
+    return result
 
 
 def create_client() -> Client:
