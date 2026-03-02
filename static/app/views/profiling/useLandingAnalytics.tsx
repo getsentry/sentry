@@ -36,7 +36,7 @@ export function useLandingAnalytics() {
 
   const dispatchedAnalytics = useRef(false);
 
-  const dataState: DataState = useMemo(
+  const dataState = useMemo(
     () => deriveFinalDataState(dataLoaded),
     [dataLoaded]
   );

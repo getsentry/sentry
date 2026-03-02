@@ -68,7 +68,7 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
@@ -99,7 +99,7 @@ export function SpanDescription({
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
   const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
-  const averageSpanDuration: number | undefined =
+  const averageSpanDuration =
     span['span.averageResults']?.['avg(span.duration)'];
 
   const actions = showAction ? (

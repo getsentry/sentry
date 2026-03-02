@@ -39,7 +39,7 @@ function MetricRulesCreate(props: Props) {
   const theme = useTheme();
   function handleSubmitSuccess(data: any) {
     const {organization, project, router} = props;
-    const alertRuleId: string | undefined = data
+    const alertRuleId = data
       ? (data.id as string | undefined)
       : undefined;
 

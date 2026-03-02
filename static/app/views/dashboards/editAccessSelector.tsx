@@ -18,7 +18,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,8 +47,8 @@ function EditAccessSelector({
   listOnly = false,
   disabled = false,
 }: EditAccessSelectorProps) {
-  const currentUser: User = useUser();
-  const dashboardCreator: User | undefined = dashboard.createdBy;
+  const currentUser = useUser();
+  const dashboardCreator = dashboard.createdBy;
 
   const organization = useOrganization();
   const userCanEditDashboardPermissions =

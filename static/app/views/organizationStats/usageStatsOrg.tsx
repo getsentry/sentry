@@ -171,7 +171,7 @@ export function getChartProps({
   footer: React.ReactNode;
   title: React.ReactNode;
 } {
-  const errors: Record<string, Error> | undefined =
+  const errors =
     error || dataError
       ? {
           ...(error ? {error} : {}),
@@ -413,7 +413,7 @@ function UsageStatsOrganization({
     [router, organization]
   );
 
-  const chartDataTransform: {chartTransform: ChartDataTransform} = useMemo(() => {
+  const chartDataTransform = useMemo(() => {
     switch (chartTransform) {
       case ChartDataTransform.CUMULATIVE:
       case ChartDataTransform.PERIODIC:
@@ -482,28 +482,7 @@ function UsageStatsOrganization({
     };
   }, [orgStatsReponse.data, dataDatetime]);
 
-  const chartData: {
-    cardStats: {
-      accepted?: string;
-      accepted_stored?: string;
-      clientDiscard?: string;
-      filtered?: string;
-      invalid?: string;
-      rateLimited?: string;
-      total?: string;
-    };
-    chartDateEnd: string;
-    chartDateEndDisplay: string;
-    chartDateInterval: IntervalPeriod;
-    chartDateStart: string;
-    chartDateStartDisplay: string;
-    chartDateTimezoneDisplay: string;
-    chartDateUtc: boolean;
-    chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
-    chartTransform: ChartDataTransform;
-    dataError?: Error;
-  } = useMemo(() => {
+  const chartData = useMemo(() => {
     return {
       ...mapSeriesToChart({
         orgStats: orgStatsReponse.data,

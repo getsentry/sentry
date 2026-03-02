@@ -226,7 +226,7 @@ export default function FeedbackSearch() {
     },
     {}
   );
-  const issuePlatformTags: TagCollection = useMemo(() => {
+  const issuePlatformTags = useMemo(() => {
     return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;

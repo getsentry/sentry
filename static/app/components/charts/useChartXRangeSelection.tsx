@@ -443,7 +443,7 @@ export function useChartXRangeSelection({
     syncSelectionStates,
   ]);
 
-  const brush: BrushComponentOption | undefined = useMemo(() => {
+  const brush = useMemo(() => {
     return disabled ? undefined : CHART_X_RANGE_BRUSH_OPTION;
   }, [disabled]);
 

@@ -15,7 +15,7 @@ Prism.manual = true;
  * `loadPrismLanguage`. Maps language aliases (`js`) to the full language name
  * (`javascript`).
  */
-const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
+const PRISM_LANGUAGE_MAP = Object.fromEntries(
   Object.entries(prismComponents.languages).flatMap(([lang, value]) => {
     if (!value.alias) {
       return [[lang, lang]]; // map the full language name to itself
@@ -105,7 +105,7 @@ export async function loadPrismLanguage(
   }
 ) {
   try {
-    const language: string | undefined = getPrismLanguage(lang);
+    const language = getPrismLanguage(lang);
 
     // Short-circuit if language already loaded
     if (Prism.languages[language!]) {

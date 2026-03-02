@@ -94,7 +94,7 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
   );
 }
 
-const ALERTS_OFF: Record<EventType, boolean> = objectFromBilledCategories(() => false);
+const ALERTS_OFF = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
   subscription: Subscription;
@@ -759,9 +759,7 @@ class GSBanner extends Component<Props, State> {
     const {subscription, organization} = this.props;
 
     // can't use as const with ternary
-    const notificationType: 'overage_warning' | 'overage_critical' = isWarning
-      ? 'overage_warning'
-      : 'overage_critical';
+    const notificationType = isWarning ? 'overage_warning' : 'overage_critical';
 
     const props = {
       organization,
@@ -778,7 +776,7 @@ class GSBanner extends Component<Props, State> {
 
   handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
     const {organization, api} = this.props;
-    const dismissState: Record<EventType, boolean> = isWarning
+    const dismissState = isWarning
       ? this.state.overageWarningDismissed
       : this.state.overageAlertDismissed;
 
@@ -800,9 +798,7 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: Record<EventType, boolean> = objectFromBilledCategories(
-      () => true
-    );
+    const dismissedState = objectFromBilledCategories(() => true);
     // Suppress all warnings and alerts
     this.setState({
       overageAlertDismissed: dismissedState,

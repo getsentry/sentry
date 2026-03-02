@@ -79,7 +79,7 @@ function PlanSubstep({
       !isBizPlanFamily(subscription.planDetails)
     ) {
       const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
-      const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
+      const trialExpired = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
         <Tag variant="warning">
           {subscription.isTrial && !trialExpired

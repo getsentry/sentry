@@ -141,7 +141,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     enabled: enableSuspectFlags,
   });
 
-  const suspectFlagNames: Set<string> = useMemo(() => {
+  const suspectFlagNames = useMemo(() => {
     if (enableSuspectFlags) {
       return new Set(
         suspectScores?.data
@@ -152,7 +152,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     return new Set(legacySuspectFlags.map(f => f.flag));
   }, [enableSuspectFlags, legacySuspectFlags, suspectScores?.data, suspectThreshold]);
 
-  const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
+  const eventFlags = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
     // explicitly validate against SDK developer error or user-provided contexts.
     const rawFlags = event.contexts?.flags?.values ?? [];

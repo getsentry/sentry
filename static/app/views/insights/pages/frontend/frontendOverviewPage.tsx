@@ -88,7 +88,7 @@ function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) 
   useDefaultToAllProjects();
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const spanOp: PageSpanOps = getSpanOpFromQuery(
+  const spanOp = getSpanOpFromQuery(
     decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
   );
 

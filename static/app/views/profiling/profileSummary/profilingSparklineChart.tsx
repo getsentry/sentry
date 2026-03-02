@@ -153,7 +153,7 @@ function makeSeriesBeforeAfterLines(
 export function ProfilingSparklineChart(props: ProfilingSparklineChartProps) {
   const theme = useTheme();
 
-  const chartProps: LineChartProps = useMemo(() => {
+  const chartProps = useMemo(() => {
     const additionalSeries: LineChartSeries[] = [];
     if (isBreakPointProps(props)) {
       additionalSeries.push(

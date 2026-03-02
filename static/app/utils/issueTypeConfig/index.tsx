@@ -161,7 +161,7 @@ export const getConfigForIssueType = (
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
-  const refinedIssueType: IssueType | undefined = issueType?.replace(
+  const refinedIssueType = issueType?.replace(
     '_experimental',
     ''
   ) as IssueType | undefined;

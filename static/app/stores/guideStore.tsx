@@ -1,11 +1,7 @@
 import {createStore} from 'reflux';
 
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
-import type {
-  Guide,
-  GuidesContent,
-  GuidesServerData,
-} from 'sentry/components/assistant/types';
+import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
@@ -162,7 +158,7 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    const guidesContent: GuidesContent = getGuidesContent();
+    const guidesContent = getGuidesContent();
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);

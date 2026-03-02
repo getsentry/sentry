@@ -1787,7 +1787,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const moduleUrlToModule: Record<string, ModuleName> = Object.fromEntries(
+  const moduleUrlToModule = Object.fromEntries(
     Object.values(ModuleName).map(name => [MODULE_BASE_URLS[name], name])
   );
 

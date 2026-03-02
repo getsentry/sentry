@@ -285,7 +285,7 @@ function Flamegraph(): ReactElement {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
 
-  const spanTree: SpanTree = useMemo(() => {
+  const spanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
       return new SpanTree(
         profiledTransaction.data,

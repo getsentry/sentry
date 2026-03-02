@@ -33,7 +33,7 @@ export function SelectionKeyHandler({
   const {dispatch, disabled, currentInputValueRef} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
-  const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
+  const selectedTokens = [...state.collection.getKeys()]
     .filter(key => state.selectionManager.selectedKeys.has(key))
     .map(key => state.collection.getItem(key)?.value)
     .filter(defined);

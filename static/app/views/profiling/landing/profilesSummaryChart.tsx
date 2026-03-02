@@ -104,7 +104,7 @@ export function ProfilesSummaryChart({
     return allSeries;
   }, [profileStats, seriesOrder]);
 
-  const chartProps: AreaChartProps = useMemo(() => {
+  const chartProps = useMemo(() => {
     const baseProps: AreaChartProps = {
       height: 150,
       series,

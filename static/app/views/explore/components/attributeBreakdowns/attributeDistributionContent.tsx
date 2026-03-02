@@ -95,7 +95,7 @@ export function AttributeDistribution() {
     }
   );
 
-  const cohortCount: number = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
+  const cohortCount = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
@@ -129,7 +129,7 @@ export function AttributeDistribution() {
     getAttributeBreakdownsResponseHeader?.('Link') ?? null
   );
 
-  const uniqueAttributeDistribution: AttributeDistribution = useMemo(() => {
+  const uniqueAttributeDistribution = useMemo(() => {
     if (!attributeBreakdownsData) return [];
 
     const seen = new Set<string>();

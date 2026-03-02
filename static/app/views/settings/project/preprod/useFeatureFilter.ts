@@ -40,7 +40,7 @@ export function useFeatureFilter({
   const updateProject = useUpdateProject(project);
 
   const filterQuery = String(project.options?.[queryReadKey] ?? '');
-  const enabled: boolean =
+  const enabled =
     (project[enabledWriteKey] ?? project.options?.[enabledReadKey]) !== false;
 
   const setFilterQuery = useCallback(

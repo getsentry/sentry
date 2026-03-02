@@ -338,7 +338,7 @@ function useFilterSuggestions({
 }) {
   const keyName = getKeyName(token.key);
   const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key: Tag | undefined = filterKeys[keyName];
+  const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
   const predefinedValues = useMemo(
     () =>
@@ -417,7 +417,7 @@ function useFilterSuggestions({
     [canSelectMultipleValues, token, ctrlKeyPressed]
   );
 
-  const suggestionGroups: SuggestionSection[] = useMemo(() => {
+  const suggestionGroups = useMemo(() => {
     if (!shouldFetchValues) {
       return predefinedValues ?? [];
     }

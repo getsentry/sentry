@@ -109,7 +109,7 @@ export const getChartSetting = (
     value &&
     Object.values(PerformanceWidgetSetting).includes(value as PerformanceWidgetSetting)
   ) {
-    const _value: PerformanceWidgetSetting = value as PerformanceWidgetSetting;
+    const _value = value as PerformanceWidgetSetting;
     return _value;
   }
   return defaultType;

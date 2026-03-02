@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -32,7 +31,7 @@ function Wrapper({children}: {children: ReactNode}) {
 describe('FieldRenderer tests', () => {
   const organization = OrganizationFixture();
 
-  const location: Location = LocationFixture({
+  const location = LocationFixture({
     query: {
       id: '42',
       name: 'best query',

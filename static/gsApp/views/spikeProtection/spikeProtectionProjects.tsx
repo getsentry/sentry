@@ -241,7 +241,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   };
 
   const renderAccordionBody = (project: Project) => {
-    const projectNotificationActions: NotificationAction[] =
+    const projectNotificationActions =
       notificationActionsById[project.id] ?? [];
 
     // Only render if all of the notification actions have been loaded

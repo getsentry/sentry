@@ -25,7 +25,7 @@ export function InsightsModuleDatePageFilter() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const legacyDateFilterProps: DatePageFilterProps = useMemo(() => {
+  const legacyDateFilterProps = useMemo(() => {
     const dateFilterProps: DatePageFilterProps = {};
 
     const hasDateRangeQueryLimit = organization.features.includes(

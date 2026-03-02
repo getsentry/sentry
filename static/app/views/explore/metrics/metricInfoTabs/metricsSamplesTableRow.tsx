@@ -23,10 +23,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TimestampRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
-import {
-  NoPaddingColumns,
-  type AlwaysPresentTraceMetricFields,
-} from 'sentry/views/explore/metrics/constants';
+import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
 import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
@@ -125,8 +122,7 @@ export function SampleTableRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const measureRef = useRef<HTMLTableRowElement>(null);
   const projects = useProjects();
-  const projectId: (typeof AlwaysPresentTraceMetricFields)[1] =
-    row[TraceMetricKnownFieldKey.PROJECT_ID];
+  const projectId = row[TraceMetricKnownFieldKey.PROJECT_ID];
   const project = projects.projects.find(p => p.id === '' + projectId);
   const projectSlug = project?.slug ?? '';
 

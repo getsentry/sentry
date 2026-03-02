@@ -21,7 +21,7 @@ function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
     loading: boolean;
     query: string;
   }): React.ReactElement<any, any> | null {
-    const searchableItems: ResultItem[] = items ?? [
+    const searchableItems = items ?? [
       {
         resultType: 'integration',
         sourceType: 'organization',

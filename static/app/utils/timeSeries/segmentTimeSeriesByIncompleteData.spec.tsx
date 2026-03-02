@@ -1,7 +1,6 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {markDelayedData} from './markDelayedData';
 import {segmentTimeSeriesByIncompleteData} from './segmentTimeSeriesByIncompleteData';
@@ -16,7 +15,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
   });
 
   it('Does not split a series with all complete data', () => {
-    const serie: TimeSeries = markDelayedData(
+    const serie = markDelayedData(
       {
         yAxis: 'p99(span.duration)',
         values: [
@@ -68,7 +67,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
   });
 
   it('Does not split a series with all incomplete data', () => {
-    const serie: TimeSeries = markDelayedData(
+    const serie = markDelayedData(
       {
         yAxis: 'p99(span.duration)',
         values: [
@@ -133,7 +132,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
   });
 
   it('Splits a series with partial incomplete data', () => {
-    const serie: TimeSeries = markDelayedData(
+    const serie = markDelayedData(
       {
         yAxis: 'p99(span.duration)',
         values: [
@@ -214,7 +213,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
   it('Splits a series with long buckets', () => {
     // The time buckets are an hour long. The ingestion delay is 90s. The last buckets should be marked incomplete.
 
-    const serie: TimeSeries = markDelayedData(
+    const serie = markDelayedData(
       {
         yAxis: 'p99(span.duration)',
         values: [

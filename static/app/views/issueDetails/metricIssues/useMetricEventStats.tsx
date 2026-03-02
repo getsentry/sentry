@@ -97,7 +97,7 @@ export function useMetricEventStats(
     timePeriod,
   });
 
-  const queryExtras: Record<string, string> = getMetricDatasetQueryExtras({
+  const queryExtras = getMetricDatasetQueryExtras({
     organization,
     location,
     dataset,

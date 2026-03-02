@@ -1,6 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -45,7 +44,7 @@ export function getWidgetMetricsUrl(
           (col): GroupBy => ({groupBy: col})
         );
 
-        const aggregateSortBys: Sort[] = query.orderby ? decodeSorts(query.orderby) : [];
+        const aggregateSortBys = query.orderby ? decodeSorts(query.orderby) : [];
 
         const aggregateFields: AggregateField[] = [
           new VisualizeFunction(aggregate, {chartType}),

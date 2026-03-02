@@ -15,7 +15,7 @@ export default function useAssignedSearchValues(): SearchGroup[] {
 
   const assignedValues: SearchGroup[] = useMemo(() => {
     const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
-    const usernames: string[] = members.map(getUsername);
+    const usernames = members.map(getUsername);
     const nonMemberTeams = teams
       .filter(team => !team.isMember)
       .map(team => `#${team.slug}`);

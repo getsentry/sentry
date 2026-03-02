@@ -163,7 +163,7 @@ export function usePrompts({
   const api = useApi({persistInFlight: true});
   const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
   const queryClient = useQueryClient();
-  const isPromptDismissed: Record<string, boolean> = useMemo(() => {
+  const isPromptDismissed = useMemo(() => {
     if (prompts.isSuccess) {
       return features.reduce(
         (acc, feature) => {

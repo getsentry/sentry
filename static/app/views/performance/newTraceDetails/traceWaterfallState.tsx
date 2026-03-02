@@ -33,7 +33,7 @@ function TraceLoading({
 
 function TraceError({trace}: {trace: UseApiQueryResult<TraceTree.Trace, RequestError>}) {
   const message = useMemo(() => {
-    const status: number | undefined = trace.error?.status;
+    const status = trace.error?.status;
 
     if (status === 404) {
       return tct(

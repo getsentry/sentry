@@ -48,7 +48,7 @@ type ChartProcessingContext = {
  * Creates grid helpers for ASCII rendering
  */
 function createGridHelpers(rows: number, cols: number): GridHelpers {
-  const grid: string[][] = Array.from({length: rows}, () =>
+  const grid = Array.from({length: rows}, () =>
     Array.from({length: cols}, () => ' ')
   );
 

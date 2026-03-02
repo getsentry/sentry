@@ -17,7 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -271,7 +271,7 @@ export function Trace({
     [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
   );
 
-  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
+  const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
       (acc, project) => {
         acc[project.slug] = project.platform;

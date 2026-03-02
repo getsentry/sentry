@@ -411,7 +411,7 @@ class _TransactionsList extends Component<Props> {
       domainViewFilters,
     } = this.props;
 
-    const sortedEventView: TrendView = trendView!.clone();
+    const sortedEventView = trendView!.clone() as TrendView;
     sortedEventView.sorts = [selected.sort];
     sortedEventView.trendType = selected.trendType;
     if (selected.query) {

@@ -609,7 +609,7 @@ export function ProductSelection({
     [params.product]
   );
 
-  const products: ProductSolution[] | undefined = platform
+  const products = platform
     ? platformProductAvailability[platform]
     : undefined;
 

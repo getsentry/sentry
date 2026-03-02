@@ -83,7 +83,7 @@ describe('StackTracePreview', () => {
       hasSystemFrames: false,
     };
 
-    const errorEvent: EventError = {
+    const errorEvent = {
       id: '456',
       entries: [
         {

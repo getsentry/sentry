@@ -218,7 +218,7 @@ function MonitoringAndDataFeatures({
 
   const previousIncluded: Partial<Record<FeatureKey, number>> = {};
   planOptions.forEach(plan => {
-    const planType: PlanType = plan.name.toLowerCase() as PlanType;
+    const planType = plan.name.toLowerCase() as PlanType;
 
     Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
       if (!orderedKeys.includes(category as DataCategory)) {

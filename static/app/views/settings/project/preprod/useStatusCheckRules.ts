@@ -55,7 +55,7 @@ export function useStatusCheckRules(project: Project) {
     project.preprodSizeStatusChecksEnabled ?? project.options?.[ENABLED_KEY] !== false;
 
   const rulesRaw = project.preprodSizeStatusChecksRules ?? project.options?.[RULES_KEY];
-  const rules: StatusCheckRule[] = useMemo(() => {
+  const rules = useMemo(() => {
     if (Array.isArray(rulesRaw)) {
       return parseRules(rulesRaw);
     }

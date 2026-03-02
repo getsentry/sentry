@@ -43,7 +43,7 @@ export function NextJsOverviewPage({datePageFilterProps}: NextJsOverviewPageProp
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeTable: TableType = isTableType(location.query.view)
+  const activeTable = isTableType(location.query.view)
     ? location.query.view
     : TableType.CLIENT;
 

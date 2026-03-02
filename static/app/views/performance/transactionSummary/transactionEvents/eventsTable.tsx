@@ -267,7 +267,7 @@ export default function EventsTable({
       }
 
       if (field === 'replayId') {
-        const target: LocationDescriptor | null = dataRow.replayId
+        const target = dataRow.replayId
           ? replayLinkGenerator(organization, dataRow, undefined)
           : null;
 
@@ -481,7 +481,7 @@ export default function EventsTable({
       const eventIds = tableData.data.map(value => value.id);
       const fetchOnlyMinidumps = !customColumns?.includes('attachments');
 
-      const queries: string = [
+      const queries = [
         'per_page=50',
         ...(fetchOnlyMinidumps ? ['types=event.minidump'] : []),
         ...eventIds.map(eventId => `event_id=${eventId}`),
@@ -570,7 +570,7 @@ export default function EventsTable({
                 const pageEventsCount = tableData?.data?.length ?? 0;
                 const parsedPageLinks = parseLinkHeader(pageLinks);
                 const cursor = parsedPageLinks?.next?.cursor;
-                const shouldFetchAttachments: boolean =
+                const shouldFetchAttachments =
                   organization.features.includes('event-attachments') &&
                   !!issueId &&
                   !!cursor &&

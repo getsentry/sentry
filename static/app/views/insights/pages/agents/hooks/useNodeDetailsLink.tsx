@@ -19,9 +19,9 @@ export function useNodeDetailsLink({
   const {selection} = usePageFilters();
   const location = useLocation();
 
-  const spanId: string | undefined = node?.id;
-  const targetId: string | undefined = node?.transactionId;
-  const timestamp: number | undefined = node?.startTimestamp;
+  const spanId = node?.id;
+  const targetId = node?.transactionId;
+  const timestamp = node?.startTimestamp;
 
   return getTraceDetailsUrl({
     source,

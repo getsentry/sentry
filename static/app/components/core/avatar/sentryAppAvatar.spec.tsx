@@ -2,15 +2,13 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {SentryApp} from 'sentry/types/integrations';
-
 // eslint-disable-next-line boundaries/entry-point
 import {SentryAppAvatar} from './sentryAppAvatar';
 
 describe('SentryAppAvatar', () => {
   describe('isColor prop filtering', () => {
     it('selects color avatar when isColor=true', () => {
-      const sentryApp: SentryApp = SentryAppFixture({
+      const sentryApp = SentryAppFixture({
         avatars: [
           {
             avatarType: 'upload',
@@ -36,7 +34,7 @@ describe('SentryAppAvatar', () => {
     });
 
     it('selects non-color avatar when isColor=false', () => {
-      const sentryApp: SentryApp = SentryAppFixture({
+      const sentryApp = SentryAppFixture({
         avatars: [
           {
             avatarType: 'upload',
@@ -62,7 +60,7 @@ describe('SentryAppAvatar', () => {
     });
 
     it('shows fallback when requested color variant does not exist', () => {
-      const sentryApp: SentryApp = SentryAppFixture({
+      const sentryApp = SentryAppFixture({
         avatars: [
           {
             avatarType: 'upload',
@@ -86,7 +84,7 @@ describe('SentryAppAvatar', () => {
     });
 
     it('shows fallback when isDefault=true regardless of avatars', () => {
-      const sentryApp: SentryApp = SentryAppFixture({
+      const sentryApp = SentryAppFixture({
         avatars: [
           {
             avatarType: 'upload',
@@ -108,7 +106,7 @@ describe('SentryAppAvatar', () => {
     });
 
     it('shows fallback when avatar type is default', () => {
-      const sentryApp: SentryApp = SentryAppFixture({
+      const sentryApp = SentryAppFixture({
         avatars: [
           {
             avatarType: 'default',

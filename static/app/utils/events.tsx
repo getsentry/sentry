@@ -285,8 +285,8 @@ function getExceptionEntries(event: Event) {
  * Returns all stack frames of type 'exception' or 'threads' of this event
  */
 function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
-  const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
-  const frames: Frame[] = exceptions
+  const exceptions = getEntriesWithFrames(event);
+  const frames = exceptions
     // @ts-expect-error TS(2322): Type 'Thread[] | ExceptionValue[]' is not assignab... Remove this comment to see the full error message
     .flatMap(withStacktrace => withStacktrace.data.values ?? [])
     .flatMap(

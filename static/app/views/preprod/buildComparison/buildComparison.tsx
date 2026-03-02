@@ -14,7 +14,6 @@ import {
   useApiQuery,
   useMutation,
   useQueryClient,
-  type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -47,25 +46,24 @@ export default function BuildComparison() {
   }
   const projectId = projectIds[0]!;
 
-  const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
-    useApiQuery<BuildDetailsApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: headArtifactId!,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!headArtifactId,
-      }
-    );
+  const headBuildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headArtifactId: headArtifactId!,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!projectId && !!headArtifactId,
+    }
+  );
 
   const compareUrl = getCompareApiUrl({
     organizationSlug: organization.slug,

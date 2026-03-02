@@ -40,7 +40,7 @@ function SlackForm({
   onCancel,
 }: SlackFormProps) {
   // Maps integrationId to integrationName
-  const availableWorkspaces: Record<number, string> = useMemo(() => {
+  const availableWorkspaces = useMemo(() => {
     const workspacesMap: Record<number, string> = {};
     availableActions.forEach(service => {
       if (service.action.integrationId && service.action.integrationName) {
@@ -54,7 +54,7 @@ function SlackForm({
     action.integrationId ? availableWorkspaces[action.integrationId] : ''
   );
 
-  const workspaceOptions: MenuItemProps[] = useMemo(() => {
+  const workspaceOptions = useMemo(() => {
     return availableActions
       .map<MenuItemProps>(service => ({
         key: service.action.integrationName ?? '',

@@ -216,7 +216,7 @@ function VisualizeDropdown({
 
   const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
 
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+  const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,

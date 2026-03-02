@@ -66,7 +66,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
     enabled: isRegressionIssue,
   });
 
-  const eventView: EventView = EventView.fromLocation(location);
+  const eventView = EventView.fromLocation(location);
   if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }

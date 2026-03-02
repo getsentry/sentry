@@ -74,7 +74,7 @@ export function mergeAndSortTagValues(
       tagValueCollection[tagValue.value] = tagValue;
     }
   });
-  const allTagValues: TagValue[] = Object.values(tagValueCollection);
+  const allTagValues = Object.values(tagValueCollection);
   if (sort === 'count') {
     allTagValues.sort((a, b) => b.count - a.count);
   } else {
@@ -317,7 +317,7 @@ const DEFAULT_SORT: TagSort = 'count';
 export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
   const organization = useOrganization();
   const location = useLocation();
-  const sort: TagSort =
+  const sort =
     (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
   useFetchIssueTagValues(
     {

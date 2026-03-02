@@ -370,7 +370,7 @@ export function AggregateFlamegraphTreeTable({
     (index: number) => {
       const handler = _handleRowClick(index);
       return function (evt: React.MouseEvent<HTMLElement>) {
-        const frame: FlamegraphFrame | undefined = getNodeAtIndex(index);
+        const frame = getNodeAtIndex(index);
         if (frame) {
           canvasPoolManager.dispatch('highlight frame', [[frame], 'selected']);
         }

@@ -66,11 +66,7 @@ const rule = {
     return {
       VariableDeclarator(node) {
         // Only const declarations
-        if (
-          !node.parent ||
-          node.parent.type !== 'VariableDeclaration' ||
-          node.parent.kind !== 'const'
-        ) {
+        if (node.parent?.type !== 'VariableDeclaration' || node.parent.kind !== 'const') {
           return;
         }
 

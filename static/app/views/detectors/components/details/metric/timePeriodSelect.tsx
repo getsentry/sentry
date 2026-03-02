@@ -42,7 +42,7 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
   });
 
   // Determine selected period from query or fallback to largest option
-  const selected: MetricDetectorTimePeriod = useDetectorResolvedStatsPeriod({
+  const selected = useDetectorResolvedStatsPeriod({
     dataset,
     intervalSeconds: interval,
     urlStatsPeriod,

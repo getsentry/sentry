@@ -88,7 +88,7 @@ export function useUndoableReducer<
     next: undefined,
   });
 
-  const value: UndoableReducerState<R> = useMemo(() => {
+  return useMemo(() => {
     return [
       state.current,
       dispatch,

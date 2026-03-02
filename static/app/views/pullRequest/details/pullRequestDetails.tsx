@@ -6,8 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -27,25 +26,24 @@ export default function PullRequestDetails() {
     fieldName: 'tab',
   });
 
-  const pullRequestQuery: UseApiQueryResult<PullRequestDetailsResponse, RequestError> =
-    useApiQuery<PullRequestDetailsResponse>(
-      [
-        getApiUrl(
-          '/organizations/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              repoName: params.repoName,
-              prNumber: params.prId,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        enabled: !!params.repoName && !!params.prId,
-      }
-    );
+  const pullRequestQuery = useApiQuery<PullRequestDetailsResponse>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            repoName: params.repoName,
+            prNumber: params.prId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!params.repoName && !!params.prId,
+    }
+  );
 
   const {data, isLoading, error} = pullRequestQuery;
 

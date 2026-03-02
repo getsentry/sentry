@@ -10,7 +10,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 import {
   getPerformanceBaseUrl,
@@ -45,10 +44,7 @@ function MissingPerformanceButtons({organization}: Props) {
       duration,
     });
   }
-  const domainView: DomainView | undefined = platformToDomainView(
-    projects,
-    selectedProjects
-  );
+  const domainView = platformToDomainView(projects, selectedProjects);
 
   return (
     <Feature

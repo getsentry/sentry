@@ -74,7 +74,7 @@ export function useProfileTopEventsStats<F extends string>({
     }
   );
 
-  const transformed: EventsStatsSeries<F> = useMemo(
+  const transformed = useMemo(
     () => transformTopEventsStatsResponse(dataset, yAxes, result.data),
     [yAxes, result.data, dataset]
   );

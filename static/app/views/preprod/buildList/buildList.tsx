@@ -10,9 +10,8 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
@@ -44,19 +43,18 @@ export default function BuildList() {
     queryParams.project = projects.length === 1 ? projectId : projects;
   }
 
-  const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
-    useApiQuery<ListBuildsApiResponse>(
-      [
-        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: queryParams},
-      ],
-      {
-        staleTime: 0,
-        enabled: projects.length > 0,
-      }
-    );
+  const buildsQuery = useApiQuery<ListBuildsApiResponse>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: queryParams},
+    ],
+    {
+      staleTime: 0,
+      enabled: projects.length > 0,
+    }
+  );
 
   const {data: buildsData, isLoading, error, getResponseHeader} = buildsQuery;
 

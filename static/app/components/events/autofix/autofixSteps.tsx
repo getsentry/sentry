@@ -188,7 +188,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   }
 
   const lastStep = steps[steps.length - 1];
-  const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
+  const logs = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
     lastStep!.completedMessage ??
     replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??

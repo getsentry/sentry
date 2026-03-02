@@ -218,7 +218,7 @@ export default function WizardField({
       {({onChange, model, disabled, isEditing, disabledReason}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
-        const selectedTemplate: AlertType = alertType || 'eap_metrics';
+        const selectedTemplate = alertType || 'eap_metrics';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -237,7 +237,7 @@ export default function WizardField({
             : '';
 
         const selectedField = fieldOptions[fieldKey]?.value;
-        const numParameters: number =
+        const numParameters =
           selectedField?.kind === FieldValueKind.FUNCTION
             ? selectedField.meta.parameters.length
             : 0;

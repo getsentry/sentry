@@ -270,7 +270,7 @@ function _getWidgetExploreUrl(
     groupBy = [''];
   }
 
-  const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
+  const yAxisFields = locationQueryParams.yAxes.flatMap(getAggregateArguments);
   const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';

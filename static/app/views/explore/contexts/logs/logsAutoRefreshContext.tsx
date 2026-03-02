@@ -66,7 +66,7 @@ export function LogsAutoRefreshProvider({
   }
 
   const rawState = decodeScalar(location.query[LOGS_AUTO_REFRESH_KEY]);
-  const autoRefresh: AutoRefreshState =
+  const autoRefresh =
     rawState && allowedStates.includes(rawState as AutoRefreshState)
       ? (rawState as AutoRefreshState)
       : 'idle';

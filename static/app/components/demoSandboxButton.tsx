@@ -1,7 +1,6 @@
 import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 
-import type {Organization} from 'sentry/types/organization';
 import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,7 +54,7 @@ function DemoSandboxButton({
   source,
   ...buttonProps
 }: DemoSandboxButtonProps): React.ReactElement {
-  const organization: Organization = useOrganization();
+  const organization = useOrganization();
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
   if (scenario) {

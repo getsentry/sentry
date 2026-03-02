@@ -115,7 +115,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     );
 
     if (exactRelease) {
-      const exactOption: (typeof baseOptions)[number] = makeReleaseOption(
+      const exactOption = makeReleaseOption(
         exactRelease,
         currentUser?.email
       );

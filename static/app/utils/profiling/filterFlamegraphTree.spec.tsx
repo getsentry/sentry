@@ -52,7 +52,7 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root: FlamegraphFrame = f({
+    const root = f({
       key: 0,
       parent: null,
       frame: {is_application: true} as FlamegraphFrame['frame'],
@@ -66,7 +66,7 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root: FlamegraphFrame = f({
+    const root = f({
       key: 0,
       frame: {is_application: false} as FlamegraphFrame['frame'],
     });

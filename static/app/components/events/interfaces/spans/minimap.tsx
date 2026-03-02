@@ -30,7 +30,7 @@ class ActualMinimap extends PureComponent<{
         case 'span_group_chain': {
           const {span} = payload;
 
-          const spanBarColor: string = pickBarColor(
+          const spanBarColor = pickBarColor(
             getSpanOperation(span),
             this.props.theme
           );

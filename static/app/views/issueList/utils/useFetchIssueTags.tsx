@@ -11,7 +11,6 @@ import {
   PriorityLevel,
   VALID_ISSUE_CATEGORIES,
   VISIBLE_ISSUE_TYPES,
-  type Tag,
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -160,9 +159,9 @@ export const useFetchIssueTags = ({
   const usernames = useMemberUsernames();
 
   const allTags = useMemo(() => {
-    const eventsTags: Tag[] = eventsTagsQuery.data || [];
-    const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
-    const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
+    const eventsTags = eventsTagsQuery.data || [];
+    const issuePlatformTags = issuePlatformTagsQuery.data || [];
+    const featureFlagTags = featureFlagTagsQuery.data || [];
 
     const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
       (acc, tag) => {

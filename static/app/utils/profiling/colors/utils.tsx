@@ -183,7 +183,7 @@ export function makeColorMapBySymbolName(
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
   const colorCache = new Map<string, ColorChannels>();
 
-  const sortedFrames: FlamegraphFrame[] = [...frames].sort(defaultFrameSort);
+  const sortedFrames = [...frames].sort(defaultFrameSort);
   const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
 
   for (let i = 0; i < sortedFrames.length; i++) {

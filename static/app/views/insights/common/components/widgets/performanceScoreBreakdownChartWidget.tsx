@@ -9,7 +9,6 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {WebVitalsWeightList} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalWeightList';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
@@ -68,7 +67,7 @@ export default function PerformanceScoreBreakdownChartWidget(
   );
 
   const timeSeries = vitalScoresData?.timeSeries || [];
-  const webVitalsThatHaveData: WebVitals[] = vitalScoresData
+  const webVitalsThatHaveData = vitalScoresData
     ? ORDER.filter(webVital => {
         const key = `performance_score(measurements.score.${webVital})` as const;
         const series = timeSeries.find(ts => ts.yAxis === key);

@@ -45,7 +45,7 @@ function OnCallServiceForm({
   );
   const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
 
-  const accountOptions: MenuItemProps[] = useMemo(() => {
+  const accountOptions = useMemo(() => {
     return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array

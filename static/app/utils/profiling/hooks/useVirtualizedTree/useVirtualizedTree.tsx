@@ -832,7 +832,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   const renderRow = props.renderRow;
 
-  const renderedItems: React.ReactNode[] = useMemo(() => {
+  const renderedItems = useMemo(() => {
     if (!renderRow) {
       return [];
     }

@@ -1,4 +1,3 @@
-import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -54,7 +53,7 @@ function renderComponent({
 }
 
 describe('Discover -> CellAction', () => {
-  const location: Location = LocationFixture({
+  const location = LocationFixture({
     query: {
       id: '42',
       name: 'best query',

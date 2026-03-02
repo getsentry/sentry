@@ -264,7 +264,7 @@ export function ContinuousFlamegraph(): ReactElement {
     );
   }, [profileGroup]);
 
-  const configSpaceQueryParam: [number, number] = useMemo(() => {
+  const configSpaceQueryParam = useMemo(() => {
     const [startedAtMs, endedAtMs] = decodeConfigSpace();
     return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
   }, [profileTimestamp]);
@@ -334,7 +334,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
 
-  const spanTree: SpanTree | null = useMemo(() => {
+  const spanTree = useMemo(() => {
     if (segment.type === 'empty') {
       return null;
     }

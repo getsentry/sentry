@@ -149,7 +149,7 @@ function ReplaySearchBar(props: Props) {
     },
     {}
   );
-  const customTags: TagCollection = useMemo(() => {
+  const customTags = useMemo(() => {
     return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;

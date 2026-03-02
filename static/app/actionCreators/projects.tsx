@@ -87,7 +87,7 @@ const _queryForStats = (
 
 export const _debouncedLoadStats = debounce(
   (api: Client, projectSet: Set<string>, params: UpdateParams) => {
-    const storedProjects: Record<string, Project> = ProjectsStatsStore.getAll();
+    const storedProjects = ProjectsStatsStore.getAll();
     const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
     const projects = Array.from(projectSet).filter(
       project => !existingProjectStats.includes(project)

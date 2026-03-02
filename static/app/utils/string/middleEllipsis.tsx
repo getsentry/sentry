@@ -26,7 +26,7 @@ export function middleEllipsis(
    * Array of words inside the string.
    * E.g. "my project name" becomes ["my", "project", "name"]
    */
-  const words: string[] = value.split(delimiter);
+  const words = value.split(delimiter);
   const delimiters = Array.from(value.match(new RegExp(delimiter, 'g')) || []);
 
   // If the string is too long but not hyphenated, return an end-trimmed

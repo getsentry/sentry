@@ -203,7 +203,7 @@ function computeRollup(elapsedSeconds: number, timelineWidth: number) {
     })
     .toSorted((a, b) => b.score - a.score);
 
-  const config: RollupConfig = candidatesWithScore
+  const config = candidatesWithScore
     .map(({score: _score, underscanPct: _underscanPct, ...rest}) => rest)
     .at(0)!;
 

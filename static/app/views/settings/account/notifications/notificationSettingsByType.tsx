@@ -138,7 +138,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       }
     }
     // if we have child types, map the default
-    const childTypes: string[] = typeMappedChildren[notificationType] || [];
+    const childTypes = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
       childTypes.map(childType => {
         const childMatchedOption = notificationOptions.find(

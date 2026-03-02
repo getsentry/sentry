@@ -6,7 +6,7 @@ import {createSentrySampleProfileFrameIndex} from './utils';
 
 describe('SentrySampledProfile', () => {
   it('constructs a profile', () => {
-    const sampledProfile: Profiling.SentrySampledProfile = makeSentrySampledProfile();
+    const sampledProfile = makeSentrySampledProfile();
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,

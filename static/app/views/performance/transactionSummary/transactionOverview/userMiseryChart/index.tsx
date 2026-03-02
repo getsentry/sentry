@@ -7,7 +7,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -84,7 +83,7 @@ function UserMiseryChart({
         queryExtras={getMEPQueryParams(mepContext)}
       >
         {({loading, reloading, timeseriesData}) => {
-          const data: Series[] = timeseriesData?.[0]
+          const data = timeseriesData?.[0]
             ? [{...timeseriesData[0], seriesName: yAxis}]
             : [];
           return (

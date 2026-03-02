@@ -69,7 +69,7 @@ function useChartIntervalImpl({
     [datetime]
   );
 
-  const interval: string = useMemo(() => {
+  const interval = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
 
     // Default to the second largest option or largest option

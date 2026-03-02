@@ -34,7 +34,7 @@ export function useFrontendQuery(
     },
   });
 
-  const spanOp: PageSpanOps = getSpanOpFromQuery(
+  const spanOp = getSpanOpFromQuery(
     decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
   );
 

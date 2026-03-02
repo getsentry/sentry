@@ -21,7 +21,7 @@ function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProp
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeFilter: AttachmentFilterValue =
+  const activeFilter =
     (location.query.attachmentFilter as AttachmentFilterValue | undefined) ??
     EventAttachmentFilter.ALL;
 

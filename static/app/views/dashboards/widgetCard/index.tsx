@@ -275,14 +275,14 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge: string | undefined =
+  const onDemandExtractionBadge =
     extractionStatus === 'extracted'
       ? t('Extracted')
       : extractionStatus === 'not-extracted'
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge: string | undefined = indexedEventsWarning
+  const indexedDataBadge = indexedEventsWarning
     ? t('Indexed')
     : undefined;
 

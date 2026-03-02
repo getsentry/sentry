@@ -1,7 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
-import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
+import type {Event, ExceptionType, Thread} from 'sentry/types/event';
 import type {EntryData} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -49,7 +49,7 @@ function filterThreadInfo(
     return threadInfo;
   }
 
-  const relevantFrame: Frame = getRelevantFrame(stacktrace);
+  const relevantFrame = getRelevantFrame(stacktrace);
 
   if (relevantFrame.filename) {
     threadInfo.filename = trimFilename(relevantFrame.filename);

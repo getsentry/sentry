@@ -53,7 +53,7 @@ export function OrganizationContextProvider({children}: Props) {
   const configStore = useLegacyStore(ConfigStore);
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
-  const lastOrganizationSlug: string | null =
+  const lastOrganizationSlug =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
   const spanRef = useRef<Sentry.Span | null>(null);

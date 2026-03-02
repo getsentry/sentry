@@ -533,14 +533,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...getFieldLabelStyle(inFieldLabel),
     }),
   };
-  const labelOrDefaultStyles: StylesConfig = inFieldLabel
+  const labelOrDefaultStyles = inFieldLabel
     ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles: StylesConfig = styles
+  const mappedStyles = styles
     ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 

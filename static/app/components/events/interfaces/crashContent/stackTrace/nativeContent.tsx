@@ -135,7 +135,7 @@ export function NativeContent({
 
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices: number[] = getHiddenFrameIndices({
+  const hiddenFrameIndices = getHiddenFrameIndices({
     data,
     toggleFrameMap,
     frameCountMap,

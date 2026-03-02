@@ -40,7 +40,7 @@ export function Request({event}: {event: EventTransaction}) {
   }
   const entry = event.entries[entryIndex] as EntryRequest;
   const meta = event._meta?.entries?.[entryIndex]?.data;
-  const data: EntryRequest['data'] = entry.data;
+  const data = entry.data;
   const isPartial =
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
