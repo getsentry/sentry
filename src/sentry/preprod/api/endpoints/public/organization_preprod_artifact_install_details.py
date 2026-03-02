@@ -19,6 +19,8 @@ from sentry.preprod.api.models.public.installable_builds import (
     create_install_info_dict,
 )
 from sentry.preprod.models import PreprodArtifact
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -28,6 +30,13 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
 
     @extend_schema(
         operation_id="Retrieve install info for a given artifact",
