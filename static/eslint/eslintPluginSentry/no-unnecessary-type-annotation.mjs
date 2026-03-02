@@ -35,6 +35,21 @@ const rule = {
     }
 
     /**
+     * Returns true if the type contains `any` at any level, including
+     * within type arguments (e.g. Promise<any>, Array<any>, Map<string, any>).
+     */
+    function containsAny(type) {
+      if ((type.flags & ts.TypeFlags.Any) !== 0) {
+        return true;
+      }
+      const typeArgs = checker.getTypeArguments(type);
+      if (typeArgs) {
+        return typeArgs.some(arg => containsAny(arg));
+      }
+      return false;
+    }
+
+    /**
      * Returns true if a CallExpression has any function arguments whose
      * parameters lack explicit type annotations. These callbacks rely on
      * contextual typing from the variable's annotation.
@@ -97,7 +112,7 @@ const rule = {
         const annotationType = checker.getTypeFromTypeNode(annotationTSNode);
         const inferredType = checker.getTypeAtLocation(initTSNode);
 
-        if (isEscapeHatch(annotationType) || isEscapeHatch(inferredType)) {
+        if (isEscapeHatch(annotationType) || containsAny(inferredType)) {
           return;
         }
 

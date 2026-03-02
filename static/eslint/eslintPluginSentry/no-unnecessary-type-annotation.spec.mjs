@@ -75,6 +75,24 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
       code: 'declare function useCallback<T>(fn: T): T;\ntype Reducer = (state: number, action: string) => number;\nconst reducer: Reducer = useCallback((state, action) => state, []);',
       filename: 'valid.ts',
     },
+
+    // Function returning any — annotation narrows the type
+    {
+      code: 'declare function getAny(): any;\nconst x: string = getAny();',
+      filename: 'valid.ts',
+    },
+
+    // Function returning Promise<any> — annotation narrows the type argument
+    {
+      code: 'declare function getPromise(): Promise<any>;\nconst p: Promise<string> = getPromise();',
+      filename: 'valid.ts',
+    },
+
+    // Nested any in type arguments (e.g. Array<any>)
+    {
+      code: 'declare function getArr(): Array<any>;\nconst a: Array<number> = getArr();',
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
