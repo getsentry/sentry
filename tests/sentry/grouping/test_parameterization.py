@@ -116,6 +116,8 @@ standard_cases = [
     ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
     ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
     ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
+    ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
+    ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
