@@ -302,9 +302,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_anomaly_detection(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -359,9 +357,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         )
         assert not validator.is_valid()
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     def test_anomaly_detection__send_historical_data_fails(
         self, mock_seer_request: mock.MagicMock
     ) -> None:
@@ -872,9 +868,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert snuba_query.query_snapshot is None
 
     @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_to_static(
         self,
@@ -912,9 +906,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         assert mock_seer_delete_request.call_count == 1
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_from_static(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -974,9 +966,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_query(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -1044,9 +1034,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_aggregate(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -1114,9 +1102,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         )
 
     @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_no_config(
         self,
@@ -1188,9 +1174,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_to_perf(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -1247,9 +1231,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data_workflow_engine.handle_send_historical_data_to_seer"
     )
@@ -1303,9 +1285,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             [SnubaQueryEventType.EventType.TRANSACTION],
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     def test_anomaly_detection__send_historical_data_update_fails(
         self, mock_seer_request: mock.MagicMock
     ) -> None:
@@ -1343,9 +1323,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     def test_anomaly_detection__send_historical_data_snuba_update_fails(
         self, mock_seer_request: mock.MagicMock
     ) -> None:

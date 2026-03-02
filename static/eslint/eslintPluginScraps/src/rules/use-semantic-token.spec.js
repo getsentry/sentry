@@ -1,6 +1,6 @@
 import {RuleTester} from 'eslint';
 
-import {useSemanticToken} from './use-semantic-token.mjs';
+import {useSemanticToken} from './use-semantic-token.js';
 
 const ruleTester = new RuleTester();
 
