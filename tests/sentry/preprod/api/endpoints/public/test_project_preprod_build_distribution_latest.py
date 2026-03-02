@@ -206,6 +206,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
         ios_artifact = self._create_installable_artifact(
             file_id=ios_file.id,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            extras={"is_code_signature_valid": True},
         )
         # Android artifact should NOT be returned for apple
         self._create_installable_artifact(
