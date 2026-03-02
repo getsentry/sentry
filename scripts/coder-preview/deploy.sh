@@ -15,7 +15,7 @@ set -euo pipefail
 
 CODER_API="${CODER_URL}/api/v2"
 AUTH_HEADER="Coder-Session-Token: ${CODER_SESSION_TOKEN}"
-MACHINE_TYPE="e2-standard-4"
+MACHINE_TYPE="e2-standard-8"
 
 # curl wrapper that shows response body on failure
 api() {
