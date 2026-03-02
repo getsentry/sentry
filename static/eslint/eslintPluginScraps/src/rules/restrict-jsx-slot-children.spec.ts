@@ -1,6 +1,6 @@
-import {RuleTester} from 'eslint';
+import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {restrictJsxSlotChildren} from './restrict-jsx-slot-children.js';
+import {restrictJsxSlotChildren, type Options} from './restrict-jsx-slot-children';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -19,7 +19,7 @@ import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 
 /**
  * The CompactSelect slot configuration exercised in all test cases below.
- * Matches the configuration registered in eslint.config.js.
+ * Matches the configuration registered in eslint.config.ts.
  */
 const COMPACT_SELECT_OPTIONS = [
   {
@@ -48,7 +48,7 @@ const COMPACT_SELECT_OPTIONS = [
       },
     ],
   },
-];
+] satisfies [Options];
 
 // Derive the hint from the config the same way the rule does internally.
 const ALLOWED_HINT = COMPACT_SELECT_OPTIONS[0]?.slots[0]?.allowed
@@ -57,12 +57,9 @@ const ALLOWED_HINT = COMPACT_SELECT_OPTIONS[0]?.slots[0]?.allowed
 
 /**
  * Shorthand for an expected "forbidden" error for a given element name and prop.
- *
- * @param {string} name
- * @param {string} prop
  */
-function forbidden(name, prop) {
-  return {messageId: 'forbidden', data: {name, prop, allowed: ALLOWED_HINT}};
+function forbidden(name: string, prop: string) {
+  return {messageId: 'forbidden' as const, data: {name, prop, allowed: ALLOWED_HINT}};
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────

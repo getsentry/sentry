@@ -49,9 +49,9 @@ import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
 // eslint-disable-next-line boundaries/element-types
-import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.js';
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
 // eslint-disable-next-line boundaries/element-types
-import * as sentryPlugin from './static/eslint/eslintPluginSentry/index.js';
+import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
 
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
@@ -431,7 +431,7 @@ export default typescript.config([
       'import/no-duplicates': 'error',
       'import/no-extraneous-dependencies': [
         'error',
-        {includeTypes: true, devDependencies: ['!eslint.config.js']},
+        {includeTypes: true, devDependencies: ['!eslint.config.ts']},
       ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',

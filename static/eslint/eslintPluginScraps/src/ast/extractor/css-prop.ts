@@ -8,24 +8,28 @@
  * - <div css={(theme) => { ... }} />
  */
 
-import {normalizePropertyName} from '../utils/normalizePropertyName.js';
+import type {TSESTree} from '@typescript-eslint/utils';
 
-import {decomposeValue} from './value-decomposer.js';
+import {normalizePropertyName} from '../utils/normalizePropertyName';
+
+import type {ExtractorContext, StyleDeclaration} from './types';
+import {decomposeValue} from './value-decomposer';
 
 /**
  * Creates the css prop extractor with ESLint visitors.
- *
- * @param {import('./types.js').ExtractorContext} extractorContext
- * @returns {Record<string, Function>}
  */
-export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
+export function createCssPropExtractor({
+  collector,
+  themeTracker,
+  ruleContext,
+}: ExtractorContext) {
   /**
    * Process an object expression from css={{ ... }}
-   *
-   * @param {import('estree').ObjectExpression} objNode
-   * @param {import('estree').Node} sourceNode
    */
-  function processObjectExpression(objNode, sourceNode) {
+  function processObjectExpression(
+    objNode: TSESTree.ObjectExpression,
+    sourceNode: TSESTree.Node
+  ) {
     for (const prop of objNode.properties) {
       if (prop.type !== 'Property') {
         continue;
@@ -44,8 +48,7 @@ export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
 
       const values = decomposeValue(prop.value, themeTracker);
 
-      /** @type {import('./types.js').StyleDeclaration} */
-      const declaration = {
+      const declaration: StyleDeclaration = {
         kind: 'css-prop',
         property: {
           name: normalizePropertyName(propertyName),
@@ -69,11 +72,11 @@ export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
 
   /**
    * Process an array of styles css={[...]}
-   *
-   * @param {import('estree').ArrayExpression} arrNode
-   * @param {import('estree').Node} sourceNode
    */
-  function processArrayExpression(arrNode, sourceNode) {
+  function processArrayExpression(
+    arrNode: TSESTree.ArrayExpression,
+    sourceNode: TSESTree.Node
+  ) {
     for (const element of arrNode.elements) {
       if (!element) {
         continue;
@@ -88,11 +91,11 @@ export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
 
   /**
    * Process an arrow function css={(theme) => ...}
-   *
-   * @param {import('estree').ArrowFunctionExpression} arrowNode
-   * @param {import('estree').Node} sourceNode
    */
-  function processArrowFunction(arrowNode, sourceNode) {
+  function processArrowFunction(
+    arrowNode: TSESTree.ArrowFunctionExpression,
+    sourceNode: TSESTree.Node
+  ) {
     // Register theme parameter binding
     const themeParam = arrowNode.params[0];
     if (themeParam?.type === 'Identifier') {
@@ -108,8 +111,7 @@ export function createCssPropExtractor({collector, themeTracker, ruleContext}) {
   }
 
   return {
-    /** @param {import('estree-jsx').JSXAttribute} node */
-    JSXAttribute(node) {
+    JSXAttribute(node: TSESTree.JSXAttribute) {
       if (node.name?.name !== 'css') {
         return;
       }

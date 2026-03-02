@@ -1,3 +1,5 @@
+import {ESLintUtils} from '@typescript-eslint/utils';
+
 /**
  * ESLint rule: use-semantic-token
  *
@@ -5,19 +7,23 @@
  * CSS properties based on their semantic category.
  */
 
-import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.js';
-import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.js';
+import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index';
+import type {StyleDeclaration} from '../ast/extractor/types';
+import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules';
 
-/**
- * @type {import('eslint').Rule.RuleModule}
- */
-export const useSemanticToken = {
+export interface Options {
+  enabledCategories?: string[];
+}
+
+export const useSemanticToken = ESLintUtils.RuleCreator.withoutDocs<
+  [Options],
+  'invalidProperty' | 'invalidPropertyWithSuggestion'
+>({
   meta: {
     type: 'problem',
     docs: {
       description:
         'Enforce that theme.tokens.* tokens are only used with appropriate CSS properties',
-      category: 'Best Practices',
     },
     schema: [
       {
@@ -39,34 +45,30 @@ export const useSemanticToken = {
         '`{{property}}` cannot use token `{{tokenPath}}`. Use a `{{suggestedCategory}}` token instead.',
     },
   },
-
-  create(context) {
+  defaultOptions: [{}],
+  create(context, [options = {}]) {
     // Fast bailout: skip files without emotion/styled patterns
     if (!shouldAnalyze(context)) {
       return {};
     }
 
-    const options = context.options[0] ?? {};
-    /** @type {Set<string> | null} */
     const enabledCategories = options.enabledCategories
       ? new Set(options.enabledCategories)
       : null; // null means all enabled
 
     /**
      * Check if a category is enabled in the rule options.
-     * @param {string} categoryName
      * @returns {boolean}
      */
-    function isCategoryEnabled(categoryName) {
+    function isCategoryEnabled(categoryName: string) {
       return enabledCategories === null || enabledCategories.has(categoryName);
     }
     const {collector, visitors} = createStyleCollector(context);
 
     /**
      * Validate a single StyleDeclaration
-     * @param {import('../ast/extractor/types.js').StyleDeclaration} decl
      */
-    function validateDeclaration(decl) {
+    function validateDeclaration(decl: StyleDeclaration) {
       const normalizedProperty = decl.property.name;
       if (normalizedProperty.startsWith('--')) {
         return;
@@ -121,4 +123,4 @@ export const useSemanticToken = {
       },
     };
   },
-};
+});

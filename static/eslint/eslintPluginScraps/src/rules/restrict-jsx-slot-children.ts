@@ -1,3 +1,5 @@
+import {ESLintUtils, TSESTree} from '@typescript-eslint/utils';
+
 /**
  * ESLint rule: restrict-jsx-slot-children
  *
@@ -26,7 +28,7 @@
  *   - Block-body callbacks (`() => { return <Elem>; }`) are not checked.
  *   - Variable references (`slotProp={someVar}`) are not checked.
  *
- * Example configuration (in eslint.config.js):
+ * Example configuration (in eslint.config.ts):
  *
  *   '@sentry/scraps/restrict-jsx-slot-children': [
  *     'warn',
@@ -55,14 +57,40 @@
  */
 
 /**
+ * Description of a single slot in rule options.
+ */
+interface SlotsConfig {
+  allowed: [SlotsConfigAllowed, ...SlotsConfigAllowed[]];
+  propNames: [string, ...string[]];
+  componentNames?: string[];
+}
+
+/**
+ * The allowed elements for a slot, along with their import source.
+ */
+interface SlotsConfigAllowed {
+  names: [string, ...string[]];
+  source: string;
+}
+
+export interface Options {
+  slots: SlotsConfig[];
+}
+
+/**
+ * Runtime state for a single slot, used to track allowed names.
+ */
+interface State {
+  allowedNames: Set<string>;
+  hint: string;
+}
+
+/**
  * Returns true if the name node refers to a React fragment (<Fragment> or
  * <React.Fragment>). Fragments are always transparent wrappers — the rule
  * recurses into their children without checking the fragment element itself.
- *
- * @param {*} nameNode
- * @returns {boolean}
  */
-function isReactFragment(nameNode) {
+function isReactFragment(nameNode: TSESTree.JSXTagNameExpression) {
   if (nameNode.type === 'JSXIdentifier' && nameNode.name === 'Fragment') {
     return true;
   }
@@ -79,13 +107,10 @@ function isReactFragment(nameNode) {
 
 /**
  * Returns a human-readable display name for a JSX element's opening-tag name.
- *
- * @param {*} nameNode
- * @returns {string}
  */
-function getDisplayName(nameNode) {
+function getDisplayName(nameNode: TSESTree.JSXTagNameExpression) {
   if (nameNode.type === 'JSXMemberExpression') {
-    return `${nameNode.object.name}.${nameNode.property.name}`;
+    return `${(nameNode.object as TSESTree.JSXIdentifier).name}.${nameNode.property.name}`;
   }
   if (nameNode.type === 'JSXIdentifier') {
     return nameNode.name;
@@ -95,26 +120,22 @@ function getDisplayName(nameNode) {
 
 /**
  * Builds the "use these instead" hint string from an allowed-descriptor array.
- *
- * @param {Array<{source: string, names: string[]}>} allowedConfig
- * @returns {string}
  */
-function buildAllowedHint(allowedConfig) {
+function buildAllowedHint(allowedConfig: SlotsConfigAllowed[]) {
   return allowedConfig
     .map(entry => `${entry.names.join(', ')} from '${entry.source}'`)
     .join(', or ');
 }
 
-/**
- * @type {import('eslint').Rule.RuleModule}
- */
-export const restrictJsxSlotChildren = {
+export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
+  [Options],
+  'forbidden'
+>({
   meta: {
     type: 'suggestion',
     docs: {
       description:
         'Restrict JSX slot props to a per-prop configurable set of allowed elements.',
-      recommended: false,
     },
     schema: [
       {
@@ -181,7 +202,6 @@ export const restrictJsxSlotChildren = {
     const slotState = new Map();
 
     for (const slot of slotsConfig) {
-      /** @type {Array<{source: string, names: string[]}>} */
       const allowed = slot.allowed;
       const state = {
         processedAllowed: allowed.map(entry => ({
@@ -195,7 +215,7 @@ export const restrictJsxSlotChildren = {
       for (const propName of slot.propNames) {
         if (slotState.has(propName)) {
           throw new TypeError(
-            `Duplicate prop configuration for: ${propName} in slot ${slot.componentNames.join(', ')}`
+            `Duplicate prop configuration for: ${propName} in slot ${Array.from(state.componentNames).join(', ')}`
           );
         }
         slotState.set(propName, state);
@@ -208,12 +228,12 @@ export const restrictJsxSlotChildren = {
      * Every element is checked: if its display name is in `allowedNames` the
      * rule recurses into direct JSX children; otherwise the element is reported
      * as forbidden and recursion stops.
-     *
-     * @param {*} jsxElement
-     * @param {string} propName
-     * @param {{allowedNames: Set<string>, hint: string}} state
      */
-    function checkSlotTree(jsxElement, propName, state) {
+    function checkSlotTree(
+      jsxElement: TSESTree.JSXElement,
+      propName: string,
+      state: State
+    ) {
       const nameNode = jsxElement.openingElement.name;
 
       // React fragments are always transparent — skip the allowed check and
@@ -247,10 +267,12 @@ export const restrictJsxSlotChildren = {
      * each one with checkSlotTree.
      *
      * @param {*} expr
-     * @param {string} propName
-     * @param {{allowedNames: Set<string>, hint: string}} state
      */
-    function checkExpression(expr, propName, state) {
+    function checkExpression(
+      expr: TSESTree.Expression | TSESTree.JSXEmptyExpression,
+      propName: string,
+      state: State
+    ) {
       if (!expr) return;
 
       if (expr.type === 'JSXElement') {
@@ -342,7 +364,7 @@ export const restrictJsxSlotChildren = {
           if (nameNode.type === 'JSXIdentifier') {
             elementName = nameNode.name;
           } else if (nameNode.type === 'JSXMemberExpression') {
-            elementName = `${nameNode.object.name}.${nameNode.property.name}`;
+            elementName = `${(nameNode.object as TSESTree.JSXIdentifier).name}.${nameNode.property.name}`;
           }
           if (!elementName || !state.componentNames.has(elementName)) {
             return;
@@ -370,4 +392,4 @@ export const restrictJsxSlotChildren = {
       },
     };
   },
-};
+});

@@ -1,14 +1,12 @@
+import {ESLintUtils} from '@typescript-eslint/utils';
+
 const DYNAMIC_TRANSLATION_FNS = ['td'];
 
-/**
- * @type {import('eslint').Rule.RuleModule}
- */
-const noStaticTranslations = {
+export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',
     docs: {
       description: 'Require using ATTRIBUTE_METADATA[key].brief pattern in td()',
-      recommended: true,
     },
     schema: [],
     messages: {
@@ -47,11 +45,9 @@ const noStaticTranslations = {
 
         context.report({
           node: translationArg,
-          message: 'td() must use ATTRIBUTE_METADATA[key].brief from @sentry/conventions',
+          messageId: 'forbidden',
         });
       },
     };
   },
-};
-
-export default noStaticTranslations;
+});
