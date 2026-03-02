@@ -4,7 +4,10 @@ import sentry_sdk
 
 from sentry import features
 from sentry.utils import metrics
-from sentry.workflow_engine.caches.detector import DetectorByDataSourceCacheAccess
+from sentry.workflow_engine.caches.detector import (
+    _query_detectors,
+    get_detectors_by_data_source,
+)
 from sentry.workflow_engine.models import DataPacket, DataSource, Detector
 
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
@@ -29,33 +32,9 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
         return []
 
     if features.has("organizations:cache-detectors-by-data-source", organization):
-        cache_access = DetectorByDataSourceCacheAccess(source_id, query_type)
-        detectors = cache_access.get()
-        if detectors is None:
-            detectors = list(
-                Detector.objects.filter(
-                    data_sources__source_id=source_id,
-                    data_sources__type=query_type,
-                    enabled=True,
-                )
-                .select_related("workflow_condition_group")
-                .prefetch_related("workflow_condition_group__conditions")
-                .distinct()
-                .order_by("id")
-            )
-            cache_access.set(detectors, cache_access.cache_ttl)
-        return detectors
-
+        return get_detectors_by_data_source(source_id, query_type)
     else:
-        return list(
-            Detector.objects.filter(
-                enabled=True, data_sources__source_id=source_id, data_sources__type=query_type
-            )
-            .select_related("workflow_condition_group")
-            .prefetch_related("workflow_condition_group__conditions")
-            .distinct()
-            .order_by("id")
-        )
+        return _query_detectors(source_id, query_type)
 
 
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.

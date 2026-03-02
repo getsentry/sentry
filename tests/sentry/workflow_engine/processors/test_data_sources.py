@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.helpers.features import with_feature
-from sentry.workflow_engine.caches.detector import CACHE_PREFIX, CACHE_TTL
+from sentry.workflow_engine.caches.detector import (
+    CACHE_TTL,
+    _DetectorCacheKey,
+    _detectors_by_data_source,
+)
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors.data_source import (
     bulk_fetch_enabled_detectors,
@@ -212,8 +216,8 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source.detectors.set([detector1, detector2])
 
         with (
-            patch("sentry.workflow_engine.caches.cache_access.cache.get") as mock_cache_get,
-            patch("sentry.workflow_engine.caches.cache_access.cache.set") as mock_cache_set,
+            patch("sentry.utils.cache.cache.get") as mock_cache_get,
+            patch("sentry.utils.cache.cache.set") as mock_cache_set,
         ):
             mock_cache_get.return_value = None
 
@@ -222,7 +226,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert len(result) == 2
             assert {d.id for d in result} == {detector1.id, detector2.id}
 
-            expected_cache_key = f"{CACHE_PREFIX}test:12345"
+            expected_cache_key = _detectors_by_data_source.key(_DetectorCacheKey("12345", "test"))
             mock_cache_get.assert_called_once_with(expected_cache_key)
             mock_cache_set.assert_called_once()
             call_args = mock_cache_set.call_args
@@ -239,14 +243,14 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         self.create_data_source(source_id="12345", type="test")
         cached_detectors = [detector1, detector2]
 
-        with patch("sentry.workflow_engine.caches.cache_access.cache.get") as mock_cache_get:
+        with patch("sentry.utils.cache.cache.get") as mock_cache_get:
             mock_cache_get.return_value = cached_detectors
 
             result = bulk_fetch_enabled_detectors("12345", "test")
 
             assert result == cached_detectors
 
-            expected_cache_key = f"{CACHE_PREFIX}test:12345"
+            expected_cache_key = _detectors_by_data_source.key(_DetectorCacheKey("12345", "test"))
             mock_cache_get.assert_called_once_with(expected_cache_key)
 
     @with_feature("organizations:cache-detectors-by-data-source")
