@@ -44,8 +44,8 @@ interface EventRegressionTableProps {
   causeType: 'duration' | 'throughput';
   data: EventRegressionTableRow[];
   isLoading: boolean;
+  onDescriptionLink: (row: EventRegressionTableRow) => LocationDescriptor | undefined;
   error?: Error | null;
-  onDescriptionLink?: (row: EventRegressionTableRow) => LocationDescriptor | undefined;
 }
 
 export function EventRegressionTable({
@@ -121,7 +121,7 @@ export function EventRegressionTable({
 function renderCell(
   columnKey: TableColumnKey,
   row: EventRegressionTableRow,
-  onDescriptionLink?: (row: EventRegressionTableRow) => LocationDescriptor | undefined
+  onDescriptionLink: (row: EventRegressionTableRow) => LocationDescriptor | undefined
 ) {
   switch (columnKey) {
     case 'throughputBefore':
@@ -156,7 +156,7 @@ function renderCell(
     }
     case 'description': {
       const value = defined(row.description) ? row.description : t('(unnamed span)');
-      const link = onDescriptionLink?.(row);
+      const link = onDescriptionLink(row);
       if (defined(link)) {
         return (
           <CellText>
