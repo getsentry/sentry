@@ -204,6 +204,18 @@ incorrect_cases = [
         "Encoding: utf<int>",
     ),
     (
+        "ip - double colon object property",
+        "Option::unwrap()",
+        "Option::unwrap()",
+        "Option<ip>unwrap()",
+    ),
+    (
+        "ip - double colon object property including hex",
+        "Bee::buzz()",
+        "Bee::buzz()",
+        "<ip>buzz()",
+    ),
+    (
         "random sequence as id",
         "invoice k9Mtd2gDcgG",
         "invoice <random_str>",
