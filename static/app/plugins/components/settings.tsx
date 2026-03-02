@@ -77,6 +77,7 @@ class PluginSettings<
   }
 
   changeField(name: string, value: any) {
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const formData: State['formData'] = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors

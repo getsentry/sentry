@@ -17,7 +17,7 @@ import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummar
 
 export interface ProfilingBreadcrumbsProps {
   organization: Organization;
-  trails: Trail[];
+  trails: readonly Trail[];
 }
 
 function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps) {

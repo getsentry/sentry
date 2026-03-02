@@ -81,7 +81,7 @@ export function AssertionSuggestionsButton({
             children: [...current.root.children, newOp],
           }
         : {
-            op: UptimeOpType.AND,
+            op: UptimeOpType.AND as const,
             id: uniqueId(),
             children: [newOp],
           };

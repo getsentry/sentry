@@ -106,7 +106,7 @@ function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string,
-  [start, end]: [number, number] | [null, null]
+  [start, end]: readonly [number, number] | readonly [null, null]
 ): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   const spaceDuration = start !== null && end !== null ? end - start : 0;
@@ -266,7 +266,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
   const configSpaceQueryParam = useMemo(() => {
     const [startedAtMs, endedAtMs] = decodeConfigSpace();
-    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
+    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp] as const;
   }, [profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();

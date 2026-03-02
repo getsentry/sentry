@@ -93,8 +93,6 @@ export function useUndoableReducer<
       state.current,
       dispatch,
       {previousState: state.previous?.current, nextState: state.next?.current},
-    ];
+    ] as const;
   }, [state, dispatch]);
-
-  return value;
 }

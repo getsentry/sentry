@@ -21,8 +21,6 @@ import {Chart} from './cohortComparisonChart';
 import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
-type SortingMethod = 'rrr';
-
 export function CohortComparison({
   selection,
   chartIndex,
@@ -41,7 +39,7 @@ export function CohortComparison({
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
-  const sortingMethod: SortingMethod = 'rrr';
+  const sortingMethod = 'rrr';
   const [page, setPage] = useState(0);
   const theme = useTheme();
 

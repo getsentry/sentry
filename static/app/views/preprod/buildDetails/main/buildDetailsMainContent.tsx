@@ -16,21 +16,26 @@ import {t} from 'sentry/locale';
 import parseApiError from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import { useQueryParamState } from 'sentry/utils/url/useQueryParamState';
-import { BuildDetailsMetricCards } from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
-import { AppSizeInsights } from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
-import { BuildError } from 'sentry/views/preprod/components/buildError';
-import { BuildProcessing } from 'sentry/views/preprod/components/buildProcessing';
-import { openMissingDsymModal } from 'sentry/views/preprod/components/missingDsymModal';
-import { AppSizeCategories } from 'sentry/views/preprod/components/visualizations/appSizeCategories';
-import { AppSizeLegend } from 'sentry/views/preprod/components/visualizations/appSizeLegend';
-import { AppSizeTreemap } from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import type { AppSizeApiResponse } from 'sentry/views/preprod/types/appSizeTypes';
-import { TreemapType } from 'sentry/views/preprod/types/appSizeTypes';
-import { BuildDetailsSizeAnalysisState, isSizeInfoPending, isSizeInfoProcessing, type BuildDetailsApiResponse } from 'sentry/views/preprod/types/buildDetailsTypes';
-import { processInsights } from 'sentry/views/preprod/utils/insightProcessing';
-import { validatedPlatform } from 'sentry/views/preprod/utils/sharedTypesUtils';
-import { filterTreemapElement } from 'sentry/views/preprod/utils/treemapFiltering';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
+import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
+import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
+import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
+import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
+import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  BuildDetailsSizeAnalysisState,
+  isSizeInfoPending,
+  isSizeInfoProcessing,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
+import {validatedPlatform} from 'sentry/views/preprod/utils/sharedTypesUtils';
+import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
@@ -104,7 +109,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           )
           .map(c => c as TreemapType)
       )
-    : new Set();
+    : new Set<TreemapType>();
 
   const handleToggleCategory = (category: TreemapType) => {
     const next = new Set(selectedCategories);

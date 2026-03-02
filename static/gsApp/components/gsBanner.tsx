@@ -769,7 +769,7 @@ class GSBanner extends Component<Props, State> {
       referrer: `overage-alert-${eventTypes.join('-')}`,
       source: isWarning ? 'quota-warning' : 'quota-overage',
       handleRequestSent: () => this.handleOverageSnooze(eventTypes, isWarning),
-    };
+    } as const;
 
     return <AddEventsCTA {...props} />;
   }

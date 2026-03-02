@@ -79,7 +79,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           query: location.query,
         },
       },
-    ];
+    ] as const;
   }, [location, projectSlug, transactionName, profileId]);
 
   return (

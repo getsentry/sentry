@@ -183,6 +183,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       {}
     );
     const orgHasPerformanceView = organization.features.includes('performance-view');
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const combinedTags: TagCollection =
       dataset === Dataset.ERRORS
         ? Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)

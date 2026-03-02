@@ -6,13 +6,12 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-
-
-import { FieldKey, ISSUE_AGGREGATIONS, ISSUE_SERIES_FIELDS, ISSUE_TABLE_FIELDS } from './fields';
-
-
-
-
+import {
+  FieldKey,
+  ISSUE_AGGREGATIONS,
+  ISSUE_SERIES_FIELDS,
+  ISSUE_TABLE_FIELDS,
+} from './fields';
 
 export function generateIssueWidgetFieldOptions(
   organization: Organization,
@@ -21,7 +20,7 @@ export function generateIssueWidgetFieldOptions(
   const issueFields = usesTimeSeriesData(displayType)
     ? ISSUE_SERIES_FIELDS
     : ISSUE_TABLE_FIELDS;
-  const fieldKeys = Object.keys(issueFields).sort();
+  const fieldKeys = Object.keys(issueFields).sort() as FieldKey[];
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   fieldKeys.forEach(field => {

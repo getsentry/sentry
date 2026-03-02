@@ -51,6 +51,7 @@ type EventProps = RequestProps & {
 
 function getTrendsRequestPayload(props: RequestProps) {
   const {eventView, projects} = props;
+  // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
   const apiPayload: TrendsQuery = eventView?.getEventsAPIPayload(props.location);
   const trendFunction = getCurrentTrendFunction(props.location, props.trendFunctionField);
   const trendParameter = getCurrentTrendParameter(

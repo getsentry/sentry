@@ -83,6 +83,8 @@ function makeIntegrationQueryKey({
   ];
 }
 
+const tabs = ['overview', 'configurations', 'features'] as const;
+
 export default function IntegrationDetailedView() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -203,7 +205,7 @@ export default function IntegrationDetailedView() {
         onTabChange={onTabChange}
       />
     );
-  }, [provider, tabs, activeTab, onTabChange]);
+  }, [provider, activeTab, onTabChange]);
 
   const onInstall = useCallback(
     (integration: Integration) => {

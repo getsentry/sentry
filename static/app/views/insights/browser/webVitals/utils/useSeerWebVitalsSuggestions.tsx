@@ -25,12 +25,12 @@ export function useSeerWebVitalsSuggestions({
     enabled: enabled && hasSeerWebVitalsSuggestions,
   });
 
-  const autofixQueries: Array<UseQueryResult<AutofixResponse[], Error>> = useQueries({
+  const autofixQueries = useQueries({
     queries: (issues ?? []).map(issue => {
       const queryKey = makeAutofixQueryKey(organization.slug, issue.id);
       return {
         queryKey,
-        queryFn: fetchDataQuery,
+        queryFn: fetchDataQuery<AutofixResponse>,
         staleTime: Infinity,
         enabled: !isLoading && enabled && hasSeerWebVitalsSuggestions,
         retry: false,

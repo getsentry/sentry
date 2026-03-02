@@ -62,9 +62,9 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
   const maybeFilteredOrInvertedTree: FlamegraphFrame[] | null = useMemo(() => {
     const skipFunction =
       treeType === 'application'
-        ? f => !f.frame.is_application
+        ? (f: FlamegraphFrame) => !f.frame.is_application
         : treeType === 'system'
-          ? f => f.frame.is_application
+          ? (f: FlamegraphFrame) => f.frame.is_application
           : () => false;
 
     const maybeFilteredRoots =

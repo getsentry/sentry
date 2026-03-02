@@ -36,7 +36,7 @@ export const useResourcePagesQuery = (
     : [
         {
           field: 'epm()',
-          kind: 'desc',
+          kind: 'desc' as const,
         },
       ];
 

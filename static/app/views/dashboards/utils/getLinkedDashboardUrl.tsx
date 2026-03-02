@@ -82,7 +82,7 @@ export function getLinkedDashboardUrl({
         'start',
         'end',
       ])
-    : {};
+    : ({} as Record<string, unknown>);
 
   // Override project if provided (e.g., from table row data)
   if (projectIdOverride) {

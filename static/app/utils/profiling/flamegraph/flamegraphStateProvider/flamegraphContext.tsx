@@ -56,7 +56,7 @@ export const flamegraphStateReducer = makeCombinedReducers({
 type FlamegraphReducer = UndoableReducer<typeof flamegraphStateReducer>;
 
 export type FlamegraphState = React.ReducerState<FlamegraphReducer>['current'];
-export type FlamegraphStateValue = [
+export type FlamegraphStateValue = readonly [
   FlamegraphState,
   {
     nextState: FlamegraphState | undefined;
