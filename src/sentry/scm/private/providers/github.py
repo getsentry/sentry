@@ -541,7 +541,7 @@ class GitHubProvider:
         body: str,
         path: str,
         side: ReviewSide,
-    ):
+    ) -> ActionResult[ReviewComment]:
         """Leave a review comment on a file."""
         return map_action(
             self.client.create_review_comment(
@@ -567,7 +567,7 @@ class GitHubProvider:
         path: str,
         line: int,
         side: ReviewSide,
-    ):
+    ) -> ActionResult[ReviewComment]:
         """Leave a review comment on a specific line in a file."""
         return map_action(
             self.client.create_review_comment(
@@ -596,7 +596,7 @@ class GitHubProvider:
         start_side: ReviewSide,
         end_line: int,
         end_side: ReviewSide,
-    ):
+    ) -> ActionResult[ReviewComment]:
         """Leave a review comment on a multiline span in a file."""
         return map_action(
             self.client.create_review_comment(
@@ -618,7 +618,10 @@ class GitHubProvider:
 
     @catch_provider_exception
     def create_review_comment_reply(
-        self, pull_request_id: str, body: str, comment_id: str
+        self,
+        pull_request_id: str,
+        body: str,
+        comment_id: str,
     ) -> ActionResult[ReviewComment]:
         """Leave a review comment in reply to another review comment."""
         return map_action(
