@@ -238,10 +238,23 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         comparison_type = "diff" if comparison_manifest is not None else "solo"
 
+        run_info: SnapshotComparisonRunInfo | None = None
+        if comparison_state is not None:
+            run_info = SnapshotComparisonRunInfo(state=comparison_state)
+        elif comparison is not None:
+            duration = comparison.date_updated - comparison.date_added
+            run_info = SnapshotComparisonRunInfo(
+                state=PreprodSnapshotComparison.State(comparison.state).name,
+                completed_at=comparison.date_updated.isoformat(),
+                duration_ms=int(duration.total_seconds() * 1000),
+            )
+
         def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
-            response = SnapshotDetailsApiResponse(
+            return SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,
+                project_id=str(artifact.project_id),
+                comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
                 images=images,
@@ -256,26 +269,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
-            )
-
-            result = response.dict()
-            result["project_id"] = str(artifact.project_id)
-            result["comparison_type"] = comparison_type
-
-            run_info: SnapshotComparisonRunInfo | None = None
-            if comparison_state is not None:
-                run_info = SnapshotComparisonRunInfo(state=comparison_state)
-            elif comparison is not None:
-                duration = comparison.date_updated - comparison.date_added
-                run_info = SnapshotComparisonRunInfo(
-                    state=PreprodSnapshotComparison.State(comparison.state).name,
-                    completed_at=comparison.date_updated.isoformat(),
-                    duration_ms=int(duration.total_seconds() * 1000),
-                )
-            if run_info is not None:
-                result["comparison_run_info"] = run_info.dict(exclude_none=True)
-
-            return result
+                comparison_run_info=run_info,
+            ).dict(exclude_none=True)
 
         return self.paginate(
             request=request,

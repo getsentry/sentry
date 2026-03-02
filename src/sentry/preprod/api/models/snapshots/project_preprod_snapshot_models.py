@@ -43,7 +43,9 @@ class SnapshotComparisonRunInfo(BaseModel):
 
 class SnapshotDetailsApiResponse(BaseModel):
     head_artifact_id: str
-    base_artifact_id: str | None = None  # Only present for diffs
+    base_artifact_id: str | None = None
+    project_id: str
+    comparison_type: str
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
 
