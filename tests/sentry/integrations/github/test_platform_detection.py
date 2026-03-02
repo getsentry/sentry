@@ -6,16 +6,15 @@ from unittest import mock
 import pytest
 
 from sentry.integrations.github.platform_detection import (
-    BASE_PLATFORM_PRIORITY,
-    CONFIG_FILE_BONUS,
-    FRAMEWORK_PRIORITY,
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
     _apply_supersession,
-    _detect_frameworks_from_content,
-    _detect_from_config_files,
+    _framework_matches,
     _get_root_file_names,
-    detect_framework,
+    _package_in_manifest,
+    _PackageManifest,
+    _parse_package_manifest,
+    _rule_matches,
     detect_platforms,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -42,205 +41,210 @@ class TestGithubLanguageMapping:
         assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get("Brainfuck") is None
 
 
-class TestDetectFrameworksFromContent:
-    def test_package_json_detects_next(self) -> None:
-        content = json.dumps({"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}})
-        result = _detect_frameworks_from_content(
-            content, "package.json", {"next": "javascript-nextjs", "react": "javascript-react"}
-        )
-        platforms = [m["platform"] for m in result]
-        assert "javascript-nextjs" in platforms
-        assert "javascript-react" in platforms
-        # Both are in prod deps
-        for m in result:
-            assert m["dep_source"] == "dependencies"
-
-    def test_package_json_checks_dev_dependencies(self) -> None:
-        content = json.dumps({"devDependencies": {"svelte": "^4.0.0"}})
-        result = _detect_frameworks_from_content(
-            content, "package.json", {"svelte": "javascript-svelte"}
-        )
-        assert len(result) == 1
-        assert result[0]["platform"] == "javascript-svelte"
-        assert result[0]["dep_source"] == "devDependencies"
-
-    def test_package_json_prefers_prod_over_dev(self) -> None:
+class TestParsePackageManifest:
+    def test_parses_package_json(self) -> None:
         content = json.dumps(
-            {"dependencies": {"react": "^18.0.0"}, "devDependencies": {"react": "^18.0.0"}}
+            {"dependencies": {"next": "^14.0.0"}, "devDependencies": {"jest": "^29.0.0"}}
         )
-        result = _detect_frameworks_from_content(
-            content, "package.json", {"react": "javascript-react"}
-        )
-        assert len(result) == 1
-        assert result[0]["dep_source"] == "dependencies"
+        result = _parse_package_manifest(content, "package.json")
+        assert result is not None
+        assert result["dependencies"] == {"next"}
+        assert result["dev_dependencies"] == {"jest"}
 
-    def test_package_json_no_match(self) -> None:
-        content = json.dumps({"dependencies": {"lodash": "^4.0.0"}})
-        result = _detect_frameworks_from_content(
-            content, "package.json", {"next": "javascript-nextjs"}
-        )
-        assert result == []
-
-    def test_package_json_invalid_json(self) -> None:
-        result = _detect_frameworks_from_content(
-            "not valid json", "package.json", {"next": "javascript-nextjs"}
-        )
-        assert result == []
-
-    def test_requirements_txt_detects_django(self) -> None:
-        content = "Django==4.2\ncelery>=5.0\nredis\n"
-        result = _detect_frameworks_from_content(
-            content,
-            "requirements.txt",
-            {"django": "python-django", "celery": "python-celery"},
-        )
-        platforms = [m["platform"] for m in result]
-        assert "python-django" in platforms
-        assert "python-celery" in platforms
-        for m in result:
-            assert m["dep_source"] == "unknown"
-
-    def test_requirements_txt_case_insensitive(self) -> None:
-        content = "Flask==3.0\n"
-        result = _detect_frameworks_from_content(
-            content, "requirements.txt", {"flask": "python-flask"}
-        )
-        assert len(result) == 1
-        assert result[0]["platform"] == "python-flask"
-
-    def test_gemfile_detects_rails(self) -> None:
-        content = 'gem "rails", "~> 7.0"\ngem "pg"\n'
-        result = _detect_frameworks_from_content(content, "Gemfile", {"rails": "ruby-rails"})
-        assert len(result) == 1
-        assert result[0]["platform"] == "ruby-rails"
-
-    def test_composer_json_detects_laravel(self) -> None:
-        content = json.dumps({"require": {"laravel/framework": "^10.0"}})
-        result = _detect_frameworks_from_content(
-            content, "composer.json", {"laravel/framework": "php-laravel"}
-        )
-        assert len(result) == 1
-        assert result[0]["platform"] == "php-laravel"
-        assert result[0]["dep_source"] == "dependencies"
-
-    def test_composer_json_prefix_match_symfony(self) -> None:
-        content = json.dumps({"require": {"symfony/framework-bundle": "^6.0"}})
-        result = _detect_frameworks_from_content(
-            content, "composer.json", {"symfony/": "php-symfony"}
-        )
-        assert len(result) == 1
-        assert result[0]["platform"] == "php-symfony"
-
-    def test_composer_json_dev_dependency(self) -> None:
-        content = json.dumps({"require-dev": {"laravel/framework": "^10.0"}})
-        result = _detect_frameworks_from_content(
-            content, "composer.json", {"laravel/framework": "php-laravel"}
-        )
-        assert len(result) == 1
-        assert result[0]["dep_source"] == "devDependencies"
-
-    def test_go_mod_detects_gin(self) -> None:
-        content = "module example.com/myapp\n\nrequire github.com/gin-gonic/gin v1.9.1\n"
-        result = _detect_frameworks_from_content(content, "go.mod", {"gin": "go-gin"})
-        assert len(result) == 1
-        assert result[0]["platform"] == "go-gin"
-
-    def test_build_gradle_detects_spring_boot(self) -> None:
-        content = (
-            "dependencies {\n    implementation 'org.springframework.boot:spring-boot-starter'\n}\n"
-        )
-        result = _detect_frameworks_from_content(
-            content, "build.gradle", {"spring-boot": "java-spring-boot"}
-        )
-        assert len(result) == 1
-        assert result[0]["platform"] == "java-spring-boot"
-
-
-def _make_b64_response(content: str) -> dict:
-    """Helper to create a GitHub contents API response with base64-encoded content."""
-    return {"content": b64encode(content.encode()).decode()}
-
-
-class TestDetectFramework:
-    def test_detects_python_django(self) -> None:
-        client = mock.MagicMock()
-        client.get.return_value = _make_b64_response("Django==4.2\ncelery>=5.0\n")
-
-        result = detect_framework(client, "owner/repo", "python")
-
-        platforms = [m["platform"] for m in result]
-        assert "python-django" in platforms
-        assert "python-celery" in platforms
-
-    def test_falls_back_when_manifest_not_found(self) -> None:
-        client = mock.MagicMock()
-        client.get.side_effect = ApiError("Not Found", code=404)
-
-        result = detect_framework(client, "owner/repo", "python")
-
-        assert result == []
-
-    def test_stops_after_first_manifest_with_results(self) -> None:
-        client = mock.MagicMock()
-        client.get.return_value = _make_b64_response("Django==4.2\n")
-
-        result = detect_framework(client, "owner/repo", "python")
-
-        assert len(result) == 1
-        assert result[0]["platform"] == "python-django"
-        # Should have only called get() once (for requirements.txt),
-        # not continued to pyproject.toml
-        assert client.get.call_count == 1
-
-    def test_tries_next_manifest_when_first_has_no_match(self) -> None:
-        client = mock.MagicMock()
-
-        def side_effect(path, params=None):
-            if "requirements.txt" in path:
-                return _make_b64_response("some-unrelated-package\n")
-            if "pyproject.toml" in path:
-                return _make_b64_response('[project]\ndependencies = ["flask"]\n')
-            raise ApiError("Not Found", code=404)
-
-        client.get.side_effect = side_effect
-
-        result = detect_framework(client, "owner/repo", "python")
-
-        assert len(result) == 1
-        assert result[0]["platform"] == "python-flask"
-
-    def test_unknown_platform_returns_empty(self) -> None:
-        client = mock.MagicMock()
-        result = detect_framework(client, "owner/repo", "unknown-platform")
-        assert result == []
-        client.get.assert_not_called()
-
-    def test_deduplicates_results(self) -> None:
-        client = mock.MagicMock()
-        # package.json with both react in deps and devDeps
+    def test_parses_composer_json(self) -> None:
         content = json.dumps(
-            {"dependencies": {"react": "^18.0.0"}, "devDependencies": {"react": "^18.0.0"}}
+            {"require": {"laravel/framework": "^10.0"}, "require-dev": {"phpunit/phpunit": "^10"}}
         )
-        client.get.return_value = _make_b64_response(content)
+        result = _parse_package_manifest(content, "composer.json")
+        assert result is not None
+        assert result["dependencies"] == {"laravel/framework"}
+        assert result["dev_dependencies"] == {"phpunit/phpunit"}
 
-        result = detect_framework(client, "owner/repo", "javascript")
+    def test_invalid_json_returns_none(self) -> None:
+        assert _parse_package_manifest("not json", "package.json") is None
 
-        react_matches = [m for m in result if m["platform"] == "javascript-react"]
-        assert len(react_matches) == 1
-        # Should prefer prod dep
-        assert react_matches[0]["dep_source"] == "dependencies"
+    def test_unsupported_manifest_returns_none(self) -> None:
+        assert _parse_package_manifest("{}", "requirements.txt") is None
 
-    def test_returns_framework_match_objects(self) -> None:
-        client = mock.MagicMock()
-        content = json.dumps({"dependencies": {"next": "^14.0.0"}})
-        client.get.return_value = _make_b64_response(content)
 
-        result = detect_framework(client, "owner/repo", "javascript")
+class TestPackageInManifest:
+    def test_exact_match_in_dependencies(self) -> None:
+        manifest = _PackageManifest(dependencies={"next", "react"}, dev_dependencies=set())
+        assert _package_in_manifest("next", manifest) is True
 
-        assert len(result) >= 1
-        match = result[0]
-        assert "platform" in match
-        assert "dep_source" in match
+    def test_exact_match_in_dev_dependencies(self) -> None:
+        manifest = _PackageManifest(dependencies=set(), dev_dependencies={"jest"})
+        assert _package_in_manifest("jest", manifest) is True
+
+    def test_no_match(self) -> None:
+        manifest = _PackageManifest(dependencies={"react"}, dev_dependencies=set())
+        assert _package_in_manifest("vue", manifest) is False
+
+    def test_prefix_match_for_composer(self) -> None:
+        manifest = _PackageManifest(
+            dependencies={"symfony/framework-bundle"}, dev_dependencies=set()
+        )
+        assert _package_in_manifest("symfony/", manifest) is True
+
+    def test_prefix_no_match(self) -> None:
+        manifest = _PackageManifest(dependencies={"laravel/framework"}, dev_dependencies=set())
+        assert _package_in_manifest("symfony/", manifest) is False
+
+
+class TestRuleMatches:
+    def test_path_rule_matches_when_file_exists(self) -> None:
+        rule = {"path": "next.config.js"}
+        assert _rule_matches(rule, {"next.config.js", "package.json"}, {}, None) is True
+
+    def test_path_rule_no_match_when_file_missing(self) -> None:
+        rule = {"path": "next.config.js"}
+        assert _rule_matches(rule, {"package.json"}, {}, None) is False
+
+    def test_path_with_content_matches_regex(self) -> None:
+        rule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        assert (
+            _rule_matches(rule, set(), {"requirements.txt": "Django==4.2\ncelery>=5.0\n"}, None)
+            is True
+        )
+
+    def test_path_with_content_case_insensitive(self) -> None:
+        rule = {"path": "requirements.txt", "match_content": r"(?i)\bflask\b"}
+        assert _rule_matches(rule, set(), {"requirements.txt": "Flask==3.0\n"}, None) is True
+
+    def test_path_with_content_no_match(self) -> None:
+        rule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        assert _rule_matches(rule, set(), {"requirements.txt": "flask==3.0\n"}, None) is False
+
+    def test_path_with_content_file_not_fetched(self) -> None:
+        rule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        assert _rule_matches(rule, set(), {}, None) is False
+
+    def test_match_package_finds_dependency(self) -> None:
+        rule = {"match_package": "next"}
+        manifest = _PackageManifest(dependencies={"next", "react"}, dev_dependencies=set())
+        assert _rule_matches(rule, set(), {}, manifest) is True
+
+    def test_match_package_finds_dev_dependency(self) -> None:
+        rule = {"match_package": "svelte"}
+        manifest = _PackageManifest(dependencies=set(), dev_dependencies={"svelte"})
+        assert _rule_matches(rule, set(), {}, manifest) is True
+
+    def test_match_package_no_match(self) -> None:
+        rule = {"match_package": "next"}
+        manifest = _PackageManifest(dependencies={"react"}, dev_dependencies=set())
+        assert _rule_matches(rule, set(), {}, manifest) is False
+
+    def test_match_package_no_manifest(self) -> None:
+        rule = {"match_package": "next"}
+        assert _rule_matches(rule, set(), {}, None) is False
+
+    def test_match_package_prefix_match(self) -> None:
+        rule = {"match_package": "symfony/"}
+        manifest = _PackageManifest(
+            dependencies={"symfony/framework-bundle"}, dev_dependencies=set()
+        )
+        assert _rule_matches(rule, set(), {}, manifest) is True
+
+    def test_rule_without_path_or_package_returns_false(self) -> None:
+        rule: dict = {}
+        assert _rule_matches(rule, {"file.txt"}, {}, None) is False
+
+
+class TestFrameworkMatches:
+    def test_some_rules_match_when_any_passes(self) -> None:
+        fw = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "some": [
+                {"path": "missing.js"},
+                {"path": "found.js"},
+            ],
+        }
+        assert _framework_matches(fw, {"found.js"}, {}, None) is True
+
+    def test_some_rules_no_match_when_none_pass(self) -> None:
+        fw = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "some": [
+                {"path": "missing1.js"},
+                {"path": "missing2.js"},
+            ],
+        }
+        assert _framework_matches(fw, set(), {}, None) is False
+
+    def test_every_rules_match_when_all_pass(self) -> None:
+        manifest = _PackageManifest(dependencies={"express", "cors"}, dev_dependencies=set())
+        fw = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "every": [{"match_package": "express"}],
+        }
+        assert _framework_matches(fw, set(), {}, manifest) is True
+
+    def test_every_rules_no_match_when_one_fails(self) -> None:
+        manifest = _PackageManifest(dependencies={"cors"}, dev_dependencies=set())
+        fw = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "every": [
+                {"match_package": "express"},
+                {"match_package": "cors"},
+            ],
+        }
+        assert _framework_matches(fw, set(), {}, manifest) is False
+
+    def test_every_and_some_combined(self) -> None:
+        manifest = _PackageManifest(dependencies={"express"}, dev_dependencies=set())
+        fw = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "every": [{"match_package": "express"}],
+            "some": [{"path": "app.js"}, {"path": "server.js"}],
+        }
+        # every passes, some passes (server.js exists)
+        assert _framework_matches(fw, {"server.js"}, {}, manifest) is True
+        # every passes, some fails (neither file exists)
+        assert _framework_matches(fw, set(), {}, manifest) is False
+
+    def test_empty_every_and_some_returns_false(self) -> None:
+        fw = {"platform": "test", "sort": 1, "base_platform": "test"}
+        assert _framework_matches(fw, set(), {}, None) is False
+
+    def test_nextjs_matches_from_package(self) -> None:
+        from sentry.integrations.github.platform_detection import FRAMEWORKS
+
+        nextjs = next(fw for fw in FRAMEWORKS if fw["platform"] == "javascript-nextjs")
+        manifest = _PackageManifest(dependencies={"next", "react"}, dev_dependencies=set())
+        assert _framework_matches(nextjs, set(), {}, manifest) is True
+
+    def test_nextjs_matches_from_config_file(self) -> None:
+        from sentry.integrations.github.platform_detection import FRAMEWORKS
+
+        nextjs = next(fw for fw in FRAMEWORKS if fw["platform"] == "javascript-nextjs")
+        assert _framework_matches(nextjs, {"next.config.js"}, {}, None) is True
+
+    def test_django_matches_from_manage_py(self) -> None:
+        from sentry.integrations.github.platform_detection import FRAMEWORKS
+
+        django = next(fw for fw in FRAMEWORKS if fw["platform"] == "python-django")
+        assert _framework_matches(django, {"manage.py"}, {}, None) is True
+
+    def test_django_matches_from_requirements_content(self) -> None:
+        from sentry.integrations.github.platform_detection import FRAMEWORKS
+
+        django = next(fw for fw in FRAMEWORKS if fw["platform"] == "python-django")
+        assert (
+            _framework_matches(
+                django, set(), {"requirements.txt": "Django==4.2\ncelery>=5.0\n"}, None
+            )
+            is True
+        )
 
 
 class TestGetRootFileNames:
@@ -282,44 +286,7 @@ class TestGetRootFileNames:
 
         _get_root_file_names(client, "owner/repo", ref="main")
 
-        client.get.assert_called_once_with("/repos/owner/repo/contents/", params={"ref": "main"})
-
-
-class TestDetectFromConfigFiles:
-    def test_detects_nextjs_from_config(self) -> None:
-        root_files = {"next.config.js", "package.json", "README.md"}
-        result = _detect_from_config_files(root_files, "javascript")
-        assert "javascript-nextjs" in result
-
-    def test_detects_nuxt_from_config(self) -> None:
-        root_files = {"nuxt.config.ts", "package.json"}
-        result = _detect_from_config_files(root_files, "javascript")
-        assert "javascript-nuxt" in result
-
-    def test_detects_django_from_manage_py(self) -> None:
-        root_files = {"manage.py", "requirements.txt"}
-        result = _detect_from_config_files(root_files, "python")
-        assert "python-django" in result
-
-    def test_detects_laravel_from_artisan(self) -> None:
-        root_files = {"artisan", "composer.json"}
-        result = _detect_from_config_files(root_files, "php")
-        assert "php-laravel" in result
-
-    def test_no_match_returns_empty(self) -> None:
-        root_files = {"README.md", "setup.py"}
-        result = _detect_from_config_files(root_files, "javascript")
-        assert result == []
-
-    def test_unknown_platform_returns_empty(self) -> None:
-        root_files = {"next.config.js"}
-        result = _detect_from_config_files(root_files, "unknown")
-        assert result == []
-
-    def test_deduplicates_multiple_config_variants(self) -> None:
-        root_files = {"next.config.js", "next.config.mjs"}
-        result = _detect_from_config_files(root_files, "javascript")
-        assert result.count("javascript-nextjs") == 1
+        client.get.assert_called_once_with("/repos/owner/repo/contents", params={"ref": "main"})
 
 
 class TestApplySupersession:
@@ -330,7 +297,7 @@ class TestApplySupersession:
                 language="JavaScript",
                 bytes=50000,
                 confidence="high",
-                priority=100,
+                priority=99,
             ),
             DetectedPlatform(
                 platform="javascript-react",
@@ -352,7 +319,7 @@ class TestApplySupersession:
                 language="JavaScript",
                 bytes=50000,
                 confidence="high",
-                priority=100,
+                priority=99,
             ),
             DetectedPlatform(
                 platform="javascript-vue",
@@ -374,7 +341,7 @@ class TestApplySupersession:
                 language="JavaScript",
                 bytes=50000,
                 confidence="high",
-                priority=100,
+                priority=99,
             ),
             DetectedPlatform(
                 platform="javascript-react",
@@ -416,7 +383,7 @@ class TestApplySupersession:
                 language="JavaScript",
                 bytes=50000,
                 confidence="high",
-                priority=100,
+                priority=99,
             ),
             DetectedPlatform(
                 platform="node-express",
@@ -440,6 +407,11 @@ class TestApplySupersession:
         assert "javascript-react" not in platforms
 
 
+def _make_b64_response(content: str) -> dict:
+    """Helper to create a GitHub contents API response with base64-encoded content."""
+    return {"content": b64encode(content.encode()).decode()}
+
+
 class TestDetectPlatforms:
     def test_detects_single_language_repo(self) -> None:
         client = mock.MagicMock()
@@ -453,7 +425,7 @@ class TestDetectPlatforms:
         assert result[0]["language"] == "Python"
         assert result[0]["bytes"] == 50000
         assert result[0]["confidence"] == "medium"
-        assert result[0]["priority"] == BASE_PLATFORM_PRIORITY
+        assert result[0]["priority"] == 1
 
     def test_detects_multi_language_repo(self) -> None:
         client = mock.MagicMock()
@@ -489,6 +461,8 @@ class TestDetectPlatforms:
         client.get_languages.return_value = {"Python": 50000}
 
         def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "requirements.txt", "type": "file"}]
             if "requirements.txt" in path:
                 return _make_b64_response("Django==4.2\n")
             raise ApiError("Not Found", code=404)
@@ -505,10 +479,14 @@ class TestDetectPlatforms:
 
     def test_results_sorted_by_priority_then_bytes(self) -> None:
         client = mock.MagicMock()
-        # Python has more bytes but framework detection gives JS higher priority
         client.get_languages.return_value = {"Python": 80000, "JavaScript": 30000}
 
         def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "requirements.txt", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
             if "requirements.txt" in path:
                 return _make_b64_response("flask==3.0\n")
             if "package.json" in path:
@@ -521,7 +499,7 @@ class TestDetectPlatforms:
 
         result = detect_platforms(client, "owner/repo")
 
-        # Next.js (priority 110) > Django (95) > base platforms (10)
+        # Next.js (priority=99) > Flask (priority=80) > base platforms (priority=1)
         platforms = [r["platform"] for r in result]
         nextjs_idx = platforms.index("javascript-nextjs")
         flask_idx = platforms.index("python-flask")
@@ -536,9 +514,11 @@ class TestDetectPlatforms:
         )
 
         def get_side_effect(path, params=None):
-            if path.endswith("/contents/"):
-                return []
-            return _make_b64_response(content)
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
 
@@ -550,7 +530,7 @@ class TestDetectPlatforms:
         assert "javascript-react" not in platforms
         assert "javascript" in platforms
 
-    def test_prod_dep_ranks_higher_than_dev_dep(self) -> None:
+    def test_framework_sort_determines_ranking(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"JavaScript": 50000}
 
@@ -562,22 +542,21 @@ class TestDetectPlatforms:
         )
 
         def get_side_effect(path, params=None):
-            if path.endswith("/contents/"):
-                return []
-            return _make_b64_response(content)
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
 
-        express = next(r for r in result if r["platform"] == "node-express")
         svelte = next(r for r in result if r["platform"] == "javascript-svelte")
-        # express: priority 60 + 10 (prod) = 70
-        # svelte: priority 70 + 0 (dev) = 70
-        # Same priority, but express has same bytes, so order may vary.
-        # The key thing is both are present and have correct priorities.
-        assert express["priority"] == FRAMEWORK_PRIORITY["node-express"] + 10
-        assert svelte["priority"] == FRAMEWORK_PRIORITY["javascript-svelte"] + 0
+        express = next(r for r in result if r["platform"] == "node-express")
+        # svelte sort=30 → priority=70, express sort=40 → priority=60
+        assert svelte["priority"] == 70
+        assert express["priority"] == 60
 
     def test_typescript_and_javascript_deduplicated(self) -> None:
         client = mock.MagicMock()
@@ -649,7 +628,7 @@ class TestDetectPlatforms:
         client.get_languages.return_value = {"JavaScript": 50000}
 
         def get_side_effect(path, params=None):
-            if path.endswith("/contents/"):
+            if path.endswith("/contents"):
                 return [
                     {"name": "next.config.js", "type": "file"},
                     {"name": "package.json", "type": "file"},
@@ -667,12 +646,12 @@ class TestDetectPlatforms:
         # React is superseded by Next.js
         assert "javascript-react" not in platforms
 
-    def test_config_file_gets_priority_bonus(self) -> None:
+    def test_config_file_sets_high_priority(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"JavaScript": 50000}
 
         def get_side_effect(path, params=None):
-            if path.endswith("/contents/"):
+            if path.endswith("/contents"):
                 return [
                     {"name": "next.config.js", "type": "file"},
                     {"name": "package.json", "type": "file"},
@@ -686,17 +665,15 @@ class TestDetectPlatforms:
         result = detect_platforms(client, "owner/repo")
 
         nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
-        # base priority (100) + config bonus (20) + prod dep bonus (10) = 130
-        assert (
-            nextjs["priority"] == FRAMEWORK_PRIORITY["javascript-nextjs"] + CONFIG_FILE_BONUS + 10
-        )
+        # sort=1 → priority=99
+        assert nextjs["priority"] == 99
 
-    def test_config_file_only_gets_config_bonus_without_dep(self) -> None:
+    def test_config_file_only_detection(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"JavaScript": 50000}
 
         def get_side_effect(path, params=None):
-            if path.endswith("/contents/"):
+            if path.endswith("/contents"):
                 return [
                     {"name": "next.config.js", "type": "file"},
                     {"name": "package.json", "type": "file"},
@@ -710,15 +687,15 @@ class TestDetectPlatforms:
         result = detect_platforms(client, "owner/repo")
 
         nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
-        # base priority (100) + config bonus (20) + no dep bonus (0) = 120
-        assert nextjs["priority"] == FRAMEWORK_PRIORITY["javascript-nextjs"] + CONFIG_FILE_BONUS
+        # sort=1 → priority=99 (same regardless of dep presence)
+        assert nextjs["priority"] == 99
 
     def test_manage_py_detects_django(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"Python": 50000}
 
         def get_side_effect(path, params=None):
-            if path.endswith("/contents/"):
+            if path.endswith("/contents"):
                 return [
                     {"name": "manage.py", "type": "file"},
                     {"name": "requirements.txt", "type": "file"},
@@ -733,5 +710,116 @@ class TestDetectPlatforms:
 
         django = next(r for r in result if r["platform"] == "python-django")
         assert django["confidence"] == "high"
-        # base priority (90) + config bonus (20) + unknown dep bonus (5) = 115
-        assert django["priority"] == FRAMEWORK_PRIORITY["python-django"] + CONFIG_FILE_BONUS + 5
+        # sort=10 → priority=90
+        assert django["priority"] == 90
+
+    def test_base_platform_priority_is_one(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+        client.get.side_effect = ApiError("Not Found", code=404)
+
+        result = detect_platforms(client, "owner/repo")
+
+        assert result[0]["platform"] == "python"
+        assert result[0]["priority"] == 1
+
+    def test_multiple_frameworks_same_platform(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "manage.py", "type": "file"},
+                    {"name": "requirements.txt", "type": "file"},
+                ]
+            if "requirements.txt" in path:
+                return _make_b64_response("Django==4.2\ncelery>=5.0\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "python-django" in platforms
+        assert "python-celery" in platforms
+        assert "python" in platforms
+
+    def test_no_root_files_only_base_platforms(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000, "JavaScript": 30000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return []
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert platforms == ["python", "javascript"] or set(platforms) == {
+            "python",
+            "javascript",
+        }
+        for r in result:
+            assert r["confidence"] == "medium"
+            assert r["priority"] == 1
+
+    def test_laravel_detected_from_artisan(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"PHP": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "artisan", "type": "file"}]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "php-laravel" in platforms
+
+    def test_spring_boot_detected_from_build_gradle(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Java": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "build.gradle", "type": "file"}]
+            if "build.gradle" in path:
+                return _make_b64_response(
+                    "dependencies {\n    implementation 'org.springframework.boot:spring-boot-starter'\n}\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "java-spring-boot" in platforms
+
+    def test_go_gin_detected_from_go_mod(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Go": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "go.mod", "type": "file"}]
+            if "go.mod" in path:
+                return _make_b64_response(
+                    "module example.com/myapp\n\nrequire github.com/gin-gonic/gin v1.9.1\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "go-gin" in platforms

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import logging
+import re
 from base64 import b64decode
+from collections import defaultdict
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypedDict
 
 from sentry.shared_integrations.exceptions import ApiError
@@ -72,187 +75,266 @@ class DetectedPlatform(TypedDict):
     priority: int  # Higher = more relevant for onboarding
 
 
-# Priority weights: higher = more specific/useful for onboarding
-FRAMEWORK_PRIORITY: dict[str, int] = {
-    # JS meta-frameworks (most specific, include routing/SSR)
-    "javascript-nextjs": 100,
-    "javascript-remix": 100,
-    "javascript-nuxt": 100,
-    # JS UI frameworks
-    "javascript-react": 70,
-    "javascript-vue": 70,
-    "javascript-angular": 70,
-    "javascript-svelte": 70,
-    # JS server frameworks
-    "node-express": 60,
-    "node-hono": 60,
-    "node-koa": 60,
-    # Python web frameworks
-    "python-django": 90,
-    "python-fastapi": 90,
-    "python-flask": 80,
-    "python-starlette": 70,
-    "python-tornado": 70,
-    # Python task queues (useful but secondary)
-    "python-celery": 40,
-    # Ruby
-    "ruby-rails": 90,
-    # PHP
-    "php-laravel": 90,
-    "php-symfony": 80,
-    # Java
-    "java-spring-boot": 90,
-    "java-spring": 80,
-    # Go
-    "go-echo": 80,
-    "go-gin": 80,
-    "go-fiber": 80,
+class DetectorRule(TypedDict, total=False):
+    path: str  # File must exist in root directory
+    match_content: str  # Regex pattern to match in file content (requires path)
+    match_package: str  # Package name in package.json/composer.json deps
+
+
+class FrameworkDef(TypedDict, total=False):
+    platform: str  # Sentry platform ID, e.g. "javascript-nextjs"
+    sort: int  # Lower = higher priority (Vercel convention)
+    base_platform: str  # Language group, e.g. "javascript"
+    every: list[DetectorRule]  # ALL must match (AND)
+    some: list[DetectorRule]  # At least ONE must match (OR)
+    supersedes: list[str]  # Platform IDs this makes redundant
+
+
+# Each framework is a self-contained definition with composable detector rules.
+# Inspired by Vercel's framework detection:
+# github.com/vercel/vercel/blob/main/packages/frameworks/src/frameworks.ts
+FRAMEWORKS: list[FrameworkDef] = [
+    # --- JavaScript meta-frameworks (sort=1, highest priority) ---
+    {
+        "platform": "javascript-nextjs",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "next"},
+            {"path": "next.config.js"},
+            {"path": "next.config.mjs"},
+            {"path": "next.config.ts"},
+        ],
+        "supersedes": ["javascript-react"],
+    },
+    {
+        "platform": "javascript-remix",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "remix"},
+            {"path": "remix.config.js"},
+            {"path": "remix.config.mjs"},
+        ],
+        "supersedes": ["javascript-react"],
+    },
+    {
+        "platform": "javascript-nuxt",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "nuxt"},
+            {"path": "nuxt.config.ts"},
+            {"path": "nuxt.config.js"},
+        ],
+        "supersedes": ["javascript-vue"],
+    },
+    # --- JavaScript UI frameworks (sort=30) ---
+    {
+        "platform": "javascript-react",
+        "sort": 30,
+        "base_platform": "javascript",
+        "some": [{"match_package": "react"}],
+    },
+    {
+        "platform": "javascript-vue",
+        "sort": 30,
+        "base_platform": "javascript",
+        "some": [{"match_package": "vue"}],
+    },
+    {
+        "platform": "javascript-angular",
+        "sort": 30,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "@angular/core"},
+            {"path": "angular.json"},
+        ],
+    },
+    {
+        "platform": "javascript-svelte",
+        "sort": 30,
+        "base_platform": "javascript",
+        "some": [
+            {"match_package": "svelte"},
+            {"path": "svelte.config.js"},
+            {"path": "svelte.config.ts"},
+        ],
+    },
+    # --- JavaScript server frameworks (sort=40) ---
+    {
+        "platform": "node-express",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "express"}],
+    },
+    {
+        "platform": "node-hono",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "hono"}],
+    },
+    {
+        "platform": "node-koa",
+        "sort": 40,
+        "base_platform": "javascript",
+        "every": [{"match_package": "koa"}],
+    },
+    # --- Python frameworks ---
+    {
+        "platform": "python-django",
+        "sort": 10,
+        "base_platform": "python",
+        "some": [
+            {"path": "manage.py"},
+            {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bdjango\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bdjango\b"},
+        ],
+    },
+    {
+        "platform": "python-fastapi",
+        "sort": 10,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bfastapi\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bfastapi\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bfastapi\b"},
+        ],
+    },
+    {
+        "platform": "python-flask",
+        "sort": 20,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bflask\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bflask\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bflask\b"},
+        ],
+    },
+    {
+        "platform": "python-starlette",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bstarlette\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bstarlette\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bstarlette\b"},
+        ],
+    },
+    {
+        "platform": "python-tornado",
+        "sort": 30,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\btornado\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\btornado\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\btornado\b"},
+        ],
+    },
+    {
+        "platform": "python-celery",
+        "sort": 60,
+        "base_platform": "python",
+        "some": [
+            {"path": "requirements.txt", "match_content": r"(?i)\bcelery\b"},
+            {"path": "pyproject.toml", "match_content": r"(?i)\bcelery\b"},
+            {"path": "Pipfile", "match_content": r"(?i)\bcelery\b"},
+        ],
+    },
+    # --- Ruby ---
+    {
+        "platform": "ruby-rails",
+        "sort": 10,
+        "base_platform": "ruby",
+        "some": [
+            {"path": "Gemfile", "match_content": r"(?i)\brails\b"},
+        ],
+    },
+    # --- PHP ---
+    {
+        "platform": "php-laravel",
+        "sort": 10,
+        "base_platform": "php",
+        "some": [
+            {"match_package": "laravel/framework"},
+            {"path": "artisan"},
+        ],
+    },
+    {
+        "platform": "php-symfony",
+        "sort": 20,
+        "base_platform": "php",
+        "some": [
+            {"match_package": "symfony/"},
+        ],
+    },
+    # --- Java ---
+    {
+        "platform": "java-spring-boot",
+        "sort": 10,
+        "base_platform": "java",
+        "some": [
+            {"path": "build.gradle", "match_content": r"spring-boot"},
+            {"path": "pom.xml", "match_content": r"spring-boot"},
+        ],
+    },
+    {
+        "platform": "java-spring",
+        "sort": 20,
+        "base_platform": "java",
+        "some": [
+            {"path": "build.gradle", "match_content": r"spring-framework"},
+            {"path": "pom.xml", "match_content": r"spring-framework"},
+        ],
+    },
+    # --- Go ---
+    {
+        "platform": "go-echo",
+        "sort": 20,
+        "base_platform": "go",
+        "some": [
+            {"path": "go.mod", "match_content": r"(?i)\becho\b"},
+        ],
+    },
+    {
+        "platform": "go-gin",
+        "sort": 20,
+        "base_platform": "go",
+        "some": [
+            {"path": "go.mod", "match_content": r"(?i)\bgin\b"},
+        ],
+    },
+    {
+        "platform": "go-fiber",
+        "sort": 20,
+        "base_platform": "go",
+        "some": [
+            {"path": "go.mod", "match_content": r"(?i)\bfiber\b"},
+        ],
+    },
+]
+
+# Derived indexes built at module load
+_FRAMEWORKS_BY_PLATFORM: dict[str, list[FrameworkDef]] = defaultdict(list)
+for _fw in FRAMEWORKS:
+    _FRAMEWORKS_BY_PLATFORM[_fw["base_platform"]].append(_fw)
+
+_SUPERSESSION_MAP: dict[str, list[str]] = {}
+for _fw in FRAMEWORKS:
+    if "supersedes" in _fw:
+        _SUPERSESSION_MAP[_fw["platform"]] = _fw["supersedes"]
+
+# Package manifest files per base platform (for match_package rules)
+_PACKAGE_MANIFEST_FILES: dict[str, str] = {
+    "javascript": "package.json",
+    "php": "composer.json",
 }
 
-# Base platform priority (used when no framework detected)
-BASE_PLATFORM_PRIORITY = 10
 
-# When a parent framework is detected, child frameworks are redundant.
-# e.g. Next.js includes React, so don't also suggest React.
-SUPERSEDED_BY: dict[str, list[str]] = {
-    "javascript-nextjs": ["javascript-react"],
-    "javascript-remix": ["javascript-react"],
-    "javascript-nuxt": ["javascript-vue"],
-}
-
-# Priority bonus when a framework is detected via config file (strongest signal).
-# A config file like next.config.js is a definitive indicator vs. a dependency
-# which might be transitive or unused.
-CONFIG_FILE_BONUS = 20
-
-# Root-level config files that definitively indicate a specific framework.
-# Inspired by Vercel's framework detection: github.com/vercel/vercel/blob/main/packages/frameworks/src/frameworks.ts
-# Maps base_platform -> list of (config_filename, sentry_platform_id)
-CONFIG_FILE_DETECTORS: dict[str, list[tuple[str, str]]] = {
-    "javascript": [
-        ("next.config.js", "javascript-nextjs"),
-        ("next.config.mjs", "javascript-nextjs"),
-        ("next.config.ts", "javascript-nextjs"),
-        ("nuxt.config.ts", "javascript-nuxt"),
-        ("nuxt.config.js", "javascript-nuxt"),
-        ("svelte.config.js", "javascript-svelte"),
-        ("svelte.config.ts", "javascript-svelte"),
-        ("angular.json", "javascript-angular"),
-        ("remix.config.js", "javascript-remix"),
-        ("remix.config.mjs", "javascript-remix"),
-    ],
-    "python": [
-        ("manage.py", "python-django"),
-    ],
-    "php": [
-        ("artisan", "php-laravel"),
-    ],
-}
-
-
-class FrameworkMatch(TypedDict):
-    platform: str
-    dep_source: str  # "dependencies", "devDependencies", or "unknown"
-
-
-# Maps base_platform -> list of (manifest_file, {dependency_name: sentry_platform_id})
-FRAMEWORK_DETECTORS: dict[str, list[tuple[str, dict[str, str]]]] = {
-    "javascript": [
-        (
-            "package.json",
-            {
-                "next": "javascript-nextjs",
-                "react": "javascript-react",
-                "vue": "javascript-vue",
-                "@angular/core": "javascript-angular",
-                "svelte": "javascript-svelte",
-                "remix": "javascript-remix",
-                "nuxt": "javascript-nuxt",
-                "express": "node-express",
-                "hono": "node-hono",
-                "koa": "node-koa",
-            },
-        ),
-    ],
-    "python": [
-        (
-            "requirements.txt",
-            {
-                "django": "python-django",
-                "flask": "python-flask",
-                "fastapi": "python-fastapi",
-                "starlette": "python-starlette",
-                "celery": "python-celery",
-                "tornado": "python-tornado",
-            },
-        ),
-        (
-            "pyproject.toml",
-            {
-                "django": "python-django",
-                "flask": "python-flask",
-                "fastapi": "python-fastapi",
-                "starlette": "python-starlette",
-                "celery": "python-celery",
-                "tornado": "python-tornado",
-            },
-        ),
-        (
-            "Pipfile",
-            {
-                "django": "python-django",
-                "flask": "python-flask",
-                "fastapi": "python-fastapi",
-                "starlette": "python-starlette",
-                "celery": "python-celery",
-                "tornado": "python-tornado",
-            },
-        ),
-    ],
-    "ruby": [
-        (
-            "Gemfile",
-            {
-                "rails": "ruby-rails",
-            },
-        ),
-    ],
-    "php": [
-        (
-            "composer.json",
-            {
-                "laravel/framework": "php-laravel",
-                "symfony/": "php-symfony",
-            },
-        ),
-    ],
-    "java": [
-        (
-            "build.gradle",
-            {
-                "spring-boot": "java-spring-boot",
-                "spring-framework": "java-spring",
-            },
-        ),
-        (
-            "pom.xml",
-            {
-                "spring-boot": "java-spring-boot",
-                "spring-framework": "java-spring",
-            },
-        ),
-    ],
-    "go": [
-        (
-            "go.mod",
-            {
-                "echo": "go-echo",
-                "gin": "go-gin",
-                "fiber": "go-fiber",
-            },
-        ),
-    ],
-}
+class _PackageManifest(TypedDict):
+    dependencies: set[str]
+    dev_dependencies: set[str]
 
 
 def _get_repo_file_content(
@@ -282,122 +364,94 @@ def _get_root_file_names(client: GitHubBaseClient, repo: str, ref: str | None = 
         params: dict[str, str] = {}
         if ref:
             params["ref"] = ref
-        response = client.get(f"/repos/{repo}/contents/", params=params)
+        response = client.get(f"/repos/{repo}/contents", params=params)
         return {item["name"] for item in response if item.get("type") == "file"}
     except ApiError:
         return set()
 
 
-def _detect_from_config_files(
-    root_files: set[str],
-    base_platform: str,
-) -> list[str]:
-    """Detect frameworks from config file presence in root directory.
-
-    Returns a list of platform IDs detected via config files.
-    """
-    detectors = CONFIG_FILE_DETECTORS.get(base_platform, [])
-    detected: list[str] = []
-    seen: set[str] = set()
-    for config_file, platform_id in detectors:
-        if config_file in root_files and platform_id not in seen:
-            seen.add(platform_id)
-            detected.append(platform_id)
-    return detected
-
-
-def _detect_frameworks_from_content(
-    content: str,
-    manifest_file: str,
-    dependency_map: dict[str, str],
-) -> list[FrameworkMatch]:
-    """Check manifest file content for known framework dependencies.
-
-    Returns FrameworkMatch objects that include which dependency section
-    the framework was found in (dependencies vs devDependencies).
-    """
-    detected: list[FrameworkMatch] = []
-
-    if manifest_file == "package.json":
-        try:
+def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifest | None:
+    """Parse a JSON package manifest into dependency sets."""
+    try:
+        if manifest_file == "package.json":
             pkg = json.loads(content)
-            prod_deps = set(pkg.get("dependencies", {}).keys())
-            dev_deps = set(pkg.get("devDependencies", {}).keys())
-            for dep_name, platform_id in dependency_map.items():
-                if dep_name in prod_deps:
-                    detected.append(FrameworkMatch(platform=platform_id, dep_source="dependencies"))
-                elif dep_name in dev_deps:
-                    detected.append(
-                        FrameworkMatch(platform=platform_id, dep_source="devDependencies")
-                    )
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-    elif manifest_file == "composer.json":
-        try:
+            return _PackageManifest(
+                dependencies=set(pkg.get("dependencies", {}).keys()),
+                dev_dependencies=set(pkg.get("devDependencies", {}).keys()),
+            )
+        elif manifest_file == "composer.json":
             composer = json.loads(content)
-            prod_deps = set(composer.get("require", {}).keys())
-            dev_deps = set(composer.get("require-dev", {}).keys())
-            for dep_name, platform_id in dependency_map.items():
-                source = None
-                for pkg_name in prod_deps:
-                    if pkg_name == dep_name or pkg_name.startswith(dep_name):
-                        source = "dependencies"
-                        break
-                if source is None:
-                    for pkg_name in dev_deps:
-                        if pkg_name == dep_name or pkg_name.startswith(dep_name):
-                            source = "devDependencies"
-                            break
-                if source is not None:
-                    detected.append(FrameworkMatch(platform=platform_id, dep_source=source))
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-    else:
-        # Text-based manifest files: requirements.txt, Gemfile,
-        # pyproject.toml, build.gradle, pom.xml, go.mod
-        content_lower = content.lower()
-        for dep_name, platform_id in dependency_map.items():
-            if dep_name.lower() in content_lower:
-                detected.append(FrameworkMatch(platform=platform_id, dep_source="unknown"))
-
-    return detected
+            return _PackageManifest(
+                dependencies=set(composer.get("require", {}).keys()),
+                dev_dependencies=set(composer.get("require-dev", {}).keys()),
+            )
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return None
 
 
-def detect_framework(
-    client: GitHubBaseClient,
-    repo: str,
-    base_platform: str,
-    ref: str | None = None,
-) -> list[FrameworkMatch]:
-    """
-    Refine a base platform (e.g. "python") into specific framework
-    platforms (e.g. "python-django") by reading manifest files.
+def _package_in_manifest(package_name: str, manifest: _PackageManifest) -> bool:
+    """Check if a package exists in a manifest's dependencies or devDependencies."""
+    all_deps = manifest["dependencies"] | manifest["dev_dependencies"]
+    if package_name in all_deps:
+        return True
+    # Prefix match for composer.json patterns like "symfony/"
+    if package_name.endswith("/"):
+        return any(dep.startswith(package_name) for dep in all_deps)
+    return False
 
-    Returns FrameworkMatch objects, or an empty list if none found.
-    """
-    detectors = FRAMEWORK_DETECTORS.get(base_platform, [])
-    detected: list[FrameworkMatch] = []
 
-    for manifest_file, dependency_map in detectors:
-        content = _get_repo_file_content(client, repo, manifest_file, ref)
+def _rule_matches(
+    rule: DetectorRule,
+    root_files: set[str],
+    file_contents: dict[str, str],
+    package_manifest: _PackageManifest | None,
+) -> bool:
+    """Evaluate a single detector rule against repository state."""
+    if "match_package" in rule:
+        if package_manifest is None:
+            return False
+        return _package_in_manifest(rule["match_package"], package_manifest)
+
+    path = rule.get("path")
+    if path is None:
+        return False
+
+    if "match_content" in rule:
+        content = file_contents.get(path)
         if content is None:
-            continue
-        frameworks = _detect_frameworks_from_content(content, manifest_file, dependency_map)
-        detected.extend(frameworks)
-        if detected:
-            break
+            return False
+        return bool(re.search(rule["match_content"], content))
 
-    # Deduplicate while preserving order
-    seen: set[str] = set()
-    unique: list[FrameworkMatch] = []
-    for match in detected:
-        if match["platform"] not in seen:
-            seen.add(match["platform"])
-            unique.append(match)
+    # path-only rule: check if file exists in root
+    return path in root_files
 
-    return unique
+
+def _framework_matches(
+    fw: FrameworkDef,
+    root_files: set[str],
+    file_contents: dict[str, str],
+    package_manifest: _PackageManifest | None,
+) -> bool:
+    """Evaluate whether a framework definition matches the repository."""
+    every: Sequence[DetectorRule] = fw.get("every", [])
+    some: Sequence[DetectorRule] = fw.get("some", [])
+
+    if not every and not some:
+        return False
+
+    every_pass = (
+        all(_rule_matches(r, root_files, file_contents, package_manifest) for r in every)
+        if every
+        else True
+    )
+    some_pass = (
+        any(_rule_matches(r, root_files, file_contents, package_manifest) for r in some)
+        if some
+        else True
+    )
+
+    return every_pass and some_pass
 
 
 def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatform]:
@@ -408,18 +462,10 @@ def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatfor
     detected_ids = {r["platform"] for r in results}
     superseded: set[str] = set()
     for platform_id in detected_ids:
-        for child_id in SUPERSEDED_BY.get(platform_id, []):
+        for child_id in _SUPERSESSION_MAP.get(platform_id, []):
             superseded.add(child_id)
 
     return [r for r in results if r["platform"] not in superseded]
-
-
-# Bonus priority for frameworks found in production dependencies vs devDependencies
-_DEP_SOURCE_BONUS = {
-    "dependencies": 10,
-    "devDependencies": 0,
-    "unknown": 5,
-}
 
 
 def detect_platforms(
@@ -430,10 +476,11 @@ def detect_platforms(
     """
     Detect Sentry platforms for a GitHub repository.
 
-    Uses three signals (inspired by Vercel's framework detection):
-    1. Config files — strongest signal (next.config.js, manage.py, etc.)
-    2. Manifest dependencies — package.json, requirements.txt, etc.
-    3. Language bytes — from GitHub's Languages API
+    Uses composable framework definitions (inspired by Vercel's detection)
+    with three signal types:
+    1. Config files — path-only rules (next.config.js, manage.py, etc.)
+    2. Manifest content — path + match_content rules (requirements.txt, go.mod, etc.)
+    3. Package dependencies — match_package rules (package.json, composer.json)
 
     Results are ranked by priority (descending), then bytes (descending).
     Superseded frameworks (e.g. React when Next.js is present) are removed.
@@ -441,46 +488,73 @@ def detect_platforms(
     languages = client.get_languages(repo)
     root_files = _get_root_file_names(client, repo, ref)
 
-    results: list[DetectedPlatform] = []
-    seen_platforms: set[str] = set()
-
+    # Group languages by base platform
+    active_platforms: dict[str, list[tuple[str, int]]] = defaultdict(list)
     for language, byte_count in languages.items():
         if language in IGNORED_LANGUAGES:
             continue
-
         base_platform = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get(language)
-        if base_platform is None:
+        if base_platform is not None:
+            active_platforms[base_platform].append((language, byte_count))
+
+    # Collect all file paths that need content fetching (path + match_content rules)
+    needed_paths: set[str] = set()
+    for base_platform in active_platforms:
+        for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
+            for rule in [*fw.get("every", []), *fw.get("some", [])]:
+                path = rule.get("path")
+                if path and "match_content" in rule and path in root_files:
+                    needed_paths.add(path)
+
+    # Fetch file contents in one pass
+    file_contents: dict[str, str] = {}
+    for path in needed_paths:
+        content = _get_repo_file_content(client, repo, path, ref)
+        if content is not None:
+            file_contents[path] = content
+
+    # Parse package manifests for platforms that use match_package rules
+    package_manifests: dict[str, _PackageManifest | None] = {}
+    for base_platform in active_platforms:
+        manifest_file = _PACKAGE_MANIFEST_FILES.get(base_platform)
+        if manifest_file is None or manifest_file in package_manifests:
             continue
+        if manifest_file not in root_files:
+            package_manifests[manifest_file] = None
+            continue
+        content = file_contents.get(manifest_file)
+        if content is None:
+            content = _get_repo_file_content(client, repo, manifest_file, ref)
+            if content is not None:
+                file_contents[manifest_file] = content
+        package_manifests[manifest_file] = (
+            _parse_package_manifest(content, manifest_file) if content else None
+        )
 
-        # Signal 1: Config file detection (one check against cached root listing)
-        config_detected = set(_detect_from_config_files(root_files, base_platform))
+    # Evaluate frameworks per base platform
+    results: list[DetectedPlatform] = []
+    seen_platforms: set[str] = set()
 
-        # Signal 2: Dependency detection from manifest files
-        framework_matches = detect_framework(client, repo, base_platform, ref)
-        dep_map: dict[str, str] = {m["platform"]: m["dep_source"] for m in framework_matches}
+    for base_platform, lang_entries in active_platforms.items():
+        language, byte_count = max(lang_entries, key=lambda x: x[1])
 
-        # Merge signals: union of all detected framework platform IDs
-        all_framework_ids = config_detected | set(dep_map.keys())
+        manifest_file = _PACKAGE_MANIFEST_FILES.get(base_platform)
+        manifest = package_manifests.get(manifest_file) if manifest_file else None
 
-        for framework_id in all_framework_ids:
-            if framework_id not in seen_platforms:
-                seen_platforms.add(framework_id)
-                base_priority = FRAMEWORK_PRIORITY.get(framework_id, 50)
-                has_config = framework_id in config_detected
-                dep_source = dep_map.get(framework_id)
-
-                config_bonus = CONFIG_FILE_BONUS if has_config else 0
-                dep_bonus = _DEP_SOURCE_BONUS.get(dep_source, 0) if dep_source else 0
-
-                results.append(
-                    DetectedPlatform(
-                        platform=framework_id,
-                        language=language,
-                        bytes=byte_count,
-                        confidence="high",
-                        priority=base_priority + config_bonus + dep_bonus,
+        for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
+            if _framework_matches(fw, root_files, file_contents, manifest):
+                platform_id = fw["platform"]
+                if platform_id not in seen_platforms:
+                    seen_platforms.add(platform_id)
+                    results.append(
+                        DetectedPlatform(
+                            platform=platform_id,
+                            language=language,
+                            bytes=byte_count,
+                            confidence="high",
+                            priority=100 - fw["sort"],
+                        )
                     )
-                )
 
         if base_platform not in seen_platforms:
             seen_platforms.add(base_platform)
@@ -490,7 +564,7 @@ def detect_platforms(
                     language=language,
                     bytes=byte_count,
                     confidence="medium",
-                    priority=BASE_PLATFORM_PRIORITY,
+                    priority=1,
                 )
             )
 
