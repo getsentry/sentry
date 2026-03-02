@@ -20,6 +20,9 @@ Which expands to `pytest tests/ --reuse-db ...` targeting ALL of tests/ then fil
 ### Validated optimization
 Targeting specific directories + `mode: backend-ci`: 9m04s (7 passed, 1 failed due to needing Snuba). The Snuba-dependent test is `test_0099_backfill_metric_issue_detectorgroup`.
 
+### Why does this run on every backend change?
+It triggers on `backend == 'true'`. At first glance this seems wasteful since migration tests validate data migration scripts. However, migration tests import and use ORM models — a model change (new validator, field constraint, manager method) could break a migration test even without touching migration files. So the broad trigger is the safe choice. The real fix is the targeted directory + right devservices mode optimization, not changing the trigger.
+
 ### Proposed fix
 ```bash
 python3 -b -m pytest \
@@ -41,6 +44,9 @@ Runs 104 backup/import/export tests with `SENTRY_USE_MONOLITH_DBS=1` (single DB 
 
 ### Why it exists
 `imports.py:533-544` has a real code branch: monolith imports are wrapped in `transaction.atomic` and clear all tables first. Hybrid-mode imports don't. Without this suite, bugs in that path would only affect self-hosted users.
+
+### Why does this run on every backend change?
+Triggers on `backend == 'true'`. The backup/import/export code touches models from across the entire codebase (it serializes/deserializes all model types), so a model change anywhere could break these tests. Broad trigger is the safe choice.
 
 ### Key findings
 - `SENTRY_LEGACY_TEST_SUITE=1` env var is dead — nothing reads it

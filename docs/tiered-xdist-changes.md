@@ -98,3 +98,19 @@ The `calculate-shards` job now has a fast path: when selective testing isn't act
 **Modified:** `tests/sentry/utils/test_snowflake.py`
 
 Two tests hardcode expected snowflake values assuming `region_snowflake_id=0`. Under xdist, workers use `worker_num + 1` (from 2b). Fix: wrap in `override_regions` with explicit `Region("test-region", 0, ...)` so expected values are deterministic.
+
+---
+
+## Upcoming Phases
+
+### 4. Collection Optimization (G1) + Overlapped Startup (H1)
+
+Skip importing irrelevant test files during collection (`pytest_ignore_collect` gated on `SELECTED_TESTS_FILE`). Add `_wait_for_services` session fixture and `_requires_snuba` polling for H1 overlapped startup where services start in background while pytest collects. Only useful with the tiered workflow but env-gated so safe to land independently.
+
+### 5. Tiered Workflow Tooling
+
+Service classifier plugin (`service_classifier.py`), split-tests-by-tier script, classify-services workflow. Maps each test to its service dependencies and splits into tier1 (postgres-only) / tier2 (full stack).
+
+### 6. Tiered Workflow + Per-Tier Optimizations
+
+The full 2-tier CI workflow (5 T1 shards + 17 T2 shards), postgres Unix socket, Relay container session scope, per-tier devservices modes.
