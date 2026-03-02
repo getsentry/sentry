@@ -1,6 +1,10 @@
 import pytest
 
-from sentry.grouping.parameterization import Parameterizer
+from sentry.grouping.parameterization import (
+    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
+    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
+    Parameterizer,
+)
 
 
 @pytest.fixture
@@ -58,13 +62,16 @@ standard_cases = [
     ("date - RFC3339Nano without offset", "2006-01-02T15:04:05.999999999Z", "<date>"),
     ("date - plain", "2006-01-02", "<date>"),
     ("date - long", "Jan 18, 2019", "<date>"),
-    ("date - datetime", "2006-01-02 15:04:05", "<date>"),
+    ("date - datetime space-separated", "2006-01-02 15:04:05", "<date>"),
+    ("date - datetime T-separated", "2006-01-02T15:04:05", "<date>"),
+    ("date - datetime T-separated UTC", "2006-01-02T15:04:05Z", "<date>"),
+    ("date - datetime T-separated w offset", "2006-01-02T15:04:05+01:00", "<date>"),
     ("date - kitchen", "3:04PM", "<date>"),
     ("date - time", "15:04:05", "<date>"),
     ("date - basic", "Mon Jan 02, 1999", "<date>"),
-    ("date - compressed", "20240220 11:55:33.546593", "<date>"),
+    ("date - datetime compressed date", "20240220 11:55:33.546593", "<date>"),
     ("date - datestamp", "2024-02-23 02:13:53.418", "<date>"),
-    ("date - datetime", "datetime.datetime(2025, 6, 24, 18, 33, 0, 447640)", "<date>"),
+    ("date - datetime object", "datetime.datetime(2025, 6, 24, 18, 33, 0, 447640)", "<date>"),
     ("duration - 0ms", "0ms", "<duration>"),
     ("duration - 1ms", "1ms", "<duration>"),
     ("duration - 10ms", "10ms", "<duration>"),
@@ -112,6 +119,10 @@ standard_cases = [
     ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
     ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
     ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
+    ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
+    ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
+    ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
+    ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
@@ -145,7 +156,7 @@ experimental_cases: list[tuple[str, str, str]] = [
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases)
-def test_parameterize_standard(
+def test_default_parameterization(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
     assert parameterizer.parameterize_all(input) == expected
@@ -155,7 +166,7 @@ def test_parameterize_standard(
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
-def test_parameterize_standard_not_experimental(
+def test_default_parameterizer_misses_experimental_cases(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
     assert parameterizer.parameterize_all(input) != expected
@@ -164,8 +175,12 @@ def test_parameterize_standard_not_experimental(
     assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
+@pytest.mark.skipif(
+    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
+    reason="no experimental regexes to test",
+)
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
-def test_parameterize_experimental(
+def test_experimental_parameterization(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
     assert experimental_parameterizer.parameterize_all(input) == expected
