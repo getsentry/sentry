@@ -367,5 +367,5 @@ class SlackNotificationProviderThreadingTest(TestCase):
         assert result.status == SendStatus.HALT
         assert result.provider_message_id is None
         assert result.error_code == 400
-        assert result.error_message is not None
-        assert "channel_not_found" in result.error_message
+        assert result.exception is not None
+        assert "channel_not_found" in str(result.exception)

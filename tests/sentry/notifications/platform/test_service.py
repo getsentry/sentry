@@ -21,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
@@ -93,7 +94,7 @@ class NotificationServiceTest(TestCase):
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
         mock_send.return_value = SendResult(
             status=SendStatus.HALT,
-            error_message="Provider error",
+            exception=IntegrationConfigurationError(message="Provider error"),
             error_code=400,
         )
 
@@ -102,7 +103,7 @@ class NotificationServiceTest(TestCase):
 
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
         assert errors[NotificationProviderKey.EMAIL][0].status == SendStatus.HALT
-        assert errors[NotificationProviderKey.EMAIL][0].error_message == "Provider error"
+        assert str(errors[NotificationProviderKey.EMAIL][0].exception) == "Provider error"
 
     def test_render_template_classmethod(self) -> None:
         data = MockNotification(message="test")
@@ -131,7 +132,7 @@ class NotificationServiceTest(TestCase):
     ) -> None:
         mock_send.return_value = SendResult(
             status=SendStatus.FAILURE,
-            error_message="API request failed",
+            exception=IntegrationError(message="API request failed"),
             error_code=400,
         )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
@@ -162,7 +163,7 @@ class NotificationServiceTest(TestCase):
     ) -> None:
         mock_send.return_value = SendResult(
             status=SendStatus.FAILURE,
-            error_message="Slack API request failed",
+            exception=IntegrationError(message="Slack API request failed"),
             error_code=400,
         )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
