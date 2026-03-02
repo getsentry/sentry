@@ -24,13 +24,13 @@ class ParameterizationRegex:
 
     @property
     def pattern(self) -> str:
-        return self._pattern(False)
+        return self._get_pattern(False)
 
     @property
     def experimental_pattern(self) -> str:
-        return self._pattern(self.raw_pattern_experimental is not None)
+        return self._get_pattern(self.raw_pattern_experimental is not None)
 
-    def _pattern(self, experimental: bool = False) -> str:
+    def _get_pattern(self, experimental: bool = False) -> str:
         """
         Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
