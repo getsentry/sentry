@@ -3,7 +3,6 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
-from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
 
 
@@ -20,9 +19,6 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
             organization=self.org, teams=[self.team], name="Bengal", date_added=before_now(hours=2)
         )
         self.login_as(self.user)
-        UserOption.objects.set_value(
-            user=self.user, key="prefers_issue_details_streamlined_ui", value=False
-        )
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
         self.event = self.create_issue()
@@ -35,7 +31,7 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_user_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "user")
-        assert self.browser.element_exists_by_test_id("group-tag-mail")
+        assert self.browser.element_exists_by_test_id("group-tag-value")
 
     def test_url_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "url")
