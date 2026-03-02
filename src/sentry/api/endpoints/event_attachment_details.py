@@ -58,9 +58,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
-    def download(
-        self, attachment: EventAttachment, request: Request, project
-    ) -> StreamingHttpResponse:
+    def download(self, attachment: EventAttachment, request: Request) -> StreamingHttpResponse:
         name = posixpath.basename(" ".join(attachment.name.split()))
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
         blob_stream = attachment.get_blob_stream(accept_encoding)
@@ -110,7 +108,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             return self.respond({"detail": "Attachment not found"}, status=404)
 
         if request.GET.get("download") is not None:
-            return self.download(attachment, request, project)
+            return self.download(attachment, request)
 
         return self.respond(serialize(attachment, request.user))
 
