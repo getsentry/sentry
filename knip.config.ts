@@ -6,9 +6,6 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
-  // dynamic imports _not_ recognized by knip
-  'static/app/bootstrap/initializeMain.tsx',
-  'static/gsApp/initializeBundleMetrics.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
   'static/app/views/integrationPipeline/index.tsx',
