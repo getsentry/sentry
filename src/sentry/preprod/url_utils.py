@@ -17,6 +17,18 @@ def get_preprod_artifact_url(preprod_artifact: PreprodArtifact, view_type: str =
     return organization.absolute_url(path, query=query)
 
 
+def get_preprod_snapshot_url(preprod_artifact: PreprodArtifact) -> str:
+    """
+    Build a region/customer-domain aware absolute URL for the snapshot UI.
+    """
+    organization: Organization = Organization.objects.get_from_cache(
+        id=preprod_artifact.project.organization_id
+    )
+    path = f"/organizations/{organization.slug}/preprod/snapshots/{preprod_artifact.id}"
+    query = f"project={preprod_artifact.project.id}"
+    return organization.absolute_url(path, query=query)
+
+
 def get_preprod_artifact_comparison_url(
     preprod_artifact: PreprodArtifact, base_artifact: PreprodArtifact, comparison_type: str = "size"
 ) -> str:
