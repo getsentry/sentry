@@ -7,8 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-
-logger = logging.getLogger(__name__)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -30,6 +28,8 @@ from sentry.preprod.build_distribution_utils import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -216,7 +216,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         if current_artifact:
             current_dict = create_install_info_dict(current_artifact)
 
-        if build_version is not None:
+        if build_version:
             update_available = bool(
                 latest_artifact
                 and latest_artifact.id != (current_artifact.id if current_artifact else None)

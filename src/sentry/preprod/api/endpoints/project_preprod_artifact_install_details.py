@@ -64,7 +64,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
                     }
                 )
 
-        if not info.is_installable:
+        if not head_artifact.installable_app_file_id:
             return Response({"error": "Installable file not available"}, status=404)
 
         response_data: dict[str, Any] = {
