@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,7 +10,10 @@ import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SnapshotComparisonRunInfo} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  ComparisonState,
+  type SnapshotComparisonRunInfo,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 function formatDuration(ms: number): string {
   if (ms < 60_000) {
@@ -44,18 +47,16 @@ export function SnapshotDevTools({
   const [devToolsCollapsed, setDevToolsCollapsed] = useState(
     () => localStorage.getItem('snapshot-dev-tools-collapsed') === 'true'
   );
-  const [polling, setPolling] = useState(false);
   const [recompareLoading, setRecompareLoading] = useState(false);
   const [recompareError, setRecompareError] = useState<string | null>(null);
   const clientRef = useRef(new Client());
 
-  useEffect(() => {
-    if (comparisonState) {
-      setPolling(true);
-    } else {
-      setPolling(false);
-    }
-  }, [comparisonState]);
+  const polling = useMemo(
+    () =>
+      comparisonState === ComparisonState.PENDING ||
+      comparisonState === ComparisonState.PROCESSING,
+    [comparisonState]
+  );
 
   useEffect(() => {
     if (!polling) {
@@ -79,7 +80,6 @@ export function SnapshotDevTools({
         method: 'POST',
         success: () => {
           setRecompareLoading(false);
-          setPolling(true);
           refetch();
         },
         error: (err: any) => {
@@ -91,9 +91,9 @@ export function SnapshotDevTools({
   }, [organizationSlug, projectSlug, snapshotId, refetch]);
 
   let stateLabel: string;
-  if (comparisonState === 'PROCESSING') {
+  if (comparisonState === ComparisonState.PROCESSING) {
     stateLabel = t('Processing...');
-  } else if (comparisonState === 'PENDING') {
+  } else if (comparisonState === ComparisonState.PENDING) {
     stateLabel = t('Queued...');
   } else if (comparisonCompletedAt) {
     stateLabel = t('Done');

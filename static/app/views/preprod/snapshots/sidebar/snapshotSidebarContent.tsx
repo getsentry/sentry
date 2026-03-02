@@ -16,7 +16,7 @@ import {
   IconSubtract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DiffStatus, SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus, type SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SectionConfig {
   defaultExpanded: boolean;
@@ -27,26 +27,31 @@ interface SectionConfig {
 
 const SECTION_ORDER: SectionConfig[] = [
   {
-    type: 'changed',
+    type: DiffStatus.CHANGED,
     label: t('Modified'),
     icon: <IconEdit size="xs" />,
     defaultExpanded: true,
   },
-  {type: 'added', label: t('Added'), icon: <IconAdd size="xs" />, defaultExpanded: false},
   {
-    type: 'removed',
+    type: DiffStatus.ADDED,
+    label: t('Added'),
+    icon: <IconAdd size="xs" />,
+    defaultExpanded: false,
+  },
+  {
+    type: DiffStatus.REMOVED,
     label: t('Removed'),
     icon: <IconSubtract size="xs" />,
     defaultExpanded: false,
   },
   {
-    type: 'renamed',
+    type: DiffStatus.RENAMED,
     label: t('Renamed'),
     icon: <IconCopy size="xs" />,
     defaultExpanded: false,
   },
   {
-    type: 'unchanged',
+    type: DiffStatus.UNCHANGED,
     label: t('Unchanged'),
     icon: <IconCheckmark size="xs" />,
     defaultExpanded: false,

@@ -47,9 +47,20 @@ export interface SnapshotDetailsApiResponse {
   unchanged_count: number;
 }
 
-export type ComparisonState = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+export enum ComparisonState {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+}
 
-export type DiffStatus = 'changed' | 'added' | 'removed' | 'renamed' | 'unchanged';
+export enum DiffStatus {
+  CHANGED = 'changed',
+  ADDED = 'added',
+  REMOVED = 'removed',
+  RENAMED = 'renamed',
+  UNCHANGED = 'unchanged',
+}
 
 export type SidebarItem =
   | {type: 'solo'; name: string; images: SnapshotImage[]}

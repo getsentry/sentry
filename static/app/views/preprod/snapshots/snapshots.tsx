@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -143,6 +143,10 @@ export default function SnapshotsPage() {
       ? selectedItemName
       : (filteredItems[0]?.name ?? null);
   const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
+
+  useEffect(() => {
+    setVariantIndex(0);
+  }, [currentItemName]);
 
   const handleSelectItem = (name: string) => {
     setSelectedItemName(name);

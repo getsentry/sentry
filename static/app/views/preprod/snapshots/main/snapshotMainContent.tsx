@@ -117,7 +117,9 @@ export function SnapshotMainContent({
       ? t('Added')
       : selectedItem.type === 'removed'
         ? t('Removed')
-        : t('Unchanged');
+        : selectedItem.type === 'renamed'
+          ? t('Renamed')
+          : t('Unchanged');
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
