@@ -221,7 +221,8 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
 EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.experimental_pattern for r in DEFAULT_PARAMETERIZATION_REGEXES
+    r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
+    for r in DEFAULT_PARAMETERIZATION_REGEXES
 }
 
 
