@@ -21,7 +21,7 @@ const DESTINATION_TABLE: Widget = {
       fields: [
         SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg(${SpanFields.SPAN_DURATION})`,
+        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
@@ -30,7 +30,7 @@ const DESTINATION_TABLE: Widget = {
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME],
       aggregates: [
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg(${SpanFields.SPAN_DURATION})`,
+        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
