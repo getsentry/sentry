@@ -1,13 +1,12 @@
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -41,40 +40,25 @@ function SeerProjectDetails() {
   return (
     <AnalyticsArea name="project-details">
       <SentryDocumentTitle
-        title={t('Project Seer Settings')}
+        title={t('Seer Autofix Settings')}
         projectSlug={project.slug}
       />
       <SettingsPageHeader
-        title={tct('Seer Settings for [projectName]', {
+        title={tct('Seer Autofix for [projectName]', {
           projectName: (
             <Text as="span" monospace>
               {project.slug}
             </Text>
           ),
         })}
-        subtitle={t(
-          'Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them.'
+        subtitle={tct(
+          'Connect repositories to projects, and choose which Agent should automatically process issues. [read_the_docs:Read the docs] to learn what Seer can do',
+          {
+            read_the_docs: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+            ),
+          }
         )}
-        action={
-          <Flex gap="lg">
-            <FeedbackButton
-              size="md"
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make Seer better for you?'),
-                tags: {
-                  ['feedback.source']: 'seer-settings-project-details',
-                  ['feedback.owner']: 'coding-workflows',
-                },
-              }}
-            />
-            <LinkButton
-              href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/"
-              external
-            >
-              {t('Read the docs')}
-            </LinkButton>
-          </Flex>
-        }
       />
       {canWrite ? null : (
         <Stack paddingBottom="xl">

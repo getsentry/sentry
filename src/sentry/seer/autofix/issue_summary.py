@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from urllib3 import BaseHTTPResponse
 
 from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
@@ -26,18 +27,20 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    autofix_connection_pool,
+    GetProjectPreferenceRequest,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
+    make_get_project_preference_request,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
+    SummarizeIssueRequest,
     make_signed_seer_api_request,
-    seer_summarization_default_connection_pool,
+    make_summarize_issue_request,
 )
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -93,13 +96,8 @@ def _fetch_user_preference(project_id: int) -> str | None:
     Returns None if preference is not set or if the API call fails.
     """
     try:
-        path = "/v1/project-preference"
-        body = orjson.dumps({"project_id": project_id})
-
-        response = make_signed_seer_api_request(
-            autofix_connection_pool,
-            path,
-            body,
+        response = make_get_project_preference_request(
+            GetProjectPreferenceRequest(project_id=project_id),
             timeout=5,
         )
 
@@ -245,31 +243,20 @@ def _call_seer(
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
 ):
-    path = "/v1/automation/summarize/issue"
-    body = orjson.dumps(
-        {
-            "group_id": group.id,
-            "issue": {
-                "id": group.id,
-                "title": group.title,
-                "short_id": group.qualified_short_id,
-                "events": [serialized_event],
-            },
-            "trace_tree": trace_tree,
-            "organization_slug": group.organization.slug,
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
+    body = SummarizeIssueRequest(
+        group_id=group.id,
+        issue={
+            "id": group.id,
+            "title": group.title,
+            "short_id": group.qualified_short_id,
+            "events": [serialized_event],
         },
-        option=orjson.OPT_NON_STR_KEYS,
+        trace_tree=trace_tree,
+        organization_slug=group.organization.slug,
+        organization_id=group.organization.id,
+        project_id=group.project.id,
     )
-
-    # Route to summarization URL
-    response = make_signed_seer_api_request(
-        seer_summarization_default_connection_pool,
-        path,
-        body,
-        timeout=30,
-    )
+    response = make_summarize_issue_request(body, timeout=30)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -283,24 +270,39 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
+class FixabilityScoreRequest(TypedDict):
+    group_id: int
+    organization_slug: str
+    organization_id: int
+    project_id: int
+    summary: NotRequired[dict[str, Any] | None]
+
+
+def make_fixability_score_request(
+    body: FixabilityScoreRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        fixability_connection_pool_gpu,
+        "/v1/automation/summarize/fixability",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+    )
+
+
 def _generate_fixability_score(
     group: Group,
     summary: dict[str, Any] | None = None,
 ) -> SummarizeIssueResponse:
-    payload: dict[str, Any] = {
-        "group_id": group.id,
-        "organization_slug": group.organization.slug,
-        "organization_id": group.organization.id,
-        "project_id": group.project.id,
-    }
-    if summary is not None:
-        payload["summary"] = summary
-    response = make_signed_seer_api_request(
-        fixability_connection_pool_gpu,
-        "/v1/automation/summarize/fixability",
-        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
-        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+    body = FixabilityScoreRequest(
+        group_id=group.id,
+        organization_slug=group.organization.slug,
+        organization_id=group.organization.id,
+        project_id=group.project.id,
     )
+    if summary is not None:
+        body["summary"] = summary
+    response = make_fixability_score_request(body, timeout=settings.SEER_FIXABILITY_TIMEOUT)
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)

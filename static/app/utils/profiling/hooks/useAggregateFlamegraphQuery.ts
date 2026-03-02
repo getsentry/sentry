@@ -33,10 +33,16 @@ interface ProfilesAggregateFlamegraphQueryParameters extends BaseAggregateFlameg
   dataSource: 'profiles';
 }
 
+interface SpansAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
+  dataSource: 'spans';
+  query: string;
+}
+
 export type AggregateFlamegraphQueryParameters =
   | FunctionsAggregateFlamegraphQueryParameters
   | TransactionsAggregateFlamegraphQueryParameters
-  | ProfilesAggregateFlamegraphQueryParameters;
+  | ProfilesAggregateFlamegraphQueryParameters
+  | SpansAggregateFlamegraphQueryParameters;
 
 type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
   Profiling.Schema,
@@ -54,7 +60,7 @@ export function useAggregateFlamegraphQuery(
   if (isDataSourceFunctions(props)) {
     fingerprint = props.fingerprint;
     query = props.query;
-  } else if (isDataSourceTransactions(props)) {
+  } else if (isDataSourceTransactions(props) || isDataSourceSpans(props)) {
     query = props.query;
   }
 
@@ -118,8 +124,18 @@ function isDataSourceFunctions(
   return 'fingerprint' in props;
 }
 
+function isDataSourceSpans(
+  props: AggregateFlamegraphQueryParameters
+): props is SpansAggregateFlamegraphQueryParameters {
+  return 'dataSource' in props && props.dataSource === 'spans';
+}
+
 function isDataSourceTransactions(
   props: AggregateFlamegraphQueryParameters
 ): props is TransactionsAggregateFlamegraphQueryParameters {
-  return !isDataSourceProfiles(props) && !isDataSourceFunctions(props);
+  return (
+    !isDataSourceProfiles(props) &&
+    !isDataSourceFunctions(props) &&
+    !isDataSourceSpans(props)
+  );
 }

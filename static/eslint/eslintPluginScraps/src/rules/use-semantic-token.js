@@ -5,8 +5,8 @@
  * CSS properties based on their semantic category.
  */
 
-import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.mjs';
-import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.mjs';
+import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.js';
+import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.js';
 
 /**
  * @type {import('eslint').Rule.RuleModule}
@@ -64,7 +64,7 @@ export const useSemanticToken = {
 
     /**
      * Validate a single StyleDeclaration
-     * @param {import('../ast/extractor/types.mjs').StyleDeclaration} decl
+     * @param {import('../ast/extractor/types.js').StyleDeclaration} decl
      */
     function validateDeclaration(decl) {
       const normalizedProperty = decl.property.name;

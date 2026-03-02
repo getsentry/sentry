@@ -317,6 +317,27 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="io.sentry.graphql.SentryGraphqlInstrumentation",
                     function_pattern="instrumentExecutionResultComplete",
                 ),
+                # WindowCallbackAdapter just forwards the calls to the next callback in the chain.
+                # It does not cause crashes/ANRs itself.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.core.internal.gestures.WindowCallbackAdapter",
+                    function_pattern="*",
+                ),
+                # All functions that we delegate to are inside lambdas, so we ignore them.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteStatement$*",
+                    function_pattern="invoke",
+                ),
+                # Our wrapper class does not override beginTransaction, so we ignore it.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    function_pattern="beginTransaction*",
+                ),
+                # Our wrapper class does not override any move* methods, so we ignore it.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentryCrossProcessCursor",
+                    function_pattern="move*",
+                ),
             },
         )
         configs.append(java_config)

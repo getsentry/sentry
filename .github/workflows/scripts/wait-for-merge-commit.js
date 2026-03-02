@@ -7,7 +7,7 @@ function wait(interval) {
   });
 }
 
-async function waitForMergeCommit({github, context, core}) {
+export async function waitForMergeCommit({github, context, core}) {
   const pullRequest = context.payload.pull_request;
   const pullNumber = pullRequest.number;
 
@@ -58,7 +58,3 @@ async function waitForMergeCommit({github, context, core}) {
     core.setFailed(`PR #${pullNumber} is not mergeable`);
   }
 }
-
-module.exports = {
-  waitForMergeCommit,
-};

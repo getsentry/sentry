@@ -340,6 +340,7 @@ describe('add to dashboard modal', () => {
       query: '',
       sort: '',
       yAxis: 'count()',
+      axisRange: 'auto',
     });
   });
 
@@ -381,6 +382,7 @@ describe('add to dashboard modal', () => {
       legendAlias: '',
       statsPeriod: '1h',
       source: DashboardWidgetSource.DISCOVERV2,
+      axisRange: 'auto',
     });
   });
 
@@ -798,6 +800,7 @@ describe('add to dashboard modal', () => {
       project: ['2', '3'],
       environment: ['production', 'staging'],
       statsPeriod: '7d',
+      axisRange: 'auto',
     });
   });
 
@@ -851,6 +854,7 @@ describe('add to dashboard modal', () => {
       // Dashboard's saved filters should be used, not user's selection
       project: '1',
       statsPeriod: '1h',
+      axisRange: 'auto',
     });
   });
 

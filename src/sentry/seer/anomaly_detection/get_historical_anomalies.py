@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from urllib3 import Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -32,6 +32,18 @@ SEER_RETRIES = Retry(
     status_forcelist=[408, 429, 502, 503, 504],
     allowed_methods=["GET", "POST"],
 )
+
+
+def make_detect_historical_anomalies_request(
+    body: DetectHistoricalAnomaliesRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_anomaly_detection_connection_pool,
+        SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+        body=json.dumps(body).encode("utf-8"),
+        retries=SEER_RETRIES,
+    )
 
 
 def handle_seer_error_responses(response, config, context, log_params):
@@ -123,12 +135,7 @@ def get_historical_anomaly_data_from_seer_preview(
         "context": context,
     }
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-            body=json.dumps(body).encode("utf-8"),
-            retries=SEER_RETRIES,
-        )
+        response = make_detect_historical_anomalies_request(body)
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None

@@ -21,17 +21,11 @@ from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import ServiceMapUpdateRequest, make_service_map_update_request
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger("sentry.seer.explorer.explorer_service_map_utils")
-
-# Seer endpoint path
-SEER_SERVICE_MAP_PATH = "/v1/explorer/service-map/update"
 
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000
@@ -296,13 +290,12 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         if e.get("source_project_slug") is not None and e.get("target_project_slug") is not None
     ]
 
-    payload = {
-        "organization_id": org_id,
-        "nodes": valid_nodes,
-        "edges": valid_edges,
-    }
-
-    body = orjson.dumps(payload)
+    body = ServiceMapUpdateRequest(
+        organization_id=org_id,
+        nodes=valid_nodes,
+        edges=valid_edges,
+    )
+    body_bytes = orjson.dumps(body)
 
     logger.info(
         "Sending service map to Seer",
@@ -310,15 +303,10 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
             "org_id": org_id,
             "node_count": len(valid_nodes),
             "edge_count": len(valid_edges),
-            "payload_size_bytes": len(body),
+            "payload_size_bytes": len(body_bytes),
         },
     )
 
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        SEER_SERVICE_MAP_PATH,
-        body,
-        timeout=30,
-    )
+    response = make_service_map_update_request(body, timeout=30)
     if response.status >= 400:
         raise SeerApiError("Seer service map update failed", response.status)

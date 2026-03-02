@@ -4,10 +4,14 @@ import {Children, Fragment, useEffect} from 'react';
 import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
 import {StoryHeading} from 'sentry/stories/view/storyHeading';
 
-import * as Storybook from './';
+import {APIReference} from './apiReference';
+import {Section, SideBySide} from './layout';
+
+function makeStorybookDocumentTitle(title: string | undefined): string {
+  return title ? `${title} — Scraps` : 'Scraps';
+}
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
@@ -47,7 +51,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={name + idx} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <Storybook.APIReference key={i} componentProps={documentation} />
+          <APIReference key={i} componentProps={documentation} />
         ))}
       </Fragment>
     );
@@ -59,13 +63,13 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   const isOneChild = Children.count(children) === 1;
 
   return (
-    <Storybook.Section>
+    <Section>
       <Container borderBottom="primary">
         <StoryHeading as="h2" size="2xl">
           {props.name}
         </StoryHeading>
       </Container>
-      {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
-    </Storybook.Section>
+      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+    </Section>
   );
 }

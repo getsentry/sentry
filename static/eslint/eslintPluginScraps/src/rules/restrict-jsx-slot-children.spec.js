@@ -1,6 +1,6 @@
 import {RuleTester} from 'eslint';
 
-import {restrictJsxSlotChildren} from './restrict-jsx-slot-children.mjs';
+import {restrictJsxSlotChildren} from './restrict-jsx-slot-children.js';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -19,7 +19,7 @@ import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 
 /**
  * The CompactSelect slot configuration exercised in all test cases below.
- * Matches the configuration registered in eslint.config.mjs.
+ * Matches the configuration registered in eslint.config.js.
  */
 const COMPACT_SELECT_OPTIONS = [
   {

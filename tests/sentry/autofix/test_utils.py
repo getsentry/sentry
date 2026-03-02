@@ -84,7 +84,7 @@ class TestGetAutofixStateFromPrId(TestCase):
         mock_request.assert_called_once()
         path = mock_request.call_args[0][1]
         assert path == "/v1/automation/autofix/state/pr"
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = orjson.loads(mock_request.call_args[1]["body"])
         assert body == {"provider": "github", "pr_id": 1}
 
     @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
@@ -145,7 +145,7 @@ class TestGetAutofixState(TestCase):
         mock_request.assert_called_once()
         path = mock_request.call_args[0][1]
         assert path == "/v1/automation/autofix/state"
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = orjson.loads(mock_request.call_args[1]["body"])
         assert body == {
             "group_id": 123,
             "run_id": None,
@@ -189,7 +189,7 @@ class TestGetAutofixState(TestCase):
         mock_request.assert_called_once()
         path = mock_request.call_args[0][1]
         assert path == "/v1/automation/autofix/state"
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = orjson.loads(mock_request.call_args[1]["body"])
         assert body == {
             "group_id": None,
             "run_id": 456,
