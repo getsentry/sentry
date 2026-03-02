@@ -149,4 +149,57 @@ describe('useScrollLock', () => {
     result.current.release();
     expect(container).toHaveStyle({overflow: 'auto'});
   });
+
+  it('locks document scroll without changing html overflow', () => {
+    const scrollY = 240;
+    const originalInnerWidth = window.innerWidth;
+    const originalClientWidth = document.documentElement.clientWidth;
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1200,
+    });
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      configurable: true,
+      value: 1180,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: scrollY,
+    });
+    const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+    const {result} = renderHook(() => useScrollLock(document.documentElement));
+
+    result.current.acquire();
+
+    expect(document.documentElement).toHaveStyle({overflow: ''});
+    expect(document.body).toHaveStyle({
+      position: 'fixed',
+      top: `-${scrollY}px`,
+      left: '0',
+      right: '0',
+      width: '100%',
+      paddingRight: '20px',
+    });
+
+    result.current.release();
+
+    expect(document.body).toHaveStyle({position: ''});
+    expect(document.body).toHaveStyle({top: ''});
+    expect(document.body).toHaveStyle({left: ''});
+    expect(document.body).toHaveStyle({right: ''});
+    expect(document.body).toHaveStyle({width: ''});
+    expect(document.body).toHaveStyle({paddingRight: ''});
+    expect(scrollToSpy).toHaveBeenCalledWith(0, scrollY);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalInnerWidth,
+    });
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      configurable: true,
+      value: originalClientWidth,
+    });
+    scrollToSpy.mockRestore();
+  });
 });
