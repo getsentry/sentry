@@ -192,6 +192,12 @@ incorrect_cases = [
         "Encoding: utf<int>",
     ),
     (
+        "random sequence as id",
+        "invoice k9Mtd2gDcgG",
+        "invoice <random_str>",
+        "invoice k9Mtd2gDcgG",
+    ),
+    (
         "URL - non-http protocol user/pass/port",
         "tcp://user:pass@email.com:10 had a problem",
         "<url> had a problem",
