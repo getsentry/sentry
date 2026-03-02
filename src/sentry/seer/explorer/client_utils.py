@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from datetime import datetime
+from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -36,6 +38,96 @@ logger = logging.getLogger(__name__)
 explorer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
 )
+
+
+class ExplorerStateRequest(TypedDict):
+    run_id: int
+    organization_id: int
+
+
+class ExplorerChatRequest(TypedDict):
+    organization_id: int
+    query: str
+    run_id: int | None
+    insert_index: int | None
+    on_page_context: str | None
+    user_org_context: NotRequired[dict[str, Any] | None]
+    intelligence_level: NotRequired[str]
+    is_interactive: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    project_id: NotRequired[int]
+    query_metadata: NotRequired[dict[str, str]]
+    artifact_key: NotRequired[str]
+    artifact_schema: NotRequired[dict[str, Any]]
+    custom_tools: NotRequired[list[dict[str, Any]]]
+    on_completion_hook: NotRequired[dict[str, Any]]
+    category_key: NotRequired[str]
+    category_value: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    is_context_engine_enabled: NotRequired[bool]
+
+
+class ExplorerRunsRequest(TypedDict):
+    organization_id: int
+    user_id: NotRequired[int]
+    category_key: NotRequired[str]
+    category_value: NotRequired[str]
+    offset: NotRequired[int]
+    project_ids: NotRequired[list[int]]
+    limit: NotRequired[int]
+    expand: NotRequired[str]
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
+
+
+class ExplorerUpdateRequest(TypedDict):
+    run_id: int
+    organization_id: int
+    payload: NotRequired[dict[str, Any]]
+
+
+def make_explorer_state_request(
+    body: ExplorerStateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/state",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+    )
+
+
+def make_explorer_chat_request(
+    body: ExplorerChatRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/chat",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+    )
+
+
+def make_explorer_runs_request(
+    body: ExplorerRunsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/runs",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+    )
+
+
+def make_explorer_update_request(
+    body: ExplorerUpdateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/update",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+    )
 
 
 def has_seer_explorer_access_with_detail(
@@ -126,21 +218,8 @@ def collect_user_org_context(
 
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
     """Fetch current run status from Seer."""
-    path = "/v1/automation/explorer/state"
-
-    body = orjson.dumps(
-        {
-            "run_id": run_id,
-            "organization_id": organization.id,
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
-
-    response = make_signed_seer_api_request(
-        explorer_connection_pool,
-        path,
-        body,
-    )
+    body = ExplorerStateRequest(run_id=run_id, organization_id=organization.id)
+    response = make_explorer_state_request(body)
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)

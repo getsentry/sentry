@@ -119,6 +119,7 @@ class Span(NamedTuple):
     payload: bytes
     end_timestamp: float
     is_segment_span: bool = False
+    partition: int = 0
 
     def effective_parent_id(self):
         # Note: For the case where the span's parent is in another project, we
@@ -268,7 +269,11 @@ class SpansBuffer:
                         )
 
                         is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                        result_meta.append((project_and_trace, parent_span_id))
+
+                        # All spans in a subsegment share the same trace_id,
+                        # so they all came from the same Kafka partition.
+                        partition = subsegment[0].partition
+                        result_meta.append((project_and_trace, parent_span_id, partition))
 
                     results.extend(p.execute())
 
@@ -286,7 +291,7 @@ class SpansBuffer:
 
             assert len(result_meta) == len(results)
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id, partition), result in zip(result_meta, results):
                 (
                     segment_key,
                     has_root_span,
@@ -297,9 +302,9 @@ class SpansBuffer:
 
                 latency_entries.append((project_and_trace, evalsha_latency_ms))
 
-                shard = self.assigned_shards[
-                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
-                ]
+                # The Kafka partition is used directly as the queue shard
+                # so that routing is stable across rebalances.
+                shard = partition
                 queue_key = self._get_queue_key(shard)
 
                 # if the currently processed span is a root span, OR the buffer

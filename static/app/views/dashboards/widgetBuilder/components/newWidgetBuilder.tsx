@@ -165,6 +165,8 @@ function WidgetBuilderV2({
     } else if (results.timeseriesResultsTypes) {
       const keys = Object.keys(results.timeseriesResultsTypes);
       dataType = results.timeseriesResultsTypes[keys[0]!];
+      const rawUnit = results.timeseriesResultsUnits?.[keys[0]!];
+      dataUnit = rawUnit ?? undefined;
     }
 
     setThresholdMetaState({dataType, dataUnit});

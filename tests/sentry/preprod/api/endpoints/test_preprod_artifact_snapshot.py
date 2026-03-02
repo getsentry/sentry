@@ -23,10 +23,9 @@ class ProjectPreprodSnapshotTest(APITestCase):
         )
 
     def _get_detail_url(self, snapshot_id):
-        """URL for GET (retrieving snapshots)"""
         return reverse(
             "sentry-api-0-project-preprod-snapshots-detail",
-            args=[self.org.slug, self.project.slug, snapshot_id],
+            args=[self.org.slug, snapshot_id],
         )
 
     def test_successful_snapshot_upload(self):
@@ -141,9 +140,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     def test_snapshot_missing_required_field(self):
         url = self._get_create_url()
-        data: dict[str, str] = {
-            # Missing images field
-        }
+        data: dict[str, str] = {}
 
         with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
@@ -264,7 +261,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
     def _get_detail_url(self, snapshot_id):
         return reverse(
             "sentry-api-0-project-preprod-snapshots-detail",
-            args=[self.org.slug, self.project.slug, snapshot_id],
+            args=[self.org.slug, snapshot_id],
         )
 
     def _create_artifact_with_manifest(self, images=None, commit_comparison=None):
@@ -400,9 +397,10 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot not found"
 
-    def test_get_snapshot_wrong_project(self):
-        """Artifact belonging to a different project should return 404 (IDOR protection)."""
-        other_project = self.create_project(organization=self.org)
+    def test_get_snapshot_wrong_organization(self):
+        """Artifact belonging to a different organization should return 404 (IDOR protection)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
         artifact = PreprodArtifact.objects.create(
             project=other_project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
