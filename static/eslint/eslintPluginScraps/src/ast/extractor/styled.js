@@ -10,14 +10,14 @@
  * - css`...`
  */
 
-import {normalizePropertyName} from '../utils/normalizePropertyName.mjs';
+import {normalizePropertyName} from '../utils/normalizePropertyName.js';
 
-import {decomposeValue} from './value-decomposer.mjs';
+import {decomposeValue} from './value-decomposer.js';
 
 /**
  * Creates the styled/css extractor with ESLint visitors.
  *
- * @param {import('./types.mjs').ExtractorContext} extractorContext
+ * @param {import('./types.js').ExtractorContext} extractorContext
  * @returns {Record<string, Function>}
  */
 export function createStyledExtractor({collector, themeTracker, ruleContext}) {
@@ -113,7 +113,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
           themeTracker
         );
 
-        /** @type {import('./types.mjs').StyleDeclaration} */
+        /** @type {import('./types.js').StyleDeclaration} */
         const declaration = {
           kind: 'styled',
           property: {
@@ -167,7 +167,7 @@ export function createStyledExtractor({collector, themeTracker, ruleContext}) {
 
       const values = decomposeValue(prop.value, themeTracker);
 
-      /** @type {import('./types.mjs').StyleDeclaration} */
+      /** @type {import('./types.js').StyleDeclaration} */
       const declaration = {
         kind: 'styled',
         property: {

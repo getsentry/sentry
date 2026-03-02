@@ -573,6 +573,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable supergroup RCA embedding generation from autofix explorer runs
     manager.add("projects:supergroup-embeddings-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
     # fmt: on
 
     # Partner oauth

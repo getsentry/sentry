@@ -12,6 +12,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
   serializeSorts,
   type WidgetBuilderState,
@@ -161,5 +162,6 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     widgetType: state.dataset,
     limit,
     thresholds: state.thresholds,
+    axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };
 }

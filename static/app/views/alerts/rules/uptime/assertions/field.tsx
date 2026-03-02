@@ -1,6 +1,8 @@
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
+import {resolveErroredAssertionOp} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {
   UptimeComparisonType,
   UptimeOpType,
@@ -80,18 +82,24 @@ function createDefaultAssertionRoot(): UptimeAndOp {
 // abysmal, so we're leaving this untyped for now.
 
 function UptimeAssertionsControl({onChange, onBlur, value}: any) {
+  const previewCheckResult = usePreviewCheckResult();
+
   // value is an UptimeAssertion object from initialData or defaultValue.
   // During initial render, value may briefly be undefined before FormField processes defaultValue.
   if (!value?.root) {
     return null;
   }
+
   const rootOp: UptimeAndOp = value.root;
+  const erroredOp = resolveErroredAssertionOp(previewCheckResult, rootOp) ?? undefined;
 
   return (
     <AssertionOpGroup
       root
       value={rootOp}
+      erroredOp={erroredOp}
       onChange={op => {
+        previewCheckResult?.resetPreviewCheckResult();
         onChange({root: op}, {});
         onBlur({root: op}, {});
       }}

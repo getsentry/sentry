@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ALERT_DELETION_URL
@@ -19,6 +20,18 @@ logger = logging.getLogger(__name__)
 seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL, timeout=settings.SEER_DEFAULT_TIMEOUT
 )
+
+
+def make_delete_alert_data_request(
+    body: DeleteAlertDataRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_anomaly_detection_connection_pool,
+        SEER_ALERT_DELETION_URL,
+        body=json.dumps(body).encode("utf-8"),
+    )
+
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.detector import Detector
@@ -67,11 +80,7 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
         "source_id": source_id,
     }
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ALERT_DELETION_URL,
-            body=json.dumps(body).encode("utf-8"),
-        )
+        response = make_delete_alert_data_request(body)
     except (TimeoutError, MaxRetryError):
         logger.warning(
             "Timeout error when hitting Seer delete rule data endpoint",

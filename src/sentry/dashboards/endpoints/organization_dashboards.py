@@ -87,6 +87,8 @@ class PrebuiltDashboardId(IntEnum):
     LARAVEL_OVERVIEW = 23
     FRONTEND_ASSETS = 24
     FRONTEND_ASSETS_SUMMARY = 25
+    BACKEND_QUEUES = 26
+    BACKEND_QUEUE_SUMMARY = 27
 
 
 class PrebuiltDashboard(TypedDict):
@@ -203,6 +205,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
         "title": "Frontend Assets Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
+        "title": "Queues",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
+        "title": "Queue Summary",
     },
 ]
 
