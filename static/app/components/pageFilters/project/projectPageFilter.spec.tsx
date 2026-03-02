@@ -84,8 +84,8 @@ describe('ProjectPageFilter', () => {
     // Trigger button & router are updated
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'project-3'})).toBeInTheDocument();
-      expect(router.location.query).toEqual({project: '3'});
     });
+    expect(router.location.query).toEqual({project: '3'});
   });
 
   it('renders keyboard-accessible trailing items', async () => {
