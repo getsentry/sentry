@@ -47,7 +47,7 @@ function AgentSpecificFields({
   if (integration === 'none') {
     return null;
   }
-  if (integration.provider === 'cursor') {
+  if (integration.provider === 'cursor' || integration.provider === 'claude_code') {
     return <CursorAgentSettings integration={integration} {...props} />;
   }
   return null;
