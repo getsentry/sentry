@@ -391,9 +391,11 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       },
     });
 
-    return options.flatMap(item => {
+    return options.flatMap<SelectOptionOrSection<Value>>(item => {
       if ('options' in item) {
-        const mappedSectionOptions = item.options.filter(shouldIncludeOption).map(mapOption);
+        const mappedSectionOptions = item.options
+          .filter(shouldIncludeOption)
+          .map(mapOption);
         if (mappedSectionOptions.length === 0) {
           return [];
         }
