@@ -24,20 +24,21 @@ class ParameterizationRegex:
 
     @property
     def pattern(self) -> str:
-        return self._get_pattern(False)
+        return self._get_pattern(self.raw_pattern)
 
     @property
-    def experimental_pattern(self) -> str:
-        return self._get_pattern(self.raw_pattern_experimental is not None)
+    def experimental_pattern(self) -> str | None:
+        if not self.raw_pattern_experimental:
+            return None
+        return self._get_pattern(self.raw_pattern_experimental)
 
-    def _get_pattern(self, experimental: bool = False) -> str:
+    def _get_pattern(self, raw_pattern: str) -> str:
         """
         Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
-        pattern = self.raw_pattern_experimental if experimental else self.raw_pattern
         prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
         postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{pattern}){postfix}"
+        return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
