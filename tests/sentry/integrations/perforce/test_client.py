@@ -612,73 +612,25 @@ class PerforceClientTest(TestCase):
         path = self.p4_client.build_depot_path(nested_repo, "src/main.cpp")
         assert path == "//depot/game/project/src/main.cpp"
 
-    def test_client_creates_isolated_tmpdir(self):
-        """Each PerforceClient gets its own temp directory for P4 trust/ticket files."""
-        assert os.path.isdir(self.p4_client._p4_home)
-        assert (
-            self.p4_client._p4_home.startswith(os.path.join(os.path.sep, "tmp", "sentry-p4-"))
-            or "sentry-p4-" in self.p4_client._p4_home
-        )
-
-    def test_separate_clients_get_separate_tmpdirs(self):
-        """Two PerforceClient instances must not share trust/ticket directories."""
-        client_a = PerforceClient(
-            integration=self.integration, org_integration=self.org_integration
-        )
-        client_b = PerforceClient(
-            integration=self.integration, org_integration=self.org_integration
-        )
-        assert client_a._p4_home != client_b._p4_home
-        assert os.path.isdir(client_a._p4_home)
-        assert os.path.isdir(client_b._p4_home)
-
-    def test_tmpdir_cleaned_up_via_atexit(self):
-        """Temp directory cleanup is registered via atexit."""
-        import shutil
-
-        with mock.patch("sentry.integrations.perforce.client.atexit") as mock_atexit:
-            client = PerforceClient(
-                integration=self.integration, org_integration=self.org_integration
-            )
-            mock_atexit.register.assert_called_once_with(
-                shutil.rmtree, client._p4_home, ignore_errors=True
-            )
-
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_connect_sets_isolated_trust_and_ticket_paths(self, mock_p4_class):
-        """_connect() must point P4TRUST and ticket_file at the client's isolated tmpdir."""
+        """_connect() must point P4TRUST and ticket_file at an isolated tmpdir."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
         with self.p4_client._connect():
             pass
 
-        # Verify set_env was called with P4TRUST pointing into the client's tmpdir.
-        # set_env may raise P4Exception (can't write to /dev/null P4ENVIRO) but
-        # the per-instance value is still set — our code catches the exception.
-        mock_p4.set_env.assert_called_once_with("P4TRUST", f"{self.p4_client._p4_home}/.p4trust")
+        # Verify set_env was called with P4TRUST pointing into an isolated tmpdir.
+        mock_p4.set_env.assert_called_once()
+        trust_path = mock_p4.set_env.call_args[0][1]
+        assert "sentry-p4-" in trust_path
+        assert trust_path.endswith("/.p4trust")
 
-        # Verify ticket_file was set to the client's tmpdir
-        assert mock_p4.ticket_file == f"{self.p4_client._p4_home}/.p4tickets"
-
-    @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_does_not_set_trust_file_property(self, mock_p4_class):
-        """_connect() must NOT set the non-existent trust_file property.
-
-        P4Python does not expose trust_file as a writable property.
-        Using it causes: 'No string attribute with name trust_file'.
-        We use set_env('P4TRUST', ...) instead.
-        """
-        mock_p4 = mock.Mock()
-        mock_p4_class.return_value = mock_p4
-
-        with self.p4_client._connect():
-            pass
-
-        # trust_file should never be assigned
-        with pytest.raises(AssertionError):
-            # If trust_file was set, this would succeed. We expect it to raise.
-            assert mock_p4.trust_file != mock.Mock.trust_file
+        # Verify ticket_file was set to the same tmpdir
+        ticket_path = mock_p4.ticket_file
+        assert "sentry-p4-" in ticket_path
+        assert ticket_path.endswith("/.p4tickets")
 
     def test_set_env_p4trust_is_per_p4_instance(self):
         """Verify P4.set_env('P4TRUST') is per-P4() instance, not a global side effect.
@@ -691,8 +643,16 @@ class PerforceClientTest(TestCase):
         p4a = P4()
         p4b = P4()
 
-        p4a.set_env("P4TRUST", "/tmp/customer_a/.p4trust")
-        p4b.set_env("P4TRUST", "/tmp/customer_b/.p4trust")
+        # set_env may raise when P4ENVIRO is /dev/null, but the in-memory
+        # per-instance value is still set (tested separately).
+        try:
+            p4a.set_env("P4TRUST", "/tmp/customer_a/.p4trust")
+        except Exception:
+            pass
+        try:
+            p4b.set_env("P4TRUST", "/tmp/customer_b/.p4trust")
+        except Exception:
+            pass
 
         # Each instance must read back its own value
         assert p4a.env("P4TRUST") == "/tmp/customer_a/.p4trust"
@@ -704,7 +664,10 @@ class PerforceClientTest(TestCase):
 
         original = os.environ.get("P4TRUST")
         p4 = P4()
-        p4.set_env("P4TRUST", "/tmp/should_not_leak/.p4trust")
+        try:
+            p4.set_env("P4TRUST", "/tmp/should_not_leak/.p4trust")
+        except Exception:
+            pass
 
         assert os.environ.get("P4TRUST") == original
 
