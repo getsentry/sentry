@@ -9,6 +9,7 @@ import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
+from sentry import audit_log
 from sentry.analytics.events.rule_disable_opt_out import (
     RuleDisableOptOutEdit,
     RuleDisableOptOutExplicit,
@@ -18,6 +19,7 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -1642,9 +1644,13 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_passed(self) -> None:
-        self.get_error_response(
-            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=400
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=202
         )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("WORKFLOW_REMOVE"), target_object=self.workflow.id
+            ).exists()
 
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(

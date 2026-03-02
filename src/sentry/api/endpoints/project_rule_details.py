@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, features
+from sentry import analytics, audit_log
 from sentry.analytics.events.rule_disable_opt_out import (
     RuleDisableOptOutEdit,
     RuleDisableOptOutExplicit,
@@ -137,13 +137,12 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+        if isinstance(rule, Workflow):
             workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
                 expand=request.GET.getlist("expand", []),
                 prepare_component_fields=True,
                 project_slug=project.slug,
             )
-            # XXX: Note 'rule' here is actually a workflow object
             serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
         else:
             # Serialize Rule object
@@ -419,28 +418,25 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if isinstance(rule, Workflow):
-            return Response(
-                {
-                    "rule": [
-                        "Passing a workflow through this endpoint is not yet supported",
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        report_used_legacy_models()
-        with transaction.atomic(router.db_for_write(Rule)):
-            rule.update(status=ObjectStatus.PENDING_DELETION)
-            RuleActivity.objects.create(
-                rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-            )
-            scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+            audit_id = "WORKFLOW_REMOVE"
+            with transaction.atomic(router.db_for_write(Workflow)):
+                rule.update(status=ObjectStatus.PENDING_DELETION)
+                scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+        else:
+            audit_id = "RULE_REMOVE"
+            report_used_legacy_models()
+            with transaction.atomic(router.db_for_write(Rule)):
+                rule.update(status=ObjectStatus.PENDING_DELETION)
+                RuleActivity.objects.create(
+                    rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                )
+                scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=rule.id,
-            event=audit_log.get_event_id("RULE_REMOVE"),
+            event=audit_log.get_event_id(audit_id),
             data=rule.get_audit_log_data(),
             transaction_id=scheduled.id,
         )
