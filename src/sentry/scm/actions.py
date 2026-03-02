@@ -20,7 +20,6 @@ from sentry.scm.types import (
     CheckRunOutput,
     Comment,
     Commit,
-    CommitComparison,
     CommitSHA,
     FileContent,
     GitBlob,
@@ -307,7 +306,7 @@ class SourceCodeManager:
         start_sha: CommitSHA,
         end_sha: CommitSHA,
         request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[CommitComparison]:
+    ) -> PaginatedActionResult[Commit]:
         return self._exec(lambda p: p.compare_commits(start_sha, end_sha, request_options))
 
     def get_tree(

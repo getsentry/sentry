@@ -311,8 +311,10 @@ def _check_get_commits(result: Any) -> None:
 
 
 def _check_compare_commits(result: Any) -> None:
-    assert result["data"]["ahead_by"] == 3
-    assert result["data"]["behind_by"] == 1
+    assert len(result["data"]) == 1
+    c = result["data"][0]
+    assert c["id"] == "abc123"
+    assert c["message"] == "Fix bug"
     assert result["type"] == "github"
 
 

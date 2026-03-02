@@ -13,7 +13,6 @@ from tests.sentry.scm.test_fixtures import (
     make_github_check_run,
     make_github_comment,
     make_github_commit,
-    make_github_commit_comparison,
     make_github_commit_file,
     make_github_file_content,
     make_github_git_blob,
@@ -674,8 +673,9 @@ def _check_get_commits(result: Any) -> None:
 
 def _check_compare_commits(result: Any) -> None:
     assert len(result["data"]) == 1
-    assert result["data"][0]["ahead_by"] == 3
-    assert result["data"][0]["behind_by"] == 1
+    c = result["data"][0]
+    assert c["id"] == "abc123"
+    assert c["message"] == "Fix bug"
     assert result["type"] == "github"
 
 
@@ -876,7 +876,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "compare_commits",
         {"start_sha": "aaa", "end_sha": "bbb"},
-        {"comparison_data": [make_github_commit_comparison()]},
+        {"comparison_data": [make_github_commit()]},
         _check_compare_commits,
     ),
     (

@@ -16,7 +16,6 @@ from sentry.scm.types import (
     Comment,
     Commit,
     CommitAuthor,
-    CommitComparison,
     CommitFile,
     CommitSHA,
     FileContent,
@@ -374,10 +373,10 @@ class GitHubProvider:
         start_sha: CommitSHA,
         end_sha: CommitSHA,
         request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[CommitComparison]:
+    ) -> PaginatedActionResult[Commit]:
         raw_commits = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
         return PaginatedActionResult(
-            data=[map_commit_comparison(c) for c in raw_commits],
+            data=[map_commit(c) for c in raw_commits],
             type="github",
             raw=raw_commits,
             meta=_DEFAULT_PAGINATED_META,
@@ -469,7 +468,7 @@ class GitHubProvider:
         return ActionResult(
             data=resp.text,
             type="github",
-            raw={},
+            raw=resp.text,
             meta={},
         )
 
@@ -800,14 +799,6 @@ def map_commit(raw: dict[str, Any]) -> Commit:
         message=commit.get("message", ""),
         author=map_commit_author(commit.get("author")),
         files=[map_commit_file(f) for f in raw.get("files", [])],
-    )
-
-
-def map_commit_comparison(raw: dict[str, Any]) -> CommitComparison:
-    return CommitComparison(
-        ahead_by=raw["ahead_by"],
-        behind_by=raw["behind_by"],
-        commits=[map_commit(commit) for commit in raw["commits"]],
     )
 
 

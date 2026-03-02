@@ -13,7 +13,6 @@ from sentry.scm.types import (
     Comment,
     Commit,
     CommitAuthor,
-    CommitComparison,
     CommitFile,
     FileContent,
     GitBlob,
@@ -796,12 +795,13 @@ class BaseTestProvider(Provider):
         start_sha: str,
         end_sha: str,
         request_options: RequestOptions | None = None,
-    ) -> ActionResult[CommitComparison]:
-        return ActionResult(
-            data=CommitComparison(ahead_by=3, behind_by=1, commits=[]),
+    ) -> PaginatedActionResult[Commit]:
+        inner = self.get_commit("abc123")
+        return PaginatedActionResult(
+            data=[inner["data"]],
             type="github",
             raw={},
-            meta={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     # Git data operations
@@ -1424,7 +1424,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._maybe_raise()
         if self.comparison_data is not None:
             return self.comparison_data
-        return [make_github_commit_comparison()]
+        return [make_github_commit()]
 
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         self._record_call("get_tree", repo_full_name, tree_sha)

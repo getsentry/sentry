@@ -210,7 +210,7 @@ class ActionResult[T](TypedDict):
 
     data: T
     type: ProviderName
-    raw: dict[str, Any]
+    raw: Any
     meta: ResponseMeta
 
 
@@ -518,7 +518,7 @@ class Provider(Protocol):
         start_sha: CommitSHA,
         end_sha: CommitSHA,
         request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[CommitComparison]: ...
+    ) -> PaginatedActionResult[Commit]: ...
 
     # -- Mutations --------------------------------------------------------------
 
