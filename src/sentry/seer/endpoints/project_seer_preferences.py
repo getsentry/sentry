@@ -58,7 +58,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         required=True,
     )
     target = serializers.ChoiceField(
-        choices=["cursor_background_agent"],
+        choices=["cursor_background_agent", "claude_code_agent"],
         required=True,
     )
     integration_id = serializers.IntegerField(required=True)

@@ -1,8 +1,19 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
+from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
+
+
+def _repo(owner: str, name: str) -> SeerRepoDefinition:
+    """Minimal SeerRepoDefinition for tests."""
+    return SeerRepoDefinition(
+        provider="github",
+        owner=owner,
+        name=name,
+        external_id="123",
+    )
 
 
 class TestLaunchCodingAgents(TestCase):
@@ -30,7 +41,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
         )
 
         assert len(result["successes"]) == 1
@@ -41,10 +52,11 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    def test_invalid_repo_format(self, mock_validate, mock_store):
-        """Test that invalid repo format is handled as failure."""
+    def test_launch_raises_value_error(self, mock_validate, mock_store):
+        """Test that ValueError from integration launch is handled as failure."""
         mock_integration = MagicMock()
         mock_installation = MagicMock()
+        mock_installation.launch.side_effect = ValueError("Invalid repository name format")
         mock_validate.return_value = (mock_integration, mock_installation)
 
         result = launch_coding_agents(
@@ -52,13 +64,13 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["invalid-repo-no-slash"],
+            repos=[_repo("owner", "repo")],
         )
 
         assert len(result["successes"]) == 0
         assert len(result["failures"]) == 1
         assert "Invalid repository name format" in result["failures"][0]["error_message"]
-        mock_installation.launch.assert_not_called()
+        mock_installation.launch.assert_called_once()
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
@@ -81,7 +93,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo1", "owner/repo2"],
+            repos=[_repo("owner", "repo1"), _repo("owner", "repo2")],
         )
 
         assert len(result["successes"]) == 1
@@ -103,7 +115,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
             branch_name_base="my-fix",
         )
 
@@ -142,7 +154,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=None,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
             provider="github_copilot",
             user_id=1,
         )
