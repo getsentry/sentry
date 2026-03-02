@@ -26,6 +26,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
+from sentry.objectstore import parse_accept_encoding
 
 
 @region_silo_endpoint
@@ -100,19 +101,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
             allow_redirects=False,
         )
 
-        content_encodings = {
-            enc.strip().lower()
-            for enc in response.headers.get("Content-Encoding", "").split(",")
-            if enc.strip()
-        }
-        accepted_encodings = {
-            part.split(";")[0].strip().lower()
-            for part in request.headers.get("Accept-Encoding", "").split(",")
-            if part.strip()
-        }
-        decode_content = bool(content_encodings) and not content_encodings.issubset(
-            accepted_encodings
-        )
+        content_encoding = response.headers.get("Content-Encoding", "").strip().lower()
+        accepted_encodings = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
+        decode_content = bool(content_encoding) and content_encoding not in accepted_encodings
 
         return stream_response(response, decode_content=decode_content)
 
