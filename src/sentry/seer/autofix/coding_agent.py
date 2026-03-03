@@ -640,13 +640,24 @@ def poll_claude_code_agents(
                 return
 
             integration = integrations[0]
-            metadata = ClaudeCodeIntegrationMetadata.parse_obj(integration.metadata or {})
-            client_class = import_string(django_settings.CLAUDE_CODE_CLIENT_CLASS)
-            client = client_class(
-                api_key=metadata.api_key,
-                environment_id=metadata.environment_id,
-                workspace_name=metadata.workspace_name,
-            )
+            try:
+                integration = integrations[0]
+                metadata = ClaudeCodeIntegrationMetadata.parse_obj(integration.metadata or {})
+                client_class = import_string(django_settings.CLAUDE_CODE_CLIENT_CLASS)
+                client = client_class(
+                    api_key=metadata.api_key,
+                    environment_id=metadata.environment_id,
+                    workspace_name=metadata.workspace_name,
+                )
+            except Exception:
+                logger.exception(
+                    "coding_agent.claude_code.client_init_error",
+                    extra={
+                        "organization_id": org_id,
+                        "integration_id": integrations[0].id if integrations else None,
+                    },
+                )
+                return
 
         try:
             session_status = client.get_session_status(agent_id)
