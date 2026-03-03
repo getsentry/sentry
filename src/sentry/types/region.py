@@ -96,7 +96,7 @@ class Region:
     """
 
     # TODO(cells): drop once category is fully moved to Locality
-    category: RegionCategory
+    _category: RegionCategory
 
     visible: bool = True
     """Whether the region is visible in API responses"""
@@ -167,10 +167,17 @@ class RegionDirectory:
         return self._localities_by_name.get(locality_name)
 
     def get_cells(self, category: RegionCategory | None = None) -> Iterable[Region]:
-        return (r for r in self.regions if (category is None or r.category == category))
+        if category is None:
+            return iter(self.regions)
+
+        return (
+            r
+            for r in self.regions
+            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
+        )
 
     def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.regions if (category is None or r.category == category))
+        return (r.name for r in self.get_cells(category))
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -210,7 +217,7 @@ def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Region]:
         yield Region(
             name=config_value["name"],
             snowflake_id=config_value["snowflake_id"],
-            category=RegionCategory(config_value["category"]),
+            _category=RegionCategory(config_value["category"]),
             address=config_value["address"],
             visible=config_value.get("visible", True),
         )
@@ -232,7 +239,7 @@ def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable
             name=settings.SENTRY_MONOLITH_REGION,
             snowflake_id=0,
             address=options.get("system.url-prefix"),
-            category=RegionCategory.MULTI_TENANT,
+            _category=RegionCategory.MULTI_TENANT,
         )
     elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
         raise RegionConfigurationError(
@@ -271,7 +278,7 @@ def load_from_config(
                 localities.add(
                     Locality(
                         name=region.name,
-                        category=region.category,
+                        category=region._category,
                         cells=frozenset([region.name]),
                         visible=region.visible,
                     )

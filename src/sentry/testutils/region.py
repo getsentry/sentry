@@ -26,7 +26,7 @@ class TestEnvRegionDirectory(RegionDirectory):
 
     def localities_from_regions(self, regions: Collection[Region]) -> frozenset[Locality]:
         return frozenset(
-            Locality(name=cell.name, cells=frozenset([cell.name]), category=cell.category)
+            Locality(name=cell.name, cells=frozenset([cell.name]), category=cell._category)
             for cell in regions
         )
 
@@ -82,7 +82,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             Locality(
                 name=r.name,
                 cells=frozenset([r.name]),
-                category=r.category,
+                category=r._category,
                 visible=r.visible,
             )
             for r in self._tmp_state.regions
@@ -102,7 +102,7 @@ class TestEnvRegionDirectory(RegionDirectory):
         return Locality(
             name=locality_name,
             cells=frozenset([locality_name]),
-            category=region.category,
+            category=region._category,
             visible=region.visible,
         )
 
@@ -113,7 +113,7 @@ class TestEnvRegionDirectory(RegionDirectory):
         return Locality(
             name=cell_name,
             cells=frozenset([cell_name]),
-            category=region.category,
+            category=region._category,
             visible=region.visible,
         )
 
