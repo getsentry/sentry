@@ -22,9 +22,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         self.org = self.organization
         self.project1 = self.project
         self.project2 = self.create_project(teams=[self.team])
-        self.features = {
-            "organizations:user-feedback-ai-categorization-features": True,
-        }
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
@@ -74,15 +71,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         )
         create_feedback_issue(event, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    def test_get_feedback_categories_without_feature_flag(self) -> None:
-        response = self.get_error_response(self.org.slug)
-        assert response.status_code == 403
-
     def test_get_feedback_categories_without_seer_access(self) -> None:
         self.mock_has_seer_access.return_value = False
-        with self.feature(self.features):
-            response = self.get_error_response(self.org.slug)
-            assert response.status_code == 403
+        response = self.get_error_response(self.org.slug)
+        assert response.status_code == 403
 
     def test_get_feedback_categories_basic(self) -> None:
         self._create_feedback("a", ["User Interface", "Speed"], self.project1)
@@ -105,8 +97,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
             },
         )
 
-        with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
+        response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         assert response.data["numFeedbacksContext"] == 4
@@ -148,8 +139,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
             },
         )
 
-        with self.feature(self.features):
-            response = self.get_success_response(self.org.slug, project=[self.project1.id])
+        response = self.get_success_response(self.org.slug, project=[self.project1.id])
 
         assert response.data["success"] is True
         assert response.data["numFeedbacksContext"] == 2
@@ -189,8 +179,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
             },
         )
 
-        with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
+        response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         categories = response.data["categories"]
@@ -221,8 +210,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
             },
         )
 
-        with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
+        response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         categories = response.data["categories"]
@@ -235,8 +223,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         self._create_feedback("a", ["User Interface", "Issues UI"], self.project1)
         self.mock_make_signed_seer_api_request.side_effect = Exception("seer failed")
 
-        with self.feature(self.features):
-            response = self.get_error_response(self.org.slug)
+        response = self.get_error_response(self.org.slug)
 
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to generate user feedback label groups"
@@ -248,8 +235,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
                 status=status, json_data={"detail": "seer failed"}
             )
 
-            with self.feature(self.features):
-                response = self.get_error_response(self.org.slug)
+            response = self.get_error_response(self.org.slug)
 
             assert response.status_code == 500
             assert response.data["detail"] == "Failed to generate user feedback label groups"
@@ -263,8 +249,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         ):
             self._create_feedback("a", ["User Interface", "Usability"], self.project1)
 
-            with self.feature(self.features):
-                response = self.get_success_response(self.org.slug)
+            response = self.get_success_response(self.org.slug)
 
             assert self.mock_make_signed_seer_api_request.call_count == 0
 

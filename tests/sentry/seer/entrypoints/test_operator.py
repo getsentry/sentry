@@ -15,7 +15,11 @@ from sentry.seer.entrypoints.operator import (
     process_autofix_updates,
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
-from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey, SeerOperatorCacheResult
+from sentry.seer.entrypoints.types import (
+    SeerEntrypoint,
+    SeerEntrypointKey,
+    SeerOperatorCacheResult,
+)
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import TestCase
 
@@ -34,14 +38,14 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
         self.autofix_errors = []
         self.autofix_run_ids = []
         self.autofix_update_cache_payloads = []
-        self.autofix_already_exists_states: list[tuple[AutofixState, dict]] = []
+        self.autofix_already_exists_states: list[tuple[int, bool]] = []
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
         return True
 
-    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
-        self.autofix_already_exists_states.append((state, step_state))
+    def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
+        self.autofix_already_exists_states.append((run_id, has_complete_stage))
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
@@ -83,7 +87,8 @@ class SeerOperatorTest(TestCase):
         ):
             assert SeerOperator.has_access(organization=self.group.project.organization)
             assert SeerOperator.has_access(
-                organization=self.group.project.organization, entrypoint_key=MockEntrypoint.key
+                organization=self.group.project.organization,
+                entrypoint_key=MockEntrypoint.key,
             )
             assert not SeerOperator.has_access(
                 organization=self.group.project.organization,
@@ -104,15 +109,20 @@ class SeerOperatorTest(TestCase):
         return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
     )
     @patch(
-        "sentry.seer.entrypoints.operator._trigger_autofix",
+        "sentry.seer.entrypoints.operator.trigger_autofix",
         return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
     )
     @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
     def test_trigger_autofix_pathway(
-        self, _mock_get_autofix_state, mock_trigger_autofix_helper, mock_update_autofix_helper
+        self,
+        mock_get_autofix_state,
+        mock_trigger_autofix_helper,
+        mock_update_autofix_helper,
     ):
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
         assert mock_trigger_autofix_helper.call_count == 1
         assert mock_update_autofix_helper.call_count == 0
@@ -128,24 +138,29 @@ class SeerOperatorTest(TestCase):
         assert mock_update_autofix_helper.call_count == 1
 
     @patch(
-        "sentry.seer.entrypoints.operator._trigger_autofix",
+        "sentry.seer.entrypoints.operator.trigger_autofix",
         return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
     )
     @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    def test_trigger_autofix_success(self, _mock_get_autofix_state, mock_trigger_autofix_helper):
+    def test_trigger_autofix_success(self, mock_get_autofix_state, mock_trigger_autofix_helper):
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
         assert mock_trigger_autofix_helper.call_count == 1
         assert self.entrypoint.autofix_errors == []
         assert self.entrypoint.autofix_run_ids == [MOCK_RUN_ID]
 
-    @patch("sentry.seer.entrypoints.operator._trigger_autofix")
+    @patch("sentry.seer.entrypoints.operator.trigger_autofix")
     @patch("sentry.seer.entrypoints.operator.get_autofix_state")
     def test_trigger_autofix_already_exists(
         self, mock_get_autofix_state, mock_trigger_autofix_helper
     ):
-        existing_rca_step_state = {"key": "root_cause_analysis", "status": AutofixStatus.COMPLETED}
+        existing_rca_step_state = {
+            "key": "root_cause_analysis",
+            "status": AutofixStatus.COMPLETED,
+        }
         existing_state = AutofixState(
             run_id=MOCK_RUN_ID,
             request={
@@ -161,18 +176,18 @@ class SeerOperatorTest(TestCase):
         mock_get_autofix_state.return_value = existing_state
 
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
 
         mock_trigger_autofix_helper.assert_not_called()
-        assert self.entrypoint.autofix_already_exists_states == [
-            (existing_state, existing_rca_step_state)
-        ]
+        assert self.entrypoint.autofix_already_exists_states == [(existing_state.run_id, True)]
         assert self.entrypoint.autofix_run_ids == []
         assert self.entrypoint.autofix_errors == []
 
     @patch(
-        "sentry.seer.entrypoints.operator._trigger_autofix",
+        "sentry.seer.entrypoints.operator.trigger_autofix",
         return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
     )
     @patch("sentry.seer.entrypoints.operator.get_autofix_state")
@@ -193,25 +208,31 @@ class SeerOperatorTest(TestCase):
         mock_get_autofix_state.return_value = existing_state
 
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
 
         mock_trigger_autofix_helper.assert_called_once()
         assert self.entrypoint.autofix_already_exists_states == []
         assert self.entrypoint.autofix_run_ids == [MOCK_RUN_ID]
 
-    @patch("sentry.seer.entrypoints.operator._trigger_autofix")
+    @patch("sentry.seer.entrypoints.operator.trigger_autofix")
     @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    def test_trigger_autofix_error(self, _mock_get_autofix_state, mock_trigger_autofix_helper):
+    def test_trigger_autofix_error(self, mock_get_autofix_state, mock_trigger_autofix_helper):
         mock_trigger_autofix_helper.return_value = Response(
             {"detail": "Invalid request"}, status=400
         )
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
         mock_trigger_autofix_helper.return_value = Response({"run_id": None}, status=202)
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
         assert mock_trigger_autofix_helper.call_count == 2
         self.operator.trigger_autofix(
@@ -228,7 +249,7 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.autofix_run_ids == []
 
     @patch(
-        "sentry.seer.entrypoints.operator._trigger_autofix",
+        "sentry.seer.entrypoints.operator.trigger_autofix",
         return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
     )
     @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
@@ -236,11 +257,13 @@ class SeerOperatorTest(TestCase):
     def test_trigger_autofix_creates_cache_payload(
         self,
         mock_populate_post_autofix_cache,
-        _mock_get_autofix_state,
-        _mock_trigger_autofix_helper,
+        mock_get_autofix_state,
+        mock_trigger_autofix_helper,
     ):
         self.operator.trigger_autofix(
-            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
         mock_populate_post_autofix_cache.assert_called_with(
             entrypoint_key=MockEntrypoint.key,

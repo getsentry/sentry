@@ -185,7 +185,7 @@ export function getWidgetInterval(
 
 export function getFieldsFromEquations(fields: string[]): string[] {
   // Gather all fields and functions used in equations and prepend them to the provided fields
-  const termsSet: Set<string> = new Set();
+  const termsSet = new Set<string>();
   fields.filter(isEquation).forEach(field => {
     const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
     parsed.fields.forEach(({term}) => termsSet.add(term as string));
@@ -640,6 +640,13 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.RAGE_AND_DEAD_CLICKS,
   ].includes(displayType);
 };
+
+export function doesDisplayTypeSupportThresholds(displayType?: DisplayType): boolean {
+  if (!displayType) {
+    return false;
+  }
+  return displayType === DisplayType.BIG_NUMBER || usesTimeSeriesData(displayType);
+}
 
 // Custom widgets that fetch their own data (and don't use genericWidgetQueries)
 // handle error state and loading state on their own

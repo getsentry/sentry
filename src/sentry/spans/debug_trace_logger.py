@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from sentry import options
+from sentry.spans.segment_key import SegmentKey, parse_segment_key
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sentry_redis_tools.clients import RedisCluster, StrictRedis
+
+    from sentry.spans.buffer import Span
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +26,9 @@ class DebugTraceLogger:
     def __init__(self, client: RedisCluster[bytes] | StrictRedis[bytes]) -> None:
         self._client = client
 
+    def _get_debug_traces(self) -> set[str]:
+        return set(options.get("spans.buffer.debug-traces"))
+
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
@@ -28,8 +36,12 @@ class DebugTraceLogger:
         self,
         project_and_trace: str,
         parent_span_id: str,
-        subsegment: Sequence[Any],
+        subsegment: Sequence[Span],
     ) -> None:
+        _, _, trace_id = project_and_trace.partition(":")
+        if trace_id not in self._get_debug_traces():
+            return
+
         spans = []
         span_keys = []
         for span in subsegment:
@@ -68,5 +80,34 @@ class DebugTraceLogger:
                 "set_sizes": set_sizes,
                 "total_set_sizes": sum(set_sizes.values()),
                 "subsegment_spans": spans,
+            },
+        )
+
+    def log_flush_info(
+        self,
+        segment_key: SegmentKey,
+        segment_span_id: str,
+        root_span_in_segment: bool,
+        num_spans: int,
+        shard_id: int,
+    ) -> None:
+        project_id, trace_id, _ = parse_segment_key(segment_key)
+        if trace_id.decode("ascii") not in self._get_debug_traces():
+            return
+
+        hrs_key = b"span-buf:hrs:" + segment_key
+        has_root_span_flag = bool(self._client.exists(hrs_key))
+
+        project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+
+        logger.info(
+            "spans.buffer.debug_flush",
+            extra={
+                "project_and_trace": project_and_trace,
+                "segment_span_id": segment_span_id,
+                "has_root_span_flag": has_root_span_flag,
+                "root_span_in_segment": root_span_in_segment,
+                "num_spans": num_spans,
+                "shard_id": shard_id,
             },
         )

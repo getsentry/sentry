@@ -173,49 +173,23 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_pull_request_comments(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url="https://api.github.com/rate_limit",
-            json={
-                "resources": {
-                    "graphql": {"limit": 5000, "remaining": 4999, "reset": 9999999999, "used": 1}
-                }
-            },
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://api.github.com/graphql",
-            json={
-                "data": {
-                    "repository": {
-                        "pullRequest": {
-                            "comments": {
-                                "nodes": [
-                                    {
-                                        "id": "IC_10",
-                                        "body": "Great stuff!",
-                                        "isMinimized": False,
-                                        "author": {
-                                            "login": "octocat",
-                                            "databaseId": 1,
-                                            "__typename": "User",
-                                        },
-                                    }
-                                ],
-                                "pageInfo": {"hasNextPage": False, "endCursor": None},
-                            },
-                            "reviewThreads": {
-                                "nodes": [],
-                                "pageInfo": {"hasNextPage": False, "endCursor": None},
-                            },
-                        }
-                    }
-                }
-            },
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1/comments",
+            json=[
+                {
+                    "id": 10,
+                    "body": "Great stuff!",
+                    "user": {
+                        "login": "octocat",
+                        "id": 1,
+                    },
+                },
+            ],
         )
 
         result = self.provider.get_pull_request_comments("1")
 
         assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == "IC_10"
+        assert result["data"][0]["id"] == "10"
         assert result["data"][0]["body"] == "Great stuff!"
         assert result["data"][0]["author"] is not None
         assert result["data"][0]["author"]["id"] == "1"
@@ -249,7 +223,7 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_issue_comment_reactions("42")
+        reactions = self.provider.get_issue_comment_reactions("1", "42")
 
         assert len(reactions["data"]) == 2
         assert reactions["data"][0]["id"] == "1"
@@ -282,7 +256,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_comment_reaction("42", "heart")
+        self.provider.create_issue_comment_reaction("1", "42", "heart")
 
         assert len(responses.calls) == 1
 
@@ -543,56 +517,24 @@ class TestGitHubProviderIntegration(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_pull_request_comments_with_databaseid(self, mock_get_jwt):
-        """Verify GraphQL author databaseId is used as the author id."""
+    def test_get_pull_request_comments_with_null_author(self, mock_get_jwt):
+        """Verify null user is handled correctly."""
         responses.add(
             method=responses.GET,
-            url="https://api.github.com/rate_limit",
-            json={
-                "resources": {
-                    "graphql": {"limit": 5000, "remaining": 4999, "reset": 9999999999, "used": 1}
-                }
-            },
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://api.github.com/graphql",
-            json={
-                "data": {
-                    "repository": {
-                        "pullRequest": {
-                            "comments": {
-                                "nodes": [
-                                    {
-                                        "id": "IC_10",
-                                        "body": "Great stuff!",
-                                        "isMinimized": False,
-                                        "author": {
-                                            "login": "octocat",
-                                            "databaseId": 42,
-                                            "__typename": "User",
-                                        },
-                                    }
-                                ],
-                                "pageInfo": {"hasNextPage": False, "endCursor": None},
-                            },
-                            "reviewThreads": {
-                                "nodes": [],
-                                "pageInfo": {"hasNextPage": False, "endCursor": None},
-                            },
-                        }
-                    }
-                }
-            },
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1/comments",
+            json=[
+                {
+                    "id": 10,
+                    "body": "Ghost comment",
+                    "user": None,
+                },
+            ],
         )
 
         result = self.provider.get_pull_request_comments("1")
 
         assert len(result["data"]) == 1
-        author = result["data"][0]["author"]
-        assert author is not None
-        assert author["id"] == "42"
-        assert author["username"] == "octocat"
+        assert result["data"][0]["author"] is None
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -603,7 +545,7 @@ class TestGitHubProviderIntegration(TestCase):
             status=204,
         )
 
-        self.provider.delete_issue_comment("123")
+        self.provider.delete_issue_comment("1", "123")
 
         assert len(responses.calls) == 1
 
@@ -616,7 +558,7 @@ class TestGitHubProviderIntegration(TestCase):
             status=204,
         )
 
-        self.provider.delete_issue_comment_reaction("42", "1")
+        self.provider.delete_issue_comment_reaction("1", "42", "1")
 
         assert len(responses.calls) == 1
 
