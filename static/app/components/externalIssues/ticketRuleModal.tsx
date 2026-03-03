@@ -24,7 +24,6 @@ import type {FieldValue} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
@@ -450,10 +449,10 @@ export default function TicketRuleModal({
 }
 
 const BodyText = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const FieldErrorLabel = styled('label')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.danger};
 `;

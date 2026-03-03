@@ -14,7 +14,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PluginConfig from 'sentry/components/pluginConfig';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -240,5 +239,5 @@ export default function ProjectPluginDetails() {
 }
 
 const StyledButton = styled(Button)`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;

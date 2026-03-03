@@ -17,7 +17,6 @@ import ProgressRing from 'sentry/components/progressRing';
 import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import {space} from 'sentry/styles/space';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -547,32 +546,32 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 }
 
 const CompletionCelebrationText = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   text-align: center;
 `;
 
 const Content = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: 1;
 
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const TaskGroupWrapper = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
     border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
-    margin: ${space(1)} -${space(1)};
+    margin: ${p => p.theme.space.md} -${p => p.theme.space.md};
   }
 `;
 
@@ -591,7 +590,7 @@ const TaskGroupBody = styled('ul')`
 `;
 
 const TaskWrapper = styled('li')`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   p {
     color: ${p => p.theme.tokens.content.secondary};
   }
@@ -601,10 +600,10 @@ const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: 22px 1fr max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   p {
     margin: 0;
     font-size: ${p => p.theme.font.size.sm};
@@ -630,6 +629,6 @@ const TaskCardActions = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 20px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 `;

@@ -270,7 +270,7 @@ const Header = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${space(1)} 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
 
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
@@ -296,11 +296,11 @@ const Section = styled('div')<{layout: NavLayout}>`
     `}
 
   &:first-child {
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space.md};
   }
 
   &:last-child {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
   }
 
   /* Hide separators if there is not a previous section */
@@ -314,11 +314,11 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p.space.sm} ${p.space.md};
   width: 100%;
   ${p.isMobile &&
   css`
-    padding: ${space(1)} ${space(1.5)} ${space(1)} 48px;
+    padding: ${p.space.md} ${p.space.lg} ${p.space.md} 48px;
   `}
 `;
 
@@ -353,7 +353,7 @@ const SectionTitleLabelWrap = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  margin: ${space(1.5)} 0;
+  margin: ${p => p.theme.space.lg} 0;
   display: none;
 `;
 
@@ -361,7 +361,7 @@ const Separator = styled('hr')`
   height: 1px;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.secondary};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
   border: none;
 `;
 
@@ -434,7 +434,7 @@ const ItemText = styled('span')`
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
