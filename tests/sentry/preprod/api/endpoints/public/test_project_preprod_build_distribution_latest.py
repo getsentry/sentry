@@ -35,13 +35,6 @@ class LatestBuildTestBase(APITestCase):
             project=self.project, name="release"
         )
 
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self):
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self):
         return reverse(
             self.endpoint,
@@ -69,14 +62,6 @@ class LatestBuildTestBase(APITestCase):
 
 class LatestBuildValidationTest(LatestBuildTestBase):
     def test_validation(self):
-        # Feature flag disabled
-        with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self._get(
-                self._get_url(), {"appId": "com.example.app", "platform": "android"}
-            )
-            assert response.status_code == 403
-            assert response.json()["detail"] == "Feature not enabled"
-
         # Missing all required params
         assert self._get(self._get_url()).status_code == 400
 
