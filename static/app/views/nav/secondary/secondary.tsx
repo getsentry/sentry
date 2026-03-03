@@ -314,11 +314,11 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
-  padding: ${p.space.sm} ${p.space.md};
+  padding: ${p.theme.space.sm} ${p.theme.space.md};
   width: 100%;
   ${p.isMobile &&
   css`
-    padding: ${p.space.md} ${p.space.lg} ${p.space.md} 48px;
+    padding: ${p.theme.space.md} ${p.theme.space.lg} ${p.theme.space.md} 48px;
   `}
 `;
 
