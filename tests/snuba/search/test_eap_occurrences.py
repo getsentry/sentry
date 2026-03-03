@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 import pytest
 
-from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.common_queries import (
+    count_occurrences,
+    count_occurrences_grouped_by_trace_ids,
+)
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
@@ -241,3 +245,79 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         assert error_count == 3
         assert generic_count == 2
+
+    def test_counts_grouped_by_trace_ids(self) -> None:
+        group = self.create_group(project=self.project)
+        trace_id_1 = uuid4().hex
+        trace_id_2 = uuid4().hex
+        self.store_occurrences(
+            [
+                self.create_eap_occurrence(group_id=group.id, trace_id=trace_id_1),
+                self.create_eap_occurrence(group_id=group.id, trace_id=trace_id_1),
+                self.create_eap_occurrence(group_id=group.id, trace_id=trace_id_2),
+            ]
+        )
+
+        grouped = count_occurrences_grouped_by_trace_ids(
+            snuba_params=SnubaParams(
+                start=self.start,
+                end=self.end,
+                organization=self.organization,
+                projects=[self.project],
+            ),
+            trace_ids=[trace_id_1, trace_id_2],
+            referrer=self.referrer,
+        )
+        assert grouped == {trace_id_1: 2, trace_id_2: 1}
+
+    def test_counts_grouped_by_trace_ids_with_occurrence_category(self) -> None:
+        group = self.create_group(project=self.project)
+        trace_id = uuid4().hex
+        self.store_occurrences(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id, trace_id=trace_id, occurrence_type="error"
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id, trace_id=trace_id, occurrence_type="error"
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id, trace_id=trace_id, occurrence_type="generic"
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+        grouped_errors = count_occurrences_grouped_by_trace_ids(
+            snuba_params=snuba_params,
+            trace_ids=[trace_id],
+            referrer=self.referrer,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        grouped_generic = count_occurrences_grouped_by_trace_ids(
+            snuba_params=snuba_params,
+            trace_ids=[trace_id],
+            referrer=self.referrer,
+            occurrence_category=OccurrenceCategory.GENERIC,
+        )
+
+        assert grouped_errors == {trace_id: 2}
+        assert grouped_generic == {trace_id: 1}
+
+    def test_counts_grouped_by_trace_ids_empty_trace_ids(self) -> None:
+        grouped = count_occurrences_grouped_by_trace_ids(
+            snuba_params=SnubaParams(
+                start=self.start,
+                end=self.end,
+                organization=self.organization,
+                projects=[self.project],
+            ),
+            trace_ids=[],
+            referrer=self.referrer,
+        )
+        assert grouped == {}
