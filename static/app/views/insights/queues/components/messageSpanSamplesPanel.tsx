@@ -320,7 +320,7 @@ export function MessageSpanSamplesPanel() {
           <ModuleLayout.Full>
             <Flex gap="xl">
               <CompactSelect
-                searchable
+                search
                 value={query.traceStatus}
                 options={TRACE_STATUS_SELECT_OPTIONS}
                 onChange={handleTraceStatusChange}
