@@ -48,7 +48,7 @@ from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.endpoints.organization_detector_details import remove_detector
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import AlertRuleDetector, Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
@@ -146,7 +146,22 @@ def remove_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule | Detector
 ) -> Response:
     if isinstance(alert_rule, Detector):
-        return remove_detector(request, organization, alert_rule)
+        remove_detector(request, organization, alert_rule)
+        try:
+            ard = AlertRuleDetector.objects.get(detector_id=alert_rule.id)
+            alert_rule = AlertRule.objects.get(id=ard.alert_rule_id)
+            delete_alert_rule(
+                alert_rule,
+                user=_anon_to_None(request.user),
+                ip_address=request.META.get("REMOTE_ADDR"),
+            )
+        except (AlertRuleDetector.DoesNotExist, AlertRule.DoesNotExist):
+            return Response(
+                "This detector was single written, no alert rule to delete",
+                status=status.HTTP_204_NO_CONTENT,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     try:
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:

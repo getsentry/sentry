@@ -2436,3 +2436,23 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             run_scheduled_deletions()
 
         assert not Detector.objects.filter(id=detector.id).exists()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_dual_delete_detector_id_passed(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
+        fake_detector_id = get_fake_id_from_object_id(ard.detector_id)
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+        assert not Detector.objects.filter(id=ard.detector_id).exists()
