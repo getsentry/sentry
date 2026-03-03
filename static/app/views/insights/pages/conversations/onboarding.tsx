@@ -2,17 +2,18 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
+import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
-  CopyMarkdownButton,
   OnboardingCopyMarkdownButton,
   useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
@@ -44,20 +45,21 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
-  CopyLLMPromptButton,
-  LLM_ONBOARDING_INSTRUCTIONS,
-  LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE,
-} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
+  AGENT_INTEGRATION_ICONS,
+  AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+  SERVER_SIDE_NODE_INTEGRATIONS,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
@@ -68,22 +70,21 @@ import {
   useOnboardingProject,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
-  NODE_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-  SERVER_SIDE_NODE_INTEGRATIONS,
-} from './utils/agentIntegrations';
+const PYTHON_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI_AGENTS]);
+const NODE_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI]);
 
-function useAiSpanWaiter(project: Project) {
+function needsManualConversationId(integration: string, isPython: boolean): boolean {
+  const autoSet = isPython ? PYTHON_AUTO_CONVERSATION_ID : NODE_AUTO_CONVERSATION_ID;
+  return !autoSet.has(integration);
+}
+
+function useConversationSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
   const [shouldRefetch, setShouldRefetch] = useState(true);
 
   const request = useSpans(
     {
-      search: getHasAiSpansFilter(),
+      search: 'has:gen_ai.conversation.id',
       fields: ['id'],
       limit: 1,
       enabled: !!project,
@@ -101,7 +102,7 @@ function useAiSpanWaiter(project: Project) {
         },
       },
     },
-    Referrer.ONBOARDING
+    Referrer.CONVERSATIONS_ONBOARDING
   );
 
   const hasEvents = Boolean(request.data?.length);
@@ -115,28 +116,35 @@ function useAiSpanWaiter(project: Project) {
   return request;
 }
 
-function WaitingIndicator({project}: {project: Project}) {
-  const spanRequest = useAiSpanWaiter(project);
-  const {reloadProjects, fetching} = useProjects();
+function ConversationWaitingIndicator({
+  project,
+  onDismiss,
+}: {
+  onDismiss: () => void;
+  project: Project;
+}) {
+  const spanRequest = useConversationSpanWaiter(project);
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
-      {t('View Agent Monitoring')}
+    <Button priority="primary" onClick={onDismiss}>
+      {t('View Conversations')}
     </Button>
   ) : (
     <EventWaitingIndicator />
   );
 }
 
-function StepRenderer({
+function ConversationStepRenderer({
   project,
   step,
   stepIndex,
   isLastStep,
   trailingItems,
+  onDismiss,
 }: {
   isLastStep: boolean;
+  onDismiss: () => void;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
@@ -154,15 +162,16 @@ function StepRenderer({
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
-        {isLastStep && <WaitingIndicator project={project} />}
+        {isLastStep && (
+          <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
+        )}
       </GuidedSteps.ButtonWrapper>
-      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
       {isLastStep && <PulseSpacer />}
     </GuidedSteps.Step>
   );
 }
 
-function OnboardingPanel({
+function ConversationOnboardingPanel({
   project,
   children,
 }: {
@@ -175,46 +184,30 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
+              <Flex justify="between" gap="2xl" padding="3xl">
                 <HeaderText>
-                  <Title>{t('Monitor AI Agents')}</Title>
+                  <Title>{t('See Exactly What Your Agent Said')}</Title>
                   <SubTitle>
                     {t(
-                      'Get comprehensive visibility into your AI agents and LLM applications to understand performance, costs, and user interactions.'
+                      "Replay every message, tool call, and handoff in a conversation. When your agent goes off-script, you'll know why."
                     )}
                   </SubTitle>
                   <BulletList>
                     <li>
-                      {t(
-                        'Track token usage, costs, and latency across all your LLM calls'
-                      )}
+                      {t('Follow the full thread of messages between users and agents')}
                     </li>
                     <li>
-                      {t(
-                        'Monitor agent conversations, tool usage, and decision-making processes'
-                      )}
+                      {t('Inspect tool calls, handoffs, and model responses in context')}
                     </li>
                     <li>
-                      {t(
-                        'Debug failed requests and optimize prompt performance with detailed traces'
-                      )}
+                      {t('Pinpoint where conversations went wrong with detailed traces')}
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                <HeaderImage src={replayOnboardingImg} />
+              </Flex>
               <Divider />
-              <Body>
-                <Setup>{children}</Setup>
-                <Preview>
-                  <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
-                  <Arcade
-                    src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
-                    loading="lazy"
-                    allowFullScreen
-                  />
-                </Preview>
-              </Body>
+              <Container padding="3xl">{children}</Container>
             </div>
           </TabSelectionScope>
         </AuthTokenGeneratorProvider>
@@ -223,7 +216,48 @@ function OnboardingPanel({
   );
 }
 
-export function Onboarding() {
+function getConversationIdStep(_integration: string, isPython: boolean): OnboardingStep {
+  const content: ContentBlock[] = isPython
+    ? [
+        {
+          type: 'text',
+          text: t(
+            'Group related LLM calls into a single conversation thread by setting an ID at the start:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `import sentry_sdk
+
+# Call this at the start of each conversation
+sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
+        },
+      ]
+    : [
+        {
+          type: 'text',
+          text: t(
+            'Group related LLM calls into a single conversation thread by setting an ID at the start:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `import * as Sentry from "@sentry/node";
+
+// Call this at the start of each conversation
+Sentry.setConversationId("my-conversation-123");`,
+        },
+      ];
+
+  return {
+    title: t('Set Conversation ID'),
+    content,
+  };
+}
+
+export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
@@ -242,7 +276,6 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
-  // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isNodePlatform = (project?.platform ?? '').startsWith('node');
   const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
@@ -277,8 +310,6 @@ export function Onboarding() {
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
-  const isManualIntegration =
-    selectedPlatformOptions.integration === AgentIntegration.MANUAL;
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -330,22 +361,32 @@ export function Onboarding() {
     isSelfHosted,
   };
 
-  const introduction = agentMonitoringDocs.introduction?.(docParams);
+  const selectedIntegration = selectedPlatformOptions.integration;
+  const showConversationIdStep = needsManualConversationId(
+    selectedIntegration,
+    isPythonPlatform
+  );
 
-  const steps = [
+  const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
+    ...(showConversationIdStep
+      ? [getConversationIdStep(selectedIntegration, isPythonPlatform)]
+      : []),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
   ].filter(s => !s.collapsible);
 
+  const introduction = agentMonitoringDocs.introduction?.(docParams);
+
   return (
-    <OnboardingPanel project={project}>
+    <ConversationOnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <OptionsWrapper>
+      <Flex gap="md" align="center" wrap="wrap" paddingBottom="md">
         <PlatformOptionDropdown platformOptions={integrationOptions} />
-      </OptionsWrapper>
+      </Flex>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps
+        key={`${selectedIntegration}-${showConversationIdStep}`}
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
           navigate({
@@ -358,151 +399,92 @@ export function Onboarding() {
         }}
       >
         {steps.map((step, index) => (
-          <StepRenderer
+          <ConversationStepRenderer
             key={step.title || step.type}
             project={project}
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            onDismiss={onDismiss}
             trailingItems={
               index === 0 && copyEnabled ? (
                 <OnboardingCopyMarkdownButton
                   borderless
                   steps={steps}
-                  source="agent_monitoring_onboarding"
-                  postamble={
-                    isManualIntegration
-                      ? `${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`
-                      : undefined
-                  }
-                  onCopy={
-                    isManualIntegration
-                      ? () => {
-                          trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-                            organization,
-                          });
-                        }
-                      : undefined
-                  }
+                  source="conversations_onboarding"
                 />
               ) : undefined
             }
           />
         ))}
       </GuidedSteps>
-    </OnboardingPanel>
+    </ConversationOnboardingPanel>
   );
 }
 
-function CopyInstructionsButton() {
-  const organization = useOrganization();
-  const copySetupInstructionsEnabled = useCopySetupInstructionsEnabled();
-
-  if (!copySetupInstructionsEnabled) {
-    return <CopyLLMPromptButton />;
-  }
-
-  return (
-    <CopyMarkdownButton
-      title={t('Copies setup instructions as Markdown, optimized for use with an LLM.')}
-      source="agent_monitoring_onboarding"
-      getMarkdown={() => LLM_ONBOARDING_INSTRUCTIONS}
-      onCopy={() => {
-        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-          organization,
-        });
-      }}
-    />
-  );
-}
-
-export function UnsupportedPlatformOnboarding({
+function UnsupportedPlatformOnboarding({
   project,
   platformName,
 }: {
   platformName: string;
   project: Project;
 }) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   return (
-    <OnboardingPanel project={project}>
+    <ConversationOnboardingPanel project={project}>
       <DescriptionWrapper>
         <p>
           {tct(
-            'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project.',
+            "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
             {
               platform: platformName,
             }
           )}
         </p>
         <p>
-          {copyEnabled
-            ? tct(
-                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                  ),
-                  bold: <strong />,
-                }
-              )
-            : tct(
-                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                  ),
-                }
-              )}
+          {tct(
+            '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              ),
+            }
+          )}
         </p>
-        <CopyInstructionsButton />
+        <CopyLLMPromptButton />
       </DescriptionWrapper>
-    </OnboardingPanel>
+    </ConversationOnboardingPanel>
   );
 }
 
-export function NoDocsOnboarding({project}: {project: Project}) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
+function NoDocsOnboarding({project}: {project: Project}) {
   return (
-    <OnboardingPanel project={project}>
+    <ConversationOnboardingPanel project={project}>
       <DescriptionWrapper>
         <p>
           {tct(
-            "The agent monitoring onboarding checklist isn't available for your [project] project yet.",
+            "We don't have a setup checklist for [project] yet, but that won't stop us.",
             {project: project.slug}
           )}
         </p>
         <p>
-          {copyEnabled
-            ? tct(
-                'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-                  ),
-                  bold: <strong />,
-                }
-              )
-            : tct(
-                'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-                  ),
-                }
-              )}
+          {tct(
+            'Follow our [link:documentation] to get started, or let an AI coding agent handle the setup for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+              ),
+            }
+          )}
         </p>
-        <CopyInstructionsButton />
+        <CopyLLMPromptButton />
       </DescriptionWrapper>
-    </OnboardingPanel>
+    </ConversationOnboardingPanel>
   );
 }
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
-    {t("Waiting for this project's first agent events")}
+    {t('Listening for your first conversation...')}
     <PulsingIndicator />
   </div>
 ))`
@@ -521,59 +503,10 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-
-  &:after {
-    content: '';
-    position: absolute;
-    right: 50%;
-    top: 2.5%;
-    height: 95%;
-    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
-  }
-`;
-
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Body = styled('div')`
-  display: grid;
-  position: relative;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-
-  h4 {
-    margin-bottom: 0;
-  }
-`;
-
-const Arcade = styled('iframe')`
-  width: 750px;
-  max-width: 100%;
-  min-height: 370px;
-  margin-top: ${p => p.theme.space['2xl']};
-  border: 0;
-`;
-
-const Image = styled('img')`
+const HeaderImage = styled('img')`
   display: block;
   pointer-events: none;
   height: 120px;
@@ -585,16 +518,11 @@ const Image = styled('img')`
 `;
 
 const Divider = styled('hr')`
-  height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.primary};
   border: none;
-  margin-top: 0;
-  margin-bottom: 0;
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  margin: 0;
 `;
-
-const CONTENT_SPACING = space(1);
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
@@ -602,7 +530,7 @@ const DescriptionWrapper = styled('div')`
   }
 
   :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${space(1)};
   }
 
   && > h4,
@@ -616,15 +544,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${space(1)};
     }
   }
-`;
-
-const OptionsWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  flex-wrap: wrap;
-  padding-bottom: ${p => p.theme.space.md};
 `;
