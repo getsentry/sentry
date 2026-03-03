@@ -8,18 +8,11 @@ def test_exec_provider_fn():
     def record_count(k, a, t):
         metrics.append((k, a, t))
 
+    provider = BaseTestProvider()
     result = exec_provider_fn(
-        1,
-        2,
+        provider,
         referrer="emerge",
-        fetch_repository=lambda oid, rid: {
-            "integration_id": 1,
-            "name": "1",
-            "organization_id": 1,
-            "is_active": True,
-        },
-        fetch_service_provider=lambda a, b: BaseTestProvider(),
-        provider_fn=lambda r, p: 42,
+        provider_fn=lambda p: 42,
         record_count=record_count,
     )
     assert result == 42

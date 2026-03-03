@@ -149,64 +149,49 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
 @pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
 def test_rate_limited_action(method: str, kwargs: dict[str, Any]):
     class RateLimitedProvider(BaseTestProvider):
-        def is_rate_limited(self, oid, ref):
+        def is_rate_limited(self, referrer):
             return True
 
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: RateLimitedProvider(),
-    )
+    scm = SourceCodeManager(RateLimitedProvider())
 
     with raises_with_code(SCMCodedError, "rate_limit_exceeded"):
         getattr(scm, method)(**kwargs)
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_repository_not_found(method: str, kwargs: dict[str, Any]):
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=lambda _a, _b: None,
-    )
-
+def test_repository_not_found():
     with raises_with_code(SCMCodedError, "repository_not_found"):
-        getattr(scm, method)(**kwargs)
+        SourceCodeManager.make_from_repository_id(
+            organization_id=1,
+            repository_id=1,
+            fetch_repository=lambda _a, _b: None,
+        )
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_repository_inactive(method: str, kwargs: dict[str, Any]):
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=lambda _a, _b: {
-            "integration_id": 1,
-            "name": "test",
-            "organization_id": 1,
-            "is_active": False,
-        },
-    )
-
+def test_repository_inactive():
     with raises_with_code(SCMCodedError, "repository_inactive"):
-        getattr(scm, method)(**kwargs)
+        SourceCodeManager.make_from_repository_id(
+            organization_id=1,
+            repository_id=1,
+            fetch_repository=lambda _a, _b: {
+                "integration_id": 1,
+                "name": "test",
+                "organization_id": 1,
+                "is_active": False,
+            },
+        )
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_repository_organization_mismatch(method: str, kwargs: dict[str, Any]):
-    scm = SourceCodeManager(organization_id=2, repository_id=1, fetch_repository=fetch_repository)
-
+def test_repository_organization_mismatch():
     with raises_with_code(SCMCodedError, "repository_organization_mismatch"):
-        getattr(scm, method)(**kwargs)
+        SourceCodeManager.make_from_repository_id(
+            organization_id=2,
+            repository_id=1,
+            fetch_repository=fetch_repository,
+        )
 
 
 def make_scm():
-    return SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: BaseTestProvider(),
-    )
+    return SourceCodeManager(BaseTestProvider())
 
 
 def _check_issue_comments(result: Any) -> None:
@@ -653,13 +638,7 @@ def test_action_success(method, kwargs: dict[str, Any], check):
     def record_count(k, a, t):
         metrics.append((k, a, t))
 
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: BaseTestProvider(),
-        record_count=record_count,
-    )
+    scm = SourceCodeManager(BaseTestProvider(), record_count=record_count)
     check(method(scm, **kwargs))
 
     assert metrics == [
@@ -677,12 +656,7 @@ def test_provider_exception_is_not_wrapped():
         ) -> PaginatedActionResult[ReactionResult]:
             raise SCMProviderException("GitHub API error")
 
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: FailingProvider(),
-    )
+    scm = SourceCodeManager(FailingProvider())
 
     with pytest.raises(SCMProviderException):
         scm.get_issue_reactions(issue_id="1")
