@@ -154,7 +154,14 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   buttons: {
     label: 'Buttons',
-    components: ['button', 'linkbutton', 'buttonbar'],
+    components: [
+      'button',
+      'linkbutton',
+      'buttonbar',
+      'compactselect',
+      'composite',
+      'segmentedcontrol',
+    ],
   },
   forms: {
     label: 'Forms',
@@ -169,9 +176,6 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
       'slider',
       'select',
       'multiselect',
-      'compactselect',
-      'composite',
-      'segmentedcontrol',
       'form',
       'fields',
       'autosavefield',
