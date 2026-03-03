@@ -806,7 +806,7 @@ const MessagesContainer = styled('div')`
 
 const Message = styled('div')<{role: CommentThreadMessage['role']}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 `;
 
