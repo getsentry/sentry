@@ -243,5 +243,4 @@ def validate_span_event(span_event: SpanEvent, segment_id: str | None) -> None:
     assert isinstance(span_event["trace_id"], str), "trace_id must be str"
     assert isinstance(span_event["span_id"], str), "span_id must be str"
     assert isinstance(span_event["start_timestamp"], (int, float)), "start_timestamp must be float"
-    assert isinstance(span_event["end_timestamp"], (int, float)), "end_timestamp must be float"
     assert segment_id is None or isinstance(segment_id, str), "segment_id must be str or None"
