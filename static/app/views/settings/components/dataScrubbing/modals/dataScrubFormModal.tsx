@@ -581,8 +581,8 @@ const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
       border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.tokens.border.primary};
       box-shadow: ${p.theme.dropShadowMedium};
-  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space['2xl']} 0;
-  padding: ${p => p.theme.space.xl};
+      margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space['2xl']} 0;
+      padding: ${p => p.theme.space.xl};
     `}
 `;
 
