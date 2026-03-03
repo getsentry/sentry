@@ -29,7 +29,7 @@ interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-export const TraceViewDrawer = memo(function TraceViewDrawer({
+const TraceViewDrawer = memo(function TraceViewDrawer({
   traceSlug,
   closeDrawer,
   timestamp,
