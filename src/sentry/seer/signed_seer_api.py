@@ -61,10 +61,13 @@ def make_signed_seer_api_request(
 
     if viewer_context:
         if settings.SEER_API_SHARED_SECRET:
-            context_bytes = orjson.dumps(viewer_context)
-            context_signature = sign_viewer_context(context_bytes)
-            headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
-            headers["X-Viewer-Context-Signature"] = context_signature
+            try:
+                context_bytes = orjson.dumps(viewer_context)
+                context_signature = sign_viewer_context(context_bytes)
+                headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
+                headers["X-Viewer-Context-Signature"] = context_signature
+            except Exception:
+                logger.exception("Failed to serialize viewer context for call to Seer.")
         else:
             logger.warning(
                 "settings.SEER_API_SHARED_SECRET is not set. Unable to sign viewer context for call to Seer."
