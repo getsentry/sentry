@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -54,18 +53,18 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   flex-shrink: 0;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     margin-left: 0;
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
 const StyledAlert = styled(Alert)`
   align-items: center;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 
   button svg,
   a svg {

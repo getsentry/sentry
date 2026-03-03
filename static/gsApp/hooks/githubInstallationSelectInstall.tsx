@@ -7,7 +7,6 @@ import type {SelectKey} from '@sentry/scraps/compactSelect';
 import GlobalModal from 'sentry/components/globalModal';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -67,7 +66,7 @@ function GithubInstallationSelectInstallButton({
 }
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
   &:not(:disabled) {
     background-color: #6c5fc7;
     color: #fff;
