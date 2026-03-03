@@ -7,14 +7,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import type {PlatformKey} from 'sentry/types/project';
 import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
 
-function renderProjectCharts(
-  platform?: PlatformKey,
-  chartDisplay?: string,
-  features?: [string]
-) {
+function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
   const {organization, router, project} = initializeOrg({
     organization: OrganizationFixture(),
-    projects: [{platform, features}],
+    projects: [{platform}],
     router: {
       params: {orgId: 'org-slug', projectId: 'project-slug'},
       location: {
@@ -79,8 +75,8 @@ describe('ProjectDetail > ProjectCharts', () => {
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
   });
 
-  it('renders App Hang options for apple projects when the feature flag is enabled', async () => {
-    renderProjectCharts('apple', undefined, ['project-detail-apple-app-hang-rate']);
+  it('renders App Hang options for apple projects', async () => {
+    renderProjectCharts('apple');
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
@@ -90,25 +86,14 @@ describe('ProjectDetail > ProjectCharts', () => {
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 
-  it('renders App Hang options for apple-ios projects when the feature flag is enabled', async () => {
-    renderProjectCharts('apple-ios', undefined, ['project-detail-apple-app-hang-rate']);
+  it('renders App Hang options for apple-ios projects', async () => {
+    renderProjectCharts('apple-ios');
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
     expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
-    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
-  });
-
-  it('does not render App Hang options for apple-ios projects when the feature flag is disabled', async () => {
-    renderProjectCharts('apple-ios', undefined);
-
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
-    );
-
-    expect(screen.queryByText('App Hang Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 

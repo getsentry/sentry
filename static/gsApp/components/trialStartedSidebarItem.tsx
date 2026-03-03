@@ -11,7 +11,6 @@ import type {Client} from 'sentry/api';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -201,7 +200,7 @@ const StyledHovercard = styled(Hovercard)`
 const HovercardBody = styled('div')`
   h1 {
     font-size: ${p => p.theme.font.size.lg};
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
   p {
     font-size: ${p => p.theme.font.size.md};
@@ -212,15 +211,15 @@ const Bullets = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-auto-rows: max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HovercardHeader = styled('h1')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
