@@ -60,10 +60,10 @@ def keyed_counts_subset_match(
     def _to_count_map(rows: Sequence[Mapping[str, Any]]) -> dict[Hashable, int]:
         output: dict[Hashable, int] = {}
         for row in rows:
-            key = key_fn(row)
             count = row.get(count_field)
             if count is None:
                 continue
+            key = key_fn(row)
             output[key] = int(count)
         return output
 
