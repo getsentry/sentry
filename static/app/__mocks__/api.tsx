@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import type * as ApiNamespace from 'sentry/api';
 import RequestError from 'sentry/utils/requestError/requestError';
 
-const RealApi = jest.requireActual('sentry/api');
+const RealApi = jest.requireActual<typeof ApiNamespace>('sentry/api');
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
@@ -199,7 +199,7 @@ class Client implements ApiNamespace.Client {
     const asyncDelay = Client.asyncDelay;
 
     return (...args: T) => {
-      if ((RealApi.hasProjectBeenRenamed)(...args)) {
+      if ((RealApi.hasProjectBeenRenamed as any)(...args)) {
         return;
       }
       respond(asyncDelay, func, ...args);

@@ -58,11 +58,11 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
   const maybeFilteredOrInvertedTree: FlamegraphFrame[] | null = useMemo(() => {
-    const skipFunction =
+    const skipFunction: (f: FlamegraphFrame) => boolean =
       treeType === 'application'
-        ? (f: FlamegraphFrame) => !f.frame.is_application
+        ? f => !f.frame.is_application
         : treeType === 'system'
-          ? (f: FlamegraphFrame) => f.frame.is_application
+          ? f => f.frame.is_application
           : () => false;
 
     const maybeFilteredRoots =
