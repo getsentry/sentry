@@ -24,8 +24,6 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
-from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
@@ -48,6 +46,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.endpoints.organization_detector_details import remove_detector
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
@@ -147,10 +146,7 @@ def remove_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule | Detector
 ) -> Response:
     if isinstance(alert_rule, Detector):
-        with transaction.atomic(router.db_for_write(Detector)):
-            alert_rule.update(status=ObjectStatus.PENDING_DELETION)
-            RegionScheduledDeletion.schedule(alert_rule, days=0, actor=request.user)
-        return Response(status=status.HTTP_202_ACCEPTED)
+        return remove_detector(request, organization, alert_rule)
 
     try:
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:

@@ -29,6 +29,7 @@ from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -2423,9 +2424,9 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         self.login_as(self.user)
 
-        detector = self.create_detector(project=self.project)
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         fake_detector_id = get_fake_id_from_object_id(detector.id)
-        self.get_success_response(self.organization.slug, fake_detector_id, status_code=202)
+        self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
 
         # Detector.objects excludes PENDING_DELETION, so the detector not appearing here confirms
         # it was scheduled for deletion.
