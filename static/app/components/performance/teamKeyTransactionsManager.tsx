@@ -116,78 +116,85 @@ export function Provider({
     return counts;
   }
 
-  const getKeyedTeams = (projectId: string, transactionName: string) => {
-    const keyedTeams = new Set<string>();
+  const getKeyedTeams = useCallback(
+    (projectId: string, transactionName: string) => {
+      const keyedTeams = new Set<string>();
 
-    state.teamKeyTransactions.forEach(({team, keyed}) => {
-      const isKeyedByTeam = keyed.find(
-        keyedTeam =>
-          keyedTeam.project_id === projectId && keyedTeam.transaction === transactionName
-      );
-      if (isKeyedByTeam) {
-        keyedTeams.add(team);
-      }
-    });
+      state.teamKeyTransactions.forEach(({team, keyed}) => {
+        const isKeyedByTeam = keyed.find(
+          keyedTeam =>
+            keyedTeam.project_id === projectId &&
+            keyedTeam.transaction === transactionName
+        );
+        if (isKeyedByTeam) {
+          keyedTeams.add(team);
+        }
+      });
 
-    return keyedTeams;
-  };
+      return keyedTeams;
+    },
+    [state.teamKeyTransactions]
+  );
 
-  const handleToggleKeyTransaction = async (selection: TeamSelection) => {
-    const {teamKeyTransactions} = state;
-    const {action, project, transactionName, teamIds} = selection;
-    const isKeyTransaction = action === 'unkey';
+  const handleToggleKeyTransaction = useCallback(
+    async (selection: TeamSelection) => {
+      const {teamKeyTransactions} = state;
+      const {action, project, transactionName, teamIds} = selection;
+      const isKeyTransaction = action === 'unkey';
 
-    const teamIdSet = new Set(teamIds);
+      const teamIdSet = new Set(teamIds);
 
-    const newTeamKeyTransactions = teamKeyTransactions.map(({team, count, keyed}) => {
-      if (!teamIdSet.has(team)) {
-        return {team, count, keyed};
-      }
+      const newTeamKeyTransactions = teamKeyTransactions.map(({team, count, keyed}) => {
+        if (!teamIdSet.has(team)) {
+          return {team, count, keyed};
+        }
 
-      if (isKeyTransaction) {
+        if (isKeyTransaction) {
+          return {
+            team,
+            count: count - 1,
+            keyed: keyed.filter(
+              keyTransaction =>
+                keyTransaction.project_id !== project.id ||
+                keyTransaction.transaction !== transactionName
+            ),
+          };
+        }
         return {
           team,
-          count: count - 1,
-          keyed: keyed.filter(
-            keyTransaction =>
-              keyTransaction.project_id !== project.id ||
-              keyTransaction.transaction !== transactionName
-          ),
+          count: count + 1,
+          keyed: [
+            ...keyed,
+            {
+              project_id: project.id,
+              transaction: transactionName,
+            },
+          ],
         };
-      }
-      return {
-        team,
-        count: count + 1,
-        keyed: [
-          ...keyed,
-          {
-            project_id: project.id,
-            transaction: transactionName,
-          },
-        ],
-      };
-    });
+      });
 
-    try {
-      await toggleKeyTransaction(
-        api,
-        isKeyTransaction,
-        organization.slug,
-        [project.id],
-        transactionName,
-        teamIds
-      );
-      setState(previousState => ({
-        ...previousState,
-        teamKeyTransactions: newTeamKeyTransactions,
-      }));
-    } catch (err: any) {
-      setState(previousState => ({
-        ...previousState,
-        error: err.responseJSON?.detail ?? null,
-      }));
-    }
-  };
+      try {
+        await toggleKeyTransaction(
+          api,
+          isKeyTransaction,
+          organization.slug,
+          [project.id],
+          transactionName,
+          teamIds
+        );
+        setState(previousState => ({
+          ...previousState,
+          teamKeyTransactions: newTeamKeyTransactions,
+        }));
+      } catch (err: any) {
+        setState(previousState => ({
+          ...previousState,
+          error: err.responseJSON?.detail ?? null,
+        }));
+      }
+    },
+    [api, organization.slug, state]
+  );
 
   const childrenProps: TeamKeyTransactionManagerChildrenProps = {
     teams,
