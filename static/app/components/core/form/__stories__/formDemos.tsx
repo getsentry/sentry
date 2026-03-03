@@ -290,10 +290,8 @@ const TAG_OPTIONS = [
 ];
 
 export function FullAutoSaveDemo() {
-  type FullSchema = z.infer<typeof fullSchema>;
-
   const fullMutationOptions = {
-    mutationFn: async (data: Partial<FullSchema>) => {
+    mutationFn: async (data: Record<string, unknown>) => {
       await sleep(1000);
       return data;
     },
