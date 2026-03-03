@@ -232,4 +232,4 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Delete a monitor
         """
-        remove_detector(request, organization, detector)
+        return remove_detector(request, organization, detector)
