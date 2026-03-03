@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 
 from sentry.integrations.github.platform_detection import (
+    FRAMEWORKS,
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
     DetectorRule,
@@ -897,3 +898,172 @@ class TestDetectPlatforms:
 
         platforms = [r["platform"] for r in result]
         assert "go-gin" in platforms
+
+
+class TestFrameworksIntegrity:
+    """Validate the FRAMEWORKS list is internally consistent.
+
+    Catches typos and structural errors that would silently cause
+    framework definitions to never match at runtime.
+    """
+
+    def test_no_duplicate_platform_ids(self) -> None:
+        platform_ids = [fw["platform"] for fw in FRAMEWORKS]
+        duplicates = [p for p in platform_ids if platform_ids.count(p) > 1]
+        assert duplicates == [], f"Duplicate platform IDs: {set(duplicates)}"
+
+    def test_all_base_platforms_are_valid(self) -> None:
+        valid_base_platforms = set(GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.values())
+        for fw in FRAMEWORKS:
+            assert fw["base_platform"] in valid_base_platforms, (
+                f"{fw['platform']} has base_platform={fw['base_platform']!r} "
+                f"which is not a value in GITHUB_LANGUAGE_TO_SENTRY_PLATFORM"
+            )
+
+    def test_all_supersedes_targets_exist(self) -> None:
+        all_platform_ids = {fw["platform"] for fw in FRAMEWORKS}
+        all_base_platforms = set(GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.values())
+        valid_targets = all_platform_ids | all_base_platforms
+
+        for fw in FRAMEWORKS:
+            for target in fw.get("supersedes", []):
+                assert target in valid_targets, (
+                    f"{fw['platform']} supersedes {target!r} "
+                    f"which does not exist as a framework or base platform"
+                )
+
+    def test_every_framework_has_at_least_one_rule(self) -> None:
+        for fw in FRAMEWORKS:
+            has_rules = fw.get("every") or fw.get("some")
+            assert has_rules, f"{fw['platform']} has no detection rules (no every or some)"
+
+    def test_sort_values_are_positive_integers(self) -> None:
+        for fw in FRAMEWORKS:
+            assert isinstance(fw["sort"], int), (
+                f"{fw['platform']} sort={fw['sort']!r} is not an int"
+            )
+            assert 1 <= fw["sort"] <= 99, (
+                f"{fw['platform']} sort={fw['sort']} is outside valid range 1-99"
+            )
+
+    def test_no_rule_has_match_content_without_path(self) -> None:
+        for fw in FRAMEWORKS:
+            for rule in [*fw.get("every", []), *fw.get("some", [])]:
+                if "match_content" in rule:
+                    assert "path" in rule, (
+                        f"{fw['platform']} has match_content without path — "
+                        f"content matching requires a file to read"
+                    )
+
+
+class TestDetectPlatformsMultiStack:
+    """Test detection against a realistic multi-language, multi-framework repo.
+
+    Simulates a repo like a typical full-stack app with:
+    - Python backend (Django + Celery)
+    - JavaScript frontend (Next.js with React)
+    - Go microservice (Gin)
+    - Plus build/infra languages that should be ignored
+    """
+
+    def test_full_stack_repo(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {
+            "Python": 120000,
+            "JavaScript": 80000,
+            "TypeScript": 60000,
+            "Go": 40000,
+            "HTML": 15000,
+            "CSS": 10000,
+            "Shell": 5000,
+            "Makefile": 2000,
+            "Dockerfile": 1000,
+        }
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "manage.py", "type": "file"},
+                    {"name": "requirements.txt", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                    {"name": "go.mod", "type": "file"},
+                    {"name": "next.config.js", "type": "file"},
+                    {"name": "Dockerfile", "type": "file"},
+                    {"name": "Makefile", "type": "file"},
+                    {"name": "src", "type": "dir"},
+                    {"name": "frontend", "type": "dir"},
+                    {"name": "services", "type": "dir"},
+                ]
+            if "requirements.txt" in path:
+                return _make_b64_response(
+                    "Django==4.2\ncelery>=5.3\ngunicorn\npsycopg2-binary\nredis\n"
+                )
+            if "package.json" in path:
+                return _make_b64_response(
+                    json.dumps(
+                        {
+                            "dependencies": {
+                                "next": "^14.0.0",
+                                "react": "^18.2.0",
+                                "react-dom": "^18.2.0",
+                            },
+                            "devDependencies": {
+                                "typescript": "^5.0.0",
+                                "eslint": "^8.0.0",
+                            },
+                        }
+                    )
+                )
+            if "go.mod" in path:
+                return _make_b64_response(
+                    "module github.com/myorg/myapp\n\n"
+                    "go 1.21\n\n"
+                    "require (\n"
+                    "\tgithub.com/gin-gonic/gin v1.9.1\n"
+                    "\tgithub.com/lib/pq v1.10.9\n"
+                    ")\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        platform_set = set(platforms)
+
+        # Frameworks detected with high confidence
+        assert "python-django" in platform_set
+        assert "python-celery" in platform_set
+        assert "javascript-nextjs" in platform_set
+        assert "go-gin" in platform_set
+
+        # Supersession: React removed because Next.js is present
+        assert "javascript-react" not in platform_set
+
+        # Base platforms as fallback
+        assert "python" in platform_set
+        assert "javascript" in platform_set
+        assert "go" in platform_set
+
+        # Ignored languages excluded entirely
+        for r in result:
+            assert r["language"] not in ("HTML", "CSS", "Shell", "Makefile", "Dockerfile")
+
+        # TypeScript deduplicates into javascript base platform
+        ts_results = [r for r in result if r["language"] == "TypeScript"]
+        assert ts_results == []
+
+        # Priority ordering: meta-frameworks first, then primary, then utilities, then base
+        nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
+        django = next(r for r in result if r["platform"] == "python-django")
+        celery = next(r for r in result if r["platform"] == "python-celery")
+        python_base = next(r for r in result if r["platform"] == "python")
+
+        assert nextjs["priority"] > django["priority"] > celery["priority"]
+        assert celery["priority"] > python_base["priority"]
+        assert python_base["priority"] == 1
+
+        # Results are sorted by (priority, bytes) descending
+        for i in range(len(result) - 1):
+            a, b = result[i], result[i + 1]
+            assert (a["priority"], a["bytes"]) >= (b["priority"], b["bytes"])
