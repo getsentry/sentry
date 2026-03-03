@@ -73,7 +73,6 @@ export function DO_NOT_USE_getButtonStyles(
     whiteSpace: 'nowrap',
 
     fontWeight: p.theme.font.weight.sans.medium,
-
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',

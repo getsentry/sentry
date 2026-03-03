@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,67 +17,82 @@ export type {ButtonProps};
 
 export function Button({
   size = 'md',
-  disabled,
   type = 'button',
   tooltipProps,
-  busy,
   ...props
 }: ButtonProps) {
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
-    disabled,
-    busy,
+    disabled: props.disabled,
+    busy: props.busy,
   });
 
   return (
-    <Tooltip
-      skipWrapper
-      {...tooltipProps}
-      title={tooltipProps?.title}
-      disabled={!tooltipProps?.title}
+    <StyledFlex
+      busy={props.busy}
+      size={size}
+      icon={props.icon}
+      priority={props.priority}
+      disabled={props.disabled}
+      className={props.className}
+      display="inline-flex"
     >
-      <StyledButton
-        aria-label={accessibleLabel}
-        aria-disabled={disabled}
-        aria-busy={busy}
-        disabled={disabled}
-        size={size}
-        type={type}
-        busy={busy}
-        {...props}
-        onClick={handleClick}
-        role="button"
-      >
-        <Flex
-          as="span"
-          align="center"
-          justify="center"
-          minWidth="0"
-          height="100%"
-          whiteSpace="nowrap"
-        >
-          {props.icon && (
-            <Flex
-              as="span"
-              align="center"
-              flexShrink={0}
-              marginRight={
-                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
-              }
+      {flexProps => {
+        return (
+          <Tooltip
+            skipWrapper
+            {...tooltipProps}
+            title={tooltipProps?.title}
+            disabled={!tooltipProps?.title}
+          >
+            <button
+              aria-disabled={props.disabled}
+              aria-busy={props.busy}
+              disabled={props.disabled}
+              {...mergeProps(flexProps, props)}
+              aria-label={accessibleLabel}
+              type={type}
+              onClick={handleClick}
+              role="button"
             >
-              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                {props.icon}
-              </IconDefaultsProvider>
-            </Flex>
-          )}
-          {props.children}
-        </Flex>
-      </StyledButton>
-    </Tooltip>
+              <Flex
+                as="span"
+                align="center"
+                justify="center"
+                minWidth="0"
+                height="100%"
+                whiteSpace="nowrap"
+              >
+                {props.icon && (
+                  <Flex
+                    as="span"
+                    align="center"
+                    flexShrink={0}
+                    position="relative"
+                    marginRight={
+                      hasChildren
+                        ? size === 'xs' || size === 'zero'
+                          ? 'sm'
+                          : 'md'
+                        : undefined
+                    }
+                  >
+                    <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
+                      {props.icon}
+                    </IconDefaultsProvider>
+                  </Flex>
+                )}
+                {props.children}
+              </Flex>
+            </button>
+          </Tooltip>
+        );
+      }}
+    </StyledFlex>
   );
 }
 
-const StyledButton = styled('button')<ButtonProps>`
+const StyledFlex = styled(Flex)<ButtonProps>`
   ${p => getButtonStyles(p as any)}
 `;
