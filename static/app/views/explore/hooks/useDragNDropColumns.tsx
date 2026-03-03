@@ -21,11 +21,10 @@ export function useDragNDropColumns<T>({
 }: UseDragAndDropColumnsProps<T>) {
   const uniqueIdsRef = useRef<string[]>([]);
 
-  const nextUniqueIds = uniqueIdsRef.current.slice(0, columns.length);
-  while (nextUniqueIds.length < columns.length) {
-    nextUniqueIds.push(uniqueId());
+  uniqueIdsRef.current.length = Math.min(uniqueIdsRef.current.length, columns.length);
+  while (uniqueIdsRef.current.length < columns.length) {
+    uniqueIdsRef.current.push(uniqueId());
   }
-  uniqueIdsRef.current = nextUniqueIds;
 
   const editableColumns = columns.map((column, i) => ({
     id: i + 1,
