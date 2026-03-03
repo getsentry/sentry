@@ -2,6 +2,16 @@
 
 import fs from 'node:fs';
 
+//
+// This script is intended to be used to extract the device names from the supported_devices.csv file.
+// The mapping is necessary to translate device models to their more human readable marketing names during query time for several discover events and tags endpoints.
+// The supported_devices.csv file is obtained from this link: https://support.google.com/googleplay/answer/1727131
+// Steps on how to generate this mapping
+// 1. Download the List of Supported Android Devices csv file (https://storage.googleapis.com/play_public/supported_devices.csv)
+// 2. Run this script to convert the contents of the csv to a dict
+// 3. Paste dict into src/sentry/api/helpers/android_models.py
+//
+
 const LF = String.fromCharCode(10);
 
 /**
