@@ -718,14 +718,19 @@ class BaseTestProvider(Provider):
 
     def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
         return ActionResult(
-            data=GitRef(ref=f"refs/heads/{branch}", sha=sha),
+            data=GitRef(ref=branch, sha=sha),
             type="github",
             raw={},
             meta={},
         )
 
-    def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
-        return None
+    def update_branch(self, branch: str, sha: str, force: bool = False) -> ActionResult[GitRef]:
+        return ActionResult(
+            data=GitRef(ref=branch, sha=sha),
+            type="github",
+            raw={},
+            meta={},
+        )
 
     # Git blob operations
 

@@ -636,6 +636,12 @@ def _check_create_branch(result: Any) -> None:
     assert result["type"] == "github"
 
 
+def _check_update_branch(result: Any) -> None:
+    assert result["data"]["sha"] == "def456"
+    assert result["data"]["ref"] == "feature"
+    assert result["type"] == "github"
+
+
 def _check_issue_reactions(result: Any) -> None:
     assert len(result["data"]) == 2
     assert result["data"][0]["id"] == "1"
@@ -857,6 +863,12 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {"branch": "feature", "sha": "abc123"},
         {},
         _check_create_branch,
+    ),
+    (
+        "update_branch",
+        {"branch": "feature", "sha": "def456"},
+        {},
+        _check_update_branch,
     ),
     (
         "create_git_blob",

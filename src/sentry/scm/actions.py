@@ -283,7 +283,9 @@ class SourceCodeManager:
         """Create a new branch pointing at the given SHA."""
         return self._exec(lambda p: p.create_branch(branch, sha))
 
-    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
+    def update_branch(
+        self, branch: BranchName, sha: CommitSHA, force: bool = False
+    ) -> ActionResult[GitRef]:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda p: p.update_branch(branch, sha, force))
 
