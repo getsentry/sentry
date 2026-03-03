@@ -24,7 +24,19 @@ const rule = {
     const toTSNode = parserServices.esTreeNodeToTSNodeMap;
 
     function typesAreIdentical(a, b) {
-      return checker.isTypeAssignableTo(a, b) && checker.isTypeAssignableTo(b, a);
+      if (!checker.isTypeAssignableTo(a, b) || !checker.isTypeAssignableTo(b, a)) {
+        return false;
+      }
+      // Bidirectional assignability doesn't guarantee identity when optional
+      // properties differ — e.g. `A & B` vs `A & B & { extra?: string }`.
+      // Verify both types expose the same set of properties.
+      const propsA = checker.getPropertiesOfType(a);
+      const propsB = checker.getPropertiesOfType(b);
+      if (propsA.length !== propsB.length) {
+        return false;
+      }
+      const namesA = new Set(propsA.map(p => p.name));
+      return propsB.every(p => namesA.has(p.name));
     }
 
     function isEscapeHatch(type) {

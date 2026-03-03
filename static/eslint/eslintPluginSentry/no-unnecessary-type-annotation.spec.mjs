@@ -111,6 +111,12 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
       code: 'declare function getArr(): Array<any>;\nconst a: Array<number> = getArr();',
       filename: 'valid.ts',
     },
+
+    // Annotation widens with optional properties — TrendsQuery pattern
+    {
+      code: 'type Base = { a: string };\ntype Extended = Base & { extra?: number };\ndeclare function getBase(): Base;\nconst x: Extended = getBase();',
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [

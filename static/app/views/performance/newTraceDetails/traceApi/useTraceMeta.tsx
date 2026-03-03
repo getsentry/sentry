@@ -72,7 +72,6 @@ async function fetchTraceMetaInBatches(
   filters: Partial<PageFilters> = {}
 ) {
   const clonedTraceIds = [...replayTraces];
-  // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
   const meta: TraceMeta | EAPTraceMeta =
     type === 'eap'
       ? {
