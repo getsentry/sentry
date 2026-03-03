@@ -53,7 +53,7 @@ class SpanTreeModel {
   isNestedSpanGroupExpanded = false;
   // Entries in this set will follow the format 'op.description'.
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
-  expandedSiblingGroups: Set<string> = new Set();
+  expandedSiblingGroups = new Set<string>();
 
   traceInfo: TraceInfo | undefined = undefined;
 

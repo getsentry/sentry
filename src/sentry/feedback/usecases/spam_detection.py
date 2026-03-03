@@ -1,15 +1,13 @@
 import logging
 
 from sentry import features
-from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
+from sentry.feedback.lib.seer_api import SpamDetectionRequest, make_spam_detection_request
 from sentry.models.project import Project
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_SPAM_DETECTION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/spam-detection"
 SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0
 
@@ -22,16 +20,14 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
     Returns True if the message is spam, False otherwise.
     Returns None if the request fails.
     """
-    seer_request = {
-        "organization_id": organization_id,
-        "feedback_message": message,
-    }
+    seer_request = SpamDetectionRequest(
+        organization_id=organization_id,
+        feedback_message=message,
+    )
 
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_summarization_connection_pool,
-            path=SEER_SPAM_DETECTION_ENDPOINT_PATH,
-            body=json.dumps(seer_request).encode("utf-8"),
+        response = make_spam_detection_request(
+            seer_request,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )

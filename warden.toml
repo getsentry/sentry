@@ -33,3 +33,12 @@ ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
 [[skills.triggers]]
 type = "pull_request"
 actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "gha-security-review"
+remote = "getsentry/skills"
+paths = [".github/workflows/*.yml", ".github/workflows/*.yaml", ".github/actions/**/*.yml", ".github/actions/**/*.yaml"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]

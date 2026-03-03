@@ -4,7 +4,6 @@ import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
-import orjson
 import sentry_sdk
 from django.utils import timezone as django_timezone
 
@@ -14,8 +13,9 @@ from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
+    ExplorerIndexProject,
+    ExplorerIndexRequest,
+    make_explorer_index_request,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
@@ -223,16 +223,15 @@ def run_explorer_index_for_projects(
     if not projects:
         return
 
-    project_list = [{"org_id": org_id, "project_id": project_id} for project_id, org_id in projects]
-    payload = {"projects": project_list}
-    body = orjson.dumps(payload)
-    path = "/v1/automation/explorer/index"
+    project_list = [
+        ExplorerIndexProject(org_id=org_id, project_id=project_id)
+        for project_id, org_id in projects
+    ]
+    payload = ExplorerIndexRequest(projects=project_list)
 
     try:
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            path,
-            body,
+        response = make_explorer_index_request(
+            payload,
             timeout=30,
         )
         if response.status >= 400:

@@ -1,6 +1,5 @@
 from unittest import mock
 
-import orjson
 import pytest
 
 from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
@@ -39,12 +38,12 @@ class TestIndexOrgProjectKnowledge(TestCase):
                 return_value={},
             ):
                 with mock.patch(
-                    "sentry.tasks.context_engine_index.make_signed_seer_api_request"
+                    "sentry.tasks.context_engine_index.make_org_project_knowledge_index_request"
                 ) as mock_request:
                     index_org_project_knowledge(self.org.id)
                     mock_request.assert_not_called()
 
-    @mock.patch("sentry.tasks.context_engine_index.make_signed_seer_api_request")
+    @mock.patch("sentry.tasks.context_engine_index.make_org_project_knowledge_index_request")
     def test_calls_seer_endpoint_with_correct_payload(self, mock_request):
         mock_request.return_value.status = 200
 
@@ -72,7 +71,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
                             index_org_project_knowledge(self.org.id)
 
         mock_request.assert_called_once()
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = mock_request.call_args[0][0]
         assert body["org_id"] == self.org.id
         assert len(body["projects"]) == 1
 
@@ -85,9 +84,9 @@ class TestIndexOrgProjectKnowledge(TestCase):
         assert "transactions" in project_payload["instrumentation"]
         assert "profiles" in project_payload["instrumentation"]
         assert project_payload["top_transactions"] == ["GET /api/0/projects/"]
-        assert project_payload["top_span_operations"] == [["db", "SELECT * FROM table"]]
+        assert project_payload["top_span_operations"] == [("db", "SELECT * FROM table")]
 
-    @mock.patch("sentry.tasks.context_engine_index.make_signed_seer_api_request")
+    @mock.patch("sentry.tasks.context_engine_index.make_org_project_knowledge_index_request")
     def test_raises_on_seer_error(self, mock_request):
         mock_request.return_value.status = 500
 

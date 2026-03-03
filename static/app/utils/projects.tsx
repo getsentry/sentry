@@ -172,7 +172,7 @@ class BaseProjects extends Component<Props, State> {
   /**
    * List of projects that need to be fetched via API
    */
-  fetchQueue: Set<string> = new Set();
+  fetchQueue = new Set<string>();
 
   /**
    * Memoized function that returns a `Map<project.slug, project>`

@@ -72,8 +72,7 @@ function RuleListRow({
       : rule.projects[0]!;
 
   const ruleType =
-    rule &&
-    rule.type === CombinedAlertType.METRIC &&
+    rule?.type === CombinedAlertType.METRIC &&
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+from dataclasses import dataclass
 from datetime import timedelta
 
 from django.db.models import Sum
@@ -11,6 +12,68 @@ from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ArtifactInstallInfo:
+    """Computed install state for a PreprodArtifact.
+
+    WARNING: This is used by PUBLIC API endpoints. Changes to this dataclass
+    or to get_artifact_install_info() may break the public API contract.
+    Always verify public endpoint tests pass after modifying.
+    """
+
+    is_installable: bool
+    install_url: str | None
+    download_count: int
+    release_notes: str | None
+    install_groups: list[str] | None
+    is_code_signature_valid: bool | None
+    profile_name: str | None
+    codesigning_type: str | None
+
+
+def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
+    """Compute install state for an artifact.
+
+    WARNING: This is used by PUBLIC API endpoints. Changes here may break the
+    public API contract. Always verify public endpoint tests pass after modifying.
+    """
+    extras = artifact.extras or {}
+    installable = is_installable_artifact(artifact)
+    install_url: str | None = None
+
+    if installable:
+        if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+            if extras.get("is_code_signature_valid") is not True:
+                installable = False
+
+        if installable:
+            install_url = get_download_url_for_artifact(artifact)
+
+    download_count = get_download_count_for_artifact(artifact) if installable else 0
+    release_notes = extras.get("release_notes")
+    install_groups = extras.get("install_groups")
+
+    is_code_signature_valid: bool | None = None
+    profile_name: str | None = None
+    codesigning_type: str | None = None
+
+    if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+        is_code_signature_valid = extras.get("is_code_signature_valid") is True
+        profile_name = extras.get("profile_name")
+        codesigning_type = extras.get("codesigning_type")
+
+    return ArtifactInstallInfo(
+        is_installable=installable,
+        install_url=install_url,
+        download_count=download_count,
+        release_notes=release_notes,
+        install_groups=install_groups,
+        is_code_signature_valid=is_code_signature_valid,
+        profile_name=profile_name,
+        codesigning_type=codesigning_type,
+    )
 
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:

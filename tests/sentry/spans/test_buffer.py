@@ -1388,3 +1388,61 @@ def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
         assert any(v == 1 for v in zero_copy_values), (
             f"Expected at least one evalsha call to use zero-copy, got {zero_copy_values}"
         )
+
+
+def test_partition_routing_stable_across_rebalance() -> None:
+    """
+    Verify that spans are routed to the queue matching their source Kafka
+    partition, so that rebalancing (changing assigned_shards) does not cause
+    a segment to be split across queues.
+    """
+    with override_options(DEFAULT_OPTIONS):
+        buf = SpansBuffer(assigned_shards=list(range(3)))
+        buf.client.flushdb()
+
+        partition = 1
+        spans_before = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+                partition=partition,
+            ),
+        ]
+        buf.process_spans(spans_before, now=0)
+
+        # Simulate rebalance: consumer now owns partitions 1, 2, 3
+        buf.assigned_shards = [1, 2, 3]
+
+        spans_after = [
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                project_id=1,
+                is_segment_span=True,
+                end_timestamp=1700000000.0,
+                partition=partition,
+            ),
+        ]
+        buf.process_spans(spans_after, now=1)
+
+        # Both spans should be flushed together in a single segment from
+        # the queue for partition 1, not split across different queues.
+        rv = buf.flush_segments(now=12)
+        _normalize_output(rv)
+
+        seg_key = _segment_id(1, "a" * 32, "b" * 16)
+        assert seg_key in rv
+        assert len(rv) == 1
+        assert len(rv[seg_key].spans) == 2
+        assert rv[seg_key].queue_key == b"span-buf:q:1"
+
+        buf.done_flush_segments(rv)
+        assert_clean(buf.client)

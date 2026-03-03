@@ -1205,11 +1205,20 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
-    data_forwarder_projects = DataForwarderProject.objects.filter(
-        project_id=event.project_id,
-        is_enabled=True,
-        data_forwarder__is_enabled=True,
-    ).select_related("data_forwarder")
+    cache_key = f"data-forwarder-projects:{event.project_id}"
+    data_forwarder_projects = cache.get(cache_key)
+
+    if data_forwarder_projects is None:
+        data_forwarder_projects = list(
+            DataForwarderProject.objects.filter(
+                project_id=event.project_id,
+                is_enabled=True,
+                data_forwarder__is_enabled=True,
+            ).select_related("data_forwarder")
+        )
+        cache.set(
+            cache_key, data_forwarder_projects, options.get("data-forwarding.project-cache-ttl")
+        )
 
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider

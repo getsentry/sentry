@@ -137,7 +137,7 @@ export const initApiClientErrorHandling = () =>
     );
 
     // Ignore error unless it is a 401
-    if (!resp || resp.status !== 401 || pageAllowsAnon) {
+    if (resp?.status !== 401 || pageAllowsAnon) {
       return false;
     }
     if (resp && options.allowAuthError && resp.status === 401) {

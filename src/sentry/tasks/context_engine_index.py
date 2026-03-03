@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta, timezone
 
-import orjson
 import sentry_sdk
 
 from sentry import options
@@ -27,11 +26,14 @@ from sentry.seer.explorer.explorer_service_map_utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
+    OrgProjectKnowledgeIndexRequest,
+    OrgProjectKnowledgeProjectData,
+    make_org_project_knowledge_index_request,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -84,31 +86,27 @@ def index_org_project_knowledge(org_id: int) -> None:
     with sentry_sdk.start_span(op="explorer.context_engine.get_sdk_names_for_org_projects"):
         sdk_names_by_project = get_sdk_names_for_org_projects(high_volume_projects, start, end)
 
-    project_data = []
+    project_data: list[OrgProjectKnowledgeProjectData] = []
     for project in high_volume_projects:
         counts = event_counts.get(project.id, ProjectEventCounts())
         project_data.append(
-            {
-                "project_id": project.id,
-                "slug": project.slug,
-                "sdk_name": sdk_names_by_project.get(project.id, ""),
-                "error_count": counts.error_count,
-                "transaction_count": counts.transaction_count,
-                "instrumentation": get_instrumentation_types(project),
-                "top_transactions": transactions_by_project.get(project.id, []),
-                "top_span_operations": span_ops_by_project.get(project.id, []),
-            }
+            OrgProjectKnowledgeProjectData(
+                project_id=project.id,
+                slug=project.slug,
+                sdk_name=sdk_names_by_project.get(project.id, ""),
+                error_count=counts.error_count,
+                transaction_count=counts.transaction_count,
+                instrumentation=get_instrumentation_types(project),
+                top_transactions=transactions_by_project.get(project.id, []),
+                top_span_operations=span_ops_by_project.get(project.id, []),
+            )
         )
 
-    payload = {"org_id": org_id, "projects": project_data}
-    body = orjson.dumps(payload)
-    path = "/v1/automation/explorer/index/org-project-knowledge"
+    payload = OrgProjectKnowledgeIndexRequest(org_id=org_id, projects=project_data)
 
     try:
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            path,
-            body,
+        response = make_org_project_knowledge_index_request(
+            payload,
             timeout=30,
         )
         if response.status >= 400:
@@ -130,6 +128,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     name="sentry.tasks.context_engine_index.build_service_map",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
+    retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
 def build_service_map(organization_id: int, *args, **kwargs) -> None:
     """
@@ -193,11 +192,14 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
     except Organization.DoesNotExist:
         logger.error("Organization not found", extra={"org_id": organization_id})
+        return
     except Exception:
+        sentry_sdk.capture_exception()
         logger.exception(
             "Failed to build service map",
             extra={"org_id": organization_id},
         )
+        raise
 
 
 @instrumented_task(

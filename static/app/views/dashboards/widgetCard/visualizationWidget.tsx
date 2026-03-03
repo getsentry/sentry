@@ -66,6 +66,7 @@ interface VisualizationWidgetProps {
     tableResults?: any[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
   }) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
@@ -402,6 +403,7 @@ function VisualizationWidgetContent({
             releases={releases}
             showReleaseAs={showReleaseAs}
             showLegend="never"
+            axisRange={widget.axisRange}
           />
         </Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
@@ -419,6 +421,7 @@ function VisualizationWidgetContent({
         plottables={plottables}
         releases={releases}
         showReleaseAs={showReleaseAs}
+        axisRange={widget.axisRange}
       />
     </Container>
   );

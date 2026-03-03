@@ -17,7 +17,7 @@ from sentry.lang.native.processing import (
     get_frames_for_symbolication,
     process_native_stacktraces,
 )
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
@@ -95,14 +95,14 @@ def test_merge_symbolicator_image_remove_unknown_arch() -> None:
 @pytest.mark.parametrize(
     "code_file,error",
     [
-        ("/var/containers/Bundle/Application/asdf/foo", EventError.NATIVE_MISSING_DSYM),
+        ("/var/containers/Bundle/Application/asdf/foo", EventErrorType.NATIVE_MISSING_DSYM.value),
         (
             "/var/containers/Bundle/Application/asdf/Frameworks/foo",
-            EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+            EventErrorType.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM.value,
         ),
     ],
 )
-def test_merge_symbolicator_image_errors(code_file: str, error: EventError) -> None:
+def test_merge_symbolicator_image_errors(code_file: str, error: EventErrorType) -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo", "code_file": code_file}
     sdk_info = {"sdk_name": "macos"}
     complete_image = {

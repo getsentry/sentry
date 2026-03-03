@@ -70,7 +70,8 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       limit: 3,
     },
   ],
-  0
+  0,
+  {h: 3, minH: 3}
 );
 
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -136,7 +137,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       limit: 3,
     },
   ],
-  2,
+  3,
   {h: 3, minH: 3}
 );
 
@@ -176,7 +177,7 @@ const OVERVIEW_TABLE = {
   ],
   layout: {
     x: 0,
-    y: 5,
+    y: 6,
     w: 6,
     h: 4,
     minH: 2,

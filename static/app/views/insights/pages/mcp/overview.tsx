@@ -14,6 +14,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -23,6 +25,7 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {McpOverviewTable} from 'sentry/views/insights/pages/mcp/components/mcpOverviewTable';
 import McpPromptTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptTrafficWidget';
@@ -34,6 +37,7 @@ import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
 interface McpOverviewPageProps {
@@ -42,6 +46,8 @@ interface McpOverviewPageProps {
 
 function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
   const showOnboarding = useShowMCPOnboarding();
 
   useOverviewPageTrackPageload();
@@ -54,6 +60,15 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   }, [organization, showOnboarding]);
 
   const mcpSpanSearchProps = useMcpSpanSearchProps();
+
+  if (hasPlatformized) {
+    return (
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.MCP_OVERVIEW}
+        storageNamespace={view}
+      />
+    );
+  }
 
   return (
     <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>

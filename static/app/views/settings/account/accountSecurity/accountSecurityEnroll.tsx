@@ -182,10 +182,7 @@ export default function AccountSecurityEnroll() {
   const authenticatorName = authenticator?.name ?? 'Authenticator';
 
   const alreadyEnrolled =
-    error &&
-    error.status === 400 &&
-    error.responseJSON &&
-    error.responseJSON.details === 'Already enrolled';
+    error?.status === 400 && error.responseJSON?.details === 'Already enrolled';
 
   useEffect(() => {
     if (!isError) {

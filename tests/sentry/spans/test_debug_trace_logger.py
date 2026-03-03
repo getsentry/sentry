@@ -145,10 +145,13 @@ class TestDebugTraceLogger:
         """Test log_flush_info when HRS flag is set."""
         mock_client = mock.MagicMock()
         mock_client.exists.return_value = 1
+        mock_client.zscore.return_value = 1705320610
 
         with override_options({"spans.buffer.debug-traces": ["abcdef"]}):
             debug_logger = DebugTraceLogger(mock_client)
             segment_key = b"span-buf:s:{123:abcdef}:span1"
+            queue_key = b"span-buf:q:0"
+            now = 1705320600
 
             debug_logger.log_flush_info(
                 segment_key=segment_key,
@@ -156,6 +159,8 @@ class TestDebugTraceLogger:
                 root_span_in_segment=True,
                 num_spans=5,
                 shard_id=0,
+                queue_key=queue_key,
+                now=now,
             )
 
         assert mock_logger.info.call_count == 1
@@ -169,18 +174,25 @@ class TestDebugTraceLogger:
         assert extra["root_span_in_segment"] is True
         assert extra["num_spans"] == 5
         assert extra["shard_id"] == 0
+        assert extra["flusher_now"] == 1705320600
+        assert extra["segment_deadline"] == 1705320610
+        assert extra["ttl_remaining_seconds"] == 10
 
         mock_client.exists.assert_called_once_with(b"span-buf:hrs:" + segment_key)
+        mock_client.zscore.assert_called_once_with(queue_key, segment_key)
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
     def test_flush_info_without_root_span_flag(self, mock_logger):
         """Test log_flush_info when HRS flag is not set."""
         mock_client = mock.MagicMock()
         mock_client.exists.return_value = 0
+        mock_client.zscore.return_value = 1705320660
 
         with override_options({"spans.buffer.debug-traces": ["def789"]}):
             debug_logger = DebugTraceLogger(mock_client)
             segment_key = b"span-buf:s:{456:def789}:span2"
+            queue_key = b"span-buf:q:7"
+            now = 1705320600
 
             debug_logger.log_flush_info(
                 segment_key=segment_key,
@@ -188,6 +200,8 @@ class TestDebugTraceLogger:
                 root_span_in_segment=False,
                 num_spans=3,
                 shard_id=7,
+                queue_key=queue_key,
+                now=now,
             )
 
         assert mock_logger.info.call_count == 1
@@ -196,6 +210,9 @@ class TestDebugTraceLogger:
         assert extra["root_span_in_segment"] is False
         assert extra["num_spans"] == 3
         assert extra["shard_id"] == 7
+        assert extra["flusher_now"] == 1705320600
+        assert extra["segment_deadline"] == 1705320660
+        assert extra["ttl_remaining_seconds"] == 60
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
     def test_flush_info_skips_when_trace_not_in_debug_traces(self, mock_logger):
@@ -205,6 +222,8 @@ class TestDebugTraceLogger:
         with override_options({"spans.buffer.debug-traces": ["other_trace"]}):
             debug_logger = DebugTraceLogger(mock_client)
             segment_key = b"span-buf:s:{123:abcdef}:span1"
+            queue_key = b"span-buf:q:0"
+            now = 1705320600
 
             debug_logger.log_flush_info(
                 segment_key=segment_key,
@@ -212,7 +231,10 @@ class TestDebugTraceLogger:
                 root_span_in_segment=True,
                 num_spans=5,
                 shard_id=0,
+                queue_key=queue_key,
+                now=now,
             )
 
         mock_logger.info.assert_not_called()
         mock_client.exists.assert_not_called()
+        mock_client.zscore.assert_not_called()

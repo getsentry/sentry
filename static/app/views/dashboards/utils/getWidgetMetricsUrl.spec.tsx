@@ -1,5 +1,6 @@
 import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -197,6 +198,32 @@ describe('getWidgetMetricsUrl', () => {
       expect(metricQuery.aggregateSortBys).toHaveLength(1);
       expect(metricQuery.aggregateSortBys[0].field).toBe('avg(value,duration,d,-)');
       expect(metricQuery.aggregateSortBys[0].kind).toBe('desc');
+    });
+
+    it('handles the unit of the metric', () => {
+      const widget: Widget = WidgetFixture({
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: '',
+            fields: [],
+            aggregates: ['avg(value,test-metric,distribution,second)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      });
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      expect(params.metric).toBeDefined();
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      const metricQuery = JSON.parse(metrics[0]!);
+      expect(metricQuery.metric.unit).toBe('second');
     });
   });
 

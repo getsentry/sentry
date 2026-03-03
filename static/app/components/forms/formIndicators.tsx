@@ -116,7 +116,7 @@ export function addUndoableFormChangeMessage(
   );
 }
 
-const PRETTY_VALUES: Map<unknown, string> = new Map([
+const PRETTY_VALUES = new Map<unknown, string>([
   ['', '<empty>'],
   [null, '<none>'],
   [undefined, '<unset>'],

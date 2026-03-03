@@ -307,6 +307,22 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         assert set(triggered_actions) == {self.action}
         assert getattr(triggered_actions[0], "workflow_id") == workflow.id
 
+    def test_skips_action_with_no_workflow(self) -> None:
+        orphan_group = self.create_data_condition_group(logic_type="any-short")
+        orphan_action = self.create_action(type=Action.Type.PLUGIN)
+        self.create_data_condition_group_action(
+            condition_group=orphan_group,
+            action=orphan_action,
+        )
+        # No WorkflowDataConditionGroup links orphan_group to any workflow
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            {self.action_group, orphan_group}, self.event_data
+        )
+
+        # The orphan action should not appear; the normal action still fires
+        assert set(triggered_actions) == {self.action}
+
 
 class TestIsActionPermitted(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.action._get_integration_features")

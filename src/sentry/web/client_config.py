@@ -31,10 +31,11 @@ from sentry.organizations.services.organization import (
 from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.silo.base import SiloMode
 from sentry.types.region import (
-    Region,
+    Locality,
     RegionCategory,
-    find_all_multitenant_region_names,
-    get_region_by_name,
+    find_all_multitenant_locality_names,
+    get_global_directory,
+    get_locality_by_name,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import UserSerializeType
@@ -334,21 +335,26 @@ class _ClientConfig:
         return user_details
 
     @cached_property
-    def _member_region_names(self) -> frozenset[str]:
+    def _member_locality_names(self) -> frozenset[str]:
         # If the user is not authenticated they have no region membership
         if not self.user or not self.user.id:
             return frozenset()
 
-        region_names = user_service.get_member_region_names(user_id=self.user.id)
-        return frozenset(region_names)
+        cell_names = user_service.get_member_region_names(user_id=self.user.id)
+        directory = get_global_directory()
+        return frozenset(
+            loc.name
+            for name in cell_names
+            if (loc := directory.get_locality_for_cell(name)) is not None
+        )
 
     @staticmethod
-    def _serialize_regions(
-        region_names: Iterable[str], display_order: Callable[[Region], Any]
+    def _serialize_localities(
+        locality_names: Iterable[str], display_order: Callable[[Locality], Any]
     ) -> list[Mapping[str, Any]]:
-        regions = [get_region_by_name(name) for name in region_names]
-        regions.sort(key=display_order)
-        return [region.api_serialize() for region in regions]
+        localities = [get_locality_by_name(name) for name in locality_names]
+        localities.sort(key=display_order)
+        return [locality.api_serialize() for locality in localities]
 
     @property
     def regions(self) -> list[Mapping[str, Any]]:
@@ -363,30 +369,30 @@ class _ClientConfig:
         # When new regions are added they can take some work to get working correctly.
         # Before they are working we need ways to bring parts of the region online without
         # exposing the region to customers.
-        region_names = find_all_multitenant_region_names()
+        region_names = find_all_multitenant_locality_names()
 
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        def region_display_order(region: Region) -> tuple[bool, bool, str]:
+        def region_display_order(region: Locality) -> tuple[bool, bool, str]:
             return (
-                not region.is_historic_monolith_region(),  # default region comes first
-                region.category != RegionCategory.MULTI_TENANT,  # multi-tenants before single
+                region.name != settings.SENTRY_MONOLITH_REGION,  # default region comes first
+                region.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
                 region.name,  # then sort alphabetically
             )
 
         # Show all visible multi-tenant regions to unauthenticated users as they could
         # create a new account. Else, ensure all regions the current user is in are
         # included as there could be single tenants or hidden regions.
-        unique_regions = set(region_names) | self._member_region_names
-        return self._serialize_regions(unique_regions, region_display_order)
+        unique_regions = set(region_names) | self._member_locality_names
+        return self._serialize_localities(unique_regions, region_display_order)
 
     @property
     def member_regions(self) -> list[Mapping[str, Any]]:
         """
         The regions the user has membership in. Includes single-tenant regions.
         """
-        return self._serialize_regions(self._member_region_names, lambda r: r.name)
+        return self._serialize_localities(self._member_locality_names, lambda loc: loc.name)
 
     @property
     def should_preload_data(self) -> bool:

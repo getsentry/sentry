@@ -187,7 +187,7 @@ export function WizardProjectSelection({
 
   // Set the selected team to the first team if there is only one
   useEffect(() => {
-    if (selectableTeams && selectableTeams.length === 1) {
+    if (selectableTeams?.length === 1) {
       setNewProjectTeam(selectableTeams[0]!.slug);
     }
   }, [selectableTeams]);

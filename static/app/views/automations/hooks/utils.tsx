@@ -263,7 +263,7 @@ function findConflictingPriorityConditions(
 
 function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
   const conditionCounts: Record<string, string[]> = {};
-  const duplicates: Set<string> = new Set();
+  const duplicates = new Set<string>();
 
   // Count the number of conditions for each type
   for (const condition of triggers.conditions) {

@@ -18,6 +18,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
 
 jobs:
   files-changed:
@@ -246,7 +247,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      actions: read # used for DIM metadata
+      actions: read # used for DIM metadata and job URL lookup
+      pull-requests: write # used to post failure comments
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -269,6 +271,13 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Download odiff binary
+        run: |
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
+          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
+          rm odiff-linux-x64
+
       - name: Download selected tests artifact
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -281,6 +290,18 @@ jobs:
           SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
           make test-python-ci
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
+          PYTEST_ARTIFACT_DIR: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()
@@ -306,6 +327,10 @@ jobs:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -319,6 +344,18 @@ jobs:
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
+          PYTEST_ARTIFACT_DIR: pytest-results-migration-${{ github.run_id }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()
@@ -467,6 +504,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -479,6 +518,18 @@ jobs:
       - name: Run test
         run: |
           make test-monolith-dbs
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.monolith-dbs.json
+          PYTEST_ARTIFACT_DIR: pytest-results-monolith-dbs-${{ github.run_id }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()

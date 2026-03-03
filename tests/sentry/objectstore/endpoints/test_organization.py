@@ -102,6 +102,53 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         assert retrieved.payload.read() == b"test data"
 
     @with_feature("organizations:objectstore-endpoint")
+    def test_accept_encoding_passthrough(self):
+        data = os.urandom(10 * 1024)
+        ctx = zstandard.ZstdCompressor()
+        compressed = ctx.compress(data)
+
+        auth_headers = self.get_auth_headers()
+        base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
+
+        # Upload with explicit zstd Content-Encoding so objectstore stores it compressed
+        post_resp = requests.post(
+            base_url,
+            data=compressed,
+            headers={
+                **auth_headers,
+                "Content-Encoding": "zstd",
+                "Content-Type": "application/octet-stream",
+            },
+            stream=True,
+        )
+        post_resp.raise_for_status()
+        object_key = post_resp.json()["key"]
+        assert object_key is not None
+
+        # Accept-Encoding: identity means no encoding accepted; proxy must decompress
+        get_resp = requests.get(
+            f"{base_url}{object_key}",
+            headers={**auth_headers, "Accept-Encoding": "identity"},
+        )
+        get_resp.raise_for_status()
+        assert get_resp.headers.get("Content-Encoding") is None
+        assert get_resp.headers.get("Content-Length") is None  # compressed size would be wrong
+        assert get_resp.content == data
+
+        # With Accept-Encoding: zstd, proxy passes through compressed bytes
+        get_resp = requests.get(
+            f"{base_url}{object_key}",
+            headers={**auth_headers, "Accept-Encoding": "zstd"},
+            stream=True,
+        )
+        get_resp.raise_for_status()
+        assert get_resp.headers.get("Content-Encoding") == "zstd"
+        raw_body = get_resp.raw.read(decode_content=False)
+        dctx = zstandard.ZstdDecompressor()
+        with dctx.stream_reader(raw_body) as reader:
+            assert reader.read() == data
+
+    @with_feature("organizations:objectstore-endpoint")
     def test_large_payload(self):
         session = self.get_session()
         data = b"A" * 1_000_000

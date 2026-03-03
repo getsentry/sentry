@@ -33,7 +33,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
@@ -832,7 +831,7 @@ const ProjectName = styled('span')`
 `;
 
 const StepDescription = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -841,7 +840,7 @@ const HeaderText = styled('div')`
 `;
 
 const EmptyState = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -850,8 +849,8 @@ const LoadingState = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(1)};
-  padding: ${space(3)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space['2xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -862,8 +861,8 @@ const StyledGuidedSteps = styled(GuidedSteps)`
 const ClickablePanelItem = styled(PanelItem)`
   cursor: pointer;
   transition: background-color 0.1s;
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
+  padding-bottom: ${p => p.theme.space.md};
 
   &:hover {
     background-color: ${p =>
@@ -881,11 +880,11 @@ const SelectorLabel = styled('div')`
 `;
 
 const CustomizationList = styled('ul')`
-  margin: ${space(2)} 0;
-  padding-left: ${space(3)};
+  margin: ${p => p.theme.space.xl} 0;
+  padding-left: ${p => p.theme.space['2xl']};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
     color: ${p => p.theme.tokens.content.secondary};
   }
 `;

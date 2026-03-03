@@ -271,9 +271,7 @@ function Chart({
   );
 
   const initialChartSelection =
-    chartSelection && chartSelection.chartIndex === index
-      ? chartSelection.selection
-      : undefined;
+    chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
     <ChartWrapper ref={chartWrapperRef}>

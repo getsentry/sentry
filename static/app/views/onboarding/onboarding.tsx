@@ -131,8 +131,7 @@ export function OnboardingWithoutContext() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
-  const projectSlug =
-    stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
+  const projectSlug = stepObj?.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,

@@ -382,8 +382,7 @@ class _QueryField extends Component<Props> {
     let parameterDescriptions: ParameterDescription[] = [];
     // Generate options and values for each parameter.
     if (
-      field &&
-      field.kind === FieldValueKind.FUNCTION &&
+      field?.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
       fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
@@ -866,11 +865,11 @@ function appendFieldIfUnknown(
     return fieldOptions;
   }
 
-  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+  if (field?.kind === FieldValueKind.TAG && field.meta.unknown) {
     // Clone the options so we don't mutate other rows.
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+  } else if (field?.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[`measurement:${field.meta.name}`] = {
       label: field.meta.name,

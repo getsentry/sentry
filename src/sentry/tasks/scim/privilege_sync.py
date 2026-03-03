@@ -71,6 +71,7 @@ def update_privilege(
     namespace=auth_tasks,
     retry=Retry(times=3, on=(Exception,)),
     silo_mode=SiloMode.REGION,
+    processing_deadline_duration=600,  # 10 minutes
 )
 def sync_scim_team_privileges(
     team_slug: str,

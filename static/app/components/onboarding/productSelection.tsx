@@ -264,6 +264,7 @@ export const platformProductAvailability = {
   'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-astro': [

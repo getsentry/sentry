@@ -25,7 +25,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   id: string;
   type: TraceTree.NodeType;
 
-  private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
+  private _spanPromises = new Map<string, Promise<EventTransaction>>();
   extra: TraceTreeNodeExtra;
 
   searchPriority = 1;

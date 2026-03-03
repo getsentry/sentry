@@ -326,6 +326,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
           itemStyle: {
             gapWidth: 4,
             borderRadius: 6,
+            borderColor: chartSurfaceColor,
           },
           colorSaturation: [0.3, 0.5],
         },

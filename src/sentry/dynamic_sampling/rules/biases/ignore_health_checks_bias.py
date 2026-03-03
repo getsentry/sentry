@@ -1,7 +1,8 @@
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import (
-    IGNORE_HEALTH_CHECKS_FACTOR,
+    IGNORE_HEALTH_CHECKS_FACTOR_TRACES,
+    IGNORE_HEALTH_CHECKS_FACTOR_TRANSACTIONS,
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
@@ -15,7 +16,7 @@ class IgnoreHealthChecksTransactionBias(Bias):
             {
                 "samplingValue": {
                     "type": "sampleRate",
-                    "value": base_sample_rate / IGNORE_HEALTH_CHECKS_FACTOR,
+                    "value": base_sample_rate / IGNORE_HEALTH_CHECKS_FACTOR_TRANSACTIONS,
                 },
                 "type": "transaction",
                 "condition": {
@@ -39,7 +40,7 @@ class IgnoreHealthChecksTraceBias(Bias):
             {
                 "samplingValue": {
                     "type": "sampleRate",
-                    "value": base_sample_rate / IGNORE_HEALTH_CHECKS_FACTOR,
+                    "value": base_sample_rate / IGNORE_HEALTH_CHECKS_FACTOR_TRACES,
                 },
                 "type": "trace",
                 "condition": {

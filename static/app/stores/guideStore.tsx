@@ -296,9 +296,7 @@ const storeConfig: GuideStoreDefinition = {
 
     this.updatePrevGuide(nextGuide);
     const currentStep =
-      this.state.currentGuide &&
-      nextGuide &&
-      this.state.currentGuide.guide === nextGuide.guide
+      this.state.currentGuide && this.state.currentGuide.guide === nextGuide?.guide
         ? this.state.currentStep
         : 0;
     this.state = {...this.state, currentGuide: nextGuide, currentStep};

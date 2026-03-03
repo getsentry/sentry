@@ -28,7 +28,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         )
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_successful_title_generation(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "My Assigned Errors"}
@@ -45,7 +45,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         mock_request.assert_called_once()
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_title_is_stripped(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "  Title With Whitespace  "}
@@ -98,7 +98,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.data == {"detail": "AI features are disabled for this organization."}
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_seer_api_error(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
@@ -112,7 +112,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.data == {"detail": "Failed to generate title"}
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_empty_response_from_seer(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": None}
@@ -128,7 +128,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.data == {"detail": "Failed to generate title"}
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_long_query_is_truncated(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "Generated Title"}
@@ -144,13 +144,13 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
 
         assert response.status_code == 200
         call_args = mock_request.call_args
-        request_body = call_args[0][2]
+        request_body = call_args.args[0]
         assert len(long_query[:500]) == 500
-        assert b"x" * 500 in request_body
-        assert b"x" * 600 not in request_body
+        assert "x" * 500 in request_body["prompt"]
+        assert "x" * 600 not in request_body["prompt"]
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_org_read_permission(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "My Assigned Errors"}
@@ -167,7 +167,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             assert response.data == {"title": "My Assigned Errors"}
 
     @with_feature("organizations:issue-view-ai-title")
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_requires_org_scope(self, mock_request: MagicMock) -> None:
         token = self._create_token("project:read")
         response = self._post_with_token(

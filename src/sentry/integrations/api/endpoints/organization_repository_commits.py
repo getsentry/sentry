@@ -16,7 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
@@ -41,6 +41,7 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
                 type=str,
                 location="path",
             ),
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

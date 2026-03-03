@@ -106,9 +106,7 @@ export function Thresholds({
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
-  const unitOptions = ['duration', 'rate'].includes(dataType)
-    ? getThresholdUnitSelectOptions(dataType)
-    : [];
+  const unitOptions = getThresholdUnitSelectOptions(dataType);
 
   const isHigherBetter = preferredPolarity === '+';
 

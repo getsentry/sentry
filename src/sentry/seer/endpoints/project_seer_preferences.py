@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import orjson
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,12 +13,15 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
+from sentry.seer.autofix.utils import (
+    GetProjectPreferenceRequest,
+    SetProjectPreferenceRequest,
+    get_autofix_repos_from_project_code_mappings,
+    make_get_project_preference_request,
+    make_set_project_preference_request,
 )
+from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
+from sentry.seer.signed_seer_api import seer_autofix_default_connection_pool
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -129,23 +131,17 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             if not repo_exists:
                 return Response({"detail": "Invalid repository"}, status=400)
 
-        path = "/v1/project-preference/set"
-        body = orjson.dumps(
-            {
-                "preference": SeerProjectPreference.validate(
-                    {
-                        **serializer.validated_data,
-                        "organization_id": project.organization.id,
-                        "project_id": project.id,
-                    }
-                ).dict(),
-            }
+        body = SetProjectPreferenceRequest(
+            preference=SeerProjectPreference.validate(
+                {
+                    **serializer.validated_data,
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
+                }
+            ).dict(),
         )
-
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            path,
-            body,
+        response = make_set_project_preference_request(
+            body, connection_pool=seer_autofix_default_connection_pool
         )
 
         if response.status >= 400:
@@ -154,17 +150,9 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
-        path = "/v1/project-preference"
-        body = orjson.dumps(
-            {
-                "project_id": project.id,
-            }
-        )
-
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            path,
-            body,
+        body = GetProjectPreferenceRequest(project_id=project.id)
+        response = make_get_project_preference_request(
+            body, connection_pool=seer_autofix_default_connection_pool
         )
 
         if response.status >= 400:

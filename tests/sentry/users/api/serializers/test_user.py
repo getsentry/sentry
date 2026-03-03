@@ -24,7 +24,7 @@ class UserSerializerTest(TestCase):
             type=available_authenticators(ignore_backup=True)[0].type, user=user, config={}
         )
 
-        result = serialize(user)
+        result = serialize(user, user)
         assert result["id"] == str(user.id)
         assert result["has2fa"] is True
         assert len(result["emails"]) == 1

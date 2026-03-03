@@ -174,19 +174,18 @@ export function getColumnOptions(
   )?.value;
 
   if (
-    fieldData &&
-    fieldData.kind === FieldValueKind.FUNCTION &&
+    fieldData?.kind === FieldValueKind.FUNCTION &&
     fieldData.meta.parameters.length > 0 &&
     fieldData.meta.parameters[0]
   ) {
     const parameter = fieldData.meta.parameters[0];
-    if (parameter && parameter.kind === 'dropdown') {
+    if (parameter?.kind === 'dropdown') {
       // Parameters for dropdowns are already formatted in the correct manner
       // for select fields
       return parameter.options;
     }
 
-    if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
+    if (parameter?.kind === 'column' && parameter.columnTypes) {
       // Release Health widgets are the only widgets that actually have different
       // columns than the aggregates accept. e.g. project will never be a valid
       // parameter for any of the aggregates.

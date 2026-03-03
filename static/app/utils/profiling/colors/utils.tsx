@@ -69,7 +69,7 @@ export function makeColorBufferForNodes(
     }
 
     const c = colorMap.get(frame.node);
-    const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
+    const colorWithAlpha = c?.length === 3 ? c.concat(1) : c ? c : fallbackColor;
 
     for (let i = 0; i < 6; i++) {
       const offset = index * 6 * 4 + i * 4;
@@ -100,7 +100,7 @@ function makeColorBuffer(
     }
 
     const c = colorMap.get(frame.key);
-    const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
+    const colorWithAlpha = c?.length === 3 ? c.concat(1) : c ? c : fallbackColor;
 
     for (let i = 0; i < 6; i++) {
       const offset = index * 6 * 4 + i * 4;
@@ -181,7 +181,7 @@ export function makeColorMapBySymbolName(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
-  const colorCache: Map<string, ColorChannels> = new Map();
+  const colorCache = new Map<string, ColorChannels>();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort(defaultFrameSort);
   const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
@@ -235,7 +235,7 @@ export function makeColorMapByLibrary(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
-  const colorCache: Map<string, ColorChannels> = new Map();
+  const colorCache = new Map<string, ColorChannels>();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
     return frameLibraryKey(a).localeCompare(frameLibraryKey(b));
@@ -267,7 +267,7 @@ export function makeColorMapBySystemFrame(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
-  const colorCache: Map<string, ColorChannels> = new Map();
+  const colorCache = new Map<string, ColorChannels>();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
     return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
@@ -297,7 +297,7 @@ export function makeColorMapBySystemVsApplicationFrame(
   theme: FlamegraphTheme
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
-  const colorCache: Map<string, ColorChannels> = new Map();
+  const colorCache = new Map<string, ColorChannels>();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
     return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
@@ -323,7 +323,7 @@ export function makeColorMapByApplicationFrame(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
-  const colorCache: Map<string, ColorChannels> = new Map();
+  const colorCache = new Map<string, ColorChannels>();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
     return defaultFrameKey(a).localeCompare(defaultFrameKey(b));

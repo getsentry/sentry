@@ -112,7 +112,7 @@ export function SeerSectionCtaButton({
       step => step.type === AutofixStepType.DEFAULT
     );
 
-    if (processingStep && processingStep.status === AutofixStatus.COMPLETED) {
+    if (processingStep?.status === AutofixStatus.COMPLETED) {
       // Check if this is a new completion (wasn't completed in previous state)
       const prevProcessingStep = prevSteps.findLast(
         step => step.type === AutofixStepType.DEFAULT

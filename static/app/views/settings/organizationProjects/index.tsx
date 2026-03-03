@@ -135,7 +135,7 @@ function OrganizationProjects() {
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}
-          {projectList && projectList.length === 0 && (
+          {projectList?.length === 0 && (
             <EmptyMessage>{t('No projects found.')}</EmptyMessage>
           )}
         </PanelBody>

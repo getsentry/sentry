@@ -248,7 +248,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         event = self.create_issue_event()
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = ConsecutiveDBSpanDetector(
             settings[ConsecutiveDBSpanDetector.settings_key], event
         )
@@ -261,7 +261,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             value={"consecutive_db_queries_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = ConsecutiveDBSpanDetector(
             settings[ConsecutiveDBSpanDetector.settings_key], event
         )

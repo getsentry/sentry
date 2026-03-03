@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
@@ -533,68 +533,6 @@ class TracesExecutor:
                 TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_DURATION_MS),
             ],
         )
-
-    def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
-        """
-        Once we have a min/max timestamp for all the traces in the query,
-        refine the params so that it selects a time range that is as small as possible.
-        """
-
-        # TODO: move to use `update_snuba_params_with_timestamp`
-        time_buffer = options.get("performance.traces.trace-explorer-buffer-hours")
-        buffer = timedelta(hours=time_buffer)
-
-        self.snuba_params.start = min_timestamp - buffer
-        self.snuba_params.end = max_timestamp + buffer
-
-    def process_final_results(
-        self,
-        *,
-        traces_metas_results,
-        traces_errors_results,
-        traces_occurrences_results,
-        traces_breakdown_projects_results,
-    ) -> list[TraceResult]:
-        results: list[TraceResult] = []
-
-        for row in traces_metas_results["data"]:
-            result: TraceResult = {
-                "trace": row["trace"],
-                "numErrors": 0,
-                "numOccurrences": 0,
-                "matchingSpans": row[MATCHING_COUNT_ALIAS],
-                # In EAP mode, we have to use `count_sample()` to avoid extrapolation
-                "numSpans": row.get("count()") or row.get("count_sample()") or 0,
-                "project": None,
-                "name": None,
-                "rootDuration": None,
-                "duration": row["last_seen()"] - row["first_seen()"],
-                "start": row["first_seen()"],
-                "end": row["last_seen()"],
-                "breakdowns": [],
-            }
-
-            results.append(result)
-
-        traces_errors: dict[str, int] = {
-            row["trace"]: row["count()"] for row in traces_errors_results["data"]
-        }
-
-        traces_occurrences: dict[str, int] = {
-            row["trace"]: row["count()"] for row in traces_occurrences_results["data"]
-        }
-
-        self.enrich_traces_with_extra_data(
-            results,
-            traces_breakdown_projects_results["data"],
-            traces_errors,
-            traces_occurrences,
-        )
-
-        return results
-
-    def process_meta_results(self, results):
-        return results["meta"]
 
     def get_traces_errors_query(
         self,

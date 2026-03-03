@@ -3,12 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
-
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_anomaly_detection_default_connection_pool,
+    CompareDistributionsRequest,
+    make_compare_distributions_request,
 )
 from sentry.utils.json import JSONDecodeError
 
@@ -27,21 +25,15 @@ def compare_distributions(
     Sends a request to seer to compare two distributions and rank their attributes by suspisiouness
     """
 
-    body = orjson.dumps(
-        {
-            "baseline": baseline,
-            "outliers": outliers,
-            "total_baseline": total_baseline,
-            "total_outliers": total_outliers,
-            "config": config,
-            "meta": meta,
-        }
+    body = CompareDistributionsRequest(
+        baseline=baseline,
+        outliers=outliers,
+        total_baseline=total_baseline,
+        total_outliers=total_outliers,
+        config=config,
+        meta=meta,
     )
-    response = make_signed_seer_api_request(
-        seer_anomaly_detection_default_connection_pool,
-        "/v1/workflows/compare/cohort",
-        body,
-    )
+    response = make_compare_distributions_request(body)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     try:

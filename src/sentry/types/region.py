@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
+class RegionCategory(Enum):
+    MULTI_TENANT = "MULTI_TENANT"
+    SINGLE_TENANT = "SINGLE_TENANT"
+
+
 @dataclass(frozen=True, eq=True)
 class Locality:
     """A grouping of one or more cells (e.g. "us" contains "us1", "us2")."""
@@ -29,10 +34,27 @@ class Locality:
     cells: frozenset[str]
     """The set of cell names that belong to this locality."""
 
+    category: RegionCategory
 
-class RegionCategory(Enum):
-    MULTI_TENANT = "MULTI_TENANT"
-    SINGLE_TENANT = "SINGLE_TENANT"
+    visible: bool = True
+    """Whether the locality is visible in API responses."""
+
+    def to_url(self, path: str) -> str:
+        """Resolve a path into a customer facing URL on this locality.
+
+        In monolith mode, there is likely only the historical simulated locality.
+        The public URL of the simulated locality is the same as the application base URL.
+        """
+        from sentry.api.utils import generate_region_url
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            base_url = options.get("system.url-prefix")
+        else:
+            base_url = generate_region_url(self.name)
+        return urljoin(base_url, path)
+
+    def api_serialize(self) -> dict[str, Any]:
+        return {"name": self.name, "url": self.to_url("")}
 
 
 # TODO(cells): rename to LocalityConfigurationError
@@ -73,8 +95,8 @@ class Region:
     and `system.region-api-url-template`
     """
 
+    # TODO(cells): drop once category is fully moved to Locality
     category: RegionCategory
-    """The region's category."""
 
     visible: bool = True
     """Whether the region is visible in API responses"""
@@ -83,28 +105,6 @@ class Region:
         from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.snowflake_id)
-
-    def to_url(self, path: str) -> str:
-        """Resolve a path into a customer facing URL on this region's silo.
-
-        In monolith mode, there is likely only the historical simulated
-        region. The public URL of the simulated region is the same
-        as the application base URL.
-        """
-        from sentry.api.utils import generate_region_url
-
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            base_url = options.get("system.url-prefix")
-        else:
-            base_url = generate_region_url(self.name)
-
-        return urljoin(base_url, path)
-
-    def api_serialize(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "url": self.to_url(""),
-        }
 
     def is_historic_monolith_region(self) -> bool:
         """Check whether this is a historic monolith region.
@@ -143,10 +143,10 @@ class RegionDirectory:
 
     def __init__(
         self,
-        regions: Collection[Region],
+        cells: Collection[Region],
         localities: Collection[Locality],
     ) -> None:
-        self._cells = frozenset(regions)
+        self._cells = frozenset(cells)
         self._by_name = {r.name: r for r in self._cells}
         self._localities = frozenset(localities)
         self._localities_by_name = {loc.name: loc for loc in self._localities}
@@ -160,14 +160,21 @@ class RegionDirectory:
     def localities(self) -> frozenset[Locality]:
         return self._localities
 
-    def get_by_name(self, region_name: str) -> Region | None:
+    def get_cell_by_name(self, region_name: str) -> Region | None:
         return self._by_name.get(region_name)
 
-    def get_regions(self, category: RegionCategory | None = None) -> Iterable[Region]:
+    def get_locality_by_name(self, locality_name: str) -> Locality | None:
+        return self._localities_by_name.get(locality_name)
+
+    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Region]:
         return (r for r in self.regions if (category is None or r.category == category))
 
-    def get_region_names(self, category: RegionCategory | None = None) -> Iterable[str]:
+    def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
         return (r.name for r in self.regions if (category is None or r.category == category))
+
+    def get_region_names(self, category: RegionCategory | None = None) -> Iterable[str]:
+        """Deprecated. Use get_cell_names."""
+        return self.get_cell_names(category)
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -245,7 +252,9 @@ def _parse_locality_config(
     for config_value in locality_config:
         yield Locality(
             name=config_value["name"],
+            category=RegionCategory(config_value["category"]),
             cells=frozenset(config_value["cells"]),
+            visible=bool(config_value.get("visible", True)),
         )
 
 
@@ -263,7 +272,14 @@ def load_from_config(
             # as a temporary fallback. Once SENTRY_LOCALITIES is configured, all cells
             # must be explicitly assigned; missing cells will have no locality mapping.
             for region in regions:
-                localities.add(Locality(name=region.name, cells=frozenset([region.name])))
+                localities.add(
+                    Locality(
+                        name=region.name,
+                        category=region.category,
+                        cells=frozenset([region.name]),
+                        visible=region.visible,
+                    )
+                )
 
         return RegionDirectory(regions, localities)
     except RegionConfigurationError as e:
@@ -302,22 +318,40 @@ def get_global_directory() -> RegionDirectory:
     return _global_regions
 
 
-def get_region_by_name(name: str) -> Region:
-    """Look up a region by name."""
+def get_cell_by_name(name: str) -> Region:
+    """Look up a cell by name."""
     global_regions = get_global_directory()
-    region = global_regions.get_by_name(name)
+    region = global_regions.get_cell_by_name(name)
     if region is not None:
         return region
     else:
-        region_names = list(global_regions.get_region_names(RegionCategory.MULTI_TENANT))
+        region_names = list(global_regions.get_cell_names(RegionCategory.MULTI_TENANT))
         raise RegionResolutionError(
-            f"No region with name: {name!r} "
+            f"No cell with name: {name!r} "
             f"(expected one of {region_names!r} or a single-tenant name)"
         )
 
 
+def get_locality_by_name(name: str) -> Locality:
+    """Look up a locality by name."""
+    global_regions = get_global_directory()
+    locality = global_regions.get_locality_by_name(name)
+    if locality is not None:
+        return locality
+    else:
+        locality_names = [loc.name for loc in global_regions.localities]
+        raise RegionResolutionError(
+            f"No locality with name: {name!r} (expected one of {locality_names!r})"
+        )
+
+
+def get_region_by_name(name: str) -> Region:
+    """Deprecated. Use get_cell_by_name."""
+    return get_cell_by_name(name)
+
+
 def is_region_name(name: str) -> bool:
-    return get_global_directory().get_by_name(name) is not None
+    return get_global_directory().get_cell_by_name(name) is not None
 
 
 def subdomain_is_region(request: HttpRequest) -> bool:
@@ -345,6 +379,15 @@ def get_region_for_organization(organization_id_or_slug: str) -> Region:
         )
 
     return get_region_by_name(name=mapping.region_name)
+
+
+def get_local_locality() -> Locality:
+    """Get the locality for the cell this server instance is running in."""
+    cell = get_local_region()
+    locality = get_global_directory().get_locality_for_cell(cell.name)
+    if locality is None:
+        raise RegionResolutionError(f"No locality found for cell {cell.name!r}")
+    return locality
 
 
 def get_local_region() -> Region:
@@ -428,17 +471,29 @@ def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
     return {r[0] for r in regions}
 
 
+def find_all_cell_names() -> Iterable[str]:
+    return get_global_directory().get_cell_names()
+
+
 def find_all_region_names() -> Iterable[str]:
-    return get_global_directory().get_region_names()
+    """Deprecated. Use find_all_cell_names."""
+    return find_all_cell_names()
 
 
 def find_all_multitenant_region_names() -> list[str]:
     """
     Return all visible multi_tenant regions.
     """
-    regions = get_global_directory().get_regions(RegionCategory.MULTI_TENANT)
+    regions = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
     return list([r.name for r in regions if r.visible])
 
 
-def find_all_region_addresses() -> Iterable[str]:
-    return (r.address for r in get_global_directory().regions)
+def find_all_multitenant_locality_names() -> list[str]:
+    """
+    Return all visible multi-tenant localities.
+    """
+    return [
+        loc.name
+        for loc in get_global_directory().localities
+        if loc.category == RegionCategory.MULTI_TENANT and loc.visible
+    ]
