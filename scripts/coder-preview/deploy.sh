@@ -129,9 +129,12 @@ if [ -n "$WORKSPACE_JSON" ]; then
     while [[ "$WORKSPACE_STATUS" == "starting" || "$WORKSPACE_STATUS" == "stopping" || "$WORKSPACE_STATUS" == "canceling" || "$WORKSPACE_STATUS" == "pending" || "$WORKSPACE_STATUS" == "deleting" ]]; do
         echo "  Build in progress (${WORKSPACE_STATUS}), waiting..."
         sleep 10
-        WORKSPACE_STATUS=$(api \
+        # 410 means workspace was fully deleted
+        if ! WORKSPACE_STATUS=$(api \
             -H "${AUTH_HEADER}" \
-            "${CODER_API}/workspaces/${WORKSPACE_ID}" | jq -r '.latest_build.status')
+            "${CODER_API}/workspaces/${WORKSPACE_ID}" | jq -r '.latest_build.status'); then
+            WORKSPACE_STATUS="deleted"
+        fi
     done
 
     if [ "$WORKSPACE_STATUS" = "deleted" ]; then
