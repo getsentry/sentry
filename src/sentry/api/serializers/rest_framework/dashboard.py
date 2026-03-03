@@ -7,8 +7,7 @@ from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Max
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
@@ -104,38 +103,30 @@ def is_table_display_type(display_type):
     )
 
 
-@extend_schema_field(field=OpenApiTypes.OBJECT)
-class LayoutField(serializers.Field):
-    REQUIRED_KEYS = {
-        "x",
-        "y",
-        "w",
-        "h",
-        "min_h",
-    }
+MAX_WIDGET_COLS = 6
 
-    def to_internal_value(self, data):
-        if data is None:
-            return None
 
-        missing_keys = self.REQUIRED_KEYS - set(data.keys())
-        if missing_keys:
-            missing_key_str = ", ".join(sorted(snake_to_camel_case(key) for key in missing_keys))
-            raise serializers.ValidationError(f"Missing required keys: {missing_key_str}")
+class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
+    """Widget grid layout position and dimensions.
 
-        layout_to_store = {}
-        for key in self.REQUIRED_KEYS:
-            value = data.get(key)
-            if value is None:
-                continue
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    """
 
-            if not isinstance(value, int):
-                raise serializers.ValidationError(f"Expected number for: {key}")
-            layout_to_store[key] = value
+    x = serializers.IntegerField(
+        min_value=0, max_value=MAX_WIDGET_COLS - 1, help_text="Column position (0-indexed)."
+    )
+    y = serializers.IntegerField(min_value=0, help_text="Row position (0-indexed).")
+    w = serializers.IntegerField(
+        min_value=1, max_value=MAX_WIDGET_COLS, help_text="Width in grid columns (1-6)."
+    )
+    h = serializers.IntegerField(min_value=1, help_text="Height in grid rows.")
+    min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
 
-        # Store the layout with camel case dict keys because they'll be
-        # served as camel case in outgoing responses anyways
-        return convert_dict_key_case(layout_to_store, snake_to_camel_case)
+    def validate(self, data):
+        if data["x"] + data["w"] > MAX_WIDGET_COLS:
+            raise serializers.ValidationError(f"x + w must not exceed {MAX_WIDGET_COLS}")
+        return convert_dict_key_case(data, snake_to_camel_case)
 
 
 class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
@@ -318,7 +309,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout = LayoutField(required=False, allow_null=True)
+    layout = WidgetLayoutSerializer(required=False, allow_null=True)
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
