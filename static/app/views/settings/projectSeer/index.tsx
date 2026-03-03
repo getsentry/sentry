@@ -479,7 +479,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         isAutomationOn={automationTuning && automationTuning !== 'off'}
         handleIntegrationChange={handleIntegrationChange}
         canWriteProject={canWriteProject}
-        codingAgentIntegrations={[...cursorIntegrations, ...claudeIntegrations]}
+        codingAgentIntegrations={
+          preference?.automation_handoff?.target === 'claude_code_agent'
+            ? claudeIntegrations
+            : cursorIntegrations
+        }
       />
     </Fragment>
   );
