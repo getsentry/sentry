@@ -65,6 +65,9 @@ class SourceCodeManager:
         exposes a declarative interface. Developers declare what they want and the concrete
         implementation details of what's done are abstracted.
 
+        The SourceCodeManager _will_ throw exceptions. That is its intended operating mode. In your
+        application code you are expected to catch the base SCMError type.
+
         :param self:
         :param organization_id:
         :type organization_id: int
