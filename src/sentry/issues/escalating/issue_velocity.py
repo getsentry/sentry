@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -24,11 +24,16 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.tasks.post_process import locks
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
+from sentry.utils.snuba import raw_snql_query
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -47,14 +52,35 @@ FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we 
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:v2:{project_id}"
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
+ROLLOUT_CALLSITE = "issues.escalating.issue_velocity.calculate_threshold"
 
 
 def calculate_threshold(project: Project) -> float | None:
     """
     Calculates the velocity threshold based on event frequency in the project for the past week.
     """
-    from sentry.utils.snuba import raw_snql_query
+    snuba_threshold = _calculate_threshold_snuba(project)
+    threshold = snuba_threshold
 
+    callsite = ROLLOUT_CALLSITE
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_threshold = _calculate_threshold_eap(project)
+        threshold = EAPOccurrencesComparator.check_and_choose(
+            control_data=snuba_threshold,
+            experimental_data=eap_threshold,
+            callsite=callsite,
+            is_experimental_data_a_null_result=eap_threshold is None,
+            reasonable_match_comparator=_reasonable_threshold_match,
+            debug_context={
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+            },
+        )
+
+    return threshold
+
+
+def _calculate_threshold_snuba(project: Project) -> float | None:
     now = datetime.now()
     one_hour_ago = now - timedelta(hours=1)
     one_week_ago = now - timedelta(days=7)
@@ -143,6 +169,121 @@ def calculate_threshold(project: Project) -> float | None:
         return None
 
     return result[0][THRESHOLD_QUANTILE["name"]]
+
+
+def _calculate_threshold_eap(project: Project) -> float | None:
+    now = datetime.now(tz=timezone.utc)
+    one_hour_ago = now - timedelta(hours=1)
+    one_week_ago = now - timedelta(days=7)
+    ninety_days_ago = now - timedelta(days=90)
+
+    one_week_ago_epoch = str(int(one_week_ago.timestamp()))
+    past_week_count_col = f"count_if(timestamp, greaterOrEquals, {one_week_ago_epoch})"
+
+    snuba_params = SnubaParams(
+        start=ninety_days_ago,
+        end=now,
+        organization=project.organization,
+        projects=[project],
+        environments=[],
+    )
+
+    try:
+        result = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string="",
+            selected_columns=["group_id", "min(timestamp)", past_week_count_col],
+            orderby=None,
+            offset=0,
+            limit=10000,
+            referrer=REFERRER,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        return _compute_threshold_from_rows(
+            rows=result["data"],
+            past_week_count_col=past_week_count_col,
+            now=now,
+            one_hour_ago=one_hour_ago,
+            one_week_ago=one_week_ago,
+        )
+    except Exception:
+        logger.exception(
+            "sentry.issues.escalating.issue_velocity.calculate_threshold_eap.error",
+            extra={"project_id": project.id},
+        )
+        return None
+
+
+def _compute_threshold_from_rows(
+    rows: list[dict],
+    past_week_count_col: str,
+    now: datetime,
+    one_hour_ago: datetime,
+    one_week_ago: datetime,
+) -> float:
+    hourly_rates: list[float] = []
+
+    for row in rows:
+        past_week_count = int(row.get(past_week_count_col, 0))
+        if past_week_count <= 1:
+            continue
+
+        first_seen_raw = row.get("min(timestamp)")
+        if first_seen_raw is None:
+            continue
+        try:
+            first_seen = datetime.fromisoformat(str(first_seen_raw))
+        except ValueError:
+            first_seen = datetime.fromtimestamp(float(first_seen_raw), tz=timezone.utc)
+        if first_seen.tzinfo is None:
+            first_seen = first_seen.replace(tzinfo=timezone.utc)
+
+        if first_seen >= one_hour_ago:
+            continue
+
+        if first_seen < one_week_ago:
+            hourly_rate = past_week_count / WEEK_IN_HOURS
+        else:
+            hours_since_first_seen = (now - first_seen).total_seconds() / 3600
+            if hours_since_first_seen <= 0:
+                continue
+            hourly_rate = past_week_count / hours_since_first_seen
+
+        hourly_rates.append(hourly_rate)
+
+    if not hourly_rates:
+        return float("nan")
+
+    hourly_rates.sort()
+    n = len(hourly_rates)
+    idx = 0.95 * (n - 1)
+    lower = int(idx)
+    upper = lower + 1
+    if upper >= n:
+        return hourly_rates[-1]
+    frac = idx - lower
+    return hourly_rates[lower] + frac * (hourly_rates[upper] - hourly_rates[lower])
+
+
+def _reasonable_threshold_match(snuba_threshold: float | None, eap_threshold: float | None) -> bool:
+    if snuba_threshold is None and eap_threshold is None:
+        return True
+
+    if snuba_threshold is None or eap_threshold is None:
+        return False
+
+    if math.isnan(snuba_threshold) and math.isnan(eap_threshold):
+        return True
+
+    if math.isnan(snuba_threshold) or math.isnan(eap_threshold):
+        return False
+
+    if eap_threshold <= snuba_threshold:
+        return True
+
+    relative_diff = abs(eap_threshold - snuba_threshold) / max(abs(snuba_threshold), 1e-9)
+    return relative_diff <= 0.10
 
 
 def update_threshold(

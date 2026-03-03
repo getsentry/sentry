@@ -1,5 +1,6 @@
 import math
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -10,6 +11,8 @@ from sentry.issues.escalating.issue_velocity import (
     STALE_DATE_KEY,
     THRESHOLD_KEY,
     TIME_TO_USE_EXISTING_THRESHOLD,
+    _calculate_threshold_eap,
+    _calculate_threshold_snuba,
     calculate_threshold,
     fallback_to_stale_or_zero,
     get_latest_threshold,
@@ -338,3 +341,80 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
 
         assert redis_client.ttl("threshold-key") == FALLBACK_TTL
         assert redis_client.ttl("date-key") == FALLBACK_TTL
+
+
+class TestEAPIssueVelocityThreshold(TestCase, SnubaTestCase):
+    FROZEN_TIME = datetime(2026, 2, 11, 6, 0, 0, tzinfo=dt_timezone.utc)
+
+    def _event_timestamp(self, hours_ago: int = 0) -> float:
+        return (self.FROZEN_TIME - timedelta(hours=hours_ago)).timestamp()
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_threshold_simple(self) -> None:
+        self.store_events_to_snuba_and_eap(
+            "group-1", count=1, timestamp=self._event_timestamp(hours_ago=192)
+        )
+        self.store_events_to_snuba_and_eap(
+            "group-1", count=2, timestamp=self._event_timestamp(hours_ago=24)
+        )
+
+        eap_threshold = _calculate_threshold_eap(self.project)
+        snuba_threshold = _calculate_threshold_snuba(self.project)
+
+        assert eap_threshold == 2 / WEEK_IN_HOURS
+        assert snuba_threshold == eap_threshold
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_threshold_recent_issue(self) -> None:
+        self.store_events_to_snuba_and_eap(
+            "group-1", count=2, timestamp=self._event_timestamp(hours_ago=24)
+        )
+
+        eap_threshold = _calculate_threshold_eap(self.project)
+        snuba_threshold = _calculate_threshold_snuba(self.project)
+
+        assert eap_threshold == 2 / 24
+        assert snuba_threshold == eap_threshold
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_threshold_excludes_single_event_issues(self) -> None:
+        self.store_events_to_snuba_and_eap(
+            "group-1", count=1, timestamp=self._event_timestamp(hours_ago=192)
+        )
+        self.store_events_to_snuba_and_eap(
+            "group-1", count=1, timestamp=self._event_timestamp(hours_ago=24)
+        )
+
+        eap_threshold = _calculate_threshold_eap(self.project)
+        snuba_threshold = _calculate_threshold_snuba(self.project)
+
+        assert eap_threshold is not None and math.isnan(eap_threshold)
+        assert snuba_threshold is not None and math.isnan(snuba_threshold)
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_threshold_excludes_very_recent_issues(self) -> None:
+        recent_ts = (self.FROZEN_TIME - timedelta(minutes=30)).timestamp()
+        self.store_events_to_snuba_and_eap("group-1", count=2, timestamp=recent_ts)
+
+        eap_threshold = _calculate_threshold_eap(self.project)
+        snuba_threshold = _calculate_threshold_snuba(self.project)
+
+        assert eap_threshold is not None and math.isnan(eap_threshold)
+        assert snuba_threshold is not None and math.isnan(snuba_threshold)
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_threshold_match_multiple_issues(self) -> None:
+        for i in range(5):
+            self.store_events_to_snuba_and_eap(
+                f"group-{i}", count=1, timestamp=self._event_timestamp(hours_ago=192)
+            )
+            self.store_events_to_snuba_and_eap(
+                f"group-{i}", count=i + 2, timestamp=self._event_timestamp(hours_ago=24)
+            )
+
+        eap_threshold = _calculate_threshold_eap(self.project)
+        snuba_threshold = _calculate_threshold_snuba(self.project)
+
+        assert eap_threshold is not None
+        assert snuba_threshold is not None
+        assert math.isclose(eap_threshold, snuba_threshold, abs_tol=10**-3)
