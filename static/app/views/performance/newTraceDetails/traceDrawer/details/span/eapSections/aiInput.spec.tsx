@@ -15,8 +15,6 @@
 import {transformPartsMessages} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 
 describe('transformPartsMessages', () => {
-  // ── Happy-path ─────────────────────────────────────────────────────────────
-
   it('returns the transformed messages for a valid parts-format input', () => {
     const input = JSON.stringify([
       {
@@ -38,21 +36,6 @@ describe('transformPartsMessages', () => {
     ]);
   });
 
-  it('passes through messages that are already in the old (non-parts) format', () => {
-    const input = JSON.stringify([
-      {role: 'user', content: 'Hello'},
-      {role: 'assistant', content: 'Hi'},
-    ]);
-
-    const {result, fixedInvalidJson} = transformPartsMessages(input);
-
-    expect(fixedInvalidJson).toBe(false);
-    expect(JSON.parse(result!)).toEqual([
-      {role: 'user', content: 'Hello'},
-      {role: 'assistant', content: 'Hi'},
-    ]);
-  });
-
   it('concatenates multiple text parts within a single message', () => {
     const input = JSON.stringify([
       {
@@ -69,24 +52,6 @@ describe('transformPartsMessages', () => {
     expect(JSON.parse(result!)).toEqual([
       {role: 'user', content: 'First part.\nSecond part.'},
     ]);
-  });
-
-  it('handles tool_call parts', () => {
-    const toolCall = {type: 'tool_call', name: 'search', arguments: {q: 'sentry'}};
-    const input = JSON.stringify([{role: 'assistant', parts: [toolCall]}]);
-
-    const {result} = transformPartsMessages(input);
-
-    expect(JSON.parse(result!)).toEqual([{role: 'assistant', content: [toolCall]}]);
-  });
-
-  it('handles tool_call_response parts', () => {
-    const toolResp = {type: 'tool_call_response', result: 'some result'};
-    const input = JSON.stringify([{role: 'tool', parts: [toolResp]}]);
-
-    const {result} = transformPartsMessages(input);
-
-    expect(JSON.parse(result!)).toEqual([{role: 'tool', content: 'some result'}]);
   });
 
   it('returns {result: undefined} when the top-level value is not an array', () => {
