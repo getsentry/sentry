@@ -145,9 +145,9 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
         results = []
         has_errors = False
 
-        with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-            for mapping in mappings:
-                try:
+        for mapping in mappings:
+            try:
+                with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
                     config, created = RepositoryProjectPathConfig.objects.update_or_create(
                         project=project,
                         stack_root=mapping["stack_root"],
@@ -161,31 +161,31 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
                             "automatically_generated": False,
                         },
                     )
-                    results.append(
-                        {
-                            "stackRoot": mapping["stack_root"],
-                            "sourceRoot": mapping["source_root"],
-                            "status": "created" if created else "updated",
-                        }
-                    )
-                except Exception:
-                    logger.exception(
-                        "bulk_code_mappings.mapping_error",
-                        extra={
-                            "organization_id": organization.id,
-                            "project_id": project.id,
-                            "stack_root": mapping["stack_root"],
-                        },
-                    )
-                    has_errors = True
-                    results.append(
-                        {
-                            "stackRoot": mapping["stack_root"],
-                            "sourceRoot": mapping["source_root"],
-                            "status": "error",
-                            "detail": "Failed to save mapping.",
-                        }
-                    )
+                results.append(
+                    {
+                        "stackRoot": mapping["stack_root"],
+                        "sourceRoot": mapping["source_root"],
+                        "status": "created" if created else "updated",
+                    }
+                )
+            except Exception:
+                logger.exception(
+                    "bulk_code_mappings.mapping_error",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": project.id,
+                        "stack_root": mapping["stack_root"],
+                    },
+                )
+                has_errors = True
+                results.append(
+                    {
+                        "stackRoot": mapping["stack_root"],
+                        "sourceRoot": mapping["source_root"],
+                        "status": "error",
+                        "detail": "Failed to save mapping.",
+                    }
+                )
 
         created_count = sum(1 for r in results if r["status"] == "created")
         updated_count = sum(1 for r in results if r["status"] == "updated")
