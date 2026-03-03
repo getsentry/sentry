@@ -249,9 +249,9 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
 
 def ensure_default_detectors(project: Project) -> dict[str, Detector]:
     detectors: dict[str, Detector] = {}
-    detectors.update(ensure_performance_detectors(project))
     detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
     detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
+    detectors.update(ensure_performance_detectors(project))
     return detectors
 
 
