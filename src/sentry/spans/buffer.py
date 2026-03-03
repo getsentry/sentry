@@ -117,7 +117,6 @@ class Span(NamedTuple):
     segment_id: str | None
     project_id: int
     payload: bytes
-    end_timestamp: float
     is_segment_span: bool = False
     partition: int = 0
 
@@ -221,7 +220,7 @@ class SpansBuffer:
                             subsegment, project_and_trace
                         )
                         set_key = self._get_span_key(project_and_trace, parent_span_id)
-                        p.sadd(set_key, *set_members.keys())
+                        p.sadd(set_key, *set_members)
                         for oob_key, payload in oob_entries:
                             p.set(oob_key, payload, ex=redis_ttl)
 
@@ -420,14 +419,14 @@ class SpansBuffer:
 
     def _prepare_payloads(
         self, spans: list[Span], project_and_trace: str
-    ) -> tuple[dict[str | bytes, float], list[tuple[bytes, bytes]]]:
+    ) -> tuple[set[str | bytes], list[tuple[bytes, bytes]]]:
         """
         Prepare span payloads for storage. Returns (set_members, oob_entries) where
         oob_entries is a list of (oob_key, payload_bytes) for payloads that exceed
         the OOB threshold and should be stored in separate Redis keys.
         """
         if self._zstd_compressor is None:
-            return {span.payload: span.end_timestamp for span in spans}, []
+            return {span.payload for span in spans}, []
 
         combined = b"\x00".join(span.payload for span in spans)
         original_size = len(combined)
@@ -442,14 +441,12 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        min_timestamp = min(span.end_timestamp for span in spans)
-
         oob_threshold = options.get("spans.buffer.oob-threshold-bytes")
         if oob_threshold > 0 and compressed_size > oob_threshold:
             oob_key = f"span-buf:p:{{{project_and_trace}}}:{uuid.uuid4().hex[:16]}".encode("ascii")
-            return {oob_key: min_timestamp}, [(oob_key, compressed)]
+            return {oob_key}, [(oob_key, compressed)]
 
-        return {compressed: min_timestamp}, []
+        return {compressed}, []
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
         # Check for zstd magic header (0xFD2FB528 in little-endian) --

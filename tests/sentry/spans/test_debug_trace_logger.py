@@ -19,7 +19,6 @@ def _make_span(
         segment_id=segment_id,
         project_id=123,
         payload=b"{}",
-        end_timestamp=1000.0,
     )
 
 
