@@ -10,7 +10,7 @@ import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatDuration} from 'sentry/utils/duration/formatDuration';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
   type SnapshotComparisonRunInfo,
@@ -195,7 +195,9 @@ export function SnapshotDevTools({
         </Flex>
       )}
       {!devToolsCollapsed && recompareError && (
-        <ErrorText size="xs">{recompareError}</ErrorText>
+        <Text size="xs" variant="danger">
+          {recompareError}
+        </Text>
       )}
     </DevToolsBox>
   );
@@ -241,8 +243,4 @@ const PulsingDot = styled('div')<{active: boolean}>`
   border-radius: 50%;
   background: ${p => (p.active ? p.theme.colors.yellow300 : p.theme.colors.gray200)};
   animation: ${p => (p.active ? pulse : 'none')} 1.2s ease-in-out infinite;
-`;
-
-const ErrorText = styled(Text)`
-  color: ${p => p.theme.colors.red300};
 `;

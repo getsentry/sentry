@@ -16,6 +16,7 @@ import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -26,10 +27,6 @@ import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import {SnapshotMainContent} from './main/snapshotMainContent';
 import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
-
-function getImageName(image: SnapshotImage): string {
-  return image.display_name ?? image.image_file_name;
-}
 
 export default function SnapshotsPage() {
   const organization = useOrganization();

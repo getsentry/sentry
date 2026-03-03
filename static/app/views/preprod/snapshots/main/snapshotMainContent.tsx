@@ -5,6 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay} from './imageDisplay/diffImageDisplay';
@@ -38,9 +39,7 @@ export function SnapshotMainContent({
   }
 
   if (selectedItem.type === 'changed') {
-    const displayName =
-      selectedItem.pair.head_image.display_name ??
-      selectedItem.pair.head_image.image_file_name;
+    const displayName = getImageName(selectedItem.pair.head_image);
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
         <Flex align="center" gap="md" padding="xl">
@@ -65,7 +64,7 @@ export function SnapshotMainContent({
     if (!currentImage) {
       return null;
     }
-    const displayName = currentImage.display_name ?? currentImage.image_file_name;
+    const displayName = getImageName(currentImage);
     const totalVariants = selectedItem.images.length;
     const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
 
@@ -110,7 +109,7 @@ export function SnapshotMainContent({
   }
 
   const image = selectedItem.image;
-  const displayName = image.display_name ?? image.image_file_name;
+  const displayName = getImageName(image);
   const imageUrl = `${imageBaseUrl}${image.key}/`;
   const STATUS_LABELS: Record<string, string> = {
     added: t('Added'),

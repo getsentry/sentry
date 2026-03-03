@@ -62,6 +62,10 @@ export enum DiffStatus {
   UNCHANGED = 'unchanged',
 }
 
+export function getImageName(image: SnapshotImage): string {
+  return image.display_name ?? image.image_file_name;
+}
+
 export type SidebarItem =
   | {type: 'solo'; name: string; images: SnapshotImage[]}
   | {type: 'changed'; name: string; pair: SnapshotDiffPair}
