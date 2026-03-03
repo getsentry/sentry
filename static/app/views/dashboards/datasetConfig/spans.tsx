@@ -491,6 +491,8 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 // Returns a link to the explore page with the internal error filter applied.
 function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardFilters) {
   return function (data: EventData, baggage: RenderFunctionBaggage) {
+    const {organization, eventView} = baggage;
+    const selection = eventView?.getPageFilters();
     const value = data[INTERNAL_ERROR_COUNT_FIELD];
     const count = typeof value === 'number' ? value : 0;
 
@@ -498,12 +500,9 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
       return <NumberContainer>0</NumberContainer>;
     }
 
-    if (!widget) {
+    if (!widget || !selection) {
       return <NumberContainer>{count}</NumberContainer>;
     }
-
-    const {organization, eventView} = baggage;
-    const selection = eventView?.getPageFilters();
 
     const baseConditions = widget.queries[0]?.conditions ?? '';
     const errorQuery = new MutableSearch(baseConditions);
@@ -517,7 +516,7 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
     };
 
     const getRowExploreUrl = getWidgetTableRowExploreUrlFunction(
-      selection!,
+      selection,
       widgetWithErrorFilter,
       organization,
       dashboardFilters
