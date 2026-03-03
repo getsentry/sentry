@@ -61,7 +61,8 @@ class CodeReviewEvent(DefaultFieldsModel):
 
     target_commit_sha = models.CharField(max_length=64, null=True)
 
-    # Pipeline status
+    # Explicit status column because multiple statuses share the same timestamp
+    # field (e.g. PREFLIGHT_DENIED/WEBHOOK_FILTERED both set preflight_completed_at).
     status = models.CharField(
         max_length=32,
         choices=CodeReviewEventStatus.as_choices(),
@@ -69,7 +70,7 @@ class CodeReviewEvent(DefaultFieldsModel):
     )
     denial_reason = models.TextField(null=True)
 
-    # Timestamps for pipeline stages
+    # Timestamps for pipeline stages (region-silo wall clock)
     webhook_received_at = models.DateTimeField(null=True)
     preflight_completed_at = models.DateTimeField(null=True)
     task_enqueued_at = models.DateTimeField(null=True)
@@ -80,16 +81,16 @@ class CodeReviewEvent(DefaultFieldsModel):
     # Seer callback data
     seer_run_id = models.CharField(max_length=64, null=True)
     comments_posted = BoundedPositiveIntegerField(null=True)
-    review_result = models.JSONField(null=True)
+    review_result = models.JSONField(null=True)  # raw Seer response payload
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_code_review_event"
         indexes = (
-            models.Index(fields=("date_added",)),
-            models.Index(fields=("organization", "trigger_at")),
-            models.Index(fields=("organization", "repository", "trigger_at")),
-            models.Index(fields=("organization", "repository", "pr_number")),
+            models.Index(fields=("date_added",)),  # cleanup task
+            models.Index(fields=("organization", "trigger_at")),  # stats endpoint
+            models.Index(fields=("organization", "repository", "trigger_at")),  # events list
+            models.Index(fields=("organization", "repository", "pr_number")),  # PR lookup
         )
         constraints = [
             models.UniqueConstraint(
