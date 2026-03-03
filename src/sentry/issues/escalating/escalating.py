@@ -403,7 +403,7 @@ def _extract_organization_and_project_and_group_ids(
 
 
 def get_group_hourly_count_snuba(group: Group) -> tuple[int, bool]:
-    """Return the number of events a group has had today in the last hour"""
+    """Return the number of events a group has had today in the last hour, and whether the cache was used."""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
     used_cache = hourly_count is not None
@@ -443,7 +443,7 @@ def get_group_hourly_count_snuba(group: Group) -> tuple[int, bool]:
 
 
 def get_group_hourly_count_eap(group: Group) -> tuple[int, bool]:
-    """Return the number of events a group has had today in the last hour"""
+    """Return the number of events a group has had today in the last hour, and whether the cache was used."""
     key = f"hourly-group-count-eap:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
     used_cache = hourly_count is not None
