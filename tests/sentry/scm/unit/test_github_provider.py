@@ -530,7 +530,7 @@ CLIENT_DELEGATION_TESTS: list[
     (
         "get_pull_request_comments",
         {"pull_request_id": "42"},
-        ("get_pull_request_comments", ("test-org/test-repo", "42"), {}),
+        ("get_issue_comments", ("test-org/test-repo", "42"), {}),
     ),
     (
         "minimize_comment",
@@ -813,7 +813,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "get_pull_request_comments",
         {"pull_request_id": "42"},
-        {"pr_comments": _ISSUE_COMMENTS_DATA},
+        {"issue_comments": _ISSUE_COMMENTS_DATA},
         _check_pr_comments,
     ),
     (
@@ -1463,7 +1463,7 @@ class TestUpdateCheckRunEdgeCases:
 class TestGetPullRequestCommentsEdgeCases:
     def test_empty_comments(self):
         repository = make_repository()
-        client = _make_client(pr_comments=[])
+        client = _make_client(issue_comments=[])
         provider = GitHubProvider(client, repository)
 
         result = provider.get_pull_request_comments("42")
@@ -1472,7 +1472,7 @@ class TestGetPullRequestCommentsEdgeCases:
 
     def test_null_author(self):
         repository = make_repository()
-        client = _make_client(pr_comments=[{"id": 1, "body": "ghost comment", "user": None}])
+        client = _make_client(issue_comments=[{"id": 1, "body": "ghost comment", "user": None}])
         provider = GitHubProvider(client, repository)
 
         result = provider.get_pull_request_comments("42")
@@ -1480,7 +1480,7 @@ class TestGetPullRequestCommentsEdgeCases:
         assert len(result["data"]) == 1
         assert result["data"][0]["author"] is None
 
-    def test_delegates_to_client(self):
+    def test_delegates_to_issue_comments_client(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
@@ -1488,7 +1488,7 @@ class TestGetPullRequestCommentsEdgeCases:
         provider.get_pull_request_comments("42")
 
         assert (
-            "get_pull_request_comments",
+            "get_issue_comments",
             ("test-org/test-repo", "42"),
             {},
         ) in client.calls

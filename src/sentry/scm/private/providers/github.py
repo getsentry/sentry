@@ -188,7 +188,7 @@ class GitHubProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
-        comments = self.client.get_pull_request_comments(self.repository["name"], pull_request_id)
+        comments = self.client.get_issue_comments(self.repository["name"], pull_request_id)
         return PaginatedActionResult(
             data=[map_comment(c) for c in comments],
             type="github",
