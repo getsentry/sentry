@@ -141,7 +141,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Context manager for P4 connections with automatic cleanup.
 
         Yields a connected P4 instance and ensures disconnection on exit.
-        Creates a temporary directory with a .p4config file to isolate
+        Creates a temporary directory with a P4CONFIG file to isolate
         P4TRUST and P4TICKETS per connection. This prevents lock contention
         when multiple tenants connect concurrently.
 
@@ -168,7 +168,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # and P4TICKETS to this temp directory. P4 finds the config by
             # walking upward from p4.cwd looking for a file named by the
             # P4CONFIG env var (set to ".p4config" at module level).
-            with open(f"{p4_home}/.p4config", "w") as f:
+            # Use the actual P4CONFIG value as the filename in case it was
+            # already set before our module loaded (setdefault preserves it).
+            config_filename = os.environ.get("P4CONFIG", ".p4config")
+            with open(f"{p4_home}/{config_filename}", "w") as f:
                 f.write(f"P4TRUST={trust_path}\n")
                 f.write(f"P4TICKETS={ticket_path}\n")
 

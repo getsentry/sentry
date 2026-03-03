@@ -613,7 +613,7 @@ class PerforceClientTest(TestCase):
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_connect_writes_p4config_file(self, mock_p4_class):
-        """_connect() must write a .p4config with P4TRUST and P4TICKETS in an isolated tmpdir."""
+        """_connect() must write a config file named by P4CONFIG with P4TRUST and P4TICKETS."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
@@ -623,7 +623,8 @@ class PerforceClientTest(TestCase):
         def capture_state():
             nonlocal captured_cwd, captured_config
             captured_cwd = mock_p4.cwd
-            config_path = f"{captured_cwd}/.p4config"
+            config_filename = os.environ.get("P4CONFIG", ".p4config")
+            config_path = f"{captured_cwd}/{config_filename}"
             if os.path.exists(config_path):
                 with open(config_path) as f:
                     captured_config = f.read()
@@ -637,7 +638,7 @@ class PerforceClientTest(TestCase):
         assert captured_cwd is not None
         assert "sentry-p4-" in captured_cwd
 
-        # .p4config must contain P4TRUST and P4TICKETS pointing into that dir
+        # config file must contain P4TRUST and P4TICKETS pointing into that dir
         assert captured_config is not None
         assert f"P4TRUST={captured_cwd}/.p4trust" in captured_config
         assert f"P4TICKETS={captured_cwd}/.p4tickets" in captured_config
@@ -646,6 +647,33 @@ class PerforceClientTest(TestCase):
         ticket_path = mock_p4.ticket_file
         assert "sentry-p4-" in ticket_path
         assert ticket_path.endswith("/.p4tickets")
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_respects_custom_p4config_filename(self, mock_p4_class):
+        """_connect() must use the actual P4CONFIG env value as the config filename."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        captured_cwd = None
+        captured_config = None
+
+        def capture_state():
+            nonlocal captured_cwd, captured_config
+            captured_cwd = mock_p4.cwd
+            config_path = f"{captured_cwd}/custom-p4.conf"
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    captured_config = f.read()
+
+        mock_p4.connect.side_effect = capture_state
+
+        with mock.patch.dict(os.environ, {"P4CONFIG": "custom-p4.conf"}):
+            with self.p4_client._connect():
+                pass
+
+        assert captured_config is not None
+        assert "P4TRUST=" in captured_config
+        assert "P4TICKETS=" in captured_config
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_connect_does_not_use_set_env(self, mock_p4_class):
