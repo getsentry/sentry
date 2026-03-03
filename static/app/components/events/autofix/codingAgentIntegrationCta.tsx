@@ -30,9 +30,12 @@ interface AgentConfig {
   pluginId: string;
   provider: string;
   target: SeerAutomationHandoffConfiguration['target'];
+  headingName?: string;
 }
 
 export function makeCodingAgentIntegrationCta(config: AgentConfig) {
+  const headingLabel = config.headingName ?? config.displayName;
+
   return function CodingAgentIntegrationCta({project}: CodingAgentIntegrationCtaProps) {
     const organization = useOrganization();
     const user = useUser();
@@ -144,7 +147,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
             <Heading as="h3">
               <Flex direction="row" gap="sm" align="center">
                 <PluginIcon pluginId={config.pluginId} />{' '}
-                <span>{config.displayName} Integration</span>
+                <span>{headingLabel} Integration</span>
               </Flex>
             </Heading>
             <Text>
@@ -184,7 +187,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
             <Heading as="h3">
               <Flex direction="row" gap="sm" align="center">
                 <PluginIcon pluginId={config.pluginId} />{' '}
-                <span>{config.displayName} Integration</span>
+                <span>{headingLabel} Integration</span>
               </Flex>
             </Heading>
             <Text>
@@ -223,7 +226,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           <Heading as="h3">
             <Flex direction="row" gap="sm" align="center">
               <PluginIcon pluginId={config.pluginId} />{' '}
-              <span>{config.displayName} Integration</span>
+              <span>{headingLabel} Integration</span>
             </Flex>
           </Heading>
           <Text>
