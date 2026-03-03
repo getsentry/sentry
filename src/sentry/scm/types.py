@@ -240,7 +240,7 @@ class Repository(TypedDict):
     integration_id: int
     name: str
     organization_id: int
-    is_active: str
+    is_active: bool
 
 
 class GitRef(TypedDict):
