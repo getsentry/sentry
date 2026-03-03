@@ -7,6 +7,7 @@ from typing import Any
 from django.db import router, transaction
 
 from sentry import features
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.models import PreprodArtifact
@@ -62,17 +63,14 @@ def create_preprod_pr_comment_task(
         )
         return
 
-    if commit_comparison.provider != "github":
+    _SUPPORTED_PROVIDERS = {
+        IntegrationProviderSlug.GITHUB.value,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+    }
+    if commit_comparison.provider not in _SUPPORTED_PROVIDERS:
         logger.info(
             "preprod.pr_comments.create.unsupported_provider",
             extra={"artifact_id": artifact.id, "provider": commit_comparison.provider},
-        )
-        return
-
-    if not is_installable_artifact(artifact):
-        logger.info(
-            "preprod.pr_comments.create.not_installable",
-            extra={"artifact_id": artifact.id},
         )
         return
 
@@ -91,7 +89,9 @@ def create_preprod_pr_comment_task(
 
     existing_comment_id = _find_existing_comment_id(installable_siblings)
 
-    client = get_github_client(organization, commit_comparison.head_repo_name)
+    client = get_github_client(
+        organization, commit_comparison.head_repo_name, commit_comparison.provider
+    )
     if not client:
         logger.info(
             "preprod.pr_comments.create.no_github_client",
