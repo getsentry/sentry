@@ -317,21 +317,20 @@ class SpansBuffer:
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
 
-                # Debug logging: read old deadline before updating
-                old_deadline = None
-                if self._debug_trace_logger is None:
-                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                if self._debug_trace_logger._should_log_trace(project_and_trace):
-                    old_deadline_score = self.client.zscore(queue_key, segment_key)
-                    old_deadline = (
-                        int(old_deadline_score) if old_deadline_score is not None else None
-                    )
-
                 new_deadline = now + offset
                 zadd_items[segment_key] = new_deadline
 
-                # Debug logging: log deadline update
+                # Debug logging
                 try:
+                    old_deadline = None
+                    if self._debug_trace_logger is None:
+                        self._debug_trace_logger = DebugTraceLogger(self.client)
+                    if self._debug_trace_logger._should_log_trace(project_and_trace):
+                        old_deadline_score = self.client.zscore(queue_key, segment_key)
+                        old_deadline = (
+                            int(old_deadline_score) if old_deadline_score is not None else None
+                        )
+
                     self._debug_trace_logger.log_deadline_update(
                         segment_key=segment_key,
                         project_and_trace=project_and_trace,
