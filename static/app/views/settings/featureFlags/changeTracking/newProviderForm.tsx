@@ -131,7 +131,7 @@ export default function NewProviderForm({
         {field => (
           <div>
             <field.Layout.Row
-              padding="md"
+              padding="xl"
               label={t('Provider')}
               hintText={t(
                 'If you have already linked this provider, pasting a new secret will override the existing secret.'
@@ -161,7 +161,7 @@ export default function NewProviderForm({
       <form.AppField name="secret">
         {field => (
           <field.Layout.Row
-            padding="md"
+            padding="xl"
             label={t('Secret')}
             hintText={t(
               'Paste the signing secret given by your provider when creating the webhook.'
@@ -176,7 +176,7 @@ export default function NewProviderForm({
           </field.Layout.Row>
         )}
       </form.AppField>
-      <Flex justify="end" gap="md" padding="md">
+      <Flex justify="end" gap="md" padding="xl">
         <Button onClick={handleGoBack}>{t('Cancel')}</Button>
         <form.SubmitButton disabled={!canSaveSecret}>
           {existingSecret ? t('Update Provider') : t('Add Provider')}
