@@ -114,10 +114,7 @@ def _compare_single_pair(
             failOnLayoutDiff=False,
         )
         changed_pixels = resp.diffCount or 0
-        diff_pct = resp.diffPercentage or 0.0
-
         total_pixels = max_w * max_h
-        diff_score = diff_pct / 100.0
 
         if changed_pixels == 0:
             diff_mask = Image.new("L", (max_w, max_h), 0)
@@ -134,11 +131,9 @@ def _compare_single_pair(
 
         return DiffResult(
             diff_mask_png=diff_mask_png,
-            diff_score=diff_score,
             changed_pixels=changed_pixels,
             total_pixels=total_pixels,
             aligned_height=max_h,
-            width=max_w,
             before_width=bw,
             before_height=bh,
             after_width=aw,

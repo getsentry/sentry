@@ -76,6 +76,6 @@ export function convertWidgetToBuilderStateParams(
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
-    axisRange: getAxisRange(widget.axisRange),
+    axisRange: getAxisRange(widget.axisRange) ?? 'auto',
   };
 }

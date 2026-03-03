@@ -127,7 +127,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_summarize_issue_request")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_call_seer_integration(
         self, mock_get_event: MagicMock, mock_request: MagicMock
@@ -166,8 +166,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert status_code == 200
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
         mock_request.assert_called_once()
-        # Body is the third positional argument
-        payload = orjson.loads(mock_request.call_args_list[0][0][2])
+        # Body is the first positional argument (a TypedDict)
+        payload = mock_request.call_args_list[0][0][0]
         assert payload["trace_tree"] is None
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_response_summary
@@ -309,7 +309,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Ensure generation was called directly
         mock_generate_summary.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_summarize_issue_request")
     def test_call_seer_routes_to_summarization_url(self, mock_request: MagicMock) -> None:
         resp = Mock()
         resp.status = 200
@@ -327,15 +327,12 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert result.group_id == str(self.group.id)
         assert mock_request.call_count == 1
-        # Verify path argument (second argument)
-        call_path = mock_request.call_args_list[0][0][1]
-        assert call_path == "/v1/automation/summarize/issue"
-        # Verify body payload (third argument)
-        payload = orjson.loads(mock_request.call_args_list[0][0][2])
+        # Verify body payload (first argument, a TypedDict)
+        payload = mock_request.call_args_list[0][0][0]
         assert payload["trace_tree"] == {"trace": "tree"}
 
     @patch(
-        "sentry.seer.autofix.issue_summary.make_signed_seer_api_request",
+        "sentry.seer.autofix.issue_summary.make_summarize_issue_request",
         side_effect=Exception("primary error"),
     )
     def test_call_seer_raises_exception_when_endpoint_fails(self, mock_request: MagicMock) -> None:
@@ -804,7 +801,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
 
 
 class TestFetchUserPreference:
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_success(self, mock_request):
         mock_response = Mock()
         mock_response.status = 200
@@ -818,7 +815,7 @@ class TestFetchUserPreference:
         assert result == "solution"
         mock_request.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_no_preference(self, mock_request):
         mock_response = Mock()
         mock_response.status = 200
@@ -829,7 +826,7 @@ class TestFetchUserPreference:
 
         assert result is None
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_empty_preference(self, mock_request):
         mock_response = Mock()
         mock_response.status = 200
@@ -840,7 +837,7 @@ class TestFetchUserPreference:
 
         assert result is None
 
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_api_error(self, mock_request):
         mock_request.side_effect = Exception("API error")
 

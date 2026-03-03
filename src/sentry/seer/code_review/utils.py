@@ -20,11 +20,13 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
+
+seer_code_review_connection_pool = connection_from_url(settings.SEER_PREVENT_AI_URL)
 
 
 class Log(enum.StrEnum):
@@ -87,13 +89,18 @@ def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
     return SeerEndpoint.OVERWATCH_REQUEST
 
 
-def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
+def make_seer_request(
+    path: str,
+    payload: Mapping[str, Any],
+    viewer_context: SeerViewerContext | None = None,
+) -> bytes:
     """
     Make a request to the Seer API and return the response data.
 
     Args:
         path: The path to the Seer API
         payload: The payload to send to the Seer API
+        viewer_context: Optional viewer context for access control
 
     Raises:
         HTTPError: If the Seer API returns a retryable status
@@ -104,9 +111,10 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
+        connection_pool=seer_code_review_connection_pool,
         path=path,
         body=orjson.dumps(payload),
+        viewer_context=viewer_context,
     )
     # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
     if response.status >= 500 or response.status == 429:
