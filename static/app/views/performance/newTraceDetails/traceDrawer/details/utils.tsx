@@ -262,35 +262,13 @@ export function tryParseJson(value: unknown): unknown {
   }
 }
 
-/**
- * Checks whether a string contains Relay's PII-filter placeholder `[Filtered]`.
- * When this placeholder appears inside a JSON value, `JSON.parse` will throw
- * "Unexpected identifier 'Filtered'" (or similar) because the brackets make it
- * look like an identifier rather than a valid JSON token.
- */
 function containsFilteredPlaceholder(value: string): boolean {
   return value.includes('[Filtered]');
 }
-
-/**
- * Attempts to parse a JSON string, with fallback to fix invalid JSON.
- * Returns the parsed result and whether the JSON needed fixing.
- *
- * Handles two known failure modes gracefully instead of throwing:
- *  1. PII-filtered content – Relay replaces sensitive values with the literal
- *     string `[Filtered]`, which is not valid JSON.  We detect this upfront and
- *     return `{parsed: null, fixedInvalidJson: true}` so callers can fall back
- *     to displaying the raw string.
- *  2. Bad escape sequences – `fixJson` may not be able to repair every
- *     malformed escape (e.g. `\p`, `\j`, …).  If the second `JSON.parse` still
- *     throws we catch it and return the same graceful result instead of
- *     propagating the error.
- */
 export function parseJsonWithFix(value: string): {
   fixedInvalidJson: boolean;
   parsed: any;
 } {
-  // Fast-path: if the value contains [Filtered] it can never be valid JSON.
   if (containsFilteredPlaceholder(value)) {
     return {parsed: null, fixedInvalidJson: true};
   }
