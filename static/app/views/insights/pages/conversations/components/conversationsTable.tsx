@@ -1,7 +1,6 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -18,7 +17,7 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconUser} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -61,7 +60,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
   {key: 'steps', name: t('Steps'), width: 80},
-  {key: 'toolsUsed', name: t('Tools Used'), width: 200},
+  {key: 'toolsUsed', name: t('Tools'), width: 200},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
@@ -83,7 +82,6 @@ function ConversationsTableInner({openConversationViewDrawer}: ConversationsTabl
         gap="xs"
         justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
       >
-        {column.key === 'user' && <IconUser size="xs" />}
         {column.key === 'steps' ? (
           <Tooltip title={t('LLM calls + Tool calls')}>
             <DashedUnderline>{column.name}</DashedUnderline>
@@ -220,21 +218,9 @@ const BodyCell = memo(function BodyCell({
       }
       const displayName = getUserDisplayName(dataRow.user);
       return (
-        <Flex align="center" gap="sm">
-          <UserAvatar
-            user={{
-              id: dataRow.user.id ?? '',
-              name: displayName,
-              email: dataRow.user.email ?? '',
-              username: dataRow.user.username ?? '',
-              ip_address: dataRow.user.ip_address ?? '',
-            }}
-            size={20}
-          />
-          <Tooltip title={displayName} showOnlyOnOverflow>
-            <Text ellipsis>{displayName}</Text>
-          </Tooltip>
-        </Flex>
+        <Tooltip title={displayName} showOnlyOnOverflow>
+          <Text ellipsis>{displayName}</Text>
+        </Tooltip>
       );
     }
     case 'inputOutput': {

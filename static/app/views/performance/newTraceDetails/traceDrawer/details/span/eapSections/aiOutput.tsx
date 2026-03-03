@@ -192,10 +192,12 @@ export function AIOutputSection({
   node,
   attributes,
   event,
+  initialCollapse,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
+  initialCollapse?: boolean;
 }) {
   if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
@@ -214,9 +216,11 @@ export function AIOutputSection({
 
   return (
     <FoldSection
+      key={node.id}
       sectionKey={SectionKey.AI_OUTPUT}
       title={t('Output')}
       disableCollapsePersistence
+      initialCollapse={initialCollapse}
     >
       {responseText && (
         <Fragment>
