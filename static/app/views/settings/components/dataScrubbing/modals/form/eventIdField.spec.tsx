@@ -8,7 +8,7 @@ const VALID_EVENT_ID = '887ab369df634e74aea708bcafe1a175';
 
 const defaultFieldProps = {
   'aria-describedby': 'hint-id',
-  'aria-invalid': false as boolean,
+  'aria-invalid': false,
   disabled: false,
   id: 'event-id',
   name: 'eventId',

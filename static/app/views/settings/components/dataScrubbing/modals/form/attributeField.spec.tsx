@@ -13,7 +13,7 @@ import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dat
 
 const defaultFieldProps = {
   'aria-describedby': 'source-hint',
-  'aria-invalid': false as boolean,
+  'aria-invalid': false,
   disabled: false,
   id: 'source',
   name: 'source',
