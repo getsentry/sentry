@@ -1,9 +1,15 @@
 from unittest import mock
 
+from django.db import IntegrityError
 from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationCodeMappingsBulkTest(APITestCase):
@@ -354,12 +360,96 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert repo.provider == "integrations:github"
         assert repo.integration_id == self.integration.id
 
-    def test_duplicate_stack_root_in_request_last_wins(self) -> None:
+    def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
+        self.make_post()
+        config = RepositoryProjectPathConfig.objects.get(
+            project=self.project1, stack_root="com/example/maps"
+        )
+        assert config._skip_post_save is False
+
+    # --- Permissions ---
+
+    def test_org_ci_scope_allows_post(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="ci-token",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        response = self.make_post(HTTP_AUTHORIZATION=f"Bearer {token_str}")
+        assert response.status_code == 200, response.content
+        assert response.data["created"] == 1
+
+    def test_no_project_access_returns_403(self) -> None:
+        user2 = self.create_user("other@sentry.io", is_superuser=False)
+        team2 = self.create_team(organization=self.organization, name="Other Team")
+        self.create_member(
+            organization=self.organization,
+            user=user2,
+            has_global_access=False,
+            teams=[team2],
+        )
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        self.login_as(user=user2)
+        response = self.make_post()
+        assert response.status_code == 403
+
+    def test_org_member_with_org_read_can_post(self) -> None:
+        user2 = self.create_user("member@sentry.io", is_superuser=False)
+        self.create_member(
+            organization=self.organization,
+            user=user2,
+            has_global_access=True,
+            teams=[self.team],
+        )
+
+        self.login_as(user=user2)
+        response = self.make_post()
+        assert response.status_code == 200, response.content
+
+    # --- IDOR / Security ---
+
+    def test_project_from_other_org_returns_404(self) -> None:
+        other_org = self.create_organization(name="other-org", owner=self.user)
+        other_project = self.create_project(organization=other_org, name="other-project")
+        response = self.make_post({"project": other_project.slug})
+        assert response.status_code == 404
+
+    def test_repo_from_other_org_returns_404(self) -> None:
+        other_org = self.create_organization(name="other-org", owner=self.user)
+        other_project = self.create_project(organization=other_org, name="other-proj")
+        other_integration = self.create_integration(
+            organization=other_org, external_id="other-ext", provider="github"
+        )
+        self.create_repo(
+            project=other_project,
+            name="other-org/other-repo",
+            integration_id=other_integration.id,
+        )
+        response = self.make_post({"repository": "other-org/other-repo"})
+        assert response.status_code == 404
+
+    # --- Edge cases ---
+
+    def test_duplicate_stack_roots_in_request_last_wins(self) -> None:
         response = self.make_post(
             {
                 "mappings": [
-                    {"stackRoot": "com/example/dup", "sourceRoot": "first/path"},
-                    {"stackRoot": "com/example/dup", "sourceRoot": "second/path"},
+                    {
+                        "stackRoot": "com/example/maps",
+                        "sourceRoot": "first/source/root",
+                    },
+                    {
+                        "stackRoot": "com/example/maps",
+                        "sourceRoot": "second/source/root",
+                    },
                 ],
             }
         )
@@ -368,13 +458,60 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["updated"] == 1
 
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/dup"
-        )
-        assert config.source_root == "second/path"
-
-    def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
-        self.make_post()
-        config = RepositoryProjectPathConfig.objects.get(
             project=self.project1, stack_root="com/example/maps"
         )
-        assert config._skip_post_save is False
+        assert config.source_root == "second/source/root"
+
+    def test_multiple_repos_same_name_returns_409(self) -> None:
+        # Intentionally use Repository.objects.create since create_repo uses
+        # get_or_create which would return the existing repo instead of a duplicate.
+        Repository.objects.create(
+            name=self.repo1.name,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        )
+        response = self.make_post()
+        assert response.status_code == 409
+        assert "Multiple repositories" in response.data["detail"]
+
+    def test_partial_failure_returns_207(self) -> None:
+        original_save = RepositoryProjectPathConfig.save
+        call_count = 0
+
+        def failing_save(self_inner, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                raise IntegrityError("Simulated DB error")
+            return original_save(self_inner, *args, **kwargs)
+
+        with mock.patch.object(
+            RepositoryProjectPathConfig,
+            "save",
+            failing_save,
+        ):
+            response = self.make_post(
+                {
+                    "mappings": [
+                        {
+                            "stackRoot": "com/example/maps",
+                            "sourceRoot": "modules/maps/src",
+                        },
+                        {
+                            "stackRoot": "com/example/auth",
+                            "sourceRoot": "modules/auth/src",
+                        },
+                        {
+                            "stackRoot": "com/example/core",
+                            "sourceRoot": "modules/core/src",
+                        },
+                    ],
+                }
+            )
+
+        assert response.status_code == 207
+        assert response.data["created"] == 2
+        assert response.data["errors"] == 1
+        error_mapping = next(m for m in response.data["mappings"] if m["status"] == "error")
+        assert error_mapping["stackRoot"] == "com/example/auth"
+        assert "Failed to save mapping" in error_mapping["detail"]
