@@ -234,13 +234,14 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     def test_update_internal_app(self) -> None:
-        self.get_success_response(
-            self.internal_integration.slug,
-            webhookUrl="https://newurl.com",
-            scopes=("event:read",),
-            events=("issue",),
-            status_code=200,
-        )
+        with outbox_runner():
+            self.get_success_response(
+                self.internal_integration.slug,
+                webhookUrl="https://newurl.com",
+                scopes=("event:read",),
+                events=("issue",),
+                status_code=200,
+            )
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://newurl.com"
 
@@ -262,17 +263,21 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert hook.project_id is None
 
         # New test to check if the internal integration's webhook URL is updated correctly
-        self.get_success_response(
-            self.internal_integration.slug,
-            webhookUrl="https://updatedurl.com",
-            status_code=200,
-        )
+        with outbox_runner():
+            self.get_success_response(
+                self.internal_integration.slug,
+                webhookUrl="https://updatedurl.com",
+                status_code=200,
+            )
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://updatedurl.com"
 
-        # Verify the service hook URL is also updated
-        hook.refresh_from_db()
-        assert hook.url == "https://updatedurl.com"
+        # Verify the service hook URL is also updated (re-query since outbox deletes+recreates hooks)
+        with assume_test_silo_mode(SiloMode.REGION):
+            updated_hook = ServiceHook.objects.get(
+                application_id=self.internal_integration.application_id
+            )
+        assert updated_hook.url == "https://updatedurl.com"
 
     @override_options({"staff.ga-rollout": True})
     def test_can_update_name_with_non_unique_name(self) -> None:
@@ -420,7 +425,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == set()
 
         # Update the webhook URL and events
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             self.get_success_response(
                 published_app.slug,
                 webhookUrl="https://newurl.com",

@@ -37,7 +37,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiRateLimitedError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -409,12 +414,15 @@ class GitHubBaseClient(
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
-        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
+        return self._get_with_pagination(
+            f"/repos/{repo}/compare/{start_sha}...{end_sha}",
+            response_key="commits",
+        )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
         """
@@ -516,23 +524,33 @@ class GitHubBaseClient(
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        # We do not cache this call since it is a rather large object
-        contents: dict[str, Any] = self.get(
-            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-            # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-            params={"recursive": 1},
-        )
-        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-        if contents.get("truncated"):
-            # e.g. getsentry/DataForThePeople
-            logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
-                repo_full_name,
-            )
-        return contents["tree"]
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture() as lifecycle:
+            try:
+                # We do not cache this call since it is a rather large object
+                contents: dict[str, Any] = self.get(
+                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                    params={"recursive": 1},
+                )
+            except ApiConflictError as e:
+                # Empty repos return a 409 which is expected
+                lifecycle.record_halt(e)
+                raise
+            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+            if contents.get("truncated"):
+                # e.g. getsentry/DataForThePeople
+                logger.warning(
+                    "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                    repo_full_name,
+                )
+            return contents["tree"]
 
     def get_tree_full(
         self, repo_full_name: str, tree_sha: str, recursive: bool = True
@@ -556,7 +574,7 @@ class GitHubBaseClient(
 
     def get_git_ref(self, repo: str, ref: str) -> Any:
         """https://docs.github.com/en/rest/git/refs#get-a-reference"""
-        return self.get(f"/repos/{repo}/git/ref/heads/{ref}")
+        return self.get(f"/repos/{repo}/git/refs/heads/{ref}")
 
     def create_git_ref(self, repo: str, data: dict[str, Any]) -> Any:
         """https://docs.github.com/en/rest/git/refs#create-a-reference"""
@@ -677,11 +695,16 @@ class GitHubBaseClient(
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=page_number_limit,
-        )
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+            )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """

@@ -3,7 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsDrawerContent';
-import type {PreviewCheckPayload} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeAssertionType,
+  UptimeComparisonType,
+  UptimeOpType,
+  type PreviewCheckPayload,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 describe('AssertionSuggestionsDrawerContent', () => {
   const organization = OrganizationFixture();
@@ -41,34 +46,34 @@ describe('AssertionSuggestionsDrawerContent', () => {
     suggested_assertion: null,
     suggestions: [
       {
-        assertion_type: 'status_code',
-        comparison: 'equals',
+        assertion_type: UptimeAssertionType.STATUS_CODE,
+        comparison: UptimeComparisonType.EQUALS,
         expected_value: '200',
         confidence: 0.95,
         explanation: 'HTTP 200 indicates a successful response',
         json_path: null,
         header_name: null,
         assertion_json: {
-          op: 'status_code_check',
+          op: UptimeOpType.STATUS_CODE_CHECK,
           id: 'sug-1',
-          operator: {cmp: 'equals'},
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
       },
       {
-        assertion_type: 'json_path',
-        comparison: 'equals',
+        assertion_type: UptimeAssertionType.JSON_PATH,
+        comparison: UptimeComparisonType.EQUALS,
         expected_value: 'ok',
         confidence: 0.8,
         explanation: 'The status field should be ok',
         json_path: '$.status',
         header_name: null,
         assertion_json: {
-          op: 'json_path_match',
+          op: UptimeOpType.JSON_PATH,
           id: 'sug-2',
-          path: '$.status',
-          operator: {cmp: 'equals'},
-          value: 'ok',
+          value: '$.status',
+          operator: {cmp: UptimeComparisonType.EQUALS},
+          operand: {jsonpath_op: 'literal', value: 'ok'},
         },
       },
     ],

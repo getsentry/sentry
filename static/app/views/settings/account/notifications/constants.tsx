@@ -36,11 +36,6 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'brokenMonitors',
 ] as const;
 
-export const SELF_NOTIFICATION_SETTINGS_TYPES = [
-  'personalActivityNotifications',
-  'selfAssignOnResolve',
-] as const;
-
 // 'alerts' | 'workflow' ...
 export type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 

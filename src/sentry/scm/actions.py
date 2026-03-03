@@ -13,31 +13,38 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     ActionResult,
+    BranchName,
     BuildConclusion,
     BuildStatus,
     CheckRun,
     CheckRunOutput,
     Comment,
     Commit,
-    CommitComparison,
+    CommitSHA,
     FileContent,
     GitBlob,
     GitCommitObject,
     GitRef,
     GitTree,
     InputTreeEntry,
+    PaginatedActionResult,
+    PaginationParams,
     Provider,
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
+    PullRequestState,
     Reaction,
     ReactionResult,
     Referrer,
     Repository,
     RepositoryId,
+    RequestOptions,
+    ResourceId,
     Review,
     ReviewComment,
     ReviewCommentInput,
+    ReviewEvent,
     ReviewSide,
 )
 
@@ -120,67 +127,118 @@ class SourceCodeManager:
             provider_fn=provider_fn,
         )
 
-    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
+    def get_issue_comments(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
         """Get comments on an issue."""
-        return self._exec(lambda p: p.get_issue_comments(issue_id))
+        return self._exec(lambda p: p.get_issue_comments(issue_id, pagination, request_options))
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         """Create a comment on an issue."""
         return self._exec(lambda p: p.create_issue_comment(issue_id, body))
 
-    def delete_issue_comment(self, comment_id: str) -> None:
+    def delete_issue_comment(self, issue_id: str, comment_id: str) -> None:
         """Delete a comment on an issue."""
-        return self._exec(lambda p: p.delete_issue_comment(comment_id))
+        return self._exec(lambda p: p.delete_issue_comment(issue_id, comment_id))
 
-    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
+    def get_pull_request(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[PullRequest]:
         """Get a pull request."""
-        return self._exec(lambda p: p.get_pull_request(pull_request_id))
+        return self._exec(lambda p: p.get_pull_request(pull_request_id, request_options))
 
-    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
+    def get_pull_request_comments(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
         """Get comments on a pull request."""
-        return self._exec(lambda p: p.get_pull_request_comments(pull_request_id))
+        return self._exec(
+            lambda p: p.get_pull_request_comments(pull_request_id, pagination, request_options)
+        )
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         """Create a comment on a pull request."""
         return self._exec(lambda p: p.create_pull_request_comment(pull_request_id, body))
 
-    def delete_pull_request_comment(self, comment_id: str) -> None:
+    def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None:
         """Delete a comment on a pull request."""
-        return self._exec(lambda p: p.delete_pull_request_comment(comment_id))
+        return self._exec(lambda p: p.delete_pull_request_comment(pull_request_id, comment_id))
 
-    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
+    def get_issue_comment_reactions(
+        self,
+        issue_id: str,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on an issue comment."""
-        return self._exec(lambda p: p.get_issue_comment_reactions(comment_id))
+        return self._exec(
+            lambda p: p.get_issue_comment_reactions(
+                issue_id, comment_id, pagination, request_options
+            )
+        )
 
     def create_issue_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, issue_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         """Create a reaction on an issue comment."""
-        return self._exec(lambda p: p.create_issue_comment_reaction(comment_id, reaction))
+        return self._exec(lambda p: p.create_issue_comment_reaction(issue_id, comment_id, reaction))
 
-    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_issue_comment_reaction(
+        self, issue_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         """Delete a reaction on an issue comment."""
-        return self._exec(lambda p: p.delete_issue_comment_reaction(comment_id, reaction_id))
+        return self._exec(
+            lambda p: p.delete_issue_comment_reaction(issue_id, comment_id, reaction_id)
+        )
 
     def get_pull_request_comment_reactions(
-        self, comment_id: str
-    ) -> ActionResult[list[ReactionResult]]:
+        self,
+        pull_request_id: str,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on a pull request comment."""
-        return self._exec(lambda p: p.get_pull_request_comment_reactions(comment_id))
+        return self._exec(
+            lambda p: p.get_pull_request_comment_reactions(
+                pull_request_id, comment_id, pagination, request_options
+            )
+        )
 
     def create_pull_request_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, pull_request_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         """Create a reaction on a pull request comment."""
-        return self._exec(lambda p: p.create_pull_request_comment_reaction(comment_id, reaction))
+        return self._exec(
+            lambda p: p.create_pull_request_comment_reaction(pull_request_id, comment_id, reaction)
+        )
 
-    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_pull_request_comment_reaction(
+        self, pull_request_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         """Delete a reaction on a pull request comment."""
-        return self._exec(lambda p: p.delete_pull_request_comment_reaction(comment_id, reaction_id))
+        return self._exec(
+            lambda p: p.delete_pull_request_comment_reaction(
+                pull_request_id, comment_id, reaction_id
+            )
+        )
 
-    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+    def get_issue_reactions(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on an issue."""
-        return self._exec(lambda p: p.get_issue_reactions(issue_id))
+        return self._exec(lambda p: p.get_issue_reactions(issue_id, pagination, request_options))
 
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
@@ -193,10 +251,15 @@ class SourceCodeManager:
         return self._exec(lambda p: p.delete_issue_reaction(issue_id, reaction_id))
 
     def get_pull_request_reactions(
-        self, pull_request_id: str
-    ) -> ActionResult[list[ReactionResult]]:
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on a pull request."""
-        return self._exec(lambda p: p.get_pull_request_reactions(pull_request_id))
+        return self._exec(
+            lambda p: p.get_pull_request_reactions(pull_request_id, pagination, request_options)
+        )
 
     def create_pull_request_reaction(
         self, pull_request_id: str, reaction: Reaction
@@ -208,15 +271,19 @@ class SourceCodeManager:
         """Delete a reaction on a pull request."""
         return self._exec(lambda p: p.delete_pull_request_reaction(pull_request_id, reaction_id))
 
-    def get_branch(self, branch: str) -> ActionResult[GitRef]:
+    def get_branch(
+        self,
+        branch: BranchName,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitRef]:
         """Get a branch reference."""
-        return self._exec(lambda p: p.get_branch(branch))
+        return self._exec(lambda p: p.get_branch(branch, request_options))
 
-    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
+    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
         """Create a new branch pointing at the given SHA."""
         return self._exec(lambda p: p.create_branch(branch, sha))
 
-    def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
+    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda p: p.update_branch(branch, sha, force))
 
@@ -224,64 +291,113 @@ class SourceCodeManager:
         """Create a git blob object."""
         return self._exec(lambda p: p.create_git_blob(content, encoding))
 
-    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
-        return self._exec(lambda p: p.get_file_content(path, ref))
+    def get_file_content(
+        self,
+        path: str,
+        ref: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[FileContent]:
+        return self._exec(lambda p: p.get_file_content(path, ref, request_options))
 
-    def get_commit(self, sha: str) -> ActionResult[Commit]:
-        return self._exec(lambda p: p.get_commit(sha))
+    def get_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[Commit]:
+        return self._exec(lambda p: p.get_commit(sha, request_options))
 
     def get_commits(
         self,
-        sha: str | None = None,
+        sha: CommitSHA | None = None,
         path: str | None = None,
-    ) -> ActionResult[list[Commit]]:
-        return self._exec(lambda p: p.get_commits(sha=sha, path=path))
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        return self._exec(
+            lambda p: p.get_commits(
+                sha=sha, path=path, pagination=pagination, request_options=request_options
+            )
+        )
 
-    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
-        return self._exec(lambda p: p.compare_commits(start_sha, end_sha))
+    def compare_commits(
+        self,
+        start_sha: CommitSHA,
+        end_sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        return self._exec(lambda p: p.compare_commits(start_sha, end_sha, request_options))
 
-    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
-        return self._exec(lambda p: p.get_tree(tree_sha, recursive=recursive))
+    def get_tree(
+        self,
+        tree_sha: CommitSHA,
+        recursive: bool = True,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]:
+        return self._exec(
+            lambda p: p.get_tree(tree_sha, recursive=recursive, request_options=request_options)
+        )
 
-    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
-        return self._exec(lambda p: p.get_git_commit(sha))
+    def get_git_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]:
+        return self._exec(lambda p: p.get_git_commit(sha, request_options))
 
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
-        base_tree: str | None = None,
+        base_tree: CommitSHA | None = None,
     ) -> ActionResult[GitTree]:
         return self._exec(lambda p: p.create_git_tree(tree, base_tree=base_tree))
 
     def create_git_commit(
-        self, message: str, tree_sha: str, parent_shas: list[str]
+        self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.create_git_commit(message, tree_sha, parent_shas))
 
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
-        return self._exec(lambda p: p.get_pull_request_files(pull_request_id))
+    def get_pull_request_files(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestFile]:
+        return self._exec(
+            lambda p: p.get_pull_request_files(pull_request_id, pagination, request_options)
+        )
 
     def get_pull_request_commits(
-        self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
-        return self._exec(lambda p: p.get_pull_request_commits(pull_request_id))
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestCommit]:
+        return self._exec(
+            lambda p: p.get_pull_request_commits(pull_request_id, pagination, request_options)
+        )
 
-    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
-        return self._exec(lambda p: p.get_pull_request_diff(pull_request_id))
+    def get_pull_request_diff(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[str]:
+        return self._exec(lambda p: p.get_pull_request_diff(pull_request_id, request_options))
 
     def get_pull_requests(
         self,
-        state: str = "open",
-        head: str | None = None,
-    ) -> ActionResult[list[PullRequest]]:
-        return self._exec(lambda p: p.get_pull_requests(state, head))
+        state: PullRequestState | None = "open",
+        head: BranchName | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequest]:
+        return self._exec(lambda p: p.get_pull_requests(state, head, pagination, request_options))
 
     def create_pull_request(
         self,
         title: str,
         body: str,
-        head: str,
-        base: str,
+        head: BranchName,
+        base: BranchName,
         draft: bool = False,
     ) -> ActionResult[PullRequest]:
         return self._exec(lambda p: p.create_pull_request(title, body, head, base, draft=draft))
@@ -291,7 +407,7 @@ class SourceCodeManager:
         pull_request_id: str,
         title: str | None = None,
         body: str | None = None,
-        state: str | None = None,
+        state: PullRequestState | None = None,
     ) -> ActionResult[PullRequest]:
         return self._exec(
             lambda p: p.update_pull_request(pull_request_id, title=title, body=body, state=state)
@@ -300,35 +416,76 @@ class SourceCodeManager:
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         return self._exec(lambda p: p.request_review(pull_request_id, reviewers))
 
-    def create_review_comment(
+    def create_review_comment_file(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        """Leave a review comment on a file."""
+        return self._exec(
+            lambda p: p.create_review_comment_file(pull_request_id, commit_id, body, path, side)
+        )
+
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        """Leave a review comment on a specific line in a file."""
+        return self._exec(
+            lambda p: p.create_review_comment_line(
+                pull_request_id, commit_id, body, path, line, side
+            )
+        )
+
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: CommitSHA,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        """Leave a review comment on a multiline span in a file."""
+        return self._exec(
+            lambda p: p.create_review_comment_multiline(
+                pull_request_id,
+                commit_id,
+                body,
+                path,
+                start_line,
+                start_side,
+                end_line,
+                end_side,
+            )
+        )
+
+    def create_review_comment_reply(
         self,
         pull_request_id: str,
         body: str,
-        commit_sha: str,
-        path: str,
-        line: int | None = None,
-        side: ReviewSide | None = None,
-        start_line: int | None = None,
-        start_side: ReviewSide | None = None,
+        comment_id: str,
     ) -> ActionResult[ReviewComment]:
+        """Leave a review comment in reply to another review comment."""
         return self._exec(
-            lambda p: p.create_review_comment(
-                pull_request_id,
-                body,
-                commit_sha,
-                path,
-                line=line,
-                side=side,
-                start_line=start_line,
-                start_side=start_side,
-            )
+            lambda p: p.create_review_comment_reply(pull_request_id, body, comment_id)
         )
 
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: str,
-        event: str,
+        commit_sha: CommitSHA,
+        event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
     ) -> ActionResult[Review]:
@@ -339,7 +496,7 @@ class SourceCodeManager:
     def create_check_run(
         self,
         name: str,
-        head_sha: str,
+        head_sha: CommitSHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
@@ -360,12 +517,16 @@ class SourceCodeManager:
             )
         )
 
-    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
-        return self._exec(lambda p: p.get_check_run(check_run_id))
+    def get_check_run(
+        self,
+        check_run_id: ResourceId,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[CheckRun]:
+        return self._exec(lambda p: p.get_check_run(check_run_id, request_options))
 
     def update_check_run(
         self,
-        check_run_id: str,
+        check_run_id: ResourceId,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,

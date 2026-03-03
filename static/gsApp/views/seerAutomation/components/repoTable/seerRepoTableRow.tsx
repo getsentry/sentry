@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
@@ -32,15 +32,19 @@ import useRepositoryWithSettings, {
 } from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 interface Props {
+  gridColumns: string;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   mutationData: Record<string, RepositoryWithSettings>;
   repository: RepositoryWithSettings;
+  style?: React.CSSProperties;
 }
 
 export default function SeerRepoTableRow({
+  gridColumns,
   mutateRepositorySettings,
   mutationData,
   repository: initialRepository,
+  style,
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -61,7 +65,17 @@ export default function SeerRepoTableRow({
   const repository = isError || isPending ? initialRepository : data;
 
   return (
-    <SimpleTable.Row key={repository.id}>
+    <Grid
+      columns={gridColumns}
+      align="center"
+      style={style}
+      role="row"
+      position="absolute"
+      top="0"
+      left="0"
+      width="100%"
+      borderBottom="muted"
+    >
       <SimpleTable.RowCell>
         <CheckboxClickTarget htmlFor={`replay-table-select-${repository.id}`}>
           <Checkbox
@@ -158,7 +172,7 @@ export default function SeerRepoTableRow({
             ))}
         </Text>
       </SimpleTable.RowCell>
-    </SimpleTable.Row>
+    </Grid>
   );
 }
 

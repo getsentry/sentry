@@ -13,16 +13,11 @@ from tests.sentry.scm.test_fixtures import (
     make_github_check_run,
     make_github_comment,
     make_github_commit,
-    make_github_commit_comparison,
     make_github_commit_file,
     make_github_file_content,
     make_github_git_blob,
     make_github_git_commit_object,
     make_github_git_tree,
-    make_github_graphql_issue_comment,
-    make_github_graphql_pr_comments_response,
-    make_github_graphql_review_thread,
-    make_github_graphql_review_thread_comment,
     make_github_pull_request,
     make_github_pull_request_commit,
     make_github_pull_request_file,
@@ -53,19 +48,28 @@ def _make_client(**attrs: Any) -> FakeGitHubApiClient:
 ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_issue_comments", {"issue_id": "42"}),
     ("create_issue_comment", {"issue_id": "42", "body": "test"}),
-    ("delete_issue_comment", {"comment_id": "101"}),
+    ("delete_issue_comment", {"issue_id": "42", "comment_id": "101"}),
     ("get_pull_request", {"pull_request_id": "42"}),
     ("get_pull_request_comments", {"pull_request_id": "42"}),
     ("minimize_comment", {"comment_node_id": "IC_abc", "reason": "OUTDATED"}),
     ("resolve_review_thread", {"thread_node_id": "PRT_abc"}),
     ("create_pull_request_comment", {"pull_request_id": "42", "body": "test"}),
-    ("delete_pull_request_comment", {"comment_id": "201"}),
-    ("get_issue_comment_reactions", {"comment_id": "101"}),
-    ("create_issue_comment_reaction", {"comment_id": "101", "reaction": "+1"}),
-    ("delete_issue_comment_reaction", {"comment_id": "101", "reaction_id": "999"}),
-    ("get_pull_request_comment_reactions", {"comment_id": "101"}),
-    ("create_pull_request_comment_reaction", {"comment_id": "101", "reaction": "+1"}),
-    ("delete_pull_request_comment_reaction", {"comment_id": "101", "reaction_id": "999"}),
+    ("delete_pull_request_comment", {"pull_request_id": "42", "comment_id": "201"}),
+    ("get_issue_comment_reactions", {"issue_id": "42", "comment_id": "101"}),
+    ("create_issue_comment_reaction", {"issue_id": "42", "comment_id": "101", "reaction": "+1"}),
+    (
+        "delete_issue_comment_reaction",
+        {"issue_id": "42", "comment_id": "101", "reaction_id": "999"},
+    ),
+    ("get_pull_request_comment_reactions", {"pull_request_id": "42", "comment_id": "101"}),
+    (
+        "create_pull_request_comment_reaction",
+        {"pull_request_id": "42", "comment_id": "101", "reaction": "+1"},
+    ),
+    (
+        "delete_pull_request_comment_reaction",
+        {"pull_request_id": "42", "comment_id": "101", "reaction_id": "999"},
+    ),
     ("get_issue_reactions", {"issue_id": "42"}),
     ("create_issue_reaction", {"issue_id": "42", "reaction": "rocket"}),
     ("delete_issue_reaction", {"issue_id": "42", "reaction_id": "999"}),
@@ -92,12 +96,45 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("update_pull_request", {"pull_request_id": "42"}),
     ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
     (
-        "create_review_comment",
+        "create_review_comment_file",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_reply",
         {
             "pull_request_id": "42",
             "body": "comment",
-            "commit_sha": "abc",
-            "path": "f.py",
+            "comment_id": "123",
         },
     ),
     (
@@ -105,7 +142,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
         {
             "pull_request_id": "42",
             "commit_sha": "abc",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
     ),
@@ -140,7 +177,7 @@ CLIENT_DELEGATION_TESTS: list[
     ),
     (
         "delete_issue_comment",
-        {"comment_id": "101"},
+        {"issue_id": "42", "comment_id": "101"},
         ("delete_issue_comment", ("test-org/test-repo", "101"), {}),
     ),
     (
@@ -150,27 +187,27 @@ CLIENT_DELEGATION_TESTS: list[
     ),
     (
         "delete_pull_request_comment",
-        {"comment_id": "201"},
+        {"pull_request_id": "42", "comment_id": "201"},
         ("delete_issue_comment", ("test-org/test-repo", "201"), {}),
     ),
     (
         "create_issue_comment_reaction",
-        {"comment_id": "101", "reaction": "+1"},
+        {"issue_id": "42", "comment_id": "101", "reaction": "+1"},
         ("create_comment_reaction", ("test-org/test-repo", "101", GitHubReaction.PLUS_ONE), {}),
     ),
     (
         "delete_issue_comment_reaction",
-        {"comment_id": "101", "reaction_id": "999"},
+        {"issue_id": "42", "comment_id": "101", "reaction_id": "999"},
         ("delete_comment_reaction", ("test-org/test-repo", "101", "999"), {}),
     ),
     (
         "create_pull_request_comment_reaction",
-        {"comment_id": "101", "reaction": "+1"},
+        {"pull_request_id": "42", "comment_id": "101", "reaction": "+1"},
         ("create_comment_reaction", ("test-org/test-repo", "101", GitHubReaction.PLUS_ONE), {}),
     ),
     (
         "delete_pull_request_comment_reaction",
-        {"comment_id": "101", "reaction_id": "999"},
+        {"pull_request_id": "42", "comment_id": "101", "reaction_id": "999"},
         ("delete_comment_reaction", ("test-org/test-repo", "101", "999"), {}),
     ),
     (
@@ -312,6 +349,11 @@ CLIENT_DELEGATION_TESTS: list[
         ("list_pull_requests", ("test-org/test-repo", "closed", "org:branch"), {}),
     ),
     (
+        "get_pull_requests",
+        {"state": None},
+        ("list_pull_requests", ("test-org/test-repo", "all", None), {}),
+    ),
+    (
         "create_pull_request",
         {"title": "T", "body": "B", "head": "h", "base": "b"},
         (
@@ -338,19 +380,104 @@ CLIENT_DELEGATION_TESTS: list[
         ),
     ),
     (
-        "create_review_comment",
+        "create_review_comment_file",
         {
             "pull_request_id": "42",
+            "commit_id": "abc123",
             "body": "Nice!",
-            "commit_sha": "abc123",
             "path": "src/main.py",
+            "side": "RIGHT",
         },
         (
             "create_review_comment",
             (
                 "test-org/test-repo",
                 "42",
-                {"body": "Nice!", "commit_id": "abc123", "path": "src/main.py"},
+                {
+                    "body": "Nice!",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "side": "RIGHT",
+                    "subject_type": "file",
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Nice!",
+            "path": "src/main.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "Nice!",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Nice!",
+            "path": "src/main.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "Nice!",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "start_line": 5,
+                    "start_side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment_reply",
+        {
+            "pull_request_id": "42",
+            "body": "Nice!",
+            "comment_id": "999",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "Nice!",
+                    "in_reply_to": 999,
+                },
             ),
             {},
         ),
@@ -360,7 +487,7 @@ CLIENT_DELEGATION_TESTS: list[
         {
             "pull_request_id": "42",
             "commit_sha": "abc123",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [{"path": "f.py", "body": "fix"}],
         },
         (
@@ -403,16 +530,7 @@ CLIENT_DELEGATION_TESTS: list[
     (
         "get_pull_request_comments",
         {"pull_request_id": "42"},
-        (
-            "get_pull_request_comments_graphql",
-            ("test-org", "test-repo", 42),
-            {
-                "comments_after": None,
-                "include_comments": True,
-                "review_threads_after": None,
-                "include_threads": True,
-            },
-        ),
+        ("get_pull_request_comments", ("test-org/test-repo", "42"), {}),
     ),
     (
         "minimize_comment",
@@ -468,22 +586,15 @@ def _check_issue_comments(result: Any) -> None:
     assert result["data"][1]["id"] == "102"
 
 
-def _check_graphql_pr_comments(result: Any) -> None:
-    # Default factory produces 1 issue comment + 1 review thread with 1 comment = 2 total
+def _check_pr_comments(result: Any) -> None:
     assert len(result["data"]) == 2
     assert result["type"] == "github"
-    # First: issue comment
-    assert result["data"][0]["id"] == "IC_abc123"
-    assert result["data"][0]["body"] == "Test issue comment"
+    assert result["data"][0]["id"] == "101"
+    assert result["data"][0]["body"] == "First comment"
     assert result["data"][0]["author"] is not None
-    assert result["data"][0]["author"]["id"] == "123"
-    assert result["data"][0]["author"]["username"] == "testuser"
-    # Second: review thread comment
-    assert result["data"][1]["id"] == "PRRC_abc123"
-    assert result["data"][1]["body"] == "Review thread comment"
-    assert result["data"][1]["author"] is not None
-    assert result["data"][1]["author"]["id"] == "456"
-    assert result["data"][1]["author"]["username"] == "reviewer"
+    assert result["data"][0]["author"]["id"] == "1"
+    assert result["data"][0]["author"]["username"] == "user1"
+    assert result["data"][1]["id"] == "102"
 
 
 def _check_pull_request(result: Any) -> None:
@@ -570,8 +681,10 @@ def _check_get_commits(result: Any) -> None:
 
 
 def _check_compare_commits(result: Any) -> None:
-    assert result["data"]["ahead_by"] == 3
-    assert result["data"]["behind_by"] == 1
+    assert len(result["data"]) == 1
+    c = result["data"][0]
+    assert c["id"] == "abc123"
+    assert c["message"] == "Fix bug"
     assert result["type"] == "github"
 
 
@@ -700,8 +813,8 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "get_pull_request_comments",
         {"pull_request_id": "42"},
-        {"graphql_pr_comments_data": make_github_graphql_pr_comments_response()},
-        _check_graphql_pr_comments,
+        {"pr_comments": _ISSUE_COMMENTS_DATA},
+        _check_pr_comments,
     ),
     (
         "get_pull_request",
@@ -711,13 +824,13 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     ),
     (
         "get_issue_comment_reactions",
-        {"comment_id": "101"},
+        {"issue_id": "42", "comment_id": "101"},
         {"comment_reactions": _COMMENT_REACTIONS_DATA},
         _check_comment_reactions,
     ),
     (
         "get_pull_request_comment_reactions",
-        {"comment_id": "101"},
+        {"pull_request_id": "42", "comment_id": "101"},
         {"comment_reactions": _COMMENT_REACTIONS_DATA},
         _check_comment_reactions,
     ),
@@ -772,7 +885,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "compare_commits",
         {"start_sha": "aaa", "end_sha": "bbb"},
-        {"comparison_data": make_github_commit_comparison()},
+        {"comparison_data": [make_github_commit()]},
         _check_compare_commits,
     ),
     (
@@ -836,12 +949,51 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         _check_update_pull_request,
     ),
     (
-        "create_review_comment",
+        "create_review_comment_file",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Looks good",
+            "path": "src/main.py",
+            "side": "RIGHT",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Looks good",
+            "path": "src/main.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "42",
+            "commit_id": "abc123",
+            "body": "Looks good",
+            "path": "src/main.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review_comment_reply",
         {
             "pull_request_id": "42",
             "body": "Looks good",
-            "commit_sha": "abc123",
-            "path": "src/main.py",
+            "comment_id": "999",
         },
         {"review_comment_data": make_github_review_comment()},
         _check_review_comment,
@@ -851,7 +1003,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {
             "pull_request_id": "42",
             "commit_sha": "abc123",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
         {"review_data": make_github_review()},
@@ -1113,37 +1265,60 @@ class TestPullRequestCommitEdgeCases:
 
 
 class TestCreateReviewCommentEdgeCases:
-    def test_only_required_fields(self):
+    def test_file_comment(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review_comment("42", "comment", "abc123", "src/main.py")
+        provider.create_review_comment_file("42", "abc123", "comment", "src/main.py", "RIGHT")
 
         assert (
             "create_review_comment",
             (
                 "test-org/test-repo",
                 "42",
-                {"body": "comment", "commit_id": "abc123", "path": "src/main.py"},
+                {
+                    "body": "comment",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "side": "RIGHT",
+                    "subject_type": "file",
+                },
             ),
             {},
         ) in client.calls
 
-    def test_with_positioning_fields(self):
+    def test_line_comment(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review_comment(
-            "42",
-            "comment",
-            "abc123",
-            "src/main.py",
-            line=10,
-            side="RIGHT",
-            start_line=5,
-            start_side="RIGHT",
+        provider.create_review_comment_line("42", "abc123", "comment", "src/main.py", 10, "RIGHT")
+
+        assert (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "comment",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ) in client.calls
+
+    def test_multiline_comment(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
+
+        provider.create_review_comment_multiline(
+            "42", "abc123", "comment", "src/main.py", 5, "RIGHT", 10, "RIGHT"
         )
 
         assert (
@@ -1159,6 +1334,27 @@ class TestCreateReviewCommentEdgeCases:
                     "side": "RIGHT",
                     "start_line": 5,
                     "start_side": "RIGHT",
+                    "subject_type": "line",
+                },
+            ),
+            {},
+        ) in client.calls
+
+    def test_reply_comment(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
+
+        provider.create_review_comment_reply("42", "comment", "999")
+
+        assert (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "comment",
+                    "in_reply_to": 999,
                 },
             ),
             {},
@@ -1171,7 +1367,7 @@ class TestCreateReviewEdgeCases:
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review("42", "abc123", "APPROVE", [])
+        provider.create_review("42", "abc123", "approve", [])
 
         assert (
             "create_review",
@@ -1188,7 +1384,7 @@ class TestCreateReviewEdgeCases:
         client = _make_client()
         provider = GitHubProvider(client, repository)
 
-        provider.create_review("42", "abc123", "COMMENT", [], body="Overall looks good")
+        provider.create_review("42", "abc123", "comment", [], body="Overall looks good")
 
         assert (
             "create_review",
@@ -1265,23 +1461,18 @@ class TestUpdateCheckRunEdgeCases:
 
 
 class TestGetPullRequestCommentsEdgeCases:
-    def test_empty_comments_and_threads(self):
+    def test_empty_comments(self):
         repository = make_repository()
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
+        client = _make_client(pr_comments=[])
         provider = GitHubProvider(client, repository)
 
         result = provider.get_pull_request_comments("42")
 
         assert result["data"] == []
 
-    def test_review_thread_comment_with_null_author(self):
+    def test_null_author(self):
         repository = make_repository()
-        comment = make_github_graphql_review_thread_comment(author_login="ghost")
-        comment["author"] = None
-        thread = make_github_graphql_review_thread(comments=[comment])
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
-        client = _make_client(graphql_pr_comments_data=raw)
+        client = _make_client(pr_comments=[{"id": 1, "body": "ghost comment", "user": None}])
         provider = GitHubProvider(client, repository)
 
         result = provider.get_pull_request_comments("42")
@@ -1289,113 +1480,7 @@ class TestGetPullRequestCommentsEdgeCases:
         assert len(result["data"]) == 1
         assert result["data"][0]["author"] is None
 
-    def test_review_thread_comment_with_reactions(self):
-        repository = make_repository()
-        comment = make_github_graphql_review_thread_comment(
-            reactions=[{"content": "THUMBS_UP"}, {"content": "HEART"}],
-            reactions_total_count=2,
-        )
-        thread = make_github_graphql_review_thread(comments=[comment])
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-
-    def test_issue_comment_with_null_author(self):
-        repository = make_repository()
-        comment = make_github_graphql_issue_comment()
-        comment["author"] = None
-        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        assert result["data"][0]["author"] is None
-
-    def test_graphql_author_without_database_id(self):
-        """Author without databaseId should have empty string id."""
-        repository = make_repository()
-        comment = make_github_graphql_issue_comment()
-        del comment["author"]["databaseId"]
-        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        author = result["data"][0]["author"]
-        assert author is not None
-        assert author["id"] == ""
-        assert author["username"] == "testuser"
-
-    def test_graphql_author_database_id_used_as_id(self):
-        """Author databaseId should be used as the author id."""
-        repository = make_repository()
-        comment = make_github_graphql_issue_comment(author_database_id=999)
-        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        author = result["data"][0]["author"]
-        assert author is not None
-        assert author["id"] == "999"
-        assert author["username"] == "testuser"
-
-    def test_flattens_issue_comments_and_thread_comments(self):
-        repository = make_repository()
-        issue_comment = make_github_graphql_issue_comment(node_id="IC_1", body="issue comment")
-        thread_comment = make_github_graphql_review_thread_comment(
-            node_id="PRRC_1", body="thread comment"
-        )
-        thread = make_github_graphql_review_thread(comments=[thread_comment])
-        raw = make_github_graphql_pr_comments_response(
-            issue_comments=[issue_comment], review_threads=[thread]
-        )
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 2
-        assert result["data"][0]["id"] == "IC_1"
-        assert result["data"][0]["body"] == "issue comment"
-        assert result["data"][1]["id"] == "PRRC_1"
-        assert result["data"][1]["body"] == "thread comment"
-
-    def test_thread_metadata_in_raw_response(self):
-        repository = make_repository()
-        comment = make_github_graphql_review_thread_comment(node_id="PRRC_1")
-        thread = make_github_graphql_review_thread(
-            node_id="PRT_resolved",
-            is_resolved=True,
-            is_outdated=True,
-            is_collapsed=True,
-            comments=[comment],
-        )
-        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
-        client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client, repository)
-
-        result = provider.get_pull_request_comments("42")
-
-        assert len(result["data"]) == 1
-        # The raw field contains the full GraphQL response
-        threads = result["raw"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
-        assert threads[0]["id"] == "PRT_resolved"
-        assert threads[0]["isResolved"] is True
-        assert threads[0]["isOutdated"] is True
-        assert threads[0]["isCollapsed"] is True
-
-    def test_splits_owner_repo_correctly(self):
+    def test_delegates_to_client(self):
         repository = make_repository()
         client = _make_client()
         provider = GitHubProvider(client, repository)
@@ -1403,12 +1488,7 @@ class TestGetPullRequestCommentsEdgeCases:
         provider.get_pull_request_comments("42")
 
         assert (
-            "get_pull_request_comments_graphql",
-            ("test-org", "test-repo", 42),
-            {
-                "comments_after": None,
-                "include_comments": True,
-                "review_threads_after": None,
-                "include_threads": True,
-            },
+            "get_pull_request_comments",
+            ("test-org/test-repo", "42"),
+            {},
         ) in client.calls

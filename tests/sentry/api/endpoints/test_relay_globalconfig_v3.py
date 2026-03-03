@@ -7,7 +7,7 @@ from sentry_relay.processing import normalize_global_config
 
 from sentry.relay.globalconfig import get_global_config
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 
 
 @pytest.fixture
@@ -42,6 +42,7 @@ def call_endpoint(client, relay, private_key):
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
         "relay.sessions-eap.rollout-rate": 1.0,
+        "relay.objectstore-attachments.sample-rate": 1.0,
         "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
@@ -125,6 +126,6 @@ def test_global_config_valid_with_generic_filters() -> None:
 
 
 @django_db_all
-def test_global_config_histogram_outliers(insta_snapshot) -> None:
+def test_global_config_histogram_outliers(insta_snapshot: InstaSnapshotter) -> None:
     config = get_global_config()
     insta_snapshot(config["metricExtraction"])

@@ -677,6 +677,10 @@ describe('Performance > TransactionSummary', () => {
           name: 'Project Name 2',
         }),
       ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: projects,
+      });
       OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });
@@ -1019,7 +1023,7 @@ describe('Performance > TransactionSummary', () => {
     it('uses MEP dataset for stats query', async () => {
       const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
-        features: ['dynamic-sampling', 'mep-rollout-flag'],
+        features: ['dynamic-sampling'],
       });
 
       renderWithLayout(data);
@@ -1065,7 +1069,7 @@ describe('Performance > TransactionSummary', () => {
       });
       const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
-        features: ['dynamic-sampling', 'mep-rollout-flag'],
+        features: ['dynamic-sampling'],
       });
 
       renderWithLayout(data);
@@ -1138,7 +1142,7 @@ describe('Performance > TransactionSummary', () => {
       });
       const data = initializeData({
         query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
-        features: ['dynamic-sampling', 'mep-rollout-flag'],
+        features: ['dynamic-sampling'],
       });
 
       renderWithLayout(data);

@@ -13,7 +13,6 @@ from sentry.scm.types import (
     Comment,
     Commit,
     CommitAuthor,
-    CommitComparison,
     CommitFile,
     FileContent,
     GitBlob,
@@ -22,15 +21,20 @@ from sentry.scm.types import (
     GitRef,
     GitTree,
     InputTreeEntry,
+    PaginatedActionResult,
+    PaginatedResponseMeta,
+    PaginationParams,
     Provider,
     PullRequest,
     PullRequestBranch,
     PullRequestCommit,
     PullRequestFile,
+    PullRequestState,
     Reaction,
     ReactionResult,
     Referrer,
     Repository,
+    RequestOptions,
     Review,
     ReviewComment,
     ReviewCommentInput,
@@ -461,6 +465,9 @@ def make_github_graphql_pr_comments_response(
     }
 
 
+_DEFAULT_PAGINATED_META: PaginatedResponseMeta = PaginatedResponseMeta(next_cursor=None)
+
+
 class BaseTestProvider(Provider):
     repository: Repository
 
@@ -469,7 +476,11 @@ class BaseTestProvider(Provider):
 
     # Pull request
 
-    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
+    def get_pull_request(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request()
         return ActionResult(
             data=PullRequest(
@@ -486,12 +497,18 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
         )
 
     # Issue comments
 
-    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
-        return ActionResult(
+    def get_issue_comments(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
+        return PaginatedActionResult(
             data=[
                 Comment(
                     id="101",
@@ -501,6 +518,7 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
@@ -508,15 +526,21 @@ class BaseTestProvider(Provider):
             data=Comment(id="101", body=body, author=None),
             type="github",
             raw={},
+            meta={},
         )
 
-    def delete_issue_comment(self, comment_id: str) -> None:
+    def delete_issue_comment(self, issue_id: str, comment_id: str) -> None:
         return None
 
     # Pull request comments
 
-    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
-        return ActionResult(
+    def get_pull_request_comments(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
+        return PaginatedActionResult(
             data=[
                 Comment(
                     id="201",
@@ -526,6 +550,7 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
@@ -533,41 +558,56 @@ class BaseTestProvider(Provider):
             data=Comment(id="201", body=body, author=None),
             type="github",
             raw={},
+            meta={},
         )
 
-    def delete_pull_request_comment(self, comment_id: str) -> None:
+    def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None:
         return None
 
     # Issue comment reactions
 
-    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
-        return ActionResult(
+    def get_issue_comment_reactions(
+        self,
+        issue_id: str,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
+        return PaginatedActionResult(
             data=[
                 ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
                 ReactionResult(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_issue_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, issue_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
             raw={},
+            meta={},
         )
 
-    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_issue_comment_reaction(
+        self, issue_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         return None
 
     # Pull request comment reactions
 
     def get_pull_request_comment_reactions(
-        self, comment_id: str
-    ) -> ActionResult[list[ReactionResult]]:
-        return ActionResult(
+        self,
+        pull_request_id: str,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
+        return PaginatedActionResult(
             data=[
                 ReactionResult(
                     id="3", content="rocket", author={"id": "1", "username": "testuser"}
@@ -578,24 +618,33 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_pull_request_comment_reaction(
-        self, comment_id: str, reaction: Reaction
+        self, pull_request_id: str, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
             raw={},
+            meta={},
         )
 
-    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+    def delete_pull_request_comment_reaction(
+        self, pull_request_id: str, comment_id: str, reaction_id: str
+    ) -> None:
         return None
 
     # Issue reactions
 
-    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
-        return ActionResult(
+    def get_issue_reactions(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
+        return PaginatedActionResult(
             data=[
                 ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
                 ReactionResult(
@@ -604,6 +653,7 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_issue_reaction(
@@ -613,6 +663,7 @@ class BaseTestProvider(Provider):
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
             raw={},
+            meta={},
         )
 
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
@@ -621,9 +672,12 @@ class BaseTestProvider(Provider):
     # Pull request reactions
 
     def get_pull_request_reactions(
-        self, pull_request_id: str
-    ) -> ActionResult[list[ReactionResult]]:
-        return ActionResult(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
+        return PaginatedActionResult(
             data=[
                 ReactionResult(id="5", content="laugh", author={"id": "1", "username": "testuser"}),
                 ReactionResult(
@@ -632,6 +686,7 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_pull_request_reaction(
@@ -641,6 +696,7 @@ class BaseTestProvider(Provider):
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
             raw={},
+            meta={},
         )
 
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None:
@@ -648,11 +704,16 @@ class BaseTestProvider(Provider):
 
     # Branch operations
 
-    def get_branch(self, branch: str) -> ActionResult[GitRef]:
+    def get_branch(
+        self,
+        branch: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitRef]:
         return ActionResult(
             data=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
             type="github",
             raw={},
+            meta={},
         )
 
     def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
@@ -660,6 +721,7 @@ class BaseTestProvider(Provider):
             data=GitRef(ref=f"refs/heads/{branch}", sha=sha),
             type="github",
             raw={},
+            meta={},
         )
 
     def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
@@ -672,11 +734,17 @@ class BaseTestProvider(Provider):
             data=GitBlob(sha="blob123abc"),
             type="github",
             raw={},
+            meta={},
         )
 
     # File content operations
 
-    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
+    def get_file_content(
+        self,
+        path: str,
+        ref: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[FileContent]:
         return ActionResult(
             data=FileContent(
                 path=path,
@@ -687,11 +755,16 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw={},
+            meta={},
         )
 
     # Commit operations
 
-    def get_commit(self, sha: str) -> ActionResult[Commit]:
+    def get_commit(
+        self,
+        sha: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[Commit]:
         return ActionResult(
             data=Commit(
                 id=sha,
@@ -705,30 +778,46 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw={},
+            meta={},
         )
 
     def get_commits(
         self,
         sha: str | None = None,
         path: str | None = None,
-    ) -> ActionResult[list[Commit]]:
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
         inner = self.get_commit("abc123")
-        return ActionResult(
+        return PaginatedActionResult(
             data=[inner["data"]],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
-    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
-        return ActionResult(
-            data=CommitComparison(ahead_by=3, behind_by=1, commits=[]),
+    def compare_commits(
+        self,
+        start_sha: str,
+        end_sha: str,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        inner = self.get_commit("abc123")
+        return PaginatedActionResult(
+            data=[inner["data"]],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     # Git data operations
 
-    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
+    def get_tree(
+        self,
+        tree_sha: str,
+        recursive: bool = True,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]:
         return ActionResult(
             data=GitTree(
                 sha=tree_sha,
@@ -741,9 +830,14 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw={},
+            meta={},
         )
 
-    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
+    def get_git_commit(
+        self,
+        sha: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]:
         return ActionResult(
             data=GitCommitObject(
                 sha=sha,
@@ -752,6 +846,7 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw={},
+            meta={},
         )
 
     def create_git_tree(
@@ -771,6 +866,7 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw={},
+            meta={},
         )
 
     def create_git_commit(
@@ -787,12 +883,18 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw={},
+            meta={},
         )
 
     # Expanded pull request operations
 
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
-        return ActionResult(
+    def get_pull_request_files(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestFile]:
+        return PaginatedActionResult(
             data=[
                 PullRequestFile(
                     filename="src/main.py",
@@ -805,12 +907,16 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def get_pull_request_commits(
-        self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
-        return ActionResult(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestCommit]:
+        return PaginatedActionResult(
             data=[
                 PullRequestCommit(
                     sha="commit123",
@@ -824,20 +930,30 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw={},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
-    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
+    def get_pull_request_diff(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[str]:
         return ActionResult(
             data="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
             type="github",
             raw={},
+            meta={},
         )
 
     def get_pull_requests(
-        self, state: str = "open", head: str | None = None
-    ) -> ActionResult[list[PullRequest]]:
+        self,
+        state: PullRequestState | None = "open",
+        head: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequest]:
         raw = make_github_pull_request()
-        return ActionResult(
+        return PaginatedActionResult(
             data=[
                 PullRequest(
                     id=str(raw["id"]),
@@ -854,6 +970,7 @@ class BaseTestProvider(Provider):
             ],
             type="github",
             raw=raw,
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     def create_pull_request(
@@ -880,6 +997,7 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
         )
 
     def update_pull_request(
@@ -909,6 +1027,7 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
         )
 
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
@@ -916,16 +1035,13 @@ class BaseTestProvider(Provider):
 
     # Review operations
 
-    def create_review_comment(
+    def create_review_comment_file(
         self,
         pull_request_id: str,
+        commit_id: str,
         body: str,
-        commit_sha: str,
         path: str,
-        line: int | None = None,
-        side: ReviewSide | None = None,
-        start_line: int | None = None,
-        start_side: ReviewSide | None = None,
+        side: ReviewSide,
     ) -> ActionResult[ReviewComment]:
         raw = make_github_review_comment(body=body, path=path)
         return ActionResult(
@@ -937,6 +1053,72 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
+        )
+
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: str,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        raw = make_github_review_comment(body=body, path=path)
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: str,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ) -> ActionResult[ReviewComment]:
+        raw = make_github_review_comment(body=body, path=path)
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_review_comment_reply(
+        self,
+        pull_request_id: str,
+        body: str,
+        comment_id: str,
+    ) -> ActionResult[ReviewComment]:
+        raw = make_github_review_comment(body=body)
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            type="github",
+            raw=raw,
+            meta={},
         )
 
     def create_review(
@@ -952,6 +1134,7 @@ class BaseTestProvider(Provider):
             data=Review(id=str(raw["id"]), html_url=raw["html_url"]),
             type="github",
             raw=raw,
+            meta={},
         )
 
     # Check run operations
@@ -978,9 +1161,14 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
         )
 
-    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
+    def get_check_run(
+        self,
+        check_run_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[CheckRun]:
         raw = make_github_check_run()
         return ActionResult(
             data=CheckRun(
@@ -992,6 +1180,7 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
         )
 
     def update_check_run(
@@ -1015,6 +1204,7 @@ class BaseTestProvider(Provider):
             ),
             type="github",
             raw=raw,
+            meta={},
         )
 
     # GraphQL mutation operations
@@ -1037,6 +1227,7 @@ class FakeGitHubApiClient(GitHubApiClient):
     def __init__(self) -> None:
         super().__init__(integration=MagicMock(spec=Integration))
         self.issue_comments: list[dict[str, Any]] = []
+        self.pr_comments: list[dict[str, Any]] = []
         self.graphql_pr_comments_data: dict[str, Any] | None = None
         self.minimize_comment_data: dict[str, Any] | None = None
         self.resolve_thread_data: dict[str, Any] | None = None
@@ -1086,6 +1277,11 @@ class FakeGitHubApiClient(GitHubApiClient):
         if self.pull_request_data is None:
             return make_github_pull_request()
         return self.pull_request_data
+
+    def get_pull_request_comments(self, repo: str, pull_number: str) -> list[dict[str, Any]]:
+        self._record_call("get_pull_request_comments", repo, pull_number)
+        self._maybe_raise()
+        return self.pr_comments
 
     def get_pull_request_comments_graphql(
         self,
@@ -1234,7 +1430,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._maybe_raise()
         if self.comparison_data is not None:
             return self.comparison_data
-        return make_github_commit_comparison()
+        return [make_github_commit()]
 
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         self._record_call("get_tree", repo_full_name, tree_sha)

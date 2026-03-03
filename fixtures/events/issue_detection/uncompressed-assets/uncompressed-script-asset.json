@@ -66,7 +66,7 @@
       "exclusive_time": 643.100167,
       "description": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
       "op": "resource.script",
-      "span_id": "b66a5642da1edb52",
+      "span_id": "c77b6753eb2fec63",
       "parent_span_id": "a0c39078d1570b00",
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "data": {

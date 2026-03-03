@@ -7,7 +7,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.scm.actions import SourceCodeManager
 from sentry.scm.errors import SCMCodedError, SCMProviderException
-from sentry.scm.types import ActionResult, ReactionResult, Repository
+from sentry.scm.types import PaginatedActionResult, ReactionResult, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -31,21 +31,27 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     # Issue comments
     ("get_issue_comments", {"issue_id": "1"}),
     ("create_issue_comment", {"issue_id": "1", "body": "test"}),
-    ("delete_issue_comment", {"comment_id": "1"}),
+    ("delete_issue_comment", {"issue_id": "1", "comment_id": "1"}),
     # Pull request
     ("get_pull_request", {"pull_request_id": "1"}),
     # Pull request comments
     ("get_pull_request_comments", {"pull_request_id": "1"}),
     ("create_pull_request_comment", {"pull_request_id": "1", "body": "test"}),
-    ("delete_pull_request_comment", {"comment_id": "1"}),
+    ("delete_pull_request_comment", {"pull_request_id": "1", "comment_id": "1"}),
     # Issue comment reactions
-    ("get_issue_comment_reactions", {"comment_id": "1"}),
-    ("create_issue_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
-    ("delete_issue_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
+    ("get_issue_comment_reactions", {"issue_id": "1", "comment_id": "1"}),
+    ("create_issue_comment_reaction", {"issue_id": "1", "comment_id": "1", "reaction": "eyes"}),
+    ("delete_issue_comment_reaction", {"issue_id": "1", "comment_id": "1", "reaction_id": "123"}),
     # Pull request comment reactions
-    ("get_pull_request_comment_reactions", {"comment_id": "1"}),
-    ("create_pull_request_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
-    ("delete_pull_request_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
+    ("get_pull_request_comment_reactions", {"pull_request_id": "1", "comment_id": "1"}),
+    (
+        "create_pull_request_comment_reaction",
+        {"pull_request_id": "1", "comment_id": "1", "reaction": "eyes"},
+    ),
+    (
+        "delete_pull_request_comment_reaction",
+        {"pull_request_id": "1", "comment_id": "1", "reaction_id": "123"},
+    ),
     # Issue reactions
     ("get_issue_reactions", {"issue_id": "1"}),
     ("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),
@@ -81,12 +87,45 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
     # Review operations
     (
-        "create_review_comment",
+        "create_review_comment_file",
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_line",
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_multiline",
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+    ),
+    (
+        "create_review_comment_reply",
         {
             "pull_request_id": "1",
             "body": "comment",
-            "commit_sha": "abc",
-            "path": "f.py",
+            "comment_id": "123",
         },
     ),
     (
@@ -94,7 +133,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
         {
             "pull_request_id": "1",
             "commit_sha": "abc",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
     ),
@@ -278,8 +317,10 @@ def _check_get_commits(result: Any) -> None:
 
 
 def _check_compare_commits(result: Any) -> None:
-    assert result["data"]["ahead_by"] == 3
-    assert result["data"]["behind_by"] == 1
+    assert len(result["data"]) == 1
+    c = result["data"][0]
+    assert c["id"] == "abc123"
+    assert c["message"] == "Fix bug"
     assert result["type"] == "github"
 
 
@@ -374,7 +415,6 @@ def _check_created_reaction(result: Any) -> None:
 def _check_review_comment(result: Any) -> None:
     rc = result["data"]
     assert rc["id"] == "100"
-    assert rc["path"] == "f.py"
     assert rc["body"] == "comment"
     assert result["type"] == "github"
 
@@ -411,7 +451,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         {"issue_id": "1", "body": "test"},
         _check_created_comment,
     ),
-    (SourceCodeManager.delete_issue_comment, {"comment_id": "1"}, _check_none),
+    (SourceCodeManager.delete_issue_comment, {"issue_id": "1", "comment_id": "1"}, _check_none),
     (SourceCodeManager.get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
     (
         SourceCodeManager.get_pull_request_comments,
@@ -423,31 +463,39 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         {"pull_request_id": "1", "body": "test"},
         _check_created_pr_comment,
     ),
-    (SourceCodeManager.delete_pull_request_comment, {"comment_id": "1"}, _check_none),
-    (SourceCodeManager.get_issue_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
+    (
+        SourceCodeManager.delete_pull_request_comment,
+        {"pull_request_id": "1", "comment_id": "1"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.get_issue_comment_reactions,
+        {"issue_id": "1", "comment_id": "1"},
+        _check_comment_reactions,
+    ),
     (
         SourceCodeManager.create_issue_comment_reaction,
-        {"comment_id": "1", "reaction": "eyes"},
+        {"issue_id": "1", "comment_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_issue_comment_reaction,
-        {"comment_id": "1", "reaction_id": "123"},
+        {"issue_id": "1", "comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
     (
         SourceCodeManager.get_pull_request_comment_reactions,
-        {"comment_id": "1"},
+        {"pull_request_id": "1", "comment_id": "1"},
         _check_pr_comment_reactions,
     ),
     (
         SourceCodeManager.create_pull_request_comment_reaction,
-        {"comment_id": "1", "reaction": "eyes"},
+        {"pull_request_id": "1", "comment_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_pull_request_comment_reaction,
-        {"comment_id": "1", "reaction_id": "123"},
+        {"pull_request_id": "1", "comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
     (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
@@ -516,12 +564,48 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_none,
     ),
     (
-        SourceCodeManager.create_review_comment,
+        SourceCodeManager.create_review_comment_file,
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "side": "RIGHT",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review_comment_line,
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "line": 10,
+            "side": "RIGHT",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review_comment_multiline,
+        {
+            "pull_request_id": "1",
+            "commit_id": "abc",
+            "body": "comment",
+            "path": "f.py",
+            "start_line": 5,
+            "start_side": "RIGHT",
+            "end_line": 10,
+            "end_side": "RIGHT",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review_comment_reply,
         {
             "pull_request_id": "1",
             "body": "comment",
-            "commit_sha": "abc",
-            "path": "f.py",
+            "comment_id": "123",
         },
         _check_review_comment,
     ),
@@ -530,7 +614,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         {
             "pull_request_id": "1",
             "commit_sha": "abc",
-            "event": "COMMENT",
+            "event": "comment",
             "comments": [],
         },
         _check_review,
@@ -599,7 +683,9 @@ def test_provider_exception_is_not_wrapped():
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
-        def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+        def get_issue_reactions(
+            self, issue_id: str, pagination=None, request_options=None
+        ) -> PaginatedActionResult[ReactionResult]:
             raise SCMProviderException("GitHub API error")
 
     scm = SourceCodeManager(
