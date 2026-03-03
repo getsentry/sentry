@@ -28,7 +28,7 @@ from sentry.seer.models import (
     SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -191,6 +191,7 @@ def make_get_project_preference_request(
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
     retries: Retry | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
@@ -198,6 +199,7 @@ def make_get_project_preference_request(
         body=orjson.dumps(body),
         timeout=timeout,
         retries=retries,
+        viewer_context=viewer_context,
     )
 
 
@@ -205,12 +207,14 @@ def make_set_project_preference_request(
     body: SetProjectPreferenceRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/project-preference/set",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -218,12 +222,14 @@ def make_bulk_get_project_preferences_request(
     body: BulkGetProjectPreferencesRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/project-preference/bulk",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -231,34 +237,40 @@ def make_bulk_set_project_preferences_request(
     body: BulkSetProjectPreferencesRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/project-preference/bulk-set",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
 def make_get_autofix_state_request(
     body: GetAutofixStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/state",
         body=orjson.dumps(body),
+        viewer_context=viewer_context,
     )
 
 
 def make_get_autofix_state_pr_request(
     body: GetAutofixStatePrRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/state/pr",
         body=orjson.dumps(body),
+        viewer_context=viewer_context,
     )
 
 
@@ -266,12 +278,14 @@ def make_get_autofix_prompt_request(
     body: GetAutofixPromptRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/prompt",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -279,34 +293,40 @@ def make_update_coding_agent_state_request(
     body: CodingAgentStateUpdateRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/coding-agent/state/update",
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
 def make_autofix_start_request(
     body: bytes,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/start",
         body=body,
+        viewer_context=viewer_context,
     )
 
 
 def make_autofix_update_request(
     body: bytes,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/update",
         body=body,
+        viewer_context=viewer_context,
     )
 
 
@@ -314,12 +334,14 @@ def make_store_coding_agent_states_request(
     body: StoreCodingAgentStatesRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/coding-agent/state/set",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 

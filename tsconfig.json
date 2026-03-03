@@ -80,8 +80,7 @@
     ]
   },
   "include": [
-    "*.config.mjs",
-    "*.config.ts",
+    "*.config.*s",
     "static/app",
     "static/gsApp",
     "static/gsAdmin",

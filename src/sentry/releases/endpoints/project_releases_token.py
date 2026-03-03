@@ -10,12 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models.options.project_option import ProjectOption
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_locality
 
 
 def _get_webhook_url(project, plugin_id, token):
-    region = get_local_region()
-    return region.to_url(
+    return get_local_locality().to_url(
         reverse(
             "sentry-release-hook",
             kwargs={

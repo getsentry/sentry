@@ -28,7 +28,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams, MonitorParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    MonitorParams,
+    OrganizationParams,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
@@ -90,6 +95,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
             MonitorParams.OWNER,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer("MonitorList", list[MonitorSerializerResponse]),

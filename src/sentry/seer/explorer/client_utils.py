@@ -27,7 +27,7 @@ from sentry.net.http import connection_from_url
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.models.user import User as SentryUser
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
@@ -89,44 +89,52 @@ class ExplorerUpdateRequest(TypedDict):
 def make_explorer_state_request(
     body: ExplorerStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or explorer_connection_pool,
         "/v1/automation/explorer/state",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
     )
 
 
 def make_explorer_chat_request(
     body: ExplorerChatRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or explorer_connection_pool,
         "/v1/automation/explorer/chat",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
     )
 
 
 def make_explorer_runs_request(
     body: ExplorerRunsRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or explorer_connection_pool,
         "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
     )
 
 
 def make_explorer_update_request(
     body: ExplorerUpdateRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or explorer_connection_pool,
         "/v1/automation/explorer/update",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
     )
 
 
