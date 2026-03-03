@@ -133,7 +133,7 @@ export function CompactDemo() {
 
 const conditionalSchema = z.object({
   plan: z.string(),
-  billingEmail: z.email('Please enter a valid email').optional(),
+  billingEmail: z.email('Please enter a valid email'),
 });
 
 export function ConditionalDemo() {
