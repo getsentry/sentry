@@ -92,7 +92,7 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   }
 
   if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-    enabled = organization.features.includes('preprod-app-size-dashboard');
+    enabled = true;
     traceItemType = TraceItemDataset.PREPROD;
   }
 
