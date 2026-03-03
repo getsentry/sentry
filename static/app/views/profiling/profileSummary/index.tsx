@@ -33,7 +33,6 @@ import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcr
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -176,11 +175,11 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
 }
 
 const ProfilingHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl} !important;
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 
   h1 {
     line-height: normal;
@@ -190,13 +189,13 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.lg};
 `;
 
@@ -243,9 +242,9 @@ function ProfileFilters(props: ProfileFiltersProps) {
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: min-content auto;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
@@ -592,8 +591,8 @@ const ViewSelectContainer = styled('div')`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(0.5)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header
@@ -766,7 +765,7 @@ const ProfileDigestHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   /* force height to be same as toolbar */
   height: 42px;
