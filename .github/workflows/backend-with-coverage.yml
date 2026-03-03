@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0,30 * * * *'
 
+env:
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+
 jobs:
   # Skip generating coverage if already exists in GCS
   check-existing-coverage:

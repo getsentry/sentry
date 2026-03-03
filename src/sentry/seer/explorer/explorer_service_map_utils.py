@@ -140,16 +140,17 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         span.set_data("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
-            span_id_filters = " OR ".join([f'id:"{sid}"' for sid in batch])
+            span_ids = ",".join(batch)
             parent_result = Spans.run_table_query(
                 params=snuba_params,
-                query_string=span_id_filters,
+                query_string=f"id:[{span_ids}]",
                 selected_columns=["id", "project.id", "project.slug", "timestamp"],
                 orderby=["-timestamp"],
                 offset=0,
                 limit=len(batch),
                 referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
                 config=SearchResolverConfig(),
+                sampling_mode="HIGHEST_ACCURACY",
             )
 
             for parent_row in parent_result.get("data", []):

@@ -2615,3 +2615,27 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             time_series_by_transaction["foo"]["meta"]["order"]
             < time_series_by_transaction["bar"]["meta"]["order"]
         )
+
+    def test_group_by_project_id(self) -> None:
+        self.store_spans([self.create_span({}, project=self.project)])
+        response = self._do_request(
+            data={
+                "yAxis": "count()",
+                "dataset": "spans",
+                "groupBy": ["project.id", "project.name"],
+                "query": "",
+                "topEvents": 5,
+                "project": self.project.id,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        time_series_by_project_id = {
+            ts["groupBy"][0]["value"]: ts
+            for ts in response.data["timeSeries"]
+            if ts["groupBy"] is not None
+        }
+        assert time_series_by_project_id[str(self.project.id)]["groupBy"] == [
+            {"key": "project.id", "value": str(self.project.id)},
+            {"key": "project.name", "value": self.project.slug},
+        ]
