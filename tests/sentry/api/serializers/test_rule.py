@@ -833,7 +833,6 @@ class WorkflowRuleSerializerTest(TestCase):
         )
 
         # WorkflowEngineRuleSerializer should also include the disabled action
-        # This assertion will fail with the current implementation, demonstrating the bug
         assert len(serialized_workflow["actions"]) == 1, (
             "WorkflowEngineRuleSerializer should include disabled actions, "
             f"but got {len(serialized_workflow['actions'])} actions"
