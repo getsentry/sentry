@@ -581,8 +581,8 @@ const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
       border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.tokens.border.primary};
       box-shadow: ${p.theme.dropShadowMedium};
-      margin: ${space(2)} 0 ${space(3)} 0;
-      padding: ${space(2)};
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space['2xl']} 0;
+  padding: ${p => p.theme.space.xl};
     `}
 `;
 
@@ -613,7 +613,7 @@ const Toggle = styled(Button)`
   }
   > *:first-child {
     display: grid;
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space.xs};
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
