@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -74,19 +74,21 @@ export function DiffImageDisplay({
       <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
         <Flex direction="column" gap="sm">
           <Heading as="h4">{t('Base')}</Heading>
-          <CenteredContainer
+          <Flex
+            justify="center"
             border="primary"
             radius="md"
             overflow="hidden"
             background="secondary"
           >
             <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
-          </CenteredContainer>
+          </Flex>
         </Flex>
 
         <Flex direction="column" gap="sm">
           <Heading as="h4">{t('Current Branch')}</Heading>
-          <CenteredContainer
+          <Flex
+            justify="center"
             border="primary"
             radius="md"
             overflow="hidden"
@@ -107,17 +109,12 @@ export function DiffImageDisplay({
                 />
               )}
             </ImageWrapper>
-          </CenteredContainer>
+          </Flex>
         </Flex>
       </Grid>
     </Flex>
   );
 }
-
-const CenteredContainer = styled(Container)`
-  display: flex;
-  justify-content: center;
-`;
 
 const ConstrainedImage = styled(Image)`
   max-height: 65vh;
