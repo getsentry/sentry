@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 type TimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
@@ -140,6 +141,8 @@ export function generateTimezoneAlignedTicks(
     return [];
   }
 
+  const start = performance.now();
+
   const {unit, step} = pickInterval(startMs, endMs, splitNumber);
   const cursor = snapToRoundBoundary(startMs, unit, step, timezone);
   const ticks: number[] = [];
@@ -155,6 +158,15 @@ export function generateTimezoneAlignedTicks(
     cursor.add(step, unit);
     iterations++;
   }
+
+  Sentry.metrics.distribution(
+    'dashboards.widget.generate_timezone_aligned_ticks',
+    performance.now() - start,
+    {
+      unit: 'millisecond',
+      tags: {interval_unit: unit, tick_count: String(ticks.length)},
+    }
+  );
 
   return ticks;
 }
