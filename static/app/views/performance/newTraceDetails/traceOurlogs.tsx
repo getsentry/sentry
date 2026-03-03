@@ -41,23 +41,15 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export function TraceViewLogsSection({
-  scrollContainer,
-}: {
-  scrollContainer: React.RefObject<HTMLDivElement | null>;
-}) {
+export function TraceViewLogsSection() {
   return (
     <StyledPanel>
-      <LogsSectionContent scrollContainer={scrollContainer} />
+      <LogsSectionContent />
     </StyledPanel>
   );
 }
 
-function LogsSectionContent({
-  scrollContainer,
-}: {
-  scrollContainer: React.RefObject<HTMLDivElement | null>;
-}) {
+function LogsSectionContent() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
@@ -85,7 +77,7 @@ function LogsSectionContent({
         <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
       </Flex>
       <TableContainer>
-        <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
+        <LogsInfiniteTable embedded />
       </TableContainer>
     </Fragment>
   );
@@ -97,5 +89,6 @@ const TableContainer = styled('div')`
 
 const StyledPanel = styled(Panel)`
   padding: ${p => p.theme.space.xl};
+  padding-bottom: 0;
   margin: 0;
 `;

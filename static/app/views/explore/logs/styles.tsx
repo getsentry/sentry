@@ -127,8 +127,11 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
+  expanded?: boolean;
   showHeader?: boolean;
 }>`
+  --collapsedMaxHeight: max(20vh, 15rem);
+
   ${p =>
     p.showHeader
       ? ''
@@ -138,6 +141,15 @@ export const LogTableBody = styled(TableBody)<{
     padding-top: ${p.theme.space.md};
     padding-bottom: ${p.theme.space.md};
     `}
+  overflow-y: auto;
+  max-height: ${p =>
+    p.expanded
+      ? `calc(95vh - ${GRID_BODY_ROW_HEIGHT * 1.5}px)`
+      : 'var(--collapsedMaxHeight)'};
+
+  @media (height >= 60rem) {
+    --collapsedMaxHeight: max(40vh, 20rem);
+  }
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
@@ -294,6 +306,7 @@ export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
   margin-top: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.md};
+  position: relative;
 `;
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
@@ -420,12 +433,13 @@ export const FloatingBackToTopContainer = styled('div')<{
   tableLeft?: number;
   tableWidth?: number;
 }>`
-  position: ${p => (p.inReplay ? 'absolute' : 'fixed')};
+  --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  position: absolute;
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  ${p => (p.inReplay ? 'top: 90px;' : 'top: 20px;')}
-  ${p => (p.inReplay ? '' : p.tableLeft ? `left: ${p.tableLeft}px;` : 'left: 0;')}
-  width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  top: ${p => (p.inReplay ? '90px;' : '65px;')};
+  left: calc(50% - var(--floatingWidth) / 2);
+  width: var(--floatingWidth);
   display: flex;
   justify-content: center;
 
