@@ -139,7 +139,21 @@ Each test is tagged with the **union** of static and runtime detection. Static d
 
 ### 5b. Split-tests-by-tier script + tiered workflow
 
-New `split-tests-by-tier.py` script that reads classification JSON and produces tier1/tier2 test lists. Transform `backend.yml` into 2-tier split: `split-tiers` job → T1 (5 shards, `-n 4 --dist=load`, `mode: migrations`, GitHub Actions Kafka/redis-cluster service containers) + T2 (17 shards, `-n 3 --dist=loadfile`, `mode: backend-ci`, per-worker Snuba bootstrap) in parallel.
+**New file:** `.github/workflows/scripts/split-tests-by-tier.py` — reads classification JSON, splits test files into tier1 (postgres-only) and tier2 (needs Snuba/Kafka/etc.) based on `TIER2_SERVICES` set. Supports file and class granularity. Validates classification isn't empty.
+
+**Modified:** `.github/workflows/backend.yml` — three new jobs added alongside the existing `backend-test`:
+
+- **`split-tiers`**: Downloads latest classification artifact from `classify-services.yml`, runs the split script, uploads `backend-light-tests.txt` and `backend-tests.txt`. Only runs when selective testing is NOT active (i.e., push to master / workflow_dispatch). If no classification run exists, outputs `has-tiers=false` and the tier path is skipped gracefully.
+
+- **`backend-light`**: 5 shards, `-n 4 --dist=loadfile`, `mode: migrations` (postgres + redis only). Uses GitHub Actions service containers for Kafka, redis-cluster, and Zookeeper (needed because app code produces to Kafka even without Snuba). No Snuba bootstrap. Runs ~71% of tests that don't need the full stack.
+
+- **`backend-test` (modified)**: When tiers are active, its `SELECTED_TESTS_FILE` points to `backend-tests.txt` (tier2 tests only, ~29%). When selective testing is active or tiers aren't available, it runs as before with the full test suite. No structural changes to this job — just an additional artifact download step and a conditional `SELECTED_TESTS_FILE`.
+
+**Design decisions:**
+- Selective testing and tiered testing are mutually exclusive. PRs use selective testing (existing path). Master pushes use tiers.
+- The existing `backend-test` job doubles as the tier2 path — no duplication of the full-stack job configuration.
+- `calculate-shards` is kept for the selective testing path. Tier shard counts are hardcoded (5 + 22).
+- `backend-required-check` updated to include `backend-light` and `split-tiers`.
 
 ## 6. Tiered Workflow Optimizations
 

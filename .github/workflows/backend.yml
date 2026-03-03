@@ -242,13 +242,176 @@ jobs:
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
+  split-tiers:
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.prepare-selective-tests.outputs.has-selected-tests != 'true'
+    needs: [files-changed, prepare-selective-tests]
+    name: split tests into tiers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      has-tiers: ${{ steps.split.outputs.has-tiers }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download classification report
+        id: download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh run list --workflow=classify-services.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$RUN_ID" ]; then
+            echo "No classify-services run found, skipping tiers"
+            echo "has-tiers=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
+          echo "has-tiers=true" >> "$GITHUB_OUTPUT"
+
+      - name: Split tests by tier
+        id: split
+        if: steps.download.outputs.has-tiers == 'true'
+        run: |
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --tier tier1 --output /tmp/backend-light-tests.txt
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --tier tier2 --output /tmp/backend-tests.txt
+          echo "has-tiers=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.split.outputs.has-tiers == 'true'
+        with:
+          name: tier-file-lists
+          path: |
+            /tmp/backend-light-tests.txt
+            /tmp/backend-tests.txt
+          retention-days: 1
+
+  backend-light:
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.split-tiers.outputs.has-tiers == 'true'
+    needs: [files-changed, split-tiers]
+    name: 'backend-light (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    services:
+      redis-cluster:
+        image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+        ports: ['7000:7000', '7001:7001', '7002:7002', '7003:7003', '7004:7004', '7005:7005']
+        env:
+          IP: 0.0.0.0
+      zookeeper:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+      kafka:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+        ports: ['9092:9092']
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3, 4]
+    env:
+      MATRIX_INSTANCE_TOTAL: 5
+      TEST_GROUP_STRATEGY: roundrobin
+      PYTHONHASHSEED: '0'
+      SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: migrations
+
+      - name: Reconnect postgres via Unix socket
+        run: |
+          mkdir -p /tmp/pg-sock
+          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+          docker run -d --name postgres-postgres-1 \
+            --network devservices --label orchestrator=devservices \
+            -p 127.0.0.1:5432:5432 \
+            -v postgres-data:/var/lib/postgresql/data \
+            -v /tmp/pg-sock:/var/run/postgresql \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+            "$PG_IMAGE" postgres \
+              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+          until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+
+      - name: Download odiff binary
+        run: |
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
+          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
+          rm odiff-linux-x64
+
+      - name: Run backend-light tests
+        env:
+          SELECTED_TESTS_FILE: /tmp/backend-light-tests.txt
+        run: |
+          python3 -b -m pytest tests \
+            --reuse-db \
+            -n 4 \
+            --dist=loadfile \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=.artifacts/pytest.junit.xml \
+            -o junit_suite_name=pytest-backend-light
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs 2>/dev/null || true
+
+      - name: Collect test data
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() }}
+        with:
+          artifact_path: .artifacts/pytest.json
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
   backend-test:
     # Use always() so this job runs even when prepare-selective-tests is skipped (master)
     if: >-
       always() &&
       !cancelled() &&
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
-    needs: [files-changed, prepare-selective-tests, calculate-shards]
+    needs: [files-changed, prepare-selective-tests, calculate-shards, split-tiers]
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -350,9 +513,16 @@ jobs:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
 
+      - name: Download backend test list
+        if: needs.split-tiers.outputs.has-tiers == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || (needs.split-tiers.outputs.has-tiers == 'true' && '/tmp/backend-tests.txt' || '') }}
         run: |
           python3 -b -m pytest tests \
             --reuse-db \
@@ -665,6 +835,8 @@ jobs:
       [
         api-docs,
         backend-test,
+        backend-light,
+        split-tiers,
         backend-migration-tests,
         calculate-shards,
         cli,

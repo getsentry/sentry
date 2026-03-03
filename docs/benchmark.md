@@ -61,3 +61,45 @@ Same as Experiment 2, plus Relay container broadened from function-scoped (per t
 All 3 runs: 22/22 shards passed, 0 failures. (backend typing failed due to mypy — unrelated, fixed.)
 
 **Delta vs Experiment 2:** Wall clock −8s (12m38s → 12m30s), spread −14s (139s → 125s), average −7s (11m40s → 11m33s). Marginal improvement — relay tests are only ~6 files, so the Docker lifecycle savings are small.
+
+---
+
+## Experiment 4: --dist=loadscope (vs loadfile baseline)
+
+Same as Experiment 3, but with `--dist=loadscope` instead of `--dist=loadfile`.
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 12m31s | 169s | 11m16s | 22644095762 |
+| 2 | 12m14s | 126s | 11m26s | 22644094691 |
+| 3 | 12m21s | 141s | 11m26s | 22644093851 |
+| **Mean** | **12m22s** | **145s** | **11m23s** | |
+
+**Delta vs Experiment 3 (loadfile):** Wall clock −8s (12m30s → 12m22s), spread +20s (125s → 145s), average −10s (11m33s → 11m23s). Slightly faster wall clock/average but wider spread. Marginal difference.
+
+---
+
+## Experiment 5: --dist=load (vs loadfile baseline)
+
+Same as Experiment 3, but with `--dist=load` instead of `--dist=loadfile`.
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 12m57s | 166s | 11m56s | 22644225590 |
+| 2 | 12m50s | 181s | 11m52s | 22644224605 |
+| 3 | 13m00s | 200s | 11m44s | 22644223781 |
+| **Mean** | **12m56s** | **182s** | **11m51s** | |
+
+**Delta vs Experiment 3 (loadfile):** Wall clock +26s (12m30s → 12m56s), spread +57s (125s → 182s), average +18s (11m33s → 11m51s). Worse on all metrics — per-test dispatch overhead outweighs utilization gains.
+
+---
+
+## Distribution Mode Summary
+
+| Mode | Wall Clock | Spread | Average |
+|------|-----------|--------|---------|
+| loadfile | 12m30s | 125s | 11m33s |
+| loadscope | **12m22s** | 145s | **11m23s** |
+| load | 12m56s | 182s | 11m51s |
+
+`loadscope` is marginally best on wall clock and average. `loadfile` has the tightest spread. `load` is worst across all metrics. Differences are small (~30s range). `loadfile` remains the safe default.
