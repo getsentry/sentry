@@ -248,7 +248,7 @@ const basicSchema = z.object({
 });
 
 const basicMutationOptions = {
-  mutationFn: async (data: Record<string, unknown>) => {
+  mutationFn: async (data: unknown) => {
     await sleep(1000);
     return data;
   },
@@ -290,8 +290,10 @@ const TAG_OPTIONS = [
 ];
 
 export function FullAutoSaveDemo() {
+  type FullSchema = z.infer<typeof fullSchema>;
+
   const fullMutationOptions = {
-    mutationFn: async (data: Record<string, unknown>) => {
+    mutationFn: async (data: Partial<FullSchema>) => {
       await sleep(1000);
       return data;
     },
