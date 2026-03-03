@@ -214,6 +214,14 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
             build_version="3.0.0",
             build_number=99,
         )
+        # Apple artifact with invalid code signature should be excluded
+        self._create_installable_artifact(
+            file_id=ios_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            build_version="5.0.0",
+            build_number=1,
+            extras={"is_code_signature_valid": False},
+        )
 
         response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "apple"})
         data = response.json()
