@@ -93,8 +93,8 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         assert "public-source-2" in source_keys
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
-    def test_platform_filtering_unity(self) -> None:
-        """Unity platform should NOT see nintendo source"""
+    def test_platform_filtering_unity_without_console_access(self) -> None:
+        """Unity platform should NOT see nintendo source without console access"""
         resp = self.get_response(self.organization.slug, qs_params={"platform": "unity"})
         assert resp.status_code == 200
 
@@ -104,12 +104,29 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         # Unity should see public sources (no platform restriction)
         assert "public-source-1" in source_keys
         assert "public-source-2" in source_keys
-        # Unity should NOT see nintendo (restricted to nintendo-switch)
+        # Unity should NOT see nintendo without org console access
         assert "nintendo" not in source_keys
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
+    def test_platform_filtering_unity_with_console_access(self) -> None:
+        """Unity platform SHOULD see nintendo source if org has console access"""
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+
+        resp = self.get_response(self.organization.slug, qs_params={"platform": "unity"})
+        assert resp.status_code == 200
+
+        body = resp.data
+        source_keys = [source["sentry_key"] for source in body]
+
+        # Unity should see public sources
+        assert "public-source-1" in source_keys
+        assert "public-source-2" in source_keys
+        # Unity SHOULD see nintendo because org has console access
+        assert "nintendo" in source_keys
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
     def test_no_platform_parameter(self) -> None:
-        """Without platform parameter, should see public sources but not platform-restricted ones"""
+        """Without platform parameter and no console access, should not see platform-restricted sources"""
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 200
 
@@ -119,5 +136,58 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         # Should see public sources (no platform restriction)
         assert "public-source-1" in source_keys
         assert "public-source-2" in source_keys
-        # Should NOT see platform-restricted source when no platform is provided
+        # Should NOT see platform-restricted source without console access
+        assert "nintendo" not in source_keys
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
+    def test_no_platform_with_console_access(self) -> None:
+        """Without platform parameter, should NOT see platform-restricted sources even with access"""
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+
+        resp = self.get_response(self.organization.slug)
+        assert resp.status_code == 200
+
+        body = resp.data
+        source_keys = [source["sentry_key"] for source in body]
+
+        # Should see public sources
+        assert "public-source-1" in source_keys
+        assert "public-source-2" in source_keys
+        # Should NOT see nintendo without a gaming platform specified
+        assert "nintendo" not in source_keys
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
+    def test_non_gaming_platform_with_console_access(self) -> None:
+        """Non-gaming platform should NOT see nintendo source even with console access"""
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+
+        resp = self.get_response(self.organization.slug, qs_params={"platform": "python"})
+        assert resp.status_code == 200
+
+        body = resp.data
+        source_keys = [source["sentry_key"] for source in body]
+
+        # Should see public sources
+        assert "public-source-1" in source_keys
+        assert "public-source-2" in source_keys
+        # Python is NOT a game engine platform, so should NOT see nintendo
+        assert "nintendo" not in source_keys
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
+    def test_other_console_platform_does_not_see_nintendo(self) -> None:
+        """PlayStation platform should NOT see nintendo source"""
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["nintendo-switch", "playstation"]
+        )
+
+        resp = self.get_response(self.organization.slug, qs_params={"platform": "playstation"})
+        assert resp.status_code == 200
+
+        body = resp.data
+        source_keys = [source["sentry_key"] for source in body]
+
+        # Should see public sources
+        assert "public-source-1" in source_keys
+        assert "public-source-2" in source_keys
+        # PlayStation should NOT see nintendo (not a matching console or game engine)
         assert "nintendo" not in source_keys
