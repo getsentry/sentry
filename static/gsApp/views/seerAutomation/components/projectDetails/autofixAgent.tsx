@@ -21,7 +21,7 @@ import type {Project} from 'sentry/types/project';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import CursorAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/cursorAgentSettings';
+import CodingAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
 import SeerAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
 import {
   useAgentOptions,
@@ -48,7 +48,7 @@ function AgentSpecificFields({
     return null;
   }
   if (integration.provider === 'cursor' || integration.provider === 'claude_code') {
-    return <CursorAgentSettings integration={integration} {...props} />;
+    return <CodingAgentSettings integration={integration} {...props} />;
   }
   return null;
 }
