@@ -7,6 +7,8 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/scrapsForm.tsx
 ---
 
+import {Container} from '@sentry/scraps/layout';
+
 import {CompactDemo, ConditionalDemo, QuickStartDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
@@ -23,7 +25,9 @@ For a reference of all available field components, see [Fields](./fields.mdx).
 A minimal form with validation and submission.
 
 <Storybook.Demo>
-  <QuickStartDemo />
+  <Container width="80%">
+    <QuickStartDemo />
+  </Container>
 </Storybook.Demo>
 
 ```jsx
@@ -63,7 +67,7 @@ function MyForm() {
 
 ## Form Hook: `useScrapsForm`
 
-Create a form by calling `useScrapsForm` with your configuration. Always spread `defaultFormOptions` first — it configures validation to run on submit initially, then revalidate on every change after the first submission attempt.
+Create a form by calling `useScrapsForm` with your configuration. Always spread `defaultFormOptions` first — it configures validation to run on submit initially, then revalidate on every change after the first submission attempt, and it also makes sure that the first erroneous field is automatically focused.
 
 ```jsx
 const form = useScrapsForm({
@@ -162,7 +166,11 @@ Label above, field below. Best for forms with longer labels or when vertical spa
 Label on the left (~50%), field on the right. Compact layout for settings pages.
 
 ```jsx
-<field.Layout.Row label="Email Address" hintText="We'll never share your email" required>
+<field.Layout.Row
+  label="Email Address"
+  hintText="We will never share your email address"
+  required
+>
   <field.Input value={field.state.value} onChange={field.handleChange} />
 </field.Layout.Row>
 ```
