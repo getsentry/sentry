@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models.functions import Now, TruncSecond
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import sane_repr
+from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
@@ -22,6 +22,7 @@ class ProjectKeyMapping(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
+    project_key_id = BoundedBigIntegerField(db_index=True)
     public_key = models.CharField(max_length=32, unique=True, db_index=True)
     cell_name = models.CharField(max_length=REGION_NAME_LENGTH)
     date_updated = models.DateTimeField(db_default=Now(), auto_now=True)

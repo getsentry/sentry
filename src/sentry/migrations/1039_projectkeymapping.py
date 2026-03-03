@@ -37,6 +37,10 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
+                (
+                    "project_key_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
                 ("public_key", models.CharField(db_index=True, max_length=32, unique=True)),
                 ("cell_name", models.CharField(max_length=48)),
                 (
