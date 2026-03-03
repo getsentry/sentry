@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from datetime import datetime
 from typing import Any
@@ -7,8 +6,6 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
-
-logger = logging.getLogger(__name__)
 
 
 def _escape_search_query_value(value: str) -> str:

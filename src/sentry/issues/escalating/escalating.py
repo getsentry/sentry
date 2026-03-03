@@ -174,8 +174,8 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
 
     for organization_id in sorted(groups_by_org.keys()):
         group_ids_by_project = groups_by_org[organization_id]
-
         project_ids = list(group_ids_by_project.keys())
+
         all_group_ids = [gid for gids in group_ids_by_project.values() for gid in gids]
         if not all_group_ids:
             continue
