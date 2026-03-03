@@ -15,6 +15,11 @@ from sentry.utils import metrics
 
 class SeerViewerContext(TypedDict, total=False):
     organization_id: int
+    # TODO(jeremy.stanley): user_id is int | None as a temporary state while
+    # consolidating viewer context across call sites. Some pass request.user.id
+    # (which can be None for anonymous users), others omit the key entirely.
+    # Once all call sites are wired up, tighten this to int and ensure callers
+    # only set user_id when an authenticated user is present.
     user_id: int | None
 
 
