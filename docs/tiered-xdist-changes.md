@@ -162,3 +162,19 @@ Each test is tagged with the **union** of static and runtime detection. Static d
 **Modified:** `src/sentry/testutils/pytest/sentry.py`
 
 Added `pytest_ignore_collect` hook. When `SELECTED_TESTS_FILE` is set, prevents pytest from importing test files not in the tier's list. Runs before module import — Python never loads the irrelevant files, saving ~50s of collection time per shard. Directories, conftest files, non-`.py` files, and files outside `tests/` all pass through. No-op without `SELECTED_TESTS_FILE`. Reduces runner-minutes across all shards since every shard pays the collection cost.
+
+### 6b. H1: Overlapped startup
+
+**Modified:** `src/sentry/testutils/pytest/sentry.py`, `src/sentry/testutils/skips.py`, `.github/workflows/backend.yml`
+
+Both backend-light and backend-test jobs now use `skip-devservices: true` on `setup-sentry` and start services in a background subshell while pytest runs in the foreground. Pytest collection (~77s) overlaps with service startup (~17s on T1, ~120s on T2), saving the overlap window per shard.
+
+**Python-side changes:**
+- `wait_for_services` session fixture in `sentry.py`: polls for `SERVICES_READY_FILE` sentinel file. Runs after collection, blocks before first test. No-op without the env var.
+- `_wait_for_service()` + `SNUBA_WAIT_TIMEOUT` in `skips.py`: `_requires_snuba` polls for the per-worker Snuba port instead of failing immediately when it's not yet up.
+
+**Workflow changes:**
+- Both tier jobs use `skip-devservices: true` on `setup-sentry`, then a single combined step that backgrounds service startup (devservices + pg-socket + Snuba bootstrap on T2) while running pytest in the foreground. The background subshell touches `/tmp/services-ready` when all services are healthy.
+- T1 and T2 use the same pattern for consistency. T1's background subshell is simpler (no Snuba bootstrap).
+
+**Why this is safe:** `initialize_app()` (called in `pytest_configure`) does not touch Postgres, Redis, Snuba, or any external service. We verified this by auditing every `ready()` method across all Django apps — they all do pure Python registration (imports, plugin registration, signal receivers). `SENTRY_SKIP_SERVICE_VALIDATION=1` (set by `setup-sentry` on every CI shard since before our changes) skips the only Redis call in `pytest_configure`. Test collection also needs no services — it just discovers test functions via Python imports. Services are only needed when the first test actually executes, which is after `wait_for_services` has confirmed they're ready.

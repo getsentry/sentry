@@ -349,22 +349,7 @@ jobs:
         id: setup
         with:
           mode: migrations
-
-      - name: Reconnect postgres via Unix socket
-        run: |
-          mkdir -p /tmp/pg-sock
-          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
-          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
-          docker run -d --name postgres-postgres-1 \
-            --network devservices --label orchestrator=devservices \
-            -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
-            -v /tmp/pg-sock:/var/run/postgresql \
-            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
-            "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
-          until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
-          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+          skip-devservices: true
 
       - name: Download odiff binary
         run: |
@@ -373,10 +358,35 @@ jobs:
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
 
-      - name: Run backend-light tests
+      - name: Run backend-light tests (overlapped startup)
         env:
+          SENTRY_DB_SOCKET: /tmp/pg-sock
           SELECTED_TESTS_FILE: /tmp/backend-light-tests.txt
+          SERVICES_READY_FILE: /tmp/services-ready
         run: |
+          # Background: start devservices + pg-socket
+          (
+            sentry init
+            devservices up --mode migrations
+
+            mkdir -p /tmp/pg-sock
+            PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+            docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+            docker run -d --name postgres-postgres-1 \
+              --network devservices --label orchestrator=devservices \
+              -p 127.0.0.1:5432:5432 \
+              -v postgres-data:/var/lib/postgresql/data \
+              -v /tmp/pg-sock:/var/run/postgresql \
+              -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+              "$PG_IMAGE" postgres \
+                -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+            until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+
+            touch /tmp/services-ready
+          ) 2>&1 &
+          SERVICES_PID=$!
+
+          PYTEST_EXIT=0
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
@@ -389,7 +399,10 @@ jobs:
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=.artifacts/pytest.junit.xml \
-            -o junit_suite_name=pytest-backend-light
+            -o junit_suite_name=pytest-backend-light || PYTEST_EXIT=$?
+
+          wait $SERVICES_PID 2>/dev/null || true
+          exit $PYTEST_EXIT
 
       - name: Inspect failure
         if: failure()
@@ -445,22 +458,7 @@ jobs:
         id: setup
         with:
           mode: backend-ci
-
-      - name: Reconnect postgres via Unix socket
-        run: |
-          mkdir -p /tmp/pg-sock
-          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
-          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
-          docker run -d --name postgres-postgres-1 \
-            --network devservices --label orchestrator=devservices \
-            -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
-            -v /tmp/pg-sock:/var/run/postgresql \
-            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
-            "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
-          until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
-          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+          skip-devservices: true
 
       - name: Download odiff binary
         run: |
@@ -468,44 +466,6 @@ jobs:
             | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
-
-      - name: Bootstrap per-worker Snuba instances
-        run: |
-          XDIST_N=${XDIST_WORKERS:-3}
-          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
-          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
-
-          for i in $(seq 0 $((XDIST_N - 1))); do
-            (
-              WORKER_DB="default_gw${i}"
-              WORKER_PORT=$((1230 + i))
-              curl -sf 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
-              docker run --rm --network "$SNUBA_NETWORK" \
-                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
-                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
-                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
-                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
-                "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
-              docker run -d --name "snuba-gw${i}" --network "$SNUBA_NETWORK" \
-                -p "${WORKER_PORT}:1218" \
-                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
-                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
-                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
-                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
-                -e "DEBUG=1" "$SNUBA_IMAGE" api
-            ) &
-          done
-          wait
-
-          for i in $(seq 0 $((XDIST_N - 1))); do
-            WORKER_PORT=$((1230 + i))
-            for attempt in $(seq 1 30); do
-              if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
-                echo "[snuba-gw${i}] ready on port ${WORKER_PORT}"; break; fi
-              [ "$attempt" -eq 30 ] && echo "[snuba-gw${i}] FAILED" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
-              sleep 1
-            done
-          done
 
       - name: Download selected tests artifact
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
@@ -521,13 +481,79 @@ jobs:
           name: tier-file-lists
           path: /tmp/
 
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+      - name: Run backend test (overlapped startup)
         env:
+          SNUBA_WAIT_TIMEOUT: '180'
+          DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
+          SENTRY_DB_SOCKET: /tmp/pg-sock
           SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || (needs.split-tiers.outputs.has-tiers == 'true' && '/tmp/backend-tests.txt' || '') }}
+          SERVICES_READY_FILE: /tmp/services-ready
         run: |
+          XDIST_N=${XDIST_WORKERS:-3}
+
+          # Background: start devservices + pg-socket + per-worker Snuba
+          (
+            sentry init
+            devservices up --mode backend-ci
+
+            # Reconnect postgres via Unix socket
+            mkdir -p /tmp/pg-sock
+            PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+            docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+            docker run -d --name postgres-postgres-1 \
+              --network devservices --label orchestrator=devservices \
+              -p 127.0.0.1:5432:5432 \
+              -v postgres-data:/var/lib/postgresql/data \
+              -v /tmp/pg-sock:/var/run/postgresql \
+              -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+              "$PG_IMAGE" postgres \
+                -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+            until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+
+            # Bootstrap per-worker Snuba instances
+            SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+            SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+            for i in $(seq 0 $((XDIST_N - 1))); do
+              (
+                WORKER_DB="default_gw${i}"
+                WORKER_PORT=$((1230 + i))
+                curl -sf 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+                docker run --rm --network "$SNUBA_NETWORK" \
+                  -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                  -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                  -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                  -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                  "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
+                docker run -d --name "snuba-gw${i}" --network "$SNUBA_NETWORK" \
+                  -p "${WORKER_PORT}:1218" \
+                  -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                  -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                  -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                  -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                  -e "DEBUG=1" "$SNUBA_IMAGE" api
+              ) &
+            done
+            wait
+
+            for i in $(seq 0 $((XDIST_N - 1))); do
+              WORKER_PORT=$((1230 + i))
+              for attempt in $(seq 1 30); do
+                if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                  echo "[snuba-gw${i}] ready on port ${WORKER_PORT}"; break; fi
+                [ "$attempt" -eq 30 ] && echo "[snuba-gw${i}] FAILED" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
+                sleep 1
+              done
+            done
+
+            touch /tmp/services-ready
+          ) 2>&1 &
+          SERVICES_PID=$!
+
+          # Foreground: pytest starts immediately, _wait_for_services blocks before first test
+          PYTEST_EXIT=0
           python3 -b -m pytest tests \
             --reuse-db \
-            -n ${XDIST_WORKERS:-3} \
+            -n $XDIST_N \
             --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
@@ -537,7 +563,10 @@ jobs:
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=.artifacts/pytest.junit.xml \
-            -o junit_suite_name=pytest
+            -o junit_suite_name=pytest || PYTEST_EXIT=$?
+
+          wait $SERVICES_PID 2>/dev/null || true
+          exit $PYTEST_EXIT
 
       - name: Inspect failure
         if: failure()

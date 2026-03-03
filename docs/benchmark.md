@@ -173,3 +173,86 @@ Same tier split but with `--granularity class`, `--dist=loadscope`, `TIER_GRANUL
 | Class + loadscope (Exp 7) | 11m47s | 227s | 9m43s | −43s |
 
 File granularity + loadfile wins on wall clock. Class + loadscope has slightly better average but much worse spread (227s vs 141s) and worse wall clock due to backend-light being the bottleneck.
+
+---
+
+## Experiment 8: + G1 (pytest_ignore_collect), 5 backend-light shards
+
+Same as Experiment 6, plus G1 — `pytest_ignore_collect` skips importing test files not in the tier's list.
+
+**backend-light (5 shards):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 10m50s | 41s | 10m30s | 22646291328 |
+| 2 | 10m47s | 19s | 10m34s | 22646290469 |
+| 3 | 10m51s | 97s | 10m20s | 22646289642 |
+| **Mean** | **10m49s** | **52s** | **10m28s** | |
+
+**backend-test (22 shards):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 8m53s | 88s | 8m15s | 22646291328 |
+| 2 | 9m18s | 115s | 8m19s | 22646290469 |
+| 3 | 9m15s | 114s | 8m14s | 22646289642 |
+| **Mean** | **9m09s** | **106s** | **8m16s** | |
+
+**Overall (all 27 shards):**
+
+| Run | Wall Clock | Spread | Average |
+|-----|-----------|--------|---------|
+| 1 | 10m50s | 205s | 8m40s |
+| 2 | 10m47s | 204s | 8m44s |
+| 3 | 10m51s | 210s | 8m38s |
+| **Mean** | **10m49s** | **206s** | **8m41s** |
+
+**Delta vs Experiment 6 (no G1):** backend-test wall clock −1m08s (10m17s → 9m09s), backend-test average −1m18s (9m34s → 8m16s). backend-light barely changed (−9s). Overall average −1m03s (9m44s → 8m41s). G1 saves ~1m18s per T2 shard = **~29 minutes of runner-minutes** across 22 shards.
+
+---
+
+## Experiment 9: + G1, 6 backend-light shards
+
+Same as Experiment 8, but backend-light uses 6 shards instead of 5 to reduce its wall clock bottleneck.
+
+**backend-light (6 shards):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 10m04s | 137s | 9m08s | 22646330276 |
+| 2 | 9m36s | 52s | 9m10s | 22646329560 |
+| 3 | 9m38s | 73s | 9m05s | 22646328791 |
+| **Mean** | **9m46s** | **87s** | **9m08s** | |
+
+**backend-test (22 shards):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 9m15s | 116s | 8m26s | 22646330276 |
+| 2 | 9m39s | 114s | 8m24s | 22646329560 |
+| 3 | 9m32s | 166s | 8m17s | 22646328791 |
+| **Mean** | **9m29s** | **132s** | **8m22s** | |
+
+**Overall (all 28 shards):**
+
+| Run | Wall Clock | Spread | Average |
+|-----|-----------|--------|---------|
+| 1 | 10m04s | 165s | 8m35s |
+| 2 | 9m39s | 114s | 8m34s |
+| 3 | 9m38s | 172s | 8m27s |
+| **Mean** | **9m47s** | **150s** | **8m32s** |
+
+**Delta vs Experiment 8 (5 shards):** Overall wall clock −1m02s (10m49s → 9m47s) by reducing the backend-light bottleneck. Overall average −9s (8m41s → 8m32s). Adding 1 shard to backend-light is worth it — wall clock drops significantly for a modest runner-minutes cost (+1 shard × 9m08s = +9m, offset by faster completion).
+
+---
+
+## Full Progress Summary
+
+| Step | Wall Clock | Overall Avg | Runner-min impact |
+|------|-----------|-------------|-------------------|
+| Baseline (no xdist) | ~15m | ~15m | baseline |
+| + xdist (Exp 1) | 13m23s | 12m10s | — |
+| + pg-socket (Exp 2) | 12m38s | 11m40s | −11m |
+| + relay session (Exp 3) | 12m30s | 11m33s | −3m |
+| + tiered split (Exp 6) | 10m58s | 9m44s | −49m (fewer T1 runner-min) |
+| + G1, 6 shards (Exp 9) | **9m47s** | **8m32s** | **−31m (collection savings)** |

@@ -547,6 +547,20 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.hook.pytest_deselected(items=discard)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def wait_for_services():
+    sentinel = os.environ.get("SERVICES_READY_FILE")
+    if not sentinel:
+        return
+    timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "180"))
+    start = time.monotonic()
+    sentinel_path = Path(sentinel)
+    while not sentinel_path.exists():
+        if time.monotonic() - start > timeout:
+            break
+        time.sleep(1)
+
+
 def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
