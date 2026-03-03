@@ -195,6 +195,22 @@ export default function FiltersBar({
     return [...nonOverlappingSaved, ...urlFilters];
   });
 
+  // Sync merged filters to the URL on mount so widgets see the same filters
+  // as the filter bar. Without this, the filter bar shows merged [saved + URL]
+  // filters but widgets only query with raw URL filters.
+  useEffect(() => {
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    // Only sync if URL has filters AND saved filters were merged in
+    if (urlFilters && activeGlobalFilters.length > urlFilters.length) {
+      onDashboardFilterChange({
+        [DashboardFilterKeys.RELEASE]: selectedReleases,
+        [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
     onDashboardFilterChange({
