@@ -1167,17 +1167,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_occurrences(self, occurrences):
-        files = {
-            f"occurrence_{i}": occurrence.SerializeToString()
-            for i, occurrence in enumerate(occurrences)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
         response = requests.post(
