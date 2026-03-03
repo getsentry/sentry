@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, cast
 
-import orjson
-import pydantic
-from pydantic import BaseModel
-from rest_framework import serializers
+from pydantic import BaseModel, Field
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import internal_region_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
+from sentry.preprod.api.endpoints.project_preprod_size import parse_request_with_pydantic
 from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class PutDistribution(BaseModel):
-    error_code: int
+    error_code: int = Field(ge=0, le=3)
     error_message: str
 
 
@@ -44,15 +43,7 @@ class ProjectPreprodDistributionEndpoint(PreprodArtifactEndpoint):
         head_artifact_id: int,
         head_artifact: PreprodArtifact,
     ) -> Response:
-        try:
-            j = orjson.loads(request.body)
-        except orjson.JSONDecodeError:
-            raise serializers.ValidationError("Invalid json")
-        try:
-            put = PutDistribution(**j)
-        except pydantic.ValidationError:
-            logger.exception("Could not parse PutDistribution")
-            raise serializers.ValidationError("Could not parse PutDistribution")
+        put: PutDistribution = parse_request_with_pydantic(request, cast(Any, PutDistribution))
 
         head_artifact.installable_app_error_code = put.error_code
         head_artifact.installable_app_error_message = put.error_message

@@ -58,6 +58,16 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
         assert self.artifact.installable_app_error_message == "Unsupported artifact type"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
+    def test_invalid_error_code(self) -> None:
+        response = self._put(orjson.dumps({"error_code": 99, "error_message": "bad"}))
+        assert response.status_code == 400
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
+    def test_non_dict_json_body(self) -> None:
+        response = self._put(orjson.dumps([1, 2, 3]))
+        assert response.status_code == 400
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_requires_launchpad_rpc_authentication(self) -> None:
         self.login_as(self.user)
 
