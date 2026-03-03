@@ -477,6 +477,53 @@ def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
     )
 
 
+def test_transaction_duration_propagated_to_non_segment_spans() -> None:
+    """Test that sentry.transaction.duration is set on non-segment spans."""
+    segment_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_id="aaaaaaaaaaaaaaaa",
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+    )
+
+    grandchild_span = build_mock_span(
+        project_id=1,
+        span_id="cccccccccccccccc",
+        parent_span_id="bbbbbbbbbbbbbbbb",
+        start_timestamp=1609455601.2,
+        end_timestamp=1609455601.8,
+    )
+
+    spans = [segment_span, child_span, grandchild_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+
+    assert attribute_value(enriched_spans[0], "sentry.transaction.duration") is None
+    assert attribute_value(enriched_spans[1], "sentry.transaction.duration") == 5000.0
+    assert attribute_value(enriched_spans[2], "sentry.transaction.duration") == 5000.0
+
+
+def test_transaction_duration_not_set_without_segment() -> None:
+    """Test that sentry.transaction.duration is not set when there is no segment span."""
+    span = build_mock_span(
+        project_id=1,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+    )
+
+    _, enriched_spans = TreeEnricher.enrich_spans([span])
+    assert attribute_value(enriched_spans[0], "sentry.transaction.duration") is None
+
+
 def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:
     """Test that gen_ai.agent.name is inherited from the immediate parent with gen_ai.invoke_agent operation."""
     parent_span = build_mock_span(

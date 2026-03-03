@@ -139,6 +139,15 @@ class TreeEnricher:
                         "value": agent_name,
                     }
 
+            if not span.get("is_segment"):
+                segment_duration_ms = (
+                    self._segment_span["end_timestamp"] - self._segment_span["start_timestamp"]
+                ) * 1_000
+                attributes["sentry.transaction.duration"] = {
+                    "type": "double",
+                    "value": segment_duration_ms,
+                }
+
         attributes["sentry.exclusive_time_ms"] = {
             "type": "double",
             "value": self._exclusive_time(span),
