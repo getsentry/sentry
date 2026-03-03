@@ -25,6 +25,7 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
@@ -2414,3 +2415,23 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
 
         with self.feature("organizations:incidents"):
             self.get_success_response(self.organization.slug, other_alert_rule.id, status_code=204)
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_detector_deleted(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        detector = self.create_detector(project=self.project)
+        fake_detector_id = get_fake_id_from_object_id(detector.id)
+        self.get_success_response(self.organization.slug, fake_detector_id, status_code=202)
+
+        # Detector.objects excludes PENDING_DELETION, so the detector not appearing here confirms
+        # it was scheduled for deletion.
+        assert not Detector.objects.filter(id=detector.id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
