@@ -1031,18 +1031,16 @@ class JiraIntegration(IssueSyncIntegration):
                 raise IntegrationConfigurationError(
                     "Something went wrong while communicating with Jira"
                 ) from exc
-            else:
-                return self.error_fields_from_json(exc.json)
 
-        if isinstance(exc, ApiInvalidRequestError):
             error_fields = self.error_fields_from_json(exc.json)
             if error_fields is not None:
                 raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
 
-            logger.warning(
-                "sentry.jira.raise_error.generic_api_invalid_error", extra=logging_context
-            )
-            raise IntegrationConfigurationError(exc.text) from exc
+            if isinstance(exc, ApiInvalidRequestError):
+                logger.warning(
+                    "sentry.jira.raise_error.generic_api_invalid_error", extra=logging_context
+                )
+                raise IntegrationConfigurationError(exc.text) from exc
 
         super().raise_error(exc, identity=identity)
 

@@ -1323,6 +1323,21 @@ class JiraIntegrationTest(APITestCase):
         )
         assert result == {"Issue": [msg_lowercase]}
 
+    def test_raise_error_with_issue_not_found_json(self) -> None:
+        from sentry.shared_integrations.exceptions import ApiError
+
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        msg = "Issue does not exist or you do not have permission to see it."
+        exc = ApiError(json.dumps({"errorMessages": [msg], "errors": {}}), code=404)
+
+        with pytest.raises(IntegrationFormError) as exc_info:
+            installation.raise_error(exc)
+
+        assert exc_info.value.field_errors == {"Issue": [msg]}
+
 
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
