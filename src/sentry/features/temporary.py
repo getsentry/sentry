@@ -231,20 +231,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable preprod build distribution
-    manager.add("organizations:preprod-build-distribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod frontend routes
     manager.add("organizations:preprod-frontend-routes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod issue reporting
     manager.add("organizations:preprod-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable writing preprod size metrics to EAP for querying
-    manager.add("organizations:preprod-size-metrics-eap-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable writing preprod build distribution data to EAP for querying
-    manager.add("organizations:preprod-build-distribution-eap-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod PR comments for build distribution
     manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable preprod app size dashboard widget
-    manager.add("organizations:preprod-app-size-dashboard", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable enforcement of preprod size quota checks (when disabled, size quota checks always return True)
     manager.add("organizations:preprod-enforce-size-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
