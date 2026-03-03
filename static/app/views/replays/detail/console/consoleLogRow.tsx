@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
@@ -97,9 +96,9 @@ const ConsoleLog = styled('div')<{
 }>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: baseline;
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 
   background-color: ${p =>
