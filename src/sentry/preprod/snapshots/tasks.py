@@ -37,6 +37,47 @@ class _DiffCandidate(NamedTuple):
     pixel_count: int
 
 
+class _RenameResult(NamedTuple):
+    renamed_pairs: list[tuple[str, str]]
+    added: set[str]
+    removed: set[str]
+    matched: set[str]
+
+
+def detect_renames(
+    head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
+) -> _RenameResult:
+    head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
+    base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
+
+    matched = set(head_by_name.keys() & base_by_name.keys())
+    added = set(head_by_name.keys() - base_by_name.keys())
+    removed = set(base_by_name.keys() - head_by_name.keys())
+
+    added_hash_to_names: dict[str, list[str]] = {}
+    for name in added:
+        h = head_by_name[name]
+        added_hash_to_names.setdefault(h, []).append(name)
+
+    removed_hash_to_names: dict[str, list[str]] = {}
+    for name in removed:
+        h = base_by_name[name]
+        removed_hash_to_names.setdefault(h, []).append(name)
+
+    renamed_pairs: list[tuple[str, str]] = []
+    for h in added_hash_to_names.keys() & removed_hash_to_names.keys():
+        a_names = added_hash_to_names[h]
+        r_names = removed_hash_to_names[h]
+        if len(a_names) == 1 and len(r_names) == 1:
+            renamed_pairs.append((a_names[0], r_names[0]))
+
+    for new_name, old_name in renamed_pairs:
+        added.discard(new_name)
+        removed.discard(old_name)
+
+    return _RenameResult(renamed_pairs, added, removed, matched)
+
+
 def _image_name_to_path_stem(name: str) -> str:
     normalized = name.replace("\\", "/").strip("/")
     return normalized.rsplit(".", 1)[0] if "." in normalized else normalized
@@ -212,9 +253,11 @@ def compare_snapshots(
         head_by_name = {meta.image_file_name: h for h, meta in head_images.items()}
         base_by_name = {meta.image_file_name: h for h, meta in base_images.items()}
 
-        matched = head_by_name.keys() & base_by_name.keys()
-        added = head_by_name.keys() - base_by_name.keys()
-        removed = base_by_name.keys() - head_by_name.keys()
+        rename_result = detect_renames(head_manifest, base_manifest)
+        renamed_pairs = rename_result.renamed_pairs
+        added = rename_result.added
+        removed = rename_result.removed
+        matched = rename_result.matched
 
         image_results: dict[str, dict[str, object]] = {}
         changed_count = 0
@@ -404,16 +447,26 @@ def compare_snapshots(
                 "before_height": base_meta.height,
             }
 
+        for new_name, old_name in sorted(renamed_pairs):
+            content_hash = head_by_name[new_name]
+            image_results[new_name] = {
+                "status": "renamed",
+                "head_hash": content_hash,
+                "base_hash": content_hash,
+                "previous_image_file_name": old_name,
+            }
+
         comparison_manifest = ComparisonManifest(
             head_artifact_id=head_artifact_id,
             base_artifact_id=base_artifact_id,
             summary=ComparisonSummary(
-                total=len(matched) + len(added) + len(removed),
+                total=len(matched) + len(added) + len(removed) + len(renamed_pairs),
                 changed=changed_count,
                 unchanged=unchanged_count,
                 added=len(added),
                 removed=len(removed),
                 errored=error_count,
+                renamed=len(renamed_pairs),
             ),
             images=image_results,
         )
@@ -433,6 +486,7 @@ def compare_snapshots(
         comparison.images_unchanged = unchanged_count
         comparison.images_added = len(added)
         comparison.images_removed = len(removed)
+        comparison.images_renamed = len(renamed_pairs)
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
@@ -445,6 +499,7 @@ def compare_snapshots(
                 "images_unchanged",
                 "images_added",
                 "images_removed",
+                "images_renamed",
                 "extras",
                 "date_updated",
             ]
@@ -459,6 +514,7 @@ def compare_snapshots(
                 "unchanged": unchanged_count,
                 "added": len(added),
                 "removed": len(removed),
+                "renamed": len(renamed_pairs),
                 "errored": error_count,
             },
         )
