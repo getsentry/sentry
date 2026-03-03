@@ -13,7 +13,6 @@ import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -325,12 +324,12 @@ function StacktraceLinkModal({
 }
 
 const StyledList = styled(List)`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   & > li {
     display: flex;
     padding-left: 0;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
   }
 
   & > li:before {
@@ -342,7 +341,8 @@ const StyledList = styled(List)`
 const Suggestions = styled('div')`
   background-color: ${p => p.theme.colors.surface200};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.xl};
 `;
 
 const SuggestionOverflow = styled('div')`
