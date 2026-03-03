@@ -17,6 +17,7 @@ from sentry import features
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
@@ -163,8 +164,7 @@ def launch_coding_agents(
                         except Exception:
                             sentry_sdk.capture_exception(level="warning")
                 elif (
-                    integration is not None
-                    and integration.provider == "cursor"
+                    isinstance(installation, CursorAgentIntegration)
                     and e.code == 400
                     and e.text
                     and "Failed to verify existence of branch" in e.text

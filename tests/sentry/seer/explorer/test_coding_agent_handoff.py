@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -165,8 +166,7 @@ class TestLaunchCodingAgents(TestCase):
         access modal instead of a generic error.
         """
         mock_integration = MagicMock()
-        mock_integration.provider = "cursor"
-        mock_installation = MagicMock()
+        mock_installation = MagicMock(spec=CursorAgentIntegration)
         mock_installation.launch.side_effect = ApiError(
             text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
             code=400,
