@@ -5,7 +5,6 @@ from typing import Any, Literal, Protocol, Required, TypedDict
 type Action = Literal["check_run", "comment", "pull_request"]
 type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
 type EventTypeHint = Literal["check_run", "comment", "pull_request"]
-type ExternalId = str
 type HybridCloudSilo = Literal["control", "region"]
 
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
