@@ -17,7 +17,6 @@ import type {
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
@@ -513,7 +512,7 @@ export function UsageStatsProjects({
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
