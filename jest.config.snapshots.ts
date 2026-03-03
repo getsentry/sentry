@@ -42,9 +42,6 @@ const config: Config.InitialOptions = {
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
   testPathIgnorePatterns: ['/node_modules/'],
 
-  globalSetup: '<rootDir>/tests/js/snapshot-globalSetup.ts',
-  globalTeardown: '<rootDir>/tests/js/snapshot-globalTeardown.ts',
-
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 

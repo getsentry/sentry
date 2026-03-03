@@ -88,18 +88,13 @@ function getOutputDir(): string {
   return path.resolve(PROJECT_ROOT, '.artifacts/visual-snapshots');
 }
 
-let _browserPromise: ReturnType<typeof chromium.connect> | null = null;
+let _browserPromise: ReturnType<typeof chromium.launch> | null = null;
 
-function getBrowser(): ReturnType<typeof chromium.connect> {
+function getBrowser(): ReturnType<typeof chromium.launch> {
   if (!_browserPromise) {
-    const wsEndpoint = process.env.__SNAPSHOT_BROWSER_WS__;
-    if (!wsEndpoint) {
-      throw new Error(
-        'Playwright browser WebSocket endpoint not found. ' +
-          'Ensure snapshot-globalSetup.ts is configured in jest.config.snapshots.ts'
-      );
-    }
-    _browserPromise = chromium.connect(wsEndpoint);
+    _browserPromise = chromium.launch({
+      args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
+    });
   }
   return _browserPromise;
 }
