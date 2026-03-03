@@ -23,7 +23,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {
@@ -31,7 +31,6 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -62,10 +61,9 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const meta = result.meta ?? {};
 
-  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
-  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
-  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
-  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',

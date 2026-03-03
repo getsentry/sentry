@@ -23,7 +23,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -105,24 +105,23 @@ function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const logsAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
+  const logsAttributeOptions = {
     enabled: true,
     search: debouncedSearch,
   };
 
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
-    logsAttributeConfig,
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
+    logsAttributeOptions,
     'string',
     HiddenLogSearchFields
   );
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
-    logsAttributeConfig,
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
+    logsAttributeOptions,
     'number',
     HiddenLogSearchFields
   );
-  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useTraceItemAttributes(
-    logsAttributeConfig,
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
+    logsAttributeOptions,
     'boolean',
     HiddenLogSearchFields
   );
@@ -346,24 +345,23 @@ function ToolbarGroupBy() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const logsAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
+  const logsAttributeOptions = {
     enabled: true,
     search: debouncedSearch,
   };
 
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
-    logsAttributeConfig,
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
+    logsAttributeOptions,
     'number',
     HiddenLogSearchFields
   );
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
-    logsAttributeConfig,
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
+    logsAttributeOptions,
     'string',
     HiddenLogSearchFields
   );
-  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useTraceItemAttributes(
-    logsAttributeConfig,
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
+    logsAttributeOptions,
     'boolean',
     HiddenLogSearchFields
   );

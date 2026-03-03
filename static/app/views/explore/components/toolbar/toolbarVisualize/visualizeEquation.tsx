@@ -15,10 +15,9 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface VisualizeEquationProps {
   onDelete: () => void;
@@ -35,10 +34,9 @@ export function VisualizeEquation({
 }: VisualizeEquationProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
-  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
-  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
-  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [

@@ -22,8 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -96,19 +95,12 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
     });
   }, [organization]);
 
-  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
-  const {tags: numberTags = [], isLoading: numberTagsLoading} = useTraceItemTags(
-    spansConfig,
-    'number'
-  );
-  const {tags: stringTags = [], isLoading: stringTagsLoading} = useTraceItemTags(
-    spansConfig,
-    'string'
-  );
-  const {tags: booleanTags = [], isLoading: booleanTagsLoading} = useTraceItemTags(
-    spansConfig,
-    'boolean'
-  );
+  const {attributes: numberTags = [], isLoading: numberTagsLoading} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags = [], isLoading: stringTagsLoading} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags = [], isLoading: booleanTagsLoading} =
+    useSpanItemAttributes({}, 'boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'

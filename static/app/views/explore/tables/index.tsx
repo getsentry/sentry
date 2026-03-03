@@ -13,7 +13,7 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
@@ -30,7 +30,6 @@ import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
@@ -53,10 +52,9 @@ export function ExploreTables(props: ExploreTablesProps) {
   const fields = useQueryParamsFields();
   const setFields = useSetQueryParamsFields();
 
-  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
-  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
-  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
-  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const openColumnEditor = useCallback(() => {
     openModal(

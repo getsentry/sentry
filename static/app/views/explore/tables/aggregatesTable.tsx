@@ -34,7 +34,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -50,7 +50,6 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 interface AggregatesTableProps {
@@ -103,10 +102,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const meta = result.meta ?? {};
 
-  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
-  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
-  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
-  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 

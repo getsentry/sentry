@@ -45,10 +45,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  useTraceItemAttributes,
-  type TraceItemAttributeConfig,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {
   HiddenColumnEditorLogFields,
@@ -173,26 +170,21 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     limit: 50,
   });
 
-  const logsAttributeConfig: TraceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
-    enabled: true,
-  };
-
   const {
     attributes: stringAttributes,
     isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
-  } = useTraceItemAttributes(logsAttributeConfig, 'string', HiddenLogSearchFields);
+  } = useLogItemAttributes({}, 'string', HiddenLogSearchFields);
   const {
     attributes: numberAttributes,
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
-  } = useTraceItemAttributes(logsAttributeConfig, 'number', HiddenLogSearchFields);
+  } = useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {
     attributes: booleanAttributes,
     isLoading: booleanAttributesLoading,
     secondaryAliases: booleanSecondaryAliases,
-  } = useTraceItemAttributes(logsAttributeConfig, 'boolean', HiddenLogSearchFields);
+  } = useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 

@@ -15,14 +15,13 @@ import {
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   LoadingRenderer,
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
@@ -70,21 +69,10 @@ interface OurLogsContentProps {
   startTimestampMs: number;
 }
 
-const logsAttributeConfig = {traceItemType: TraceItemDataset.LOGS, enabled: true};
-
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
-  const {attributes: stringAttributes} = useTraceItemAttributes(
-    logsAttributeConfig,
-    'string'
-  );
-  const {attributes: numberAttributes} = useTraceItemAttributes(
-    logsAttributeConfig,
-    'number'
-  );
-  const {attributes: booleanAttributes} = useTraceItemAttributes(
-    logsAttributeConfig,
-    'boolean'
-  );
+  const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
+  const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();
