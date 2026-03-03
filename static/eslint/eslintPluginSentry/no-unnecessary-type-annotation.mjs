@@ -50,17 +50,27 @@ const rule = {
     }
 
     /**
-     * Returns true if a CallExpression has any function arguments whose
-     * parameters lack explicit type annotations. These callbacks rely on
-     * contextual typing from the variable's annotation.
+     * Returns true if the AST node contains an arrow/function expression
+     * with untyped parameters at any nesting level. Traverses through
+     * ternaries, logical expressions, and call expression arguments.
      */
-    function hasUntypedCallbacks(callNode) {
-      return callNode.arguments.some(arg => {
-        if (arg.type !== 'ArrowFunctionExpression' && arg.type !== 'FunctionExpression') {
-          return false;
-        }
-        return arg.params.some(param => !param.typeAnnotation);
-      });
+    function containsUntypedFunction(node) {
+      if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') {
+        return node.params.some(param => !param.typeAnnotation);
+      }
+      if (node.type === 'ConditionalExpression') {
+        return (
+          containsUntypedFunction(node.consequent) ||
+          containsUntypedFunction(node.alternate)
+        );
+      }
+      if (node.type === 'LogicalExpression') {
+        return containsUntypedFunction(node.left) || containsUntypedFunction(node.right);
+      }
+      if (node.type === 'CallExpression') {
+        return node.arguments.some(arg => containsUntypedFunction(arg));
+      }
+      return false;
     }
 
     return {
@@ -81,21 +91,18 @@ const rule = {
         }
 
         // Skip object/array literals — `prefer-satisfies-for-objects` handles these.
-        // Skip function expressions — the annotation provides contextual parameter
-        // types (e.g. `e` in event handlers). Without it, params become `any`.
         if (
           node.init.type === 'ObjectExpression' ||
-          node.init.type === 'ArrayExpression' ||
-          node.init.type === 'ArrowFunctionExpression' ||
-          node.init.type === 'FunctionExpression'
+          node.init.type === 'ArrayExpression'
         ) {
           return;
         }
 
-        // Skip call expressions that contain untyped callback arguments.
-        // The variable's type annotation provides contextual typing that flows
-        // through the call's generics into callback parameters (e.g. useCallback).
-        if (node.init.type === 'CallExpression' && hasUntypedCallbacks(node.init)) {
+        // Skip any initializer that contains an arrow/function expression with
+        // untyped parameters. The annotation provides contextual typing that
+        // would be lost without it (params become `any`). This covers direct
+        // functions, ternaries, logical expressions, and call expression args.
+        if (containsUntypedFunction(node.init)) {
           return;
         }
 

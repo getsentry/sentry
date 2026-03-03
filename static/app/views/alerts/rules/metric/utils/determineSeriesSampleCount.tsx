@@ -20,7 +20,6 @@ export function determineSeriesSampleCountAndIsSampled(
     data = data.filter(s => s.yAxis !== 'Other');
   }
 
-  // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
   const merge: (a: number, b: number) => number = topNMode
     ? // In top N mode, we know all the timeseries are disjoint, so taking the sum
       // gives us an accurate sample count based on the timeseries

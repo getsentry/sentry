@@ -76,6 +76,24 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
       filename: 'valid.ts',
     },
 
+    // Ternary with untyped arrow function in alternate branch
+    {
+      code: 'declare function typed(): (x: number) => number;\nconst fn: (x: number) => number = true ? typed() : x => x;',
+      filename: 'valid.ts',
+    },
+
+    // Ternary with untyped arrow function in consequent branch
+    {
+      code: 'declare function typed(): (x: number) => number;\nconst fn: (x: number) => number = true ? x => x : typed();',
+      filename: 'valid.ts',
+    },
+
+    // Logical OR with untyped arrow function
+    {
+      code: 'declare const maybeFn: ((x: number) => number) | null;\nconst fn: (x: number) => number = maybeFn || (x => x);',
+      filename: 'valid.ts',
+    },
+
     // Function returning any — annotation narrows the type
     {
       code: 'declare function getAny(): any;\nconst x: string = getAny();',

@@ -176,7 +176,6 @@ function useParameterSuggestions({
         });
         const {columnTypes} = parameterDefinition;
 
-        // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
         const filterFn: (field: {key: string; valueType: FieldValueType}) => boolean =
           typeof columnTypes === 'function'
             ? columnTypes
