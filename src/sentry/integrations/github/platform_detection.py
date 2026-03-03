@@ -375,8 +375,8 @@ def _get_root_file_names(client: GitHubBaseClient, repo: str, ref: str | None = 
         if ref:
             params["ref"] = ref
         response = client.get(f"/repos/{repo}/contents", params=params)
-        return {item["name"] for item in response if item.get("type") == "file"}
-    except (ApiError, AttributeError, KeyError, TypeError):
+        return {item["name"] for item in response if item.get("type") == "file" and "name" in item}
+    except (ApiError, AttributeError, TypeError):
         return set()
 
 
