@@ -73,8 +73,11 @@ function ConversationsOverviewPage({
 function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
   const organization = useOrganization();
   useDefaultToAllProjects();
-  const {showOnboarding, isLoading: isOnboardingLoading} =
-    useShowConversationOnboarding();
+  const {
+    showOnboarding,
+    isLoading: isOnboardingLoading,
+    refetch: refetchOnboarding,
+  } = useShowConversationOnboarding();
 
   const [urlState] = useConversationDrawerQueryState();
   // Start fetching data and open drawer without
@@ -177,7 +180,7 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
               {isOnboardingLoading ? (
                 <LoadingIndicator />
               ) : showOnboarding ? (
-                <ConversationOnboarding />
+                <ConversationOnboarding onDismiss={refetchOnboarding} />
               ) : (
                 <ConversationsTable
                   openConversationViewDrawer={openConversationViewDrawer}

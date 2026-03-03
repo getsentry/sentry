@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -131,13 +132,18 @@ function useConversationSpanWaiter(project: Project) {
   return request;
 }
 
-function ConversationWaitingIndicator({project}: {project: Project}) {
+function ConversationWaitingIndicator({
+  project,
+  onDismiss,
+}: {
+  onDismiss: () => void;
+  project: Project;
+}) {
   const spanRequest = useConversationSpanWaiter(project);
-  const {reloadProjects, fetching} = useProjects();
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
+    <Button priority="primary" onClick={onDismiss}>
       {t('View Conversations')}
     </Button>
   ) : (
@@ -151,8 +157,10 @@ function ConversationStepRenderer({
   stepIndex,
   isLastStep,
   trailingItems,
+  onDismiss,
 }: {
   isLastStep: boolean;
+  onDismiss: () => void;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
@@ -170,7 +178,9 @@ function ConversationStepRenderer({
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
-        {isLastStep && <ConversationWaitingIndicator project={project} />}
+        {isLastStep && (
+          <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
+        )}
       </GuidedSteps.ButtonWrapper>
       {isLastStep && <PulseSpacer />}
     </GuidedSteps.Step>
@@ -190,7 +200,7 @@ function ConversationOnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <Header>
+              <Flex justify="between" gap="2xl" padding="3xl">
                 <HeaderText>
                   <Title>{t('See Exactly What Your Agent Said')}</Title>
                   <SubTitle>
@@ -211,7 +221,7 @@ function ConversationOnboardingPanel({
                   </BulletList>
                 </HeaderText>
                 <HeaderImage src={replayOnboardingImg} />
-              </Header>
+              </Flex>
               <Divider />
               <SetupContent>{children}</SetupContent>
             </div>
@@ -263,7 +273,7 @@ Sentry.setConversationId("my-conversation-123");`,
   };
 }
 
-export function ConversationOnboarding() {
+export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
@@ -387,9 +397,9 @@ export function ConversationOnboarding() {
   return (
     <ConversationOnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <OptionsWrapper>
+      <Flex gap="md" align="center" wrap="wrap" paddingBottom="md">
         <PlatformOptionDropdown platformOptions={integrationOptions} />
-      </OptionsWrapper>
+      </Flex>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps
         key={`${selectedIntegration}-${showConversationIdStep}`}
@@ -411,6 +421,7 @@ export function ConversationOnboarding() {
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            onDismiss={onDismiss}
             trailingItems={
               index === 0 && copyEnabled ? (
                 <OnboardingCopyMarkdownButton
@@ -534,13 +545,6 @@ const BulletList = styled('ul')`
   }
 `;
 
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
 const HeaderText = styled('div')`
   flex: 0.65;
 
@@ -594,12 +598,4 @@ const DescriptionWrapper = styled('div')`
       margin-bottom: ${space(1)};
     }
   }
-`;
-
-const OptionsWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  flex-wrap: wrap;
-  padding-bottom: ${p => p.theme.space.md};
 `;

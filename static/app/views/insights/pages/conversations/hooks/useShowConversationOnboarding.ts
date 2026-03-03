@@ -4,6 +4,7 @@ import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 export function useShowConversationOnboarding(): {
   isLoading: boolean;
+  refetch: () => void;
   showOnboarding: boolean;
 } {
   const {selection} = usePageFilters();
@@ -21,5 +22,6 @@ export function useShowConversationOnboarding(): {
   return {
     showOnboarding: !request.isLoading && !request.data?.length,
     isLoading: request.isLoading,
+    refetch: request.refetch,
   };
 }
