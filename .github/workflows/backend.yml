@@ -280,10 +280,10 @@ jobs:
         run: |
           python3 .github/workflows/scripts/split-tests-by-tier.py \
             --classification /tmp/classification/test-service-classification.json \
-            --tier tier1 --output /tmp/backend-light-tests.txt
+            --tier tier1 --granularity class --output /tmp/backend-light-tests.txt
           python3 .github/workflows/scripts/split-tests-by-tier.py \
             --classification /tmp/classification/test-service-classification.json \
-            --tier tier2 --output /tmp/backend-tests.txt
+            --tier tier2 --granularity class --output /tmp/backend-tests.txt
           echo "has-tiers=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -335,6 +335,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+      TIER_GRANULARITY: class
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -379,7 +380,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -433,8 +434,8 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
-      SENTRY_DEBUG_XDIST_DB: '1'
       SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+      TIER_GRANULARITY: class
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -527,7 +528,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n ${XDIST_WORKERS:-3} \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \

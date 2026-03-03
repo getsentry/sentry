@@ -448,9 +448,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                 selected_files = {line.strip() for line in f if line.strip()}
 
             if selected_files:
+                granularity = os.environ.get("TIER_GRANULARITY", "file")
                 for item in items:
-                    test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    parts = item.nodeid.split("::")
+                    key = "::".join(parts[:2]) if granularity == "class" else parts[0]
+                    if key in selected_files:
                         keep.append(item)
                     else:
                         discard.append(item)
