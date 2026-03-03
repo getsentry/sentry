@@ -4,7 +4,6 @@ import classNames from 'classnames';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {Gravatar} from './gravatar/gravatar';
 import {ImageAvatar} from './imageAvatar/imageAvatar';
 import {LetterAvatar} from './letterAvatar/letterAvatar';
 import type {BaseAvatarStyleProps} from './avatarComponentStyles';
@@ -68,17 +67,20 @@ export function Avatar({
         title={title}
         {...restProps}
       >
-        {type === 'upload' ? (
+        {type === 'upload' || type === 'gravatar' ? (
           <ImageAvatar
-            src={buildUploadUrl((avatarProps as UploadBaseAvatarProps).uploadUrl)}
+            definition={
+              type === 'upload'
+                ? {
+                    type: 'image',
+                    src: buildUploadUrl(avatarProps.uploadUrl),
+                  }
+                : {
+                    type: 'gravatar',
+                    gravatarId: avatarProps.gravatarId,
+                  }
+            }
             identifier={identifier}
-            name={name}
-            round={round}
-            suggested={suggested}
-          />
-        ) : type === 'gravatar' ? (
-          <Gravatar
-            gravatarId={(avatarProps as GravatarBaseAvatarProps).gravatarId}
             name={name}
             round={round}
             suggested={suggested}
