@@ -525,6 +525,7 @@ class Provider(Protocol):
         self,
         start_sha: CommitSHA,
         end_sha: CommitSHA,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
 
@@ -570,7 +571,9 @@ class Provider(Protocol):
 
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]: ...
 
-    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None: ...
+    def update_branch(
+        self, branch: BranchName, sha: CommitSHA, force: bool = False
+    ) -> ActionResult[GitRef]: ...
 
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]: ...
 

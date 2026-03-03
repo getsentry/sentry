@@ -188,7 +188,7 @@ class GitHubProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
-        comments = self.client.get_pull_request_comments(self.repository["name"], pull_request_id)
+        comments = self.client.get_issue_comments(self.repository["name"], pull_request_id)
         return PaginatedActionResult(
             data=[map_comment(c) for c in comments],
             type="github",
@@ -318,13 +318,22 @@ class GitHubProvider:
 
     @catch_provider_exception
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
-        branch_data = {"ref": f"refs/heads/{branch}", "sha": sha}
-        raw = self.client.create_git_ref(self.repository["name"], branch_data)
-        return map_action(raw, lambda r: GitRef(ref=r["ref"], sha=r["object"]["sha"]))
+        ref = f"refs/heads/{branch}"
+        raw = self.client.create_git_ref(self.repository["name"], {"ref": ref, "sha": sha})
+        return map_action(
+            raw, lambda r: GitRef(ref=r["ref"].removeprefix("refs/heads/"), sha=r["object"]["sha"])
+        )
 
     @catch_provider_exception
-    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
-        self.client.update_git_ref(self.repository["name"], branch, {"sha": sha, "force": force})
+    def update_branch(
+        self, branch: BranchName, sha: CommitSHA, force: bool = False
+    ) -> ActionResult[GitRef]:
+        raw = self.client.update_git_ref(
+            self.repository["name"], branch, {"sha": sha, "force": force}
+        )
+        return map_action(
+            raw, lambda r: GitRef(ref=r["ref"].removeprefix("refs/heads/"), sha=r["object"]["sha"])
+        )
 
     @catch_provider_exception
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]:
@@ -372,6 +381,7 @@ class GitHubProvider:
         self,
         start_sha: CommitSHA,
         end_sha: CommitSHA,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         raw_commits = self.client.compare_commits(self.repository["name"], start_sha, end_sha)

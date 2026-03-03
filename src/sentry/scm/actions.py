@@ -65,6 +65,9 @@ class SourceCodeManager:
         exposes a declarative interface. Developers declare what they want and the concrete
         implementation details of what's done are abstracted.
 
+        The SourceCodeManager _will_ throw exceptions. That is its intended operating mode. In your
+        application code you are expected to catch the base SCMError type.
+
         :param self:
         :param organization_id:
         :type organization_id: int
@@ -283,7 +286,9 @@ class SourceCodeManager:
         """Create a new branch pointing at the given SHA."""
         return self._exec(lambda p: p.create_branch(branch, sha))
 
-    def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:
+    def update_branch(
+        self, branch: BranchName, sha: CommitSHA, force: bool = False
+    ) -> ActionResult[GitRef]:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda p: p.update_branch(branch, sha, force))
 
@@ -323,9 +328,12 @@ class SourceCodeManager:
         self,
         start_sha: CommitSHA,
         end_sha: CommitSHA,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        return self._exec(lambda p: p.compare_commits(start_sha, end_sha, request_options))
+        return self._exec(
+            lambda p: p.compare_commits(start_sha, end_sha, pagination, request_options)
+        )
 
     def get_tree(
         self,
