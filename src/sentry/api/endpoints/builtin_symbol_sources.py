@@ -11,6 +11,11 @@ from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.utils.console_platforms import organization_has_console_platform_access
 
+# Game engine platforms that can target console hardware and may need
+# console-specific symbol sources (e.g., Nintendo symbols for a Unity
+# project shipping on Switch).
+GAME_ENGINE_PLATFORMS = frozenset({"native", "unity", "unreal", "godot"})
+
 
 def normalize_symbol_source(key, source):
     return {
@@ -48,15 +53,26 @@ class BuiltinSymbolSourcesEndpoint(Endpoint):
         for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
             source_platforms: list[str] | None = cast("list[str] | None", source.get("platforms"))
 
-            # If source has platform restrictions, check if current platform matches
+            # If source has platform restrictions, only show it when:
+            # 1. The project platform directly matches (e.g., nintendo-switch)
+            #    or is a game engine (native, unity, unreal, godot), AND
+            # 2. The organization has access to at least one of the source's
+            #    required console platforms.
+            # This allows e.g. Unity projects to see the Nintendo source
+            # if the org has nintendo-switch console access, without showing
+            # it to unrelated platforms like PlayStation or Python.
             if source_platforms is not None:
-                if not platform or platform not in source_platforms:
-                    continue
-
-                # Platform matches - now check if organization has access to this console platform
-                if not organization or not organization_has_console_platform_access(
-                    organization, platform
+                if not platform or (
+                    platform not in source_platforms and platform not in GAME_ENGINE_PLATFORMS
                 ):
+                    continue
+                if not organization:
+                    continue
+                has_access = any(
+                    organization_has_console_platform_access(organization, p)
+                    for p in source_platforms
+                )
+                if not has_access:
                     continue
 
             sources.append(normalize_symbol_source(key, source))

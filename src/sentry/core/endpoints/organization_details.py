@@ -1254,12 +1254,29 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 RegionScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
+                    current_console_platforms = serializer.validated_data.get(
+                        "enabledConsolePlatforms", []
+                    )
                     create_console_platform_audit_log(
                         request,
                         organization,
                         previous_console_platforms,
-                        serializer.validated_data.get("enabledConsolePlatforms", []),
+                        current_console_platforms,
                     )
+
+                    # If any console platforms were revoked, clean up their
+                    # symbol sources from all projects in the org.
+                    revoked_platforms = set(previous_console_platforms or []) - set(
+                        current_console_platforms
+                    )
+                    if revoked_platforms:
+                        from sentry.tasks.console_platform_cleanup import (
+                            remove_revoked_console_platform_sources,
+                        )
+
+                        remove_revoked_console_platform_sources.delay(
+                            organization.id, list(revoked_platforms)
+                        )
 
                     del changed_data["enabledConsolePlatforms"]
 
