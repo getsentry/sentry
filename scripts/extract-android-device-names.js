@@ -59,7 +59,7 @@ const content = fs.readFileSync('supported_devices.csv');
 const text = content.toString('utf16le').slice(1);
 const lines = text.split(LF);
 
-const headers = lines[0] ? parseCsvLine(lines[0]) : [];
+const headers = lines[0] ? parseCsvLine(lines[0].trim()) : [];
 
 const nameIdx = headers.indexOf('Marketing Name');
 const modelIdx = headers.indexOf('Model');
