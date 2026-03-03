@@ -4,7 +4,7 @@ import type {
   Rule,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 
-import DataScrubFormModal, {type DataScrubFormModalProps} from './dataScrubFormModal';
+import {DataScrubFormModal, type DataScrubFormModalProps} from './dataScrubFormModal';
 
 type Props = Omit<
   DataScrubFormModalProps,

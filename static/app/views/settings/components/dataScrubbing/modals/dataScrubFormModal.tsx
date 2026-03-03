@@ -85,7 +85,7 @@ export type DataScrubFormModalProps = ModalRenderProps & {
   projectId?: Project['id'];
 };
 
-function DataScrubFormModal({
+export function DataScrubFormModal({
   api,
   attributeResults: _attributeResults,
   endpoint,
@@ -571,8 +571,6 @@ function ReplaceCapturedCheckbox({
     </Tooltip>
   );
 }
-
-export default DataScrubFormModal;
 
 const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
