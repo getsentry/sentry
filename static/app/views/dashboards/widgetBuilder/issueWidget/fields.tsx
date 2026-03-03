@@ -1,7 +1,7 @@
 import type {Aggregation} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 
-type ColumnType =
+export type ColumnType =
   | 'boolean'
   | 'date'
   | 'duration'
