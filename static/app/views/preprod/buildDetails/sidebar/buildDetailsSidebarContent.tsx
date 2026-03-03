@@ -1,9 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import Placeholder from 'sentry/components/placeholder';
-import {space} from 'sentry/styles/space';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
@@ -51,6 +51,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 }
 
 function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
+  const theme = useTheme();
   return (
     <Flex direction="column" gap="2xl" {...props}>
       {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
@@ -79,7 +80,11 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
 
       {/* VCS info skeleton - matches KeyValueData.Card structure */}
       <SkeletonCard>
-        <Placeholder width="80px" height="18px" style={{marginBottom: space(3)}} />
+        <Placeholder
+          width="80px"
+          height="18px"
+          style={{marginBottom: theme.space['2xl']}}
+        />
         <Flex direction="column" gap="md">
           <Flex justify="between">
             <Placeholder width="40px" height="14px" />
@@ -112,7 +117,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
 }
 
 const SkeletonCard = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   background: ${p => p.theme.tokens.background.secondary};
