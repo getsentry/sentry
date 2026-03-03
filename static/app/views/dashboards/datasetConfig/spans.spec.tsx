@@ -200,5 +200,6 @@ describe('SpansConfig', () => {
     const href = link.getAttribute('href')!;
     expect(href).toContain('gen_ai.tool.name%3A%22Web%20Search%22');
     expect(href).toContain('gen_ai.operation.type%3Atool');
+    expect(href).toContain('span.status%3Ainternal_error');
   });
 });
