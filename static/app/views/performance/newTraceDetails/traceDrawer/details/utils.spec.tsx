@@ -54,8 +54,6 @@ describe('parseJsonWithFix', () => {
   });
 
   it('handles JSON with [Filtered] from PII data scrubbing without throwing', () => {
-    // Relay replaces sensitive values with the literal string "[Filtered]", which
-    // is not valid JSON.  parseJsonWithFix must not throw in this case.
     const data = '[Filtered]';
     const result = parseJsonWithFix(data);
     expect(result.fixedInvalidJson).toBe(true);
@@ -63,7 +61,6 @@ describe('parseJsonWithFix', () => {
   });
 
   it('handles JSON array containing [Filtered] values without throwing', () => {
-    // e.g. gen_ai.input.messages where some fields were scrubbed
     const data = '[{"role":"user","content":[Filtered]}]';
     const result = parseJsonWithFix(data);
     expect(result.fixedInvalidJson).toBe(true);
@@ -71,8 +68,6 @@ describe('parseJsonWithFix', () => {
   });
 
   it('handles JSON with bad escape sequences without throwing', () => {
-    // Some AI SDKs emit invalid escape sequences (e.g. \p, \j) that neither
-    // JSON.parse nor fixJson can repair.  parseJsonWithFix must not throw.
     const data = '{"message":"bad escape \\p sequence"}';
     const result = parseJsonWithFix(data);
     expect(result.fixedInvalidJson).toBe(true);
