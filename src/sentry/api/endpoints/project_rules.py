@@ -22,7 +22,7 @@ from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
@@ -690,7 +690,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="(DEPRECATED) List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),

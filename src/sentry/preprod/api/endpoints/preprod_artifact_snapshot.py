@@ -14,14 +14,17 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
+    SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
@@ -34,6 +37,8 @@ from sentry.preprod.snapshots.comparison_categorizer import (
 from sentry.preprod.snapshots.manifest import ComparisonManifest, ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import compare_snapshots
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -78,35 +83,22 @@ def validate_preprod_snapshot_post_schema(request_body: bytes) -> tuple[dict[str
 
 
 @region_silo_endpoint
-class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
+class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (OrganizationReleasePermission,)
 
-    rate_limits = RateLimitConfig(
-        limit_overrides={
-            "POST": {
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
-            }
-        }
-    )
-
-    def get(self, request: Request, project: Project, snapshot_id: str) -> Response:
-        """
-        Retrieves snapshot data including manifest images and VCS info.
-        """
-
+    def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
+            "organizations:preprod-snapshots", organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
-                id=snapshot_id, project_id=project.id
+                id=snapshot_id, project__organization_id=organization.id
             )
         except PreprodArtifact.DoesNotExist:
             return Response({"detail": "Snapshot not found"}, status=404)
@@ -121,7 +113,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(project.organization_id, project.id)
+            session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
             manifest_data = orjson.loads(get_response.payload.read())
             manifest = SnapshotManifest(**manifest_data)
@@ -195,8 +187,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         analytics.record(
             PreprodArtifactApiGetSnapshotDetailsEvent(
-                organization_id=project.organization_id,
-                project_id=project.id,
+                organization_id=organization.id,
+                project_id=artifact.project_id,
                 user_id=request.user.id if request.user and request.user.is_authenticated else None,
                 artifact_id=str(artifact.id),
             )
@@ -226,6 +218,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 comparison_manifest, images_by_file_name, base_manifest
             )
         else:
+            if comparison is not None:
+                base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
             categorized = CategorizedComparison()
             pending_or_failed_state = (
                 PreprodSnapshotComparison.objects.filter(
@@ -241,16 +235,27 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 .first()
             )
             if pending_or_failed_state is not None:
-                comparison_state = PreprodSnapshotComparison.State(
-                    pending_or_failed_state
-                ).name.lower()
+                comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
 
         comparison_type = "diff" if comparison_manifest is not None else "solo"
 
+        run_info: SnapshotComparisonRunInfo | None = None
+        if comparison_state is not None:
+            run_info = SnapshotComparisonRunInfo(state=comparison_state)
+        elif comparison is not None:
+            duration = comparison.date_updated - comparison.date_added
+            run_info = SnapshotComparisonRunInfo(
+                state=PreprodSnapshotComparison.State(comparison.state).name,
+                completed_at=comparison.date_updated.isoformat(),
+                duration_ms=int(duration.total_seconds() * 1000),
+            )
+
         def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
-            response = SnapshotDetailsApiResponse(
+            return SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,
+                project_id=str(artifact.project_id),
+                comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
                 images=images,
@@ -265,16 +270,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
-            )
-
-            result = response.dict()
-            result["org_id"] = str(project.organization_id)
-            result["project_id"] = str(project.id)
-            result["comparison_type"] = comparison_type
-            if comparison_state is not None:
-                result["comparison_state"] = comparison_state
-
-            return result
+                comparison_run_info=run_info,
+            ).dict()
 
         return self.paginate(
             request=request,
@@ -284,6 +281,23 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             default_per_page=20,
             max_per_page=100,
         )
+
+
+@region_silo_endpoint
+class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
+    owner = ApiOwner.EMERGE_TOOLS
+    publish_status = {
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
+    permission_classes = (ProjectReleasePermission,)
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
 
     def post(self, request: Request, project: Project) -> Response:
         if not settings.IS_DEV and not features.has(
@@ -374,19 +388,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         if base_sha and base_repo_name:
             try:
-                base_artifact = (
-                    PreprodArtifact.objects.filter(
-                        commit_comparison__organization_id=project.organization_id,
-                        commit_comparison__head_sha=base_sha,
-                        commit_comparison__head_repo_name=base_repo_name,
-                        project=project,
-                        preprodsnapshotmetrics__isnull=False,
-                        app_id=artifact.app_id,
-                        artifact_type=artifact.artifact_type,
-                        build_configuration=artifact.build_configuration,
-                    )
-                    .order_by("-date_added")
-                    .first()
+                base_artifact = find_base_snapshot_artifact(
+                    organization_id=project.organization_id,
+                    base_sha=base_sha,
+                    base_repo_name=base_repo_name,
+                    project_id=project.id,
+                    app_id=artifact.app_id,
+                    artifact_type=artifact.artifact_type,
+                    build_configuration=artifact.build_configuration,
                 )
                 if base_artifact:
                     logger.info(
@@ -431,6 +440,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "artifactId": str(artifact.id),
                 "snapshotMetricsId": str(snapshot_metrics.id),
                 "imageCount": snapshot_metrics.image_count,
+                "snapshotUrl": get_preprod_artifact_url(artifact, view_type="snapshots"),
             },
             status=200,
         )

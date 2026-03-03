@@ -41,13 +41,16 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   const theme = useTheme();
   const {selection} = usePageFilters();
 
+  const transactionSearch = new MutableSearch('');
+  transactionSearch.addFilterValue('transaction', transactionName);
+
   const {
     data: failureRateSeriesData,
     isPending: isFailureRateSeriesPending,
     isError: isFailureRateSeriesError,
   } = useFetchSpanTimeSeries(
     {
-      query: new MutableSearch(`transaction:${transactionName}`),
+      query: transactionSearch.copy(),
       yAxis: ['failure_rate()'],
     },
     REFERRER
@@ -59,7 +62,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     isError: isFailureRateValueError,
   } = useSpans(
     {
-      search: new MutableSearch(`transaction:${transactionName}`),
+      search: transactionSearch.copy(),
       fields: ['failure_rate()'],
       pageFilters: selection,
     },

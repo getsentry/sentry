@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -18,10 +17,7 @@ from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import TranslateAgenticRequest, make_translate_agentic_request
 
 logger = logging.getLogger(__name__)
 
@@ -68,28 +64,20 @@ def send_translate_agentic_request(
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
     """
-    body_dict: dict[str, Any] = {
-        "org_id": org_id,
-        "org_slug": org_slug,
-        "project_ids": project_ids,
-        "natural_language_query": natural_language_query,
-        "strategy": strategy,
-    }
-
+    body = TranslateAgenticRequest(
+        org_id=org_id,
+        org_slug=org_slug,
+        project_ids=project_ids,
+        natural_language_query=natural_language_query,
+        strategy=strategy,
+    )
     options: dict[str, Any] = {}
     if model_name is not None:
         options["model_name"] = model_name
-
     if options:
-        body_dict["options"] = options
+        body["options"] = options
 
-    body = orjson.dumps(body_dict)
-
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/translate-agentic",
-        body,
-    )
+    response = make_translate_agentic_request(body)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()

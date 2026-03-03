@@ -193,6 +193,13 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     except Organization.DoesNotExist:
         logger.error("Organization not found", extra={"org_id": organization_id})
         return
+    except Exception:
+        sentry_sdk.capture_exception()
+        logger.exception(
+            "Failed to build service map",
+            extra={"org_id": organization_id},
+        )
+        raise
 
 
 @instrumented_task(

@@ -5,9 +5,7 @@ import secrets
 import string
 from typing import Any
 
-import orjson
 import sentry_sdk
-from django.conf import settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
@@ -21,7 +19,6 @@ from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -29,13 +26,14 @@ from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentState,
     CodingAgentStatus,
+    StoreCodingAgentStatesRequest,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
+    make_store_coding_agent_states_request,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -83,21 +81,11 @@ def store_coding_agent_states_to_seer(
     """Store multiple coding agent states via Seer batch API."""
     if not coding_agent_states:
         return
-    path = "/v1/automation/autofix/coding-agent/state/set"
-    body = orjson.dumps(
-        {
-            "run_id": run_id,
-            "coding_agent_states": [state.dict() for state in coding_agent_states],
-        }
+    body = StoreCodingAgentStatesRequest(
+        run_id=run_id,
+        coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-
-    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
-    response = make_signed_seer_api_request(
-        connection_pool,
-        path,
-        body=body,
-        timeout=30,
-    )
+    response = make_store_coding_agent_states_request(body, timeout=30)
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)

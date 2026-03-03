@@ -27,11 +27,14 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import base32_encode, format_grouped_length
@@ -518,7 +521,57 @@ def count_performance_issues(
         referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
         query_source=query_source,
     )
-    return count["data"][0].get("total_groups", 0)
+    snuba_count = count["data"][0].get("total_groups", 0)
+    performance_issues_count = snuba_count
+
+    callsite = "api.trace.count_performance_issues"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_count = _count_performance_issues_eap(trace_id, params)
+        performance_issues_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count,
+            eap_count,
+            callsite,
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    params.organization.id if params.organization is not None else None
+                ),
+                "project_ids": [project.id for project in params.projects],
+                "start": params.start.isoformat() if params.start else None,
+                "end": params.end.isoformat() if params.end else None,
+            },
+        )
+
+    return performance_issues_count
+
+
+def _count_performance_issues_eap(trace_id: str, params: SnubaParams) -> int:
+    try:
+        eap_result = Occurrences.run_table_query(
+            params=params,
+            query_string=f"trace:{trace_id}",
+            selected_columns=["count()"],
+            orderby=None,
+            offset=0,
+            limit=1,
+            referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.GENERIC,
+        )
+        return int(eap_result["data"][0].get("count()", 0)) if eap_result.get("data") else 0
+    except Exception:
+        logger.exception(
+            "Fetching performance issue count from EAP failed",
+            extra={
+                "trace_id": trace_id,
+                "organization_id": params.organization.id if params.organization else None,
+                "project_ids": [project.id for project in params.projects],
+                "start": params.start.isoformat() if params.start else None,
+                "end": params.end.isoformat() if params.end else None,
+            },
+        )
+        return 0
 
 
 @sentry_sdk.tracing.trace

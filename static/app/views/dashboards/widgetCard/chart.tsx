@@ -74,6 +74,7 @@ import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
@@ -252,6 +253,17 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <TableWrapper>
+        <AgentsTracesTableWidgetVisualization
+          limit={widget.limit}
+          tableWidths={widget.tableWidths}
+        />
+      </TableWrapper>
     );
   }
 

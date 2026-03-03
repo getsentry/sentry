@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
@@ -154,3 +155,89 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert row["group_id"] == event.group_id
         assert row["level"] == "error"
         assert row["title"] == event.title
+
+
+class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        now = datetime.now()
+        self.start = now - timedelta(hours=1)
+        self.end = now + timedelta(hours=1)
+        self.referrer = "test.occurrences_common_queries"
+
+    def test_counts_all_occurrences(self) -> None:
+        group = self.create_group(project=self.project)
+        occurrences = [self.create_eap_occurrence(group_id=group.id) for _ in range(3)]
+        self.store_occurrences(occurrences)
+
+        result = count_occurrences(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            referrer=self.referrer,
+        )
+        assert result == 3
+
+    def test_filters_by_group_id(self) -> None:
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.project)
+        self.store_occurrences(
+            [
+                self.create_eap_occurrence(group_id=group_1.id),
+                self.create_eap_occurrence(group_id=group_2.id),
+                self.create_eap_occurrence(group_id=group_2.id),
+            ]
+        )
+
+        result_1 = count_occurrences(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            referrer=self.referrer,
+            group_id=group_1.id,
+        )
+        assert result_1 == 1
+
+        result_2 = count_occurrences(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            referrer=self.referrer,
+            group_id=group_2.id,
+        )
+        assert result_2 == 2
+
+    def test_filters_by_occurrence_category(self) -> None:
+        group = self.create_group(project=self.project)
+        self.store_occurrences(
+            [
+                self.create_eap_occurrence(group_id=group.id, occurrence_type="error"),
+                self.create_eap_occurrence(group_id=group.id, occurrence_type="error"),
+                self.create_eap_occurrence(group_id=group.id, occurrence_type="error"),
+                self.create_eap_occurrence(group_id=group.id, occurrence_type="generic"),
+                self.create_eap_occurrence(group_id=group.id, occurrence_type="generic"),
+            ]
+        )
+
+        error_count = count_occurrences(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            referrer=self.referrer,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        generic_count = count_occurrences(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            referrer=self.referrer,
+            occurrence_category=OccurrenceCategory.GENERIC,
+        )
+
+        assert error_count == 3
+        assert generic_count == 2

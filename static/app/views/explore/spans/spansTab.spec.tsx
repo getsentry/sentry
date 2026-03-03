@@ -653,7 +653,7 @@ describe('SpansTabContent', () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization: {
           ...organization,
-          features: [...organization.features, 'performance-spans-suspect-attributes'],
+          features: [...organization.features],
         },
         additionalWrapper: Wrapper,
         initialRouterConfig: {
@@ -674,7 +674,7 @@ describe('SpansTabContent', () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization: {
           ...organization,
-          features: [...organization.features, 'performance-spans-suspect-attributes'],
+          features: [...organization.features],
         },
         additionalWrapper: Wrapper,
         initialRouterConfig: {

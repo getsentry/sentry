@@ -123,7 +123,7 @@ describe('convertWidgetToBuilderStateParams', () => {
     );
   });
 
-  it('omits axisRange when widget axisRange is null', () => {
+  it('defaults axisRange to auto when widget axisRange is null', () => {
     const widget = {
       ...getDefaultWidget(WidgetType.ERRORS),
       axisRange: null,
@@ -132,10 +132,10 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(
       widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
     );
-    expect(params.axisRange).toBeUndefined();
+    expect(params.axisRange).toBe('auto');
   });
 
-  it('omits axisRange when widget axisRange is invalid', () => {
+  it('defaults axisRange to auto when widget axisRange is invalid', () => {
     const widget = {
       ...getDefaultWidget(WidgetType.ERRORS),
       axisRange: 'invalid',
@@ -144,7 +144,7 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(
       widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
     );
-    expect(params.axisRange).toBeUndefined();
+    expect(params.axisRange).toBe('auto');
   });
 
   describe('traceMetric', () => {

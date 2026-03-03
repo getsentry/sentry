@@ -27,6 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -60,6 +61,7 @@ export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
   caseInsensitive?: CaseInsensitive;
+  chartSelection?: ChartSelectionQueryParam;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -80,6 +82,7 @@ export function getExploreUrl({
   interval,
   mode,
   aggregateField,
+  chartSelection,
   visualize,
   query,
   groupBy,
@@ -114,6 +117,7 @@ export function getExploreUrl({
     title,
     referrer,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
   };
 
   return (

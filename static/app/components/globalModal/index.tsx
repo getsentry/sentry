@@ -148,7 +148,7 @@ function GlobalModal({onClose}: Props) {
     [closeModal, closeEvents]
   );
 
-  const scrollLock = useScrollLock(document.documentElement);
+  const scrollLock = useScrollLock(document.body);
   const portal = getModalPortal();
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
