@@ -66,6 +66,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      measure: jest.fn(),
       options: {
         scrollMargin: 0,
       },

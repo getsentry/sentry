@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -73,7 +73,6 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
   const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
   const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -121,7 +120,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   return (
     <OurLogsContentWrapper>
       <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
-      <TableScrollContainer ref={scrollContainerRef}>
+      <TableScrollContainer>
         {isPending ? (
           <Placeholder height="100%" />
         ) : (
@@ -129,7 +128,6 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             stringAttributes={stringAttributes}
             numberAttributes={numberAttributes}
             booleanAttributes={booleanAttributes}
-            scrollContainer={scrollContainerRef}
             allowPagination
             embedded
             embeddedOptions={embeddedOptions}

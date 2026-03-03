@@ -2,6 +2,7 @@ import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
+import {mockGetBoundingClientRect} from 'sentry-fixture/virtualization';
 
 import {
   render,
@@ -20,6 +21,8 @@ import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAuto
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
+
+beforeEach(mockGetBoundingClientRect);
 
 describe('LogsPage', () => {
   let organization: Organization;

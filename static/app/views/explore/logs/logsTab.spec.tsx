@@ -1,5 +1,6 @@
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
+import {mockGetBoundingClientRect} from 'sentry-fixture/virtualization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -27,6 +28,8 @@ const datePageFilterProps: DatePageFilterProps = {
     '7d': 'Last 7 days',
   }),
 };
+
+beforeEach(mockGetBoundingClientRect);
 
 describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
