@@ -250,7 +250,6 @@ export default class ThresholdsChart extends PureComponent<Props> {
     const durationUnit = isDurationChart
       ? getDurationUnit(dataWithoutRecentBucket)
       : undefined;
-    const sizeUnit = timeseriesResultsUnits?.[aggregate];
     const rateUnit = Object.values(RateUnit).includes(
       timeseriesResultsUnits?.[aggregate] as RateUnit
     )
@@ -346,9 +345,7 @@ export default class ThresholdsChart extends PureComponent<Props> {
                 outputType,
                 true,
                 durationUnit,
-                rateUnit,
-                undefined,
-                sizeUnit
+                rateUnit
               );
             }
             return alertAxisFormatter(value, data[0]!.seriesName, aggregate);

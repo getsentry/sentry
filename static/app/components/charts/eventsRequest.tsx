@@ -670,7 +670,8 @@ export function transformTimeseriesData(
 ): Series[] {
   let scale = 1;
   if (seriesName) {
-    const unit = meta?.units?.[getAggregateAlias(seriesName)];
+    const unit =
+      meta?.units?.[seriesName] ?? meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
     scale =
       ((unit &&
