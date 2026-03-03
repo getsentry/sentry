@@ -19,7 +19,6 @@ import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   SessionFieldWithOperation,
   SessionStatus,
@@ -1190,7 +1189,7 @@ const ShowMoreWrapper = styled('div')`
     cursor: pointer;
   }
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;
 
@@ -1203,6 +1202,6 @@ const ShowMoreTitle = styled('div')`
   align-items: center;
   justify-content: flex-start;
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space['2xs']};
   }
 `;
