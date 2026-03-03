@@ -93,6 +93,16 @@ class FrameworkDef(TypedDict):
 # Each framework is a self-contained definition with composable detector rules.
 # Inspired by Vercel's framework detection:
 # github.com/vercel/vercel/blob/main/packages/frameworks/src/frameworks.ts
+#
+# The `sort` field controls priority for onboarding recommendations.
+# Lower sort = higher priority. Converted to `priority = 100 - sort` in output.
+#
+#   sort=1      Meta-frameworks         Next.js, Remix, Nuxt, SvelteKit
+#   sort=10     Primary frameworks      Django, Rails, Laravel, Spring Boot
+#   sort=20     Secondary frameworks    Flask, Go frameworks, PHP Symfony
+#   sort=30     UI / general            React, Vue, Angular, Svelte, Starlette
+#   sort=40     Server frameworks       Express, Koa
+#   sort=60     Utilities / background  Celery
 FRAMEWORKS: list[FrameworkDef] = [
     # --- JavaScript meta-frameworks (sort=1, highest priority) ---
     {
