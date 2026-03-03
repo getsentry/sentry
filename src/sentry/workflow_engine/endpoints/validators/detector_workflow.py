@@ -17,6 +17,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 # Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
 SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
@@ -25,7 +26,8 @@ USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
 
 def is_system_created_detector(detector: Detector) -> bool:
     return (
-        detector.type in (ErrorGroupType.slug,) or detector.type in PERFORMANCE_WFE_DETECTOR_TYPES
+        detector.type in (ErrorGroupType.slug, IssueStreamGroupType.slug)
+        or detector.type in PERFORMANCE_WFE_DETECTOR_TYPES
     )
 
 
