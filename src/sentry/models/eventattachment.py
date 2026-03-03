@@ -80,8 +80,6 @@ class EventAttachment(Model):
       The default :func:`get_storage` is used as the backing store.
       The attachment data is not chunked or deduplicated in this case.
       However, it is `zstd` compressed.
-    - When the `blob_path` field has a `v2/` prefix:
-      The objectstore is used as the backing store.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
