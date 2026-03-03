@@ -14,7 +14,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {generateQueryWithTag, percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -171,8 +170,8 @@ export default GroupTagsRoute;
 const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPanel = styled(Panel)`
@@ -210,8 +209,8 @@ const TagBarLink = styled(Link)`
   display: flex;
   line-height: 2.2;
   color: ${p => p.theme.tokens.content.primary};
-  margin-bottom: ${space(0.5)};
-  padding: 0 ${space(1)};
+  margin-bottom: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.md};
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
@@ -240,7 +239,7 @@ const TagBarLabel = styled('div')`
 const TagBarCount = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   position: relative;
-  padding-left: ${space(2)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space.xl};
+  padding-right: ${p => p.theme.space.md};
   font-variant-numeric: tabular-nums;
 `;

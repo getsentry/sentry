@@ -6,7 +6,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -99,13 +98,13 @@ const Wrapper = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.font.size.lg};
   border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)};
+  padding: 40px ${p => p.theme.space['2xl']};
   min-height: 260px;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: center;
-    padding: ${space(3)};
+    padding: ${p => p.theme.space['2xl']};
     text-align: center;
   }
 `;

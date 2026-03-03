@@ -12,7 +12,6 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -273,6 +272,6 @@ function getProfileTimeWindow(event: Event): {end: string; start: string} | null
 
 const ProfilePreviewContainer = styled('div')`
   height: 200px;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   position: relative;
 `;

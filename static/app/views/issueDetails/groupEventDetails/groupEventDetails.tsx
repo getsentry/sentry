@@ -11,7 +11,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
-import {space} from 'sentry/styles/space';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -246,14 +245,14 @@ const StyledLayoutBody = styled(Layout.Body)`
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space.md};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -263,10 +262,11 @@ const StyledLayoutMain = styled(Layout.Main)`
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding-right: ${space(4)};
+    padding-right: ${p => p.theme.space['3xl']};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

@@ -18,7 +18,6 @@ import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -460,11 +459,11 @@ const StickyActions = styled(Sticky)`
 const ActionsBarContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   min-height: 36px;
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
-  padding-left: ${space(2)};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.xl};
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: 6px 6px 0 0;
@@ -476,7 +475,7 @@ const HeaderButtonsWrapper = styled(motion.div)`
   }
   grid-column: 2 / -1;
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-auto-flow: column;
   justify-content: flex-start;
   white-space: nowrap;
