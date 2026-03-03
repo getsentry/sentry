@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {ImageAvatar} from '@sentry/scraps/avatar/imageAvatar/imageAvatar';
@@ -25,9 +25,27 @@ interface GravatarProps
 }
 
 export function Gravatar({gravatarId, ...props}: GravatarProps) {
-  const avatarHash = useGravatarHash(gravatarId);
+  const trimmedGravatarId = gravatarId.trim();
+  const {data: avatarHash} = useQuery({
+    queryKey: ['gravatar', trimmedGravatarId],
+    queryFn: () => {
+      if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+        return null;
+      }
+      return hashGravatarId(trimmedGravatarId).catch(err => {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['gravatar-hash-error']);
+          Sentry.captureException(err);
+        });
+        return null;
+      });
+    },
+    retry: 0,
+    staleTime: Infinity,
+    networkMode: 'always',
+  });
 
-  if (avatarHash === null) {
+  if (!avatarHash) {
     return <LetterAvatar identifier={gravatarId} {...props} />;
   }
 
@@ -44,30 +62,6 @@ export function Gravatar({gravatarId, ...props}: GravatarProps) {
       })}`}
     />
   );
-}
-
-function useGravatarHash(gravatarId: string) {
-  const [avatarHash, setAvatarHash] = useState<string | null>(null);
-
-  useEffect(() => {
-    const trimmedGravatarId = gravatarId.trim();
-    if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
-      setAvatarHash(null);
-      return;
-    }
-
-    hashGravatarId(trimmedGravatarId)
-      .then(hash => setAvatarHash(hash))
-      .catch(error => {
-        setAvatarHash(null);
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['gravatar-hash-error']);
-          Sentry.captureException(error);
-        });
-      });
-  }, [gravatarId]);
-
-  return avatarHash;
 }
 
 /**
