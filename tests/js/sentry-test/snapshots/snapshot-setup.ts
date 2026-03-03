@@ -24,7 +24,6 @@ if (typeof globalThis.window === 'undefined') {
   const localStorageShim = makeStorageShim();
   const sessionStorageShim = makeStorageShim();
 
-  // @ts-expect-error - Intentional minimal shim for SSR
   globalThis.window = {
     localStorage: localStorageShim,
     sessionStorage: sessionStorageShim,
@@ -35,7 +34,7 @@ if (typeof globalThis.window === 'undefined') {
     matchMedia: () => ({matches: false, addListener: () => {}, removeListener: () => {}}),
     getComputedStyle: () => ({}),
     requestAnimationFrame: (cb: () => void) => setTimeout(cb, 0),
-  };
+  } as any;
 
   globalThis.localStorage = localStorageShim as unknown as Storage;
 }

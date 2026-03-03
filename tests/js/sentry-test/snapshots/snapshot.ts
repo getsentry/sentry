@@ -55,6 +55,7 @@ function renderToHTML(element: ReactElement, themeName: 'light' | 'dark'): strin
   const wrapped = createElement(
     CacheProvider,
     {value: cache},
+    // @ts-expect-error -- ThemeProvider types require children in props, but createElement accepts children as the third arg
     createElement(ThemeProvider, {theme}, element)
   );
 
@@ -87,9 +88,9 @@ function getOutputDir(): string {
   return path.resolve(PROJECT_ROOT, '.artifacts/visual-snapshots');
 }
 
-let _browserPromise: Promise<ReturnType<typeof chromium.connect>> | null = null;
+let _browserPromise: ReturnType<typeof chromium.connect> | null = null;
 
-function getBrowser() {
+function getBrowser(): ReturnType<typeof chromium.connect> {
   if (!_browserPromise) {
     const wsEndpoint = process.env.__SNAPSHOT_BROWSER_WS__;
     if (!wsEndpoint) {
@@ -150,13 +151,11 @@ export async function takeSnapshot(
       // Dump additional options as metadata
       ...options,
     };
-    await Promise.all([
-      writeFileSync(path.join(outputDir, imageFilename), screenshot),
-      writeFileSync(
-        path.join(outputDir, `${coreFilename}.json`),
-        JSON.stringify(metadata, null, 2)
-      ),
-    ]);
+    writeFileSync(path.join(outputDir, imageFilename), screenshot);
+    writeFileSync(
+      path.join(outputDir, `${coreFilename}.json`),
+      JSON.stringify(metadata, null, 2)
+    );
   } finally {
     await context.close();
   }
