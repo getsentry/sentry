@@ -334,7 +334,7 @@ def _launch_agents_for_repos(
                                 sentry_sdk.capture_exception(level="warning")
                 elif (
                     installation is not None
-                    and installation.model.provider == "cursor"
+                    and getattr(getattr(installation, "model", None), "provider", None) == "cursor"
                     and e.code == 400
                     and e.text
                     and "Failed to verify existence of branch" in e.text
