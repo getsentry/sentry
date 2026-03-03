@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconBusiness, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -80,7 +79,7 @@ const StyledEmptyMessage = styled(EmptyMessage)`
 const ButtonGroup = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 export default DisabledDiscardGroup;
