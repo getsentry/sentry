@@ -87,7 +87,10 @@ function MetricIssueChartContent({
   openPeriods: GroupOpenPeriod[];
 }) {
   const {selection} = usePageFilters();
-  const {openPeriod} = useEventOpenPeriod({groupId: group.id, eventId: event?.id});
+  const {openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
+    groupId: group.id,
+    eventId: event?.id,
+  });
 
   const {
     chartProps,
@@ -98,10 +101,11 @@ function MetricIssueChartContent({
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
     height: CHART_HEIGHT,
+    enabled: !isOpenPeriodPending,
     ...normalizeDateTimeParams(selection.datetime),
   });
 
-  if (isLoading) {
+  if (isOpenPeriodPending || isLoading) {
     return <MetricIssueChartPlaceholder />;
   }
 

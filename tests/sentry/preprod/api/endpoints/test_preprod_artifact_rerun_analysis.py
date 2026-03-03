@@ -77,6 +77,8 @@ class BaseRerunAnalysisTest(APITestCase):
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
         assert artifact.error_code is None
         assert artifact.error_message is None
+        assert artifact.installable_app_error_code is None
+        assert artifact.installable_app_error_message is None
 
 
 class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
@@ -154,6 +156,24 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
 
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         assert PreprodArtifactSizeMetrics.objects.filter(id=size_metric_2.id).exists()
+
+    def test_rerun_analysis_clears_distribution_error_fields(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="test_artifact",
+            app_id="com.test.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+            installable_app_error_message="Distribution quota exceeded",
+        )
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        self.assert_artifact_reset(artifact)
 
     @patch(
         "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"

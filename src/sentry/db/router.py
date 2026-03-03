@@ -74,6 +74,7 @@ class SiloRouter:
         "releases_commitfilechange": SiloMode.REGION,
         "sentry_actor": SiloMode.REGION,
         "sentry_alertruleactivations": SiloMode.REGION,
+        "sentry_code_review_event": SiloMode.REGION,
         "sentry_dashboardwidgetsnapshot": SiloMode.REGION,
         "sentry_datasecrecywaiver": SiloMode.REGION,
         "sentry_incidentseen": SiloMode.REGION,

@@ -231,11 +231,9 @@ export function AutoSaveField<
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form as never}>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
-        <form.FormWrapper>
-          <form.AppField name={name}>{field => children(field as never)}</form.AppField>
-        </form.FormWrapper>
+        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
       </AutoSaveContextProvider>
     </form.AppForm>
   );

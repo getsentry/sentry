@@ -27,7 +27,6 @@ from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.objectstore import get_attachments_session, get_symbolicator_url
-from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
@@ -188,13 +187,6 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
 
-        force_stored_attachment = not minidump.stored_id and in_random_rollout(
-            "objectstore.force-stored-symbolication"
-        )
-        if force_stored_attachment:
-            session = get_attachments_session(self.project.organization_id, self.project.id)
-            minidump.stored_id = session.put(minidump.load_data(self.project))
-
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, minidump.stored_id)
@@ -209,13 +201,8 @@ class Symbolicator:
                     "rewrite_first_module": rewrite_first_module,
                 },
             }
-            try:
-                res = self._process("process_minidump", "symbolicate-any", json=json)
-                return process_response(res)
-            finally:
-                if force_stored_attachment:
-                    session.delete(minidump.stored_id)
-                    minidump.stored_id = None
+            res = self._process("process_minidump", "symbolicate-any", json=json)
+            return process_response(res)
 
         data = {
             "platform": orjson.dumps(platform).decode(),
@@ -233,13 +220,6 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
 
-        force_stored_attachment = not report.stored_id and in_random_rollout(
-            "objectstore.force-stored-symbolication"
-        )
-        if force_stored_attachment:
-            session = get_attachments_session(self.project.organization_id, self.project.id)
-            report.stored_id = session.put(report.load_data(self.project))
-
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, report.stored_id)
@@ -253,13 +233,8 @@ class Symbolicator:
                     "storage_url": storage_url,
                 },
             }
-            try:
-                res = self._process("process_applecrashreport", "symbolicate-any", json=json)
-                return process_response(res)
-            finally:
-                if force_stored_attachment:
-                    session.delete(report.stored_id)
-                    report.stored_id = None
+            res = self._process("process_applecrashreport", "symbolicate-any", json=json)
+            return process_response(res)
 
         data = {
             "platform": orjson.dumps(platform).decode(),

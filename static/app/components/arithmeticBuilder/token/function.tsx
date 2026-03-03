@@ -288,7 +288,7 @@ function InternalInput({
   );
 
   const attributesFilter = useMemo(() => {
-    if (parameterDefinition && parameterDefinition.kind === 'column') {
+    if (parameterDefinition?.kind === 'column') {
       const columnTypes = parameterDefinition.columnTypes;
       return typeof columnTypes === 'function'
         ? columnTypes
@@ -397,11 +397,7 @@ function InternalInput({
   const onInputCommit = useCallback(() => {
     let value = inputValue.trim() || argument.label;
 
-    if (
-      defined(getSuggestedKey) &&
-      parameterDefinition &&
-      parameterDefinition.kind === 'column'
-    ) {
+    if (defined(getSuggestedKey) && parameterDefinition?.kind === 'column') {
       value = getSuggestedKey(value) ?? value;
     }
 

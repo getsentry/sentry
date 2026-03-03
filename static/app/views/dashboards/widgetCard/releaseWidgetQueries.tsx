@@ -248,7 +248,7 @@ function ReleaseWidgetQueries({
       let releaseCondition = '';
       const releasesArray: string[] = [];
       if (isCustomReleaseSorting) {
-        if (releases && releases.length === 1) {
+        if (releases?.length === 1) {
           releaseCondition += `release:${releases[0]!.version}`;
           releasesArray.push(releases[0]!.version);
         }
@@ -281,7 +281,7 @@ function ReleaseWidgetQueries({
 
       const releasesArray: string[] = [];
       if (requiresCustomReleaseSorting(widget.queries[0]!)) {
-        if (releases && releases.length === 1) {
+        if (releases?.length === 1) {
           releasesArray.push(releases[0]!.version);
         }
         if (releases && releases.length > 1) {

@@ -26,6 +26,11 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+        # Shared 10am timestamps in the past to avoid midnight flakiness and future timestamps in CI.
+        self.reference_time_10am = before_now(days=1).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.reference_time_10am_3_days_ago = self.reference_time_10am - timedelta(days=2)
 
     def double_write_segment(
         self,
@@ -92,7 +97,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         timestamps = []
 
         # move this 3 days into the past to ensure less flakey tests
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
+        now = self.reference_time_10am_3_days_ago
 
         trace_id_1 = uuid4().hex
         timestamps.append(now - timedelta(minutes=10))
@@ -418,7 +423,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -481,7 +486,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id_1 = "1" + uuid4().hex[:15]
         span_id_2 = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -568,7 +573,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -631,7 +636,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
         self.create_project()
 
@@ -695,7 +700,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -756,7 +761,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         ]
 
     def test_use_separate_referrers(self) -> None:
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         start = now - timedelta(days=2)
         end = now - timedelta(days=1)
         trace_id = uuid4().hex
@@ -932,9 +937,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
     def test_environment_filter(self) -> None:
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
-        timestamp = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
-            days=3
-        )
+        timestamp = self.reference_time_10am_3_days_ago
 
         self.double_write_segment(
             project=self.project,
@@ -1159,7 +1162,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def test_span_name_as_name(self) -> None:
         project = self.create_project()
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
+        now = self.reference_time_10am_3_days_ago
         trace_id = uuid4().hex
 
         self.double_write_segment(
