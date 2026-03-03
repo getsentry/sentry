@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 
 import {defined} from 'sentry/utils';
@@ -34,6 +34,7 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import {TEXT_WIDGET_CONTENT_SESSION_KEY} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -144,6 +145,7 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
+  textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
   traceMetric?: TraceMetric;
@@ -228,10 +230,27 @@ function useWidgetBuilderState(): {
     serializer: serializeTraceMetric,
   });
 
+  // Text widget content is stored in local state (not in the URL) because it can be
+  // arbitrarily long. All other widget types use the URL-backed `description` above.
+  // When editing an existing text widget, convertWidgetToBuilderStateParams stores the
+  // content in sessionStorage before navigating here — we consume it on first render.
+  const [textContent, setTextContent] = useState<string | undefined>(() => {
+    if (displayType === DisplayType.TEXT) {
+      const stored = sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
+      if (stored !== null) {
+        sessionStorage.removeItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
+        return stored;
+      }
+    }
+    return undefined;
+  });
+
   const state = useMemo(
     () => ({
       title,
-      description,
+      // For text widgets, description is stored in local state to avoid URL length limits.
+      // All other widget types use the URL-backed description.
+      description: displayType === DisplayType.TEXT ? textContent : description,
       displayType,
       dataset,
       fields,
@@ -265,6 +284,7 @@ function useWidgetBuilderState(): {
       thresholds,
       linkedDashboards,
       traceMetric,
+      textContent,
     ]
   );
 
@@ -276,10 +296,19 @@ function useWidgetBuilderState(): {
           setTitle(action.payload, options);
           break;
         case BuilderStateAction.SET_DESCRIPTION:
-          setDescription(action.payload, options);
+          // Text widgets use local state to avoid URL length limits
+          if (displayType === DisplayType.TEXT) {
+            setTextContent(action.payload);
+          } else {
+            setDescription(action.payload, options);
+          }
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload, options);
+          // When leaving the text widget type, clear local text content
+          if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
+            setTextContent(undefined);
+          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
@@ -410,7 +439,11 @@ function useWidgetBuilderState(): {
             // Categorical bars show more categories than time-series groupings
             setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
           } else if (action.payload === DisplayType.TEXT) {
-            // Text widgets don't need any data fields, just title and description
+            // Text widgets don't need any data fields, just title and description.
+            // Move any existing URL description into local state and clear the URL param
+            // to prevent excessively long URLs when the user types content.
+            setTextContent(description ?? '');
+            setDescription(undefined, options);
             setFields([], options);
             setYAxis([], options);
             setQuery([''], options);
@@ -764,7 +797,14 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
-          setDescription(action.payload.description, options);
+          // Text widget content lives in local state to avoid URL length limits
+          if (action.payload.displayType === DisplayType.TEXT) {
+            setTextContent(action.payload.description);
+            setDescription(undefined, options);
+          } else {
+            setDescription(action.payload.description, options);
+            setTextContent(undefined);
+          }
           setDisplayType(action.payload.displayType, options);
           if (action.payload.field) {
             setFields(deserializeFields(action.payload.field), options);
@@ -950,6 +990,8 @@ function useWidgetBuilderState(): {
       limit,
       setTraceMetric,
       traceMetric,
+      setTextContent,
+      description,
     ]
   );
 
