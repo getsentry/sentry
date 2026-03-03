@@ -13,7 +13,16 @@ import {CompactDemo, ConditionalDemo, QuickStartDemo} from './__stories__/formDe
 
 import * as Storybook from 'sentry/stories';
 
-The form system provides two modes for building forms:
+Sentry's form system is built on top of [TanStack Form](https://tanstack.com/form/latest), a headless, type-safe form library for React. Because TanStack Form is headless, it handles form state, validation, and submission without imposing any UI — our system layers Sentry's field components, layouts, and accessibility patterns on top.
+
+Validation is schema-driven with [Zod](https://zod.dev/). You define a single schema for your form, and the system takes care of field-level validation, error messages, and type inference — your `mutationFn`, field values, and default values are all typed from the schema automatically.
+
+The goal is to stay out of your way when you need flexibility while giving you consistency and accessibility out of the box. Standard fields, layouts, error handling, and auto-save patterns all work the same across the app without extra wiring.
+
+> [!TIP]
+> TanStack provides an [MCP server](https://tanstack.com/form/latest/docs/mcp) that gives your AI editor access to up-to-date TanStack Form documentation. It's worth setting up if you're building forms frequently.
+
+The form system provides two modes:
 
 - **Submit-based forms** — Use `useScrapsForm` for traditional forms with a submit button. Best for creation flows, dialogs, and multi-field submissions.
 - **Auto-save fields** — Use `AutoSaveField` for settings pages where each field saves independently on blur or change. See [AutoSaveField](./autoSaveField.mdx).
