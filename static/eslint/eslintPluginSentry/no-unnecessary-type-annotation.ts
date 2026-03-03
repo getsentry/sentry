@@ -139,7 +139,9 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        const annotationType = checker.getTypeFromTypeNode(annotationTSNode);
+        const annotationType = checker.getTypeFromTypeNode(
+          annotationTSNode as ts.TypeNode
+        );
         const inferredType = checker.getTypeAtLocation(initTSNode);
 
         if (isEscapeHatch(annotationType) || containsAny(inferredType)) {
