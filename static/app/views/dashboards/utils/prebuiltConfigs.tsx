@@ -7,6 +7,7 @@ import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuil
 import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpResources';
 import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpTools';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
+import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/caches';
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
 import {FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsSummary';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
@@ -55,6 +56,7 @@ export enum PrebuiltDashboardId {
   FRONTEND_ASSETS_SUMMARY = 25,
   BACKEND_QUEUES = 26,
   BACKEND_QUEUE_SUMMARY = 27,
+  BACKEND_CACHES = 28,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -93,4 +95,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY]: FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUEUES]: QUEUES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
 };

@@ -38,6 +38,7 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
     SummarizeIssueRequest,
     make_signed_seer_api_request,
     make_summarize_issue_request,
@@ -281,12 +282,14 @@ class FixabilityScoreRequest(TypedDict):
 def make_fixability_score_request(
     body: FixabilityScoreRequest,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 

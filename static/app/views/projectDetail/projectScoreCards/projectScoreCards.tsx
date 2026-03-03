@@ -61,7 +61,7 @@ function ProjectScoreCards({
         query={query}
       />
 
-      {isPlatformANRCompatible(project?.platform, project?.features) ? (
+      {isPlatformANRCompatible(project?.platform) ? (
         <ProjectAnrScoreCard
           organization={organization}
           selection={selection}

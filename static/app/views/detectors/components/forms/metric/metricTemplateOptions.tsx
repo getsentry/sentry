@@ -61,6 +61,12 @@ export const METRIC_TEMPLATE_OPTIONS: TemplateOption[] = [
     aggregate: 'count(message)',
   },
   {
+    key: 'trace_item_metrics',
+    label: t('Custom Metrics'),
+    detectorDataset: DetectorDataset.METRICS,
+    aggregate: 'sum(value,,,-)',
+  },
+  {
     key: 'crash_free_sessions',
     label: t('Crash Free Session Rate'),
     detectorDataset: DetectorDataset.RELEASES,
