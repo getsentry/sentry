@@ -316,7 +316,7 @@ def test_observability_metrics_parent_span_already_oversized(
     # Batch 2: Span C (child of A) arrives in a separate batch. Its redirect
     # resolves to B's set, triggering a merge where dest_bytes > threshold.
     oversized_payload = orjson.dumps({"span_id": "a" * 16, "blob": "x" * 2048})
-    spans = [
+    spans: list[Span | _SplitBatch] = [
         Span(
             payload=oversized_payload,
             trace_id="a" * 32,
