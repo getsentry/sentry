@@ -197,10 +197,10 @@ Slider input for numeric values within a range.
 
 ## Radio
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`. The group renders a `<fieldset>`, and when the layout is placed _inside_ the group, the label automatically renders as a `<legend>` for correct accessibility semantics.
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`.
 
 > [!WARNING]
-> The layout **must** be rendered inside `Radio.Group`. Placing it outside will produce a `<label>` instead of the correct `<legend>` element.
+> The layout **must** be rendered inside `Radio.Group`. The group provides context that changes how the label is rendered for proper accessibility semantics.
 
 ```jsx
 <form.AppField name="priority">
