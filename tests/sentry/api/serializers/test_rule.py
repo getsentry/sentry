@@ -762,3 +762,85 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         # actions part of response are both []
         self.assert_equal_serializers(rule)
+
+    @responses.activate
+    def test_disabled_action_included_when_component_fails(self) -> None:
+        """
+        Test that disabled actions are included in the response when component
+        preparation fails (e.g., external API returns error).
+
+        This test verifies that both RuleSerializer and WorkflowEngineRuleSerializer
+        handle disabled actions consistently - they should both include the action
+        with disabled=True when the component fails to load.
+        """
+        # Mock the external API to return an error, causing prepare_ui_component to fail
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json={"error": "Service unavailable"},
+            status=500,
+        )
+
+        schema = {"elements": [self.create_alert_rule_action_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=actions,
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+
+        # Serialize with RuleSerializer
+        serialized_rule = serialize(rule, self.user, RuleSerializer(prepare_component_fields=True))
+
+        # RuleSerializer should include the disabled action
+        assert len(serialized_rule["actions"]) == 1
+        assert serialized_rule["actions"][0]["disabled"] is True
+        assert "errors" in serialized_rule
+        assert (
+            serialized_rule["errors"][0]["detail"]
+            == "Could not fetch details from Test Application"
+        )
+
+        # Now serialize the workflow version
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = arw.workflow
+
+        serialized_workflow = serialize(
+            workflow, self.user, WorkflowEngineRuleSerializer(prepare_component_fields=True)
+        )
+
+        # WorkflowEngineRuleSerializer should also include the disabled action
+        # This assertion will fail with the current implementation, demonstrating the bug
+        assert len(serialized_workflow["actions"]) == 1, (
+            "WorkflowEngineRuleSerializer should include disabled actions, "
+            f"but got {len(serialized_workflow['actions'])} actions"
+        )
+        assert serialized_workflow["actions"][0]["disabled"] is True
+        assert "errors" in serialized_workflow
+        assert (
+            serialized_workflow["errors"][0]["detail"]
+            == "Could not fetch details from Test Application"
+        )

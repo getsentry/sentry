@@ -447,9 +447,36 @@ class WorkflowEngineRuleSerializer(Serializer):
         results = get_last_fired_dates([w.id for w in item_list])
         return {wf_id: date for wf_id, date in results.items() if date is not None}
 
+    def _fetch_sentry_app_installations_by_uuid(
+        self,
+        workflow: Workflow,
+        action_to_action_data: Mapping[Action, Any],
+        actions_with_handlers: list[Action],
+    ) -> Mapping[str, RpcSentryAppComponentContext]:
+        from sentry.sentry_apps.services.app import app_service
+
+        sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
+        if self.prepare_component_fields:
+            sentry_app_uuids = [
+                sentry_app_uuid
+                for sentry_app_uuid in (
+                    action_to_action_data[action].get("sentryAppInstallationUuid")
+                    for action in actions_with_handlers
+                )
+                if sentry_app_uuid is not None
+            ]
+            install_contexts = app_service.get_component_contexts(
+                filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
+                component_type="alert-rule-action",
+            )
+            sentry_app_installations_by_uuid = {
+                install_context.installation.uuid: install_context
+                for install_context in install_contexts
+            }
+        return sentry_app_installations_by_uuid
+
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
         from sentry.notifications.notification_action.registry import issue_alert_handler_registry
-        from sentry.sentry_apps.services.app import app_service
 
         # Bulk fetch users that created workflows
         users = self._fetch_workflow_users(item_list)
@@ -502,25 +529,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                 )
                 for action in actions_with_handlers  # skip over actions w/o handlers
             }
-            sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
-            if self.prepare_component_fields:
-                sentry_app_uuids = [
-                    sentry_app_uuid
-                    for sentry_app_uuid in (
-                        action_to_action_data[action].get("sentryAppInstallationUuid")
-                        for action in actions_with_handlers
-                    )
-                    if sentry_app_uuid is not None
-                ]
-                install_contexts = app_service.get_component_contexts(
-                    filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
-                    component_type="alert-rule-action",
-                )
-                sentry_app_installations_by_uuid = {
-                    install_context.installation.uuid: install_context
-                    for install_context in install_contexts
-                }
 
+            sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
+                workflow, action_to_action_data, actions_with_handlers
+            )
             serialized_actions = []
             errors = []
             for action in actions_with_handlers:
@@ -549,6 +561,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                     if component is None:
                         errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
                         action_data["disabled"] = True
+                        serialized_actions.append(action_data)
                         continue
 
                     action_data["formFields"] = component.app_schema.get("settings", {})
