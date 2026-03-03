@@ -212,7 +212,7 @@ export function BaseFieldDemo() {
       <form.FieldGroup title="Custom Field">
         <form.AppField name="color">
           {field => (
-            <field.Layout.Row label="Brand Color:">
+            <field.Layout.Stack label="Brand Color:">
               <field.Base<HTMLInputElement>>
                 {(baseProps, {indicator}) => (
                   <Flex flexGrow={1}>
@@ -226,7 +226,7 @@ export function BaseFieldDemo() {
                   </Flex>
                 )}
               </field.Base>
-            </field.Layout.Row>
+            </field.Layout.Stack>
           )}
         </form.AppField>
       </form.FieldGroup>
