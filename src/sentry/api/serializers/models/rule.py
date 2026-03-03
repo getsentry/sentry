@@ -553,7 +553,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                             rpc_install,
                             rpc_component,
                             self.project_slug,
-                            action.data.get("settings"),
+                            action_data.get("settings"),
                         )
                         if rpc_component
                         else None
