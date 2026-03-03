@@ -8,7 +8,6 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -135,7 +134,7 @@ function Login() {
 }
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
 `;
 
 const Header = styled('div')`
@@ -149,7 +148,7 @@ const Heading = styled('h3')`
 `;
 
 const TabsContainer = styled(Tabs)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const FormWrapper = styled('div')<{hasAuthProviders: boolean}>`

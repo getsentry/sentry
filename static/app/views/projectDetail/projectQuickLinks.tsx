@@ -12,7 +12,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -138,10 +137,10 @@ function QuickLinkComponent({
 const QuickLink = styled(QuickLinkComponent)<{
   disabled?: boolean;
 }>`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: auto 1fr;
 
   ${p =>

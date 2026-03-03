@@ -18,7 +18,6 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -168,14 +167,14 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
 const GroupExtra = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   line-height: 1.2;
-  min-height: ${space(2)};
+  min-height: ${p => p.theme.space.xl};
 
   & > a {
     color: ${p => p.theme.tokens.content.secondary};
@@ -207,7 +206,7 @@ const ShadowlessProjectBadge = styled(ProjectBadge)`
 
 const CommentsLink = styled(Link)`
   display: inline-grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   grid-auto-flow: column;
   color: ${p => p.theme.tokens.content.primary};
