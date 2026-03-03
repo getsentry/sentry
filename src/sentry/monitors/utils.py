@@ -246,25 +246,15 @@ def _fetch_associated_groups_eap(
     if snuba_params is None:
         return {}
 
-    try:
-        return get_group_to_trace_ids_map(
-            snuba_params=snuba_params,
-            trace_ids=trace_ids,
-            referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
-            limit=DEFAULT_LIMIT,
-            occurrence_category=OccurrenceCategory.ERROR,
-            orderby=["-timestamp"],
-            offset=DEFAULT_OFFSET,
-        )
-    except Exception:
-        logger.exception(
-            "Fetching associated groups from EAP failed",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-            },
-        )
-        return {}
+    return get_group_to_trace_ids_map(
+        snuba_params=snuba_params,
+        trace_ids=trace_ids,
+        referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
+        limit=DEFAULT_LIMIT,
+        occurrence_category=OccurrenceCategory.ERROR,
+        orderby=["-timestamp"],
+        offset=DEFAULT_OFFSET,
+    )
 
 
 def fetch_associated_groups(

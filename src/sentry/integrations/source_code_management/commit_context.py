@@ -121,17 +121,6 @@ ISSUE_TITLE_MAX_LENGTH = 50
 MERGED_PR_SINGLE_ISSUE_TEMPLATE = "* ‼️ [**{title}**]({url}){environment}\n"
 
 
-def _reasonable_top_issues_by_count_match(
-    snuba_rows: list[dict[str, Any]], eap_rows: list[dict[str, Any]]
-) -> bool:
-    return keyed_counts_subset_match(
-        snuba_rows,
-        eap_rows,
-        key_fn=lambda row: int(row["group_id"]),
-        count_field="event_count",
-    )
-
-
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -597,7 +586,12 @@ class PRCommentWorkflow(ABC):
                 eap_results,
                 "integrations.pr_comment.get_top_5_issues_by_count",
                 is_experimental_data_a_null_result=len(eap_results) == 0,
-                reasonable_match_comparator=_reasonable_top_issues_by_count_match,
+                reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
+                    snuba_rows,
+                    eap_rows,
+                    key_fn=lambda row: int(row["group_id"]),
+                    count_field="event_count",
+                ),
                 debug_context={
                     "organization_id": project.organization_id,
                     "project_id": project.id,

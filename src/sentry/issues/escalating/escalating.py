@@ -104,7 +104,11 @@ def query_groups_past_counts(groups: Iterable[Group]) -> list[GroupsCountRespons
             eap_results,
             "issues.escalating.query_groups_past_counts",
             is_experimental_data_a_null_result=len(eap_results) == 0,
-            reasonable_match_comparator=_reasonable_groups_past_counts_match,
+            reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
+                snuba_rows,
+                eap_rows,
+                key_fn=lambda row: (row["project_id"], row["group_id"], row["hourBucket"]),
+            ),
             debug_context={
                 "organization_ids": sorted({g.project.organization_id for g in groups_list}),
                 "project_ids": sorted({g.project_id for g in groups_list}),
@@ -187,7 +191,7 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
             project_ids=project_ids,
             start=start_date,
             end=end_date,
-            granularity_secs=HOUR,
+            granularity_secs=HOUR,  # 1 hour buckets
         )
         if snuba_params is None:
             continue
@@ -231,16 +235,6 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
     all_results.sort(key=lambda x: (x["project_id"], x["group_id"], x["hourBucket"]))
 
     return all_results
-
-
-def _reasonable_groups_past_counts_match(
-    snuba_results: list[GroupsCountResponse], eap_results: list[GroupsCountResponse]
-) -> bool:
-    return keyed_counts_subset_match(
-        snuba_results,
-        eap_results,
-        key_fn=lambda row: (row["project_id"], row["group_id"], row["hourBucket"]),
-    )
 
 
 def _process_groups(
