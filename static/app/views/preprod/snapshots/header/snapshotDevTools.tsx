@@ -10,27 +10,20 @@ import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
   type SnapshotComparisonRunInfo,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.round(ms / 1000);
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
-  }
-  return `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`;
-}
-
-type Props = {
+interface SnapshotDevToolsProps {
   hasBaseArtifact: boolean;
   organizationSlug: string;
   projectSlug: string;
   refetch: () => void;
   snapshotId: string;
   comparisonRunInfo?: SnapshotComparisonRunInfo | null;
-};
+}
 
 export function SnapshotDevTools({
   organizationSlug,
@@ -39,7 +32,7 @@ export function SnapshotDevTools({
   comparisonRunInfo,
   hasBaseArtifact,
   refetch,
-}: Props) {
+}: SnapshotDevToolsProps) {
   const comparisonState = comparisonRunInfo?.state;
   const comparisonCompletedAt = comparisonRunInfo?.completed_at;
   const comparisonDurationMs = comparisonRunInfo?.duration_ms;
@@ -181,7 +174,11 @@ export function SnapshotDevTools({
                 {t('comparison e2e:')}
               </Text>
               <Text size="xs" bold>
-                {formatDuration(comparisonDurationMs)}
+                {formatDuration({
+                  duration: [comparisonDurationMs, 'ms'],
+                  precision: 'sec',
+                  style: 'h:mm:ss',
+                })}
               </Text>
             </Flex>
           )}

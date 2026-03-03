@@ -130,12 +130,15 @@ export function SnapshotSidebarContent({
   const isSearching = searchQuery.length > 0;
 
   const handleExpandedChange = (type: string, expanded: boolean) => {
+    if (isSearching) return;
     setExpandedSections(prev => ({...prev, [type]: expanded}));
   };
 
+  const isGroupedDiff = isDiffMode && groupedItems !== null;
+
   return (
     <Flex direction="column" gap="md" height="100%">
-      <SearchContainer>
+      <Flex padding="xl" paddingBottom="0">
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch size="sm" />
@@ -147,9 +150,9 @@ export function SnapshotSidebarContent({
             onChange={e => onSearchChange(e.target.value)}
           />
         </InputGroup>
-      </SearchContainer>
+      </Flex>
       <Stack overflow="auto" flex="1">
-        {isDiffMode && groupedItems
+        {isGroupedDiff
           ? SECTION_ORDER.map(section => {
               const sectionItems = groupedItems.get(section.type);
               if (!sectionItems || sectionItems.length === 0) {
@@ -252,11 +255,6 @@ export function SnapshotSidebarContent({
     </Flex>
   );
 }
-
-const SearchContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-  padding-bottom: 0;
-`;
 
 const SectionWrapper = styled('div')`
   &:not(:first-child) {

@@ -241,7 +241,7 @@ export default function SnapshotsPage() {
         )}
 
         <Flex direction="row" height="100%" width="100%" overflow="hidden">
-          <SidebarPanel style={{width: sidebarWidth}}>
+          <Flex flexShrink={0} overflow="hidden" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent
               items={filteredItems}
               currentItemName={currentItemName}
@@ -252,7 +252,7 @@ export default function SnapshotsPage() {
               isFetchingNextPage={isFetchingNextPage}
               fetchNextPage={fetchNextPage}
             />
-          </SidebarPanel>
+          </Flex>
           <DragHandle
             data-is-held={isHeld}
             onMouseDown={onMouseDown}
@@ -260,7 +260,7 @@ export default function SnapshotsPage() {
           >
             <IconGrabbable size="sm" />
           </DragHandle>
-          <MainPanel>
+          <Flex flex="1" minWidth={0} overflow="hidden">
             <SnapshotMainContent
               selectedItem={currentItem}
               variantIndex={variantIndex}
@@ -270,23 +270,12 @@ export default function SnapshotsPage() {
               showOverlay={showOverlay}
               overlayColor={overlayColor}
             />
-          </MainPanel>
+          </Flex>
         </Flex>
       </Layout.Page>
     </SentryDocumentTitle>
   );
 }
-
-const SidebarPanel = styled('div')`
-  flex-shrink: 0;
-  overflow: hidden;
-`;
-
-const MainPanel = styled('div')`
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-`;
 
 const DragHandle = styled('div')`
   display: grid;

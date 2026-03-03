@@ -102,16 +102,7 @@ export function DiffImageDisplay({
             <ImageWrapper>
               <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
               {showOverlay && diffMaskUrl && (
-                <DiffOverlay
-                  style={{
-                    backgroundColor: overlayColor,
-                    maskImage: `url(${diffMaskUrl})`,
-                    maskSize: '100% 100%',
-                    maskMode: 'luminance',
-                    WebkitMaskImage: `url(${diffMaskUrl})`,
-                    WebkitMaskSize: '100% 100%',
-                  }}
-                />
+                <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
               )}
             </ImageWrapper>
           </Flex>
@@ -130,11 +121,17 @@ const ImageWrapper = styled('div')`
   position: relative;
 `;
 
-const DiffOverlay = styled('span')`
+const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+  background-color: ${p => p.$overlayColor};
+  mask-image: url(${p => p.$maskUrl});
+  mask-size: 100% 100%;
+  mask-mode: luminance;
+  -webkit-mask-image: url(${p => p.$maskUrl});
+  -webkit-mask-size: 100% 100%;
 `;

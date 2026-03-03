@@ -112,14 +112,12 @@ export function SnapshotMainContent({
   const image = selectedItem.image;
   const displayName = image.display_name ?? image.image_file_name;
   const imageUrl = `${imageBaseUrl}${image.key}/`;
-  const statusLabel =
-    selectedItem.type === 'added'
-      ? t('Added')
-      : selectedItem.type === 'removed'
-        ? t('Removed')
-        : selectedItem.type === 'renamed'
-          ? t('Renamed')
-          : t('Unchanged');
+  const STATUS_LABELS: Record<string, string> = {
+    added: t('Added'),
+    removed: t('Removed'),
+    renamed: t('Renamed'),
+  };
+  const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
