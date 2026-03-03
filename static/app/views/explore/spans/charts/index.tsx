@@ -13,7 +13,6 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -165,7 +164,6 @@ function Chart({
   topEvents,
   setTab,
 }: ChartProps) {
-  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const {
@@ -308,9 +306,7 @@ function Chart({
                 onClearSelection: () => {
                   setChartSelection(null);
                 },
-                disabled: !organization.features.includes(
-                  'performance-spans-suspect-attributes'
-                ),
+                disabled: false,
                 actionMenuRenderer: params => {
                   return (
                     <FloatingTrigger chartIndex={index} params={params} setTab={setTab} />

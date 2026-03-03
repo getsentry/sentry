@@ -16,15 +16,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.features = {
-            "organizations:performance-spans-suspect-attributes": True,
-        }
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-spans-suspect-attributes"]
+            features = []
 
         if query and "type" not in query.keys():
             query["type"] = "string"
@@ -68,10 +65,6 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == {"rankedAttributes": []}
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404, response.data
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_distribution_values(self, mock_compare_distributions) -> None:

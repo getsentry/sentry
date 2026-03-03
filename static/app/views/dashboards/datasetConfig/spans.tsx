@@ -20,7 +20,7 @@ import {
   type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {Container} from 'sentry/utils/discover/styles';
+import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -43,7 +43,13 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  type DashboardFilters,
+  type Widget,
+  type WidgetQuery,
+} from 'sentry/views/dashboards/types';
+import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,
@@ -133,6 +139,8 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   },
   {} as Record<AggregationKey, Aggregation>
 );
+
+const INTERNAL_ERROR_COUNT_FIELD = 'count_if(span.status,equals,internal_error)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
@@ -301,6 +309,9 @@ export const SpansConfig: DatasetConfig<
       )
     ) {
       return renderTransactionAsLinkable;
+    }
+    if (field === INTERNAL_ERROR_COUNT_FIELD) {
+      return renderInternalErrorCount(widget, dashboardFilters);
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
@@ -473,6 +484,51 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
       <Container>{transaction}</Container>
     </Link>
   );
+}
+
+// Renders the count of internal errors for a given widget and dashboard filters.
+// Displays 0 if a row receives null count.
+// Returns a link to the explore page with the internal error filter applied.
+function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardFilters) {
+  return function (data: EventData, baggage: RenderFunctionBaggage) {
+    const {organization, eventView} = baggage;
+    const selection = eventView?.getPageFilters();
+    const value = data[INTERNAL_ERROR_COUNT_FIELD];
+    const count = typeof value === 'number' ? value : 0;
+
+    if (count === 0) {
+      return <NumberContainer>0</NumberContainer>;
+    }
+
+    if (!widget || !selection) {
+      return <NumberContainer>{count}</NumberContainer>;
+    }
+
+    const baseConditions = widget.queries[0]?.conditions ?? '';
+    const errorQuery = new MutableSearch(baseConditions);
+    errorQuery.addStringFilter('span.status:internal_error');
+    const widgetWithErrorFilter: Widget = {
+      ...widget,
+      queries: widget.queries.map(q => ({
+        ...q,
+        conditions: errorQuery.formatString(),
+      })),
+    };
+
+    const getRowExploreUrl = getWidgetTableRowExploreUrlFunction(
+      selection,
+      widgetWithErrorFilter,
+      organization,
+      dashboardFilters
+    );
+    const target = getRowExploreUrl(data);
+
+    return (
+      <NumberContainer>
+        <Link to={target}>{count}</Link>
+      </NumberContainer>
+    );
+  };
 }
 
 function transformSeries(
