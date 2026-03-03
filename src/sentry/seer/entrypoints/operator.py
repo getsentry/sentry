@@ -583,7 +583,7 @@ def get_autofix_explorer_status(
             if stopping_point == AutofixStoppingPoint.OPEN_PR:
                 # If there are no repo_pr_states, it means it's not started
                 if not autofix_state.repo_pr_states:
-                    return False
+                    return None
                 # If there are repo_pr_states, make sure they're not still creating
                 return all(
                     pr_state.pr_creation_status != "creating"
