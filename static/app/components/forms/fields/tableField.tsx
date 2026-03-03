@@ -11,7 +11,6 @@ import FormField from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -202,9 +201,9 @@ const HeaderLabel = styled('div')`
 
 const RowInput = styled('div')`
   flex: 1;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const RemoveButton = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;

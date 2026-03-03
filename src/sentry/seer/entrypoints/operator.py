@@ -26,7 +26,6 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
-from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -160,6 +159,7 @@ class SeerOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
+            get_autofix_explorer_client,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
         )
@@ -220,7 +220,7 @@ class SeerOperator[CachePayloadT]:
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    client = SeerExplorerClient(organization=group.organization)
+                    client = get_autofix_explorer_client(group)
                     client.push_changes(run_id, blocking=False)
                 else:
                     # NOTE: Stopping point here is really just what
@@ -575,6 +575,21 @@ def get_autofix_explorer_status(
             continue
 
         if step == expected_step:
+            # OPEN_PR step gets special treatment as it's not part of the normal blocks.
+            # We look for the code_changes step then the presence of repo_pr_states.
+            #
+            # This only works with a single code_changes step but that is the current
+            # expected behaviour.
+            if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                # If there are no repo_pr_states, it means it's not started
+                if not autofix_state.repo_pr_states:
+                    return None
+                # If there are repo_pr_states, make sure they're not still creating
+                return all(
+                    pr_state.pr_creation_status != "creating"
+                    for pr_state in autofix_state.repo_pr_states.values()
+                )
+
             # If the expected step is not the last step
             # then we can assume it is already completed
             # so return True to indicate that
@@ -586,17 +601,7 @@ def get_autofix_explorer_status(
             #
             # Everything except the processing status
             # is considered as some form of completed
-            completed = autofix_state.status != "processing"
-
-            # OPEN_PR step gets special treatment to also
-            # check on the status of the pr creation
-            if stopping_point == AutofixStoppingPoint.OPEN_PR and completed:
-                return all(
-                    pr_state.pr_creation_status != "creating"
-                    for pr_state in autofix_state.repo_pr_states.values()
-                )
-
-            return completed
+            return autofix_state.status != "processing"
 
         is_last = False
 

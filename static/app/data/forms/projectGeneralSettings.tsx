@@ -12,7 +12,6 @@ import type {Field} from 'sentry/components/forms/types';
 import {Hovercard} from 'sentry/components/hovercard';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import slugify from 'sentry/utils/slugify';
@@ -47,7 +46,7 @@ const ORG_DISABLED_REASON = t(
 );
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 export const fields = {

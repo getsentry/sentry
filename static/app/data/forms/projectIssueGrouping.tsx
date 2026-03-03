@@ -5,7 +5,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {Field} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
@@ -127,10 +126,10 @@ stack.function:mylibrary_* +app`}
 } satisfies Record<string, Field>;
 
 const RuleDescription = styled('div')`
-  margin-bottom: ${space(1)};
-  margin-top: -${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  margin-top: -${p => p.theme.space.md};
 `;
 
 const RuleExample = styled('pre')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

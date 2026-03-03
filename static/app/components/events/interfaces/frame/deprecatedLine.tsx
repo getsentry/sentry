@@ -18,7 +18,6 @@ import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -422,7 +421,7 @@ const DefaultLine = styled('div')<{
       : `${p.theme.tokens.background.tertiary}`};
   min-height: 40px;
   word-break: break-word;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
@@ -450,7 +449,7 @@ const DefaultLine = styled('div')<{
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const ToggleContextButton = styled(Button)`
@@ -462,7 +461,7 @@ const ToggleButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 
   &:hover {
     color: ${p => p.theme.tokens.content.secondary};
@@ -470,11 +469,11 @@ const ToggleButton = styled(Button)`
 `;
 
 const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.sm};
 `;

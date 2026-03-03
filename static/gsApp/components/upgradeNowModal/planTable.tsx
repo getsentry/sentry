@@ -185,7 +185,7 @@ const PlanValue = styled(PlanLabel)`
   & > svg {
     position: relative;
     top: 1px;
-    margin-inline: ${space(0.5)};
+    margin-inline: ${p => p.theme.space.xs};
   }
 `;
 

@@ -11,7 +11,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -108,18 +107,18 @@ const StyledInput = styled(Input)`
   }
 `;
 const OpenInDiscoverButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.tokens.background.secondary};
-  padding: 7px ${space(1)};
+  padding: 7px ${p => p.theme.space.md};
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: start;
   flex-grow: 1;
   border-radius: ${p => p.theme.radius.md};
@@ -127,7 +126,7 @@ const Container = styled('div')`
 
 const SearchLabel = styled('label')`
   display: flex;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
   margin: 0;
   color: ${p => p.theme.tokens.content.secondary};
 `;

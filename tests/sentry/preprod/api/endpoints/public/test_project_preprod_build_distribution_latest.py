@@ -102,7 +102,6 @@ class LatestBuildModeTest(LatestBuildTestBase):
         assert response.status_code == 200
         data = response.json()
         assert data["currentArtifact"] is None
-        assert data["updateAvailable"] is None
 
         build = data["latestArtifact"]
         assert build["buildId"] == str(artifact.id)
@@ -134,7 +133,6 @@ class LatestBuildModeTest(LatestBuildTestBase):
         data = response.json()
         assert data["latestArtifact"] is None
         assert data["currentArtifact"] is None
-        assert data["updateAvailable"] is None
 
     def test_version_ordering_and_build_number_tiebreaker(self):
         # Semver comparison picks highest version
@@ -337,7 +335,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is True
+
         assert data["latestArtifact"]["buildId"] == str(newer.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
         assert data["currentArtifact"]["appInfo"]["version"] == "1.0.0"
@@ -355,7 +353,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is False
+
         assert data["latestArtifact"]["buildId"] == str(artifact.id)
         assert data["currentArtifact"]["buildId"] == str(artifact.id)
 
@@ -372,7 +370,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is True
+
         assert data["latestArtifact"]["buildId"] == str(latest.id)
         assert data["currentArtifact"] is None
 
@@ -389,7 +387,6 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         data = response.json()
         assert data["latestArtifact"] is None
         assert data["currentArtifact"] is None
-        assert data["updateAvailable"] is False
 
     def test_main_binary_identifier_matching(self):
         current = self._create_installable_artifact(
@@ -411,7 +408,6 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         data = response.json()
         assert data["currentArtifact"]["buildId"] == str(current.id)
         assert data["latestArtifact"]["buildId"] == str(newer.id)
-        assert data["updateAvailable"] is True
 
     def test_filter_inheritance_build_configuration(self):
         debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
@@ -443,7 +439,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is True
+
         assert data["latestArtifact"]["buildId"] == str(newer_release.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
 
@@ -474,7 +470,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is True
+
         assert data["latestArtifact"]["buildId"] == str(newer_dev.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
 
@@ -505,7 +501,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is True
+
         assert data["latestArtifact"]["buildId"] == str(newer.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
 
@@ -546,6 +542,6 @@ class CheckForUpdatesTest(LatestBuildTestBase):
             },
         )
         data = response.json()
-        assert data["updateAvailable"] is True
+
         assert data["latestArtifact"]["buildId"] == str(newer_match.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)

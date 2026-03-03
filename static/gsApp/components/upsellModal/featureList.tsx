@@ -7,7 +7,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 import MoreFeaturesLink from 'getsentry/views/amCheckout/components/moreFeaturesLink';
@@ -110,10 +109,10 @@ const RingContainer = styled(motion.div)`
 
 const Heading = styled('div')`
   font-weight: bold;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const FeatureLink = styled(motion.div)`
@@ -123,10 +122,10 @@ const FeatureLink = styled(motion.div)`
   position: relative;
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   align-content: center;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

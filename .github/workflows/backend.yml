@@ -18,6 +18,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
 
 jobs:
   files-changed:

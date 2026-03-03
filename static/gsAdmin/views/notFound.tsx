@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 function NotFound() {
   return (
     <SplashWrapper>
@@ -18,7 +16,7 @@ function NotFound() {
 }
 
 const SplashWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const HeaderTitle = styled('h3')`

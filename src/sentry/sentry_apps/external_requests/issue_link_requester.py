@@ -13,6 +13,7 @@ from sentry.models.group import Group
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
+    SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
@@ -125,6 +126,9 @@ class IssueLinkRequester:
                     webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
                     status_code=500,
                 )
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e, extra={**extras})
+                raise
 
             if not self._validate_response(response):
                 extras["response"] = response
@@ -142,6 +146,19 @@ class IssueLinkRequester:
             return response
 
     def _build_url(self) -> str:
+        if not self.sentry_app.webhook_url:
+            raise SentryAppIntegratorError(
+                message="Sentry app webhook_url is not configured",
+                webhook_context={
+                    "error_type": FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    ),
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "uri": self.uri,
+                },
+                status_code=500,
+            )
+
         urlparts = urlparse(self.sentry_app.webhook_url)
         return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
 

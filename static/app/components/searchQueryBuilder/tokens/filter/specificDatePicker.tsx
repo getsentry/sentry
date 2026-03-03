@@ -16,7 +16,6 @@ import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 
 interface SearchBarDatePickerProps extends CustomComboboxMenuProps<
@@ -274,7 +273,7 @@ const StyledInput = styled(Input)`
 `;
 
 const ControlsWrapper = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
@@ -287,7 +286,7 @@ const UtcPickerLabel = styled('label')`
   margin: 0;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   user-select: none;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   cursor: pointer;
 
   &:has(:disabled) {
@@ -300,7 +299,7 @@ const CheckboxLabel = styled('label')`
   display: inline-flex;
   align-items: center;
   margin: 0;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;

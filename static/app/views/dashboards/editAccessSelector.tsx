@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -16,7 +17,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -48,6 +48,7 @@ function EditAccessSelector({
   listOnly = false,
   disabled = false,
 }: EditAccessSelectorProps) {
+  const theme = useTheme();
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
 
@@ -152,7 +153,7 @@ function EditAccessSelector({
               gap="md"
               key={team.id}
               style={{
-                marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
+                marginBottom: index === allSelectedTeams.length - 1 ? 0 : theme.space.md,
               }}
             >
               <TeamAvatar team={team} size={18} />
@@ -407,13 +408,13 @@ const StyledDisplayName = styled('div')`
 `;
 
 const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
   margin-right: ${p => (p.listonly ? 0 : -3)}px;
   font-weight: normal;
 `;
 
 const LabelContainer = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledBadge = styled(Tag)<{size: number}>`

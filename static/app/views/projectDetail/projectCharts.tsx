@@ -94,7 +94,7 @@ class ProjectCharts extends Component<Props, State> {
     }
 
     if (hasSessions && !hasTransactions) {
-      if (isPlatformANRCompatible(project?.platform, project?.features)) {
+      if (isPlatformANRCompatible(project?.platform)) {
         return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
       }
       return [DisplayModes.STABILITY, DisplayModes.ERRORS];
@@ -104,7 +104,7 @@ class ProjectCharts extends Component<Props, State> {
       return [DisplayModes.FAILURE_RATE, DisplayModes.APDEX];
     }
 
-    if (isPlatformANRCompatible(project?.platform, project?.features)) {
+    if (isPlatformANRCompatible(project?.platform)) {
       return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
     }
 
@@ -219,7 +219,7 @@ class ProjectCharts extends Component<Props, State> {
       },
     ];
 
-    if (isPlatformANRCompatible(project?.platform, project?.features)) {
+    if (isPlatformANRCompatible(project?.platform)) {
       const anrRateOptions = [
         {
           value: DisplayModes.ANR_RATE,
@@ -324,10 +324,7 @@ class ProjectCharts extends Component<Props, State> {
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
-    const hasAnrRateFeature = isPlatformANRCompatible(
-      project?.platform,
-      project?.features
-    );
+    const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
     const hasAnrForegroundRateFeature = isPlatformForegroundANRCompatible(
       project?.platform
     );

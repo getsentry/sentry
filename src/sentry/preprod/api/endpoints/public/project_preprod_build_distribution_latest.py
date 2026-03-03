@@ -168,8 +168,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 },
             )
 
-        update_available: bool | None = None
-
         latest_dict = None
         if latest_artifact:
             latest_dict = create_install_info_dict(latest_artifact)
@@ -178,16 +176,9 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         if current_artifact:
             current_dict = create_install_info_dict(current_artifact)
 
-        if build_version:
-            update_available = bool(
-                latest_artifact
-                and latest_artifact.id != (current_artifact.id if current_artifact else None)
-            )
-
         return Response(
             create_latest_installable_build_response(
                 latest=latest_dict,
                 current=current_dict,
-                update_available=update_available,
             )
         )

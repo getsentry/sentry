@@ -93,7 +93,9 @@ export default function ReplayBadge({replay}: Props) {
           <Text size="sm" variant="muted">
             {events.getShortEventId(replay.id)}
           </Text>
-          <Flex gap="xs" align="center">
+          {/* z-index lifts the timestamp above the row's ::before click target
+             (from SimpleTable.rowLinkStyle) so the TimeSince tooltip can trigger */}
+          <Flex gap="xs" align="center" position="relative" style={{zIndex: 1}}>
             <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted">
               {timestampType === 'absolute' ? (

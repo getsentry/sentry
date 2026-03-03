@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface GroupingComponentFramesProps {
   initialCollapsed: boolean;
@@ -76,13 +75,14 @@ function GroupingComponentFrames({
 }
 
 const ToggleCollapse = styled(Button)`
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space.xs} 0;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`
   padding: 0;
-  margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
+  margin: ${p => p.theme.space['2xs']} 0 ${p => p.theme.space['2xs']}
+    ${p => p.theme.space.lg};
 `;
 
 export default GroupingComponentFrames;
