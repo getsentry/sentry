@@ -22,7 +22,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -229,5 +228,5 @@ export function MultiQueryModeContent() {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
