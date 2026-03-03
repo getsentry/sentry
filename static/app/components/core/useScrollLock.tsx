@@ -34,12 +34,14 @@ class Lock {
 
         // Measure scrollbar width before fixing body removes it.
         const scrollbarWidth = window.innerWidth - document.body.clientWidth;
+        const existingPaddingRight =
+          Number.parseFloat(getComputedStyle(document.body).paddingRight) || 0;
         document.body.style.position = 'fixed';
         document.body.style.top = `-${this.scrollY}px`;
         document.body.style.left = '0';
         document.body.style.right = '0';
         document.body.style.width = '100%';
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
+        document.body.style.paddingRight = `${existingPaddingRight + scrollbarWidth}px`;
       } else {
         this.initialOverflow = this.container.style.overflow;
         this.container.style.overflow = 'hidden';
