@@ -7,19 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/scrapsForm.tsx
 ---
 
-import {Fragment, useState} from 'react';
-import {mutationOptions, queryOptions, useQuery, useQueryClient, type QueryClient} from '@tanstack/react-query';
-import {z} from 'zod';
-
-import {Button} from '@sentry/scraps/button';
-import {
-  AutoSaveField,
-  defaultFormOptions,
-  FieldGroup,
-  setFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {CompactDemo, ConditionalDemo, QuickStartDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -33,60 +21,6 @@ For a reference of all available field components, see [Fields](./fields.mdx).
 ## Quick Start
 
 A minimal form with validation and submission.
-
-export const quickStartSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-});
-
-export function QuickStartDemo() {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      email: '',
-      name: '',
-    },
-    validators: {
-      onDynamic: quickStartSchema,
-    },
-    onSubmit: ({value}) => {
-      alert(JSON.stringify(value, null, 2));
-    },
-  });
-
-return (
-
-<form.AppForm form={form}>
-<form.FieldGroup title="Quick Start">
-<form.AppField name="name">
-{field => (
-<field.Layout.Row label="Name" required>
-<field.Input
-value={field.state.value}
-onChange={field.handleChange}
-placeholder="Enter your name"
-/>
-</field.Layout.Row>
-)}
-</form.AppField>
-<form.AppField name="email">
-{field => (
-<field.Layout.Row label="Email" required>
-<field.Input
-value={field.state.value}
-onChange={field.handleChange}
-placeholder="you@example.com"
-/>
-</field.Layout.Row>
-)}
-</form.AppField>
-</form.FieldGroup>
-<Flex gap="md" justify="end">
-<form.SubmitButton>Submit</form.SubmitButton>
-</Flex>
-</form.AppForm>
-);
-}
 
 <Storybook.Demo>
   <QuickStartDemo />
@@ -237,61 +171,6 @@ Label on the left (~50%), field on the right. Compact layout for settings pages.
 
 Both layouts support `variant="compact"`, which moves hint text into a tooltip on the label instead of displaying it inline. This saves vertical space.
 
-export function CompactDemo() {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {field1: '', field2: '', field3: '', field4: ''},
-  });
-
-return (
-
-<form.AppForm form={form}>
-<FieldGroup title="Row Layout">
-<form.AppField name="field1">
-{field => (
-<field.Layout.Row
-label="Default Variant"
-hintText="This hint text appears below the label" >
-<field.Input value={field.state.value} onChange={field.handleChange} />
-</field.Layout.Row>
-)}
-</form.AppField>
-<form.AppField name="field2">
-{field => (
-<field.Layout.Row
-label="Compact Variant"
-hintText="This hint text appears in a tooltip when hovering the label"
-variant="compact" >
-<field.Input value={field.state.value} onChange={field.handleChange} />
-</field.Layout.Row>
-)}
-</form.AppField>
-</FieldGroup>
-<FieldGroup title="Stack Layout">
-<form.AppField name="field3">
-{field => (
-<field.Layout.Stack
-label="Default Variant"
-hintText="This hint text appears below the input" >
-<field.Input value={field.state.value} onChange={field.handleChange} />
-</field.Layout.Stack>
-)}
-</form.AppField>
-<form.AppField name="field4">
-{field => (
-<field.Layout.Stack
-label="Compact Variant"
-hintText="This hint text appears in a tooltip when hovering the label"
-variant="compact" >
-<field.Input value={field.state.value} onChange={field.handleChange} />
-</field.Layout.Stack>
-)}
-</form.AppField>
-</FieldGroup>
-</form.AppForm>
-);
-}
-
 <Storybook.Demo>
   <CompactDemo />
 </Storybook.Demo>
@@ -370,63 +249,6 @@ Fields accept `disabled` as a boolean or a string. When a string is provided, it
 ## Conditional Fields
 
 Use `form.Subscribe` to show or hide fields based on other field values:
-
-export const conditionalSchema = z.object({
-  plan: z.string(),
-  billingEmail: z.string().email('Please enter a valid email').optional(),
-});
-
-export function ConditionalDemo() {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {plan: 'free', billingEmail: ''},
-    validators: {onDynamic: conditionalSchema},
-    onSubmit: ({value}) => {
-      alert(JSON.stringify(value, null, 2));
-    },
-  });
-
-return (
-
-<form.AppForm form={form}>
-<form.FieldGroup title="Conditional Fields">
-<form.AppField name="plan">
-{field => (
-<field.Layout.Row label="Plan">
-<field.Select
-value={field.state.value}
-onChange={field.handleChange}
-options={[
-{value: 'free', label: 'Free'},
-{value: 'enterprise', label: 'Enterprise'},
-]}
-/>
-</field.Layout.Row>
-)}
-</form.AppField>
-<form.Subscribe selector={state => state.values.plan === 'enterprise'}>
-{showBilling =>
-showBilling ? (
-<form.AppField name="billingEmail">
-{field => (
-<field.Layout.Row label="Billing Email" required>
-<field.Input
-value={field.state.value ?? ''}
-onChange={field.handleChange}
-/>
-</field.Layout.Row>
-)}
-</form.AppField>
-) : null
-}
-</form.Subscribe>
-</form.FieldGroup>
-<Flex gap="md" justify="end">
-<form.SubmitButton>Submit</form.SubmitButton>
-</Flex>
-</form.AppForm>
-);
-}
 
 <Storybook.Demo>
   <ConditionalDemo />

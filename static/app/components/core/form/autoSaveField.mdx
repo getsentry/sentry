@@ -7,11 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/field/autoSaveField.tsx
 ---
 
-import {mutationOptions, queryOptions, useQuery, useQueryClient, type QueryClient} from '@tanstack/react-query';
-import {z} from 'zod';
-
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {BasicAutoSaveDemo, FullAutoSaveDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -21,40 +17,8 @@ For traditional submit-based forms, see [Form](./form.mdx).
 
 ## Basic Usage
 
-export const basicSchema = z.object({
-  displayName: z.string().min(1, 'Display name is required'),
-});
-
-export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-export const basicMutationOptions = {
-  mutationFn: async data => {
-    await sleep(1000);
-    return data;
-  },
-};
-
-export function BasicDemo() {
-  return (
-    <FieldGroup title="Profile Settings">
-      <AutoSaveField
-        name="displayName"
-        schema={basicSchema}
-        initialValue="Jane Doe"
-        mutationOptions={basicMutationOptions}
-      >
-        {field => (
-          <field.Layout.Row label="Display Name">
-            <field.Input value={field.state.value} onChange={field.handleChange} />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-    </FieldGroup>
-  );
-}
-
 <Storybook.Demo>
-  <BasicDemo />
+  <BasicAutoSaveDemo />
 </Storybook.Demo>
 
 ```jsx
@@ -189,161 +153,8 @@ const mutation = mutationOptions({
 
 A settings page with multiple field types.
 
-export const fullSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  notifications: z.boolean().optional(),
-  priority: z.string().optional(),
-  bio: z.string().optional(),
-  volume: z.number().min(0).max(100).optional(),
-  tags: z.array(z.string()).optional(),
-});
-
-export const TAG_OPTIONS = [
-  {value: 'bug', label: 'Bug'},
-  {value: 'feature', label: 'Feature'},
-  {value: 'enhancement', label: 'Enhancement'},
-];
-
-export function FullDemo() {
-  const fullMutationOptions = {
-    mutationFn: async (data) => {
-      await sleep(1000);
-      return data;
-    },
-  };
-
-return (
-
-<FieldGroup title="User Settings">
-<AutoSaveField
-        name="firstName"
-        schema={fullSchema}
-        initialValue="Jane"
-        mutationOptions={fullMutationOptions}
-      >
-{field => (
-<field.Layout.Row label="First Name" hintText="Your given name">
-<field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
-</field.Layout.Row>
-)}
-</AutoSaveField>
-
-      <AutoSaveField
-        name="lastName"
-        schema={fullSchema}
-        initialValue="Doe"
-        mutationOptions={fullMutationOptions}
-      >
-        {field => (
-          <field.Layout.Row label="Last Name" required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="notifications"
-        schema={fullSchema}
-        initialValue={false}
-        mutationOptions={fullMutationOptions}
-        confirm={value =>
-          value
-            ? 'Are you sure you want to enable notifications?'
-            : 'Disabling notifications means you may miss important updates.'
-        }
-      >
-        {field => (
-          <field.Layout.Row label="Email Notifications">
-            <field.Switch
-              checked={field.state.value ?? false}
-              onChange={field.handleChange}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="tags"
-        schema={fullSchema}
-        initialValue={[]}
-        mutationOptions={fullMutationOptions}
-      >
-        {field => (
-          <field.Layout.Row label="Tags" hintText="Select multiple tags">
-            <field.Select
-              multiple
-              value={field.state.value ?? []}
-              onChange={field.handleChange}
-              options={TAG_OPTIONS}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="priority"
-        schema={fullSchema}
-        initialValue="medium"
-        mutationOptions={fullMutationOptions}
-      >
-        {field => (
-          <field.Radio.Group
-            value={field.state.value ?? ''}
-            onChange={field.handleChange}
-          >
-            <field.Layout.Row label="Priority" hintText="Select issue priority">
-              <Flex gap="lg">
-                <field.Radio.Item value="low">Low</field.Radio.Item>
-                <field.Radio.Item value="medium">Medium</field.Radio.Item>
-                <field.Radio.Item value="high">High</field.Radio.Item>
-              </Flex>
-            </field.Layout.Row>
-          </field.Radio.Group>
-        )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="bio"
-        schema={fullSchema}
-        initialValue=""
-        mutationOptions={fullMutationOptions}
-      >
-        {field => (
-          <field.Layout.Row label="Bio" hintText="Tell us about yourself">
-            <field.TextArea
-              value={field.state.value ?? ''}
-              onChange={field.handleChange}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="volume"
-        schema={fullSchema}
-        initialValue={50}
-        mutationOptions={fullMutationOptions}
-      >
-        {field => (
-          <field.Layout.Row label="Volume">
-            <field.Range
-              value={field.state.value ?? 50}
-              onChange={field.handleChange}
-              min={0}
-              max={100}
-              step={10}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-    </FieldGroup>
-
-);
-}
-
 <Storybook.Demo>
-  <FullDemo />
+  <FullAutoSaveDemo />
 </Storybook.Demo>
 
 ## See Also
