@@ -73,7 +73,17 @@ class PerformanceDetectorConfigMapping:
     option_keys: dict[str, str]  # detector setting name -> ProjectOption key
 
 
-# Mapping from DetectorType to WFE Detector configuration
+# Mapping from DetectorType to WFE Detector configuration.
+#
+# Membership in this mapping means the detector is:
+#   - Sentry-managed: created automatically on project creation
+#   - Backed by the (soon to be removed) per-project performance detector config UI (ProjectOption-based)
+#   - GroupCategory.PERFORMANCE (for category, not category_v2)
+#
+# All but web_vitals, performance_p95_endpoint_regression and profile_function_regression
+# have corresponding DetectorTypes and are span-based.
+#
+# TODO: Complete this mapping.
 PERFORMANCE_DETECTOR_CONFIG_MAPPINGS: dict[DetectorType, PerformanceDetectorConfigMapping] = {
     DetectorType.SLOW_DB_QUERY: PerformanceDetectorConfigMapping(
         settings_key=DetectorType.SLOW_DB_QUERY,
