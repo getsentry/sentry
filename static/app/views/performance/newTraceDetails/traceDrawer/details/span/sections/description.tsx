@@ -99,8 +99,7 @@ export function SpanDescription({
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
   const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
-  const averageSpanDuration =
-    span['span.averageResults']?.['avg(span.duration)'];
+  const averageSpanDuration = span['span.averageResults']?.['avg(span.duration)'];
 
   const actions = showAction ? (
     <BodyContentWrapper

@@ -282,9 +282,7 @@ function WidgetCard(props: Props) {
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge = indexedEventsWarning
-    ? t('Indexed')
-    : undefined;
+  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 

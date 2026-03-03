@@ -117,37 +117,35 @@ function NotificationActionManager({
   }, [notificationActions]);
 
   // Groups the pagerduty integrations with their corresponding allowed services
-  const pagerdutyIntegrations =
-    useMemo(() => {
-      const integrations: Record<number, AvailableNotificationAction[]> = {};
-      availableServices[NotificationActionService.PAGERDUTY].forEach(service => {
-        const integrationId = service.action.integrationId;
-        if (integrationId) {
-          if (integrationId in integrations) {
-            integrations[integrationId]!.push(service);
-          } else {
-            integrations[integrationId] = [service];
-          }
+  const pagerdutyIntegrations = useMemo(() => {
+    const integrations: Record<number, AvailableNotificationAction[]> = {};
+    availableServices[NotificationActionService.PAGERDUTY].forEach(service => {
+      const integrationId = service.action.integrationId;
+      if (integrationId) {
+        if (integrationId in integrations) {
+          integrations[integrationId]!.push(service);
+        } else {
+          integrations[integrationId] = [service];
         }
-      });
-      return integrations;
-    }, [availableServices]);
+      }
+    });
+    return integrations;
+  }, [availableServices]);
 
-  const opsgenieIntegrations =
-    useMemo(() => {
-      const integrations: Record<number, AvailableNotificationAction[]> = {};
-      availableServices[NotificationActionService.OPSGENIE].forEach(team => {
-        const integrationId = team.action.integrationId;
-        if (integrationId) {
-          if (integrationId in integrations) {
-            integrations[integrationId]!.push(team);
-          } else {
-            integrations[integrationId] = [team];
-          }
+  const opsgenieIntegrations = useMemo(() => {
+    const integrations: Record<number, AvailableNotificationAction[]> = {};
+    availableServices[NotificationActionService.OPSGENIE].forEach(team => {
+      const integrationId = team.action.integrationId;
+      if (integrationId) {
+        if (integrationId in integrations) {
+          integrations[integrationId]!.push(team);
+        } else {
+          integrations[integrationId] = [team];
         }
-      });
-      return integrations;
-    }, [availableServices]);
+      }
+    });
+    return integrations;
+  }, [availableServices]);
   const renderNotificationActions = () => {
     if (!notificationActions) {
       return [];

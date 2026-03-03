@@ -189,9 +189,7 @@ export function getPendoAccountFields(
     subscription.productTrials ?? null,
     DataCategory.PROFILE_DURATION
   );
-  const profilesTrialAvailable = profilesTrial
-    ? !profilesTrial.isStarted
-    : false;
+  const profilesTrialAvailable = profilesTrial ? !profilesTrial.isStarted : false;
   const profilesTrialStartDate = profilesTrial?.startDate ?? '';
   const profilesTrialEndDate = profilesTrial?.endDate ?? '';
   const profilesTrialActive = profilesTrial

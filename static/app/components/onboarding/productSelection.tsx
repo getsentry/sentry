@@ -609,9 +609,7 @@ export function ProductSelection({
     [params.product]
   );
 
-  const products = platform
-    ? platformProductAvailability[platform]
-    : undefined;
+  const products = platform ? platformProductAvailability[platform] : undefined;
 
   const disabledProducts = useMemo(
     () => disabledProductsProp ?? getDisabledProducts(organization),

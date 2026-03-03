@@ -292,7 +292,10 @@ function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns = useMemo(() => [...withColumns, 'firstSeen' as const, 'lastSeen' as const], [withColumns]);
+  const columns = useMemo(
+    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
+    [withColumns]
+  );
 
   if (hasError) {
     if (typeof renderErrorMessage === 'function' && errorData) {
