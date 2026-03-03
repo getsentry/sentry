@@ -1,7 +1,6 @@
 from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
@@ -16,9 +15,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         self.project1 = self.create_project(
             organization=self.organization, teams=[self.team], name="Bengal"
         )
-        self.repo1 = Repository.objects.create(
+        self.repo1 = self.create_repo(
+            project=self.project1,
             name="getsentry/sentry-android",
-            organization_id=self.organization.id,
             integration_id=self.integration.id,
         )
         self.url = reverse(
@@ -60,6 +59,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert config.default_branch == "main"
         assert config.repository == self.repo1
         assert config.organization_id == self.organization.id
+        assert config.automatically_generated is False
 
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
@@ -229,9 +229,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert "Repository not found" in response.data["detail"]
 
     def test_repository_without_integration(self) -> None:
-        repo_no_integration = Repository.objects.create(
+        repo_no_integration = self.create_repo(
+            project=self.project1,
             name="standalone/repo",
-            organization_id=self.organization.id,
             integration_id=None,
         )
         response = self.make_post({"repository": repo_no_integration.name})
