@@ -1140,6 +1140,7 @@ export class VirtualizedViewManager {
     const text_anchor_left =
       span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
+    const text_width_ceil = Math.ceil(text_width);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
     const text_left = Math.min(span_space[0], timestamps[0]!);
@@ -1152,19 +1153,19 @@ export class VirtualizedViewManager {
     const right_inside =
       this.transformXFromTimestamp(span_space[0] + span_space[1]) -
       TEXT_PADDING -
-      Math.ceil(text_width);
+      text_width_ceil;
     // |text---|
     const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.transformXFromTimestamp(text_left) - TEXT_PADDING - Math.ceil(text_width);
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width_ceil;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
       this.transformXFromTimestamp(
         this.view.to_origin + this.view.trace_view.left + this.view.trace_view.width
       ) -
-      text_width -
+      text_width_ceil -
       TEXT_PADDING;
     const window_left =
       this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +

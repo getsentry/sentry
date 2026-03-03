@@ -515,5 +515,67 @@ describe('VirtualizedViewManger', () => {
         manager.transformXFromTimestamp(950) - 3 - Math.ceil(measuredWidth)
       );
     });
+
+    it('uses ceil(text_width) for window-right placement when span covers the view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+
+      const measuredWidth = 10.2;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [50, 200],
+        '32.34ms'
+      );
+
+      expect(inside).toBe(1);
+      expect(textTransform).toBe(
+        manager.transformXFromTimestamp(200) - 3 - Math.ceil(measuredWidth)
+      );
+    });
+
+    it('uses ceil(text_width) for right-window-edge anchoring inside a partial span', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+
+      const measuredWidth = 10.2;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [150, 100],
+        '32.34ms'
+      );
+
+      expect(inside).toBe(1);
+      expect(textTransform).toBe(
+        manager.transformXFromTimestamp(200) - 3 - Math.ceil(measuredWidth)
+      );
+    });
   });
 });
