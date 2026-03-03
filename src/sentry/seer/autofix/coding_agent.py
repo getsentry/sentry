@@ -335,6 +335,7 @@ def _launch_agents_for_repos(
                 elif (
                     installation is not None
                     and installation.model.provider == "cursor"
+                    and e.code == 400
                     and e.text
                     and "Failed to verify existence of branch" in e.text
                 ):

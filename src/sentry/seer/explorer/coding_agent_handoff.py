@@ -165,6 +165,7 @@ def launch_coding_agents(
                 elif (
                     integration is not None
                     and integration.provider == "cursor"
+                    and e.code == 400
                     and e.text
                     and "Failed to verify existence of branch" in e.text
                 ):
