@@ -532,12 +532,10 @@ function DataScrubFormModal({
         </Stack>
       </Body>
       <Footer>
-        <Grid flow="column" align="center" gap="lg">
+        <Flex gap="lg">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button type="submit" priority="primary" form={form.formId}>
-            {t('Save Rule')}
-          </Button>
-        </Grid>
+          <form.SubmitButton>{t('Save Rule')}</form.SubmitButton>
+        </Flex>
       </Footer>
     </form.AppForm>
   );
