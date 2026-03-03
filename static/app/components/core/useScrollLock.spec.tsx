@@ -153,13 +153,13 @@ describe('useScrollLock', () => {
   it('locks document scroll without changing html overflow', () => {
     const scrollY = 240;
     const originalInnerWidth = window.innerWidth;
-    const originalClientWidth = document.documentElement.clientWidth;
+    const originalClientWidth = document.body.clientWidth;
     const originalScrollY = window.scrollY;
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: 1200,
     });
-    Object.defineProperty(document.documentElement, 'clientWidth', {
+    Object.defineProperty(document.body, 'clientWidth', {
       configurable: true,
       value: 1180,
     });
@@ -197,7 +197,7 @@ describe('useScrollLock', () => {
       configurable: true,
       value: originalInnerWidth,
     });
-    Object.defineProperty(document.documentElement, 'clientWidth', {
+    Object.defineProperty(document.body, 'clientWidth', {
       configurable: true,
       value: originalClientWidth,
     });

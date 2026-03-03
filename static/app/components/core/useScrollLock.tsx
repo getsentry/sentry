@@ -33,7 +33,7 @@ class Lock {
         };
 
         // Measure scrollbar width before fixing body removes it.
-        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        const scrollbarWidth = window.innerWidth - document.body.clientWidth;
         document.body.style.position = 'fixed';
         document.body.style.top = `-${this.scrollY}px`;
         document.body.style.left = '0';
