@@ -70,26 +70,26 @@ export function DiffImageDisplay({
       <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
         <Flex direction="column" gap="sm">
           <Heading as="h4">{t('Base')}</Heading>
-          <Container
+          <CenteredContainer
             border="primary"
             radius="md"
             overflow="hidden"
             background="secondary"
           >
-            <Image src={baseImageUrl} alt={t('Base')} />
-          </Container>
+            <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
+          </CenteredContainer>
         </Flex>
 
         <Flex direction="column" gap="sm">
           <Heading as="h4">{t('Current Branch')}</Heading>
-          <Container
+          <CenteredContainer
             border="primary"
             radius="md"
             overflow="hidden"
             background="secondary"
           >
             <ImageWrapper>
-              <Image src={headImageUrl} alt={t('Current Branch')} />
+              <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
               {showOverlay && diffMaskUrl && (
                 <DiffOverlay
                   style={{
@@ -103,16 +103,25 @@ export function DiffImageDisplay({
                 />
               )}
             </ImageWrapper>
-          </Container>
+          </CenteredContainer>
         </Flex>
       </Grid>
     </Flex>
   );
 }
 
+const CenteredContainer = styled(Container)`
+  display: flex;
+  justify-content: center;
+`;
+
+const ConstrainedImage = styled(Image)`
+  max-height: 65vh;
+  width: auto;
+`;
+
 const ImageWrapper = styled('div')`
   position: relative;
-  width: 100%;
 `;
 
 const DiffOverlay = styled('span')`
