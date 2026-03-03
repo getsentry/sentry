@@ -62,18 +62,13 @@ jobs:
       - name: Run snapshot tests
         run: pnpm run snapshots
 
-        # TODO: Replace with CLI once published
+      - name: Install sentry-cli
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.2.3 sh
+
       - name: Upload snapshots
         if: ${{ !cancelled() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           SENTRY_ORG: emerge-tools
           SENTRY_PROJECT: sentry-frontend
-          APP_ID: sentry-frontend
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
-          HEAD_REPO: ${{ github.repository }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
-          BASE_REF: ${{ github.event.pull_request.base.ref || '' }}
-          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
-        run: python3 .github/workflows/scripts/upload-snapshots.py
+        run: sentry-cli build snapshots .artifacts/visual-snapshots --app-id sentry-frontend
