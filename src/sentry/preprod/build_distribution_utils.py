@@ -297,7 +297,10 @@ def find_latest_installable_artifact(
     filter_kwargs["mobile_app_info__build_version"] = highest_version
     potential_artifacts_qs = (
         PreprodArtifact.objects.select_related(
-            "project", "build_configuration", "commit_comparison", "mobile_app_info"
+            "project__organization",
+            "build_configuration",
+            "commit_comparison",
+            "mobile_app_info",
         )
         .filter(**filter_kwargs)
         .order_by("-mobile_app_info__build_number", "-date_added")
