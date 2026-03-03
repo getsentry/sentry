@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addLoadingMessage,
@@ -16,7 +16,6 @@ import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -194,36 +193,35 @@ function WebhookUrlField({
   provider: string;
 }) {
   return (
-    <StyledFieldGroup
-      label={t('Webhook URL')}
-      help={
-        Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
-          ? tct(
-              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
-              {
-                link: (
-                  <ExternalLink
-                    href={PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]}
-                  />
-                ),
-              }
-            )
-          : t(
-              "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
-            )
-      }
-      inline
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
-        {provider.length
-          ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
-          : ''}
-      </TextCopyInput>
-    </StyledFieldGroup>
+    <Flex direction="row" gap="sm" align="center" justify="between" padding="xl">
+      <Stack width="50%" gap="xs">
+        <Text>{t('Webhook URL')}</Text>
+        <Text size="sm" variant="muted">
+          {Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
+            ? tct(
+                "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+                {
+                  link: (
+                    <ExternalLink
+                      href={
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
+                      }
+                    />
+                  ),
+                }
+              )
+            : t(
+                "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
+              )}
+        </Text>
+      </Stack>
+      <Container flexGrow={1}>
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
+          {provider.length
+            ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
+            : ''}
+        </TextCopyInput>
+      </Container>
+    </Flex>
   );
 }
-
-const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${p => p.theme.space.xl};
-`;
