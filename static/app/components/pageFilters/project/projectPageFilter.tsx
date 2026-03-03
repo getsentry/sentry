@@ -222,7 +222,7 @@ export function ProjectPageFilter({
                     ({projects.length})
                   </Text>
                   {/* Show separator if we are not displaying My Projects */}
-                  {memberProjectList.length < projects.length ? null : (
+                  {memberProjectList.length > 0 ? null : (
                     <Separator
                       orientation="horizontal"
                       aria-hidden
