@@ -172,7 +172,7 @@ const LinkedFeedbackCard = styled(Link)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']} ${p => p.theme.space.md}
     ${p => p.theme.space.lg};
   border: 1px solid transparent;
-  border-radius: ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
 
   color: ${p => p.theme.tokens.content.primary};
   &:hover {
@@ -182,7 +182,7 @@ const LinkedFeedbackCard = styled(Link)`
     background: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
-    border-radius: ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.radius.md};
     color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
   }
 
