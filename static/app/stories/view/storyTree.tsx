@@ -172,6 +172,9 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
       'compactselect',
       'composite',
       'segmentedcontrol',
+      'form',
+      'fields',
+      'autosavefield',
     ],
   },
   navigation: {
