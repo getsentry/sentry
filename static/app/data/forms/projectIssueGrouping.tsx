@@ -101,7 +101,7 @@ stack.function:mylibrary_* +app`}
   derivedGroupingEnhancements: {
     name: 'derivedGroupingEnhancements',
     type: 'string',
-    label: 'Derived Grouping Enhancements (super user only)',
+    label: 'Derived Grouping Enhancements',
     hideLabel: true,
     placeholder: '',
     multiline: true,
@@ -115,10 +115,9 @@ stack.function:mylibrary_* +app`}
     formatMessageValue: false,
     help: () => (
       <RuleDescription>
-        These rules are automatically derived for some languages for customers that have
-        the GitHub integration and the language has been marked to derive in-app rules.
-        These rules are not editable but they can be negated by adding their own rules in
-        the Stack Trace Rules section.
+        These rules are automatically derived for some languages for organizations that
+        have the GitHub integration. These rules are not editable but they can be negated
+        by adding you own rules in the Stack Trace Rules section.
       </RuleDescription>
     ),
     validate: () => [],
