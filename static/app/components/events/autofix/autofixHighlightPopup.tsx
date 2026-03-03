@@ -27,7 +27,6 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import testableTransition from 'sentry/utils/testableTransition';
