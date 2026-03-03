@@ -151,9 +151,11 @@ describe('useScrollLock', () => {
   });
 
   it('locks document scroll without changing html overflow', () => {
+    const scrollX = 100;
     const scrollY = 240;
     const originalInnerWidth = window.innerWidth;
     const originalClientWidth = document.body.clientWidth;
+    const originalScrollX = window.scrollX;
     const originalScrollY = window.scrollY;
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
@@ -162,6 +164,10 @@ describe('useScrollLock', () => {
     Object.defineProperty(document.body, 'clientWidth', {
       configurable: true,
       value: 1180,
+    });
+    Object.defineProperty(window, 'scrollX', {
+      configurable: true,
+      value: scrollX,
     });
     Object.defineProperty(window, 'scrollY', {
       configurable: true,
@@ -191,7 +197,7 @@ describe('useScrollLock', () => {
     expect(document.body).toHaveStyle({right: ''});
     expect(document.body).toHaveStyle({width: ''});
     expect(document.body).toHaveStyle({paddingRight: ''});
-    expect(scrollToSpy).toHaveBeenCalledWith(0, scrollY);
+    expect(scrollToSpy).toHaveBeenCalledWith(scrollX, scrollY);
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
@@ -200,6 +206,10 @@ describe('useScrollLock', () => {
     Object.defineProperty(document.body, 'clientWidth', {
       configurable: true,
       value: originalClientWidth,
+    });
+    Object.defineProperty(window, 'scrollX', {
+      configurable: true,
+      value: originalScrollX,
     });
     Object.defineProperty(window, 'scrollY', {
       configurable: true,

@@ -11,6 +11,7 @@ class Lock {
     top: string;
     width: string;
   } | null = null;
+  private scrollX = 0;
   private scrollY = 0;
   private container: HTMLElement;
 
@@ -22,6 +23,7 @@ class Lock {
     if (this.acquiredBy.size === 0) {
       if (this.container === document.documentElement) {
         // Keep root overflow unchanged so sticky sidebars stay visible.
+        this.scrollX = window.scrollX;
         this.scrollY = window.scrollY;
         this.initialBodyStyles = {
           position: document.body.style.position,
@@ -61,7 +63,7 @@ class Lock {
         document.body.style.right = this.initialBodyStyles.right;
         document.body.style.width = this.initialBodyStyles.width;
         document.body.style.paddingRight = this.initialBodyStyles.paddingRight;
-        window.scrollTo(0, this.scrollY);
+        window.scrollTo(this.scrollX, this.scrollY);
         this.initialBodyStyles = null;
       }
 
