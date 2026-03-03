@@ -46,6 +46,7 @@ function getSearchConfigFromKeys(
       case FieldValueType.NUMBER:
       case FieldValueType.INTEGER:
       case FieldValueType.PERCENTAGE:
+      case FieldValueType.CURRENCY:
         config.numericKeys.add(key);
         break;
       case FieldValueType.DATE:

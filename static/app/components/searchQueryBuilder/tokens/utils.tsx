@@ -54,6 +54,7 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return 'true';
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
       return '100';
     case FieldValueType.DATE:
       return '-24h';
@@ -128,6 +129,7 @@ export function getInitialFilterText(
   switch (valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
