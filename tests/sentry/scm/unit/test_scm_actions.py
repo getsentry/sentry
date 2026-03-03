@@ -268,8 +268,14 @@ def _check_get_branch(result: Any) -> None:
 
 
 def _check_create_branch(result: Any) -> None:
-    assert result["data"]["ref"] == "refs/heads/feature"
+    assert result["data"]["ref"] == "feature"
     assert result["data"]["sha"] == "abc123"
+    assert result["type"] == "github"
+
+
+def _check_update_branch(result: Any) -> None:
+    assert result["data"]["ref"] == "feature"
+    assert result["data"]["sha"] == "def456"
     assert result["type"] == "github"
 
 
@@ -506,7 +512,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     ),
     (SourceCodeManager.get_branch, {"branch": "main"}, _check_get_branch),
     (SourceCodeManager.create_branch, {"branch": "feature", "sha": "abc123"}, _check_create_branch),
-    (SourceCodeManager.update_branch, {"branch": "feature", "sha": "def456"}, _check_none),
+    (SourceCodeManager.update_branch, {"branch": "feature", "sha": "def456"}, _check_update_branch),
     (
         SourceCodeManager.create_git_blob,
         {"content": "hello", "encoding": "utf-8"},

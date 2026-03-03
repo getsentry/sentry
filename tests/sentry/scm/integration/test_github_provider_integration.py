@@ -173,7 +173,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_pull_request_comments(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1/comments",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/1/comments",
             json=[
                 {
                     "id": 10,
@@ -521,7 +521,7 @@ class TestGitHubProviderIntegration(TestCase):
         """Verify null user is handled correctly."""
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1/comments",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/1/comments",
             json=[
                 {
                     "id": 10,
