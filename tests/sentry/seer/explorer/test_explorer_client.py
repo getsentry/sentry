@@ -671,6 +671,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
         assert body["run_id"] == 123
         assert body["payload"]["type"] == "create_pr"
         assert body["payload"]["repo_name"] == "owner/repo"
+        assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_url == "https://github.com/owner/repo/pull/1"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
@@ -709,6 +710,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
 
         assert mock_fetch.call_count == 2
         assert mock_sleep.call_count == 1
+        assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_creation_status == "completed"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")

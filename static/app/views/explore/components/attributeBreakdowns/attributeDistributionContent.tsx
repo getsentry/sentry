@@ -21,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
@@ -28,6 +29,7 @@ import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {Chart} from './attributeDistributionChart';
 import {CHART_SELECTION_ALERT_KEY, CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
+import {tooltipActionsHtmlRenderer} from './utils';
 
 export type AttributeDistribution = Array<{
   attributeName: string;
@@ -53,6 +55,8 @@ export function AttributeDistribution() {
   });
 
   const query = useQueryParamsQuery();
+  const onAction = useAttributeBreakdownsTooltipAction();
+
   const dataset = useSpansDataset();
   const {selection} = usePageFilters();
   const theme = useTheme();
@@ -186,6 +190,16 @@ export function AttributeDistribution() {
                     attributeDistribution={distribution}
                     cohortCount={cohortCount}
                     theme={theme}
+                    query={query}
+                    actions={{
+                      htmlRenderer: (value: string) =>
+                        tooltipActionsHtmlRenderer(
+                          value,
+                          distribution.attributeName,
+                          theme
+                        ),
+                      onAction,
+                    }}
                   />
                 ))}
             </AttributeBreakdownsComponent.ChartsGrid>

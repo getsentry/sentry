@@ -42,13 +42,13 @@ jobs:
             2>&1 | tee sync-report.txt
 
       - name: Read sync output into variable
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         if: github.event_name == 'pull_request'
         id: github-label-sync
         with:
           script: |
-            const fs = require('fs');
-            return fs.readFileSync('sync-report.txt','utf8').toString();
+            const { readFileSync } = await import('node:fs');
+            return readFileSync('sync-report.txt', 'utf8');
           result-encoding: string
 
       - name: Find previous dry-run comment
