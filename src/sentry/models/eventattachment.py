@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import mimetypes
+import os
 from dataclasses import dataclass
 from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
 
-import sentry_sdk
 import zstandard
 from django.core.cache import cache
 from django.db import models
@@ -21,7 +21,6 @@ from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.objectstore import get_attachments_session
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
-from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -79,7 +78,7 @@ class EventAttachment(Model):
       It is saved inline in `blob_path` following the `:` prefix.
       This happens for "small" and ASCII-only (see `can_store_inline`) attachments.
     - When the `blob_path` field has a `eventattachments/v1/` prefix:
-      In this case, the default :func:`get_storage` is used as the backing store.
+      The default :func:`get_storage` is used as the backing store.
       The attachment data is not chunked or deduplicated in this case.
       However, it is `zstd` compressed.
     """
@@ -131,22 +130,14 @@ class EventAttachment(Model):
                 with measure_storage_operation("delete", "attachments"):
                     storage.delete(self.blob_path)
 
-                # delete double-written attachments
-                blob_path = self.blob_path.removeprefix(V1_PREFIX)
-                if blob_path.startswith(V2_PREFIX):
-                    try:
-                        organization_id = _get_organization(self.project_id)
-                        get_attachments_session(organization_id, self.project_id).delete(
-                            blob_path.removeprefix(V2_PREFIX)
-                        )
-                    except Exception:
-                        sentry_sdk.capture_exception()
-
             elif self.blob_path.startswith(V2_PREFIX):
-                organization_id = _get_organization(self.project_id)
-                get_attachments_session(organization_id, self.project_id).delete(
-                    self.blob_path.removeprefix(V2_PREFIX)
-                )
+                # During cleanup, V2 objectstore blobs expire via TTL — skip the
+                # explicit delete to avoid unnecessary load on the objectstore service.
+                if not os.environ.get("_SENTRY_CLEANUP"):
+                    organization_id = _get_organization(self.project_id)
+                    get_attachments_session(organization_id, self.project_id).delete(
+                        self.blob_path.removeprefix(V2_PREFIX)
+                    )
 
             else:
                 raise NotImplementedError()
@@ -183,9 +174,9 @@ class EventAttachment(Model):
     def get_blob_stream(self, accept_encoding: list[str]) -> BlobStream:
         """Return a streamable blob, negotiating content-encoding for V2 blobs.
 
-        For pure V2 blobs, passes ``accept_encoding`` to the objectstore so compressed
+        For V2 blobs, passes ``accept_encoding`` to the objectstore so compressed
         bytes can be transferred directly to the client. For all other blob types
-        (inline, V1, V1+V2 double-write), delegates to :meth:`getfile`.
+        (inline, V1), delegates to :meth:`getfile`.
         """
         if self.blob_path and self.blob_path.startswith(V2_PREFIX):
             key = self.blob_path.removeprefix(V2_PREFIX)
@@ -218,16 +209,7 @@ class EventAttachment(Model):
             from sentry.models.files import FileBlob
 
             object_key = FileBlob.generate_unique_path()
-            blob_path = V1_PREFIX
-            if in_random_rollout("objectstore.double_write.attachments"):
-                try:
-                    organization_id = _get_organization(project_id)
-                    get_attachments_session(organization_id, project_id).put(data, key=object_key)
-                    metrics.incr("storage.attachments.double_write")
-                    blob_path += V2_PREFIX
-                except Exception:
-                    sentry_sdk.capture_exception()
-            blob_path += object_key
+            blob_path = V1_PREFIX + object_key
 
             storage = get_storage()
             with measure_storage_operation("put", "attachments", size) as metric_emitter:

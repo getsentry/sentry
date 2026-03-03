@@ -27,7 +27,6 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -215,14 +214,14 @@ const ViewAllContainer = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   &::after {
     content: '';
     position: absolute;
     left: 10.5px;
     width: 1px;
-    top: -${space(1)};
-    height: ${space(1)};
+    top: -${p => p.theme.space.md};
+    height: ${p => p.theme.space.md};
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
@@ -231,10 +230,10 @@ const ViewAllContainer = styled('div')`
 const VerticalEllipsis = styled(IconEllipsis)`
   height: 22px;
   color: ${p => p.theme.tokens.content.secondary};
-  margin: ${space(0.5)};
+  margin: ${p => p.theme.space.xs};
   transform: rotate(90deg);
 `;
 
 const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
 `;

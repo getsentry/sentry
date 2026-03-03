@@ -135,7 +135,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 },
             )
             mock_record_did_call_seer.assert_any_call(
-                new_event, call_made=False, blocker="stacktrace-too-long"
+                new_event, call_made=False, blocker="stacktrace-too-long", training_mode=False
             )
 
             mock_get_similar_issues.assert_not_called()

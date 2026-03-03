@@ -54,18 +54,16 @@ export default function PreprodSettings() {
             successMessage={t('Size analysis settings updated')}
             docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
           />
-          <Feature features="organizations:preprod-build-distribution">
-            <FeatureFilter
-              enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
-              enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
-              queryReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
-              queryWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
-              title={t('Build Distribution')}
-              successMessage={t('Build distribution settings updated')}
-              docsUrl="https://docs.sentry.io/product/build-distribution/"
-              display={PreprodBuildsDisplay.DISTRIBUTION}
-            />
-          </Feature>
+          <FeatureFilter
+            enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
+            enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
+            queryReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
+            queryWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
+            title={t('Build Distribution')}
+            successMessage={t('Build distribution settings updated')}
+            docsUrl="https://docs.sentry.io/product/build-distribution/"
+            display={PreprodBuildsDisplay.DISTRIBUTION}
+          />
         </Stack>
       </Feature>
     </Fragment>

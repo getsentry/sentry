@@ -13,7 +13,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -531,8 +530,8 @@ const StyledDateRangeHook = styled(DateRangeHook)`
 `;
 
 const FooterMessage = styled('p')`
-  padding: ${space(0.75)} ${space(1)};
-  margin: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.xs} 0;
   border-radius: ${p => p.theme.radius.md};
   border: solid 1px ${p => p.theme.colors.yellow200};
   background: ${p => p.theme.colors.yellow100};
@@ -543,11 +542,11 @@ const FooterMessage = styled('p')`
 const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   /* If there's FooterMessage above */
   &:not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -555,7 +554,7 @@ const FooterInnerWrap = styled('div')`
   grid-row: -1;
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   &:empty {
     display: none;

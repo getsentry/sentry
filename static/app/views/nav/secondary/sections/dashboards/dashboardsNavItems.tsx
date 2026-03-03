@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -154,7 +153,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   align-items: center;
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
   position: relative;
 
   :not(:hover) {

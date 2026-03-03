@@ -15,6 +15,8 @@ import {
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
+import {useHasPlatformizedCaches} from 'sentry/views/insights/cache/utils/useHasPlatformizedCaches';
+import {PlatformizedCachesOverview} from 'sentry/views/insights/cache/views/platformizedOverview';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -137,9 +139,14 @@ export function CacheLandingPage() {
 }
 
 function PageWithProviders() {
+  const hasPlatformizedCaches = useHasPlatformizedCaches();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  if (hasPlatformizedCaches) {
+    return <PlatformizedCachesOverview />;
+  }
 
   return (
     <ModulePageProviders

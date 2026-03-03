@@ -66,7 +66,7 @@ class TestEnvRegionDirectory(RegionDirectory):
     def swap_to_region_by_name(self, region_name: str) -> Generator[None]:
         """Swap to the specified region when entering region mode."""
 
-        region = self.get_by_name(region_name)
+        region = self.get_cell_by_name(region_name)
         if region is None:
             raise Exception("specified swap region not found")
         with override_settings(SENTRY_REGION=region.name):
@@ -88,7 +88,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             for r in self._tmp_state.regions
         )
 
-    def get_by_name(self, region_name: str) -> Region | None:
+    def get_cell_by_name(self, region_name: str) -> Region | None:
         match = (r for r in self._tmp_state.regions if r.name == region_name)
         try:
             return next(match)
@@ -96,7 +96,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             return None
 
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
-        region = self.get_by_name(locality_name)
+        region = self.get_cell_by_name(locality_name)
         if region is None:
             return None
         return Locality(
@@ -107,7 +107,7 @@ class TestEnvRegionDirectory(RegionDirectory):
         )
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
-        region = self.get_by_name(cell_name)
+        region = self.get_cell_by_name(cell_name)
         if region is None:
             return None
         return Locality(
@@ -118,7 +118,7 @@ class TestEnvRegionDirectory(RegionDirectory):
         )
 
     def get_cells_for_locality(self, locality_name: str) -> Iterable[Region]:
-        region = self.get_by_name(locality_name)
+        region = self.get_cell_by_name(locality_name)
         if region is None:
             return ()
         return (region,)

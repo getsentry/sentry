@@ -4,7 +4,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -39,5 +38,5 @@ function DisabledAlertWizard({organization}: Props) {
 export default DisabledAlertWizard;
 
 const Description = styled('div')`
-  margin: ${space(1)} ${space(1)} ${space(1)} 0;
+  margin: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
 `;

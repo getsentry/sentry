@@ -218,11 +218,11 @@ const ModalReposContainer = styled('div')`
 
 const SearchContainer = styled('div')<{hasAlert: boolean}>`
   margin-top: ${p => (p.hasAlert ? space(1.5) : 0)};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const EmptyMessage = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   font-size: ${p => p.theme.font.size.md};

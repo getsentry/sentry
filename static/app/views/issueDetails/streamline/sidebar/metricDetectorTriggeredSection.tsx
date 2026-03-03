@@ -48,6 +48,7 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
+import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 interface MetricDetectorEvidenceData {
@@ -468,6 +469,15 @@ function TriggeredConditionDetails({
         />
       </InterimSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
+      {detectorDataset === DetectorDataset.SPANS && openPeriod && (
+        <AttributeComparisonSection
+          snubaQuery={snubaQuery}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+          projectId={projectId}
+          isOpenPeriodLoading={isOpenPeriodLoading}
+        />
+      )}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
           <InterimSection title={t('Contributing Issues')} type="contributing_issues">

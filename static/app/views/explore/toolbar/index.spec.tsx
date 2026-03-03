@@ -365,6 +365,35 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
+  it('clears the last selected group by', async () => {
+    let groupBys: readonly string[] = [];
+    let mode: Mode | undefined = undefined;
+
+    function Component() {
+      groupBys = useQueryParamsGroupBys();
+      mode = useQueryParamsMode();
+      return <ExploreToolbar />;
+    }
+    render(<Component />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    expect(groupBys).toEqual(['']);
+
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+
+    expect(mode).toEqual(Mode.AGGREGATE);
+    expect(groupBys).toEqual(['span.op']);
+    expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+
+    await userEvent.click(within(section).getByLabelText('Clear Group By'));
+    expect(mode).toEqual(Mode.SAMPLES);
+    expect(groupBys).toEqual(['']);
+    expect(within(section).queryByLabelText('Clear Group By')).not.toBeInTheDocument();
+  });
+
   it('switches to aggregates mode when modifying group bys', async () => {
     let groupBys: any;
     let mode: any;
