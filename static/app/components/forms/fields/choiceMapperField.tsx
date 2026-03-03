@@ -19,7 +19,6 @@ import {Client} from 'sentry/api';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -452,5 +451,5 @@ const HeadingItem = styled('div')`
 `;
 
 const Actions = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
