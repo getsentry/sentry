@@ -805,6 +805,7 @@ class BaseTestProvider(Provider):
         self,
         start_sha: str,
         end_sha: str,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         inner = self.get_commit("abc123")

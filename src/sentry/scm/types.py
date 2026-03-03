@@ -519,6 +519,7 @@ class Provider(Protocol):
         self,
         start_sha: CommitSHA,
         end_sha: CommitSHA,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
 

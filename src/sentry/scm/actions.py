@@ -325,9 +325,12 @@ class SourceCodeManager:
         self,
         start_sha: CommitSHA,
         end_sha: CommitSHA,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        return self._exec(lambda p: p.compare_commits(start_sha, end_sha, request_options))
+        return self._exec(
+            lambda p: p.compare_commits(start_sha, end_sha, pagination, request_options)
+        )
 
     def get_tree(
         self,

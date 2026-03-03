@@ -381,6 +381,7 @@ class GitHubProvider:
         self,
         start_sha: CommitSHA,
         end_sha: CommitSHA,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         raw_commits = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
