@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -30,7 +31,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
@@ -86,6 +86,7 @@ function WaitingIndicator({project}: {project: Project}) {
 }
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
+  const theme = useTheme();
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
@@ -222,7 +223,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       <StepIndexProvider index={index}>
                         <ContentBlocksRenderer
                           contentBlocks={step.content}
-                          spacing={space(1)}
+                          spacing={theme.space.md}
                         />
                       </StepIndexProvider>
                       <GuidedSteps.ButtonWrapper>
@@ -297,16 +298,16 @@ const Description = styled('div')`
 `;
 
 const ArcadeWrapper = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -321,11 +322,11 @@ const Setup = styled('div')`
 export const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`

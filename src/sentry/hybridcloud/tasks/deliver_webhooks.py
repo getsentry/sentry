@@ -33,7 +33,7 @@ from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region, get_cell_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -567,7 +567,7 @@ def perform_request(payload: WebhookPayload) -> None:
     match destination_type:
         case DestinationType.SENTRY_REGION:
             assert payload.region_name is not None
-            region = get_region_by_name(name=payload.region_name)
+            region = get_cell_by_name(name=payload.region_name)
             perform_region_request(region, payload)
         case DestinationType.CODECOV:
             perform_codecov_request(payload)

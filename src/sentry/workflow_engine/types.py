@@ -363,6 +363,7 @@ class DataConditionHandler(Generic[T]):
     subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
     condition_result_schema: ClassVar[dict[str, Any]] = {}
+    label_template = ""
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -372,6 +373,10 @@ class DataConditionHandler(Generic[T]):
         raise a DataConditionEvaluationException.
         """
         raise NotImplementedError
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        return cls.label_template.format(**condition_data)
 
 
 class DataConditionType(TypedDict):

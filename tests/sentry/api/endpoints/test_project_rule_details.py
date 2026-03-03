@@ -30,9 +30,10 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -1641,10 +1642,17 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         ).exists()
 
     @with_feature("organizations:workflow-engine-rule-serializers")
-    def test_workflow_passed(self) -> None:
-        self.get_error_response(
-            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=400
+    def test_single_written_workflow_passed(self) -> None:
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=202
         )
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects.filter(id=self.workflow.id).exists()
+        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.workflow_triggers.id).exists()
+        assert not Action.objects.filter(id=self.action.id).exists()
 
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(

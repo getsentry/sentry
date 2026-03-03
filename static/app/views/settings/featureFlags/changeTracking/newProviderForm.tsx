@@ -18,7 +18,6 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -206,5 +205,5 @@ export default function NewProviderForm({
 }
 
 const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;

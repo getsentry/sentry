@@ -526,7 +526,8 @@ function WidgetViewerModal(props: Props) {
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
@@ -543,7 +544,8 @@ function WidgetViewerModal(props: Props) {
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
@@ -561,7 +563,8 @@ function WidgetViewerModal(props: Props) {
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
@@ -605,6 +608,7 @@ function WidgetViewerModal(props: Props) {
               dashboardFilters={dashboardFilters}
               // Top N charts rely on the orderby of the table
               widget={primaryWidget}
+              tableItemLimit={widget.limit}
               onZoom={onZoom}
               onLegendSelectChanged={onLegendSelectChanged}
               legendOptions={{

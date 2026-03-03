@@ -11,7 +11,6 @@ import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -45,8 +44,6 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
-  const organization = useOrganization();
-
   const crossEvents = useQueryParamsCrossEvents();
 
   const aggregateFields = useQueryParamsAggregateFields();
@@ -58,10 +55,6 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: booleanTags} = useTraceItemTags('boolean');
-
-  const attributeBreakdownsEnabled = organization.features.includes(
-    'performance-spans-suspect-attributes'
-  );
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -113,15 +106,13 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-            {attributeBreakdownsEnabled ? (
-              <TabList.Item
-                key={Tab.ATTRIBUTE_BREAKDOWNS}
-                disabled={defined(crossEvents) && crossEvents.length > 0}
-              >
-                {t('Attribute Breakdowns')}
-                <Badge variant="beta">Beta</Badge>
-              </TabList.Item>
-            ) : null}
+            <TabList.Item
+              key={Tab.ATTRIBUTE_BREAKDOWNS}
+              disabled={defined(crossEvents) && crossEvents.length > 0}
+            >
+              {t('Attribute Breakdowns')}
+              <Badge variant="beta">Beta</Badge>
+            </TabList.Item>
           </TabList>
         </Tabs>
         {props.tab === Tab.SPAN ? (

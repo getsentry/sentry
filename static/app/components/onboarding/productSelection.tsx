@@ -14,7 +14,6 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
@@ -746,6 +745,6 @@ const ProductButton = Button;
 const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

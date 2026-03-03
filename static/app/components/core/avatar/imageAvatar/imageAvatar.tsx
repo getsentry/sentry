@@ -1,6 +1,7 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {Image} from '@sentry/scraps/image';
@@ -32,9 +33,29 @@ function useImageAvatar(definition: GravatarProps | ImageProps): {
   ref: React.RefCallback<HTMLImageElement>;
   src: string | null;
 } {
-  const gravatarHash = useGravatarHash(
-    definition.type === 'gravatar' ? definition.gravatarId : null
-  );
+  const trimmedGravatarId =
+    definition.type === 'gravatar' ? definition.gravatarId.trim() : '';
+
+  const {data: avatarHash} = useQuery({
+    queryKey: ['gravatar', trimmedGravatarId],
+    queryFn: () => {
+      if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+        return null;
+      }
+      return hashGravatarId(trimmedGravatarId).catch(err => {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['gravatar-hash-error']);
+          Sentry.captureException(err);
+        });
+        return null;
+      });
+    },
+    retry: 0,
+    staleTime: Infinity,
+    networkMode: 'always',
+  });
+
+  const gravatarHash = avatarHash ?? null;
 
   const resolvedSrc =
     definition.type === 'gravatar'
@@ -67,35 +88,6 @@ function useImageAvatar(definition: GravatarProps | ImageProps): {
     ref,
     src: resolvedSrc === erroredSrc ? null : resolvedSrc,
   };
-}
-
-function useGravatarHash(gravatarId: string | null): string | null {
-  const [avatarHash, setAvatarHash] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (gravatarId === null) {
-      setAvatarHash(null);
-      return;
-    }
-
-    const trimmedGravatarId = gravatarId.trim();
-    if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
-      setAvatarHash(null);
-      return;
-    }
-
-    hashGravatarId(trimmedGravatarId)
-      .then(hash => setAvatarHash(hash))
-      .catch(err => {
-        setAvatarHash(null);
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['gravatar-hash-error']);
-          Sentry.captureException(err);
-        });
-      });
-  }, [gravatarId]);
-
-  return avatarHash;
 }
 
 /**
