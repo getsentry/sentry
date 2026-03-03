@@ -3,8 +3,7 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 interface PreprodSearchBarProps {
   initialQuery: string;
@@ -67,9 +66,10 @@ export function PreprodSearchBar({
   disallowLogicalOperators,
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.PREPROD,
-    enabled: true,
+  const organization = useOrganization();
+
+  const preprodAttributeOptions = {
+    enabled: organization.features.includes('preprod-app-size-dashboard'),
   };
 
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.
@@ -77,11 +77,11 @@ export function PreprodSearchBar({
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
 
   const {attributes: rawStringAttributes, secondaryAliases: rawStringSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'string', hiddenKeys);
+    usePreprodItemAttributes(preprodAttributeOptions, 'string', hiddenKeys);
   const {attributes: rawNumberAttributes, secondaryAliases: rawNumberSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'number', hiddenKeys);
+    usePreprodItemAttributes(preprodAttributeOptions, 'number', hiddenKeys);
   const {attributes: rawBooleanAttributes, secondaryAliases: rawBooleanSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'boolean', hiddenKeys);
+    usePreprodItemAttributes(preprodAttributeOptions, 'boolean', hiddenKeys);
 
   const stringAttributes = useMemo(
     () =>

@@ -39,7 +39,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -121,16 +121,15 @@ function LogsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const logsAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
+  const logsAttributeOptions = {
     enabled: isLogsEnabled(organization),
   };
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes(logsAttributeConfig, 'string');
+    useLogItemAttributes(logsAttributeOptions, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes(logsAttributeConfig, 'number');
+    useLogItemAttributes(logsAttributeOptions, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes(logsAttributeConfig, 'boolean');
+    useLogItemAttributes(logsAttributeOptions, 'boolean');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
@@ -156,17 +155,16 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
+  const logsAttributeOptions = {
     enabled: isLogsEnabled(organization),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'string');
+    useLogItemAttributes(logsAttributeOptions, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'number');
+    useLogItemAttributes(logsAttributeOptions, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'boolean');
+    useLogItemAttributes(logsAttributeOptions, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

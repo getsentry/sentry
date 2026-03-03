@@ -6,7 +6,7 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 interface Props {
@@ -18,9 +18,9 @@ interface Props {
 }
 
 export function useSortByFields({config, fields, yAxes, groupBys, mode}: Props) {
-  const {tags: numberTags} = useTraceItemTags(config, 'number');
-  const {tags: stringTags} = useTraceItemTags(config, 'string');
-  const {tags: booleanTags} = useTraceItemTags(config, 'boolean');
+  const {attributes: numberTags} = useTraceItemAttributes(config, 'number');
+  const {attributes: stringTags} = useTraceItemAttributes(config, 'string');
+  const {attributes: booleanTags} = useTraceItemAttributes(config, 'boolean');
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const uniqueOptions: string[] = [];

@@ -11,7 +11,7 @@ import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -67,13 +67,12 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
   spanSearchQueryBuilderProviderProps: UseTraceItemSearchQueryBuilderPropsReturnType;
 } {
-  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
-  const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags(spansConfig, 'number');
-  const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags(spansConfig, 'string');
-  const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemTags(spansConfig, 'boolean');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useSpanItemAttributes({}, 'boolean');
 
   const stringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in stringAttributes) {

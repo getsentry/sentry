@@ -71,7 +71,7 @@ import {
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -854,14 +854,12 @@ function EAPSearchQueryBuilderWithContext({
   project,
   traceItemType,
 }: EAPSearchQueryBuilderWithContextProps) {
-  const traceItemAttributeConfig = {traceItemType, enabled: true, projects: [project]};
-
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'number');
+    useTraceItemDatasetAttributes(traceItemType, {projects: [project]}, 'number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'string');
+    useTraceItemDatasetAttributes(traceItemType, {projects: [project]}, 'string');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'boolean');
+    useTraceItemDatasetAttributes(traceItemType, {projects: [project]}, 'boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,

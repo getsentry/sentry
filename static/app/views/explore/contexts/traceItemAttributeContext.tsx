@@ -56,6 +56,10 @@ export type TraceItemAttributeConfig = {
   search?: string;
 };
 
+export type TraceItemAttributeOptions = Partial<
+  Omit<TraceItemAttributeConfig, 'traceItemType'>
+>;
+
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
@@ -225,6 +229,65 @@ export function useTraceItemAttributes(
 ): TraceItemAttributeResult {
   const typedAttributesResult = useTraceItemAttributeConfig(config);
   return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
+}
+
+export function useTraceItemDatasetAttributes(
+  traceItemType: TraceItemDataset,
+  {enabled, ...rest}: TraceItemAttributeOptions = {},
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemAttributes(
+    {
+      traceItemType,
+      enabled: enabled ?? true,
+      ...rest,
+    },
+    type,
+    hiddenKeys
+  );
+}
+
+export function useSpanItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(TraceItemDataset.SPANS, options, type, hiddenKeys);
+}
+
+export function useLogItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(TraceItemDataset.LOGS, options, type, hiddenKeys);
+}
+
+export function useTraceMetricItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.TRACEMETRICS,
+    options,
+    type,
+    hiddenKeys
+  );
+}
+
+export function usePreprodItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.PREPROD,
+    options,
+    type,
+    hiddenKeys
+  );
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

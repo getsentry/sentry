@@ -42,7 +42,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -197,17 +197,28 @@ function useMobileAppSizeSearchBarDataProvider(
     selection: {projects},
   } = usePageFilters();
 
-  const preprodAttributeConfig = {
-    traceItemType: TraceItemDataset.PREPROD,
+  const preprodAttributeOptions = {
     enabled: organization.features.includes('preprod-app-size-dashboard'),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes(preprodAttributeConfig, 'string', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes(
+      preprodAttributeOptions,
+      'string',
+      HIDDEN_PREPROD_ATTRIBUTES
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes(preprodAttributeConfig, 'number', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes(
+      preprodAttributeOptions,
+      'number',
+      HIDDEN_PREPROD_ATTRIBUTES
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes(preprodAttributeConfig, 'boolean', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes(
+      preprodAttributeOptions,
+      'boolean',
+      HIDDEN_PREPROD_ATTRIBUTES
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

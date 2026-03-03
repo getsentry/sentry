@@ -25,7 +25,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -82,22 +82,19 @@ export default function EAPField({aggregate, onChange, eventTypes, project}: Pro
     arguments: undefined,
   };
 
-  const traceItemAttributeConfig = {
+  const {attributes: storedNumberTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    enabled: true,
-    projects: project ? [project] : undefined,
-  };
-
-  const {attributes: storedNumberTags} = useTraceItemAttributes(
-    traceItemAttributeConfig,
+    {projects: project ? [project] : undefined},
     'number'
   );
-  const {attributes: storedStringTags} = useTraceItemAttributes(
-    traceItemAttributeConfig,
+  const {attributes: storedStringTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {projects: project ? [project] : undefined},
     'string'
   );
-  const {attributes: storedBooleanTags} = useTraceItemAttributes(
-    traceItemAttributeConfig,
+  const {attributes: storedBooleanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {projects: project ? [project] : undefined},
     'boolean'
   );
 

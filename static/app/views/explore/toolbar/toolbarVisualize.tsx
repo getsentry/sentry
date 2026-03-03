@@ -25,7 +25,7 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
@@ -170,22 +170,16 @@ function ToolbarVisualizeItem({
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const spansConfig = {
-    traceItemType: TraceItemDataset.SPANS,
-    enabled: true,
-    search: debouncedSearch,
-  };
-
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags(
-    spansConfig,
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
     'string'
   );
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags(
-    spansConfig,
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
     'number'
   );
-  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags(
-    spansConfig,
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
     'boolean'
   );
 

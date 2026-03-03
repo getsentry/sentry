@@ -41,7 +41,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -81,27 +81,25 @@ function TraceMetricsSearchBar({
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    enabled: true,
+  const traceMetricAttributeOptions = {
     query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes(
-      traceItemAttributeConfig,
+    useTraceMetricItemAttributes(
+      traceMetricAttributeOptions,
       'string',
       HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes(
-      traceItemAttributeConfig,
+    useTraceMetricItemAttributes(
+      traceMetricAttributeOptions,
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes(
-      traceItemAttributeConfig,
+    useTraceMetricItemAttributes(
+      traceMetricAttributeOptions,
       'boolean',
       HiddenTraceMetricSearchFields
     );
@@ -136,18 +134,16 @@ function useTraceMetricsSearchBarDataProvider(
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    enabled: true,
+  const traceMetricAttributeOptions = {
     query: createTraceMetricFilter(traceMetric),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'string');
+    useTraceMetricItemAttributes(traceMetricAttributeOptions, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'number');
+    useTraceMetricItemAttributes(traceMetricAttributeOptions, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes(traceItemAttributeConfig, 'boolean');
+    useTraceMetricItemAttributes(traceMetricAttributeOptions, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

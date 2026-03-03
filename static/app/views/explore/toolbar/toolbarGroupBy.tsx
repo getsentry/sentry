@@ -12,7 +12,7 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarGroupBy';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -85,22 +85,16 @@ function ToolbarGroupByItem({
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const spansConfig = {
-    traceItemType: TraceItemDataset.SPANS,
-    enabled: true,
-    search: debouncedSearch,
-  };
-
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags(
-    spansConfig,
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
     'number'
   );
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags(
-    spansConfig,
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
     'string'
   );
-  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags(
-    spansConfig,
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
     'boolean'
   );
 

@@ -65,7 +65,7 @@ import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 
 export const NONE = 'none';
@@ -285,11 +285,22 @@ function Visualize({error, setError}: VisualizeProps) {
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricSearchFields;
   }
-  const traceItemConfig = useWidgetBuilderTraceItemConfig();
-  const {tags: numericSpanTags} = useTraceItemTags(traceItemConfig, 'number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags(traceItemConfig, 'string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags(
-    traceItemConfig,
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'number',
+    hiddenKeys
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'string',
+    hiddenKeys
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
     'boolean',
     hiddenKeys
   );

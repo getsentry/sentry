@@ -10,7 +10,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 
 type Props = {
@@ -20,10 +20,22 @@ type Props = {
 
 export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
   const expression = stripEquationPrefix(equation);
-  const traceItemConfig = useWidgetBuilderTraceItemConfig();
-  const {tags: numberTags} = useTraceItemTags(traceItemConfig, 'number');
-  const {tags: stringTags} = useTraceItemTags(traceItemConfig, 'string');
-  const {tags: booleanTags} = useTraceItemTags(traceItemConfig, 'boolean');
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: numberTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'number'
+  );
+  const {attributes: stringTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'string'
+  );
+  const {attributes: booleanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'boolean'
+  );
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [
