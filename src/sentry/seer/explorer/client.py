@@ -32,6 +32,7 @@ from sentry.seer.explorer.on_completion_hook import (
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -201,6 +202,9 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.viewer_context = SeerViewerContext(
+            organization_id=int(self.organization.id), user=int(self.user.id) if self.user else None
+        )
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -485,7 +489,7 @@ class SeerExplorerClient:
         if end is not None:
             runs_body["end"] = end
 
-        response = make_explorer_runs_request(runs_body)
+        response = make_explorer_runs_request(runs_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
