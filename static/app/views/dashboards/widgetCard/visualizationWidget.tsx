@@ -201,7 +201,11 @@ function VisualizationWidgetContent({
       }
 
       const fieldIndex = yAxis === undefined ? -1 : fields.indexOf(yAxis);
-      const fieldAlias = fieldIndex >= 0 ? fieldAliases[fieldIndex] : undefined;
+      // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
+      const fieldAlias =
+        aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0
+          ? fieldAliases[fieldIndex]
+          : undefined;
 
       const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
       // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
