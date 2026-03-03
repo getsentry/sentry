@@ -7,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -120,13 +119,13 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
 }
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
+  padding-bottom: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space.md};
 
   display: grid;
   grid-template-rows: auto auto auto;

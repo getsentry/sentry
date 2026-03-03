@@ -14,7 +14,6 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -547,7 +546,7 @@ const ErrorCard = styled(Placeholder)`
   border: 1px solid ${p => p.theme.colors.red200};
   color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export const WidgetDescription = styled('small')`
