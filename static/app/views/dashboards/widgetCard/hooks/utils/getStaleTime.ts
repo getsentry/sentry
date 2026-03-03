@@ -1,14 +1,7 @@
-import {
-  getDiffInMinutes,
-  GranularityLadder,
-  ONE_HOUR,
-  SIXTY_DAYS,
-  THIRTY_DAYS,
-  TWENTY_FOUR_HOURS,
-} from 'sentry/components/charts/utils';
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {RangeMap} from 'sentry/utils/number/rangeMap';
 
 export function getWidgetStaleTime(pageFilters: PageFilters) {
   const {start, end, period} = pageFilters.datetime;
@@ -16,9 +9,7 @@ export function getWidgetStaleTime(pageFilters: PageFilters) {
 
   if (usesRelativeDateRange) {
     const selectionDuration = getDiffInMinutes(pageFilters.datetime);
-    const staleTimeString = Ladder.getInterval(selectionDuration);
-    const staleTimeMilliseconds = intervalToMilliseconds(staleTimeString);
-    return staleTimeMilliseconds;
+    return STALE_TIME_MAP.get(selectionDuration) ?? 1 * 60 * 1000;
   }
 
   return Infinity;
@@ -31,10 +22,10 @@ export function getWidgetStaleTime(pageFilters: PageFilters) {
 // reloads, but do get a reload _eventually_. They can always do a page refresh
 // to get fresh data. Feel free to change these periodically, and keep an eye on
 // the number of API requests outgoing from Dashboards pages.
-const Ladder = new GranularityLadder([
-  [SIXTY_DAYS, '15m'],
-  [THIRTY_DAYS, '10m'],
-  [TWENTY_FOUR_HOURS, '5m'],
-  [ONE_HOUR, '2m'],
-  [0, '1m'],
+const STALE_TIME_MAP = new RangeMap<number>([
+  {min: 0, max: 60, value: 1 * 60 * 1000},
+  {min: 60, max: 24 * 60, value: 2 * 60 * 1000},
+  {min: 24 * 60, max: 30 * 24 * 60, value: 5 * 60 * 1000},
+  {min: 30 * 24 * 60, max: 60 * 24 * 60, value: 10 * 60 * 1000},
+  {min: 60 * 24 * 60, max: Infinity, value: 15 * 60 * 1000},
 ]);
