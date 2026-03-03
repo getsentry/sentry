@@ -55,6 +55,10 @@ export function DiffImageDisplay({
       .catch(() => {});
     return () => {
       cancelled = true;
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
     };
   }, [diffImageUrl]);
 
