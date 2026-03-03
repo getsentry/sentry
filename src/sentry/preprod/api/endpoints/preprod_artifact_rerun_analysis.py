@@ -271,7 +271,18 @@ def reset_artifact_data(preprod_artifact: PreprodArtifact) -> None:
     preprod_artifact.state = PreprodArtifact.ArtifactState.UPLOADED
     preprod_artifact.error_code = None
     preprod_artifact.error_message = None
-    preprod_artifact.save(update_fields=["state", "error_code", "error_message", "date_updated"])
+    preprod_artifact.installable_app_error_code = None
+    preprod_artifact.installable_app_error_message = None
+    preprod_artifact.save(
+        update_fields=[
+            "state",
+            "error_code",
+            "error_message",
+            "installable_app_error_code",
+            "installable_app_error_message",
+            "date_updated",
+        ]
+    )
 
 
 def success_response(
