@@ -134,7 +134,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     logs: logsData,
     traceId: traceSlug,
   });
-  const traceInnerLayoutRef = useRef<HTMLDivElement>(null);
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
@@ -159,7 +158,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             logs={logsData}
             metrics={metricsData}
           />
-          <TraceInnerLayout ref={traceInnerLayoutRef}>
+          <TraceInnerLayout>
             <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
@@ -196,9 +195,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? (
-              <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
-            ) : null}
+            {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />
