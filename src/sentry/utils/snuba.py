@@ -446,6 +446,14 @@ class QueryConnectionFailed(QueryExecutionError):
     """
 
 
+class QueryBytesScannedExceeded(QueryExecutionError):
+    """
+    The query exceeded the max_bytes_to_read limit set by an allocation policy.
+    This is a ClickHouse-level rejection (error code 307, TOO_MANY_BYTES),
+    distinct from Snuba-level rate limiting.
+    """
+
+
 clickhouse_error_codes_map = {
     10: QueryMissingColumn,
     43: QueryIllegalTypeOfArgument,
@@ -456,6 +464,7 @@ clickhouse_error_codes_map = {
     241: QueryMemoryLimitExceeded,
     271: DatasetSelectionError,
     279: QueryConnectionFailed,
+    307: QueryBytesScannedExceeded,
 }
 
 
