@@ -20,7 +20,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   SentryApp,
   SentryAppSchemaIssueLink,
@@ -280,7 +279,7 @@ export default function RequestLog({app}: RequestLogProps) {
 const TableLayout = styled('div')<{hasOrganization: boolean}>`
   display: grid;
   grid-template-columns: 1fr 0.5fr ${p => (p.hasOrganization ? '1fr' : '')} 1fr 1fr;
-  grid-column-gap: ${space(1.5)};
+  grid-column-gap: ${p => p.theme.space.lg};
   width: 100%;
   align-items: center;
 `;
@@ -309,7 +308,7 @@ const PaginationButtons = styled('div')`
 const RequestLogFilters = styled('div')`
   display: flex;
   align-items: center;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
   > :first-child button,
   > :first-child a {
@@ -329,9 +328,9 @@ const StyledIconOpen = styled(IconOpen)`
 `;
 
 const Tags = styled('div')`
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;

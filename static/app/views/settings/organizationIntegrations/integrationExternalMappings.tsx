@@ -249,14 +249,14 @@ const MappingTable = styled(PanelTable)`
 `}
 
   > :nth-child(4n) {
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space.md};
     justify-content: end;
   }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
   min-width: ${p => p.size}px;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const ExternalNameColumn = styled('div')`
