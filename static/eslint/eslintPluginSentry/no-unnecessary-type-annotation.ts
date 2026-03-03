@@ -161,5 +161,3 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
     };
   },
 });
-
-export default noUnnecessaryTypeAnnotation;
