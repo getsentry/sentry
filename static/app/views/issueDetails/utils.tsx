@@ -20,7 +20,6 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
@@ -278,18 +277,9 @@ export function getGroupEventQueryKey({
 }
 
 export function useHasStreamlinedUI() {
-  const user = useUser();
-  const organization = useOrganization();
-  const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
-
-  // If the organzation option is set to true, the new UI is used.
-  if (organization.streamlineOnly) {
-    return true;
-  }
-
-  // Apply the UI based on user preferences (default to streamlined UI for users
-  // who haven't explicitly set a preference, matching the previously enforced behavior)
-  return userStreamlinedUIOption ?? true;
+  // The old UI should never be shown to the user.
+  // TODO: Remove all usages of this hook, along with the legacy UI components.
+  return true;
 }
 
 export function useIsSampleEvent(): boolean {

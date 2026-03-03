@@ -17,7 +17,7 @@
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
-- `eslint.config.js`: ESLint configuration
+- `eslint.config.ts`: ESLint configuration
 - `stylelint.config.js`: CSS/styling linting
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`

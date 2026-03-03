@@ -44,7 +44,7 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
-    'static/eslint/**/index.js',
+    'static/eslint/**/index.ts',
     // figma code connect files - consumed by Figma CLI
     'static/**/*.figma.{tsx,jsx}',
   ],
@@ -60,7 +60,7 @@ const config: KnipConfig = {
     '!static/app/**/__stories__/*.{js,ts,tsx}!',
     '!static/app/stories/**/*.{js,ts,tsx}!',
     // ignore eslint plugins in production
-    '!static/eslint/**/*.js!',
+    '!static/eslint/**/*.ts!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
