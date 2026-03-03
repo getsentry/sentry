@@ -142,7 +142,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         """Test with an unsupported condition e.g. IssueResolvedTriggerCondition
         we should return what we can - the supported ones, and skip over the unsupported ones
         """
-        detector = self.create_detector()
+        detector = self.create_detector(project=self.project)
         workflow_triggers = self.create_data_condition_group()
         workflow = self.create_workflow(
             when_condition_group=workflow_triggers,
