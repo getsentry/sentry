@@ -127,8 +127,7 @@ class Span(NamedTuple):
         # `timeout` rather than `root-timeout` seconds.
         if self.is_segment_span:
             return self.span_id
-        else:
-            return self.segment_id or self.parent_span_id or self.span_id
+        return self.segment_id or self.parent_span_id or self.span_id
 
 
 class OutputSpan(NamedTuple):
@@ -164,6 +163,11 @@ class SpansBuffer:
     # make it pickleable
     def __reduce__(self):
         return (SpansBuffer, (self.assigned_shards, self.slice_id))
+
+    def _ensure_debug_trace_logger(self) -> DebugTraceLogger:
+        if self._debug_trace_logger is None:
+            self._debug_trace_logger = DebugTraceLogger(self.client)
+        return self._debug_trace_logger
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
@@ -240,9 +244,7 @@ class SpansBuffer:
                         byte_count = sum(len(span.payload) for span in subsegment)
 
                         try:
-                            if self._debug_trace_logger is None:
-                                self._debug_trace_logger = DebugTraceLogger(self.client)
-                            self._debug_trace_logger.log_subsegment_info(
+                            self._ensure_debug_trace_logger().log_subsegment_info(
                                 project_and_trace, parent_span_id, subsegment
                             )
                         except Exception:
@@ -296,43 +298,11 @@ class SpansBuffer:
                     segment_key,
                     has_root_span,
                     evalsha_latency_ms,
-                    _,
-                    _,
-                ) = result
-
-                latency_entries.append((project_and_trace, evalsha_latency_ms))
-
-                # The Kafka partition is used directly as the queue shard
-                # so that routing is stable across rebalances.
-                shard = partition
-                queue_key = self._get_queue_key(shard)
-
-                # if the currently processed span is a root span, OR the buffer
-                # already had a root span inside, use a different timeout than
-                # usual.
-                if has_root_span:
-                    offset = root_timeout
-                else:
-                    offset = timeout
-
-                zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[segment_key] = now + offset
-
-                subsegment_spans = trees[project_and_trace, parent_span_id]
-                delete_set = queue_deletes.setdefault(queue_key, set())
-                delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
-                )
-                delete_set.discard(segment_key)
-
-            for result in results:
-                (
-                    _,
-                    _,
-                    evalsha_latency_ms,
                     evalsha_latency_metrics,
                     evalsha_gauge_metrics,
                 ) = result
+
+                latency_entries.append((project_and_trace, evalsha_latency_ms))
                 latency_metrics.append(evalsha_latency_metrics)
                 gauge_metrics.append(evalsha_gauge_metrics)
                 if evalsha_latency_ms > longest_evalsha_data[0]:
@@ -341,6 +311,23 @@ class SpansBuffer:
                         evalsha_latency_metrics,
                         evalsha_gauge_metrics,
                     )
+
+                # The Kafka partition is used directly as the queue shard
+                # so that routing is stable across rebalances.
+                queue_key = self._get_queue_key(partition)
+
+                # if the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than
+                # usual.
+                offset = root_timeout if has_root_span else timeout
+                queue_adds.setdefault(queue_key, {})[segment_key] = now + offset
+
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                delete_set.update(
+                    self._get_span_key(project_and_trace, span.span_id)
+                    for span in trees[project_and_trace, parent_span_id]
+                )
+                delete_set.discard(segment_key)
 
             self._buffer_logger.log(latency_entries)
 
@@ -380,8 +367,7 @@ class SpansBuffer:
     def _get_queue_key(self, shard: int) -> bytes:
         if self.slice_id is not None:
             return f"span-buf:q:{self.slice_id}-{shard}".encode("ascii")
-        else:
-            return f"span-buf:q:{shard}".encode("ascii")
+        return f"span-buf:q:{shard}".encode("ascii")
 
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
@@ -558,9 +544,7 @@ class SpansBuffer:
             num_has_root_spans += int(has_root_span)
 
             try:
-                if self._debug_trace_logger is None:
-                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                self._debug_trace_logger.log_flush_info(
+                self._ensure_debug_trace_logger().log_flush_info(
                     segment_key,
                     segment_span_id,
                     has_root_span,
