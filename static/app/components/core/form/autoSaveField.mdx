@@ -7,6 +7,8 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/field/autoSaveField.tsx
 ---
 
+import {Container} from '@sentry/scraps/layout';
+
 import {BasicAutoSaveDemo, FullAutoSaveDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
@@ -18,7 +20,9 @@ For traditional submit-based forms, see [Form](./form.mdx).
 ## Basic Usage
 
 <Storybook.Demo>
-  <BasicAutoSaveDemo />
+  <Container width="80%">
+    <BasicAutoSaveDemo />
+  </Container>
 </Storybook.Demo>
 
 ```jsx
@@ -117,7 +121,7 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
 
 ## Cache Updates
 
-Always update the React Query cache in `onSuccess` so the UI stays in sync:
+Always update the React Query cache (or invalidate it with `invalidateQueries`) in `onSuccess` so the UI stays in sync:
 
 ```jsx
 mutationOptions={{
@@ -127,26 +131,6 @@ mutationOptions={{
     queryClient.setQueryData(['user'], old => ({...old, ...data}));
   },
 }}
-```
-
-## Mutation Typing
-
-Use schema-inferred types for the `mutationFn` data parameter. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types.
-
-```tsx
-const preferencesSchema = z.object({
-  theme: z.string(),
-  language: z.string(),
-  notifications: z.boolean(),
-});
-
-type Preferences = z.infer<typeof preferencesSchema>;
-
-// Use schema-inferred type for proper type narrowing
-const mutation = mutationOptions({
-  mutationFn: (data: Partial<Preferences>) =>
-    fetchMutation({url: '/preferences/', method: 'PUT', data}),
-});
 ```
 
 ## Full Example

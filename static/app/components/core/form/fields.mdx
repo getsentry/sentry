@@ -7,6 +7,8 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/field
 ---
 
+import {Container} from '@sentry/scraps/layout';
+
 import {BaseFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
@@ -235,7 +237,9 @@ import {Flex} from '@sentry/scraps/layout';
 For one-off fields that don't have a built-in component (color picker, date picker, etc.), use `field.Base`. It provides a render prop with all the accessibility and form integration props you need.
 
 <Storybook.Demo>
-  <BaseFieldDemo />
+  <Container width="80%">
+    <BaseFieldDemo />
+  </Container>
 </Storybook.Demo>
 
 ```jsx

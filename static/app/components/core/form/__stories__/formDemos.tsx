@@ -274,8 +274,7 @@ export function BasicAutoSaveDemo() {
 }
 
 const fullSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   notifications: z.boolean().optional(),
   priority: z.string().optional(),
   bio: z.string().optional(),
@@ -300,26 +299,13 @@ export function FullAutoSaveDemo() {
   return (
     <FieldGroup title="User Settings">
       <AutoSaveField
-        name="firstName"
+        name="name"
         schema={fullSchema}
-        initialValue="Jane"
+        initialValue="Jane Doe"
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Layout.Row label="First Name" hintText="Your given name">
-            <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="lastName"
-        schema={fullSchema}
-        initialValue="Doe"
-        mutationOptions={fullMutationOptions}
-      >
-        {field => (
-          <field.Layout.Row label="Last Name" required>
+          <field.Layout.Row label="Full Name" required>
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
