@@ -263,17 +263,17 @@ import {Flex} from '@sentry/scraps/layout';
 For one-off fields that don't have a built-in component (e.g. a color picker, or any custom input), use `field.Base`. It provides a render prop with all the necessary accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) that you spread onto your native element.
 
 ```tsx
-<form.AppField name="acceptTerms">
+<form.AppField name="color">
   {field => (
-    <field.Layout.Row label="Terms of Service:">
+    <field.Layout.Row label="Brand Color:">
       <field.Base<HTMLInputElement>>
         {(baseProps, {indicator}) => (
           <Flex flexGrow={1}>
             <input
               {...baseProps}
-              type="checkbox"
-              checked={field.state.value}
-              onChange={e => field.handleChange(e.target.checked)}
+              type="color"
+              value={field.state.value}
+              onChange={e => field.handleChange(e.target.value)}
             />
             {indicator}
           </Flex>
