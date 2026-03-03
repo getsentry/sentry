@@ -52,7 +52,6 @@ FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we 
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:v2:{project_id}"
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
-ROLLOUT_CALLSITE = "issues.escalating.issue_velocity.calculate_threshold"
 
 
 def calculate_threshold(project: Project) -> float | None:
@@ -62,7 +61,7 @@ def calculate_threshold(project: Project) -> float | None:
     snuba_threshold = _calculate_threshold_snuba(project)
     threshold = snuba_threshold
 
-    callsite = ROLLOUT_CALLSITE
+    callsite = "issues.escalating.issue_velocity.calculate_threshold"
     if EAPOccurrencesComparator.should_check_experiment(callsite):
         eap_threshold = _calculate_threshold_eap(project)
         threshold = EAPOccurrencesComparator.check_and_choose(
