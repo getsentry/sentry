@@ -14,6 +14,8 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
+export const TEXT_WIDGET_CONTENT_SESSION_KEY = 'dashboard:edit-widget:text-content';
+
 function stringifyFields(
   query: WidgetQuery,
   fieldKey: 'fields' | 'columns' | 'aggregates'
@@ -67,9 +69,13 @@ export function convertWidgetToBuilderStateParams(
     }
   }
 
+  if (widget.displayType === DisplayType.TEXT) {
+    sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, widget.description ?? '');
+  }
+
   return {
     title: widget.title,
-    description: widget.description ?? '',
+    description: widget.displayType === DisplayType.TEXT ? undefined : widget.description,
     dataset:
       widget.displayType === DisplayType.TEXT
         ? undefined

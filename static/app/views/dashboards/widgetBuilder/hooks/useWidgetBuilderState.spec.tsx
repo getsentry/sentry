@@ -6,11 +6,15 @@ import type {Column} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  WidgetBuilderProvider,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useWidgetBuilderState, {
   BuilderStateAction,
   serializeFields,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {TEXT_WIDGET_CONTENT_SESSION_KEY} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 jest.mock('sentry/utils/useLocation');
@@ -2331,6 +2335,145 @@ describe('useWidgetBuilderState', () => {
         }),
         expect.anything()
       );
+    });
+  });
+
+  describe('text widget', () => {
+    afterEach(() => {
+      sessionStorage.clear();
+    });
+
+    it('reads textContent from sessionStorage on initial render for text display type', () => {
+      sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, 'stored content');
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TEXT},
+        })
+      );
+
+      // Use the context hook to access the provider's state instance, which is the
+      // one that initializes from sessionStorage on mount.
+      const {result} = renderHook(() => useWidgetBuilderContext(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.description).toBe('stored content');
+    });
+
+    it('removes the sessionStorage key after reading it', () => {
+      sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, 'stored content');
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TEXT},
+        })
+      );
+
+      renderHook(() => useWidgetBuilderContext(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY)).toBeNull();
+    });
+
+    it('does not read sessionStorage for non-text display types', () => {
+      sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, 'stored content');
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TABLE},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderContext(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.description).toBeFalsy();
+      // Key should remain in sessionStorage since it was not consumed
+      expect(sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY)).toBe(
+        'stored content'
+      );
+    });
+
+    it('SET_DESCRIPTION stores in local state and does not update the URL for text widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TEXT},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DESCRIPTION,
+          payload: 'new text content',
+        });
+      });
+
+      jest.runAllTimers();
+
+      expect(result.current.state.description).toBe('new text content');
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({description: expect.anything()}),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('SET_DESCRIPTION updates the URL for non-text widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TABLE},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DESCRIPTION,
+          payload: 'table description',
+        });
+      });
+
+      jest.runAllTimers();
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({description: 'table description'}),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('clears textContent when switching away from text display type', () => {
+      sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, 'stored content');
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TEXT},
+        })
+      );
+
+      // Use the context hook so we test the single authoritative state instance.
+      const {result} = renderHook(() => useWidgetBuilderContext(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.description).toBe('stored content');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.description).toBeFalsy();
     });
   });
 });

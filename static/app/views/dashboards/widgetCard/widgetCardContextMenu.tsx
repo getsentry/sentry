@@ -24,7 +24,11 @@ import {
 import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -294,31 +298,34 @@ export function getMenuOptions(
   }
 
   if (organization.features.includes('dashboards-edit')) {
-    menuOptions.push({
-      key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      disabled: disableTransactionEdit,
-      tooltip: disableTransactionEdit
-        ? t('This dataset is no longer supported. Please use the Spans dataset.')
-        : undefined,
-      onAction: () => {
-        openAddToDashboardModal({
-          organization,
-          location,
-          selection,
-          widgets: [
-            {
-              ...widget,
-              id: undefined,
-              dashboardId: undefined,
-              layout: undefined,
-            },
-          ],
-          actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
-          source: DashboardWidgetSource.DASHBOARDS,
-        });
-      },
-    });
+    if (widget.displayType !== DisplayType.TEXT) {
+      menuOptions.push({
+        key: 'add-to-dashboard',
+        label: t('Add to Dashboard'),
+        disabled: disableTransactionEdit,
+        tooltip: disableTransactionEdit
+          ? t('This dataset is no longer supported. Please use the Spans dataset.')
+          : undefined,
+        onAction: () => {
+          openAddToDashboardModal({
+            organization,
+            location,
+            selection,
+            widgets: [
+              {
+                ...widget,
+                id: undefined,
+                dashboardId: undefined,
+                layout: undefined,
+              },
+            ],
+            actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
+            source: DashboardWidgetSource.DASHBOARDS,
+          });
+        },
+      });
+    }
+
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),

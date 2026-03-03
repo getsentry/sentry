@@ -1,5 +1,8 @@
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  convertWidgetToBuilderStateParams,
+  TEXT_WIDGET_CONTENT_SESSION_KEY,
+} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
 describe('convertWidgetToBuilderStateParams', () => {
@@ -119,5 +122,62 @@ describe('convertWidgetToBuilderStateParams', () => {
     expect(params.thresholds).toBe(
       '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}'
     );
+  });
+
+  describe('text widget', () => {
+    afterEach(() => {
+      sessionStorage.clear();
+    });
+
+    it('stores the description in sessionStorage', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.ERRORS),
+        displayType: DisplayType.TEXT,
+        description: 'My markdown content',
+      };
+      convertWidgetToBuilderStateParams(widget);
+      expect(sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY)).toBe(
+        'My markdown content'
+      );
+    });
+
+    it('stores an empty string in sessionStorage when description is undefined', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.ERRORS),
+        displayType: DisplayType.TEXT,
+        description: undefined,
+      };
+      convertWidgetToBuilderStateParams(widget);
+      expect(sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY)).toBe('');
+    });
+
+    it('does not include description in URL params', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.ERRORS),
+        displayType: DisplayType.TEXT,
+        description: 'My markdown content',
+      };
+      const params = convertWidgetToBuilderStateParams(widget);
+      expect(params.description).toBeUndefined();
+    });
+
+    it('does not include dataset in URL params', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.ERRORS),
+        displayType: DisplayType.TEXT,
+      };
+      const params = convertWidgetToBuilderStateParams(widget);
+      expect(params.dataset).toBeUndefined();
+    });
+
+    it('does not write to sessionStorage for non-text widgets', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.ERRORS),
+        displayType: DisplayType.TABLE,
+        description: 'some description',
+      };
+      convertWidgetToBuilderStateParams(widget);
+      expect(sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY)).toBeNull();
+    });
   });
 });
