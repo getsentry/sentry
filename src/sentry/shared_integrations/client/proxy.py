@@ -137,7 +137,10 @@ class IntegrationProxyClient(ApiClient):
         # If the request flow for processing a Webhook outbox message is between the RegionSiloClient and the
         # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
         # Otherwise, the RegionSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
-        self.timeout = 10
+        # The timeout is now configurable via the hybridcloud.integrationproxy.timeout option (default: 20 seconds)
+        # to accommodate slower third-party API responses while maintaining the architectural constraint that it
+        # must be less than RegionSiloClient's timeout.
+        self.timeout = options.get("hybridcloud.integrationproxy.timeout")
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True

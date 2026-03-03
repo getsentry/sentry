@@ -2315,6 +2315,10 @@ register(
     "performance.hide-metrics-ui",
     type=Bool,
     default=False,
+# Timeout for integration proxy requests (in seconds).
+# Must be less than RegionSiloClient's timeout (30s) to prevent cascading failures.
+# Set higher than the old default of 10s to accommodate slower third-party API responses.
+register("hybridcloud.integrationproxy.timeout", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
