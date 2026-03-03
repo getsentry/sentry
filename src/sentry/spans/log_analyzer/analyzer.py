@@ -238,7 +238,12 @@ class FlusherLogAnalyzer:
             if filtered_ops:
                 filtered_entries.append(
                     FlusherLogEntry(
-                        timestamp=entry.timestamp, consumer=entry.consumer, traces=filtered_ops
+                        timestamp=entry.timestamp,
+                        consumer=entry.consumer,
+                        traces=filtered_ops,
+                        cumulative_load_ids_latency_ms=entry.cumulative_load_ids_latency_ms,
+                        cumulative_load_data_latency_ms=entry.cumulative_load_data_latency_ms,
+                        cumulative_decompress_latency_ms=entry.cumulative_decompress_latency_ms,
                     )
                 )
         return FlusherLogAnalyzer(filtered_entries)
@@ -253,7 +258,12 @@ class FlusherLogAnalyzer:
             if filtered_ops:
                 filtered_entries.append(
                     FlusherLogEntry(
-                        timestamp=entry.timestamp, consumer=entry.consumer, traces=filtered_ops
+                        timestamp=entry.timestamp,
+                        consumer=entry.consumer,
+                        traces=filtered_ops,
+                        cumulative_load_ids_latency_ms=entry.cumulative_load_ids_latency_ms,
+                        cumulative_load_data_latency_ms=entry.cumulative_load_data_latency_ms,
+                        cumulative_decompress_latency_ms=entry.cumulative_decompress_latency_ms,
                     )
                 )
         return FlusherLogAnalyzer(filtered_entries)
