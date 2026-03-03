@@ -12,8 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
 from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
-    find_current_artifact,
-    find_latest_installable_artifact,
+    find_current_and_latest,
     get_download_url_for_artifact,
 )
 from sentry.preprod.models import PreprodBuildConfiguration
@@ -121,8 +120,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
         platform = _PLATFORM_MAP.get(provided_platform, provided_platform)
 
-        # Find current artifact
-        current_artifact = find_current_artifact(
+        current_artifact, latest_artifact = find_current_and_latest(
             project=project,
             app_id=provided_app_id,
             platform=platform,
@@ -131,6 +129,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             main_binary_identifier=provided_main_binary_identifier,
             build_configuration=provided_build_configuration,
             codesigning_type=provided_codesigning_type,
+            install_groups=provided_install_groups or None,
         )
 
         if not current_artifact:
@@ -140,33 +139,6 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             )
 
         current = _build_details_from_artifact(current_artifact) if current_artifact else None
-
-        # Determine effective filters for latest lookup (inherit from current artifact)
-        effective_build_configuration = provided_build_configuration
-        effective_codesigning_type = provided_codesigning_type
-        effective_install_groups: list[str] | None = provided_install_groups or None
-
-        if current_artifact:
-            if not effective_build_configuration and current_artifact.build_configuration:
-                effective_build_configuration = current_artifact.build_configuration.name
-
-            if not effective_codesigning_type and current_artifact.extras:
-                effective_codesigning_type = current_artifact.extras.get("codesigning_type")
-
-            if not effective_install_groups and current_artifact.extras:
-                current_groups = current_artifact.extras.get("install_groups")
-                if current_groups and isinstance(current_groups, list):
-                    effective_install_groups = current_groups
-
-        # Find latest installable artifact
-        latest_artifact = find_latest_installable_artifact(
-            project=project,
-            app_id=provided_app_id,
-            platform=platform,
-            build_configuration_name=effective_build_configuration,
-            codesigning_type=effective_codesigning_type,
-            install_groups=effective_install_groups,
-        )
 
         update = None
         if latest_artifact and (not current_artifact or current_artifact.id != latest_artifact.id):
