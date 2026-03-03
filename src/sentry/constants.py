@@ -38,6 +38,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(MODULE_ROOT))
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
 STATIC_ROOT = os.path.join(PROJECT_ROOT, "static")
 
+DELETION_GRACE_PERIOD_DAYS = 14
+
 BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
 MAX_VERSION_LENGTH = 200
 MAX_COMMIT_LENGTH = 64

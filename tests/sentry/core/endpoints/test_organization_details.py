@@ -19,7 +19,11 @@ from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_locality_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.constants import (
+    DELETION_GRACE_PERIOD_DAYS,
+    RESERVED_ORGANIZATION_SLUGS,
+    ObjectStatus,
+)
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -1153,7 +1157,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        RegionScheduledDeletion.schedule(org, days=DELETION_GRACE_PERIOD_DAYS)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
@@ -1973,9 +1977,8 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
             self.get_error_response(org.slug, status_code=400)
 
     def test_redo_deletion(self) -> None:
-        # Orgs can delete, undelete, delete within a day
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        RegionScheduledDeletion.schedule(org, days=DELETION_GRACE_PERIOD_DAYS)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 

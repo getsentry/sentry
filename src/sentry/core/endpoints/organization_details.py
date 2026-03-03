@@ -18,7 +18,7 @@ from bitfield.types import BitHandler
 from sentry import analytics, audit_log, features, options, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ONE_DAY, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -50,6 +50,7 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    DELETION_GRACE_PERIOD_DAYS,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
     ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
@@ -803,7 +804,9 @@ def post_org_pending_deletion(
                     slug=updated_organization.slug,
                     user_id=request.user.id if request.user.is_authenticated else None,
                     deletion_request_datetime=entry.datetime.isoformat(),
-                    deletion_datetime=(entry.datetime + timedelta(seconds=ONE_DAY)).isoformat(),
+                    deletion_datetime=(
+                        entry.datetime + timedelta(days=DELETION_GRACE_PERIOD_DAYS)
+                    ).isoformat(),
                 )
             )
         except Exception as e:
@@ -813,7 +816,7 @@ def post_org_pending_deletion(
             "username": request.user.get_username(),
             "ip_address": entry.ip_address,
             "deletion_datetime": entry.datetime,
-            "countdown": ONE_DAY,
+            "countdown": int(timedelta(days=DELETION_GRACE_PERIOD_DAYS).total_seconds()),
             "organization": updated_organization,
         }
         send_delete_confirmation(delete_confirmation_args)
