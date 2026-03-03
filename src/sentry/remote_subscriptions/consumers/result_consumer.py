@@ -35,6 +35,15 @@ FAKE_SUBSCRIPTION_ID = 12345
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
     def __init__(self, use_subscription_lock: bool = False):
+        """
+        Initialize the result processor.
+
+        Args:
+            use_subscription_lock: If True, acquires a lock before processing subscription
+                results to prevent concurrent modifications. The subscription state is
+                automatically refreshed from the database after acquiring the lock to
+                ensure fresh data and prevent stale WHERE conditions in conditional UPDATEs.
+        """
         self.use_subscription_lock = use_subscription_lock
 
     @property
@@ -62,6 +71,9 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
                             name=f"subscription_{identifier}",
                         )
                         with TimedRetryPolicy(10)(lock.acquire):
+                            # Refresh subscription from database after acquiring lock to ensure we have
+                            # the latest state and prevent stale WHERE conditions in conditional UPDATEs
+                            subscription.refresh_from_db()
                             with metrics.timer(
                                 "remote_subscriptions.result_consumer.handle_result_timing",
                                 tags={"identifier": identifier},

@@ -1849,3 +1849,22 @@ class ProcessResultSerialTest(ProcessResultTest):
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)
 class ProcessResultParallelTest(ProcessResultTest):
     strategy_processing_mode = "parallel"
+
+    def test_subscription_refreshed_after_lock_acquisition(self) -> None:
+        """
+        Test that when using subscription lock (parallel mode), the subscription
+        is refreshed from the database after acquiring the lock to prevent stale
+        WHERE conditions in conditional UPDATEs.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        with (
+            self.feature("organizations:uptime"),
+            mock.patch.object(type(self.subscription), "refresh_from_db") as mock_refresh_from_db,
+        ):
+            self.send_result(result)
+            # Verify refresh_from_db was called to get fresh subscription state after lock
+            mock_refresh_from_db.assert_called_once()
