@@ -44,7 +44,12 @@ export function DiffImageDisplay({
     }
     let cancelled = false;
     fetch(diffImageUrl)
-      .then(r => r.blob())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`Failed to fetch diff image: ${r.status}`);
+        }
+        return r.blob();
+      })
       .then(blob => {
         if (!cancelled) {
           const url = URL.createObjectURL(blob);
