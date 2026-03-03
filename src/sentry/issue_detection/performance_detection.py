@@ -116,6 +116,12 @@ WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING: dict[str, DetectorType] = {
     for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
 }
 
+# WFE detector type slugs for all performance detectors. These are created automatically
+# by Sentry, not by users.
+PERFORMANCE_WFE_DETECTOR_TYPES: frozenset[str] = frozenset(
+    mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+)
+
 
 class EventPerformanceProblem:
     """
