@@ -232,7 +232,10 @@ def find_current_artifact(
     try:
         return (
             PreprodArtifact.objects.select_related(
-                "project", "build_configuration", "commit_comparison", "mobile_app_info"
+                "project__organization",
+                "build_configuration",
+                "commit_comparison",
+                "mobile_app_info",
             )
             .filter(**filter_kwargs)
             .latest("date_added")
