@@ -1,17 +1,21 @@
-from typing import Any
+from typing import Any, Callable
 
-from sentry.constants import LOG_LEVELS_MAP
-from sentry.rules import MatchType
+from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
+from sentry.rules import LEVEL_MATCH_CHOICES, MatchType
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+
+key: Callable[[tuple[int, str]], int] = lambda x: x[0]
+LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
 
 
 @condition_handler_registry.register(Condition.LEVEL)
 class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
+    label_template = "The event's level is {match} {level}"
 
     comparison_json_schema = {
         "type": "object",
@@ -52,3 +56,11 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
         elif desired_match == MatchType.LESS_OR_EQUAL:
             return level <= desired_level
         return False
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        data = {
+            "level": LEVEL_CHOICES[condition_data["level"]],
+            "match": LEVEL_MATCH_CHOICES[condition_data["match"]],
+        }
+        return cls.label_template.format(**data)

@@ -470,15 +470,13 @@ function TriggeredConditionDetails({
       </InterimSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
       {detectorDataset === DetectorDataset.SPANS && openPeriod && (
-        <Feature features="organizations:performance-spans-suspect-attributes">
-          <AttributeComparisonSection
-            snubaQuery={snubaQuery}
-            openPeriodStart={startDate}
-            openPeriodEnd={endDate}
-            projectId={projectId}
-            isOpenPeriodLoading={isOpenPeriodLoading}
-          />
-        </Feature>
+        <AttributeComparisonSection
+          snubaQuery={snubaQuery}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+          projectId={projectId}
+          isOpenPeriodLoading={isOpenPeriodLoading}
+        />
       )}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
