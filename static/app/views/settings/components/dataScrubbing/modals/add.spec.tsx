@@ -480,6 +480,12 @@ describe('Add Modal', () => {
       />
     );
 
+    // Select REPLACE method
+    await selectEvent.select(
+      screen.getByText(getMethodLabel(MethodType.MASK).label),
+      getMethodLabel(MethodType.REPLACE).label
+    );
+
     // Submit without filling source — Zod validation should block submission
     await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 

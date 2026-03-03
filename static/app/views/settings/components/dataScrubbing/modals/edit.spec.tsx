@@ -238,6 +238,7 @@ describe('Edit Modal', () => {
       />
     );
 
+    await selectEvent.select(screen.getByText('Replace'), 'Mask');
     await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
     expect(await screen.findByText(/Invalid source value/)).toBeInTheDocument();
@@ -269,6 +270,7 @@ describe('Edit Modal', () => {
       />
     );
 
+    await selectEvent.select(screen.getByText('Replace'), 'Mask');
     await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
     expect(await screen.findByText(/Invalid regex/)).toBeInTheDocument();
@@ -300,6 +302,7 @@ describe('Edit Modal', () => {
       />
     );
 
+    await selectEvent.select(screen.getByText('Replace'), 'Mask');
     await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
     await waitFor(() => {
