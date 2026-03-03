@@ -20,7 +20,7 @@ import {Flex} from '@sentry/scraps/layout';
 // ──────────────────────────────────────────────
 
 const quickStartSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.email('Please enter a valid email'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
 });
 
@@ -133,7 +133,7 @@ export function CompactDemo() {
 
 const conditionalSchema = z.object({
   plan: z.string(),
-  billingEmail: z.string().email('Please enter a valid email').optional(),
+  billingEmail: z.email('Please enter a valid email').optional(),
 });
 
 export function ConditionalDemo() {
