@@ -401,7 +401,7 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
-            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+            raise
         if isinstance(
             error,
             (
