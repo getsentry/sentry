@@ -156,6 +156,15 @@ export interface WidgetBuilderState {
   yAxis?: Column[];
 }
 
+function consumeTextWidgetContentFromSessionStorage(): string | undefined {
+  const stored = sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
+  if (stored !== null) {
+    sessionStorage.removeItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
+    return stored;
+  }
+  return undefined;
+}
+
 function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
@@ -236,11 +245,7 @@ function useWidgetBuilderState(): {
   // content in sessionStorage before navigating here — we consume it on first render.
   const [textContent, setTextContent] = useState<string | undefined>(() => {
     if (displayType === DisplayType.TEXT) {
-      const stored = sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
-      if (stored !== null) {
-        sessionStorage.removeItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
-        return stored;
-      }
+      return consumeTextWidgetContentFromSessionStorage();
     }
     return undefined;
   });
@@ -799,7 +804,8 @@ function useWidgetBuilderState(): {
           setDataset(action.payload.dataset, options);
           // Text widget content lives in local state to avoid URL length limits
           if (action.payload.displayType === DisplayType.TEXT) {
-            setTextContent(action.payload.description);
+            const sessionStorageTextContent = consumeTextWidgetContentFromSessionStorage();
+            setTextContent(action.payload.description ?? sessionStorageTextContent ?? '');
             setDescription(undefined, options);
           } else {
             setDescription(action.payload.description, options);

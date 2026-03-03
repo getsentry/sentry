@@ -2343,6 +2343,31 @@ describe('useWidgetBuilderState', () => {
       sessionStorage.clear();
     });
 
+    it('reads textContent from sessionStorage when SET_STATE sets text display type', () => {
+      sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, 'stored content');
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.TABLE},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            displayType: DisplayType.TEXT,
+          },
+        });
+      });
+
+      expect(result.current.state.description).toBe('stored content');
+      expect(sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY)).toBeNull();
+    });
+
     it('reads textContent from sessionStorage on initial render for text display type', () => {
       sessionStorage.setItem(TEXT_WIDGET_CONTENT_SESSION_KEY, 'stored content');
       mockedUsedLocation.mockReturnValue(
