@@ -79,7 +79,11 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         elif assignee_target_type == AssigneeTargetType.MEMBER:
             if target_identifer is None:
                 return cls.label_template.format(**condition_data)
-            user = user_service.get_user(user_id=int(target_identifer))
+            try:
+                user = user_service.get_user(user_id=int(target_identifer))
+            except (ValueError, TypeError):
+                return cls.label_template.format(**condition_data)
+
             if user is not None:
                 return cls.label_template.format(targetType=user.username)
             else:
