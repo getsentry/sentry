@@ -312,12 +312,21 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
-interface SeerAutomationHandoffConfiguration {
+export interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   integration_id: number;
   target: 'cursor_background_agent' | 'claude_code_agent' | 'github_copilot_agent';
   auto_create_pr?: boolean;
 }
+
+export const PROVIDER_TO_HANDOFF_TARGET: Record<
+  string,
+  SeerAutomationHandoffConfiguration['target']
+> = {
+  cursor: 'cursor_background_agent',
+  claude_code: 'claude_code_agent',
+  github_copilot: 'github_copilot_agent',
+};
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
