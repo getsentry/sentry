@@ -13,9 +13,6 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
       unnecessary: 'Type annotation is unnecessary — TypeScript infers the same type.',
     },
   },
-
-  defaultOptions: [],
-
   create(context) {
     const parserServices = context.sourceCode.parserServices;
     if (!parserServices?.program || !parserServices?.esTreeNodeToTSNodeMap) {
