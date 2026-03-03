@@ -126,7 +126,15 @@ metadata = IntegrationMetadata(
 # Some Jira errors for invalid field values don't actually provide the field
 # ID in an easily mappable way, so we have to manually map known error types
 # here to make it explicit to the user what failed.
-CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "Team Field")]
+CUSTOM_ERROR_MESSAGE_MATCHERS = [
+    (re.compile("Team with id '.*' not found.$"), "Team Field"),
+    (
+        re.compile(
+            r"Issue does not exist or you do not have permission to see it\.?$", re.IGNORECASE
+        ),
+        "Issue",
+    ),
+]
 
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
 # a valid link (e.g. "is blocked by ISSUE-1").
@@ -529,7 +537,11 @@ class JiraIntegration(IssueSyncIntegration):
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
-        issue = client.get_issue(issue_id)
+        try:
+            issue = client.get_issue(issue_id)
+        except ApiError as e:
+            self.raise_error(e)
+
         fields = issue.get("fields", {})
         return {
             "key": issue_id,
@@ -1011,11 +1023,16 @@ class JiraIntegration(IssueSyncIntegration):
             "request_body": str(exc.json) if isinstance(exc, ApiError) else None,
         }
 
-        if isinstance(exc, ApiError) and not exc.json:
-            logger.warning("sentry.jira.raise_error.non_json_error_response", extra=logging_context)
-            raise IntegrationConfigurationError(
-                "Something went wrong while communicating with Jira"
-            ) from exc
+        if isinstance(exc, ApiError):
+            if not exc.json:
+                logger.warning(
+                    "sentry.jira.raise_error.non_json_error_response", extra=logging_context
+                )
+                raise IntegrationConfigurationError(
+                    "Something went wrong while communicating with Jira"
+                ) from exc
+            else:
+                return self.error_fields_from_json(exc.json)
 
         if isinstance(exc, ApiInvalidRequestError):
             error_fields = self.error_fields_from_json(exc.json)
