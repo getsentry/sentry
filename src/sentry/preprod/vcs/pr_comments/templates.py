@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 
@@ -8,14 +7,13 @@ COMMENT_ANCHOR = "<!-- sentry-build-distribution -->"
 
 
 def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
-    installable = [a for a in artifacts if is_installable_artifact(a)]
-    if not installable:
+    if not artifacts:
         raise ValueError("No installable artifacts to format")
 
     android_rows: list[str] = []
     ios_rows: list[str] = []
 
-    for artifact in installable:
+    for artifact in artifacts:
         mobile_app_info = getattr(artifact, "mobile_app_info", None)
         app_name = mobile_app_info.app_name if mobile_app_info else None
         app_id = artifact.app_id or "Unknown"

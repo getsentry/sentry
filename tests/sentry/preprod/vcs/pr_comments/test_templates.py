@@ -92,44 +92,6 @@ class FormatPrCommentTest(TestCase):
         assert "iOSApp" in result
         assert "AndroidApp" in result
 
-    def test_no_installable_artifacts_raises(self):
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            app_id="com.example.app",
-            installable_app_file_id=None,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
-            build_number=123,
-        )
-        artifact = PreprodArtifact.objects.select_related(
-            "mobile_app_info", "build_configuration"
-        ).get(id=artifact.id)
-
+    def test_empty_list_raises(self):
         with pytest.raises(ValueError, match="No installable artifacts"):
-            format_pr_comment([artifact])
-
-    def test_filters_non_installable_from_mixed_list(self):
-        installable = self._create_artifact(app_name="Installable")
-        non_installable = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            app_id="com.example.other",
-            installable_app_file_id=None,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=non_installable,
-            app_name="NonInstallable",
-            build_number=789,
-        )
-        non_installable = PreprodArtifact.objects.select_related(
-            "mobile_app_info", "build_configuration"
-        ).get(id=non_installable.id)
-
-        result = format_pr_comment([installable, non_installable])
-
-        assert "Installable" in result
-        assert "NonInstallable" not in result
+            format_pr_comment([])
