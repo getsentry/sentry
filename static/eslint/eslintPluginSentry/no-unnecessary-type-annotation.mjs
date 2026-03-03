@@ -36,7 +36,18 @@ const rule = {
         return false;
       }
       const namesA = new Set(propsA.map(p => p.name));
-      return propsB.every(p => namesA.has(p.name));
+      if (!propsB.every(p => namesA.has(p.name))) {
+        return false;
+      }
+      // Also compare index signatures — e.g. Record<string, Tag> ({} with a
+      // string index) vs plain {} are bidirectionally assignable with identical
+      // named properties, but the annotation adds the index signature.
+      const indexA = checker.getIndexInfosOfType(a);
+      const indexB = checker.getIndexInfosOfType(b);
+      if (indexA.length !== indexB.length) {
+        return false;
+      }
+      return true;
     }
 
     function isEscapeHatch(type) {

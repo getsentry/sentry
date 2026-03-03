@@ -112,6 +112,12 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
       filename: 'valid.ts',
     },
 
+    // Annotation adds index signature — Record<string, T> vs {}
+    {
+      code: 'type TagCollection = Record<string, { key: string }>;\ndeclare function getObj(): {};\nconst x: TagCollection = getObj();',
+      filename: 'valid.ts',
+    },
+
     // Annotation widens with optional properties — TrendsQuery pattern
     {
       code: 'type Base = { a: string };\ntype Extended = Base & { extra?: number };\ndeclare function getBase(): Base;\nconst x: Extended = getBase();',
