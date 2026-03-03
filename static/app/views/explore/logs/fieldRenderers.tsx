@@ -12,7 +12,6 @@ import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStac
 import Version from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -675,7 +674,7 @@ const ClickableTimestamp = styled('span')`
   display: flex;
   align-items: flex-start;
   align-self: baseline;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
   line-height: 1em;
 `;

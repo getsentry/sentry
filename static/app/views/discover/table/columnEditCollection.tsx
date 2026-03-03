@@ -696,12 +696,12 @@ const RowContainer = styled('div')<{
   showAliasField?: boolean;
 }>`
   display: grid;
-  grid-template-columns: ${space(3)} 1fr 40px 40px;
+  grid-template-columns: ${p => p.theme.space['2xl']} 1fr 40px 40px;
   justify-content: center;
   align-items: center;
   width: 100%;
   touch-action: none;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
   ${p =>
     p.showAliasField &&
@@ -727,7 +727,7 @@ const Ghost = styled('div')`
   width: 710px;
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
 
   & > ${RowContainer} {
     padding-bottom: 0;
@@ -746,7 +746,8 @@ const OnDemandContainer = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(3)} ${space(1)} ${space(3)};
+  margin: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space.md}
+    ${p => p.theme.space['2xl']};
   border: 2px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
@@ -758,7 +759,7 @@ const Heading = styled('div')<{gridColumns: number}>`
   /* Emulate the grid used in the column editor rows */
   display: grid;
   grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
@@ -770,10 +771,10 @@ const AliasInput = styled(Input)`
 `;
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: 0;
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -783,7 +784,7 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 `;
 
 const RemoveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   height: ${p => p.theme.form.md.height};
 `;
 
