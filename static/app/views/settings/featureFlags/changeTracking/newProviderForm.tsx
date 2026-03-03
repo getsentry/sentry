@@ -161,6 +161,7 @@ export default function NewProviderForm({
       <form.AppField name="secret">
         {field => (
           <field.Layout.Row
+          	padding="md"
             label={t('Secret')}
             hintText={t(
               'Paste the signing secret given by your provider when creating the webhook.'
