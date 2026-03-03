@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import mimetypes
+import os
 from dataclasses import dataclass
 from hashlib import sha1
 from io import BytesIO
@@ -130,10 +131,13 @@ class EventAttachment(Model):
                     storage.delete(self.blob_path)
 
             elif self.blob_path.startswith(V2_PREFIX):
-                organization_id = _get_organization(self.project_id)
-                get_attachments_session(organization_id, self.project_id).delete(
-                    self.blob_path.removeprefix(V2_PREFIX)
-                )
+                # During cleanup, V2 objectstore blobs expire via TTL — skip the
+                # explicit delete to avoid unnecessary load on the objectstore service.
+                if not os.environ.get("_SENTRY_CLEANUP"):
+                    organization_id = _get_organization(self.project_id)
+                    get_attachments_session(organization_id, self.project_id).delete(
+                        self.blob_path.removeprefix(V2_PREFIX)
+                    )
 
             else:
                 raise NotImplementedError()
