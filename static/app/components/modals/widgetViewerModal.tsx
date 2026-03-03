@@ -136,6 +136,7 @@ export interface WidgetViewerModalOptions {
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
+  widgetInterval?: string;
 }
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
@@ -210,6 +211,7 @@ function WidgetViewerModal(props: Props) {
     dashboardCreator,
     confidence,
     sampleCount,
+    widgetInterval,
   } = props;
   const theme = useTheme();
   const location = useLocation();
@@ -556,6 +558,7 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
             dashboardFilters={dashboardFilters}
+            widgetInterval={widgetInterval}
           >
             {renderIssuesTable}
           </IssueWidgetQueries>
@@ -579,6 +582,7 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
             dashboardFilters={dashboardFilters}
+            widgetInterval={widgetInterval}
           >
             {renderTable}
           </ReleaseWidgetQueries>
@@ -603,6 +607,7 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
             dashboardFilters={dashboardFilters}
+            widgetInterval={widgetInterval}
           >
             {({tableResults, loading, pageLinks}) => {
               return renderTable({tableResults, loading, pageLinks});
@@ -672,6 +677,7 @@ function WidgetViewerModal(props: Props) {
                 noPadding
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+                widgetInterval={widgetInterval}
               />
             )}
           </Container>
