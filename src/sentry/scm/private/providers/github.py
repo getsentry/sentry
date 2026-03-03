@@ -320,7 +320,9 @@ class GitHubProvider:
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
         branch_data = {"ref": f"refs/heads/{branch}", "sha": sha}
         raw = self.client.create_git_ref(self.repository["name"], branch_data)
-        return map_action(raw, lambda r: GitRef(ref=r["ref"], sha=r["object"]["sha"]))
+        return map_action(
+            raw, lambda r: GitRef(ref=r["ref"].removeprefix("refs/heads/"), sha=r["object"]["sha"])
+        )
 
     @catch_provider_exception
     def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None:

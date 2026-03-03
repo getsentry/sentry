@@ -632,7 +632,7 @@ def _check_get_branch(result: Any) -> None:
 
 def _check_create_branch(result: Any) -> None:
     assert result["data"]["sha"] == "abc123"
-    assert result["data"]["ref"] == "refs/heads/feature"
+    assert result["data"]["ref"] == "feature"
     assert result["type"] == "github"
 
 
