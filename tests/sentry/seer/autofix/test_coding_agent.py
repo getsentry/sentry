@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
@@ -291,8 +292,7 @@ class TestLaunchAgentsForRepos(TestCase):
         mock_get_preferences.side_effect = SeerApiError("API Error", 500)
         mock_get_prompt.return_value = "Test prompt"
 
-        mock_installation = MagicMock()
-        mock_installation.model.provider = "cursor"
+        mock_installation = MagicMock(spec=CursorAgentIntegration)
         mock_installation.launch.side_effect = ApiError(
             text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
             code=400,
