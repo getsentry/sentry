@@ -6,7 +6,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -133,13 +132,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         When buildVersion is provided, also returns the current build and
         whether an update is available.
         """
-
-        if not features.has(
-            "organizations:preprod-frontend-routes",
-            project.organization,
-            actor=request.user,
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         validator = PreprodLatestInstallableBuildValidator(data=request.GET)
         validator.is_valid(raise_exception=True)
