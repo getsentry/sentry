@@ -108,21 +108,18 @@ def relay_server_setup(live_server, tmpdir_factory):
     # check if we have the test relay docker container
     container_name = _relay_server_container_name()
 
-    # Some structure similar to what the live_server fixture returns
-    options = {
-        "image": RELAY_TEST_IMAGE,
-        "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": "devservices",
-        "detach": True,
-        "name": container_name,
-        "volumes": {config_path: {"bind": "/etc/relay"}},
-        "command": ["run", "--config", "/etc/relay"],
-        "extra_hosts": {"host.docker.internal": "host-gateway"},
-    }
-
     with get_docker_client() as docker_client:
         _remove_container_if_exists(docker_client, container_name)
-        container = docker_client.containers.run(**options)
+        container = docker_client.containers.run(
+            image=RELAY_TEST_IMAGE,
+            ports={"%s/tcp" % relay_port: relay_port},
+            network="devservices",
+            detach=True,
+            name=container_name,
+            volumes={config_path: {"bind": "/etc/relay"}},
+            command=["run", "--config", "/etc/relay"],
+            extra_hosts={"host.docker.internal": "host-gateway"},
+        )
 
     _log.info("Waiting for Relay container to start")
 

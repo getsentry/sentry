@@ -129,6 +129,18 @@ Three changes:
 - `relay_server` slimmed to: adjust settings + re-insert Relay DB row + yield URL. The DB row insertion (reading `template/credentials.json`) is needed because 4 of 6 relay test files use `TransactionTestCase` which flushes the DB between tests, deleting the Relay identity row.
 - `import json` added for reading credentials file.
 
-## 5. Tiered Workflow + Coupled Optimizations
+## 5. Tiered Workflow
 
-Service classifier plugin (`service_classifier.py`), split-tests-by-tier script, classify-services workflow, G1 (`pytest_ignore_collect` gated on `SELECTED_TESTS_FILE`), H1 overlapped startup (`_wait_for_services` fixture, `_requires_snuba` polling), the full 2-tier CI workflow (5 T1 shards + 17 T2 shards), per-tier devservices modes, pg-socket workflow steps.
+### 5a. Service classifier plugin + classify workflow
+
+New `service_classifier.py` plugin, registered in `__init__.py`. New `classify-services.yml` workflow (`workflow_dispatch` only) that runs the classifier across 22 shards and merges reports into a single `test-service-classification.json` artifact.
+
+Each test is tagged with the **union** of static and runtime detection. Static detection checks fixture declarations (`_requires_snuba`, `_requires_kafka`, etc.) at collection time. Runtime detection monkey-patches `socket.send`/`socket.sendall` and checks `getpeername()` port during test execution. Static alone isn't sufficient because some tests call Snuba indirectly through application code without declaring a fixture. Runtime alone isn't sufficient because some fixtures (Kafka, Symbolicator) configure services without always producing detectable socket traffic. The union covers both cases — a test is classified as needing a service if either method detects it. Misclassifications can only go one direction: false positives (test tagged with a service it doesn't need) just run on T2 instead of T1 — slower but correct. False negatives (test needs a service but wasn't tagged) fail loudly with a `ConnectionError: Connection refused` when the test tries to reach the missing service, making them immediately obvious in CI. In the rare case where application code silently catches the connection error and falls back to a default, the test assertions should catch the empty/wrong result. No manual override list is needed — misclassifications are caught by running CI and fixed by rerunning the classifier.
+
+### 5b. Split-tests-by-tier script + tiered workflow
+
+New `split-tests-by-tier.py` script that reads classification JSON and produces tier1/tier2 test lists. Transform `backend.yml` into 2-tier split: `split-tiers` job → T1 (5 shards, `-n 4 --dist=load`, `mode: migrations`, GitHub Actions Kafka/redis-cluster service containers) + T2 (17 shards, `-n 3 --dist=loadfile`, `mode: backend-ci`, per-worker Snuba bootstrap) in parallel.
+
+## 6. Tiered Workflow Optimizations
+
+G1 (`pytest_ignore_collect` gated on `SELECTED_TESTS_FILE`), H1 overlapped startup (`_wait_for_services` fixture, `_requires_snuba` polling, background devservices subshell in T2), `TIER_GRANULARITY` support in `pytest_collection_modifyitems`.

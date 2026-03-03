@@ -44,3 +44,20 @@ Same as Experiment 1, plus postgres container restarted with Unix domain socket 
 All 3 runs: 22/22 shards passed, 0 failures.
 
 **Delta vs Experiment 1:** Wall clock −45s (13m23s → 12m38s), spread −42s (181s → 139s), average −30s (12m10s → 11m40s).
+
+---
+
+## Experiment 3: + Session-Scoped Relay Container
+
+Same as Experiment 2, plus Relay container broadened from function-scoped (per test) to session-scoped (per worker). `_ensure_relay_in_db()` re-inserts Relay identity row before each test for TransactionTestCase compatibility.
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 12m10s | 88s | 11m33s | 22643161241 |
+| 2 | 12m48s | 128s | 11m40s | 22643162159 |
+| 3 | 12m33s | 158s | 11m26s | 22643163253 |
+| **Mean** | **12m30s** | **125s** | **11m33s** | |
+
+All 3 runs: 22/22 shards passed, 0 failures. (backend typing failed due to mypy — unrelated, fixed.)
+
+**Delta vs Experiment 2:** Wall clock −8s (12m38s → 12m30s), spread −14s (139s → 125s), average −7s (11m40s → 11m33s). Marginal improvement — relay tests are only ~6 files, so the Docker lifecycle savings are small.
