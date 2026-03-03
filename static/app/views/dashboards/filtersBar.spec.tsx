@@ -169,6 +169,37 @@ describe('FiltersBar', () => {
     expect(onDashboardFilterChange).not.toHaveBeenCalled();
   });
 
+  it('should not restore saved filters when URL filters are explicitly cleared', async () => {
+    const savedFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
+      value: `os.name:[Windows]`,
+    };
+    // Empty string simulates cleared filters (handleChangeFilter stores [''])
+    const newLocation = LocationFixture({
+      query: {
+        [DashboardFilterKeys.GLOBAL_FILTER]: '',
+      },
+    });
+
+    const onDashboardFilterChange = jest.fn();
+    renderFilterBar({
+      location: newLocation,
+      filters: {
+        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
+      },
+      onDashboardFilterChange,
+    });
+
+    // Wait for component to fully render
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'All Releases'})).toBeInTheDocument();
+    });
+
+    // Should NOT call onDashboardFilterChange — user cleared filters intentionally
+    expect(onDashboardFilterChange).not.toHaveBeenCalled();
+  });
+
   it('should not render save button on prebuilt dashboard', async () => {
     const newLocation = LocationFixture({
       query: {

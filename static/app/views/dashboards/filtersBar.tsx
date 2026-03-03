@@ -188,6 +188,11 @@ export default function FiltersBar({
       return savedFilters;
     }
 
+    // Empty array means user explicitly cleared all filters — respect that
+    if (urlFilters.length === 0) {
+      return urlFilters;
+    }
+
     const nonOverlappingSaved = savedFilters.filter(
       saved => !urlFilters.some(url => globalFilterKeysAreEqual(saved, url))
     );
@@ -201,8 +206,12 @@ export default function FiltersBar({
   useEffect(() => {
     const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
 
-    // Only sync if URL has filters AND saved filters were merged in
-    if (urlFilters && activeGlobalFilters.length > urlFilters.length) {
+    // Only sync if URL has non-empty filters AND saved filters were merged in
+    if (
+      urlFilters &&
+      urlFilters.length > 0 &&
+      activeGlobalFilters.length > urlFilters.length
+    ) {
       onDashboardFilterChange({
         [DashboardFilterKeys.RELEASE]: selectedReleases,
         [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
