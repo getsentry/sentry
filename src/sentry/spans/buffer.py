@@ -626,10 +626,7 @@ class SpansBuffer:
                 try:
                     if self._debug_trace_logger is None:
                         self._debug_trace_logger = DebugTraceLogger(self.client)
-                    self._debug_trace_logger.logger.info(
-                        "flush_segments.empty_calls",
-                        extra={"empty_flush_count": self.empty_flush_segment_calls},
-                    )
+                    self._debug_trace_logger.log_empty_segments(self.empty_flush_segment_calls)
                 except Exception:
                     logger.exception("flush_segments: Failed to log empty flush count")
                 finally:
