@@ -202,10 +202,14 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.viewer_context = SeerViewerContext(
-        user_id = self.user.id if self.user and getattr(self.user, 'is_authenticated', False) else None
-            organization_id=int(self.organization.id),
-            user_id=int(user_id) if user_id else None,
+
+        user_id = (
+            self.user.id if self.user and getattr(self.user, "is_authenticated", False) else None
+        )
+        self.viewer_context = (
+            SeerViewerContext(organization_id=int(self.organization.id), user_id=int(user_id))
+            if user_id
+            else None
         )
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
