@@ -15,7 +15,6 @@ from sentry.preprod.build_distribution_utils import (
     find_current_and_latest,
     get_download_url_for_artifact,
 )
-from sentry.preprod.models import PreprodBuildConfiguration
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -44,7 +43,12 @@ class CheckForUpdatesApiResponse(BaseModel):
 def _build_details_from_artifact(artifact):
     """Convert a PreprodArtifact to InstallableBuildDetails, or None."""
     mobile_app_info = getattr(artifact, "mobile_app_info", None)
-    if not mobile_app_info or not mobile_app_info.build_version or not mobile_app_info.build_number:
+    if (
+        not mobile_app_info
+        or not mobile_app_info.build_version
+        or not mobile_app_info.build_number
+        or not mobile_app_info.app_name
+    ):
         return None
     return InstallableBuildDetails(
         id=str(artifact.id),
@@ -107,16 +111,6 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 provided_build_number = int(provided_build_number_str)
             except ValueError:
                 return Response({"error": "Invalid build_number format"}, status=400)
-
-        # Validate build_configuration exists
-        if provided_build_configuration:
-            try:
-                PreprodBuildConfiguration.objects.get(
-                    project=project,
-                    name=provided_build_configuration,
-                )
-            except PreprodBuildConfiguration.DoesNotExist:
-                return Response({"error": "Invalid build configuration"}, status=400)
 
         platform = _PLATFORM_MAP.get(provided_platform, provided_platform)
 
