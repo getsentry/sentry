@@ -579,7 +579,7 @@ class TestGetAutofixExplorerStatus(TestCase):
     def test_open_pr_no_repo_pr_states_returns_false(self):
         block = self._make_block("code_changes")
         state = self._make_state(blocks=[block], repo_pr_states={})
-        assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is False
+        assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is None
 
     def test_open_pr_all_prs_completed_returns_true(self):
         block = self._make_block("code_changes")
