@@ -1,5 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {tct} from 'sentry/locale';
@@ -83,8 +84,8 @@ export function PrebuiltDashboardRenderer({
               'Insights pages are moving to Dashboards. Same functionality you love with more customization (and a less cheesy name). [link:View this page on Dashboards]',
               {
                 link: (
-                  <a
-                    href={`/organizations/${organization.slug}/dashboards/${dashboardId}/`}
+                  <Link
+                    to={`/organizations/${organization.slug}/dashboards/${dashboardId}/`}
                   />
                 ),
               }
