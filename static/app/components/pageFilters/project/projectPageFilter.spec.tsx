@@ -358,4 +358,62 @@ describe('ProjectPageFilter', () => {
 
     MockApiClient.clearMockResponses();
   });
+
+  describe('single-project org label', () => {
+    it('shows the project name when the org has one member project auto-selected', async () => {
+      const singleProject = ProjectFixture({
+        id: '42',
+        slug: 'only-project',
+        isMember: true,
+      });
+      ProjectsStore.loadInitialData([singleProject]);
+      PageFiltersStore.onInitializeUrlState({
+        projects: [42],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {project: '42'},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'only-project'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows the project name when the org has one non-member project auto-selected', async () => {
+      const singleProject = ProjectFixture({
+        id: '42',
+        slug: 'only-project',
+        isMember: false,
+      });
+      ProjectsStore.loadInitialData([singleProject]);
+      PageFiltersStore.onInitializeUrlState({
+        projects: [42],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {project: '42'},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'only-project'})
+      ).toBeInTheDocument();
+    });
+  });
 });
