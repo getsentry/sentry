@@ -39,7 +39,7 @@ export default function PreprodBuilds() {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display, true),
+    () => getPreprodBuildsDisplay(location.query.display),
     [location.query.display]
   );
 

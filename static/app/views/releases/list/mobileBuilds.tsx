@@ -38,7 +38,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   const [searchQuery] = useQueryState('query', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display, true),
+    () => getPreprodBuildsDisplay(location.query.display),
     [location.query.display]
   );
 
