@@ -1,5 +1,4 @@
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -10,7 +9,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   if (state.dataset === WidgetType.SPANS) {
     return {
@@ -29,7 +27,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
     return {
       traceItemType: TraceItemDataset.TRACEMETRICS,
-      enabled: hasTraceMetricsDashboards,
+      enabled: true,
       query: createTraceMetricFilter(state.traceMetric),
     };
   }
