@@ -137,6 +137,10 @@ def pytest_configure(config: pytest.Config) -> None:
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
+    if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+        settings.DATABASES["default"]["HOST"] = _pg_socket
+        settings.DATABASES["default"]["PORT"] = ""
+
     configure_split_db()
 
     # Ensure we can test secure ssl settings

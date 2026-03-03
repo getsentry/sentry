@@ -282,6 +282,22 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Reconnect postgres via Unix socket
+        run: |
+          mkdir -p /tmp/pg-sock
+          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+          docker run -d --name postgres-postgres-1 \
+            --network devservices --label orchestrator=devservices \
+            -p 127.0.0.1:5432:5432 \
+            -v postgres-data:/var/lib/postgresql/data \
+            -v /tmp/pg-sock:/var/run/postgresql \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+            "$PG_IMAGE" postgres \
+              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+          until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+
       - name: Download odiff binary
         run: |
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
