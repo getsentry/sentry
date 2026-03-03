@@ -101,6 +101,44 @@ def _configure_test_env_regions() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        sel_path = Path(selected_file)
+        if not sel_path.exists():
+            return None
+        with sel_path.open() as f:
+            _COLLECT_ALLOWED_FILES = frozenset(
+                line.strip().split("::")[0] for line in f if line.strip()
+            )
+
+    if collection_path.is_dir():
+        return None
+
+    if collection_path.suffix != ".py":
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    if collection_path.name == "conftest.py":
+        return None
+
+    if not rel.startswith("tests/"):
+        return None
+
+    return rel not in _COLLECT_ALLOWED_FILES
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 

@@ -157,4 +157,8 @@ Each test is tagged with the **union** of static and runtime detection. Static d
 
 ## 6. Tiered Workflow Optimizations
 
-G1 (`pytest_ignore_collect` gated on `SELECTED_TESTS_FILE`), H1 overlapped startup (`_wait_for_services` fixture, `_requires_snuba` polling, background devservices subshell in T2), `TIER_GRANULARITY` support in `pytest_collection_modifyitems`.
+### 6a. G1: Skip irrelevant test file imports
+
+**Modified:** `src/sentry/testutils/pytest/sentry.py`
+
+Added `pytest_ignore_collect` hook. When `SELECTED_TESTS_FILE` is set, prevents pytest from importing test files not in the tier's list. Runs before module import — Python never loads the irrelevant files, saving ~50s of collection time per shard. Directories, conftest files, non-`.py` files, and files outside `tests/` all pass through. No-op without `SELECTED_TESTS_FILE`. Reduces runner-minutes across all shards since every shard pays the collection cost.
