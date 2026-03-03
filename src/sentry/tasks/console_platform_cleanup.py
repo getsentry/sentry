@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from django.conf import settings
 
@@ -29,7 +30,7 @@ def remove_revoked_console_platform_sources(
     # Find which source keys are restricted to the revoked platforms
     source_keys_to_remove: set[str] = set()
     for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
-        source_platforms: list[str] | None = source.get("platforms")
+        source_platforms: list[str] | None = cast("list[str] | None", source.get("platforms"))
         if source_platforms is None:
             continue
         # If all of a source's required platforms have been revoked, remove it
