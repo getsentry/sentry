@@ -329,9 +329,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4]
+        instance: [0, 1, 2, 3, 4, 5]
     env:
-      MATRIX_INSTANCE_TOTAL: 5
+      MATRIX_INSTANCE_TOTAL: 6
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       SENTRY_SKIP_SELENIUM_PLUGIN: '1'
