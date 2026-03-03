@@ -262,6 +262,9 @@ def find_latest_installable_artifact(
     }
     filter_kwargs.update(get_platform_artifact_type_filter(platform))
 
+    if platform == "apple":
+        filter_kwargs["extras__is_code_signature_valid"] = True
+
     if build_configuration_name:
         filter_kwargs["build_configuration__name"] = build_configuration_name
 
@@ -308,9 +311,4 @@ def find_latest_installable_artifact(
     if install_groups_q:
         potential_artifacts_qs = potential_artifacts_qs.filter(install_groups_q)
 
-    for artifact in potential_artifacts_qs:
-        if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            if not (artifact.extras and artifact.extras.get("is_code_signature_valid")):
-                continue
-        return artifact
-    return None
+    return potential_artifacts_qs.first()
