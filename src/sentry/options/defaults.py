@@ -2491,6 +2491,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "hybridcloud.webhookpayload.push_drain_trigger",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
     type=Sequence,
     default=[],
