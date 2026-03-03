@@ -638,8 +638,7 @@ def poll_claude_code_agents(
                     extra={"organization_id": org_id},
                 )
                 return
-
-            integration = integrations[0]
+                
             try:
                 integration = integrations[0]
                 metadata = ClaudeCodeIntegrationMetadata.parse_obj(integration.metadata or {})
