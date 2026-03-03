@@ -423,11 +423,19 @@ function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
-      // automatically switch to aggregates mode when a group by is inserted/updated
-      if (op === 'insert' || op === 'update') {
+      const hasValidGroupBy = columns.some(Boolean);
+
+      // insert/update keeps aggregate mode while a valid group by exists
+      if (op === 'insert' || (op === 'update' && hasValidGroupBy)) {
         setGroupBys(columns, Mode.AGGREGATE);
-      } else {
+        return;
+      }
+
+      if (hasValidGroupBy) {
         setGroupBys(columns);
+      } else {
+        // when the last group by is cleared, return to samples table
+        setGroupBys(columns, Mode.SAMPLES);
       }
     },
     [setGroupBys]
