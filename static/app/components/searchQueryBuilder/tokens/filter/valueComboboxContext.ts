@@ -2,7 +2,7 @@ import {createContext, useContext} from 'react';
 
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 
-export type ValueComboboxContextValue = {
+type ValueComboboxContextValue = {
   ctrlKeyPressed: boolean;
   selectedValueMap: ReadonlyMap<string, boolean>;
   token: TokenResult<Token.FILTER>;
