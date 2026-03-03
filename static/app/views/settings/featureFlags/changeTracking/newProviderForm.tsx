@@ -131,6 +131,7 @@ export default function NewProviderForm({
         {field => (
           <div>
             <field.Layout.Row
+            	padding="md"
               label={t('Provider')}
               hintText={t(
                 'If you have already linked this provider, pasting a new secret will override the existing secret.'
