@@ -236,4 +236,30 @@ describe('Source', () => {
 
     expect(handleOnChange).toHaveBeenNthCalledWith(3, 'foo &&');
   });
+
+  it('pressing Enter to select a suggestion does not submit the parent form', async () => {
+    const handleOnChange = jest.fn();
+    const handleSubmit = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+
+    render(
+      <form onSubmit={handleSubmit}>
+        <SourceField
+          fieldProps={defaultFieldProps}
+          isRegExMatchesSelected={false}
+          suggestions={valueSuggestions}
+          onChange={handleOnChange}
+          value="foo "
+        />
+      </form>
+    );
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    // Suggestion was selected
+    expect(handleOnChange).toHaveBeenCalledWith('foo ||');
+    // Form was NOT submitted
+    expect(handleSubmit).not.toHaveBeenCalled();
+  });
 });

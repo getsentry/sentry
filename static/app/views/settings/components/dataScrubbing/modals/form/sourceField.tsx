@@ -361,6 +361,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (key === 'Enter') {
+      event.preventDefault();
       this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
       return;
     }
