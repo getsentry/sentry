@@ -127,10 +127,12 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 
 -- Merge spans into the parent span set.
 -- Used outside the if statement
-local spop_end_time_ms = -1
 if #sunionstore_args > 0 then
     local dest_memory = redis.call("memory", "usage", set_key) or 0
-    local already_oversized = dest_memory > max_segment_bytes
+    local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
+    local dest_bytes = tonumber(redis.call("get", ingested_byte_count_key) or 0)
+
+    local already_oversized = dest_bytes > max_segment_bytes
     table.insert(metrics_table, {"parent_span_set_already_oversized", already_oversized and 1 or 0})
 
     local use_zero_copy_dest = not already_oversized and zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
@@ -142,7 +144,6 @@ if #sunionstore_args > 0 then
     local output_size
     if already_oversized then
         -- Dest already exceeds max_segment_bytes, skip merge entirely.
-        -- The SPOP loop would just remove what we added.
         output_size = start_output_size
     elseif use_zero_copy_dest then
         -- Zero-copy: read each source set and SADD its members into dest.
@@ -179,7 +180,6 @@ if #sunionstore_args > 0 then
 
     -- Merge ingested count keys for merged spans
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
-    local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
     for i = 1, #sunionstore_args do
         local merged_key = sunionstore_args[i]
         local merged_ic_key = string.format("span-buf:ic:%s", merged_key)
@@ -198,16 +198,6 @@ if #sunionstore_args > 0 then
 
     local arg_cleanup_end_time_ms = get_time_ms()
     table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - unlink_end_time_ms})
-
-    local spopcalls = 0
-    while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
-        redis.call("spop", set_key)
-        spopcalls = spopcalls + 1
-    end
-
-    spop_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"spop_step_latency_ms", spop_end_time_ms - arg_cleanup_end_time_ms})
-    table.insert(metrics_table, {"spopcalls", spopcalls})
 end
 
 
@@ -222,12 +212,7 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
-local ingested_count_step_latency_ms = 0
-if spop_end_time_ms >= 0 then
-    ingested_count_step_latency_ms = ingested_count_end_time_ms - spop_end_time_ms
-else
-    ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
-end
+local ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
 table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_step_latency_ms})
 
 -- Capture end time and calculate latency in milliseconds
