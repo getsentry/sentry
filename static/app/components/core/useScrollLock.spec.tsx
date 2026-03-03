@@ -175,7 +175,7 @@ describe('useScrollLock', () => {
     });
     const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
-    const {result} = renderHook(() => useScrollLock(document.documentElement));
+    const {result} = renderHook(() => useScrollLock(document.body));
 
     result.current.acquire();
 
@@ -239,7 +239,7 @@ describe('useScrollLock', () => {
     // Set existing paddingRight on body
     document.body.style.paddingRight = '10px';
 
-    const {result} = renderHook(() => useScrollLock(document.documentElement));
+    const {result} = renderHook(() => useScrollLock(document.body));
 
     result.current.acquire();
 

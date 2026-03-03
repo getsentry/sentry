@@ -21,7 +21,7 @@ class Lock {
 
   acquire(id: string) {
     if (this.acquiredBy.size === 0) {
-      if (this.container === document.documentElement) {
+      if (this.container === document.body) {
         // Keep root overflow unchanged so sticky sidebars stay visible.
         this.scrollX = window.scrollX;
         this.scrollY = window.scrollY;
