@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import PlanFeature from 'getsentry/components/features/planFeature';
@@ -53,7 +52,7 @@ function HighlightedFeature({feature, organization, subscription}: Props) {
 }
 
 const FeatureImg = styled('img')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;
 
 const PlanContext = styled('div')`
