@@ -31,6 +31,10 @@ import {
   getFilterValueType,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  useValueComboboxContext,
+  ValueComboboxContext,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueComboboxContext';
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import type {
@@ -321,9 +325,7 @@ function useFilterSuggestions({
   token,
   filterValue,
   selectedValues,
-  ctrlKeyPressed,
 }: {
-  ctrlKeyPressed: boolean;
   filterValue: string;
   selectedValues: Array<{selected: boolean; value: string}>;
   token: TokenResult<Token.FILTER>;
@@ -379,19 +381,10 @@ function useFilterSuggestions({
     enabled: shouldFetchValues,
   });
 
-  // Use refs for values that change frequently (every toggle) so that
-  // createItem and suggestionSectionItems stay referentially stable.
-  // The trailingItems render prop reads from these refs at render time.
-  const tokenRef = useRef(token);
-  tokenRef.current = token;
-  const ctrlKeyPressedRef = useRef(ctrlKeyPressed);
-  ctrlKeyPressedRef.current = ctrlKeyPressed;
+  // Keep selected values in a ref so ordering calculations can read latest
+  // values without rebuilding suggestion items on every checkbox toggle.
   const selectedValuesRef = useRef(selectedValues);
   selectedValuesRef.current = selectedValues;
-  const selectedValueMapRef = useRef(new Map<string, boolean>());
-  selectedValueMapRef.current = new Map(
-    selectedValues.map(v => [v.value, v.selected] as const)
-  );
 
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
@@ -410,11 +403,8 @@ function useFilterSuggestions({
           return (
             <ItemCheckbox
               isFocused={isFocused}
-              selected={selectedValueMapRef.current.get(suggestion.value) ?? false}
-              token={tokenRef.current}
               disabled={disabled}
               value={suggestion.value}
-              ctrlKeyPressed={ctrlKeyPressedRef.current}
             />
           );
         },
@@ -460,7 +450,7 @@ function useFilterSuggestions({
   // Grouped sections for rendering purposes.
   // On fresh open (frozenOrderRef is null): sorts selected items to the top, then
   // freezes the order. On subsequent toggles: returns the cached result — checkbox
-  // states are read from selectedValueMapRef at render time, so item objects stay
+  // states are read from context at render time, so item objects stay
   // referentially stable and downstream memos/components skip re-computation.
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
     const currentSelectedValues = selectedValuesRef.current;
@@ -512,7 +502,7 @@ function useFilterSuggestions({
     }
 
     // Subsequent toggle — return cached items. Checkbox states are read from
-    // selectedValueMapRef inside the trailingItems render prop, so the same
+    // context inside the trailingItems render prop, so the same
     // item objects render the correct state without needing reconstruction.
     return frozenOrderRef.current.map(section => ({
       sectionText: section.sectionText,
@@ -538,21 +528,17 @@ function useFilterSuggestions({
 }
 
 function ItemCheckbox({
-  token,
   isFocused,
-  selected,
   disabled,
   value,
-  ctrlKeyPressed,
 }: {
-  ctrlKeyPressed: boolean;
   disabled: boolean;
   isFocused: boolean;
-  selected: boolean;
-  token: TokenResult<Token.FILTER>;
   value: string;
 }) {
+  const {ctrlKeyPressed, selectedValueMap, token} = useValueComboboxContext();
   const {dispatch} = useSearchQueryBuilder();
+  const selected = selectedValueMap.get(value) ?? false;
 
   return (
     <TrailingWrap
@@ -654,6 +640,14 @@ export function SearchQueryBuilderValueCombobox({
     isMac() ? 'Meta' : 'Control',
     topLevelWrapperRef.current
   );
+  const selectedValueMap = useMemo(
+    () => new Map(selectedValuesUnescaped.map(v => [v.value, v.selected] as const)),
+    [selectedValuesUnescaped]
+  );
+  const valueComboboxContextValue = useMemo(
+    () => ({token, ctrlKeyPressed, selectedValueMap}),
+    [token, ctrlKeyPressed, selectedValueMap]
+  );
 
   useEffect(() => {
     if (canSelectMultipleValues) {
@@ -679,7 +673,6 @@ export function SearchQueryBuilderValueCombobox({
     token,
     filterValue,
     selectedValues: selectedValuesUnescaped,
-    ctrlKeyPressed,
   });
 
   const analyticsData = useMemo(
@@ -991,46 +984,48 @@ export function SearchQueryBuilderValueCombobox({
           });
 
   return (
-    <Flex
-      align="center"
-      maxWidth="400px"
-      height="100%"
-      ref={ref}
-      data-test-id="filter-value-editing"
-    >
-      <SearchQueryBuilderCombobox
-        ref={inputRef}
-        items={items}
-        onOptionSelected={handleOptionSelected}
-        onCustomValueBlurred={handleInputValueConfirmed}
-        onCustomValueCommitted={handleInputValueConfirmed}
-        onExit={onCommit}
-        inputValue={inputValue}
-        filterValue={filterValue}
-        placeholder={placeholder}
-        token={token}
-        inputLabel={t('Edit filter value')}
-        onInputChange={e => setInputValue(e.target.value)}
-        onKeyDown={onKeyDown}
-        onKeyUp={updateSelectionIndex}
-        onClick={updateSelectionIndex}
-        autoFocus
-        maxOptions={50}
-        openOnFocus
-        customMenu={customMenu}
-        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+    <ValueComboboxContext.Provider value={valueComboboxContextValue}>
+      <Flex
+        align="center"
+        maxWidth="400px"
+        height="100%"
+        ref={ref}
+        data-test-id="filter-value-editing"
       >
-        {suggestionSectionItems.map(section => (
-          <Section key={section.sectionText} title={section.sectionText}>
-            {section.items.map(item => (
-              <Item {...item} key={item.key}>
-                {item.label}
-              </Item>
-            ))}
-          </Section>
-        ))}
-      </SearchQueryBuilderCombobox>
-    </Flex>
+        <SearchQueryBuilderCombobox
+          ref={inputRef}
+          items={items}
+          onOptionSelected={handleOptionSelected}
+          onCustomValueBlurred={handleInputValueConfirmed}
+          onCustomValueCommitted={handleInputValueConfirmed}
+          onExit={onCommit}
+          inputValue={inputValue}
+          filterValue={filterValue}
+          placeholder={placeholder}
+          token={token}
+          inputLabel={t('Edit filter value')}
+          onInputChange={e => setInputValue(e.target.value)}
+          onKeyDown={onKeyDown}
+          onKeyUp={updateSelectionIndex}
+          onClick={updateSelectionIndex}
+          autoFocus
+          maxOptions={50}
+          openOnFocus
+          customMenu={customMenu}
+          shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+        >
+          {suggestionSectionItems.map(section => (
+            <Section key={section.sectionText} title={section.sectionText}>
+              {section.items.map(item => (
+                <Item {...item} key={item.key}>
+                  {item.label}
+                </Item>
+              ))}
+            </Section>
+          ))}
+        </SearchQueryBuilderCombobox>
+      </Flex>
+    </ValueComboboxContext.Provider>
   );
 }
 
