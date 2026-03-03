@@ -897,6 +897,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.preprod.vcs.status_checks.snapshots.tasks",
+    "sentry.processing_errors.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
@@ -995,6 +996,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "resolve-stale-sourcemap-detectors": {
+        "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
