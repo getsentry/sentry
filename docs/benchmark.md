@@ -164,10 +164,12 @@ Same tier split but with `--granularity class`, `--dist=loadscope`, `TIER_GRANUL
 
 ## Tiered Summary
 
-| Config | backend-light | backend-test | Overall | Delta vs no tiers |
-|--------|--------------|-------------|---------|-------------------|
-| No tiers (Exp 3) | — | 12m30s | 12m30s | baseline |
-| File + loadfile | 10m58s | 10m17s | **10m58s** | **−1m32s** |
-| Class + loadscope | 11m47s | 10m00s | 11m47s | −43s |
+**Overall (all 27 shards: 5 backend-light + 22 backend-test):**
 
-File granularity + loadfile wins. backend-light is the bottleneck in both cases.
+| Config | Wall Clock | Spread | Average | Delta vs no tiers |
+|--------|-----------|--------|---------|-------------------|
+| No tiers (Exp 3, 22 shards) | 12m30s | 125s | 11m33s | baseline |
+| File + loadfile (Exp 6) | **10m58s** | **141s** | **9m44s** | **−1m32s** |
+| Class + loadscope (Exp 7) | 11m47s | 227s | 9m43s | −43s |
+
+File granularity + loadfile wins on wall clock. Class + loadscope has slightly better average but much worse spread (227s vs 141s) and worse wall clock due to backend-light being the bottleneck.
