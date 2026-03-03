@@ -3,7 +3,6 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
