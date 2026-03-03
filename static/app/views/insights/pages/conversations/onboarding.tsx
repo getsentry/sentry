@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -58,6 +58,7 @@ import {
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
+  SERVER_SIDE_NODE_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -68,11 +69,6 @@ import {
   SubTitle,
   useOnboardingProject,
 } from 'sentry/views/insights/pages/onboardingUtils';
-
-const serverSideNodeIntegrations = new Set([
-  AgentIntegration.VERCEL_AI,
-  AgentIntegration.MASTRA,
-]);
 
 const PYTHON_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI_AGENTS]);
 const NODE_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI]);
@@ -211,7 +207,7 @@ function ConversationOnboardingPanel({
                 <HeaderImage src={replayOnboardingImg} />
               </Flex>
               <Divider />
-              <SetupContent>{children}</SetupContent>
+              <Container padding="3xl">{children}</Container>
             </div>
           </TabSelectionScope>
         </AuthTokenGeneratorProvider>
@@ -301,7 +297,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
         : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
             : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !serverSideNodeIntegrations.has(integration)
+                integration => !SERVER_SIDE_NODE_INTEGRATIONS.has(integration)
               )
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
@@ -526,10 +522,6 @@ const Divider = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0;
-`;
-
-const SetupContent = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const DescriptionWrapper = styled('div')`

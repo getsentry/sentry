@@ -74,12 +74,8 @@ import {
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
+  SERVER_SIDE_NODE_INTEGRATIONS,
 } from './utils/agentIntegrations';
-
-const serverSideNodeIntegrations = new Set([
-  AgentIntegration.VERCEL_AI,
-  AgentIntegration.MASTRA,
-]);
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
@@ -268,7 +264,7 @@ export function Onboarding() {
         : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
             : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !serverSideNodeIntegrations.has(integration)
+                integration => !SERVER_SIDE_NODE_INTEGRATIONS.has(integration)
               )
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
