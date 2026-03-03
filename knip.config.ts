@@ -18,6 +18,9 @@ const productionEntryPoints = [
   'static/app/components/core/quote/*.tsx',
   // Prevent exception until we build out coverage
   'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
+  // Temporary Prevent TA exceptions until the code is removed
+  'static/app/views/nav/secondary/sections/prevent/**/*.{js,ts,tsx}',
+  'static/app/views/prevent/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
@@ -44,7 +47,7 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
-    'static/eslint/**/index.js',
+    'static/eslint/**/index.ts',
     // figma code connect files - consumed by Figma CLI
     'static/**/*.figma.{tsx,jsx}',
   ],
@@ -60,7 +63,7 @@ const config: KnipConfig = {
     '!static/app/**/__stories__/*.{js,ts,tsx}!',
     '!static/app/stories/**/*.{js,ts,tsx}!',
     // ignore eslint plugins in production
-    '!static/eslint/**/*.js!',
+    '!static/eslint/**/*.ts!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

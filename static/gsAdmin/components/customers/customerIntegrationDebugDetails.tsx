@@ -7,7 +7,6 @@ import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -159,7 +158,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
 
 const MetadataContent = styled('pre')`
   margin: 0;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   border-radius: 4px;
   overflow-x: auto;
   font-size: ${p => p.theme.font.size.sm};

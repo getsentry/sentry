@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
@@ -189,7 +188,7 @@ function CustomerHistory({orgId, ...props}: Props) {
 }
 
 const DisplayName = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 export default CustomerHistory;

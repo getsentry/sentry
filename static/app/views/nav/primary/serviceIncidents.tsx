@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -63,7 +62,7 @@ const IncidentItemWrapper = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.tokens.background.primary};
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 
   :not(:first-child) {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};

@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
-
 import type {Subscription} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 
@@ -54,7 +52,7 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
 const StatusList = styled('dl')`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: 0 ${space(1)};
+  gap: 0 ${p => p.theme.space.md};
 
   dt {
     text-align: right;

@@ -5,6 +5,9 @@ import os
 import shlex
 import shutil
 import subprocess
+import tempfile
+import urllib.request
+import zipfile
 
 from devenv.lib import colima, config, fs, limactl, proc
 
@@ -71,6 +74,71 @@ failed command (code {p.returncode}):
             print(f"✅ {name}")
 
     return all_good
+
+
+def sync_chromedriver(reporoot: str) -> int:
+    if not constants.DARWIN:
+        print(
+            "not on macOS; for acceptance testing you'll need to install Google Chrome and chromedriver of the same version"
+        )
+        return 0
+
+    CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    install = f"{reporoot}/.devenv/bin/chromedriver"
+
+    try:
+        chrome_ver = subprocess.check_output([CHROME, "--version"], text=True).split()[-1]
+    except FileNotFoundError:
+        print(f"{CHROME} not found; install Google Chrome to enable acceptance testing")
+        return 1
+
+    major = chrome_ver.split(".")[0]
+    with urllib.request.urlopen(
+        "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
+    ) as r:
+        versions = json.load(r)["versions"]
+
+    entry = next(
+        (
+            v
+            for v in reversed(versions)
+            if v["version"].split(".")[0] == major and "chromedriver" in v["downloads"]
+        ),
+        None,
+    )
+    if not entry:
+        print(f"no ChromeDriver release found for Chrome {major}.x")
+        return 1
+
+    url = next(
+        (d["url"] for d in entry["downloads"]["chromedriver"] if d["platform"] == "mac-arm64"), None
+    )
+    if not url:
+        print(f"no mac-arm64 ChromeDriver download available for {entry['version']}")
+        return 1
+
+    try:
+        if (
+            subprocess.check_output([install, "--version"], text=True).split()[1]
+            == entry["version"]
+        ):
+            return 0
+    except (FileNotFoundError, subprocess.CalledProcessError, IndexError):
+        pass
+
+    print(f"⏳ chromedriver {entry['version']}")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        tmp = os.path.join(tmpdir, "chromedriver.zip")
+        urllib.request.urlretrieve(url, tmp)
+        with zipfile.ZipFile(tmp) as zf:
+            extracted = zf.extract("chromedriver-mac-arm64/chromedriver", tmpdir)
+        shutil.move(extracted, install)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    os.chmod(install, 0o755)
+    print(f"✅ chromedriver {entry['version']}")
+    return 0
 
 
 def installed_pnpm(version: str, binroot: str) -> bool:
@@ -150,6 +218,10 @@ def main(context: dict[str, str]) -> int:
 
     # TODO: move pnpm install into devenv
     install_pnpm(pnpm_version, reporoot)
+
+    # chromedriver required for acceptance testing
+    if sync_chromedriver(reporoot) != 0:
+        return 1
 
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled

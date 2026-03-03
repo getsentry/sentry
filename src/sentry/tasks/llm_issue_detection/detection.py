@@ -20,7 +20,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.explorer.utils import normalize_description
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils.redis import redis_clusters
@@ -109,6 +109,7 @@ def make_issue_detection_request(
     request: IssueDetectionRequest,
     timeout: int | float | None = None,
     retries: int | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     extra_kwargs: dict[str, Any] = {}
     if timeout is not None:
@@ -119,6 +120,7 @@ def make_issue_detection_request(
         seer_issue_detection_connection_pool,
         SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
         body=orjson.dumps(request.dict()),
+        viewer_context=viewer_context,
         **extra_kwargs,
     )
 

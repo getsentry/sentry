@@ -11,7 +11,7 @@ from sentry.conf.server import SEER_ALERT_DELETION_URL
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import AlertInSeer, DataSourceType, DeleteAlertDataRequest
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
@@ -25,11 +25,13 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 def make_delete_alert_data_request(
     body: DeleteAlertDataRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or seer_anomaly_detection_connection_pool,
         SEER_ALERT_DELETION_URL,
         body=json.dumps(body).encode("utf-8"),
+        viewer_context=viewer_context,
     )
 
 

@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -48,7 +48,6 @@ import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -141,7 +140,6 @@ type Data = {
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
-  const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -248,17 +246,6 @@ function WidgetCard(props: Props) {
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
-      setWidgetViewerData({
-        pageLinks: data?.pageLinks,
-        seriesData: data?.timeseriesResults,
-        tableData: data?.tableResults,
-        seriesResultsType: data?.timeseriesResultsTypes,
-        totalIssuesCount: data?.totalIssuesCount,
-        confidence: data?.confidence,
-        sampleCount: data?.sampleCount,
-        isSampled: data?.isSampled,
-      });
-
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,

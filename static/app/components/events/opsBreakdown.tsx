@@ -12,7 +12,6 @@ import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AggregateEventTransaction,
   EntrySpans,
@@ -296,21 +295,21 @@ function OpsBreakdown({
 
 const StyledBreakdown = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin: ${space(2)} ${space(3)};
+  margin: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
 `;
 
 const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 
   * + * {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -320,7 +319,7 @@ export const OpsDot = styled('div')`
   width: 8px;
   min-width: 8px;
   height: 8px;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   border-radius: 100%;
 `;
 

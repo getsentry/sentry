@@ -12,7 +12,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -210,7 +209,7 @@ const MinimalistSidebar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const DisabledMemberButtonBar = styled((props: GridProps) => (
