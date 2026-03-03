@@ -90,30 +90,32 @@ export function OnboardingCopyMarkdownButton({
   );
 }
 
-const DEFAULT_FEATURE_FLAG = 'onboarding-copy-setup-instructions';
-export const PROJECT_CREATION_FEATURE_FLAG =
-  'onboarding-copy-setup-instructions-project-creation';
+type CopySetupInstructionsType = 'onboarding' | 'project_creation';
+
+const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
+  onboarding: 'onboarding-copy-setup-instructions',
+  project_creation: 'onboarding-copy-setup-instructions-project-creation',
+};
 
 /**
- * Returns whether the copy setup instructions button should be shown.
- * Defaults to the `onboarding-copy-setup-instructions` flag, but callers
- * can pass a different flag name (e.g. for project-creation-specific gating).
+ * Returns whether the copy setup instructions button should be shown
+ * for the given context type.
  */
 export function useCopySetupInstructionsEnabled(
-  featureFlag: string = DEFAULT_FEATURE_FLAG
+  type: CopySetupInstructionsType = 'onboarding'
 ): boolean {
   const organization = useOrganization();
-  return organization.features.includes(featureFlag);
+  return organization.features.includes(FEATURE_FLAGS[type]);
 }
 
 export function CopySetupInstructionsGate({
   children,
-  featureFlag,
+  type,
 }: {
   children: React.ReactNode;
-  featureFlag?: string;
+  type?: CopySetupInstructionsType;
 }) {
-  const enabled = useCopySetupInstructionsEnabled(featureFlag);
+  const enabled = useCopySetupInstructionsEnabled(type);
   if (!enabled) {
     return null;
   }

@@ -10,7 +10,6 @@ import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
   OnboardingCopyMarkdownButton,
-  PROJECT_CREATION_FEATURE_FLAG,
   useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -67,7 +66,7 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled(PROJECT_CREATION_FEATURE_FLAG);
+  const copyEnabled = useCopySetupInstructionsEnabled('project_creation');
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
