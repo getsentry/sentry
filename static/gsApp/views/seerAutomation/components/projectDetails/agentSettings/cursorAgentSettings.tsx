@@ -43,6 +43,7 @@ export default function CursorAgentSettings({
             automation_handoff: {
               ...preference?.automation_handoff,
               handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
               integration_id: Number(integration.id),
               auto_create_pr: value, // External coding agent "Create PR" setting
             },
