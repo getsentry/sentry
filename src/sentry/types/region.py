@@ -45,12 +45,12 @@ class Locality:
         In monolith mode, there is likely only the historical simulated locality.
         The public URL of the simulated locality is the same as the application base URL.
         """
-        from sentry.api.utils import generate_region_url
+        from sentry.api.utils import generate_locality_url
 
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             base_url = options.get("system.url-prefix")
         else:
-            base_url = generate_region_url(self.name)
+            base_url = generate_locality_url(self.name)
         return urljoin(base_url, path)
 
     def api_serialize(self) -> dict[str, Any]:
@@ -374,7 +374,7 @@ def get_region_for_organization(organization_id_or_slug: str) -> Region:
             f"Organization {organization_id_or_slug} has no associated mapping."
         )
 
-    return get_region_by_name(name=mapping.region_name)
+    return get_cell_by_name(name=mapping.region_name)
 
 
 def get_local_locality() -> Locality:
@@ -386,6 +386,17 @@ def get_local_locality() -> Locality:
     return locality
 
 
+def get_locality_name_for_cell(cell_name: str) -> str:
+    """
+    Get the locality name for a cell
+    """
+    locality = get_global_directory().get_locality_for_cell(cell_name)
+    if locality is None:
+        raise RegionResolutionError(f"No locality found for cell {cell_name!r}")
+
+    return locality.name
+
+
 def get_local_region() -> Region:
     """Get the region in which this server instance is running.
 
@@ -394,7 +405,7 @@ def get_local_region() -> Region:
     """
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
 
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")
@@ -409,10 +420,10 @@ def get_local_region() -> Region:
 
     if not settings.SENTRY_REGION:
         if in_test_environment():
-            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+            return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         else:
             raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-    return get_region_by_name(settings.SENTRY_REGION)
+    return get_cell_by_name(settings.SENTRY_REGION)
 
 
 @control_silo_function
