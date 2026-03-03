@@ -208,7 +208,6 @@ class PreprodExamples:
     EXAMPLE_LATEST_BUILD_ONLY = {
         "latestArtifact": EXAMPLE_BUILD_SUMMARY,
         "currentArtifact": None,
-        "updateAvailable": None,
     }
 
     EXAMPLE_UPDATE_AVAILABLE = {
@@ -218,13 +217,11 @@ class PreprodExamples:
             "appInfo": {**_APP_INFO, "version": "1.3.0", "buildNumber": 50},
         },
         "currentArtifact": EXAMPLE_BUILD_SUMMARY,
-        "updateAvailable": True,
     }
 
     EXAMPLE_NO_UPDATE = {
         "latestArtifact": EXAMPLE_BUILD_SUMMARY,
         "currentArtifact": EXAMPLE_BUILD_SUMMARY,
-        "updateAvailable": False,
     }
 
     GET_LATEST_BUILD = [

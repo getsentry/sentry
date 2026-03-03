@@ -34,7 +34,6 @@ class InstallInfoResponseDict(TypedDict):
 class LatestInstallableBuildResponseDict(TypedDict):
     latestArtifact: InstallInfoResponseDict | None
     currentArtifact: InstallInfoResponseDict | None
-    updateAvailable: bool | None
 
 
 def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDict:
@@ -66,10 +65,8 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
 def create_latest_installable_build_response(
     latest: InstallInfoResponseDict | None,
     current: InstallInfoResponseDict | None,
-    update_available: bool | None,
 ) -> LatestInstallableBuildResponseDict:
     return {
         "latestArtifact": latest,
         "currentArtifact": current,
-        "updateAvailable": update_available,
     }
