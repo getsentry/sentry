@@ -292,6 +292,7 @@ class TestLaunchAgentsForRepos(TestCase):
         mock_get_prompt.return_value = "Test prompt"
 
         mock_installation = MagicMock()
+        mock_installation.model.provider = "cursor"
         mock_installation.launch.side_effect = ApiError(
             text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
             code=400,

@@ -163,7 +163,8 @@ def launch_coding_agents(
                         except Exception:
                             sentry_sdk.capture_exception(level="warning")
                 elif (
-                    not is_github_copilot
+                    integration is not None
+                    and integration.provider == "cursor"
                     and e.text
                     and "Failed to verify existence of branch" in e.text
                 ):
