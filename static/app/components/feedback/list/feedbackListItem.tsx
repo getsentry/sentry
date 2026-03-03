@@ -13,7 +13,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import feedbackHasLinkedError from 'sentry/utils/feedback/hasLinkedError';
@@ -170,9 +169,10 @@ export default function FeedbackListItem({
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
-  padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']} ${p => p.theme.space.md}
+    ${p => p.theme.space.lg};
   border: 1px solid transparent;
-  border-radius: ${space(0.75)};
+  border-radius: ${p => p.theme.space.sm};
 
   color: ${p => p.theme.tokens.content.primary};
   &:hover {
@@ -182,7 +182,7 @@ const LinkedFeedbackCard = styled(Link)`
     background: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
-    border-radius: ${space(0.75)};
+    border-radius: ${p => p.theme.space.sm};
     color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
   }
 
@@ -193,7 +193,7 @@ const LinkedFeedbackCard = styled(Link)`
     'checkbox user time'
     'unread message message'
     '. bottom bottom';
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   place-items: stretch;
   align-items: center;
 `;
@@ -205,7 +205,7 @@ const Row = styled(Flex)`
 const BottomGrid = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   overflow: hidden;
 `;
@@ -219,7 +219,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const PreviewRow = styled(Row)`
   align-items: flex-start;
   font-size: ${p => p.theme.font.size.sm};
-  padding-bottom: ${space(0.75)};
+  padding-bottom: ${p => p.theme.space.sm};
 `;
 
 const DotRow = styled(Row)`
@@ -261,5 +261,5 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const CardSpacing = styled('div')`
-  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs} 0 ${p => p.theme.space.xs};
 `;
