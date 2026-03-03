@@ -34,7 +34,7 @@ class TestGithubLanguageMapping:
         assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM["Objective-C"] == "apple-ios"
 
     def test_unmapped_language_returns_none(self) -> None:
-        assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get("Brainfuck") is None
+        assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get("Haskell") is None
 
 
 class TestDetectFrameworksFromContent:
