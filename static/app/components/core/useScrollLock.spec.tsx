@@ -154,6 +154,7 @@ describe('useScrollLock', () => {
     const scrollY = 240;
     const originalInnerWidth = window.innerWidth;
     const originalClientWidth = document.documentElement.clientWidth;
+    const originalScrollY = window.scrollY;
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: 1200,
@@ -199,6 +200,10 @@ describe('useScrollLock', () => {
     Object.defineProperty(document.documentElement, 'clientWidth', {
       configurable: true,
       value: originalClientWidth,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: originalScrollY,
     });
     scrollToSpy.mockRestore();
   });
