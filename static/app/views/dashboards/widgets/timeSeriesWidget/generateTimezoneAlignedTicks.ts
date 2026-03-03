@@ -92,9 +92,11 @@ function snapToRoundBoundary(
         .date(1)
         .startOf('day');
       break;
-    case 'day':
-      m.date(Math.floor((m.date() - 1) / step) * step + 1).startOf('day');
+    case 'day': {
+      const snappedDate = Math.floor((m.date() - 1) / step) * step + 1;
+      m.date(snappedDate).startOf('day');
       break;
+    }
     case 'hour':
       m.hour(Math.floor(m.hour() / step) * step)
         .minute(0)
