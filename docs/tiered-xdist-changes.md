@@ -99,18 +99,36 @@ The `calculate-shards` job now has a fast path: when selective testing isn't act
 
 Two tests hardcode expected snowflake values assuming `region_snowflake_id=0`. Under xdist, workers use `worker_num + 1` (from 2b). Fix: wrap in `override_regions` with explicit `Region("test-region", 0, ...)` so expected values are deterministic.
 
----
+## 4. Independent Optimizations
 
-## Upcoming Phases
+### 4a. Postgres Unix socket support
 
-### 4. Collection Optimization (G1) + Overlapped Startup (H1)
+**Files:** `src/sentry/testutils/pytest/sentry.py` (`pytest_configure`), workflow YAML
 
-Skip importing irrelevant test files during collection (`pytest_ignore_collect` gated on `SELECTED_TESTS_FILE`). Add `_wait_for_services` session fixture and `_requires_snuba` polling for H1 overlapped startup where services start in background while pytest collects. Only useful with the tiered workflow but env-gated so safe to land independently.
+**Intuition:** Every Postgres query goes through TCP loopback (`127.0.0.1:5432`). Even on localhost, each query pays the full kernel TCP stack cost: user→kernel buffer copy, TCP header packaging, loopback routing, kernel→user buffer copy, TCP ACK handling. Each round-trip is ~30-50μs. A Unix domain socket (`/tmp/pg-sock/.s.PGSQL.5432`) skips the TCP stack entirely — direct memory copy through the kernel, ~10-15μs per round-trip.
 
-### 5. Tiered Workflow Tooling
+The per-query savings are tiny, but Sentry's test suite does hundreds of thousands of Postgres round-trips per shard: every ORM query, every SAVEPOINT/ROLLBACK (2 per test × 3 databases × thousands of tests = ~192K round-trips just for test isolation), every fixture creation. At this volume, the 20-35μs savings per round-trip compounds. The experiment branch measured T1 max dropping 36s and runner-minutes dropping 7m.
 
-Service classifier plugin (`service_classifier.py`), split-tests-by-tier script, classify-services workflow. Maps each test to its service dependencies and splits into tier1 (postgres-only) / tier2 (full stack).
+**Safety:** This is purely a transport-layer change. The SQL queries, results, transaction semantics, SAVEPOINT behavior, connection pooling — everything above the socket is identical. Postgres uses the same wire protocol over Unix sockets as TCP. `psycopg2` connects via `AF_UNIX` instead of `AF_INET`, but the application sees no difference. There are no subtle correctness risks — if the socket file doesn't exist or has wrong permissions, the connection fails immediately with a clear error.
 
-### 6. Tiered Workflow + Per-Tier Optimizations
+**Code change:** Add `SENTRY_DB_SOCKET` env var handling in `pytest_configure` before `configure_split_db()` so the HOST override propagates to control/secondary databases:
+```python
+if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+    settings.DATABASES["default"]["HOST"] = _pg_socket
+    settings.DATABASES["default"]["PORT"] = ""
+```
 
-The full 2-tier CI workflow (5 T1 shards + 17 T2 shards), postgres Unix socket, Relay container session scope, per-tier devservices modes.
+**Workflow change:** Restart the postgres container with a socket volume mount, then set `SENTRY_DB_SOCKET=/tmp/pg-sock` in the workflow env.
+
+### 4b. Relay container session scope
+
+**File:** `src/sentry/testutils/pytest/relay.py`
+
+Three changes:
+- `relay_server_setup` broadened from `module` → `session` scope. Container start + health check moved into it from `relay_server`. One container per worker session instead of per test.
+- `relay_server` slimmed to: adjust settings + re-insert Relay DB row + yield URL. The DB row insertion (reading `template/credentials.json`) is needed because 4 of 6 relay test files use `TransactionTestCase` which flushes the DB between tests, deleting the Relay identity row.
+- `import json` added for reading credentials file.
+
+## 5. Tiered Workflow + Coupled Optimizations
+
+Service classifier plugin (`service_classifier.py`), split-tests-by-tier script, classify-services workflow, G1 (`pytest_ignore_collect` gated on `SELECTED_TESTS_FILE`), H1 overlapped startup (`_wait_for_services` fixture, `_requires_snuba` polling), the full 2-tier CI workflow (5 T1 shards + 17 T2 shards), per-tier devservices modes, pg-socket workflow steps.
