@@ -230,9 +230,9 @@ def run_explorer_index_for_projects(
     ]
     payload = ExplorerIndexRequest(projects=project_list)
 
-    # Use the org_id from the first project tuple for viewer context
-    _, first_org_id = projects[0]
-    viewer_context = SeerViewerContext(organization_id=first_org_id)
+    # Only set viewer_context when all projects in the batch share the same org
+    org_ids = {org_id for _, org_id in projects}
+    viewer_context = SeerViewerContext(organization_id=org_ids.pop()) if len(org_ids) == 1 else None
 
     try:
         response = make_explorer_index_request(

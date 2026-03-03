@@ -50,7 +50,7 @@ def get_trace_summary(
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
     viewer_context = SeerViewerContext(organization_id=organization.id)
-    if user is not None and not isinstance(user, AnonymousUser):
+    if not isinstance(user, AnonymousUser):
         viewer_context["user_id"] = user.id
 
     trace_summary = _call_seer(
