@@ -582,34 +582,16 @@ class SpansBuffer:
             )
             num_has_root_spans += int(has_root_span)
 
-            try:
-                if self._debug_trace_logger is None:
-                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                self._debug_trace_logger.log_flush_info(
-                    segment_key,
-                    segment_span_id,
-                    has_root_span,
-                    len(segment),
-                    shard,
-                    queue_key,
-                    now,
-                )
-            except Exception:
-                logger.exception("flush_segments: Failed to log debug trace flush info")
-
-            if flusher_logger_enabled:
-                if segment:
-                    project_id, trace_id, _ = parse_segment_key(segment_key)
-                    project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
-                    flusher_log_entries.append(
-                        FlusherLogEntry(
-                            project_and_trace,
-                            len(segment),
-                            sum(len(s) for s in segment),
-                        )
+            if flusher_logger_enabled and segment:
+                project_id, trace_id, _ = parse_segment_key(segment_key)
+                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                flusher_log_entries.append(
+                    FlusherLogEntry(
+                        project_and_trace,
+                        len(segment),
+                        sum(len(s) for s in segment),
                     )
-                else:
-                    metrics.incr("spans.buffer.flush_segments.no_segment")
+                )
 
         if flusher_logger_enabled and flusher_log_entries:
             self._flusher_logger.log(
