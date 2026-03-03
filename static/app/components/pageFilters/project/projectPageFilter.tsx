@@ -578,13 +578,15 @@ export function ProjectPageFilter({
               {t('Create Project')}
             </MenuComponents.CTALinkButton>
           ) : undefined}
-          <Flex gap="md" align="center" justify="end">
-            <MenuComponents.CancelButton onClick={handleCancel} />
-            <MenuComponents.ApplyButton
-              disabled={selectionLimitExceeded}
-              onClick={handleApply}
-            />
-          </Flex>
+          {hasUnstaggedChanges ? (
+            <Flex gap="md" align="center" justify="end">
+              <MenuComponents.CancelButton onClick={handleCancel} />
+              <MenuComponents.ApplyButton
+                disabled={selectionLimitExceeded}
+                onClick={handleApply}
+              />
+            </Flex>
+          ) : null}
         </Flex>
       </Stack>
     ) : null;

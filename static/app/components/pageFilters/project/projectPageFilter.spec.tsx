@@ -495,7 +495,7 @@ describe('ProjectPageFilter', () => {
     expect(
       screen.queryByText(/only up to 50 can be selected at a time/i)
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Apply'})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'Apply'})).not.toBeInTheDocument();
   });
 
   it('keeps All Projects sentinel in URL when opening and closing the menu', async () => {
