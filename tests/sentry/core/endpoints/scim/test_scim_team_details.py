@@ -343,6 +343,70 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "scimType": "invalidFilter",
         }
 
+    def test_add_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_add_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
     def test_rename_team_azure_request(self) -> None:
         self.base_data["Operations"] = [
             {"op": "Replace", "path": "displayName", "value": "theNewName"}

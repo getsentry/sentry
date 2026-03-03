@@ -49,6 +49,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 from .constants import (
     SCIM_400_INTEGRITY_ERROR,
     SCIM_400_INVALID_FILTER,
+    SCIM_400_INVALID_PAYLOAD,
     SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
     SCIM_400_UNSUPPORTED_ATTRIBUTE,
     SCIM_404_GROUP_RES,
@@ -67,6 +68,13 @@ from .utils import (
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 logger = logging.getLogger(__name__)
+
+
+def _parse_member_ids(operation_value: list[dict[str, Any]]) -> set[int]:
+    try:
+        return {int(v["value"]) for v in operation_value}
+    except (KeyError, TypeError, ValueError):
+        raise ParseError(detail=SCIM_400_INVALID_PAYLOAD)
 
 
 @extend_schema_serializer(many=True)
@@ -467,13 +475,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     op = operation["op"].lower()
 
                     if op == TeamPatchOps.ADD and operation["path"] == "members":
-                        try:
-                            member_ids = [int(v["value"]) for v in operation["value"]]
-                        except (KeyError, TypeError, ValueError):
-                            return Response(
-                                {"detail": "Invalid member value format in add operation"},
-                                status=400,
-                            )
+                        member_ids = _parse_member_ids(operation["value"])
                         members = list(
                             OrganizationMember.objects.filter(
                                 organization=team.organization, id__in=member_ids
@@ -517,7 +519,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                                         team_id=team.id
                                     ).select_related("organizationmember")
                                 }
-                                desired_member_ids = {int(v["value"]) for v in operation["value"]}
+                                desired_member_ids = _parse_member_ids(operation["value"])
                                 existing_member_ids = set(existing_omts.keys())
 
                                 # Remove members no longer in the replace list
@@ -557,6 +559,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         else:
                             return Response(SCIM_400_UNSUPPORTED_ATTRIBUTE, status=400)
 
+        except ParseError as e:
+            return Response(e.detail, status=400)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_USER_RES)
         except IntegrityError as e:
