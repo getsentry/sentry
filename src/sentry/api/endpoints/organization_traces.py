@@ -72,10 +72,7 @@ def is_trace_name_candidate(span):
 
 
 def _reasonable_trace_count_map_match(snuba_map: dict[str, int], eap_map: dict[str, int]) -> bool:
-    if not set(eap_map).issubset(set(snuba_map)):
-        return False
-
-    return all(eap_map[trace_id] <= snuba_map[trace_id] for trace_id in eap_map)
+    return all(eap_map[trace_id] <= snuba_map.get(trace_id, -float("inf")) for trace_id in eap_map)
 
 
 class TraceInterval(TypedDict):
