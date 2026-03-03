@@ -6,7 +6,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -137,5 +136,5 @@ function WidgetBuilderDatasetSelector() {
 export default WidgetBuilderDatasetSelector;
 
 const StyledSectionHeader = styled(SectionHeader)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

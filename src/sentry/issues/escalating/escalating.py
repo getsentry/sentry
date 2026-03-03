@@ -386,10 +386,11 @@ def _extract_organization_and_project_and_group_ids(
     return group_ids_by_organization
 
 
-def get_group_hourly_count_snuba(group: Group) -> int:
-    """Return the number of events a group has had today in the last hour"""
+def get_group_hourly_count_snuba(group: Group) -> tuple[int, bool]:
+    """Return the number of events a group has had today in the last hour, and whether the cache was used."""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
+    used_cache = hourly_count is not None
 
     if hourly_count is None:
         now = datetime.now()
@@ -422,13 +423,14 @@ def get_group_hourly_count_snuba(group: Group) -> int:
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
 
-    return int(hourly_count)
+    return int(hourly_count), used_cache
 
 
-def get_group_hourly_count_eap(group: Group) -> int:
-    """Return the number of events a group has had today in the last hour"""
+def get_group_hourly_count_eap(group: Group) -> tuple[int, bool]:
+    """Return the number of events a group has had today in the last hour, and whether the cache was used."""
     key = f"hourly-group-count-eap:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
+    used_cache = hourly_count is not None
 
     if hourly_count is None:
         now = datetime.now()
@@ -443,23 +445,24 @@ def get_group_hourly_count_eap(group: Group) -> int:
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
 
-    return int(hourly_count)
+    return int(hourly_count), used_cache
 
 
 def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
-    snuba_count = get_group_hourly_count_snuba(group)
+    snuba_count, snuba_used_cache = get_group_hourly_count_snuba(group)
     group_hourly_count = snuba_count
 
     if EAPOccurrencesComparator.should_check_experiment("issues.escalating.is_escalating"):
-        eap_count = get_group_hourly_count_eap(group)
+        eap_count, eap_used_cache = get_group_hourly_count_eap(group)
+        either_used_cache = snuba_used_cache or eap_used_cache
         group_hourly_count = EAPOccurrencesComparator.check_and_choose(
             snuba_count,
             eap_count,
             "issues.escalating.is_escalating",
-            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            reasonable_match_comparator=lambda snuba, eap: either_used_cache or eap <= snuba,
             debug_context={
                 "organization_id": group.project.organization_id,
                 "project_id": group.project.id,
