@@ -10,7 +10,6 @@ import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -152,13 +151,13 @@ const DoneWrapper = styled('div')`
 `;
 
 const DoneIcon = styled(IconCheckmark)`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const RepoLinkUl = styled('ul')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   padding: 0;
 `;
 
@@ -166,9 +165,9 @@ const RepoItem = styled('li')<{isOk?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(2)};
-  padding: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xs};
   background-color: ${p => (p.isOk ? p.theme.colors.green100 : 'transparent')};
   border-radius: ${p => p.theme.radius.md};
 `;

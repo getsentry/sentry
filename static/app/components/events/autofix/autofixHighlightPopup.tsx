@@ -673,8 +673,8 @@ const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-right: ${space(1)};
-  gap: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
   max-width: 300px;
   min-width: 200px;
   position: fixed;
@@ -687,7 +687,7 @@ const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   flex-direction: column;
   align-items: flex-start;
   transform-origin: top right;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
   transform: scale(${p => (p.isFocused ? 1 : 0.9)});
   transition: transform 200ms ease;
 `;
@@ -725,7 +725,7 @@ const Container = styled(motion.div, {
 
 const InputWrapper = styled('form')`
   display: flex;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.secondary};
   position: relative;
 `;
@@ -733,9 +733,9 @@ const InputWrapper = styled('form')`
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
   border-color: ${p => p.theme.tokens.border.secondary};
-  padding-right: ${space(4)};
-  padding-top: ${space(0.75)};
-  padding-bottom: ${space(0.75)};
+  padding-right: ${p => p.theme.space['3xl']};
+  padding-top: ${p => p.theme.space.sm};
+  padding-bottom: ${p => p.theme.space.sm};
   resize: none;
 
   &:hover {
@@ -745,7 +745,7 @@ const StyledInput = styled(TextArea)`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;
@@ -759,7 +759,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.secondary};
   word-break: break-word;
   overflow-wrap: break-word;
@@ -795,10 +795,10 @@ const Arrow = styled('div')`
 `;
 
 const MessagesContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-height: 200px;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -813,7 +813,7 @@ const Message = styled('div')<{role: CommentThreadMessage['role']}>`
 const MessageContent = styled('div')`
   flex-grow: 1;
   border-radius: ${p => p.theme.radius.md};
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
@@ -844,7 +844,7 @@ const CircularSeerIcon = styled('div')`
 `;
 
 const ResolveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const ReworkHeaderSection = styled('div')`
