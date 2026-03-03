@@ -8,6 +8,8 @@ import pytest
 from sentry.integrations.github.platform_detection import (
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
+    DetectorRule,
+    FrameworkDef,
     _apply_supersession,
     _framework_matches,
     _get_repo_file_content,
@@ -108,66 +110,66 @@ class TestPackageInManifest:
 
 class TestRuleMatches:
     def test_path_rule_matches_when_file_exists(self) -> None:
-        rule = {"path": "next.config.js"}
+        rule: DetectorRule = {"path": "next.config.js"}
         assert _rule_matches(rule, {"next.config.js", "package.json"}, {}, None) is True
 
     def test_path_rule_no_match_when_file_missing(self) -> None:
-        rule = {"path": "next.config.js"}
+        rule: DetectorRule = {"path": "next.config.js"}
         assert _rule_matches(rule, {"package.json"}, {}, None) is False
 
     def test_path_with_content_matches_regex(self) -> None:
-        rule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
         assert (
             _rule_matches(rule, set(), {"requirements.txt": "Django==4.2\ncelery>=5.0\n"}, None)
             is True
         )
 
     def test_path_with_content_case_insensitive(self) -> None:
-        rule = {"path": "requirements.txt", "match_content": r"(?i)\bflask\b"}
+        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bflask\b"}
         assert _rule_matches(rule, set(), {"requirements.txt": "Flask==3.0\n"}, None) is True
 
     def test_path_with_content_no_match(self) -> None:
-        rule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
         assert _rule_matches(rule, set(), {"requirements.txt": "flask==3.0\n"}, None) is False
 
     def test_path_with_content_file_not_fetched(self) -> None:
-        rule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
         assert _rule_matches(rule, set(), {}, None) is False
 
     def test_match_package_finds_dependency(self) -> None:
-        rule = {"match_package": "next"}
+        rule: DetectorRule = {"match_package": "next"}
         manifest = _PackageManifest(dependencies={"next", "react"}, dev_dependencies=set())
         assert _rule_matches(rule, set(), {}, manifest) is True
 
     def test_match_package_finds_dev_dependency(self) -> None:
-        rule = {"match_package": "svelte"}
+        rule: DetectorRule = {"match_package": "svelte"}
         manifest = _PackageManifest(dependencies=set(), dev_dependencies={"svelte"})
         assert _rule_matches(rule, set(), {}, manifest) is True
 
     def test_match_package_no_match(self) -> None:
-        rule = {"match_package": "next"}
+        rule: DetectorRule = {"match_package": "next"}
         manifest = _PackageManifest(dependencies={"react"}, dev_dependencies=set())
         assert _rule_matches(rule, set(), {}, manifest) is False
 
     def test_match_package_no_manifest(self) -> None:
-        rule = {"match_package": "next"}
+        rule: DetectorRule = {"match_package": "next"}
         assert _rule_matches(rule, set(), {}, None) is False
 
     def test_match_package_prefix_match(self) -> None:
-        rule = {"match_package": "symfony/"}
+        rule: DetectorRule = {"match_package": "symfony/"}
         manifest = _PackageManifest(
             dependencies={"symfony/framework-bundle"}, dev_dependencies=set()
         )
         assert _rule_matches(rule, set(), {}, manifest) is True
 
     def test_rule_without_path_or_package_returns_false(self) -> None:
-        rule: dict = {}
+        rule: DetectorRule = {}
         assert _rule_matches(rule, {"file.txt"}, {}, None) is False
 
 
 class TestFrameworkMatches:
     def test_some_rules_match_when_any_passes(self) -> None:
-        fw = {
+        fw: FrameworkDef = {
             "platform": "test",
             "sort": 1,
             "base_platform": "test",
@@ -179,7 +181,7 @@ class TestFrameworkMatches:
         assert _framework_matches(fw, {"found.js"}, {}, None) is True
 
     def test_some_rules_no_match_when_none_pass(self) -> None:
-        fw = {
+        fw: FrameworkDef = {
             "platform": "test",
             "sort": 1,
             "base_platform": "test",
@@ -192,7 +194,7 @@ class TestFrameworkMatches:
 
     def test_every_rules_match_when_all_pass(self) -> None:
         manifest = _PackageManifest(dependencies={"express", "cors"}, dev_dependencies=set())
-        fw = {
+        fw: FrameworkDef = {
             "platform": "test",
             "sort": 1,
             "base_platform": "test",
@@ -202,7 +204,7 @@ class TestFrameworkMatches:
 
     def test_every_rules_no_match_when_one_fails(self) -> None:
         manifest = _PackageManifest(dependencies={"cors"}, dev_dependencies=set())
-        fw = {
+        fw: FrameworkDef = {
             "platform": "test",
             "sort": 1,
             "base_platform": "test",
@@ -215,7 +217,7 @@ class TestFrameworkMatches:
 
     def test_every_and_some_combined(self) -> None:
         manifest = _PackageManifest(dependencies={"express"}, dev_dependencies=set())
-        fw = {
+        fw: FrameworkDef = {
             "platform": "test",
             "sort": 1,
             "base_platform": "test",
@@ -228,7 +230,7 @@ class TestFrameworkMatches:
         assert _framework_matches(fw, set(), {}, manifest) is False
 
     def test_empty_every_and_some_returns_false(self) -> None:
-        fw = {"platform": "test", "sort": 1, "base_platform": "test"}
+        fw: FrameworkDef = {"platform": "test", "sort": 1, "base_platform": "test"}
         assert _framework_matches(fw, set(), {}, None) is False
 
     def test_nextjs_matches_from_package(self) -> None:
