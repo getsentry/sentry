@@ -577,5 +577,63 @@ describe('VirtualizedViewManger', () => {
         manager.transformXFromTimestamp(200) - 3 - Math.ceil(measuredWidth)
       );
     });
+
+    it('uses ceil(text_width) for near-right-edge fit checks before inside-right placement', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 100, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 100, 1], [0, 0, 100, 1]);
+
+      const measuredWidth = 50.3;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [40, 50.5],
+        '32.34ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(
+        manager.transformXFromTimestamp(40) - 3 - Math.ceil(measuredWidth)
+      );
+    });
+
+    it('uses ceil(text_width) for full-span fit checks before placing text inside', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 100, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 100, 1], [0, 0, 100, 1]);
+
+      const measuredWidth = 50.3;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [49.6, 50.5],
+        '32.34ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(manager.transformXFromTimestamp(100.1) + 3);
+    });
   });
 });

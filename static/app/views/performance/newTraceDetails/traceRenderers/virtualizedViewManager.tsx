@@ -1208,7 +1208,7 @@ export class VirtualizedViewManager {
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= text_width) {
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
         return [1, window_left];
       }
 
@@ -1230,9 +1230,9 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < text_width
+        space_right / this.span_to_px[0] < text_width_ceil
       ) {
-        if (full_span_px_width > text_width) {
+        if (full_span_px_width > text_width_ceil) {
           return [1, right_inside];
         }
         return [0, left_outside];
@@ -1241,14 +1241,14 @@ export class VirtualizedViewManager {
     }
 
     // If text fits inside the span
-    if (full_span_px_width > text_width) {
+    if (full_span_px_width > text_width_ceil) {
       const distance = span_right - this.view.trace_view.right;
       const visible_width =
         (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= text_width) {
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
         return [1, window_right];
       }
 
