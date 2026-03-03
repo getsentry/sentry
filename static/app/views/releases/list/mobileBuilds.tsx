@@ -37,12 +37,9 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
 
   const [searchQuery] = useQueryState('query', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
-  const hasDistributionFeature = organization.features.includes(
-    'preprod-build-distribution'
-  );
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
-    [hasDistributionFeature, location.query.display]
+    () => getPreprodBuildsDisplay(location.query.display, true),
+    [location.query.display]
   );
 
   const buildsQueryParams = useMemo(() => {

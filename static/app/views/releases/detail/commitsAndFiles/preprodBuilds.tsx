@@ -38,12 +38,9 @@ export default function PreprodBuilds() {
   const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
   const location = useLocation();
-  const hasDistributionFeature = organization.features.includes(
-    'preprod-build-distribution'
-  );
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
-    [hasDistributionFeature, location.query.display]
+    () => getPreprodBuildsDisplay(location.query.display, true),
+    [location.query.display]
   );
 
   const {query: urlSearchQuery, cursor} = useLocationQuery({
