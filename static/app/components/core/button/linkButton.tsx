@@ -105,10 +105,6 @@ const StyledLinkButton = styled(
   }
 )<LinkButtonProps>`
   ${p => getLinkButtonStyles(p)}
-
-  &:focus-visible {
-    box-shadow: none;
-  }
 `;
 
 const getLinkButtonStyles = (p: LinkButtonProps) => {
