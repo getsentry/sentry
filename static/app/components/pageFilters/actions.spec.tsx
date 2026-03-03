@@ -355,7 +355,7 @@ describe('PageFilters ActionCreators', () => {
       pageFilterStorageMock.mockRestore();
     });
 
-    it('defaults to all projects when user has no member projects but has accessible projects', () => {
+    it('auto-selects the single non-member project when user has no member projects', () => {
       const nonMemberProject = ProjectFixture({isMember: false});
       initializeUrlState({
         organization,
@@ -363,6 +363,25 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: [],
         nonMemberProjects: [nonMemberProject],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [parseInt(nonMemberProject.id, 10)],
+        }),
+        true
+      );
+    });
+
+    it('defaults to all projects when user has no member projects but has multiple accessible projects', () => {
+      const nonMemberProject1 = ProjectFixture({id: '10', isMember: false});
+      const nonMemberProject2 = ProjectFixture({id: '11', isMember: false});
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: [],
+        nonMemberProjects: [nonMemberProject1, nonMemberProject2],
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -378,12 +397,49 @@ describe('PageFilters ActionCreators', () => {
       ConfigStore.set('user', UserFixture({isSuperuser: true}));
       OrganizationStore.onUpdate(superuserOrg, {replace: true});
 
+      // When there is only one accessible project, it is auto-selected even for superusers
+      const nonMemberProject = ProjectFixture({isMember: false});
       initializeUrlState({
         organization: superuserOrg,
         queryParams: {},
         router,
         memberProjects: [],
-        nonMemberProjects: [ProjectFixture({isMember: false})],
+        nonMemberProjects: [nonMemberProject],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [parseInt(nonMemberProject.id, 10)],
+        }),
+        true
+      );
+    });
+
+    it('auto-selects the single project when the organization only has one', () => {
+      const singleProject = ProjectFixture({id: '42', isMember: true});
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: [singleProject],
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [42],
+        }),
+        true
+      );
+    });
+
+    it('does not auto-select when there are multiple projects', () => {
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: projects,
+        nonMemberProjects: [],
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
