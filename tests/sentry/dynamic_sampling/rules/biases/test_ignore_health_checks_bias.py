@@ -52,7 +52,7 @@ def test_generate_trace_bias_rules(default_project) -> None:
                 "op": "or",
             },
             "id": 1002,
-            "samplingValue": {"type": "sampleRate", "value": 0.2},
+            "samplingValue": {"type": "sampleRate", "value": 1.0 / 3},
             "type": "trace",
         }
     ]
