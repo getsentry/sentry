@@ -1,5 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
+
 import EventIdField from './eventIdField';
 
 const VALID_EVENT_ID = '887ab369df634e74aea708bcafe1a175';
@@ -176,6 +178,49 @@ describe('EventIdField', () => {
       expect(onErrorChange).toHaveBeenCalledWith(
         'An error occurred while fetching the suggestions based on this event ID'
       )
+    );
+  });
+
+  it('resets suggestions to defaults when event ID is not found', async () => {
+    const onSuggestionsLoaded = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/data-scrubbing-selector-suggestions/',
+      body: {suggestions: []},
+    });
+
+    renderEventIdField({
+      value: VALID_EVENT_ID,
+      onSuggestionsLoaded,
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(onSuggestionsLoaded).toHaveBeenCalledWith(valueSuggestions)
+    );
+  });
+
+  it('resets suggestions to defaults when fetch fails', async () => {
+    const onSuggestionsLoaded = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/data-scrubbing-selector-suggestions/',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    renderEventIdField({
+      value: VALID_EVENT_ID,
+      onSuggestionsLoaded,
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(onSuggestionsLoaded).toHaveBeenCalledWith(valueSuggestions)
     );
   });
 

@@ -105,6 +105,7 @@ function EventIdField({
           onErrorChange(
             t('The chosen event ID was not found in projects you have access to')
           );
+          onSuggestionsLoaded(valueSuggestions);
           saveToSourceGroupData({value: '', status: EventIdStatus.UNDEFINED});
         }
       } catch {
@@ -112,6 +113,7 @@ function EventIdField({
         onErrorChange(
           t('An error occurred while fetching the suggestions based on this event ID')
         );
+        onSuggestionsLoaded(valueSuggestions);
         saveToSourceGroupData({value: '', status: EventIdStatus.UNDEFINED});
       }
     },
