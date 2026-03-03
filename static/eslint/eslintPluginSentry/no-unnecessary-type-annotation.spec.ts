@@ -1,19 +1,29 @@
 import {RuleTester} from 'eslint';
 import typescript from 'typescript-eslint';
 
-import rule from './no-unnecessary-type-annotation.mjs';
+import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
+
+// projectService requires setImmediate/clearImmediate which jsdom doesn't provide
+if (typeof globalThis.setImmediate === 'undefined') {
+  // @ts-expect-error — polyfill for jsdom
+  globalThis.setImmediate = (fn: Function, ...args: unknown[]) =>
+    setTimeout(fn, 0, ...args);
+}
+if (typeof globalThis.clearImmediate === 'undefined') {
+  globalThis.clearImmediate = (id: ReturnType<typeof setTimeout>) => clearTimeout(id);
+}
 
 const ruleTester = new RuleTester({
   languageOptions: {
     parser: typescript.parser,
     parserOptions: {
       projectService: {allowDefaultProject: ['*.ts']},
-      tsconfigRootDir: import.meta.dirname,
+      tsconfigRootDir: __dirname,
     },
   },
 });
 
-ruleTester.run('no-unnecessary-type-annotation', rule, {
+ruleTester.run('no-unnecessary-type-annotation', noUnnecessaryTypeAnnotation, {
   valid: [
     // No annotation
     {code: 'const x = 5;', filename: 'valid.ts'},
@@ -130,16 +140,14 @@ ruleTester.run('no-unnecessary-type-annotation', rule, {
     {
       code: 'function getString(): string { return ""; }\nconst s: string = getString();',
       output: 'function getString(): string { return ""; }\nconst s = getString();',
-      errors: [{messageId: 'unnecessary'}],
+      errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
     },
     {
       code: 'function getNumber(): number { return 0; }\nconst n: number = getNumber();',
       output: 'function getNumber(): number { return 0; }\nconst n = getNumber();',
-      errors: [{messageId: 'unnecessary'}],
+      errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
     },
   ],
 });
-
-console.log('All tests passed!');

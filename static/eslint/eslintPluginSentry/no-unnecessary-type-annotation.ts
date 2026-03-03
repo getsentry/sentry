@@ -1,7 +1,7 @@
+import {ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
 import ts from 'typescript';
 
-/** @type {import('eslint').Rule.RuleModule} */
-const rule = {
+export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'suggestion',
     docs: {
@@ -14,6 +14,8 @@ const rule = {
     },
   },
 
+  defaultOptions: [],
+
   create(context) {
     const parserServices = context.sourceCode.parserServices;
     if (!parserServices?.program || !parserServices?.esTreeNodeToTSNodeMap) {
@@ -23,7 +25,7 @@ const rule = {
     const checker = parserServices.program.getTypeChecker();
     const toTSNode = parserServices.esTreeNodeToTSNodeMap;
 
-    function typesAreIdentical(a, b) {
+    function typesAreIdentical(a: ts.Type, b: ts.Type): boolean {
       if (!checker.isTypeAssignableTo(a, b) || !checker.isTypeAssignableTo(b, a)) {
         return false;
       }
@@ -50,7 +52,7 @@ const rule = {
       return true;
     }
 
-    function isEscapeHatch(type) {
+    function isEscapeHatch(type: ts.Type): boolean {
       return (
         (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) !==
         0
@@ -61,11 +63,11 @@ const rule = {
      * Returns true if the type contains `any` at any level, including
      * within type arguments (e.g. Promise<any>, Array<any>, Map<string, any>).
      */
-    function containsAny(type) {
+    function containsAny(type: ts.Type): boolean {
       if ((type.flags & ts.TypeFlags.Any) !== 0) {
         return true;
       }
-      const typeArgs = checker.getTypeArguments(type);
+      const typeArgs = checker.getTypeArguments(type as ts.TypeReference);
       if (typeArgs) {
         return typeArgs.some(arg => containsAny(arg));
       }
@@ -77,9 +79,11 @@ const rule = {
      * with untyped parameters at any nesting level. Traverses through
      * ternaries, logical expressions, and call expression arguments.
      */
-    function containsUntypedFunction(node) {
+    function containsUntypedFunction(node: TSESTree.Node): boolean {
       if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') {
-        return node.params.some(param => !param.typeAnnotation);
+        return node.params.some(
+          param => !('typeAnnotation' in param) || !param.typeAnnotation
+        );
       }
       if (node.type === 'ConditionalExpression') {
         return (
@@ -147,13 +151,13 @@ const rule = {
             node: node.id.typeAnnotation,
             messageId: 'unnecessary',
             fix(fixer) {
-              return fixer.remove(node.id.typeAnnotation);
+              return fixer.remove(node.id.typeAnnotation!);
             },
           });
         }
       },
     };
   },
-};
+});
 
-export default rule;
+export default noUnnecessaryTypeAnnotation;
