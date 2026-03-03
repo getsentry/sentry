@@ -1,5 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
+import type {FlexProps} from '@sentry/scraps/layout';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 // We do not want people using this type as it should only be used
@@ -57,7 +58,11 @@ type ButtonElementProps = Omit<
   'label' | 'size' | 'title'
 >;
 
-interface BaseButtonProps extends DO_NOT_USE_CommonButtonProps, ButtonElementProps {
+interface BaseButtonProps
+  extends
+    Omit<FlexProps<'div'>, keyof ButtonElementProps | 'ref'>,
+    DO_NOT_USE_CommonButtonProps,
+    ButtonElementProps {
   ref?: React.Ref<HTMLButtonElement>;
 }
 
@@ -80,11 +85,16 @@ type LinkElementProps = Omit<
   'label' | 'size' | 'title' | 'href'
 >;
 
-interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementProps {
+interface BaseLinkButtonProps
+  extends
+    Omit<FlexProps<'div'>, keyof LinkElementProps | 'ref'>,
+    DO_NOT_USE_CommonButtonProps,
+    LinkElementProps {
   /**
    * Determines if the link is disabled.
    */
   disabled?: boolean;
+  ref?: React.Ref<HTMLAnchorElement>;
 }
 
 interface LinkButtonPropsWithHref extends BaseLinkButtonProps {

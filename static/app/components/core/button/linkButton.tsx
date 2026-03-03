@@ -1,5 +1,5 @@
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -16,94 +16,107 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
 
-export function LinkButton({
-  size = 'md',
-  disabled,
-  tooltipProps,
-  ...props
-}: LinkButtonProps) {
+export function LinkButton({size = 'md', tooltipProps, ...props}: LinkButtonProps) {
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
-    disabled,
+    disabled: props.disabled,
   });
 
   return (
-    <Tooltip
-      skipWrapper
-      {...tooltipProps}
-      title={tooltipProps?.title}
-      disabled={!tooltipProps?.title}
+    <StyledFlex
+      busy={props.busy}
+      size={size}
+      icon={props.icon}
+      priority={props.priority}
+      disabled={props.disabled}
+      className={props.className}
+      display="inline-flex"
     >
-      <StyledLinkButton
-        aria-label={accessibleLabel}
-        aria-disabled={disabled}
-        disabled={disabled}
-        size={size}
-        {...props}
-        // @ts-expect-error set href as undefined to force "disabled" state.
-        href={disabled ? undefined : 'href' in props ? props.href : undefined}
-        // @ts-expect-error set to as undefined to force "disabled" state
-        to={disabled ? undefined : 'to' in props ? props.to : undefined}
-        onClick={handleClick}
-      >
-        <Flex
-          as="span"
-          align="center"
-          justify="center"
-          minWidth="0"
-          height="100%"
-          whiteSpace="nowrap"
-        >
-          {props.icon && (
-            <Flex
-              as="span"
-              align="center"
-              flexShrink={0}
-              marginRight={
-                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
-              }
-            >
-              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                {props.icon}
-              </IconDefaultsProvider>
-            </Flex>
-          )}
-          {props.children}
-        </Flex>
-      </StyledLinkButton>
-    </Tooltip>
+      {flexProps => {
+        const tootlipProps = {
+          skipWrapper: true as const,
+          ...tooltipProps,
+          title: tooltipProps?.title,
+          disabled: !tooltipProps?.title,
+        };
+
+        const sharedProps = {
+          ...mergeProps(flexProps, props),
+          'aria-label': accessibleLabel,
+          'aria-disabled': props.disabled,
+          onClick: handleClick,
+          role: 'button' as const,
+        };
+
+        const content = (
+          <Flex
+            as="span"
+            align="center"
+            justify="center"
+            minWidth="0"
+            height="100%"
+            whiteSpace="nowrap"
+          >
+            {props.icon && (
+              <Flex
+                as="span"
+                align="center"
+                flexShrink={0}
+                position="relative"
+                marginRight={
+                  hasChildren
+                    ? size === 'xs' || size === 'zero'
+                      ? 'sm'
+                      : 'md'
+                    : undefined
+                }
+              >
+                <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
+                  {props.icon}
+                </IconDefaultsProvider>
+              </Flex>
+            )}
+            {props.children}
+          </Flex>
+        );
+
+        if ('to' in props && props.to && !props.disabled) {
+          return (
+            <Tooltip {...tootlipProps}>
+              <Link {...sharedProps} to={props.to}>
+                {content}
+              </Link>
+            </Tooltip>
+          );
+        }
+
+        if ('href' in props && props.href && !props.disabled) {
+          const {external, ...rest} = sharedProps;
+          return (
+            <Tooltip {...tootlipProps}>
+              <a
+                {...rest}
+                {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
+                href={props.href}
+              >
+                {content}
+              </a>
+            </Tooltip>
+          );
+        }
+
+        const {external: _e, replace: _r, preventScrollReset: _p, ...rest} = sharedProps;
+        return (
+          <Tooltip {...tootlipProps}>
+            <a {...rest}>{content}</a>
+          </Tooltip>
+        );
+      }}
+    </StyledFlex>
   );
 }
 
-const StyledLinkButton = styled(
-  ({size: _size, ...props}: LinkButtonProps) => {
-    if ('to' in props && props.to) {
-      return <Link {...props} to={props.to} role="button" />;
-    }
-
-    if ('href' in props && props.href) {
-      const {external, ...rest} = props;
-      return (
-        <a
-          {...rest}
-          {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
-          role="button"
-        />
-      );
-    }
-
-    // @ts-expect-error these props cannot be statically determined at this point
-    const {external: _e, replace: _r, preventScrollReset: _p, ...rest} = props;
-    return <a {...rest} role="button" />;
-  },
-  {
-    shouldForwardProp: prop =>
-      prop === 'external' ||
-      prop === 'replace' ||
-      prop === 'preventScrollReset' ||
-      (typeof prop === 'string' && isPropValid(prop)),
-  }
-)<LinkButtonProps>`
+const StyledFlex = styled(Flex)<LinkButtonProps>`
   ${p => getLinkButtonStyles(p)}
 
   &:focus-visible {
