@@ -15,10 +15,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
 jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
@@ -36,55 +36,57 @@ describe('Visualize', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockImplementation((_config, type?) => {
-      if (type === 'number') {
+    jest
+      .mocked(useTraceItemDatasetAttributes)
+      .mockImplementation((_traceItemType, _options, type?) => {
+        if (type === 'number') {
+          const tags: TagCollection = {
+            'span.duration': {
+              key: 'span.duration',
+              name: 'span.duration',
+              kind: FieldKind.MEASUREMENT,
+              secondaryAliases: [],
+            },
+            'span.self_time': {
+              key: 'span.self_time',
+              name: 'span.self_time',
+              kind: FieldKind.MEASUREMENT,
+              secondaryAliases: [],
+            },
+          };
+          return {attributes: tags, isLoading: false, secondaryAliases: {}};
+        }
+
+        if (type === 'boolean') {
+          const tags: TagCollection = {
+            'span.status': {
+              key: 'span.status',
+              name: 'span.status',
+              kind: FieldKind.BOOLEAN,
+            },
+          };
+          return {attributes: tags, isLoading: false, secondaryAliases: {}};
+        }
+
         const tags: TagCollection = {
-          'span.duration': {
-            key: 'span.duration',
-            name: 'span.duration',
-            kind: FieldKind.MEASUREMENT,
-            secondaryAliases: [],
+          'span.op': {
+            key: 'span.op',
+            name: 'span.op',
+            kind: FieldKind.TAG,
           },
-          'span.self_time': {
-            key: 'span.self_time',
-            name: 'span.self_time',
-            kind: FieldKind.MEASUREMENT,
-            secondaryAliases: [],
+          'span.description': {
+            key: 'span.description',
+            name: 'span.description',
+            kind: FieldKind.TAG,
           },
         };
-        return {tags, isLoading: false, secondaryAliases: {}};
-      }
 
-      if (type === 'boolean') {
-        const tags: TagCollection = {
-          'span.status': {
-            key: 'span.status',
-            name: 'span.status',
-            kind: FieldKind.BOOLEAN,
-          },
+        return {
+          attributes: tags,
+          secondaryAliases: {},
+          isLoading: false,
         };
-        return {tags, isLoading: false, secondaryAliases: {}};
-      }
-
-      const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
-        'span.description': {
-          key: 'span.description',
-          name: 'span.description',
-          kind: FieldKind.TAG,
-        },
-      };
-
-      return {
-        tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
-    });
+      });
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -1257,42 +1259,44 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useTraceItemTags).mockImplementation((_config, type?) => {
-        if (type === 'number') {
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, _options, type?) => {
+          if (type === 'number') {
+            return {
+              attributes: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                'tags[anotherNumericTag,number]': {
+                  key: 'anotherNumericTag',
+                  name: 'anotherNumericTag',
+                  kind: 'measurement',
+                },
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, isLoading: false, secondaryAliases: {}};
+          }
+
           return {
-            tags: {
-              'span.duration': {
-                key: 'span.duration',
-                name: 'span.duration',
-                kind: 'measurement',
-              },
-              'tags[anotherNumericTag,number]': {
-                key: 'anotherNumericTag',
-                name: 'anotherNumericTag',
-                kind: 'measurement',
+            attributes: {
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
               },
             } as TagCollection,
             secondaryAliases: {},
             isLoading: false,
           };
-        }
-
-        if (type === 'boolean') {
-          return {tags: {}, isLoading: false, secondaryAliases: {}};
-        }
-
-        return {
-          tags: {
-            'span.description': {
-              key: 'span.description',
-              name: 'span.description',
-              kind: 'tag',
-            },
-          } as TagCollection,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+        });
     });
 
     it('shows numeric tags as primary options for chart widgets', async () => {
@@ -1428,27 +1432,31 @@ describe('Visualize', () => {
     });
 
     it('differentiates between function and column values in selection', async () => {
-      jest.mocked(useTraceItemTags).mockImplementation((_config, type?) => {
-        if (type === 'number') {
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, _options, type?) => {
+          if (type === 'number') {
+            return {
+              attributes: {
+                'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, secondaryAliases: {}, isLoading: false};
+          }
+
           return {
-            tags: {
-              'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+            attributes: {
+              count: {key: 'count', name: 'count', kind: 'tag'},
             } as TagCollection,
             secondaryAliases: {},
             isLoading: false,
           };
-        }
-
-        if (type === 'boolean') {
-          return {tags: {}, secondaryAliases: {}, isLoading: false};
-        }
-
-        return {
-          tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+        });
       render(
         <WidgetBuilderProvider>
           <Visualize />

@@ -15,7 +15,7 @@ import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
+import * as spanTagsModule from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -323,15 +323,15 @@ describe('SpansTabContent', () => {
 
     beforeEach(() => {
       const useSpanTagsSpy = jest
-        .spyOn(spanTagsModule, 'useTraceItemTags')
-        .mockImplementation((_config, type) => {
+        .spyOn(spanTagsModule, 'useSpanItemAttributes')
+        .mockImplementation((_options, type) => {
           switch (type) {
             case 'number':
-              return {tags: mockNumberTags, isLoading: false, secondaryAliases: {}};
+              return {attributes: mockNumberTags, isLoading: false, secondaryAliases: {}};
             case 'string':
-              return {tags: mockStringTags, isLoading: false, secondaryAliases: {}};
+              return {attributes: mockStringTags, isLoading: false, secondaryAliases: {}};
             default:
-              return {tags: {}, isLoading: false, secondaryAliases: {}};
+              return {attributes: {}, isLoading: false, secondaryAliases: {}};
           }
         });
 

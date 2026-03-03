@@ -8,15 +8,13 @@ import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 const mockedUsedLocation = jest.mocked(useLocation);
-
-const spanConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
 
 function createWrapper(organization: Organization) {
   return function ({children}: {children?: React.ReactNode}) {
@@ -29,9 +27,9 @@ function createWrapper(organization: Organization) {
 }
 
 function useWrapper(yAxis: string) {
-  const {tags: stringTags} = useTraceItemTags(spanConfig, 'string');
-  const {tags: numberTags} = useTraceItemTags(spanConfig, 'number');
-  const {tags: booleanTags} = useTraceItemTags(spanConfig, 'boolean');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
   return useVisualizeFields({
     numberTags,
     stringTags,
