@@ -1,4 +1,4 @@
-import {RuleTester} from 'eslint';
+import {RuleTester} from '@typescript-eslint/rule-tester';
 import typescript from 'typescript-eslint';
 
 import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
@@ -6,10 +6,13 @@ import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
 // projectService requires setImmediate/clearImmediate which jsdom doesn't provide
 if (typeof globalThis.setImmediate === 'undefined') {
   // @ts-expect-error — polyfill for jsdom
-  globalThis.setImmediate = (fn: Function, ...args: unknown[]) =>
-    setTimeout(fn, 0, ...args);
+  globalThis.setImmediate = <TArgs extends any[]>(
+    callback: (...args: TArgs) => void,
+    ...args: TArgs
+  ) => setTimeout(callback, 0, ...args);
 }
 if (typeof globalThis.clearImmediate === 'undefined') {
+  // @ts-expect-error — polyfill for jsdom
   globalThis.clearImmediate = (id: ReturnType<typeof setTimeout>) => clearTimeout(id);
 }
 
