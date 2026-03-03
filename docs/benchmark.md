@@ -103,3 +103,71 @@ Same as Experiment 3, but with `--dist=load` instead of `--dist=loadfile`.
 | load | 12m56s | 182s | 11m51s |
 
 `loadscope` is marginally best on wall clock and average. `loadfile` has the tightest spread. `load` is worst across all metrics. Differences are small (~30s range). `loadfile` remains the safe default.
+
+---
+
+## Experiment 6: Tiered workflow — file granularity + loadfile
+
+Split tests into backend-light (5 shards, postgres-only, `-n 4`) and backend-test (22 shards, tier2 only, `-n 3`). File granularity, `--dist=loadfile`.
+
+**backend-light (5 shards):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 10m54s | 59s | 10m20s | 22644945975 |
+| 2 | 10m45s | 32s | 10m29s | 22644944902 |
+| 3 | 11m15s | 117s | 10m27s | 22644943819 |
+| **Mean** | **10m58s** | **69s** | **10m25s** | |
+
+**backend-test (22 shards, tier2 only):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 10m17s | 74s | 9m36s | 22644945975 |
+| 2 | 10m15s | 119s | 9m30s | 22644944902 |
+| 3 | 10m18s | 105s | 9m37s | 22644943819 |
+| **Mean** | **10m17s** | **99s** | **9m34s** | |
+
+**Overall wall clock** (max of backend-light, backend-test): **10m58s**
+
+**Delta vs Experiment 3 (no tiers):** Wall clock −1m32s (12m30s → 10m58s). backend-test dropped from 12m30s to 10m17s by removing tier1 tests.
+
+---
+
+## Experiment 7: Tiered workflow — class granularity + loadscope
+
+Same tier split but with `--granularity class`, `--dist=loadscope`, `TIER_GRANULARITY=class`.
+
+**backend-light (5 shards):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 11m22s | 67s | 10m52s | 22645184111 |
+| 2 | 12m03s | 48s | 11m27s | 22645183239 |
+| 3 | 11m56s | 64s | 11m30s | 22645182310 |
+| **Mean** | **11m47s** | **60s** | **11m16s** | |
+
+**backend-test (22 shards, tier2 only):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 9m53s | 115s | 9m08s | 22645184111 |
+| 2 | 10m25s | 166s | 9m18s | 22645183239 |
+| 3 | 9m43s | 81s | 9m16s | 22645182310 |
+| **Mean** | **10m00s** | **121s** | **9m14s** | |
+
+**Overall wall clock**: **11m47s**
+
+**Delta vs Experiment 6 (file+loadfile):** Overall +49s (10m58s → 11m47s). Class+loadscope helps backend-test (−17s) but hurts backend-light (+49s). backend-light is the bottleneck — file granularity is better for it.
+
+---
+
+## Tiered Summary
+
+| Config | backend-light | backend-test | Overall | Delta vs no tiers |
+|--------|--------------|-------------|---------|-------------------|
+| No tiers (Exp 3) | — | 12m30s | 12m30s | baseline |
+| File + loadfile | 10m58s | 10m17s | **10m58s** | **−1m32s** |
+| Class + loadscope | 11m47s | 10m00s | 11m47s | −43s |
+
+File granularity + loadfile wins. backend-light is the bottleneck in both cases.
