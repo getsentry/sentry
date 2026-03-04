@@ -358,7 +358,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
             raise serializers.ValidationError(
-                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                {
+                    "widget_type": "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                }
             )
         return widget_type
 
@@ -370,7 +372,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             parse_stats_period(interval) is None
             and data.get("display_type") != DashboardWidgetDisplayTypes.TEXT
         ):
-            raise serializers.ValidationError("Invalid interval")
+            raise serializers.ValidationError({"interval": "Invalid interval"})
 
     def to_internal_value(self, data):
         # Update the context for the queries serializer because the display type is
