@@ -2,8 +2,7 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
+import {AvatarButton} from '@sentry/scraps/avatarButton';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
@@ -53,21 +52,36 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   return (
     <DropdownMenu
       trigger={triggerProps => (
-        <OrganizationDropdownTrigger
-          layout={layout}
-          size="xs"
+        <AvatarButton
+          avatar={
+            organization.avatar.avatarType === 'upload'
+              ? {
+                  type: 'upload',
+                  uploadUrl: organization.avatar.avatarUrl ?? '',
+                  identifier: organization.slug,
+                  name: organization.name,
+                }
+              : organization.avatar.avatarType === 'gravatar'
+                ? {
+                    type: 'gravatar',
+                    gravatarId: organization.avatar.avatarUrl ?? '',
+                    identifier: organization.slug,
+                    name: organization.name,
+                  }
+                : {
+                    type: 'letter_avatar',
+                    identifier: organization.slug,
+                    name: organization.name,
+                  }
+          }
+          size={layout === NavLayout.MOBILE ? 'xs' : 'md'}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {
             triggerProps.onClick?.(e);
             props.onClick?.();
           }}
-        >
-          <OrganizationAvatar
-            organization={organization}
-            size={layout === NavLayout.MOBILE ? 24 : 36}
-          />
-        </OrganizationDropdownTrigger>
+        />
       )}
       position="right-start"
       minMenuWidth={200}
@@ -188,13 +202,6 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
     hidden: !ConfigStore.get('features').has('organizations:create'),
   };
 }
-
-const OrganizationDropdownTrigger = styled(Button)<{layout: NavLayout}>`
-  height: ${p => (p.layout === NavLayout.MOBILE ? 32 : 48)}px;
-  width: ${p => (p.layout === NavLayout.MOBILE ? 32 : 48)}px;
-  min-height: ${p => (p.layout === NavLayout.MOBILE ? 32 : 48)}px;
-  padding: 0;
-`;
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
