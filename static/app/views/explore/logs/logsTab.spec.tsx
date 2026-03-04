@@ -12,12 +12,10 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -42,9 +40,7 @@ describe('LogsTabContent', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </TraceItemAttributeProvider>
+        <LogsPageDataProvider>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>
     );
   }
