@@ -34,19 +34,4 @@ PROCESSING_ERROR_AGGREGATE_DEFINITIONS = {
             PROCESSING_ERRORS_ALWAYS_PRESENT_ATTRIBUTES
         ),
     ),
-    "count_unique": AggregateDefinition(
-        internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="integer",
-        infer_search_type_from_arguments=False,
-        processor=count_processor,
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "number",
-                    "integer",
-                },
-            )
-        ],
-    ),
 }
