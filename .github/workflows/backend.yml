@@ -379,7 +379,7 @@ jobs:
         run: |
           python3 -b -m pytest tests \
             --reuse-db \
-            -n 4 \
+            -n 5 \
             --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
