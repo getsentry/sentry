@@ -511,6 +511,7 @@ jobs:
             # Bootstrap per-worker Snuba instances
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+            SNUBA_PIDS=""
             for i in $(seq 0 $((XDIST_N - 1))); do
               (
                 WORKER_DB="default_gw${i}"
@@ -530,8 +531,10 @@ jobs:
                   -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
                   -e "DEBUG=1" "$SNUBA_IMAGE" api
               ) &
+              SNUBA_PIDS="$SNUBA_PIDS $!"
             done
-            wait
+            wait $SNUBA_PIDS
+            wait $PREMIGRATE_PID
 
             for i in $(seq 0 $((XDIST_N - 1))); do
               WORKER_PORT=$((1230 + i))
@@ -542,8 +545,6 @@ jobs:
                 sleep 1
               done
             done
-
-            wait $PREMIGRATE_PID || { echo "pre-migrate failed"; exit 1; }
 
             touch /tmp/services-ready
           ) 2>&1 &
