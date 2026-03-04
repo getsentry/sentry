@@ -174,7 +174,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         self.check_object_permissions(request, dashboard)
 
         is_prebuilt = isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None
-        prebuilt_title = dashboard.title if is_prebuilt else None
+        prebuilt_title = dashboard.title if isinstance(dashboard, Dashboard) else None
 
         tombstone = None
         if isinstance(dashboard, dict):
