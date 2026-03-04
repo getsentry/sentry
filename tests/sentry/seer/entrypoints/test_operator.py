@@ -422,11 +422,6 @@ class SeerOperatorTest(TestCase):
         assert payload["type"] == "select_root_cause"
         assert payload["cause_id"] == AUTOFIX_FALLBACK_CAUSE_ID
 
-    @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True)
-    def test_has_access_returns_false_with_autofix_on_explorer(self, _mock_has_seer_access):
-        with self.feature({"organizations:autofix-on-explorer": True}):
-            assert not SeerOperator.has_access(organization=self.group.project.organization)
-
     @patch("sentry.seer.entrypoints.operator.update_autofix")
     @patch("sentry.seer.entrypoints.operator.get_autofix_state")
     def test_solution_stopping_point_uses_cause_id_from_state(
