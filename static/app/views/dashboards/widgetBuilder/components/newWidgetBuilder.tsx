@@ -3,7 +3,6 @@ import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/c
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
-import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -12,7 +11,6 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -20,7 +18,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {
   DisplayType,
   WidgetType,
@@ -46,6 +43,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -72,7 +70,6 @@ type WidgetBuilderV2Props = {
 function TraceItemAttributeProviderFromDataset({children}: {children: React.ReactNode}) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   let enabled = false;
   let traceItemType = TraceItemDataset.SPANS;
@@ -89,13 +86,13 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   }
 
   if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
-    enabled = hasTraceMetricsDashboards;
+    enabled = true;
     traceItemType = TraceItemDataset.TRACEMETRICS;
     query = createTraceMetricFilter(state.traceMetric);
   }
 
   if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-    enabled = organization.features.includes('preprod-app-size-dashboard');
+    enabled = true;
     traceItemType = TraceItemDataset.PREPROD;
   }
 
@@ -155,21 +152,25 @@ function WidgetBuilderV2({
     }));
   };
 
-  const handleWidgetDataFetched = useCallback(
-    (tableData: TableDataWithTitle[]) => {
-      const tableMeta = {...tableData[0]!.meta};
+  const handleWidgetDataFetched = useCallback((results: OnDataFetchedParams) => {
+    let dataType: string | undefined;
+    let dataUnit: string | undefined;
+
+    if (results.tableResults?.length) {
+      const tableMeta = {...results.tableResults[0]!.meta};
       const keys = Object.keys(tableMeta);
       const field = keys[0]!;
-      const dataType = tableMeta[field];
-      const dataUnit = tableMeta.units?.[field];
+      dataType = tableMeta[field];
+      dataUnit = tableMeta.units?.[field];
+    } else if (results.timeseriesResultsTypes) {
+      const keys = Object.keys(results.timeseriesResultsTypes);
+      dataType = results.timeseriesResultsTypes[keys[0]!];
+      const rawUnit = results.timeseriesResultsUnits?.[keys[0]!];
+      dataUnit = rawUnit ?? undefined;
+    }
 
-      const newState = cloneDeep(thresholdMetaState);
-      newState.dataType = dataType;
-      newState.dataUnit = dataUnit;
-      setThresholdMetaState(newState);
-    },
-    [thresholdMetaState]
-  );
+    setThresholdMetaState({dataType, dataUnit});
+  }, []);
 
   // reset the drag position when the draggable preview is not visible
   useEffect(() => {
@@ -275,7 +276,7 @@ export function WidgetPreviewContainer({
   isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
-  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   openWidgetTemplates?: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
@@ -516,11 +517,11 @@ const DroppableGrid = styled('div')`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   position: fixed;
-  gap: ${space(4)};
-  margin: ${space(2)};
+  gap: ${p => p.theme.space['3xl']};
+  margin: ${p => p.theme.space.xl};
   top: ${SIDEBAR_HEIGHT}px;
-  right: ${space(2)};
-  bottom: ${space(2)};
+  right: ${p => p.theme.space.xl};
+  bottom: ${p => p.theme.space.xl};
   left: 0;
 `;
 
@@ -540,7 +541,7 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
 const WidgetPreviewPlaceholder = styled('div')`
   width: 100%;
   height: 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const SlideoutContainer = styled('div')`
@@ -548,7 +549,7 @@ const SlideoutContainer = styled('div')`
 `;
 
 const FilterBarContainer = styled(motion.div)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
 

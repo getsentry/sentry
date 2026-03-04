@@ -270,7 +270,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       {props.profileGroup.type === 'transaction' ? (
         <ProfileDetails
           transaction={
-            props.profileTransaction && props.profileTransaction.type === 'resolved'
+            props.profileTransaction?.type === 'resolved'
               ? props.profileTransaction.data
               : null
           }

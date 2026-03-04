@@ -246,6 +246,7 @@ export const MobileAppSizeConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData
 > = {
+  axisRange: 'dataMin',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,

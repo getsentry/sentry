@@ -224,15 +224,15 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["project_id", "-timestamp", "-event_id"]
-    OLDEST = ["project_id", "timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-id"]
+    OLDEST = ["project_id", "timestamp", "id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
         "num_processing_errors",
         "-profile.id",
         "-timestamp",
-        "-event_id",
+        "-id",
     ]
 
 

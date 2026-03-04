@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -14,13 +14,12 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -48,7 +47,6 @@ import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -59,6 +57,12 @@ import {
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+
+export type OnDataFetchedParams = {
+  tableResults?: TableDataWithTitle[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
+};
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
@@ -98,7 +102,7 @@ type Props = WithRouterProps & {
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
-  onDataFetched?: (results: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -116,6 +120,7 @@ type Props = WithRouterProps & {
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
   windowWidth?: number;
 };
 
@@ -127,24 +132,27 @@ type Data = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
-  const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
-    const {...rest} = newData;
-    if (props.onDataFetched && rest.tableResults) {
-      props.onDataFetched(rest.tableResults);
+    if (props.onDataFetched) {
+      props.onDataFetched({
+        tableResults: newData.tableResults,
+        timeseriesResultsTypes: newData.timeseriesResultsTypes,
+        timeseriesResultsUnits: newData.timeseriesResultsUnits,
+      });
     }
 
-    setData(prevData => ({...prevData, ...rest}));
+    setData(prevData => ({...prevData, ...newData}));
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -179,6 +187,7 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     useTimeseriesVisualization,
+    widgetInterval,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -236,17 +245,6 @@ function WidgetCard(props: Props) {
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
-      setWidgetViewerData({
-        pageLinks: data?.pageLinks,
-        seriesData: data?.timeseriesResults,
-        tableData: data?.tableResults,
-        seriesResultsType: data?.timeseriesResultsTypes,
-        totalIssuesCount: data?.totalIssuesCount,
-        confidence: data?.confidence,
-        sampleCount: data?.sampleCount,
-        isSampled: data?.isSampled,
-      });
-
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -263,16 +261,14 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge: string | undefined =
+  const onDemandExtractionBadge =
     extractionStatus === 'extracted'
       ? t('Extracted')
       : extractionStatus === 'not-extracted'
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge: string | undefined = indexedEventsWarning
-    ? t('Indexed')
-    : undefined;
+  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
@@ -353,6 +349,7 @@ function WidgetCard(props: Props) {
               renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
+              widgetInterval={widgetInterval}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -547,7 +544,7 @@ const ErrorCard = styled(Placeholder)`
   border: 1px solid ${p => p.theme.colors.red200};
   color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export const WidgetDescription = styled('small')`

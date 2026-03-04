@@ -5,8 +5,9 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
@@ -1047,12 +1048,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleMEPAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isMetricsData} = data ?? {};
-    const {organization} = this.props;
 
-    if (
-      isMetricsData === undefined ||
-      !organization.features.includes('mep-rollout-flag')
-    ) {
+    if (isMetricsData === undefined) {
       return;
     }
 
@@ -1213,12 +1210,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
     // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
     const {dataset} = this.state;
-    const {organization} = this.props;
-    const hasMetricsFeatureFlags =
-      organization.features.includes('mep-rollout-flag') ||
-      hasOnDemandMetricAlertFeature(organization);
-
-    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+    if (dataset === Dataset.TRANSACTIONS) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
@@ -1436,6 +1428,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       traceItemType
     );
+    const showWorkflowEngineMetricIssueUi = organization.features.includes(
+      'workflow-engine-metric-issue-ui'
+    );
 
     // Rendering the main form body
     return (
@@ -1540,31 +1535,45 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
                   <AlertListItem>
                     {
-                      <Flex align="center" gap="sm">
-                        {t('Set thresholds')}
-                        {showExtrapolationModeChangeWarning && (
-                          <WarningIcon
-                            tooltipProps={{
-                              title: tct(
-                                'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
-                                {
-                                  samplingLink: (
-                                    <ExternalLink
-                                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                                      openInNewTab
-                                    />
-                                  ),
-                                }
-                              ),
-                              isHoverable: true,
-                            }}
-                            id="thresholds-warning-icon"
-                          />
-                        )}
-                      </Flex>
+                      <div>
+                        <Flex align="center" gap="sm">
+                          {showWorkflowEngineMetricIssueUi
+                            ? t('Set issue detection thresholds')
+                            : t('Set thresholds')}
+
+                          {showExtrapolationModeChangeWarning && (
+                            <WarningIcon
+                              tooltipProps={{
+                                title: tct(
+                                  'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                                  {
+                                    samplingLink: (
+                                      <ExternalLink
+                                        href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                                        openInNewTab
+                                      />
+                                    ),
+                                  }
+                                ),
+                                isHoverable: true,
+                              }}
+                              id="thresholds-warning-icon"
+                            />
+                          )}
+                        </Flex>
+                      </div>
                     }
                   </AlertListItem>
-                  {thresholdTypeForm(formDisabled)}
+                  <Stack gap="lg">
+                    {showWorkflowEngineMetricIssueUi && (
+                      <Text>
+                        {t(
+                          'Metric alerts create metric issues and events. The thresholds below will determine: when the issue is created, resolved, and re-opened, as well as the issue priority.'
+                        )}
+                      </Text>
+                    )}
+                    {thresholdTypeForm(formDisabled)}
+                  </Stack>
                   {showErrorMigrationWarning && (
                     <Alert.Container>
                       <Alert variant="warning">

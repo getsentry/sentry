@@ -71,7 +71,7 @@ type BaseSpanType = RawSpanType & {
   type?: undefined;
 };
 
-export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
+export const rawSpanKeys = new Set<keyof RawSpanType>([
   'trace_id',
   'parent_span_id',
   'span_id',

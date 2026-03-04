@@ -17,7 +17,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -305,12 +304,12 @@ const SayHelloHeader = styled('h3')`
 const SingleCard = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
@@ -321,7 +320,7 @@ const MeetSeerHeader = styled('div')`
 `;
 
 const BulletList = styled('ul')`
-  margin: 0 0 ${space(1)} 0;
+  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const Paragraph = styled('p')`
@@ -331,18 +330,18 @@ const Paragraph = styled('p')`
 const TouchCustomerMessage = styled('p')`
   color: ${p => p.theme.tokens.content.promotion};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const LegalText = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    /* margin: 0 ${space(0.5)} 0 ${space(1)}; */
+    /* margin: 0 ${p => p.theme.space.xs} 0 ${p => p.theme.space.md}; */
   }
 `;
 

@@ -1,18 +1,19 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -30,7 +31,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
@@ -86,6 +86,7 @@ function WaitingIndicator({project}: {project: Project}) {
 }
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
+  const theme = useTheme();
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
@@ -95,6 +96,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(
@@ -188,14 +190,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
           <Body>
             <Setup>
               <SetupTitle project={project} />
-              <CopySetupInstructionsGate>
-                <Container paddingBottom="md">
-                  <OnboardingCopyMarkdownButton
-                    steps={steps}
-                    source="issues_onboarding"
-                  />
-                </Container>
-              </CopySetupInstructionsGate>
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}
                 onStepChange={step => {
@@ -212,11 +206,24 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   const title = step.title ?? StepTitles[step.type ?? 'install'];
                   const isLastStep = index === steps.length - 1;
                   return (
-                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                    <GuidedSteps.Step
+                      key={index}
+                      stepKey={title}
+                      title={title}
+                      trailingItems={
+                        index === 0 && copyEnabled ? (
+                          <OnboardingCopyMarkdownButton
+                            borderless
+                            steps={steps}
+                            source="issues_onboarding"
+                          />
+                        ) : undefined
+                      }
+                    >
                       <StepIndexProvider index={index}>
                         <ContentBlocksRenderer
                           contentBlocks={step.content}
-                          spacing={space(1)}
+                          spacing={theme.space.md}
                         />
                       </StepIndexProvider>
                       <GuidedSteps.ButtonWrapper>
@@ -291,16 +298,16 @@ const Description = styled('div')`
 `;
 
 const ArcadeWrapper = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -315,11 +322,11 @@ const Setup = styled('div')`
 export const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`

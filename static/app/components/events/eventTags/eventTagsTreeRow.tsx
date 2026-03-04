@@ -11,6 +11,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
@@ -154,6 +155,7 @@ function EventTagsTreeRowDropdown({
       key: escapeIssueTagKey(originalTag.key),
     }
   );
+  const globalSelectionParams = extractSelectionParameters(location.query);
 
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
@@ -178,7 +180,7 @@ function EventTagsTreeRowDropdown({
       hidden: !event.groupID || isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -187,7 +189,7 @@ function EventTagsTreeRowDropdown({
       hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -196,7 +198,7 @@ function EventTagsTreeRowDropdown({
       hidden: !isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/feedback/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {

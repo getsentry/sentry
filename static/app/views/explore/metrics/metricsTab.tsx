@@ -8,6 +8,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {t} from 'sentry/locale';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
   ExploreBodyContent,
@@ -16,7 +17,6 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';

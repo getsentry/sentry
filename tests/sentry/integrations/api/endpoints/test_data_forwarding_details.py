@@ -1,9 +1,12 @@
+from datetime import datetime, timedelta, timezone
+
 from django.urls import reverse
 
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
@@ -170,6 +173,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         assert "invalid project ids" in str(response.data).lower()
 
+    @freeze_time(datetime.now(tz=timezone.utc) - timedelta(hours=1))
     def test_update_with_project_write_bulk_enrollment(self) -> None:
         """Test bulk enrollment of multiple projects by project:write user"""
         data_forwarder = self.create_data_forwarder(

@@ -90,10 +90,14 @@ export function useCommandPaletteState() {
       // Do not display child actions before search
       return displayedActions.filter(a => a.priority === 0);
     }
-    return fuseSearch
-      .search(query)
-      .map(a => a.item)
-      .toSorted((a, b) => a.priority - b.priority);
+    const fuzzyResults = fuseSearch.search(query).map(a => a.item);
+    const fuzzyKeys = new Set(fuzzyResults.map(a => a.key));
+    const searchResults = displayedActions.filter(
+      a => a.groupingKey === 'search-result' && !fuzzyKeys.has(a.key)
+    );
+    return [...fuzzyResults, ...searchResults].toSorted(
+      (a, b) => a.priority - b.priority
+    );
   }, [fuseSearch, query, displayedActions]);
 
   return {

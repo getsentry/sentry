@@ -36,6 +36,7 @@ class WebhookPayload(Model):
     destination_type = models.CharField(
         choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
     )
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(null=True)
 
     # May need to add organization_id in the future for debugging.

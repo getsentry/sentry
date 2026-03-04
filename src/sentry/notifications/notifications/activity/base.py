@@ -9,7 +9,6 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
-from sentry import features
 from sentry.db.models import Model
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
@@ -140,10 +139,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             "enhanced_privacy": enhanced_privacy,
         }
 
-        if (
-            features.has("organizations:suspect-commits-in-emails", self.group.organization)
-            and self.group
-        ):
+        if self.group:
             context["commits"] = get_suspect_commits_by_group_id(
                 project=self.project, group_id=self.group.id
             )

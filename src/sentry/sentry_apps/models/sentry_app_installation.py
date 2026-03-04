@@ -165,7 +165,6 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
                 region_name=region_name,
                 payload={
-                    "uuid": self.uuid,
                     "sentry_app_id": self.sentry_app_id,
                     "organization_id": self.organization_id,
                 },

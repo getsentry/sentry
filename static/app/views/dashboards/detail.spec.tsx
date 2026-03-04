@@ -1632,7 +1632,7 @@ describe('Dashboards > Detail', () => {
         'false'
       );
 
-      await userEvent.click(await screen.findByText('Save Changes'));
+      await userEvent.click(await screen.findByText('Apply'));
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
@@ -1689,7 +1689,7 @@ describe('Dashboards > Detail', () => {
         'true'
       );
 
-      await userEvent.click(await screen.findByText('Save Changes'));
+      await userEvent.click(await screen.findByText('Apply'));
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
@@ -1762,7 +1762,7 @@ describe('Dashboards > Detail', () => {
       );
       await userEvent.click(screen.getByRole('option', {name: '#team1'}));
       await userEvent.click(screen.getByRole('option', {name: '#team2'}));
-      await userEvent.click(await screen.findByText('Save Changes'));
+      await userEvent.click(await screen.findByText('Apply'));
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);

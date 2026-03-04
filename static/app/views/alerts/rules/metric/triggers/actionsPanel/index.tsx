@@ -189,7 +189,7 @@ class ActionsPanel extends PureComponent<Props> {
       return;
     }
 
-    const action: Action = getCleanAction(actionConfig);
+    const action = getCleanAction(actionConfig);
 
     // Add new actions to critical by default
     const triggerIndex = 0;
@@ -235,7 +235,7 @@ class ActionsPanel extends PureComponent<Props> {
 
     const existingDateCreated =
       actions[index]!.dateCreated ?? actions[index]!.unsavedDateCreated;
-    const newAction: Action = getCleanAction(actionConfig, existingDateCreated);
+    const newAction = getCleanAction(actionConfig, existingDateCreated);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
@@ -402,8 +402,7 @@ class ActionsPanel extends PureComponent<Props> {
                           actionIdx
                         )}
                       />
-                    ) : availableAction &&
-                      availableAction.type === 'sentry_app' &&
+                    ) : availableAction?.type === 'sentry_app' &&
                       availableAction.settings ? (
                       <Button
                         icon={<IconSettings />}

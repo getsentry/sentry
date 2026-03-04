@@ -9,6 +9,7 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
@@ -409,7 +410,17 @@ class DashboardLastVisited(DefaultFieldsModel):
 
 def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
     error_events_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
-    transaction_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+    is_transactions_deprecation_enabled = features.has(
+        "organizations:discover-saved-queries-deprecation",
+        organization=organization,
+        actor=user,
+    )
+    transaction_type = (
+        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.SPANS)
+        if is_transactions_deprecation_enabled
+        else DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+    )
+
     return [
         {
             # This should match the general template in static/app/views/dashboardsV2/data.tsx
@@ -560,7 +571,9 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["count()", "transaction"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "",
+                            "conditions": "is_transaction:true"
+                            if is_transactions_deprecation_enabled
+                            else "",
                             "orderby": "-count()",
                         },
                     ],
@@ -571,6 +584,17 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "interval": "5m",
                     "widgetType": transaction_type,
                     "queries": [
+                        {
+                            "name": "",
+                            "fields": ["equation|user_misery(span.duration,300)"],
+                            "aggregates": ["equation|user_misery(span.duration,300)"],
+                            "columns": [],
+                            "conditions": "is_transaction:true",
+                            "orderby": "",
+                        }
+                    ]
+                    if is_transactions_deprecation_enabled
+                    else [
                         {
                             "name": "",
                             "fields": ["user_misery(300)"],
@@ -592,7 +616,9 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["transaction", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "",
+                            "conditions": "is_transaction:true"
+                            if is_transactions_deprecation_enabled
+                            else "",
                             "orderby": "-count()",
                         },
                     ],
@@ -619,6 +645,17 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "interval": "5m",
                     "widgetType": transaction_type,
                     "queries": [
+                        {
+                            "name": "",
+                            "fields": ["transaction", "equation|user_misery(span.duration,300)"],
+                            "aggregates": ["equation|user_misery(span.duration,300)"],
+                            "columns": ["transaction"],
+                            "conditions": "is_transaction:true",
+                            "orderby": "-equation|user_misery(span.duration,300)",
+                        },
+                    ]
+                    if is_transactions_deprecation_enabled
+                    else [
                         {
                             "name": "",
                             "fields": ["transaction", "user_misery(300)"],

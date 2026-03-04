@@ -21,7 +21,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
@@ -805,9 +804,7 @@ function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             disabledReason,
-            visible: organization.features.includes(
-              'large-http-payload-detector-improvements'
-            ),
+            visible: true,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -1284,7 +1281,7 @@ const StyledJsonForm = styled(JsonForm)`
     text-transform: none;
     margin-bottom: 0;
     background: none;
-    padding: ${space(3)} ${space(2)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
   }
 `;
 
@@ -1295,7 +1292,7 @@ const StyledPanelFooter = styled(PanelFooter)`
     calc(${p => p.theme.radius.md} - 1px);
 
   ${Actions} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space.lg};
   }
 `;
 

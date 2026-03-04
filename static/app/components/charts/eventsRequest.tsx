@@ -524,7 +524,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             seriesName: string,
             index: number
           ): [number, Series, Series | null, AdditionalSeriesInfo] => {
-            const seriesData: EventsStats = timeseriesData[seriesName]!;
+            const seriesData = timeseriesData[seriesName]!;
             const processedData = this.processData(
               seriesData,
               index,
@@ -557,9 +557,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       const results: Series[] = sortedTimeseriesData.map(item => {
         return item[1];
       });
-      const previousTimeseriesData: Series[] | undefined = sortedTimeseriesData.some(
-        item => item[2] === null
-      )
+      const previousTimeseriesData = sortedTimeseriesData.some(item => item[2] === null)
         ? undefined
         : sortedTimeseriesData.map(item => {
             return item[2] as Series;

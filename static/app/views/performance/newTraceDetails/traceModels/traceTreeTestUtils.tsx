@@ -122,7 +122,7 @@ export function makeEAPOccurrence(
     start_timestamp: 0,
     project_id: 1,
     project_slug: 'project_slug',
-    transaction: 'occurence.transaction',
+    transaction: 'occurrence.transaction',
     event_type: 'occurrence',
     issue_id: 1,
     level: 'info',

@@ -53,8 +53,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
-from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
@@ -528,6 +526,9 @@ from sentry.seer.endpoints.organization_events_anomalies import OrganizationEven
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_explorer_pr_groups import (
+    OrganizationSeerExplorerPRGroupsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_explorer_runs import (
     OrganizationSeerExplorerRunsEndpoint,
 )
@@ -674,7 +675,6 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -1715,16 +1715,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/project-templates/$",
-        OrganizationProjectTemplatesIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-project-templates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/project-templates/(?P<template_id>[^/]+)/$",
-        OrganizationProjectTemplateDetailEndpoint.as_view(),
-        name="sentry-api-0-organization-project-template-detail",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
@@ -2392,6 +2382,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-runs",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-pr-groups/$",
+        OrganizationSeerExplorerPRGroupsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-pr-groups",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
         OrganizationSeerExplorerUpdateEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-update",
@@ -2604,18 +2599,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     r"^has-chunks/$",
                     OrganizationProfilingHasChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-has-chunks",
-                ),
-            ],
-        ),
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dynamic-sampling/",
-        include(
-            [
-                re_path(
-                    r"^custom-rules/$",
-                    CustomRulesEndpoint.as_view(),
-                    name="sentry-api-0-organization-dynamic_sampling-custom_rules",
                 ),
             ],
         ),

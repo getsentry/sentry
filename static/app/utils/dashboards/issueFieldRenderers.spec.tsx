@@ -3,9 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
@@ -98,7 +97,10 @@ describe('getIssueFieldRenderer', () => {
           name: 'Test User',
         },
       });
-      GroupStore.add([group]);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: group,
+      });
       const renderer = getIssueFieldRenderer('assignee', {});
 
       render(
@@ -108,8 +110,80 @@ describe('getIssueFieldRenderer', () => {
           theme,
         }) as React.ReactElement
       );
-      await userEvent.hover(screen.getByText('TU'));
+      await userEvent.hover(await screen.findByText('TU'));
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
+    });
+
+    it('updates assignee when changed', async () => {
+      MemberListStore.loadInitialData([
+        UserFixture({
+          id: '1',
+          name: 'Test User',
+          email: 'test@sentry.io',
+        }),
+        UserFixture({
+          id: '2',
+          name: 'Next User',
+          email: 'next@sentry.io',
+        }),
+      ]);
+
+      const group = GroupFixture({
+        id: data.id,
+        project,
+        assignedTo: {
+          email: 'test@sentry.io',
+          type: 'user',
+          id: '1',
+          name: 'Test User',
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: group,
+      });
+
+      const assignMock = MockApiClient.addMockResponse({
+        method: 'PUT',
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: {
+          ...group,
+          assignedTo: {
+            email: 'next@sentry.io',
+            type: 'user',
+            id: '2',
+            name: 'Next User',
+          },
+        },
+      });
+
+      const renderer = getIssueFieldRenderer('assignee', {});
+
+      render(
+        renderer(data, {
+          location,
+          organization,
+          theme,
+        }) as React.ReactElement
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Modify issue assignee'})
+      );
+      await userEvent.click(await screen.findByText('Next User'));
+
+      await waitFor(() =>
+        expect(assignMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/issues/${group.id}/`,
+          expect.objectContaining({
+            data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+          })
+        )
+      );
+
+      await userEvent.hover(await screen.findByText('NU'));
+      expect(await screen.findByText('Assigned to Next User')).toBeInTheDocument();
     });
 
     it('can render counts', async () => {

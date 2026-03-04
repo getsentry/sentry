@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -30,7 +29,7 @@ function WidgetBuilderGroupBySelector({
 
   const organization = useOrganization();
 
-  const tags: TagCollection = useTags();
+  const tags = useTags();
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
@@ -26,7 +26,7 @@ export function GroupBySection({query, index}: Props) {
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
-  const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
+  const enabledOptions = useGroupByFields({
     groupBys: [],
     numberTags,
     stringTags,
@@ -51,7 +51,7 @@ export function GroupBySection({query, index}: Props) {
         options={enabledOptions}
         value={query.groupBys}
         clearable
-        searchable
+        search
         onChange={options =>
           updateGroupBys({groupBys: options.map(value => value.value.toString())})
         }

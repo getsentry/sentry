@@ -6,7 +6,6 @@ import {RecursiveStructuredData} from 'sentry/components/structuredEventData/rec
 import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
@@ -182,8 +181,8 @@ export default function StructuredEventData({
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
-  right: ${space(1.5)};
-  top: ${space(0.75)};
+  right: ${p => p.theme.space.lg};
+  top: ${p => p.theme.space.sm};
 `;
 
 const StructuredDataWrapper = styled('pre')`

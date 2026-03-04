@@ -224,7 +224,7 @@ export default function SentryApplicationDetails() {
     return location.pathname.endsWith('new-internal/');
   };
 
-  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
+  const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
 
   const headerTitle = () => {
     const action = app ? 'Edit' : 'Create';
@@ -442,7 +442,7 @@ export default function SentryApplicationDetails() {
             }}
           </Observer>
 
-          {app && app.status === 'internal' && (
+          {app?.status === 'internal' && (
             <PanelTable
               headers={[
                 t('Token'),

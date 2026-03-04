@@ -29,7 +29,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
@@ -432,7 +431,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 2fr 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -443,6 +442,6 @@ const Details = styled('div')`
 
 const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 `;

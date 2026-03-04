@@ -58,7 +58,7 @@ function findBreakPointIndex(
   let low = 0;
   let high = examples.length - 1;
   let mid = 0;
-  let bestMatch: number = examples.length;
+  let bestMatch = examples.length;
 
   while (low <= high) {
     mid = Math.floor((low + high) / 2);

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {prettifyTagKey} from 'sentry/utils/fields';
@@ -30,7 +29,7 @@ export function WidgetBuilderXAxisSelector() {
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
 
-  const tags: TagCollection = useTags();
+  const tags = useTags();
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -129,7 +128,7 @@ export function WidgetBuilderXAxisSelector() {
         tooltipText={t('Select the field to use for X-axis categories.')}
       />
       <FullWidthCompactSelect
-        searchable
+        search
         loading={isLoading}
         value={currentXAxisField}
         options={fieldOptions}

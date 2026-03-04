@@ -1,9 +1,12 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -14,12 +17,11 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -30,7 +32,7 @@ import useRouter from 'sentry/utils/useRouter';
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<
     HybridFilterProps<string>,
-    | 'searchable'
+    | 'search'
     | 'multiple'
     | 'options'
     | 'value'
@@ -185,8 +187,7 @@ export function EnvironmentPageFilter({
         value: env,
         label: env,
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
-          <Checkbox
-            size="sm"
+          <MenuComponents.Checkbox
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}
@@ -230,29 +231,41 @@ export function EnvironmentPageFilter({
       {...selectProps}
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={t('Filter Environments')}
+      menuTitle={
+        <Flex gap="xs" align="center">
+          <Text>{t('Filter Environments')}</Text>
+          <InfoTip
+            size="xs"
+            title={tct(
+              '[rangeModifier] + click to select a range of environments or [multiModifier] + click to select multiple environments at once.',
+              {
+                rangeModifier: t('Shift'),
+                multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+              }
+            )}
+          />
+        </Flex>
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
         ) : null
       }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
+            <MenuComponents.CancelButton
               disabled={!stagedSelect.hasStagedChanges}
               onClick={() => stagedSelect.removeStagedChanges()}
             />
-            <HybridFilterComponents.ApplyButton
+            <MenuComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
             />
           </Flex>

@@ -173,7 +173,7 @@ function TraceRow({
   }, [projects, selection.projects]);
 
   const traceProjects = useMemo(() => {
-    const seenProjects: Set<string> = new Set();
+    const seenProjects = new Set<string>();
 
     const leadingProjects: string[] = [];
     const trailingProjects: string[] = [];

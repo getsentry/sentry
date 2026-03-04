@@ -1,13 +1,18 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+  SelectSection,
+} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,7 +25,6 @@ import type {
 } from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
@@ -41,7 +45,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 export interface ProjectPageFilterProps extends Partial<
   Omit<
     HybridFilterProps<number>,
-    | 'searchable'
+    | 'search'
     | 'multiple'
     | 'options'
     | 'value'
@@ -202,6 +206,8 @@ export function ProjectPageFilter({
     [mapURLValueToNormalValue]
   );
 
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+
   const handleChange = useCallback(
     async (newValue: number[]) => {
       if (isEqual(newValue, value)) {
@@ -214,7 +220,7 @@ export function ProjectPageFilter({
         count: newValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: true,
+        multi: newValue.length > 1,
       });
 
       // Wait for the menu to close before calling onChange
@@ -240,14 +246,14 @@ export function ProjectPageFilter({
   );
 
   const onToggle = useCallback(
-    (newValue: any) => {
+    (newValue: number[]) => {
       trackAnalytics('projectselector.toggle', {
-        action: newValue.length > value.length ? 'added' : 'removed',
+        action: newValue.length > stagedValue.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
         organization,
       });
     },
-    [value, routes, organization]
+    [stagedValue, routes, organization]
   );
 
   const onReplace = useCallback(() => {
@@ -265,6 +271,17 @@ export function ProjectPageFilter({
     });
   }, [onReset, routes, organization]);
 
+  const handleSectionToggle = useCallback(
+    (section: SelectSection<SelectKey>) => {
+      trackAnalytics('projectselector.multi_button_clicked', {
+        button_type: section.key === 'my-projects' ? 'my' : 'all',
+        path: getRouteStringFromRoutes(routes),
+        organization,
+      });
+    },
+    [routes, organization]
+  );
+
   const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
     if (!hasProjects) {
@@ -276,17 +293,14 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Flex align="center" gap="sm" flex="1 1 100%">
-            <Checkbox
-              size="sm"
-              checked={isSelected}
-              onChange={() =>
-                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-              }
-              aria-label={t('Select %s', project.slug)}
-              tabIndex={-1}
-            />
-          </Flex>
+          <MenuComponents.Checkbox
+            checked={isSelected}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
         ),
         label: (
           <Flex align="center" gap="sm" flex="1 1 100%">
@@ -409,7 +423,6 @@ export function ProjectPageFilter({
     return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
   }, [options]);
 
-  const [stagedValue, setStagedValue] = useState<number[]>(value);
   const selectionLimitExceeded = useMemo(() => {
     const mappedValue = mapNormalValueToURLValue(stagedValue);
     return mappedValue.length > SELECTION_COUNT_LIMIT;
@@ -424,6 +437,7 @@ export function ProjectPageFilter({
     onToggle,
     onReplace,
     onReset: handleReset,
+    onSectionToggle: handleSectionToggle,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });
@@ -432,60 +446,86 @@ export function ProjectPageFilter({
 
   return (
     <HybridFilter
+      search
       ref={hybridFilterRef}
       {...selectProps}
       stagedSelect={stagedSelect}
-      searchable
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
-      menuTitle={menuTitle ?? t('Filter Projects')}
+      menuTitle={
+        menuTitle ?? (
+          <Flex gap="xs" align="center">
+            <Text>{t('Filter Projects')}</Text>
+            <InfoTip
+              size="xs"
+              title={tct(
+                '[rangeModifier] + click to select a range of projects or [multiModifier] + click to select multiple projects at once.',
+                {
+                  rangeModifier: t('Shift'),
+                  multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+                }
+              )}
+            />
+          </Flex>
+        )
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
       onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
       }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
         ) : null
       }
       menuFooter={
         selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
-              <CondensedAlert variant="warning" showIcon={false}>
-                <Text size="sm">
-                  {tct(
-                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
-                    {
-                      limit: SELECTION_COUNT_LIMIT,
-                      count: stagedValue.length,
-                    }
-                  )}
-                </Text>
-              </CondensedAlert>
+              <MenuComponents.Alert variant="warning">
+                {tct(
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  {
+                    limit: SELECTION_COUNT_LIMIT,
+                    count: stagedValue.length,
+                  }
+                )}
+              </MenuComponents.Alert>
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
-                <HybridFilterComponents.LinkButton
+                <MenuComponents.CTALinkButton
                   icon={<IconAdd />}
                   to={makeProjectsPathname({path: '/new/', organization})}
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 >
                   {t('Create Project')}
-                </HybridFilterComponents.LinkButton>
+                </MenuComponents.CTALinkButton>
               ) : undefined}
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
-                  <HybridFilterComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                  <MenuComponents.CancelButton
+                    onClick={() => {
+                      trackAnalytics('projectselector.cancel', {
+                        path: getRouteStringFromRoutes(routes),
+                        organization,
+                      });
+                      stagedSelect.removeStagedChanges();
+                    }}
                   />
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     disabled={stagedSelect.disableCommit}
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      trackAnalytics('projectselector.apply', {
+                        count: stagedSelect.stagedValue.length,
+                        multi: stagedSelect.stagedValue.length > 1,
+                        path: getRouteStringFromRoutes(routes),
+                        organization,
+                      });
+                      stagedSelect.commit(stagedSelect.stagedValue);
+                    }}
                   />
                 </Flex>
               ) : null}
@@ -509,11 +549,6 @@ export function ProjectPageFilter({
     />
   );
 }
-
-const CondensedAlert = styled(Alert)`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-  text-wrap: balance;
-`;
 
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard

@@ -5,7 +5,6 @@ import {z} from 'zod';
 import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import {updateUser} from 'sentry/actionCreators/account';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -134,7 +133,6 @@ function AccountDetails() {
     },
     onSuccess: data => {
       handleSubmitSuccess(data);
-      addSuccessMessage(t('Account details updated'));
     },
   });
 
@@ -148,7 +146,6 @@ function AccountDetails() {
     },
     onSuccess: data => {
       handleSubmitSuccess(data);
-      addSuccessMessage(t('Preferences saved'));
     },
   });
 
@@ -163,7 +160,6 @@ function AccountDetails() {
     onSuccess: data => {
       handleSubmitSuccess(data);
       removeBodyTheme();
-      addSuccessMessage(t('Preferences saved'));
     },
   });
 

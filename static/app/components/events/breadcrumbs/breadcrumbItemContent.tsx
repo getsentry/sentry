@@ -5,7 +5,6 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
-import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,
   BreadcrumbType,
@@ -265,7 +264,7 @@ const Link = styled('a')`
 const SQLText = styled('pre')`
   &.language-sql {
     margin: 0;
-    padding: ${space(0.25)} 0;
+    padding: ${p => p.theme.space['2xs']} 0;
     font-size: ${p => p.theme.font.size.sm};
     white-space: pre-wrap;
   }

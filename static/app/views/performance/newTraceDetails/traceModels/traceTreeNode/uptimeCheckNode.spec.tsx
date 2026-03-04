@@ -43,6 +43,7 @@ describe('UptimeCheckNode', () => {
       // All children should be UptimeCheckTimingNode instances
       node.children.forEach(child => {
         expect(child).toBeInstanceOf(UptimeCheckTimingNode);
+        expect(child.id).toBe(`uptime-check-1-${child.op}`);
         expect(child.parent).toBe(node);
       });
     });

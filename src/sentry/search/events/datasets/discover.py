@@ -1105,6 +1105,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return {
             PROJECT_ALIAS: self._project_slug_orderby_converter,
             PROJECT_NAME_ALIAS: self._project_slug_orderby_converter,
+            DEVICE_CLASS_ALIAS: self._device_class_orderby_converter,
         }
 
     def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
@@ -1130,6 +1131,9 @@ class DiscoverDatasetConfig(DatasetConfig):
             ),
             direction,
         )
+
+    def _device_class_orderby_converter(self, direction: Direction) -> OrderBy:
+        return OrderBy(self.builder.column("tags[device.class]"), direction)
 
     # Field Aliases
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:

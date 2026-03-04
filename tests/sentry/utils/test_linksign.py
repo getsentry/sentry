@@ -5,13 +5,13 @@ from django.urls import reverse
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_locality
 from sentry.utils import linksign
 
 
 class LinkSignTestCase(TestCase):
     def test_link_signing(self) -> None:
-        base_url = get_local_region().to_url("/")
+        base_url = get_local_locality().to_url("/")
         assert base_url.startswith("http://")
 
         url = linksign.generate_signed_link(self.user.id, "sentry")

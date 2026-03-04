@@ -5,6 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -35,12 +36,13 @@ import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams
 import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useShowConversationOnboarding} from 'sentry/views/insights/pages/conversations/hooks/useShowConversationOnboarding';
+import {ConversationOnboarding} from 'sentry/views/insights/pages/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
-const DEFAULT_QUERY = 'has:user.email';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -71,6 +73,11 @@ function ConversationsOverviewPage({
 function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
   const organization = useOrganization();
   useDefaultToAllProjects();
+  const {
+    showOnboarding,
+    isLoading: isOnboardingLoading,
+    refetch: refetchOnboarding,
+  } = useShowConversationOnboarding();
 
   const [urlState] = useConversationDrawerQueryState();
   // Start fetching data and open drawer without
@@ -89,13 +96,6 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
       organization,
     });
   }, [organization]);
-
-  useEffect(() => {
-    if (searchQuery === null) {
-      setSearchQuery(DEFAULT_QUERY);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const {tags: numberTags = [], isLoading: numberTagsLoading} =
     useTraceItemTags('number');
@@ -154,26 +154,38 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
                     storageKeyPrefix="conversations:agent-filter"
                     referrer="api.insights.conversations.get-agent-names"
                   />
-                  <Flex flex={2}>
-                    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-                  </Flex>
+                  {!showOnboarding && !isOnboardingLoading && (
+                    <Flex flex={2}>
+                      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                    </Flex>
+                  )}
                 </ToolRibbon>
-                <SchemaHintsList
-                  supportedAggregates={DISABLE_AGGREGATES}
-                  booleanTags={booleanTags as TagCollection}
-                  numberTags={numberTags as TagCollection}
-                  stringTags={stringTags as TagCollection}
-                  isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-                  exploreQuery={searchQuery ?? ''}
-                  source={SchemaHintsSources.CONVERSATIONS}
-                />
+                {!showOnboarding && !isOnboardingLoading && (
+                  <SchemaHintsList
+                    supportedAggregates={DISABLE_AGGREGATES}
+                    booleanTags={booleanTags as TagCollection}
+                    numberTags={numberTags as TagCollection}
+                    stringTags={stringTags as TagCollection}
+                    isLoading={
+                      numberTagsLoading || stringTagsLoading || booleanTagsLoading
+                    }
+                    exploreQuery={searchQuery ?? ''}
+                    source={SchemaHintsSources.CONVERSATIONS}
+                  />
+                )}
               </Stack>
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <ConversationsTable
-                openConversationViewDrawer={openConversationViewDrawer}
-              />
+              {isOnboardingLoading ? (
+                <LoadingIndicator />
+              ) : showOnboarding ? (
+                <ConversationOnboarding onDismiss={refetchOnboarding} />
+              ) : (
+                <ConversationsTable
+                  openConversationViewDrawer={openConversationViewDrawer}
+                />
+              )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>

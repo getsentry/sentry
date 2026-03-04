@@ -69,6 +69,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      axisRange: 'dataMin',
       queries: [
         {
           aggregates: ['crash_free_rate(session)'],
@@ -86,6 +87,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      axisRange: 'dataMin',
       queries: [
         {
           fields: ['crash_free_rate(user)'],

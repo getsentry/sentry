@@ -4,8 +4,7 @@ from typing import Literal, NamedTuple
 from django.db.models import Q
 
 from sentry.models.environment import Environment
-from sentry.utils.cache import cache
-from sentry.workflow_engine.caches import CacheAccess
+from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.utils import scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -17,6 +16,17 @@ METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 # Creating a 'default' value that's not None, because None means _all_ environments
 DEFAULT_VALUE: Literal["default"] = "default"
 WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
+
+
+class _WorkflowCacheKey(NamedTuple):
+    detector_id: int
+    env_id: int | None
+
+
+_workflow_cache = CacheMapping[_WorkflowCacheKey, set[Workflow]](
+    lambda key: f"{key.detector_id}:{key.env_id}",
+    namespace=WORKFLOW_CACHE_PREFIX,
+)
 
 
 class _CacheLookupResult(NamedTuple):
@@ -60,18 +70,6 @@ class _SplitWorkflowsByDetector(NamedTuple):
     env_workflows: _WorkflowsByDetector  # env_id=X workflows (may be empty)
 
 
-class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
-    """
-    To reduce look-ups, this uses id's instead of requiring the full model for types
-    """
-
-    def __init__(self, detector_id: int, env_id: int | None):
-        self._key = f"{WORKFLOW_CACHE_PREFIX}:{detector_id}:{env_id}"
-
-    def key(self) -> str:
-        return self._key
-
-
 def _invalidate_all_environments(detector_id: int) -> bool:
     """
     Invalidate all cache entries for a detector across all environments.
@@ -84,11 +82,11 @@ def _invalidate_all_environments(detector_id: int) -> bool:
         .values_list("workflow__environment_id", flat=True)
     )
 
-    keys = {_WorkflowCacheAccess(detector_id, env_id).key() for env_id in environment_ids}
-    keys.add(_WorkflowCacheAccess(detector_id, None).key())
+    keys = {_WorkflowCacheKey(detector_id, env_id) for env_id in environment_ids}
+    keys.add(_WorkflowCacheKey(detector_id, None))
 
     if keys:
-        cache.delete_many(keys)
+        _workflow_cache.delete_many(keys)
         metrics_incr(f"{METRIC_PREFIX}.invalidated_all", value=len(keys))
 
     return len(keys) > 0
@@ -117,7 +115,7 @@ def invalidate_processing_workflows(
         return _invalidate_all_environments(detector_id)
 
     metrics_incr(f"{METRIC_PREFIX}.invalidated")
-    return _WorkflowCacheAccess(detector_id, env_id).delete()
+    return _workflow_cache.delete(_WorkflowCacheKey(detector_id, env_id))
 
 
 def _check_caches_for_detectors(
@@ -136,15 +134,13 @@ def _check_caches_for_detectors(
     workflows: set[Workflow] = set()
     missed_detector_ids: list[int] = []
 
-    for detector in detectors:
-        cache_access = _WorkflowCacheAccess(detector.id, env_id)
-        cached = cache_access.get()
-
+    keys = [_WorkflowCacheKey(d.id, env_id) for d in detectors]
+    for key, cached in _workflow_cache.get_many(keys).items():
         if cached is not None:
             workflows |= cached
             metrics_incr(f"{METRIC_PREFIX}.hit")
         else:
-            missed_detector_ids.append(detector.id)
+            missed_detector_ids.append(key.detector_id)
             metrics_incr(f"{METRIC_PREFIX}.miss")
 
     return _CacheLookupResult(workflows, missed_detector_ids)
@@ -207,14 +203,20 @@ def _populate_detector_caches(
         split_workflows: SplitWorkflowsByDetector with global and env-specific workflows
         env_id: Environment ID for the env-specific cache (None for global-only query)
     """
-    # Always store global workflows in env_id=None cache
-    for detector_id, workflows in split_workflows.global_workflows.mapping.items():
-        _WorkflowCacheAccess(detector_id, None).set(workflows, CACHE_TTL)
+    data: dict[_WorkflowCacheKey, set[Workflow]] = {
+        _WorkflowCacheKey(detector_id, None): workflows
+        for detector_id, workflows in split_workflows.global_workflows.mapping.items()
+    }
 
-    # Store env-specific workflows in env_id=X cache (only if env_id was specified)
     if env_id is not None:
-        for detector_id, workflows in split_workflows.env_workflows.mapping.items():
-            _WorkflowCacheAccess(detector_id, env_id).set(workflows, CACHE_TTL)
+        data.update(
+            {
+                _WorkflowCacheKey(detector_id, env_id): workflows
+                for detector_id, workflows in split_workflows.env_workflows.mapping.items()
+            }
+        )
+
+    _workflow_cache.set_many(data, CACHE_TTL)
 
 
 @scopedstats.timer()

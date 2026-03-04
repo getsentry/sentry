@@ -14,10 +14,10 @@ import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFl
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+import {fzf} from 'sentry/utils/search/fzf';
 
 function isFlamegraphFrame(
   frame: FlamegraphFrame | SpanChartNode
@@ -226,7 +226,7 @@ function sortFrameResults(
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.spans.size);
+  const spans = new Array<SpanChartNode | FlamegraphFrame>(results.spans.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }

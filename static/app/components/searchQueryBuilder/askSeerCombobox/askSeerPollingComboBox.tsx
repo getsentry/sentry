@@ -198,7 +198,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     }
   };
 
-  const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
+  const items = useMemo(() => {
     if (queries.length > 0) {
       const results: Array<AskSeerSearchItems<T>> = queries.map((query, index) => ({
         ...query,

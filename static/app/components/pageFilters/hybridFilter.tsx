@@ -1,23 +1,14 @@
 import {
   useCallback,
-  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import styled from '@emotion/styled';
 import {isAppleDevice, isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
-import type {DistributedOmit} from 'type-fest';
 
-import {
-  Button,
-  LinkButton,
-  type ButtonProps,
-  type LinkButtonProps,
-} from '@sentry/scraps/button';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -25,10 +16,9 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
-import {t} from 'sentry/locale';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
@@ -62,9 +52,11 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
   };
   defaultValue: Value[];
   handleReset: () => void;
+  handleSearch: (value: string) => void;
   hasStagedChanges: boolean;
   modifierKeyPressed: boolean;
   removeStagedChanges: () => void;
+  resetAnchor: () => void;
   shouldShowReset: boolean;
   stagedValue: Value[];
   toggleOption: (val: Value) => void;
@@ -104,6 +96,8 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   // Track anchor point for shift-click range selection (ref to avoid re-renders)
   const lastSelectedRef = useRef<Value | null>(null);
+  // Track current search value so range selection only spans visible (filtered) options
+  const currentSearchRef = useRef<string>('');
 
   /**
    * The actual staged value to display. This is derived from:
@@ -183,7 +177,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
         return;
       }
 
-      const flatOptions = getFlatOptions(options);
+      // Only include options visible in the current filtered state so that
+      // shift+click after a search doesn't select hidden items
+      const search = currentSearchRef.current;
+      const flatOptions = getFlatOptions(options).filter(opt => {
+        if (!search) return true;
+        const searchableText =
+          opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+        return searchableText.toLowerCase().includes(search.toLowerCase());
+      });
       const lastIdx = flatOptions.findIndex(opt => opt.value === lastSelectedRef.current);
       const currentIdx = flatOptions.findIndex(opt => opt.value === clickedValue);
 
@@ -229,6 +231,23 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     },
     [shiftToggleRange, performSingleToggle]
   );
+
+  // When the search/filter changes, clear the shift-click anchor so the next
+  // shift+click starts a fresh range from the visible filtered list.
+  const handleSearch = useCallback((searchValue: string) => {
+    if (searchValue !== currentSearchRef.current) {
+      currentSearchRef.current = searchValue;
+      lastSelectedRef.current = null;
+    }
+  }, []);
+
+  // Clear the shift-click anchor when the menu opens so every new session
+  // starts fresh — prevents a stale anchor from a previous open/close cycle
+  // from unexpectedly triggering range selection.
+  const resetAnchor = useCallback(() => {
+    lastSelectedRef.current = null;
+    currentSearchRef.current = '';
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: any) => {
@@ -326,6 +345,8 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     },
     defaultValue,
     handleReset,
+    handleSearch,
+    resetAnchor,
     stagedValue,
     hasStagedChanges,
     modifierKeyPressed: modifierActive,
@@ -362,11 +383,29 @@ export function HybridFilter<Value extends SelectKey>({
   ref,
   options,
   stagedSelect,
+  search: searchProp,
+  onOpenChange: onOpenChangeProp,
   ...selectProps
 }: HybridFilterProps<Value>) {
   useImperativeHandle(ref, () => ({toggleOption: stagedSelect.toggleOption}), [
     stagedSelect.toggleOption,
   ]);
+
+  const searchConfig = typeof searchProp === 'object' ? searchProp : undefined;
+  const search = {
+    ...searchConfig,
+    onChange: (value: string) => {
+      stagedSelect.handleSearch(value);
+      searchConfig?.onChange?.(value);
+    },
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      stagedSelect.resetAnchor();
+    }
+    onOpenChangeProp?.(open);
+  };
 
   const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
@@ -427,75 +466,8 @@ export function HybridFilter<Value extends SelectKey>({
       options={mappedOptions}
       {...stagedSelect.compactSelectProps}
       {...selectProps}
+      search={search}
+      onOpenChange={handleOpenChange}
     />
   );
 }
-
-export const HybridFilterComponents = {
-  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" {...props} />;
-  },
-
-  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <ResetButton
-        {...props}
-        priority="transparent"
-        size="zero"
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Reset')}
-      </ResetButton>
-    );
-  },
-
-  ApplyButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <Button
-        {...props}
-        size="xs"
-        priority="primary"
-        disabled={props.disabled}
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Apply')}
-      </Button>
-    );
-  },
-
-  CancelButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <Button
-        {...props}
-        size="xs"
-        priority="transparent"
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Cancel')}
-      </Button>
-    );
-  },
-};
-
-const ResetButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
-`;

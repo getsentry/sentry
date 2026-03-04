@@ -1,51 +1,28 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import type {Organization} from 'sentry/types/organization';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
-
-function createWrapper(organization: Organization) {
-  return function ({children}: {children?: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-            {children}
-          </TraceItemAttributeProvider>
-        </OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
+function wrapper({children}: {children?: React.ReactNode}) {
+  return (
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      {children}
+    </TraceItemAttributeProvider>
+  );
 }
 
 describe('useSortByFields', () => {
-  const organization = OrganizationFixture();
-
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
-
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
-
-    mockedUsedLocation.mockReturnValue(LocationFixture());
   });
 
   it('returns a valid list of field options in samples mode', () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSortByFields({
           fields: [
@@ -61,7 +38,7 @@ describe('useSortByFields', () => {
           mode: Mode.SAMPLES,
         }),
       {
-        wrapper: createWrapper(organization),
+        additionalWrapper: wrapper,
       }
     );
 
@@ -76,7 +53,7 @@ describe('useSortByFields', () => {
   });
 
   it('returns a valid list of field options in aggregate mode', () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSortByFields({
           fields: ['span.op', 'span.description'],
@@ -85,7 +62,7 @@ describe('useSortByFields', () => {
           mode: Mode.AGGREGATE,
         }),
       {
-        wrapper: createWrapper(organization),
+        additionalWrapper: wrapper,
       }
     );
 

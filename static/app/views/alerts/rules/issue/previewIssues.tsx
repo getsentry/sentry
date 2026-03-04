@@ -5,13 +5,14 @@ import debounce from 'lodash/debounce';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
+import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
@@ -59,7 +60,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
   const isMounted = useIsMountedRef();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [previewError, setPreviewError] = useState<boolean>(false);
-  const [previewGroups, setPreviewGroups] = useState<string[]>([]);
+  const [previewGroups, setPreviewGroups] = useState<Group[]>([]);
   const [previewPage, setPreviewPage] = useState<number>(0);
   const [pageLinks, setPageLinks] = useState<string>('');
   const [issueCount, setIssueCount] = useState<number>(0);
@@ -112,11 +113,9 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
             return;
           }
 
-          GroupStore.add(data);
-
           const hits = resp?.getResponseHeader('X-Hits');
           const count = typeof hits !== 'undefined' && hits ? parseInt(hits, 10) : 0;
-          setPreviewGroups(data.map((g: any) => g.id));
+          setPreviewGroups(data);
           setPreviewError(false);
           setPageLinks(resp?.getResponseHeader('Link') ?? '');
           setIssueCount(count);
@@ -153,8 +152,6 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
   useEffect(() => {
     return () => {
       debouncedFetchApiData.cancel();
-      // Reset the group store when leaving
-      GroupStore.reset();
     };
   }, [debouncedFetchApiData]);
 
@@ -163,6 +160,29 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
     debouncedFetchApiData.cancel();
     fetchApiData(relevantRuleData, cursor);
   };
+
+  const handleAssigneeChange = useCallback(
+    (groupId: string, newAssignee: AssignableEntity | null) => {
+      setPreviewGroups(prev =>
+        prev.map(group => {
+          if (group.id !== groupId) {
+            return group;
+          }
+          return {
+            ...group,
+            assignedTo: newAssignee
+              ? {
+                  id: newAssignee.id,
+                  name: newAssignee.assignee.name,
+                  type: newAssignee.type,
+                }
+              : null,
+          };
+        })
+      );
+    },
+    []
+  );
 
   const errorMessage = previewError
     ? rule?.conditions.length || rule?.filters.length
@@ -180,10 +200,11 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
       </StyledListItem>
       <ContentIndent>
         <PreviewTable
-          previewGroups={previewGroups}
+          groups={previewGroups}
           members={members}
           pageLinks={pageLinks}
           onCursor={onPreviewCursor}
+          onAssigneeChange={handleAssigneeChange}
           issueCount={issueCount}
           page={previewPage}
           isLoading={isLoading}

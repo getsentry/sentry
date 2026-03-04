@@ -1,8 +1,9 @@
 import dataclasses
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
@@ -16,8 +17,16 @@ from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
     GetTracesResponse,
     TraceAttribute,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    RequestMeta,
+    TraceItemType,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    IntArray,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -36,12 +45,15 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.numbers import clip
@@ -57,6 +69,10 @@ MATCHING_COUNT_ALIAS = "matching_count"
 
 def is_trace_name_candidate(span):
     return span["span.op"] in CANDIDATE_SPAN_OPS
+
+
+def _reasonable_trace_count_map_match(snuba_map: dict[str, int], eap_map: dict[str, int]) -> bool:
+    return all(eap_map[trace_id] <= snuba_map.get(trace_id, -float("inf")) for trace_id in eap_map)
 
 
 class TraceInterval(TypedDict):
@@ -229,15 +245,51 @@ class TracesExecutor:
 
         all_projects = self.get_all_projects()
 
-        rpc_request = self.get_traces_rpc(all_projects)
-
-        rpc_response = get_traces_rpc(rpc_request)
-
-        if not rpc_response.traces:
-            return []
-
         projects_map: dict[int, str] = {project.id: project.slug for project in all_projects}
-        traces = [format_trace_result(trace, projects_map) for trace in rpc_response.traces]
+
+        all_project_request = self.get_traces_rpc(all_projects)
+        # because of sampling if we search all projects we can hit the downsampled tables, getting far less results than
+        # expected if the selected project list is smaller, in these cases we want to run a second query in parallel for
+        # selected projects only
+        # We only do this on the first page, since if there are enough results to paginate the sampling is likely not an
+        # issue
+        if len(self.snuba_params.projects) < len(all_projects) and self.offset == 0:
+            selected_project_request = self.get_traces_rpc(list(self.snuba_params.projects))
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__, max_workers=2
+            ) as query_thread_pool:
+                all_project_future = query_thread_pool.submit(get_traces_rpc, all_project_request)
+                selected_project_future = query_thread_pool.submit(
+                    get_traces_rpc, selected_project_request
+                )
+            all_project_response = all_project_future.result()
+            selected_project_response = selected_project_future.result()
+
+            # Zip the results back together and remove duplicates
+            traces = [
+                format_trace_result(trace, projects_map) for trace in all_project_response.traces
+            ]
+            trace_ids = [trace["trace"] for trace in traces]
+            for trace in selected_project_response.traces:
+                formatted_trace = format_trace_result(trace, projects_map)
+                if formatted_trace["trace"] not in trace_ids:
+                    traces.append(formatted_trace)
+
+            # Sort the results again
+            if self.sort == "timestamp":
+                traces.sort(key=lambda x: x["start"])
+            elif self.sort == "-timestamp":
+                traces.sort(key=lambda x: x["start"])
+                traces.reverse()
+            traces = traces[: self.limit]
+        else:
+            all_project_response = get_traces_rpc(all_project_request)
+            traces = [
+                format_trace_result(trace, projects_map) for trace in all_project_response.traces
+            ]
+
+        if not traces:
+            return []
 
         with handle_span_query_errors():
             snuba_params = self.params_with_all_projects()
@@ -296,6 +348,49 @@ class TracesExecutor:
         traces_occurrences: dict[str, int] = {
             row["trace"]: row["count()"] for row in extra_results[1]["data"]
         }
+
+        organization_id = snuba_params.organization.id if snuba_params.organization else None
+        debug_context = {
+            "trace_ids": trace_ids,
+            "organization_id": organization_id,
+            "project_ids": [project.id for project in snuba_params.projects],
+            "start": snuba_params.start.isoformat() if snuba_params.start else None,
+            "end": snuba_params.end.isoformat() if snuba_params.end else None,
+        }
+
+        errors_callsite = "api.trace_explorer.traces_errors"
+        if EAPOccurrencesComparator.should_check_experiment(errors_callsite):
+            eap_traces_errors = count_occurrences_grouped_by_trace_ids(
+                snuba_params=snuba_params,
+                trace_ids=trace_ids,
+                referrer=Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+            traces_errors = EAPOccurrencesComparator.check_and_choose(
+                traces_errors,
+                eap_traces_errors,
+                errors_callsite,
+                is_experimental_data_a_null_result=len(eap_traces_errors) == 0,
+                reasonable_match_comparator=_reasonable_trace_count_map_match,
+                debug_context=debug_context,
+            )
+
+        occurrences_callsite = "api.trace_explorer.traces_occurrences"
+        if EAPOccurrencesComparator.should_check_experiment(occurrences_callsite):
+            eap_traces_occurrences = count_occurrences_grouped_by_trace_ids(
+                snuba_params=snuba_params,
+                trace_ids=trace_ids,
+                referrer=Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+                occurrence_category=OccurrenceCategory.GENERIC,
+            )
+            traces_occurrences = EAPOccurrencesComparator.check_and_choose(
+                traces_occurrences,
+                eap_traces_occurrences,
+                occurrences_callsite,
+                is_experimental_data_a_null_result=len(eap_traces_occurrences) == 0,
+                reasonable_match_comparator=_reasonable_trace_count_map_match,
+                debug_context=debug_context,
+            )
 
         self.enrich_traces_with_extra_data(
             traces,
@@ -488,68 +583,6 @@ class TracesExecutor:
                 TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_DURATION_MS),
             ],
         )
-
-    def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
-        """
-        Once we have a min/max timestamp for all the traces in the query,
-        refine the params so that it selects a time range that is as small as possible.
-        """
-
-        # TODO: move to use `update_snuba_params_with_timestamp`
-        time_buffer = options.get("performance.traces.trace-explorer-buffer-hours")
-        buffer = timedelta(hours=time_buffer)
-
-        self.snuba_params.start = min_timestamp - buffer
-        self.snuba_params.end = max_timestamp + buffer
-
-    def process_final_results(
-        self,
-        *,
-        traces_metas_results,
-        traces_errors_results,
-        traces_occurrences_results,
-        traces_breakdown_projects_results,
-    ) -> list[TraceResult]:
-        results: list[TraceResult] = []
-
-        for row in traces_metas_results["data"]:
-            result: TraceResult = {
-                "trace": row["trace"],
-                "numErrors": 0,
-                "numOccurrences": 0,
-                "matchingSpans": row[MATCHING_COUNT_ALIAS],
-                # In EAP mode, we have to use `count_sample()` to avoid extrapolation
-                "numSpans": row.get("count()") or row.get("count_sample()") or 0,
-                "project": None,
-                "name": None,
-                "rootDuration": None,
-                "duration": row["last_seen()"] - row["first_seen()"],
-                "start": row["first_seen()"],
-                "end": row["last_seen()"],
-                "breakdowns": [],
-            }
-
-            results.append(result)
-
-        traces_errors: dict[str, int] = {
-            row["trace"]: row["count()"] for row in traces_errors_results["data"]
-        }
-
-        traces_occurrences: dict[str, int] = {
-            row["trace"]: row["count()"] for row in traces_occurrences_results["data"]
-        }
-
-        self.enrich_traces_with_extra_data(
-            results,
-            traces_breakdown_projects_results["data"],
-            traces_errors,
-            traces_occurrences,
-        )
-
-        return results
-
-    def process_meta_results(self, results):
-        return results["meta"]
 
     def get_traces_errors_query(
         self,

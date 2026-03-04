@@ -143,16 +143,13 @@ export function IntegrationReposAddRepository({
               )
             : t('Please enter a repository name')
       }
-      searchPlaceholder={t('Search Repositories')}
+      search={{placeholder: t('Search Repositories'), filter: false, onChange: setSearch}}
       loading={query.isFetching}
-      searchable
-      onSearch={setSearch}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} busy={adding}>
           {t('Add Repository')}
         </OverlayTrigger.Button>
       )}
-      disableSearchFilter
     />
   );
 }

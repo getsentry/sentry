@@ -51,7 +51,6 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
-  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
@@ -110,6 +109,7 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
+  enablePrReviewTestGeneration?: boolean;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
@@ -119,6 +119,7 @@ export interface Organization extends OrganizationSummary {
       spansExtractionDate: number;
     };
   };
+  ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
 }

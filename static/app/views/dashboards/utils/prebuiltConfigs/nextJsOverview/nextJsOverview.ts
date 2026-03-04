@@ -175,8 +175,8 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
     x: 0,
     y: 5,
     w: 6,
-    h: 2,
-    minH: 2,
+    h: 3,
+    minH: 3,
   },
 };
 
@@ -224,10 +224,10 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
   ],
   layout: {
     x: 0,
-    y: 7,
+    y: 8,
     w: 6,
-    h: 2,
-    minH: 2,
+    h: 3,
+    minH: 3,
   },
 };
 
@@ -235,10 +235,10 @@ const SERVER_TREE_WIDGET: Widget = {
   ...SERVER_TREE_WIDGET_TEMPLATE,
   layout: {
     x: 0,
-    y: 9,
+    y: 11,
     w: 6,
-    h: 2,
-    minH: 2,
+    h: 3,
+    minH: 3,
   },
 };
 

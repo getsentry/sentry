@@ -13,11 +13,13 @@ import {PREBUILT_DASHBOARDS, type PrebuiltDashboardId} from './utils/prebuiltCon
 type PrebuiltDashboardRendererProps = {
   prebuiltId: PrebuiltDashboardId;
   additionalGlobalFilters?: GlobalFilter[];
+  storageNamespace?: string;
 };
 
 export function PrebuiltDashboardRenderer({
   prebuiltId,
   additionalGlobalFilters,
+  storageNamespace,
 }: PrebuiltDashboardRendererProps) {
   const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
@@ -71,6 +73,7 @@ export function PrebuiltDashboardRenderer({
         dashboards={[]}
         initialState={DashboardState.EMBEDDED}
         useTimeseriesVisualization
+        storageNamespace={storageNamespace}
       />
     </LoadingContainer>
   );

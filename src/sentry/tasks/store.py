@@ -4,7 +4,6 @@ import logging
 import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from time import time
 from typing import Any
 
 import orjson
@@ -628,18 +627,6 @@ def _do_save_event(
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments and project:
                 delete_cached_and_ratelimited_attachments(project, all_attachments)
-
-            if start_time:
-                metrics.timing(
-                    "events.time-to-process",
-                    time() - start_time,
-                    instance=data["platform"],
-                    tags={
-                        "is_reprocessing2": (
-                            "true" if reprocessing2.is_reprocessed_event(data) else "false"
-                        ),
-                    },
-                )
 
             track_event_since_received(
                 step="end_save_event",

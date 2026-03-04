@@ -7,7 +7,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import Feature from 'sentry/components/acl/feature';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
@@ -411,16 +410,14 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
         </Flex>
         <ButtonBarWrapper data-test-id="seer-button-bar">
           <Grid flow="column" align="center" gap="md">
-            <Feature features={['organizations:autofix-seer-preferences']}>
-              <LinkButton
-                external
-                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                size="xs"
-                tooltipProps={{title: t('Project Settings for Seer')}}
-                aria-label={t('Project Settings for Seer')}
-                icon={<IconSettings />}
-              />
-            </Feature>
+            <LinkButton
+              external
+              href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+              size="xs"
+              tooltipProps={{title: t('Project Settings for Seer')}}
+              aria-label={t('Project Settings for Seer')}
+              icon={<IconSettings />}
+            />
             {aiConfig.hasAutofix && (
               <Button
                 size="xs"
@@ -508,21 +505,14 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
-    const isExplorerVersion =
-      isSeerExplorerEnabled(organization) &&
-      organization.features.includes('autofix-on-explorer');
-
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: isExplorerVersion
-        ? undefined
-        : css`
-            height: fit-content;
-            max-height: 100%;
-          `,
-      resizable: !isExplorerVersion,
-      drawerWidth: isExplorerVersion ? '50%' : undefined,
+      drawerCss: css`
+        height: fit-content;
+        max-height: 100%;
+      `,
+      resizable: true,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -564,7 +554,7 @@ const StyledCard = styled('div')`
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
   position: relative;
   background: ${p => p.theme.tokens.background.secondary};
 `;

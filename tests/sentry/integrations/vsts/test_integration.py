@@ -18,7 +18,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 
@@ -29,7 +28,6 @@ LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 @control_silo_test
 class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
     # Test regular install still works
-    @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
@@ -43,7 +41,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
     ) -> None:
         self.pipeline = Mock()
         self.pipeline.organization = self.organization
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         assert integration.external_id == self.vsts_account_id
         assert integration.name == self.vsts_account_name
@@ -55,7 +53,6 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
 
     # Test that install second time doesn't have the metadata and updates the integration object
     # Assert that the Integration object now has the migrated metadata
-    @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
@@ -117,7 +114,6 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         )
 
     # Test that on reinstall of new migration, we keep the migration version
-    @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
@@ -206,12 +202,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration.name == self.vsts_account_name
 
         metadata = integration.metadata
-        assert metadata["scopes"] == [
-            "vso.code",
-            "vso.graph",
-            "vso.serviceendpoint_manage",
-            "vso.work_write",
-        ]
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
@@ -265,7 +256,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         assert_halt_metric(mock_record, "no_accounts")
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_webhook_subscription_created_once(self, mock_get_scopes: MagicMock) -> None:
         self.assert_installation()
 
@@ -295,7 +289,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             == data["metadata"]["subscription"]
         )
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_fix_subscription(self, mock_get_scopes: MagicMock) -> None:
         external_id = self.vsts_account_id
         self.create_provider_integration(metadata={}, provider="vsts", external_id=external_id)
@@ -404,7 +401,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
 @control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_success(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
@@ -431,9 +431,14 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         assert integration_dict["user_identity"]["type"] == "vsts"
         assert integration_dict["user_identity"]["external_id"] == self.vsts_account_id
-        assert integration_dict["user_identity"]["scopes"] == FULL_SCOPES
+        assert set(integration_dict["user_identity"]["scopes"]) == set(
+            VstsIntegrationProvider.NEW_SCOPES
+        )
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_create_subscription_forbidden(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
@@ -468,7 +473,10 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
             integration.build_integration(state)
         assert "Azure DevOps organization" in str(err) and "Please ensu" in str(err)
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_create_subscription_unauthorized(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
@@ -506,195 +514,6 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
 @control_silo_test
 class VstsIntegrationTest(VstsIntegrationTestCase):
-    def test_get_organization_config(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        fields = installation.get_organization_config()
-
-        assert [field["name"] for field in fields] == [
-            "sync_status_forward",
-            "sync_forward_assignment",
-            "sync_comments",
-            "sync_status_reverse",
-            "sync_reverse_assignment",
-        ]
-
-    def test_get_organization_config_failure(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        # Set the `default_identity` property and force token expiration
-        installation.get_client()
-        assert installation.default_identity is not None
-        identity = Identity.objects.get(id=installation.default_identity.id)
-        identity.data["expires"] = 1566851050
-        identity.save()
-
-        responses.replace(
-            responses.POST,
-            "https://app.vssps.visualstudio.com/oauth2/token",
-            status=400,
-            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
-        )
-        fields = installation.get_organization_config()
-        assert fields[0]["disabled"], "Fields should be disabled"
-
-    def test_update_organization_config_remove_all(self) -> None:
-        self.assert_installation()
-
-        model = Integration.objects.get(provider="vsts")
-        integration = VstsIntegration(model, self.organization.id)
-
-        org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
-
-        data = {"sync_status_forward": {}, "other_option": "hello"}
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=1,
-            resolved_status="ResolvedStatus1",
-            unresolved_status="UnresolvedStatus1",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=2,
-            resolved_status="ResolvedStatus2",
-            unresolved_status="UnresolvedStatus2",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=3,
-            resolved_status="ResolvedStatus3",
-            unresolved_status="UnresolvedStatus3",
-        )
-
-        integration.update_organization_config(data)
-
-        external_projects = IntegrationExternalProject.objects.all().values_list(
-            "external_id", flat=True
-        )
-
-        assert list(external_projects) == []
-
-        config = OrganizationIntegration.objects.get(
-            organization_id=org_integration.organization_id,
-            integration_id=org_integration.integration_id,
-        ).config
-
-        assert config == {"sync_status_forward": False, "other_option": "hello"}
-
-    def test_update_organization_config(self) -> None:
-        self.assert_installation()
-
-        org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
-
-        model = Integration.objects.get(provider="vsts")
-        integration = VstsIntegration(model, self.organization.id)
-
-        # test validation
-        data: dict[str, Any] = {
-            "sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}
-        }
-        with pytest.raises(IntegrationError):
-            integration.update_organization_config(data)
-
-        data = {
-            "sync_status_forward": {
-                1: {"on_resolve": "ResolvedStatus1", "on_unresolve": "UnresolvedStatus1"},
-                2: {"on_resolve": "ResolvedStatus2", "on_unresolve": "UnresolvedStatus2"},
-                4: {"on_resolve": "ResolvedStatus4", "on_unresolve": "UnresolvedStatus4"},
-            },
-            "other_option": "hello",
-        }
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=1,
-            resolved_status="UpdateMe",
-            unresolved_status="UpdateMe",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=2,
-            resolved_status="ResolvedStatus2",
-            unresolved_status="UnresolvedStatus2",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=3,
-            resolved_status="ResolvedStatus3",
-            unresolved_status="UnresolvedStatus3",
-        )
-
-        integration.update_organization_config(data)
-
-        external_projects = IntegrationExternalProject.objects.all().order_by("external_id")
-
-        assert external_projects[0].external_id == "1"
-        assert external_projects[0].resolved_status == "ResolvedStatus1"
-        assert external_projects[0].unresolved_status == "UnresolvedStatus1"
-
-        assert external_projects[1].external_id == "2"
-        assert external_projects[1].resolved_status == "ResolvedStatus2"
-        assert external_projects[1].unresolved_status == "UnresolvedStatus2"
-
-        assert external_projects[2].external_id == "4"
-        assert external_projects[2].resolved_status == "ResolvedStatus4"
-        assert external_projects[2].unresolved_status == "UnresolvedStatus4"
-
-        config = OrganizationIntegration.objects.get(
-            organization_id=org_integration.organization_id,
-            integration_id=org_integration.integration_id,
-        ).config
-
-        assert config == {"sync_status_forward": True, "other_option": "hello"}
-
-    def test_update_domain_name(self) -> None:
-        account_name = "MyVSTSAccount.visualstudio.com"
-        account_uri = "https://MyVSTSAccount.visualstudio.com/"
-
-        self.assert_installation()
-
-        model = Integration.objects.get(provider="vsts")
-        model.metadata["domain_name"] = account_name
-        model.save()
-
-        integration = VstsIntegration(model, self.organization.id)
-        integration.get_client()
-
-        model.refresh_from_db()
-
-        domain_name = model.metadata["domain_name"]
-        assert domain_name == account_uri
-        assert model.metadata["domain_name"] == account_uri
-
-    def test_get_repositories(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        result = installation.get_repositories()
-        assert len(result) == 1
-        assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
-
-    def test_get_repositories_identity_error(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        # Set the `default_identity` property and force token expiration
-        installation.get_client()
-        assert installation.default_identity is not None
-        identity = Identity.objects.get(id=installation.default_identity.id)
-        identity.data["expires"] = 1566851050
-        identity.save()
-
-        responses.replace(
-            responses.POST,
-            "https://app.vssps.visualstudio.com/oauth2/token",
-            status=400,
-            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
-        )
-        with pytest.raises(IntegrationError):
-            installation.get_repositories()
-
     def test_format_source_url_with_spaces(self) -> None:
         """Test that format_source_url correctly handles project names with spaces."""
         self.assert_installation()
@@ -734,10 +553,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
 
 @control_silo_test
-@with_feature("organizations:migrate-azure-devops-integration")
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         fields = installation.get_organization_config()
@@ -751,7 +569,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         ]
 
     def test_get_organization_config_failure(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
@@ -778,7 +596,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert fields[0]["disabled"], "Fields should be disabled"
 
     def test_update_organization_config_remove_all(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
 
         model = Integration.objects.get(provider="vsts")
         integration = VstsIntegration(model, self.organization.id)
@@ -821,7 +639,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
     def test_update_organization_config(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
 
@@ -889,7 +707,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         account_name = "MyVSTSAccount.visualstudio.com"
         account_uri = "https://MyVSTSAccount.visualstudio.com/"
 
-        self.assert_installation(new=True)
+        self.assert_installation()
 
         model = Integration.objects.get(provider="vsts")
         model.metadata["domain_name"] = account_name
@@ -905,7 +723,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
     def test_get_repositories(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         result = installation.get_repositories()
@@ -913,7 +731,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
     def test_get_repositories_identity_error(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration

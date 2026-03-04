@@ -5,6 +5,7 @@ import {createContext, useContext} from 'react';
  * Consumed by field components to automatically apply mutation state
  */
 interface AutoSaveContextValue {
+  resetOnErrorRef: React.RefObject<boolean>;
   status: 'pending' | 'error' | 'idle' | 'success';
 }
 

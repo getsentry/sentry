@@ -78,10 +78,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
 }
 
@@ -392,38 +388,75 @@ def configure_sdk():
 
             self._capture_anything("capture_event", event)
 
+        def _should_drop_s4s(self, method_name, *args) -> bool:
+            """
+            Deterministically drop transaction/span data sent to S4S
+            based on trace_id. Rate is controlled by the
+            store.s4s-transaction-sample-rate option. Errors are never dropped.
+            """
+            sample_rate = options.get("store.s4s-transaction-sample-rate")
+            if sample_rate >= 1.0:
+                return False
+
+            trace_id = None
+            if method_name == "capture_envelope":
+                envelope = args[0]
+                # Drop envelopes containing transactions or standalone spans, not errors
+                has_transaction = envelope.get_transaction_event() is not None
+                # The Python SDK doesn't currently send standalone span items
+                # (spans are embedded in transaction envelopes), but the envelope
+                # spec defines a "span" item type for future SDK versions.
+                has_spans = any(item.type == "span" for item in envelope.items)
+                if not has_transaction and not has_spans:
+                    return False
+                trace_id = envelope.headers.get("trace", {}).get("trace_id")
+            elif method_name == "capture_event":
+                # Only drop transaction events, not errors
+                if args[0].get("type") != "transaction":
+                    return False
+                trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
+
+            if trace_id is None:
+                return False
+
+            # trace_ids are hex strings — parse directly, no hashing needed
+            return (int(trace_id[:8], 16) % 100) >= int(sample_rate * 100)
+
         def _capture_anything(self, method_name, *args, **kwargs):
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                metrics.incr("internal.captured.events.upstream")
-                # TODO(mattrobenolt): Bring this back safely.
-                # from sentry import options
-                # install_id = options.get('sentry:install-id')
-                # if install_id:
-                #     event.setdefault('tags', {})['install-id'] = install_id
-                s4s_args = args
-                # We want to control whether we want to send metrics at the s4s upstream.
-                if (
-                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
-                    and method_name == "capture_envelope"
-                ):
-                    args_list = list(args)
-                    envelope = args_list[0]
-                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                    # unless we allow them via a separate sample rate.
-                    safe_items = [
-                        x
-                        for x in envelope.items
-                        if x.data_category != "statsd"
-                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                    ]
-                    if len(safe_items) != len(envelope.items):
-                        relay_envelope = copy.copy(envelope)
-                        relay_envelope.items = safe_items
-                        s4s_args = (relay_envelope, *args_list[1:])
+                if self._should_drop_s4s(method_name, *args):
+                    metrics.incr("internal.captured.events.upstream.s4s_dropped", sample_rate=0.01)
+                else:
+                    metrics.incr("internal.captured.events.upstream", sample_rate=0.01)
+                    # TODO(mattrobenolt): Bring this back safely.
+                    # from sentry import options
+                    # install_id = options.get('sentry:install-id')
+                    # if install_id:
+                    #     event.setdefault('tags', {})['install-id'] = install_id
+                    s4s_args = args
+                    # We want to control whether we want to send metrics at the s4s upstream.
+                    if (
+                        not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                        and method_name == "capture_envelope"
+                    ):
+                        args_list = list(args)
+                        envelope = args_list[0]
+                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                        # unless we allow them via a separate sample rate.
+                        safe_items = [
+                            x
+                            for x in envelope.items
+                            if x.data_category != "statsd"
+                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                        ]
+                        if len(safe_items) != len(envelope.items):
+                            relay_envelope = copy.copy(envelope)
+                            relay_envelope.items = safe_items
+                            s4s_args = (relay_envelope, *args_list[1:])
 
-                getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
+                    getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is an envelope ensure envelope and its items are distinct references

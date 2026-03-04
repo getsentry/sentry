@@ -107,8 +107,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     ? isVersionInfoSemver(eventReleaseVersion)
     : projHasSemverRelease;
 
-  const hasSemverReleaseFeature =
-    organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
+  const hasSemverReleaseFeature = hasSemverRelease;
 
   const isResolved = group.status === 'resolved';
   const isAutoResolved =

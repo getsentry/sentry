@@ -32,6 +32,7 @@ type TraceMetricsWidgetQueriesProps = {
   onDataFetched?: (results: OnDataFetchedProps) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
@@ -70,6 +71,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   onDataFetchStart,
   getConfidenceInformation,
   selection,
+  widgetInterval,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
   const [confidence, setConfidence] = useState<Confidence | null>(null);
@@ -110,6 +112,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     disabled,
     loading: disabled,
     selection,
+    widgetInterval,
   });
 
   return getDynamicText({

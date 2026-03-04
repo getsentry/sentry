@@ -17,8 +17,8 @@ import {useProjectSeerPreferences} from 'sentry/components/events/autofix/prefer
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {
+  organizationIntegrationsCodingAgents,
   useAutofixRepos,
-  useCodingAgentIntegrations,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
   GuidedSteps,
@@ -32,6 +32,7 @@ import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
@@ -98,7 +99,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
-  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({

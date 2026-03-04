@@ -13,6 +13,7 @@ import {
   type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -123,6 +124,7 @@ function UptimeSpanNodeDetailsContent({
 }: UptimeSpanNodeDetailsContentProps) {
   const location = useLocation();
   const attributes = traceItemData.attributes;
+  const issues = node.uniqueIssues;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -133,6 +135,9 @@ function UptimeSpanNodeDetailsContent({
         hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
+        {issues.length > 0 ? (
+          <IssueList organization={organization} issues={issues} node={node} />
+        ) : null}
         <Attributes
           node={node}
           attributes={attributes}

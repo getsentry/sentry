@@ -79,7 +79,7 @@ function findNextMatchingItem(
   predicate: (item: Node<FilterKeyItem>) => boolean,
   direction: 'after' | 'before'
 ): Node<FilterKeyItem> | null {
-  let nextItem: Node<FilterKeyItem> | null = item;
+  let nextItem = item;
 
   do {
     const nextKey = direction === 'after' ? nextItem?.nextKey : nextItem?.prevKey;

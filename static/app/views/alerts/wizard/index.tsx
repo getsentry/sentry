@@ -30,14 +30,14 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
-import type {AlertType, MetricAlertType, WizardRuleTemplate} from './options';
+import type {AlertType, MetricAlertType} from './options';
 import {
   AlertWizardAlertNames,
   AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
-import {AlertWizardPanelContent} from './panelContent';
+import {getAlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 const DEFAULT_ALERT_OPTION = 'issues';
@@ -67,7 +67,7 @@ export default function AlertWizard() {
     setAlertOption(option);
   };
 
-  let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+  let metricRuleTemplate =
     alertOption in AlertWizardRuleTemplates
       ? AlertWizardRuleTemplates[alertOption as MetricAlertType]
       : undefined;
@@ -158,7 +158,10 @@ export default function AlertWizard() {
     );
   }
 
-  const panelContent = AlertWizardPanelContent[alertOption];
+  const hasMetricIssues = organization.features.includes(
+    'workflow-engine-metric-issue-ui'
+  );
+  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />

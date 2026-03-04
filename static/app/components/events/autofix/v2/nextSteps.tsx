@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
-  useCodingAgentIntegrations,
+  organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -19,6 +19,7 @@ import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import {IconChat, IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
 
@@ -238,7 +239,10 @@ export function ExplorerNextSteps({
   onOpenChat,
   isLoading,
 }: ExplorerNextStepsProps) {
-  const {data: codingAgentResponse} = useCodingAgentIntegrations();
+  const organization = useOrganization();
+  const {data: codingAgentResponse} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
 
   const availableSteps = getAvailableNextSteps(

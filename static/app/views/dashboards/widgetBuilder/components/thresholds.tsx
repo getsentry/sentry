@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t, tct} from 'sentry/locale';
@@ -25,6 +25,28 @@ function ThresholdsSection({
   setError,
 }: ThresholdsSectionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
+
+  const prevDataTypeRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const prevDataType = prevDataTypeRef.current;
+    prevDataTypeRef.current = dataType;
+    // When the data type changes and there's a stored unit, reset it so the
+    // unit selector shows the correct options for the new data type.
+    if (
+      prevDataType !== undefined &&
+      prevDataType !== dataType &&
+      state.thresholds?.unit
+    ) {
+      dispatch({
+        type: BuilderStateAction.SET_THRESHOLDS,
+        payload: {
+          ...state.thresholds,
+          unit: null,
+        },
+      });
+    }
+  }, [dataType, dispatch, state.thresholds]);
+
   return (
     <Fragment>
       <SectionHeader
@@ -42,6 +64,17 @@ function ThresholdsSection({
       />
       <Thresholds
         thresholdsConfig={state.thresholds ?? null}
+        preferredPolarity={state.thresholds?.preferredPolarity ?? '-'}
+        onPolarityChange={polarity => {
+          dispatch({
+            type: BuilderStateAction.SET_THRESHOLDS,
+            payload: {
+              max_values: state.thresholds?.max_values ?? {},
+              unit: state.thresholds?.unit ?? null,
+              preferredPolarity: polarity,
+            },
+          });
+        }}
         onThresholdChange={(maxKey, value) => {
           let newThresholds = cloneDeep(state.thresholds);
 
@@ -80,6 +113,7 @@ function ThresholdsSection({
             payload: {
               max_values: state.thresholds?.max_values ?? {},
               unit,
+              preferredPolarity: state.thresholds?.preferredPolarity,
             },
           });
         }}

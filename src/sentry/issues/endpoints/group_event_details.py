@@ -246,4 +246,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             start=start,
             end=end,
         )
+        if data is None:
+            return Response({"detail": "Failed to load event"}, status=500)
         return Response(data)

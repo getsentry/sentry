@@ -219,29 +219,16 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                 ]
             },
         )
-        self.run_fail_validation_test(
-            {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-            },
-            {
-                "nonFieldErrors": [
-                    "This project does not have access to the `generic_metrics` dataset"
-                ]
-            },
-        )
-
-        with self.feature("organizations:mep-rollout-flag"):
-            base_params = self.valid_params.copy()
-            base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
-            base_params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-            base_params["dataset"] = Dataset.PerformanceMetrics.value
-            base_params["query"] = ""
-            serializer = AlertRuleSerializer(context=self.context, data=base_params)
-            assert serializer.is_valid(), serializer.errors
-            alert_rule = serializer.save()
-            assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-            assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+        base_params = self.valid_params.copy()
+        base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
+        base_params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+        base_params["dataset"] = Dataset.PerformanceMetrics.value
+        base_params["query"] = ""
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     def test_aggregate(self) -> None:
         self.run_fail_validation_test(
@@ -863,30 +850,28 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query.query == "status:unresolved"
 
     def test_http_response_rate(self) -> None:
-        with self.feature("organizations:mep-rollout-flag"):
-            params = self.valid_params.copy()
-            params["query"] = "span.module:http span.op:http.client"
-            params["aggregate"] = "http_response_rate(3)"
-            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-            params["dataset"] = Dataset.PerformanceMetrics.value
-            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-            assert serializer.is_valid(), serializer.errors
-            alert_rule = serializer.save()
-            assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
-            assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
+        params = self.valid_params.copy()
+        params["query"] = "span.module:http span.op:http.client"
+        params["aggregate"] = "http_response_rate(3)"
+        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+        params["dataset"] = Dataset.PerformanceMetrics.value
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
+        assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
 
     def test_performance_score(self) -> None:
-        with self.feature("organizations:mep-rollout-flag"):
-            params = self.valid_params.copy()
-            params["query"] = "has:measurements.score.total"
-            params["aggregate"] = "performance_score(measurements.score.lcp)"
-            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-            params["dataset"] = Dataset.PerformanceMetrics.value
-            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-            assert serializer.is_valid(), serializer.errors
-            alert_rule = serializer.save()
-            assert alert_rule.snuba_query.query == "has:measurements.score.total"
-            assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
+        params = self.valid_params.copy()
+        params["query"] = "has:measurements.score.total"
+        params["aggregate"] = "performance_score(measurements.score.lcp)"
+        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+        params["dataset"] = Dataset.PerformanceMetrics.value
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.query == "has:measurements.score.total"
+        assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_count_aggregate_gets_converted_to_upsampled_count_for_upsampled_projects(

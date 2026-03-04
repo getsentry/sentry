@@ -144,7 +144,7 @@ export function getWidgetExploreUrl(
 }
 
 export function getChartType(displayType: DisplayType) {
-  let chartType: ChartType = ChartType.LINE;
+  let chartType = ChartType.LINE;
   switch (displayType) {
     case DisplayType.BAR:
       chartType = ChartType.BAR;
@@ -219,7 +219,7 @@ function _getWidgetExploreUrl(
   ];
 
   const chartType = getChartType(widget.displayType);
-  let exploreMode: Mode | undefined = preferMode;
+  let exploreMode = preferMode;
   if (!defined(exploreMode)) {
     switch (widget.displayType) {
       case DisplayType.BAR:
@@ -262,7 +262,7 @@ function _getWidgetExploreUrl(
             field !== SpanFields.IS_STARRED_TRANSACTION // starred transactions are not supported in explore
         )
       : query.columns.filter(column => column !== SpanFields.IS_STARRED_TRANSACTION);
-  if (groupBy && groupBy.length === 0) {
+  if (groupBy?.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
     // is not present, the Explore UI will assign a default groupBy
@@ -270,7 +270,7 @@ function _getWidgetExploreUrl(
     groupBy = [''];
   }
 
-  const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
+  const yAxisFields = locationQueryParams.yAxes.flatMap(getAggregateArguments);
   const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';

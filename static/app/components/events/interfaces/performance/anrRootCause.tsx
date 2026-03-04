@@ -16,7 +16,6 @@ import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {StackView} from 'sentry/types/stacktrace';
@@ -178,13 +177,13 @@ export function AnrRootCause({event, organization}: Props) {
           </IssueSummary>
         );
       })}
-      {organization.features.includes('anr-analyze-frames') && renderAnrCulprit()}
+      {renderAnrCulprit()}
     </InterimSection>
   );
 }
 
 const IssueSummary = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 /**
@@ -209,9 +208,9 @@ const TitleWithLink = styled(Link)`
 
 const Title = styled('div')`
   line-height: 1;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const StackTraceWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;

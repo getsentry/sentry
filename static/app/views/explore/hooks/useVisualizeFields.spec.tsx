@@ -1,34 +1,17 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
-
-function createWrapper(organization: Organization) {
-  return function ({children}: {children?: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-            {children}
-          </TraceItemAttributeProvider>
-        </OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
+function wrapper({children}: {children?: React.ReactNode}) {
+  return (
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      {children}
+    </TraceItemAttributeProvider>
+  );
 }
 
 function useWrapper(yAxis: string) {
@@ -45,22 +28,16 @@ function useWrapper(yAxis: string) {
 }
 
 describe('useVisualizeFields', () => {
-  const organization = OrganizationFixture();
-
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
-
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
-
-    mockedUsedLocation.mockReturnValue(LocationFixture());
   });
 
   it('returns numeric fields', () => {
-    const {result} = renderHook(() => useWrapper('avg(score.ttfb)'), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHookWithProviders(() => useWrapper('avg(score.ttfb)'), {
+      additionalWrapper: wrapper,
     });
 
     expect(result.current.map(field => field.value)).toEqual([
@@ -71,16 +48,16 @@ describe('useVisualizeFields', () => {
   });
 
   it('returns numeric fields for count', () => {
-    const {result} = renderHook(() => useWrapper('count(span.duration)'), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHookWithProviders(() => useWrapper('count(span.duration)'), {
+      additionalWrapper: wrapper,
     });
 
     expect(result.current.map(field => field.value)).toEqual(['span.duration']);
   });
 
   it('returns string fields for count_unique', () => {
-    const {result} = renderHook(() => useWrapper('count_unique(foobar)'), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHookWithProviders(() => useWrapper('count_unique(foobar)'), {
+      additionalWrapper: wrapper,
     });
 
     expect(result.current.map(field => field.value)).toEqual(

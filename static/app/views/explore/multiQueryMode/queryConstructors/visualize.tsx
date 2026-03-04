@@ -36,7 +36,7 @@ export function VisualizeSection({query, index}: Props) {
 
   const parsedFunction = findFirstFunction(query.yAxes);
 
-  const options: Array<SelectOption<string>> = useVisualizeFields({
+  const options = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
@@ -82,7 +82,7 @@ export function VisualizeSection({query, index}: Props) {
             }}
           />
           <CompactSelect
-            searchable
+            search
             options={options}
             value={parsedFunction?.arguments?.[0] ?? ''}
             onChange={newField => {

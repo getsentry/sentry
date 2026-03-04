@@ -170,7 +170,7 @@ export function ColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={`${column.column}-${column.id}`}
+                  key={column.uniqueId}
                   canDelete={editableColumns.length > 1}
                   required={requiredTags?.includes(column.column)}
                   column={column}
@@ -296,7 +296,7 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        searchable
+        search
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}

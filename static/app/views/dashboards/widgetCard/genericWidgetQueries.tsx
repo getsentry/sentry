@@ -109,6 +109,9 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
+  // Optional override for the widget interval (e.g., '1m', '5m', '1h')
+  // If not provided, widget interval will be calculated automatically
+  widgetInterval?: string;
 };
 
 /**
@@ -170,6 +173,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     samplingMode,
     selection: propsSelection,
     skipDashboardFilterParens,
+    widgetInterval,
   } = props;
 
   const organization = useOrganization();
@@ -204,6 +208,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     enabled: isTimeSeriesData && !disabled && !propsLoading,
     limit,
     cursor,
+    widgetInterval,
   });
 
   const hookTableResults = config.useTableQuery?.({
@@ -218,6 +223,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
+    widgetInterval,
   });
 
   const hookResults = isTimeSeriesData ? hookSeriesResults : hookTableResults;

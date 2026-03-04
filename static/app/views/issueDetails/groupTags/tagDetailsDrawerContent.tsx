@@ -15,6 +15,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
@@ -44,8 +45,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const {tagKey} = useParams<{tagKey: string}>();
   const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
 
   const {
     data: tagValues,
@@ -89,7 +89,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       {tag && tagValues?.length && (
-        <Table>
+        <Table data-test-id="group-tag-value">
           <Header>
             <ColumnTitle>{t('Value')}</ColumnTitle>
             <ColumnSort
@@ -257,6 +257,7 @@ function TagDetailsValue({
           priority="link"
           icon={<IconOpen />}
           aria-label="Open link"
+          data-test-id="group-tag-url"
           size="xs"
           onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
         />
@@ -275,6 +276,7 @@ function TagValueActionsMenu({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const {copy} = useCopyToClipboard();
 
   const referrer = 'tag-details-drawer';
@@ -284,6 +286,7 @@ function TagValueActionsMenu({
         query: tagValue.query,
       }
     : generateQueryWithTag({referrer}, {key, value: tagValue.value});
+  const globalSelectionParams = extractSelectionParameters(location.query);
   const eventView = useIssueDetailsEventView({group, queryProps: query});
   const [isVisible, setIsVisible] = useState(false);
 
@@ -314,7 +317,7 @@ function TagValueActionsMenu({
           label: t('View other events with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query,
+            query: {...globalSelectionParams, ...query},
           },
         },
         {
@@ -322,7 +325,7 @@ function TagValueActionsMenu({
           label: t('Search issues with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query,
+            query: {...globalSelectionParams, ...query},
           },
         },
         {

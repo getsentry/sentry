@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function CopyDsnField({params}: {params: DocsParams<any>}) {
@@ -32,9 +31,9 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
 }
 
 const Wrapper = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

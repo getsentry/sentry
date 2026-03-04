@@ -922,6 +922,22 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
+    def test_metric_issue_with_disable_detector_flag(self) -> None:
+        """When the disable-detector flag is set, metric issues should not use the issue stream detector."""
+        self.group_event.occurrence = self.occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        with self.feature(
+            {
+                "organizations:workflow-engine-metric-issue-ui": True,
+                "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications": True,
+            }
+        ):
+            result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.detector}
+
     def test_non_metric_issue_in_disable_list_with_feature_flag(self) -> None:
         """Feature flag override only applies to MetricIssue, not other disabled group types."""
         self.group.update(type=FeedbackGroup.type_id)

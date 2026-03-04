@@ -417,6 +417,22 @@ class RpcRemoteException(RpcException):
     """Indicate that an RPC service returned an error status code."""
 
 
+class RpcValidationException(RpcException):
+    """
+    Indicate that an RPC service call encountered a validation error that can be shown to the user.
+    The RPC endpoint will convert these errors into HTTP 422 responses.
+    """
+
+    def __init__(self, detail: str, code: str, service_name: str, method_name: str) -> None:
+        super().__init__(service_name=service_name, method_name=method_name, message=detail)
+        self.detail = detail
+        self.code = code
+
+
+class RpcSlugCollisionException(RpcRemoteException):
+    """Indicate that an RPC service returned a slug collision error (409 Conflict)."""
+
+
 class RpcResponseException(RpcException):
     """Indicate that the response from a remote RPC service violated expectations."""
 
@@ -606,6 +622,17 @@ class _RemoteSiloCall:
         scope.set_tag("rpc_method", rpc_method)
         scope.set_tag("rpc_status_code", response.status_code)
 
+        if response.status_code == 422:
+            # Validation/Operation errors that should be shown to end user behave the same
+            # in test/production mode.
+            body = response.json()
+            raise RpcValidationException(
+                detail=body["detail"],
+                code=body["code"],
+                service_name=self.service_name,
+                method_name=self.method_name,
+            )
+
         if in_test_environment():
             if response.status_code == 500:
                 raise self._remote_exception(
@@ -615,6 +642,7 @@ class _RemoteSiloCall:
             raise self._remote_exception(
                 f"Error ({response.status_code} status) invoking rpc at {self.path!r}: {detail}"
             )
+
         # Careful not to reveal too much information in production
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")

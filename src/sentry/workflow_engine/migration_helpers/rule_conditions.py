@@ -1,6 +1,16 @@
 from typing import Any
 
 from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 
 ConditionAndFilters = tuple[dict[str, Any], list[dict[str, Any]]]
@@ -135,7 +145,21 @@ def create_issue_category_filter(
 ) -> ConditionAndFilters:
     payload: dict[str, Any] = {
         "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-        "value": data_condition.comparison["value"],
+        "value": str(data_condition.comparison["value"]),
+    }
+    include = data_condition.comparison.get("include")
+    if isinstance(include, bool):
+        payload["include"] = "true" if include else "false"
+
+    return {}, [payload]
+
+
+def create_issue_type_filter(
+    data_condition: DataCondition, is_filter: bool = False
+) -> ConditionAndFilters:
+    payload: dict[str, Any] = {
+        "id": "sentry.rules.filters.issue_type.IssueTypeFilter",
+        "value": str(data_condition.comparison["value"]),
     }
     include = data_condition.comparison.get("include")
     if isinstance(include, bool):
@@ -150,7 +174,7 @@ def create_issue_occurrences_filter(
     return {}, [
         {
             "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
-            "value": data_condition.comparison["value"],
+            "value": str(data_condition.comparison["value"]),
         }
     ]
 
@@ -187,7 +211,9 @@ def create_base_event_frequency_condition(
     payload = {
         "id": id,
         "comparisonType": (
-            ComparisonType.COUNT if data_condition.type == count_type else ComparisonType.PERCENT
+            ComparisonType.COUNT.value
+            if data_condition.type == count_type
+            else ComparisonType.PERCENT.value
         ),
         "interval": data_condition.comparison["interval"],
         "value": data_condition.comparison["value"],
@@ -229,9 +255,9 @@ def create_event_unique_user_frequency_condition(
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
             "comparisonType": (
-                ComparisonType.COUNT
+                ComparisonType.COUNT.value
                 if data_condition.type == Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-                else ComparisonType.PERCENT
+                else ComparisonType.PERCENT.value
             ),
             "interval": data_condition.comparison["interval"],
             "value": data_condition.comparison["value"],
@@ -280,6 +306,7 @@ data_condition_to_rule_condition_mapping = {
     Condition.AGE_COMPARISON: create_age_comparison_filter,
     Condition.ASSIGNED_TO: create_assigned_to_filter,
     Condition.ISSUE_CATEGORY: create_issue_category_filter,
+    Condition.ISSUE_TYPE: create_issue_type_filter,
     Condition.ISSUE_OCCURRENCES: create_issue_occurrences_filter,
     Condition.LATEST_RELEASE: create_latest_release_filter,
     Condition.LATEST_ADOPTED_RELEASE: create_latest_adopted_release_filter,
@@ -289,6 +316,18 @@ data_condition_to_rule_condition_mapping = {
     Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT: create_event_unique_user_frequency_condition,
     Condition.PERCENT_SESSIONS_COUNT: create_percent_sessions_condition,
     Condition.PERCENT_SESSIONS_PERCENT: create_percent_sessions_condition,
+}
+FILTER_ID_TO_CONDITION_TYPE_MAPPING = {
+    TaggedEventFilter.id: Condition.TAGGED_EVENT.value,
+    EventAttributeFilter.id: Condition.EVENT_ATTRIBUTE.value,
+    AgeComparisonFilter.id: Condition.AGE_COMPARISON.value,
+    AssignedToFilter.id: Condition.ASSIGNED_TO.value,
+    IssueCategoryFilter.id: Condition.ISSUE_CATEGORY.value,
+    IssueOccurrencesFilter.id: Condition.ISSUE_OCCURRENCES.value,
+    IssueTypeFilter.id: Condition.ISSUE_TYPE.value,
+    LatestAdoptedReleaseFilter.id: Condition.LATEST_ADOPTED_RELEASE.value,
+    LatestReleaseFilter.id: Condition.LATEST_RELEASE.value,
+    LevelFilter.id: Condition.LEVEL.value,
 }
 
 

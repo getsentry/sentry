@@ -2,7 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
@@ -98,7 +105,9 @@ describe('ProjectPageFilter', () => {
 
     // Open the menu, search input has focus
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
-    expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    });
 
     // Move focus to Option One
     await userEvent.keyboard('{ArrowDown}');

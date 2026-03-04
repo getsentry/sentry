@@ -5,18 +5,17 @@ import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 const TEST_SUITES = 'testSuites';
@@ -59,7 +58,6 @@ export function TestSuiteDropdown() {
       isSelected: selectedSet.has(suite.toLowerCase()),
       leadingItems: ({isSelected}: {isSelected: boolean}) => (
         <Checkbox
-          size="sm"
           checked={isSelected}
           onChange={() => hybridFilterRef.current?.toggleOption(suite)}
           aria-label={t('Select %s', suite)}
@@ -107,25 +105,22 @@ export function TestSuiteDropdown() {
     <HybridFilter
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search={{onChange: handleOnSearch}}
       options={options}
-      onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
         ) : null
       }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
+            <MenuComponents.CancelButton
               onClick={() => stagedSelect.removeStagedChanges()}
             />
-            <HybridFilterComponents.ApplyButton
+            <MenuComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
             />
           </Flex>
@@ -173,9 +168,9 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  margin-left: ${space(0.5)};
+  margin-top: -${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

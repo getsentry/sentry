@@ -788,26 +788,29 @@ export function usePageReferrer(): {getPageReferrer: () => string} {
 
 export function useCopySessionDataToClipboard({
   blocks,
+  status,
   organization,
   projects,
   enabled,
 }: {
-  blocks: Block[];
+  blocks: Block[] | undefined;
   enabled: boolean;
   organization: Organization | null;
+  status: string | undefined;
   projects?: Array<{id: string; slug: string}>;
 }) {
   const [isError, setIsError] = useState(false);
 
   const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !organization || !blocks) {
+    if (!enabled || !organization) {
       return;
     }
     setIsError(false);
     try {
-      await navigator.clipboard.writeText(
-        formatSessionData(blocks, organization.slug, projects)
-      );
+      const text = blocks
+        ? formatSessionData(blocks, organization.slug, projects)
+        : `No data available. Status: ${status ?? 'unknown'}`;
+      await navigator.clipboard.writeText(text);
       addSuccessMessage('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
@@ -815,7 +818,7 @@ export function useCopySessionDataToClipboard({
     }
 
     trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
-  }, [enabled, blocks, organization, projects]);
+  }, [enabled, blocks, status, organization, projects]);
 
   return {copySessionToClipboard, isError};
 }
