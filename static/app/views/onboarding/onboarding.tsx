@@ -19,7 +19,6 @@ import {categoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -352,7 +351,7 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   justify-content: center;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   overflow: hidden;
 
   width: 100%;
@@ -360,7 +359,7 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   margin-bottom: ${p => p.hasFooter && '72px'};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(4)} ${space(3)};
+    padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -370,7 +369,7 @@ const Container = styled('div')<{hasFooter: boolean}>`
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  padding: 120px ${space(3)};
+  padding: 120px ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
@@ -379,8 +378,8 @@ const Container = styled('div')<{hasFooter: boolean}>`
 
 const Header = styled('header')`
   background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
+  padding-right: ${p => p.theme.space['3xl']};
   position: sticky;
   height: 80px;
   align-items: center;
@@ -437,7 +436,7 @@ const BackMotionDiv = styled(motion.div)`
 `;
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space['3xl']};
 `;
 
 const UpsellWrapper = styled('div')`

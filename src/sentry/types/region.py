@@ -341,11 +341,6 @@ def get_locality_by_name(name: str) -> Locality:
         )
 
 
-def get_region_by_name(name: str) -> Region:
-    """Deprecated. Use get_cell_by_name."""
-    return get_cell_by_name(name)
-
-
 def is_region_name(name: str) -> bool:
     return get_global_directory().get_cell_by_name(name) is not None
 

@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface RowProps {
   children: React.ReactNode;
@@ -50,7 +49,7 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger.vibrant : 'none')};
   position: relative;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   min-height: 46px;
   align-items: center;
 
@@ -66,6 +65,6 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
 
 const DeleteButton = styled(Button)`
   position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.75)};
+  top: ${p => p.theme.space.sm};
+  right: ${p => p.theme.space.sm};
 `;

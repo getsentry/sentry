@@ -112,7 +112,7 @@ export function bulkDelete(
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
-  const query: QueryArgs = paramsToQueryArgs(params);
+  const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   GroupStore.onDelete(id, itemIds);
@@ -147,7 +147,7 @@ export function bulkUpdate(
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
 
-  const query: QueryArgs = paramsToQueryArgs(params);
+  const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   GroupStore.onUpdate(id, itemIds, data);
@@ -180,7 +180,7 @@ export function mergeGroups(
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
-  const query: QueryArgs = paramsToQueryArgs(params);
+  const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   GroupStore.onMerge(id, itemIds);

@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   children: React.ReactNode;
   description: React.ReactNode;
@@ -26,7 +24,7 @@ const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
   flex-direction: column;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -35,7 +33,7 @@ const Wrapper = styled('div')`
 `;
 
 const LeftPanel = styled('div')`
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -47,7 +45,7 @@ const LeftPanel = styled('div')`
 
 const Title = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
-  margin: 0 0 ${space(0.5)};
+  margin: 0 0 ${p => p.theme.space.xs};
 `;
 
 const Description = styled('div')`

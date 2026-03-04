@@ -24,7 +24,7 @@ export function useCurrentBillingHistory() {
     }
   );
 
-  const currentHistory: BillingHistory | null = useMemo(() => {
+  const currentHistory = useMemo(() => {
     return history ?? null;
   }, [history]);
 

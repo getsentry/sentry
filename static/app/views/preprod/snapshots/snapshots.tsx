@@ -83,7 +83,7 @@ export default function SnapshotsPage() {
   const comparisonType = firstPageData?.comparison_type ?? 'solo';
   const comparisonRunInfo = firstPageData?.comparison_run_info;
 
-  const sidebarItems: SidebarItem[] = useMemo(() => {
+  const sidebarItems = useMemo(() => {
     if (!data?.pages) {
       return [];
     }
@@ -190,7 +190,6 @@ export default function SnapshotsPage() {
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
-              projectSlug={firstPageData.project_id}
               snapshotId={snapshotId}
               comparisonRunInfo={comparisonRunInfo}
               hasBaseArtifact={firstPageData.base_artifact_id !== null}

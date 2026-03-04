@@ -111,7 +111,7 @@ export function LogsAggregateTable({
               title = prettifyTagKey(field);
             }
 
-            const direction: 'asc' | 'desc' | undefined =
+            const direction =
               aggregateSortBys?.[0]?.field === column.key
                 ? aggregateSortBys?.[0]?.kind
                 : undefined;

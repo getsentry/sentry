@@ -187,7 +187,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-128 digits, and
+            # Hex value without `0x/0X` prefix (between 8 and 128 digits, including a number, and
             # either all uppercase or all lowercase - we're more conservative here on all three
             # scores in order to reduce false positives).
             #
@@ -198,14 +198,23 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # so the only thing we need the lookahead to guard against is it being all letters.
             #
             # Each regex consists of two parts, the lookahead and the hex characters themselves. For
-            # example, for the lowercase 8-character pattern we have:
+            # example, for the lowercase pattern we have:
             #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
             #                         preceded by some number of hex letters
-            #     [0-9a-f]{8}         The matcher itself - 8 hex characters
-            (\b(?=[a-f]*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=[a-f]*[0-9])[0-9a-f]{16,128}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{8}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{16,128}\b)
+            #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
+            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
+            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+        """,
+    ),
+    ParameterizationRegex(
+        name="git_sha",
+        raw_pattern=r"""
+            # This is similar to the hex pattern above, except it has lookaheads for both numbers
+            # and letters, to guarantee we have at least one of each. (This means it will miss git
+            # shas which consist of only letters or only numbers, but fortunately > 96% of 7-digit
+            # hex values are mixed, so that's a tradeoff we're okay with.) Also, it only includes
+            # lowercase letters, since git shas are always expressed that way.
+            (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),

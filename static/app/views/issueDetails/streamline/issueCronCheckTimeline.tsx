@@ -11,7 +11,6 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
-import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -84,8 +83,7 @@ function useCronLegendStatuses({
       [CheckInStatus.UNKNOWN]: false,
     };
     bucketStats?.forEach(([_timestamp, bucketEnvMapping]) => {
-      const bucketEnvMappingEntries: Array<StatsBucket<CheckInStatus>> =
-        Object.values(bucketEnvMapping);
+      const bucketEnvMappingEntries = Object.values(bucketEnvMapping);
       for (const statBucket of bucketEnvMappingEntries) {
         const statBucketEntries = Object.entries(statBucket) as Array<
           [CheckInStatus, number]
