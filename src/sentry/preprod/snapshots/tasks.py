@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import logging
 from typing import NamedTuple
 
@@ -42,6 +41,8 @@ class _ImageDiffResult(NamedTuple):
     added: set[str]
     removed: set[str]
     matched: set[str]
+    head_by_name: dict[str, str]
+    base_by_name: dict[str, str]
 
 
 def categorize_image_diff(
@@ -50,9 +51,9 @@ def categorize_image_diff(
     head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
     base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
 
-    matched = set(head_by_name.keys() & base_by_name.keys())
-    added = set(head_by_name.keys() - base_by_name.keys())
-    removed = set(base_by_name.keys() - head_by_name.keys())
+    matched = head_by_name.keys() & base_by_name.keys()
+    added = head_by_name.keys() - base_by_name.keys()
+    removed = base_by_name.keys() - head_by_name.keys()
 
     added_hash_to_names: dict[str, list[str]] = {}
     for name in added:
@@ -75,7 +76,7 @@ def categorize_image_diff(
         added.discard(new_name)
         removed.discard(old_name)
 
-    return _ImageDiffResult(renamed_pairs, added, removed, matched)
+    return _ImageDiffResult(renamed_pairs, added, removed, matched, head_by_name, base_by_name)
 
 
 def _image_name_to_path_stem(name: str) -> str:
@@ -250,14 +251,13 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
-        head_by_name = {meta.image_file_name: h for h, meta in head_images.items()}
-        base_by_name = {meta.image_file_name: h for h, meta in base_images.items()}
-
-        diff_result = categorize_image_diff(head_manifest, base_manifest)
-        renamed_pairs = diff_result.renamed_pairs
-        added = diff_result.added
-        removed = diff_result.removed
-        matched = diff_result.matched
+        categories = categorize_image_diff(head_manifest, base_manifest)
+        renamed_pairs = categories.renamed_pairs
+        added = categories.added
+        removed = categories.removed
+        matched = categories.matched
+        head_by_name = categories.head_by_name
+        base_by_name = categories.base_by_name
 
         image_results: dict[str, dict[str, object]] = {}
         changed_count = 0
@@ -398,7 +398,7 @@ def compare_snapshots(
                     diff_mask_key = (
                         f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
                     )
-                    diff_mask_bytes = base64.b64decode(diff_result.diff_mask_png)
+                    diff_mask_bytes = diff_result.diff_mask_png
                     logger.info(
                         "compare_snapshots: uploading mask for %s (%d bytes, changed_px=%d)",
                         name,
