@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
@@ -21,9 +20,9 @@ from sentry.utils import snuba_rpc
 class ProcessingErrorEAPIntegrationTest(TestCase, SnubaTestCase):
     """
     Integration test that produces processing errors through the real
-    Kafka producer and queries them back from Snuba to verify the full
-    round-trip. This catches missing or invalid TraceItem fields that
-    unit tests with mocked producers miss.
+    producer logic, captures the serialized TraceItem, inserts it into
+    Snuba via the synchronous HTTP endpoint, and queries it back to
+    verify the full round-trip.
     """
 
     def test_write_and_read_round_trip(self) -> None:
@@ -41,14 +40,12 @@ class ProcessingErrorEAPIntegrationTest(TestCase, SnubaTestCase):
             {"type": "js_no_source", "symbolicator_type": "missing_sourcemap"},
         ]
 
-        produce_processing_errors_to_eap(self.project, event_data, errors)
-
-        event_filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="event_id", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=event_id),
-            )
+        self.produce_and_store_eap_items(
+            "sentry.processing_errors.eap.producer._eap_producer.produce",
+            produce_processing_errors_to_eap,
+            self.project,
+            event_data,
+            errors,
         )
 
         now = datetime.now(dt_timezone.utc)
@@ -81,22 +78,23 @@ class ProcessingErrorEAPIntegrationTest(TestCase, SnubaTestCase):
                     key=AttributeKey(name="platform", type=AttributeKey.Type.TYPE_STRING),
                 ),
             ],
-            filter=event_filter,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="event_id", type=AttributeKey.Type.TYPE_STRING),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=event_id),
+                )
+            ),
             limit=10,
             page_token=PageToken(offset=0),
         )
 
-        found = False
-        for _attempt in range(20):
-            time.sleep(0.5)
-            responses = snuba_rpc.table_rpc([rpc_request])
-            response = responses[0]
+        responses = snuba_rpc.table_rpc([rpc_request])
+        response = responses[0]
 
-            if response.column_values and response.column_values[0].results:
-                found = True
-                break
-
-        assert found, "Processing error not found in Snuba after 20 attempts"
+        assert response.column_values and response.column_values[0].results, (
+            "Processing error not found in Snuba"
+        )
 
         columns = {cv.attribute_name: idx for idx, cv in enumerate(response.column_values)}
         assert response.column_values[columns["event_id"]].results[0].val_str == event_id
