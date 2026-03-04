@@ -905,7 +905,7 @@ class WFEDetectorResetTest(TestCase):
         super().setUp()
         self.project = self.create_project()
 
-    def test_reset_clears_config_fields(self) -> None:
+    def test_reset_clears_enabled_detector_config(self) -> None:
         detector = self.create_detector(
             project=self.project,
             type="performance_slow_db_query",
@@ -914,33 +914,29 @@ class WFEDetectorResetTest(TestCase):
             config={"duration_threshold": 5000},
         )
 
-        reset_wfe_detector_configs(self.project, unchanged_options={})
+        reset_wfe_detector_configs(self.project)
 
         detector.refresh_from_db()
         assert detector.config == {}
-        assert detector.enabled is False
+        assert detector.enabled is True  # Enabled state unchanged
 
-    def test_reset_preserves_unchanged_options(self) -> None:
+    def test_reset_preserves_disabled_detector_config(self) -> None:
         detector = self.create_detector(
             project=self.project,
             type="performance_slow_db_query",
             name="Test",
-            enabled=True,
+            enabled=False,
             config={"duration_threshold": 5000},
         )
 
-        unchanged_options = {
-            "slow_db_query_duration_threshold": 5000,
-            "slow_db_queries_detection_enabled": True,
-        }
-        reset_wfe_detector_configs(self.project, unchanged_options)
+        reset_wfe_detector_configs(self.project)
 
         detector.refresh_from_db()
         assert detector.config["duration_threshold"] == 5000
-        assert detector.enabled is True
+        assert detector.enabled is False
 
     def test_reset_skips_nonexistent_detectors(self) -> None:
-        updated = reset_wfe_detector_configs(self.project, unchanged_options={})
+        updated = reset_wfe_detector_configs(self.project)
 
         assert len(updated) == 0
         assert (
