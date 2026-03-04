@@ -345,20 +345,23 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
-        project_settings = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default={})
+        # Get merged settings (defaults + project overrides) for consistency
+        current_settings = get_current_performance_settings(project)
         management_options = get_management_options()
         threshold_options = [setting.value for setting in ConfigurableThresholds]
-        disabled_options = get_disabled_threshold_options(threshold_options, project_settings)
+        disabled_options = get_disabled_threshold_options(threshold_options, current_settings)
 
-        if project_settings:
-            unchanged_options = {  # Management settings and disabled threshold settings can not be reset
-                option: project_settings[option]
-                for option in project_settings
-                if option in management_options or option in disabled_options
+        # Get project overrides to determine what exists to preserve
+        project_overrides = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default={})
+        if project_overrides:
+            to_preserve: set[str] = set(management_options) | set(disabled_options)
+            # Management settings and disabled threshold settings can not be reset
+            unchanged_options = {
+                option: value for option, value in current_settings.items() if option in to_preserve
             }
             sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
             reset_performance_settings(project, unchanged_options, sync_detectors=sync_detectors)

@@ -478,9 +478,7 @@ def _get_wfe_detectors_by_type(project: Project) -> dict[str, Detector]:
     """Fetch all performance WFE detectors for a project, keyed by detector type."""
     return {
         d.type: d
-        for d in Detector.objects.filter(
-            project=project, type__in=WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING
-        )
+        for d in Detector.objects.filter(project=project, type__in=PERFORMANCE_WFE_DETECTOR_TYPES)
     }
 
 
@@ -535,10 +533,11 @@ def reset_wfe_detector_configs(
     project: Project, unchanged_options: dict[str, Any]
 ) -> dict[DetectorType, bool]:
     """
-    Reset WFE Detector configs to defaults, preserving only unchanged_options.
+    Reset WFE Detector configs to defaults by clearing config on enabled detectors.
 
-    Used when DELETE is called on performance settings - clears custom config values
-    while preserving management/disabled options that shouldn't be reset.
+    Used when DELETE is called on performance settings. For enabled detectors, clears
+    custom config values (falls back to system defaults). For disabled detectors,
+    leaves config unchanged (assumes already in sync with ProjectOption).
 
     Returns dict of DetectorType -> bool indicating which detectors were updated.
     """
@@ -550,16 +549,9 @@ def reset_wfe_detector_configs(
         if not detector:
             continue
 
-        # Build config with only fields that should be preserved
-        # option_keys maps: wfe_field -> project_option_key
-        preserved_config: dict[str, Any] = {}
-        for wfe_field, project_option_key in mapping.option_keys.items():
-            if project_option_key in unchanged_options:
-                if wfe_field in detector.config:
-                    preserved_config[wfe_field] = detector.config[wfe_field]
-
-        if detector.config != preserved_config:
-            detector.config = preserved_config
+        # Clear config on enabled detectors (reset to defaults)
+        if detector.enabled and detector.config:
+            detector.config = {}
             detector.save(update_fields=["config"])
             updated[detector_type] = True
 
