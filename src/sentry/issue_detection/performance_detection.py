@@ -529,9 +529,7 @@ def sync_project_options_to_wfe_detectors(
     return updated
 
 
-def reset_wfe_detector_configs(
-    project: Project, unchanged_options: dict[str, Any]
-) -> dict[DetectorType, bool]:
+def reset_wfe_detector_configs(project: Project) -> dict[DetectorType, bool]:
     """
     Reset WFE Detector configs to defaults by clearing config on enabled detectors.
 
@@ -554,12 +552,6 @@ def reset_wfe_detector_configs(
             detector.config = {}
             detector.save(update_fields=["config"])
             updated[detector_type] = True
-
-        # Reset detection_enabled if not in unchanged_options
-        if mapping.detection_enabled_key not in unchanged_options:
-            if detector.enabled:
-                detector.toggle(False)
-                updated[detector_type] = True
 
     return updated
 
@@ -615,7 +607,7 @@ def reset_performance_settings(
     project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
 
     if sync_detectors:
-        return reset_wfe_detector_configs(project, unchanged_options)
+        return reset_wfe_detector_configs(project)
 
     return {}
 

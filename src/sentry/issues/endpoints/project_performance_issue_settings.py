@@ -349,17 +349,18 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
-        # Get merged settings (defaults + project overrides) for consistency
-        current_settings = get_current_performance_settings(project)
+        # Use raw project overrides (not merged with defaults) to determine disabled options.
+        # This preserves existing behavior: if no explicit _enabled setting exists, we treat
+        # the detector as "unset" and preserve its thresholds, even if it's enabled by default.
+        project_overrides = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default={})
         management_options = get_management_options()
         threshold_options = [setting.value for setting in ConfigurableThresholds]
-        disabled_options = get_disabled_threshold_options(threshold_options, current_settings)
+        disabled_options = get_disabled_threshold_options(threshold_options, project_overrides)
 
-        # Get project overrides to determine what exists to preserve
-        project_overrides = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default={})
         if project_overrides:
             to_preserve: set[str] = set(management_options) | set(disabled_options)
-            # Management settings and disabled threshold settings can not be reset
+            # Get actual values from merged settings (includes defaults for management options)
+            current_settings = get_current_performance_settings(project)
             unchanged_options = {
                 option: value for option, value in current_settings.items() if option in to_preserve
             }

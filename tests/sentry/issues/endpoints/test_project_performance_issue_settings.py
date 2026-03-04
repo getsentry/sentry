@@ -566,7 +566,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert detector.enabled
 
         # Verify LEGACY and WFE settings remain in sync
-        legacy_settings = get_merged_settings(self.project, SettingsMode.LEGACY)
+        legacy_settings = get_merged_settings(self.project, SettingsMode.LEGACY)  # type: ignore[unreachable]
         wfe_settings = get_merged_settings(self.project, SettingsMode.WFE)
         assert legacy_settings["slow_db_queries_detection_enabled"]
         assert wfe_settings["slow_db_queries_detection_enabled"]
@@ -612,7 +612,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert detector.enabled
 
         # Update threshold after re-enabling
-        response = self.get_success_response(
+        response = self.get_success_response(  # type: ignore[unreachable]
             self.project.organization.slug,
             self.project.slug,
             slow_db_query_duration_threshold=5000,
@@ -634,6 +634,36 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == wfe_settings["slow_db_query_duration_threshold"]
             == 5000
         )
+
+    @with_feature("organizations:performance-view")
+    def test_delete_preserves_thresholds_when_no_explicit_enabled_setting(self) -> None:
+        """
+        Test that DELETE preserves thresholds when there's no explicit detection_enabled setting.
+
+        This maintains legacy behavior where "not explicitly set" is treated differently from
+        "explicitly set to default value". If the user never touched the _enabled flag but
+        customized thresholds, we preserve those thresholds conservatively.
+        """
+        # Set only threshold, no explicit detection_enabled setting
+        self.project.update_option(
+            SETTINGS_PROJECT_OPTION_KEY,
+            {
+                "slow_db_query_duration_threshold": 5000,
+                # Note: slow_db_queries_detection_enabled NOT set, uses default True
+            },
+        )
+
+        # Call DELETE
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            method="delete",
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+
+        # Verify threshold was preserved (treated as "disabled" due to no explicit enabled setting)
+        project_settings = self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)
+        assert project_settings["slow_db_query_duration_threshold"] == 5000
 
     @with_feature("organizations:performance-view")
     @with_feature("projects:workflow-engine-performance-detectors")
