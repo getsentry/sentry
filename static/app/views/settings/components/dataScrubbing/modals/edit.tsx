@@ -3,10 +3,7 @@ import type {Rule} from 'sentry/views/settings/components/dataScrubbing/types';
 
 import {DataScrubFormModal, type DataScrubFormModalProps} from './dataScrubFormModal';
 
-type Props = Omit<
-  DataScrubFormModalProps,
-  'title' | 'initialValues' | 'onGetNewRules'
-> & {
+type Props = Omit<DataScrubFormModalProps, 'title' | 'initialState' | 'onGetNewRules'> & {
   rule: Rule;
   savedRules: Rule[];
 };
