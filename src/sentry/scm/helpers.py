@@ -145,8 +145,10 @@ def exec_provider_fn[T](
 
     try:
         result = provider_fn(provider)
-        record_count("sentry.scm.actions.success", 1, {"provider": provider.__class__.__name__})
-        record_count("sentry.scm.actions.success", 1, {"referrer": referrer})
+        record_count(
+            "sentry.scm.actions.success_by_provider", 1, {"provider": provider.__class__.__name__}
+        )
+        record_count("sentry.scm.actions.success_by_referrer", 1, {"referrer": referrer})
         return result
     except SCMError:
         raise

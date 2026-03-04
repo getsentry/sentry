@@ -17,6 +17,6 @@ def test_exec_provider_fn():
     )
     assert result == 42
     assert metrics == [
-        ("sentry.scm.actions.success", 1, {"provider": "BaseTestProvider"}),
-        ("sentry.scm.actions.success", 1, {"referrer": "emerge"}),
+        ("sentry.scm.actions.success_by_provider", 1, {"provider": "BaseTestProvider"}),
+        ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "emerge"}),
     ]

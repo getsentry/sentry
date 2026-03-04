@@ -648,8 +648,8 @@ def test_action_success(method, kwargs: dict[str, Any], check):
     check(method(scm, **kwargs))
 
     assert metrics == [
-        ("sentry.scm.actions.success", 1, {"provider": "BaseTestProvider"}),
-        ("sentry.scm.actions.success", 1, {"referrer": "shared"}),
+        ("sentry.scm.actions.success_by_provider", 1, {"provider": "BaseTestProvider"}),
+        ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"}),
     ]
 
 
