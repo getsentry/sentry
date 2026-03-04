@@ -41,7 +41,7 @@ from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
-from sentry.types.region import Region
+from sentry.types.region import Cell
 from sentry.utils import json
 from sentry.utils.signing import unsign
 
@@ -157,7 +157,7 @@ class SlackRequestParser(BaseRequestParser):
             }
             logger.info("slack.control.view.open.failure", extra=logger_params)
 
-    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
+    def get_async_region_response(self, regions: Sequence[Cell]) -> HttpResponseBase:
         if self.response_url is None:
             return self.get_response_from_control_silo()
 
