@@ -49,29 +49,32 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
+  const letterAvatarProps = {
+    identifier: organization.name || organization.slug,
+    name: organization.name || organization.slug,
+  };
+
   return (
     <DropdownMenu
       trigger={triggerProps => (
         <AvatarButton
           avatar={
-            organization.avatar.avatarType === 'upload'
+            organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
               ? {
                   type: 'upload',
-                  uploadUrl: organization.avatar.avatarUrl ?? '',
-                  identifier: organization.slug,
-                  name: organization.name,
+                  uploadUrl: organization.avatar.avatarUrl,
+                  ...letterAvatarProps,
                 }
-              : organization.avatar.avatarType === 'gravatar'
+              : organization.avatar.avatarType === 'gravatar' &&
+                  organization.avatar.avatarUrl
                 ? {
                     type: 'gravatar',
-                    gravatarId: organization.avatar.avatarUrl ?? '',
-                    identifier: organization.slug,
-                    name: organization.name,
+                    gravatarId: organization.avatar.avatarUrl,
+                    ...letterAvatarProps,
                   }
                 : {
                     type: 'letter_avatar',
-                    identifier: organization.slug,
-                    name: organization.name,
+                    ...letterAvatarProps,
                   }
           }
           size={layout === NavLayout.MOBILE ? 'xs' : 'md'}
