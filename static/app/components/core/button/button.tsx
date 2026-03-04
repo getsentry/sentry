@@ -74,7 +74,8 @@ export function Button({
             {props.children}
           </Flex>
           <BusySpinner
-            data-busy-spinner
+            role="status"
+            aria-label="Busy"
             style={busy ? undefined : {visibility: 'hidden'}}
           />
         </Grid>
