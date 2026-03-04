@@ -34,7 +34,7 @@ const Labels = styled('div')<{compact: boolean}>`
   display: flex;
   ${p => (p.compact ? 'align-items: center;' : '')};
   flex-direction: ${p => (p.compact ? 'row' : 'column')};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   min-width: 0;
   justify-content: center;
 `;

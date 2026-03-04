@@ -6,7 +6,6 @@ import {Grid} from '@sentry/scraps/layout';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconBusiness, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -79,10 +78,10 @@ const Content = styled(EmptyMessage)`
 `;
 
 const StyledButton = styled(Button)`
-  margin: ${space(0.75)};
+  margin: ${p => p.theme.space.sm};
   white-space: nowrap;
 `;
 
 const StyledLearnMoreButton = styled(LearnMoreButton)`
-  margin: ${space(0.75)};
+  margin: ${p => p.theme.space.sm};
 `;

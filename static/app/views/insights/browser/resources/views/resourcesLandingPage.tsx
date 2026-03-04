@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -96,7 +95,7 @@ function PageWithProviders() {
 }
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default PageWithProviders;

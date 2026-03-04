@@ -7,6 +7,7 @@ import {
   waitForDrawerToHide,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {mockMatchMedia} from 'sentry-test/utils';
 
 import type {DrawerConfig} from 'sentry/components/globalDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -33,6 +34,51 @@ describe('GlobalDrawer', () => {
   const ariaLabel = 'drawer-test-aria-label';
   beforeEach(() => {
     jest.resetAllMocks();
+    mockMatchMedia(false);
+  });
+
+  it('locks document scroll on desktop when opening the drawer', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">desktop drawer</DrawerBody>
+          ),
+          options: {ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(document.body).toHaveStyle({
+      position: 'fixed',
+      width: '100%',
+    });
+  });
+
+  it('locks document scroll on mobile when opening the drawer', async () => {
+    mockMatchMedia(true);
+
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">mobile drawer</DrawerBody>
+          ),
+          options: {ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(document.body).toHaveStyle({
+      position: 'fixed',
+      width: '100%',
+    });
   });
 
   it('useDrawer hook can open and close the Drawer', async () => {

@@ -19,7 +19,6 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -302,9 +301,9 @@ export default GroupHeader;
 
 const HeaderRow = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: space-between;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
@@ -320,7 +319,7 @@ const TitleWrapper = styled('div')`
 const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
@@ -329,7 +328,7 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 
 const StatsWrapper = styled('div')`
   display: flex;
-  gap: calc(${space(3)} + ${space(3)});
+  gap: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space['2xl']});
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     justify-content: flex-end;
@@ -339,11 +338,11 @@ const StatsWrapper = styled('div')`
 const IconBadge = styled(Badge)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StyledTabList = styled(TabList)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const PriorityContainer = styled('div')`

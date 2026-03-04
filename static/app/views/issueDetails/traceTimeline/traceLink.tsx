@@ -7,7 +7,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -74,7 +73,7 @@ export function TraceLink({event}: TraceLinkProps) {
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   line-height: 1.2;
   font-size: ${p => p.theme.font.size.md};
 
@@ -86,7 +85,7 @@ const StyledLink = styled(Link)`
 const NoTraceAvailable = styled('span')`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   line-height: 1.2;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};

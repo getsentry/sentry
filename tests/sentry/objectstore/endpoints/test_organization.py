@@ -40,7 +40,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["org:admin"],
+            scope_list=["project:releases"],
         )
 
     def get_endpoint_url(self) -> str:
@@ -177,7 +177,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["org:admin"],
+            scope_list=["project:releases"],
         )
 
     def tearDown(self) -> None:

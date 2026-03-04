@@ -3,16 +3,15 @@ import styled from '@emotion/styled';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import PanelBody from 'sentry/components/panels/panelBody';
-import {space} from 'sentry/styles/space';
 
 export const SubscriptionBody = styled(PanelBody)`
   display: grid;
   grid-auto-flow: column;
   justify-content: space-between;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 
   h3 {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
     font-size: ${p => p.theme.font.size.xl};
     font-weight: 400;
   }
@@ -20,7 +19,7 @@ export const SubscriptionBody = styled(PanelBody)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-auto-columns: 1fr;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
   }
 `;
 
@@ -64,13 +63,13 @@ export const AlertStripedTable = styled(StripedTable)`
 
   td,
   th {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
   }
 `;
 
 export const PanelBodyWithTable = styled(PanelBody)`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(2, 1fr);

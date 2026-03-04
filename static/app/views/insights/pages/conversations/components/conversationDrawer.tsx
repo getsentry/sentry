@@ -294,6 +294,7 @@ function ConversationView({
           replay: null,
           traceId: nodeTraceMap.get(selectedNode.id) ?? '',
           hideNodeActions: true,
+          initiallyCollapseAiIO: true,
         })}
       </DetailsPanel>
     </Flex>

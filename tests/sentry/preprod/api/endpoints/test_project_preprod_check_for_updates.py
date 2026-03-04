@@ -85,6 +85,10 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             "main_binary_identifier": "test-identifier-123",
         }
         defaults.update(kwargs)
+        # Ensure iOS artifacts have valid code signature by default
+        extras = defaults.get("extras") or {}
+        extras.setdefault("is_code_signature_valid", True)
+        defaults["extras"] = extras
         self.preprod_artifact = self.create_preprod_artifact(**defaults)
         self.mobile_app_info = self.create_preprod_artifact_mobile_app_info(
             preprod_artifact=self.preprod_artifact,

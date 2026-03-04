@@ -144,7 +144,7 @@ export default AlertRuleIssuesList;
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 
   ${p =>
     !p.isEmpty &&
@@ -171,7 +171,7 @@ const TitleWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   min-width: 200px;
 `;
 

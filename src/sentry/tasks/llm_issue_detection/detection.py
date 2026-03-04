@@ -321,10 +321,12 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         org_slug=organization_slug,
     )
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_issue_detection_request(
         seer_request,
         timeout=SEER_TIMEOUT_S,
         retries=0,
+        viewer_context=viewer_context,
     )
 
     if response.status == 202:

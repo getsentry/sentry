@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import {space} from 'sentry/styles/space';
 
 export const FilterBarContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export const StyledPageFilterBar = styled(PageFilterBar)`
@@ -18,5 +17,5 @@ export const StyledPageFilterBar = styled(PageFilterBar)`
 export const FilterBarWithSaveAsContainer = styled(Flex)`
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

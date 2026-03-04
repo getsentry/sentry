@@ -171,8 +171,10 @@ function VisualizationWidgetContent({
   const firstWidgetQuery = widget.queries[0];
   const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
+  const fields = firstWidgetQuery?.fields ?? [...columns, ...aggregates];
+  const fieldAliases = firstWidgetQuery?.fieldAliases ?? [];
 
-  const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
+  const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
       const seriesName = series.seriesName ?? aggregates[0] ?? '';
       const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
@@ -181,7 +183,8 @@ function VisualizationWidgetContent({
         aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
         aggregates[0];
 
-      const alias =
+      // This is the query name for the series, aka the legend alias from the UI
+      const queryName =
         widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
         undefined;
 
@@ -191,14 +194,21 @@ function VisualizationWidgetContent({
         timeseriesResultsUnits,
         columns,
         yAxis,
-        alias
+        queryName
       );
 
       if (!timeSeries) {
         return null;
       }
 
-      const labelParts = [alias, formatTimeSeriesLabel(timeSeries)];
+      const fieldIndex = yAxis === undefined ? -1 : fields.indexOf(yAxis);
+      // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
+      const fieldAlias =
+        aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0
+          ? fieldAliases[fieldIndex]
+          : undefined;
+
+      const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
       // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
       if (aggregates.length > 1 && columns.length > 1) {
         labelParts.push(timeSeries.yAxis);

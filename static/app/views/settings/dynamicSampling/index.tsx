@@ -8,7 +8,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   hasDynamicSamplingCustomFeature,
   hasDynamicSamplingFeature,
@@ -110,5 +109,5 @@ export default function DynamicSamplingSettings() {
 }
 
 const Paragraph = styled('p')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;

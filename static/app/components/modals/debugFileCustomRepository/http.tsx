@@ -14,7 +14,6 @@ import {
 } from 'sentry/data/debugFileSources';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
@@ -273,7 +272,7 @@ const ClearPasswordButton = styled(Button)`
   padding: 0;
   position: absolute;
   top: 50%;
-  right: ${space(0.75)};
+  right: ${p => p.theme.space.sm};
   transform: translateY(-50%);
   svg {
     color: ${p => p.theme.colors.gray500};

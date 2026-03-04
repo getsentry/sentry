@@ -5,7 +5,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
@@ -284,5 +283,6 @@ export const ProductUnavailableCTA = withSubscription(ProductUnavailableCTAConta
 });
 
 const AlertWithCustomMargin = styled(Alert)`
-  margin: -${space(3)} -${space(4)} ${space(2)} -${space(4)};
+  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']}
+    ${p => p.theme.space.xl} -${p => p.theme.space['3xl']};
 `;

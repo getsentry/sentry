@@ -7,7 +7,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Deploy as DeployType} from 'sentry/types/release';
 
@@ -88,7 +87,7 @@ const DeployRows = styled('div')`
   display: grid;
   grid-template-columns: minmax(30px, 1fr) 1fr 1fr;
   grid-template-rows: auto;
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
