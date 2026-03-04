@@ -429,7 +429,6 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        min_timestamp = min(span.end_timestamp for span in spans)
         return {compressed}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
