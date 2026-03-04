@@ -197,6 +197,7 @@ describe('useScrollLock', () => {
     expect(document.body).toHaveStyle({right: ''});
     expect(document.body).toHaveStyle({width: ''});
     expect(document.body).toHaveStyle({paddingRight: ''});
+    jest.runAllTimers();
     expect(scrollToSpy).toHaveBeenCalledWith(scrollX, scrollY);
 
     Object.defineProperty(window, 'innerWidth', {
