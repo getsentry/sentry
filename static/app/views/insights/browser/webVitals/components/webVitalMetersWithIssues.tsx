@@ -65,7 +65,7 @@ export default function WebVitalMetersWithIssues({
 
   const renderVitals = () => {
     return ORDER.map((webVital, index) => {
-      const webVitalKey: keyof ProjectData = `p75(measurements.${webVital})`;
+      const webVitalKey = `p75(measurements.${webVital})` as const;
       const score = projectScore[`${webVital}Score`];
       const meterValue = projectData?.[0]?.[webVitalKey];
 
@@ -266,7 +266,7 @@ const getIssuesUrl = ({
 };
 
 const Container = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Flex = styled('div')<{gap?: number}>`
@@ -282,10 +282,10 @@ const Flex = styled('div')<{gap?: number}>`
 // Issues Button starts to overlap with meter text at 1500px
 const StyledIssuesButton = styled(LinkButton)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
 
   @media (max-width: 1500px) {
-    bottom: ${space(1)};
+    bottom: ${p => p.theme.space.md};
   }
 `;
 
@@ -311,7 +311,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)} 0 ${space(0.5)} 0;
+  padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.xs} 0;
 `;
 
 const MeterHeader = styled('div')`
@@ -320,7 +320,7 @@ const MeterHeader = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   width: 100%;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   align-items: center;
   white-space: nowrap;
 `;
@@ -333,8 +333,8 @@ const MeterValueText = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
-  padding: 0 ${space(1)};
-  gap: ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
   height: 30px;
 
   @media (max-width: 1500px) {
@@ -357,5 +357,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;

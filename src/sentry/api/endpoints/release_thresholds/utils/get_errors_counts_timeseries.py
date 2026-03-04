@@ -13,21 +13,19 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
-from sentry.models.organization import Organization
-from sentry.models.project import Project
+from sentry.search.eap.occurrences.query_utils import (
+    build_escaped_term_filter,
+    build_snuba_params_from_ids,
+    keyed_counts_subset_match,
+)
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 
 logger = logging.getLogger(__name__)
-
-
-def _escape_search_query_value(value: str) -> str:
-    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def get_errors_counts_timeseries_by_project_and_release(
@@ -64,7 +62,16 @@ def get_errors_counts_timeseries_by_project_and_release(
             eap_results,
             "release_thresholds.get_errors_counts_timeseries",
             is_experimental_data_a_null_result=len(eap_results) == 0,
-            reasonable_match_comparator=_reasonable_timeseries_match,
+            reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
+                snuba_rows,
+                eap_rows,
+                key_fn=lambda row: (
+                    row["release"],
+                    int(row["project_id"]),
+                    row["environment"],
+                    row["time"],
+                ),
+            ),
             debug_context={
                 "organization_id": organization_id,
                 "project_ids": project_id_list,
@@ -137,45 +144,31 @@ def _get_errors_counts_timeseries_eap(
     if not release_value_list:
         return []
 
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
+    snuba_params = build_snuba_params_from_ids(
+        organization_id=organization_id,
+        project_ids=project_id_list,
+        start=start,
+        end=end,
+        granularity_secs=60,
+    )
+    if snuba_params is None:
         logger.warning(
-            "Organization not found for EAP error counts timeseries query",
-            extra={"organization_id": organization_id},
+            "Organization or projects not found for EAP error counts timeseries query",
+            extra={"organization_id": organization_id, "project_ids": project_id_list},
         )
-        return []
-
-    projects = list(Project.objects.filter(id__in=project_id_list, organization_id=organization_id))
-    if not projects:
         return []
 
     query_parts: list[str] = []
 
-    escaped_releases = [_escape_search_query_value(value) for value in release_value_list]
-    if len(escaped_releases) == 1:
-        query_parts.append(f'release:"{escaped_releases[0]}"')
-    else:
-        release_filter = ", ".join([f'"{release}"' for release in escaped_releases])
-        query_parts.append(f"release:[{release_filter}]")
+    release_filter = build_escaped_term_filter("release", release_value_list)
+    if release_filter:
+        query_parts.append(release_filter)
 
-    if environments_list:
-        escaped_environments = [_escape_search_query_value(value) for value in environments_list]
-        if len(escaped_environments) == 1:
-            query_parts.append(f'environment:"{escaped_environments[0]}"')
-        else:
-            env_filter = ", ".join([f'"{environment}"' for environment in escaped_environments])
-            query_parts.append(f"environment:[{env_filter}]")
+    environment_filter = build_escaped_term_filter("environment", environments_list or [])
+    if environment_filter:
+        query_parts.append(environment_filter)
 
     query_string = " ".join(query_parts)
-
-    snuba_params = SnubaParams(
-        start=start,
-        end=end,
-        organization=organization,
-        projects=projects,
-        granularity_secs=60,
-    )
 
     try:
         timeseries_results = Occurrences.run_grouped_timeseries_query(
@@ -218,25 +211,3 @@ def _get_errors_counts_timeseries_eap(
             },
         )
         return []
-
-
-def _reasonable_timeseries_match(
-    snuba_results: list[dict[str, Any]], eap_results: list[dict[str, Any]]
-) -> bool:
-    snuba_by_key = {
-        (row["release"], int(row["project_id"]), row["environment"], row["time"]): int(
-            row["count()"]
-        )
-        for row in snuba_results
-    }
-    eap_by_key = {
-        (row["release"], int(row["project_id"]), row["environment"], row["time"]): int(
-            row["count()"]
-        )
-        for row in eap_results
-    }
-
-    if not set(eap_by_key).issubset(set(snuba_by_key)):
-        return False
-
-    return all(eap_count <= snuba_by_key[key] for key, eap_count in eap_by_key.items())

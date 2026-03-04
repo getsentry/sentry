@@ -18,7 +18,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
@@ -262,7 +261,7 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   position: relative;
   height: 24px;
   overflow: hidden;
@@ -295,7 +294,7 @@ const LearnMoreWrapper = styled('div')`
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
@@ -306,14 +305,14 @@ const LearnMoreWrapper = styled('div')`
   );
 
   p {
-    margin: 0 0 ${space(0.5)} 0;
+    margin: 0 0 ${p => p.theme.space.xs} 0;
   }
 `;
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1.5)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.lg};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

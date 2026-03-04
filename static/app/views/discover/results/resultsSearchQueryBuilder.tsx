@@ -269,7 +269,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
     },
     {}
   );
-  const featureFlagTags: TagCollection = useMemo(
+  const featureFlagTags = useMemo(
     () =>
       featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {
         const key = makeFeatureFlagSearchKey(tag.key);
@@ -279,7 +279,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
     [featureFlagsQuery.data]
   );
 
-  const getTagList: TagCollection = useMemo(() => {
+  const getTagList = useMemo(() => {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 

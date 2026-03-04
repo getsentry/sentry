@@ -20,7 +20,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -290,7 +289,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 const OpenInButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;

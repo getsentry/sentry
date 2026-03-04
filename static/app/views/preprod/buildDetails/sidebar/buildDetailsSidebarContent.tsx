@@ -45,7 +45,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         />
       )}
 
-      <BuildVcsInfo buildDetailsData={buildDetailsData} projectId={projectId} />
+      <BuildVcsInfo buildDetailsData={buildDetailsData} />
     </Flex>
   );
 }

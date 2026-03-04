@@ -174,7 +174,7 @@ function VisualizationWidgetContent({
   const fields = firstWidgetQuery?.fields ?? [...columns, ...aggregates];
   const fieldAliases = firstWidgetQuery?.fieldAliases ?? [];
 
-  const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
+  const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
       const seriesName = series.seriesName ?? aggregates[0] ?? '';
       const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);

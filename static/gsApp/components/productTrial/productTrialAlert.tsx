@@ -266,7 +266,7 @@ const TrialAlert = styled(Alert)`
 const Heading = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   h4 {
     margin: 0;

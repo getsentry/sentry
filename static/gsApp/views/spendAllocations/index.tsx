@@ -98,7 +98,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
     return [start, end];
   }, [viewNextPeriod, subscription]);
 
-  const currentRootAllocations: SpendAllocation[] = useMemo(() => {
+  const currentRootAllocations = useMemo(() => {
     // Return all root allocations that overlap with the selected period
     const [periodStart, periodEnd] = period;
     return rootAllocations.filter(
@@ -111,7 +111,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
     );
   }, [rootAllocations, period]);
 
-  const currentAllocations: SpendAllocation[] = useMemo(() => {
+  const currentAllocations = useMemo(() => {
     // Return all project allocations that overlap with the selected period
     const [periodStart, periodEnd] = period;
     return spendAllocations.filter(
@@ -124,7 +124,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
     );
   }, [spendAllocations, period]);
 
-  const rootAllocationForMetric: SpendAllocation | undefined = useMemo(() => {
+  const rootAllocationForMetric = useMemo(() => {
     const root = currentRootAllocations.find(
       a => a.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name
     );
