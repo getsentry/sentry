@@ -92,8 +92,9 @@ class FrameworkDef(TypedDict):
 
 # Each framework is a self-contained definition with composable detector rules.
 #
-# The `sort` field controls priority for onboarding recommendations.
+# The `sort` field controls priority within a language group for onboarding.
 # Lower sort = higher priority. Converted to `priority = 100 - sort` in output.
+# Across languages, byte count (language majority) is the primary ranking factor.
 #
 #   sort=1      Meta-frameworks         Next.js, Remix, Nuxt, SvelteKit
 #   sort=10     Primary frameworks      Django, Rails, Laravel, Spring Boot
@@ -485,7 +486,7 @@ def detect_platforms(
     2. Manifest content — path + match_content rules (requirements.txt, go.mod, etc.)
     3. Package dependencies — match_package rules (package.json, composer.json)
 
-    Results are ranked by priority (descending), then bytes (descending).
+    Results are ranked by bytes (descending), then priority (descending).
     Superseded frameworks (e.g. React when Next.js is present) are removed.
     """
     languages = client.get_languages(repo)
@@ -572,6 +573,6 @@ def detect_platforms(
             )
 
     results = _apply_supersession(results)
-    results.sort(key=lambda r: (r["priority"], r["bytes"]), reverse=True)
+    results.sort(key=lambda r: (r["bytes"], r["priority"]), reverse=True)
 
     return results

@@ -552,7 +552,7 @@ class TestDetectPlatforms:
         python_result = next(r for r in result if r["platform"] == "python")
         assert python_result["confidence"] == "medium"
 
-    def test_results_sorted_by_priority_then_bytes(self) -> None:
+    def test_results_sorted_by_bytes_then_priority(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"Python": 80000, "JavaScript": 30000}
 
@@ -574,11 +574,11 @@ class TestDetectPlatforms:
 
         result = detect_platforms(client, "owner/repo")
 
-        # Next.js (priority=99) > Flask (priority=80) > base platforms (priority=1)
+        # Python (80k bytes) > JavaScript (30k bytes); language majority wins
         platforms = [r["platform"] for r in result]
-        nextjs_idx = platforms.index("javascript-nextjs")
         flask_idx = platforms.index("python-flask")
-        assert nextjs_idx < flask_idx
+        nextjs_idx = platforms.index("javascript-nextjs")
+        assert flask_idx < nextjs_idx
 
     def test_nextjs_supersedes_react_in_full_flow(self) -> None:
         client = mock.MagicMock()
@@ -1053,7 +1053,7 @@ class TestDetectPlatformsMultiStack:
         ts_results = [r for r in result if r["language"] == "TypeScript"]
         assert ts_results == []
 
-        # Priority ordering: meta-frameworks first, then primary, then utilities, then base
+        # Priority ordering within a language: meta-frameworks > primary > utilities > base
         nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
         django = next(r for r in result if r["platform"] == "python-django")
         celery = next(r for r in result if r["platform"] == "python-celery")
@@ -1063,7 +1063,7 @@ class TestDetectPlatformsMultiStack:
         assert celery["priority"] > python_base["priority"]
         assert python_base["priority"] == 1
 
-        # Results are sorted by (priority, bytes) descending
+        # Results are sorted by (bytes, priority) descending — language majority first
         for i in range(len(result) - 1):
             a, b = result[i], result[i + 1]
-            assert (a["priority"], a["bytes"]) >= (b["priority"], b["bytes"])
+            assert (a["bytes"], a["priority"]) >= (b["bytes"], b["priority"])
