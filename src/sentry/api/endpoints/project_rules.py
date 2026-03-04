@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Literal
 
 from django.conf import settings
@@ -44,7 +44,10 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowVa
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
 )
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
+    translate_to_data_condition_data,
+)
+from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
@@ -703,12 +706,10 @@ def format_request_data(
     triggers = {"logicType": data.get("actionMatch", "any-short"), "conditions": []}
     # TODO do I need to always change 'any' to 'any-short'?
     for condition in data.get("conditions"):
-        translated_condition = {
-            # "type": condition.get("id"), # TODO translate this, e.g. "sentry.rules.conditions.regression_event.RegressionEventCondition" -> Condition.REGRESSION_EVENT.value
-            "type": "regression_event",
-            "comparison": True,  # ????
-            "conditionResult": True,  # ???
-        }
+        translated_condition = asdict(
+            translate_to_data_condition_data(condition, DataConditionGroup())
+        )  # pass a fake DCG
+        translated_condition.pop("condition_group")
         triggers["conditions"].append(translated_condition)
 
     workflow_payload["triggers"] = triggers
