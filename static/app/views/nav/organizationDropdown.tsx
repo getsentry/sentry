@@ -50,7 +50,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   const letterAvatarProps = {
-    identifier: organization.name || organization.slug,
+    identifier: organization.slug,
     name: organization.name || organization.slug,
   };
 
