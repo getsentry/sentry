@@ -83,7 +83,7 @@ class DetectorRule(TypedDict, total=False):
 
 class FrameworkDef(TypedDict):
     platform: str  # Sentry platform ID, e.g. "javascript-nextjs"
-    sort: int  # Lower = higher priority (Vercel convention)
+    sort: int  # Lower = higher priority
     base_platform: str  # Language group, e.g. "javascript"
     every: NotRequired[list[DetectorRule]]  # ALL must match (AND)
     some: NotRequired[list[DetectorRule]]  # At least ONE must match (OR)
@@ -91,8 +91,6 @@ class FrameworkDef(TypedDict):
 
 
 # Each framework is a self-contained definition with composable detector rules.
-# Inspired by Vercel's framework detection:
-# github.com/vercel/vercel/blob/main/packages/frameworks/src/frameworks.ts
 #
 # The `sort` field controls priority for onboarding recommendations.
 # Lower sort = higher priority. Converted to `priority = 100 - sort` in output.
@@ -486,8 +484,7 @@ def detect_platforms(
     """
     Detect Sentry platforms for a GitHub repository.
 
-    Uses composable framework definitions (inspired by Vercel's detection)
-    with three signal types:
+    Uses composable framework definitions with three signal types:
     1. Config files — path-only rules (next.config.js, manage.py, etc.)
     2. Manifest content — path + match_content rules (requirements.txt, go.mod, etc.)
     3. Package dependencies — match_package rules (package.json, composer.json)
