@@ -3,6 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {Event, ExceptionValue} from 'sentry/types/event';
 
+import {ExceptionHeader} from './exceptionHeader';
 import {StackTraceProvider, StackTraceSharedViewProvider} from './stackTraceProvider';
 
 interface ChainedStackTraceProps {
@@ -32,9 +33,17 @@ export function ChainedStackTrace({
               {exc.type}: {exc.value}
             </Disclosure.Title>
             <Disclosure.Content>
-              <StackTraceProvider event={event} stacktrace={exc.stacktrace!}>
-                <StackTraceProvider.Frames />
-              </StackTraceProvider>
+              <Flex direction="column" gap="md">
+                <ExceptionHeader
+                  type={exc.type}
+                  value={exc.value}
+                  module={exc.module}
+                  mechanism={exc.mechanism}
+                />
+                <StackTraceProvider event={event} stacktrace={exc.stacktrace!}>
+                  <StackTraceProvider.Frames />
+                </StackTraceProvider>
+              </Flex>
             </Disclosure.Content>
           </Disclosure>
         ))}

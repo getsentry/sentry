@@ -1,50 +1,37 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
   getLeadHint,
   getPlatform,
   isDotnet,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
-import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {
+  StackTraceFrameHoverContext,
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconChevron, IconFix, IconQuestion, IconRefresh} from 'sentry/icons';
+import {IconQuestion, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
+import {ChevronAction} from './actions/chevron';
+import {HiddenFramesToggleAction} from './actions/hiddenFramesToggle';
+import {SourceLinkAction} from './actions/sourceLink';
+import {SourceMapsDebuggerAction} from './actions/sourceMapsDebugger';
+
 const LONG_PATH_BREAK_THRESHOLD = 80;
-const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(160px, 18vw, 220px)';
-const HOVER_ACTIONS_SLOT_HEIGHT = 24;
-const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
-  '.js',
-  '.mjs',
-  '.cjs',
-  '.jsbundle',
-  '.bundle',
-  '.hbc',
-  '.js.gz',
-];
 const STACKTRACE_INTERACTIVE_SELECTOR = '[data-stacktrace-interactive="true"]';
 
 function isInteractiveClickTarget(target: EventTarget | null): boolean {
@@ -69,36 +56,40 @@ function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
   return frame.filename ?? frame.module ?? '';
 }
 
-export function FrameHeader() {
+function DefaultActions() {
+  const {frame} = useStackTraceFrameContext();
+  return (
+    <Fragment>
+      <SourceLinkAction />
+      <SourceMapsDebuggerAction />
+      <HiddenFramesToggleAction />
+      {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
+      <ChevronAction />
+    </Fragment>
+  );
+}
+
+interface FrameHeaderProps {
+  /**
+   * Custom trailing actions. When provided, replaces the default
+   * SourceLink + SourceMapsDebugger + HiddenFramesToggle + InApp tag + Chevron set.
+   */
+  actions?: React.ReactNode;
+}
+
+export function FrameHeader({actions}: FrameHeaderProps) {
   const [isHovering, setIsHovering] = useState(false);
   const {
     event,
     frame,
-    frameContextId,
-    frameIndex,
-    hiddenFrameCount,
-    hiddenFramesExpanded,
     isExpandable,
     isExpanded,
     nextFrame,
     platform,
     timesRepeated,
     toggleExpansion,
-    toggleHiddenFrames,
   } = useStackTraceFrameContext();
-  const {
-    components,
-    frameSourceMapDebuggerData,
-    hideSourceMapDebugger,
-    lockAddress,
-    threadId,
-  } = useStackTraceContext();
-  const organization = useOrganization({allowNull: true});
-  const {projects} = useProjects();
-  const project = useMemo(
-    () => projects.find(candidate => candidate.id === event.projectID),
-    [event.projectID, projects]
-  );
+  const {lockAddress, threadId} = useStackTraceContext();
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const frameDisplayPath = getFrameDisplayPath(frame, platform);
   const frameFunctionName = frame.function ?? frame.rawFunction;
@@ -111,263 +102,133 @@ export function FrameHeader() {
     (hasFrameFunction || frame.lineNo !== undefined || showPackage);
   const framePathTooltip =
     frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
-  const sourceMapInfoText = (frame.mapUrl ?? frame.map) as string | undefined;
+  const sourceMapInfoText = frame.mapUrl ?? frame.map;
   const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
-  const contextLine = frame.context?.find(([lineNumber]) => lineNumber === frame.lineNo);
-  const frameSourceResolutionResults = frameSourceMapDebuggerData?.[frameIndex];
-  const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
-      ending =>
-        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
-    );
-  const shouldShowSourceMapDebuggerButton =
-    !(frame.context?.length ?? 0) &&
-    !hideSourceMapDebugger &&
-    frame.inApp &&
-    frameHasValidFileEndingForSourceMapDebugger &&
-    !!frameSourceResolutionResults &&
-    !frameSourceResolutionResults.frameIsResolved;
-  const sourceMapDebuggerAnalytics = {
-    organization: organization ?? null,
-    project_id: event.projectID,
-    event_id: event.id,
-    event_platform: event.platform,
-    sdk_name: event.sdk?.name,
-    sdk_version: event.sdk?.version,
-  };
-  const frameCanShowActions =
-    !!frame.filename && (frame.inApp || event.platform === 'csharp');
-  const canShowFrameActions = frameCanShowActions && (isExpanded || isHovering);
-  const showCodeMappingLink =
-    canShowFrameActions && !!project && !shouldShowSourceMapDebuggerButton;
-  const showSentryAppStacktraceLink = canShowFrameActions && components.length > 0;
   const mechanism =
     platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const anrCulprit =
-    isANR && analyzeFrameForRootCause(frame, getThreadById(event, threadId), lockAddress);
+  const anrCulprit = useMemo(
+    () =>
+      isANR
+        ? analyzeFrameForRootCause(frame, getThreadById(event, threadId), lockAddress)
+        : false,
+    [event, frame, isANR, lockAddress, threadId]
+  );
 
   return (
-    <FrameHeaderContainer
-      data-test-id="core-stacktrace-frame-title"
-      isExpandable={isExpandable}
-      onClick={mouseEvent => {
-        if (!isExpandable || isInteractiveClickTarget(mouseEvent.target)) {
-          return;
-        }
+    <StackTraceFrameHoverContext.Provider value={{isHovering}}>
+      <FrameHeaderContainer
+        data-test-id="core-stacktrace-frame-title"
+        isExpandable={isExpandable}
+        onClick={mouseEvent => {
+          if (!isExpandable || isInteractiveClickTarget(mouseEvent.target)) {
+            return;
+          }
 
-        toggleExpansion();
-      }}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      <FrameHeaderMain direction="column" align="start" flex="1" gap="2xs" minWidth={0}>
-        <FrameTitle>
-          {!isExpanded && leadsToApp ? (
-            <FrameLeadHint as="span" size="xs" variant="muted">
-              {getLeadHint({event, hasNextFrame: !!nextFrame})}
-              {': '}
-            </FrameLeadHint>
-          ) : null}
-          <Tooltip title={framePathTooltip} disabled={!framePathTooltip} maxWidth={750}>
-            <FrameTitleFilename
-              data-test-id="filename"
-              data-truncate-left={shouldTruncateFilenameLeft}
-              truncateLeft={shouldTruncateFilenameLeft}
-            >
-              <span>{frameDisplayPath}</span>
-            </FrameTitleFilename>
-          </Tooltip>
-          {shouldShowSourceMapInfo ? (
-            <Tooltip
-              title={
-                <SourceMapTooltipContent>
-                  <strong>{t('Source Map')}</strong>
-                  <span>{sourceMapInfoText}</span>
-                </SourceMapTooltipContent>
-              }
-              maxWidth={400}
-            >
-              <SourceMapInfoTrigger
-                data-test-id="core-stacktrace-source-map-info"
-                data-stacktrace-interactive="true"
+          toggleExpansion();
+        }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <FrameHeaderMain direction="column" align="start" flex="1" gap="2xs" minWidth={0}>
+          <FrameTitle>
+            {!isExpanded && leadsToApp ? (
+              <FrameLeadHint as="span" size="xs" variant="muted">
+                {getLeadHint({event, hasNextFrame: !!nextFrame})}
+                {': '}
+              </FrameLeadHint>
+            ) : null}
+            <Tooltip title={framePathTooltip} disabled={!framePathTooltip} maxWidth={750}>
+              <FrameTitleFilename
+                data-test-id="filename"
+                data-truncate-left={shouldTruncateFilenameLeft}
+                truncateLeft={shouldTruncateFilenameLeft}
               >
-                <IconQuestion size="xs" />
-              </SourceMapInfoTrigger>
+                <span>{frameDisplayPath}</span>
+              </FrameTitleFilename>
             </Tooltip>
-          ) : null}
-          <FrameTitleMeta
-            data-test-id="core-stacktrace-frame-meta"
-            data-force-newline={shouldBreakFrameMetaLine}
-            forceNewLine={shouldBreakFrameMetaLine}
-          >
-            {hasFrameFunction ? (
-              <FrameTitleHint as="span" size="sm" variant="muted">
-                {`${t('in')} `}
-              </FrameTitleHint>
+            {shouldShowSourceMapInfo ? (
+              <Tooltip
+                title={
+                  <SourceMapTooltipContent>
+                    <strong>{t('Source Map')}</strong>
+                    <span>{sourceMapInfoText}</span>
+                  </SourceMapTooltipContent>
+                }
+                maxWidth={400}
+              >
+                <SourceMapInfoTrigger
+                  data-test-id="core-stacktrace-source-map-info"
+                  data-stacktrace-interactive="true"
+                >
+                  <IconQuestion size="xs" />
+                </SourceMapInfoTrigger>
+              </Tooltip>
             ) : null}
-            {hasFrameFunction ? (
-              <FrameTitleFunction data-test-id="function">
-                {frameFunctionName}
-              </FrameTitleFunction>
-            ) : null}
-            {frame.lineNo ? (
-              <FrameLineMeta>
+            <FrameTitleMeta
+              data-test-id="core-stacktrace-frame-meta"
+              forceNewLine={shouldBreakFrameMetaLine}
+            >
+              {hasFrameFunction ? (
                 <FrameTitleHint as="span" size="sm" variant="muted">
-                  {`${t('at line')} `}
+                  {`${t('in')} `}
                 </FrameTitleHint>
-                <FrameTitleName>
-                  {frame.colNo ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
-                </FrameTitleName>
-              </FrameLineMeta>
-            ) : null}
-            {showPackage ? (
-              <FrameLineMeta>
-                <FrameTitleHint as="span" size="sm" variant="muted">
-                  {`${t('within')} `}
-                </FrameTitleHint>
-                <FrameTitleName>{trimPackage(frame.package ?? '')}</FrameTitleName>
-              </FrameLineMeta>
-            ) : null}
-          </FrameTitleMeta>
-        </FrameTitle>
-      </FrameHeaderMain>
+              ) : null}
+              {hasFrameFunction ? (
+                <FrameTitleFunction data-test-id="function">
+                  {frameFunctionName}
+                </FrameTitleFunction>
+              ) : null}
+              {frame.lineNo ? (
+                <FrameLineMeta>
+                  <FrameTitleHint as="span" size="sm" variant="muted">
+                    {`${t('at line')} `}
+                  </FrameTitleHint>
+                  <FrameTitleName>
+                    {frame.colNo ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
+                  </FrameTitleName>
+                </FrameLineMeta>
+              ) : null}
+              {showPackage ? (
+                <FrameLineMeta>
+                  <FrameTitleHint as="span" size="sm" variant="muted">
+                    {`${t('within')} `}
+                  </FrameTitleHint>
+                  <FrameTitleName>{trimPackage(frame.package!)}</FrameTitleName>
+                </FrameLineMeta>
+              ) : null}
+            </FrameTitleMeta>
+          </FrameTitle>
+        </FrameHeaderMain>
 
-      <FrameHeaderRight gap="xs" align="center">
-        {frame.inApp ? null : <Tag variant="muted">{t('System')}</Tag>}
-        <RepeatsIndicator timesRepeated={timesRepeated} />
-        {anrCulprit ? (
-          <Tag
-            variant="warning"
-            data-stacktrace-interactive="true"
-            onClick={mouseEvent => {
-              mouseEvent.stopPropagation();
-              document
-                .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
-                ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-            }}
-          >
-            {t('Suspect Frame')}
-          </Tag>
-        ) : null}
-
-        <FrameHeaderTrailing
-          data-test-id="core-stacktrace-frame-trailing"
-          gap="xs"
-          align="center"
-        >
-          <FrameActions
-            reserveSpace={frameCanShowActions}
-            data-test-id="core-stacktrace-frame-actions-slot"
-          >
-            {showCodeMappingLink ? (
-              <span data-stacktrace-interactive="true">
-                <StacktraceLink
-                  frame={frame}
-                  line={contextLine?.[1] ?? ''}
-                  event={event}
-                  disableSetup={false}
-                />
-              </span>
-            ) : null}
-
-            {showSentryAppStacktraceLink ? (
-              <span data-stacktrace-interactive="true">
-                <OpenInContextLine
-                  lineNo={frame.lineNo ?? null}
-                  filename={frame.filename ?? ''}
-                  components={components}
-                />
-              </span>
-            ) : null}
-          </FrameActions>
-
-          {shouldShowSourceMapDebuggerButton && frameSourceResolutionResults ? (
-            <Button
-              size="zero"
-              priority="default"
+        <FrameHeaderRight gap="xs" align="center">
+          {frame.inApp ? null : <Tag variant="muted">{t('System')}</Tag>}
+          <RepeatsIndicator timesRepeated={timesRepeated} />
+          {anrCulprit ? (
+            <Tag
+              variant="warning"
               data-stacktrace-interactive="true"
               onClick={mouseEvent => {
                 mouseEvent.stopPropagation();
-                trackAnalytics(
-                  'source_map_debug_blue_thunder.modal_opened',
-                  sourceMapDebuggerAnalytics
-                );
-
-                openModal(
-                  modalProps => (
-                    <SourceMapsDebuggerModal
-                      analyticsParams={sourceMapDebuggerAnalytics}
-                      sourceResolutionResults={frameSourceResolutionResults}
-                      organization={organization ?? undefined}
-                      projectId={event.projectID}
-                      {...modalProps}
-                    />
-                  ),
-                  {
-                    modalCss: css`
-                      max-width: 800px;
-                      width: 100%;
-                    `,
-                    onClose: () => {
-                      trackAnalytics(
-                        'source_map_debug_blue_thunder.modal_closed',
-                        sourceMapDebuggerAnalytics
-                      );
-                    },
-                  }
-                );
+                document
+                  .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
+                  ?.scrollIntoView({block: 'start', behavior: 'smooth'});
               }}
             >
-              <UnminifyActionContent>
-                <IconFix size="xs" />
-                <span>{t('Unminify Code')}</span>
-              </UnminifyActionContent>
-            </Button>
+              {t('Suspect Frame')}
+            </Tag>
           ) : null}
 
-          {hiddenFrameCount ? (
-            <Button
-              size="zero"
-              priority="transparent"
-              data-stacktrace-interactive="true"
-              onClick={() => toggleHiddenFrames()}
-            >
-              {hiddenFramesExpanded
-                ? t('Hide %s frames', hiddenFrameCount)
-                : t('Show %s more frames', hiddenFrameCount)}
-            </Button>
-          ) : null}
-
-          {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-
-          {isExpandable ? (
-            <ChevronToggle
-              type="button"
-              aria-label={isExpanded ? t('Collapse frame') : t('Expand frame')}
-              aria-controls={frameContextId}
-              aria-expanded={isExpanded}
-              data-test-id="core-stacktrace-chevron-toggle"
-              data-stacktrace-interactive="true"
-              onKeyDown={keyboardEvent => {
-                if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
-                  keyboardEvent.preventDefault();
-                }
-              }}
-              onKeyUp={keyboardEvent => {
-                if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
-                  keyboardEvent.preventDefault();
-                  toggleExpansion();
-                }
-              }}
-              onClick={() => toggleExpansion()}
-            >
-              <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
-            </ChevronToggle>
-          ) : null}
-        </FrameHeaderTrailing>
-      </FrameHeaderRight>
-    </FrameHeaderContainer>
+          <FrameHeaderTrailing
+            data-test-id="core-stacktrace-frame-trailing"
+            gap="xs"
+            align="center"
+          >
+            {actions ?? <DefaultActions />}
+          </FrameHeaderTrailing>
+        </FrameHeaderRight>
+      </FrameHeaderContainer>
+    </StackTraceFrameHoverContext.Provider>
   );
 }
 
@@ -396,7 +257,7 @@ const FrameHeaderContainer = styled(Flex)<{isExpandable: boolean}>`
   width: 100%;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   text-align: left;
-  padding: ${p => `${p.theme.space.md} ${p.theme.space.md}`};
+  padding: ${p => p.theme.space.md};
   background: ${p => p.theme.tokens.background.tertiary};
 
   &:hover {
@@ -433,56 +294,6 @@ const FrameHeaderTrailing = styled(Flex)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
     justify-content: flex-end;
-  }
-`;
-
-const ChevronToggle = styled('button')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
-  border: 0;
-  border-radius: ${p => p.theme.radius.md};
-  background: transparent;
-  color: inherit;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-  pointer-events: auto;
-
-  svg {
-    pointer-events: none;
-  }
-`;
-
-const FrameActions = styled(Flex)<{reserveSpace: boolean}>`
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  justify-content: flex-end;
-  width: ${p => (p.reserveSpace ? HOVER_ACTIONS_SLOT_WIDTH : '0')};
-  flex: ${p => (p.reserveSpace ? `0 0 ${HOVER_ACTIONS_SLOT_WIDTH}` : '0 0 0')};
-  height: ${p => (p.reserveSpace ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0')};
-  min-height: ${p => (p.reserveSpace ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0')};
-  overflow: hidden;
-  white-space: nowrap;
-  pointer-events: none;
-
-  > * {
-    pointer-events: auto;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    width: auto;
-    flex: 0 1 auto;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
   }
 `;
 
@@ -595,10 +406,4 @@ const SourceMapInfoTrigger = styled('span')`
   align-items: center;
   margin-left: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const UnminifyActionContent = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;

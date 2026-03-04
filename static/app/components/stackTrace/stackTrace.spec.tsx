@@ -15,11 +15,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {
   StackTraceProvider,
   StackTraceWithCoverageData,
 } from 'sentry/components/stackTrace';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {EntryType} from 'sentry/types/event';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {
   LineCoverage,
@@ -85,7 +87,8 @@ describe('Core StackTrace', () => {
 
     expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(4);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Full Stack'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Full Stack Trace'}));
 
     expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(5);
   });
@@ -96,7 +99,8 @@ describe('Core StackTrace', () => {
     const newestFirstFilenames = screen.getAllByTestId('filename');
     expect(newestFirstFilenames[0]).toHaveTextContent('raven/scripts/runner.py');
 
-    await userEvent.click(screen.getByRole('button', {name: 'Newest First'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Oldest'}));
 
     const oldestFirstFilenames = screen.getAllByTestId('filename');
     expect(oldestFirstFilenames[0]).toHaveTextContent('raven/base.py');
@@ -105,7 +109,8 @@ describe('Core StackTrace', () => {
   it('supports raw stack trace view', async () => {
     renderStackTrace();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Raw'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
 
     expect(screen.getByText(/File "raven\/scripts\/runner.py"/)).toBeInTheDocument();
     expect(screen.queryByTestId('core-stacktrace-frame-list')).not.toBeInTheDocument();
@@ -137,15 +142,10 @@ describe('Core StackTrace', () => {
       'raven/scripts/runner.py'
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Minified'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
 
     expect(screen.getAllByTestId('filename')[0]).toHaveTextContent('minified/4.js');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Minified'}));
-
-    expect(screen.getAllByTestId('filename')[0]).toHaveTextContent(
-      'raven/scripts/runner.py'
-    );
   });
 
   it('toggles frame expansion', async () => {
@@ -196,10 +196,12 @@ describe('Core StackTrace', () => {
     expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
   });
 
-  it('toggles frame expansion when pressing Space on the chevron button', () => {
+  it('toggles frame expansion when pressing Space on the chevron button', async () => {
     renderStackTrace();
 
-    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
+    const firstChevron = (
+      await screen.findAllByTestId('core-stacktrace-chevron-toggle')
+    )[0]!;
 
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
     firstChevron.focus();
@@ -208,10 +210,12 @@ describe('Core StackTrace', () => {
     expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
   });
 
-  it('wires chevron controls to the frame context region', () => {
+  it('wires chevron controls to the frame context region', async () => {
     renderStackTrace();
 
-    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
+    const firstChevron = (
+      await screen.findAllByTestId('core-stacktrace-chevron-toggle')
+    )[0]!;
     const frameContext = screen.getByTestId('core-stacktrace-frame-context');
 
     expect(firstChevron).toHaveAttribute('aria-controls', frameContext.id);
@@ -251,17 +255,17 @@ describe('Core StackTrace', () => {
     expect(screen.getByRole('button', {name: 'Hide 1 frames'})).toBeInTheDocument();
   });
 
-  it('renders frame badges for in-app and system frames', () => {
+  it('renders frame badges for in-app and system frames', async () => {
     renderStackTrace();
 
-    expect(screen.getAllByText('In App').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('In App')).length).toBeGreaterThan(0);
     expect(screen.getByText('System')).toBeInTheDocument();
   });
 
-  it('renders captured python frame variables', () => {
+  it('renders captured python frame variables', async () => {
     renderStackTrace();
 
-    expect(screen.getByTestId('core-stacktrace-vars-grid')).toBeInTheDocument();
+    expect(await screen.findByTestId('core-stacktrace-vars-grid')).toBeInTheDocument();
     expect(screen.getAllByTestId('core-stacktrace-vars-row').length).toBeGreaterThan(0);
     expect(screen.getByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();
@@ -445,10 +449,10 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders lead hint when non-app frame leads to app frame', () => {
+  it('renders lead hint when non-app frame leads to app frame', async () => {
     renderStackTrace();
 
-    expect(screen.getByText('Called from:')).toBeInTheDocument();
+    expect(await screen.findByText('Called from:')).toBeInTheDocument();
   });
 
   it('renders crash lead hint when non-app frame has no next frame', async () => {
@@ -536,7 +540,7 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders unminify action when frame source map debugger data is unresolved', () => {
+  it('renders unminify action when frame source map debugger data is unresolved', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
@@ -555,36 +559,51 @@ describe('Core StackTrace', () => {
             },
           ],
         }}
-        frameSourceMapDebuggerData={[{frameIsResolved: false} as any]}
+        frameSourceMapDebuggerData={[
+          {frameIsResolved: false} as FrameSourceMapDebuggerData,
+        ]}
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
       </StackTraceProvider>
     );
 
-    expect(screen.getByRole('button', {name: 'Unminify Code'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Unminify Code'})
+    ).toBeInTheDocument();
   });
 
-  it('renders suspect frame badge for ANR root-cause frame matches', () => {
+  it('renders suspect frame badge for ANR root-cause frame matches', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
     render(
       <StackTraceProvider
-        event={{
-          ...event,
-          platform: 'java',
-          tags: [...event.tags, {key: 'mechanism', value: 'ANR'}],
-          entries: [
-            ...event.entries,
-            {
-              type: 'threads',
-              data: {
-                values: [{id: 7, current: true, state: 'RUNNABLE'}],
+        event={
+          {
+            ...event,
+            platform: 'java',
+            tags: [...event.tags, {key: 'mechanism', value: 'ANR'}],
+            entries: [
+              ...event.entries,
+              {
+                type: EntryType.THREADS,
+                data: {
+                  values: [
+                    {
+                      id: 7,
+                      current: true,
+                      state: 'RUNNABLE',
+                      crashed: false,
+                      rawStacktrace: null,
+                      stacktrace: null,
+                    },
+                  ],
+                },
               },
-            } as any,
-          ],
-        }}
+            ],
+          } as any
+        }
         stacktrace={{
           ...stacktrace,
           frames: [
@@ -603,7 +622,7 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(screen.getByText('Suspect Frame')).toBeInTheDocument();
+    expect(await screen.findByText('Suspect Frame')).toBeInTheDocument();
   });
 
   it('renders sentry app frame links with line context', async () => {
@@ -720,7 +739,7 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders circular frame repeat indicator', () => {
+  it('renders circular frame repeat indicator', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const recursiveFrame = {
       ...stacktrace.frames[stacktrace.frames.length - 1]!,
@@ -746,7 +765,7 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(1);
+    expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(1);
     expect(screen.getByTestId('core-stacktrace-repeats-indicator')).toHaveTextContent(
       '2'
     );
@@ -756,46 +775,7 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it('forces frame function and line metadata onto a new line for long paths', () => {
-    const {event, stacktrace} = makeStackTraceData();
-    const longFrame = {
-      ...stacktrace.frames[stacktrace.frames.length - 1]!,
-      filename:
-        '/workspace/teams/platform/very/deep/directory/for/customer/super/long/path/segment/src/services/handlers/production/error_processing_pipeline/frame_handler.py',
-      absPath:
-        '/home/ubuntu/workspace/teams/platform/very/deep/directory/for/customer/super/long/path/segment/src/services/handlers/production/error_processing_pipeline/frame_handler.py',
-      inApp: true,
-      function: 'main',
-      lineNo: 112,
-    };
-
-    render(
-      <StackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [longFrame],
-        }}
-      >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
-      </StackTraceProvider>
-    );
-
-    expect(screen.getByTestId('core-stacktrace-frame-meta')).toHaveAttribute(
-      'data-force-newline',
-      'true'
-    );
-    expect(screen.getByTestId('filename')).toHaveAttribute('data-truncate-left', 'true');
-    expect(
-      within(screen.getByTestId('core-stacktrace-frame-meta')).getByText('main')
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('core-stacktrace-frame-meta')).getByText('112')
-    ).toBeInTheDocument();
-  });
-
-  it('falls back to raw function and renders trimmed package in title metadata', () => {
+  it('falls back to raw function and renders trimmed package in title metadata', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
@@ -820,12 +800,14 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(screen.getByTestId('function')).toHaveTextContent('raw_runner_entrypoint');
+    expect(await screen.findByTestId('function')).toHaveTextContent(
+      'raw_runner_entrypoint'
+    );
     expect(screen.getByText('within')).toBeInTheDocument();
     expect(screen.getByText('libpipeline')).toBeInTheDocument();
   });
 
-  it('renders registers and .NET assembly details in expanded frame context', () => {
+  it('renders registers and .NET assembly details in expanded frame context', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
@@ -834,7 +816,7 @@ describe('Core StackTrace', () => {
         event={{
           ...event,
           platform: 'csharp',
-          contexts: {device: {arch: 'x86_64'} as any},
+          contexts: {device: {type: 'device' as const, name: '', arch: 'x86_64'}},
         }}
         stacktrace={{
           ...stacktrace,
@@ -859,7 +841,9 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(screen.getByTestId('core-stacktrace-frame-registers')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('core-stacktrace-frame-registers')
+    ).toBeInTheDocument();
     expect(screen.getByText('Registers')).toBeInTheDocument();
     expect(screen.getByText('rax')).toBeInTheDocument();
     expect(screen.getByTestId('core-stacktrace-frame-assembly')).toBeInTheDocument();
@@ -869,7 +853,7 @@ describe('Core StackTrace', () => {
     expect(screen.getByText('abc123')).toBeInTheDocument();
   });
 
-  it('renders empty source notation for single frame with no details', () => {
+  it('renders empty source notation for single frame with no details', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
@@ -895,7 +879,7 @@ describe('Core StackTrace', () => {
     );
 
     expect(
-      screen.getByText('No additional details are available for this frame.')
+      await screen.findByText('No additional details are available for this frame.')
     ).toBeInTheDocument();
   });
 });

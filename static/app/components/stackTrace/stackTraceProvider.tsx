@@ -2,7 +2,6 @@ import {Fragment, useContext, useEffect, useId, useMemo, useState} from 'react';
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -19,6 +18,12 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
+import {
+  ChevronAction,
+  HiddenFramesToggleAction,
+  SourceLinkAction,
+  SourceMapsDebuggerAction,
+} from './frame/actions';
 import {FrameContext} from './frame/frameContext';
 import {FrameHeader} from './frame/frameHeader';
 import {
@@ -31,7 +36,6 @@ import {
   StackTraceContext,
   StackTraceFrameContext,
   StackTraceSharedViewContext,
-  useOptionalStackTraceContext,
   useStackTraceContext,
 } from './stackTraceContext';
 import type {
@@ -39,6 +43,7 @@ import type {
   StackTraceFrameContextValue,
   StackTraceSharedViewContextValue,
 } from './stackTraceContext';
+import {CopyButton, DisplayOptions, DownloadButton, Toolbar} from './toolbar';
 import type {FrameRow, StackTraceProviderProps, StackTraceView} from './types';
 
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
@@ -215,92 +220,6 @@ function Root({
   );
 }
 
-function ViewSwitcher() {
-  const sharedView = useContext(StackTraceSharedViewContext);
-  const ctx = useOptionalStackTraceContext();
-  const view = sharedView?.view ?? ctx?.view ?? 'app';
-  const setView = sharedView?.setView ?? ctx?.setView ?? (() => {});
-
-  return (
-    <Flex gap="sm">
-      <Button
-        size="sm"
-        priority={view === 'app' ? 'primary' : 'default'}
-        onClick={() => setView('app')}
-      >
-        {t('App Frames')}
-      </Button>
-      <Button
-        size="sm"
-        priority={view === 'full' ? 'primary' : 'default'}
-        onClick={() => setView('full')}
-      >
-        {t('Full Stack')}
-      </Button>
-      <Button
-        size="sm"
-        priority={view === 'raw' ? 'primary' : 'default'}
-        onClick={() => setView('raw')}
-      >
-        {t('Raw')}
-      </Button>
-    </Flex>
-  );
-}
-
-function OrderToggle() {
-  const sharedView = useContext(StackTraceSharedViewContext);
-  const ctx = useOptionalStackTraceContext();
-  const isNewestFirst = sharedView?.isNewestFirst ?? ctx?.isNewestFirst ?? true;
-  const setIsNewestFirst =
-    sharedView?.setIsNewestFirst ?? ctx?.setIsNewestFirst ?? (() => {});
-
-  return (
-    <Button
-      size="sm"
-      priority="default"
-      onClick={() => setIsNewestFirst(currentValue => !currentValue)}
-    >
-      {isNewestFirst ? t('Newest First') : t('Oldest First')}
-    </Button>
-  );
-}
-
-function MinifiedToggle() {
-  const sharedView = useContext(StackTraceSharedViewContext);
-  const ctx = useOptionalStackTraceContext();
-  const hasMinifiedStacktrace =
-    sharedView?.hasMinifiedStacktrace ?? ctx?.hasMinifiedStacktrace ?? false;
-  const isMinified = sharedView?.isMinified ?? ctx?.isMinified ?? false;
-  const setIsMinified = sharedView?.setIsMinified ?? ctx?.setIsMinified ?? (() => {});
-
-  if (!hasMinifiedStacktrace) {
-    return null;
-  }
-
-  return (
-    <Button
-      size="sm"
-      priority={isMinified ? 'primary' : 'default'}
-      onClick={() => setIsMinified(currentValue => !currentValue)}
-    >
-      {t('Minified')}
-    </Button>
-  );
-}
-
-function Toolbar() {
-  return (
-    <Flex justify="between" align="center" gap="sm" wrap="wrap" marginBottom="sm">
-      <ViewSwitcher />
-      <Flex align="center" gap="sm">
-        <MinifiedToggle />
-        <OrderToggle />
-      </Flex>
-    </Flex>
-  );
-}
-
 interface StackTraceFrameProps {
   row: FrameRow;
   children?: React.ReactNode;
@@ -413,7 +332,7 @@ function Frames() {
   }
 
   return (
-    <FramesPanel data-test-id="core-stacktrace-content">
+    <FramesPanel>
       <FrameList data-test-id="core-stacktrace-frame-list">
         {rows.map(row => {
           if (row.kind === 'omitted') {
@@ -461,18 +380,34 @@ const RawStackTraceText = styled('pre')`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
+function FrameActionsContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Flex gap="xs" align="center">
+      {children}
+    </Flex>
+  );
+}
+
+const FrameActions = Object.assign(FrameActionsContainer, {
+  Chevron: ChevronAction,
+  HiddenFramesToggle: HiddenFramesToggleAction,
+  SourceLink: SourceLinkAction,
+  SourceMapsDebugger: SourceMapsDebuggerAction,
+});
+
 const Frame = Object.assign(FrameRoot, {
   Context: FrameContext,
   Header: FrameHeader,
+  Actions: FrameActions,
 });
 
 export const StackTraceProvider = Object.assign(Root, {
   Frames,
   Frame,
-  MinifiedToggle,
-  OrderToggle,
+  DisplayOptions,
+  CopyButton,
+  DownloadButton,
   Toolbar,
-  ViewSwitcher,
 });
 
 interface StackTraceSharedViewProviderProps {

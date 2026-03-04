@@ -72,10 +72,22 @@ export interface StackTraceFrameContextValue {
   toggleHiddenFrames: () => void;
 }
 
+/**
+ * Isolated hover context for the frame header. Kept separate from
+ * StackTraceFrameContext so that hover state changes only re-render
+ * the lightweight action components that actually need it, not every
+ * frame context consumer.
+ */
+export interface StackTraceFrameHoverContextValue {
+  isHovering: boolean;
+}
+
 export const StackTraceContext = createContext<StackTraceContextValue | null>(null);
 export const StackTraceFrameContext = createContext<StackTraceFrameContextValue | null>(
   null
 );
+export const StackTraceFrameHoverContext =
+  createContext<StackTraceFrameHoverContextValue>({isHovering: false});
 
 export function useStackTraceContext() {
   const context = useContext(StackTraceContext);
@@ -89,10 +101,41 @@ export function useOptionalStackTraceContext() {
   return useContext(StackTraceContext);
 }
 
+/**
+ * Reads the shared view-state fields from whichever context is available —
+ * StackTraceSharedViewContext takes priority, then StackTraceContext.
+ * Throws if neither is present, since toolbar components always live inside one of them.
+ */
+export function useStackTraceViewState(): StackTraceSharedViewContextValue {
+  const sharedView = useContext(StackTraceSharedViewContext);
+  const ctx = useContext(StackTraceContext);
+  const source = sharedView ?? ctx;
+
+  if (!source) {
+    throw new Error(
+      'useStackTraceViewState must be used within StackTraceSharedViewProvider or StackTraceProvider'
+    );
+  }
+
+  return {
+    view: source.view,
+    setView: source.setView,
+    hasMinifiedStacktrace: source.hasMinifiedStacktrace,
+    isMinified: source.isMinified,
+    setIsMinified: source.setIsMinified,
+    isNewestFirst: source.isNewestFirst,
+    setIsNewestFirst: source.setIsNewestFirst,
+  };
+}
+
 export function useStackTraceFrameContext() {
   const context = useContext(StackTraceFrameContext);
   if (!context) {
     throw new Error('StackTrace.Frame components must be used within StackTrace.Frame');
   }
   return context;
+}
+
+export function useStackTraceFrameHoverContext() {
+  return useContext(StackTraceFrameHoverContext);
 }

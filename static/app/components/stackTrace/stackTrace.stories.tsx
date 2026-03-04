@@ -1,8 +1,14 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
+import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import {
   ChainedStackTrace,
+  CopyButton,
+  ExceptionHeader,
   StackTrace,
   StackTraceProvider,
   useStackTraceContext,
@@ -21,6 +27,8 @@ import type {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -348,7 +356,7 @@ function makeRegistersAndAssemblyStackTraceData(): StackTraceStoryData {
     event: makeEvent({
       ...event,
       platform: 'csharp',
-      contexts: {device: {arch: 'x86_64'} as any},
+      contexts: {device: {type: 'device' as const, name: '', arch: 'x86_64'}},
     }),
     stacktrace: {
       ...stacktrace,
@@ -511,6 +519,32 @@ function makeChainedExceptionValues(): ExceptionValue[] {
 }
 
 export default Storybook.story('Core/StackTrace', story => {
+  story('StackTrace - Default', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    return (
+      <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <InterimSection
+          type={SectionKey.EXCEPTION}
+          title="ValueError"
+          actions={
+            <Flex align="center" gap="sm">
+              <StackTraceProvider.DisplayOptions />
+              <CopyButton />
+            </Flex>
+          }
+        >
+          <ExceptionHeader
+            type="ValueError"
+            value="list index out of range"
+            module="raven.base"
+            mechanism={{handled: false, type: 'generic'}}
+          />
+          <StackTraceProvider.Frames />
+        </InterimSection>
+      </StackTraceProvider>
+    );
+  });
+
   story('StackTraceProvider - Default', () => {
     const {event, stacktrace} = makeStackTraceData();
 
@@ -518,30 +552,17 @@ export default Storybook.story('Core/StackTrace', story => {
       <Fragment>
         <p>
           <Storybook.JSXNode name="StackTraceProvider" /> is the low-level building block.
-          Compose <Storybook.JSXNode name="StackTraceProvider.Toolbar" /> and{' '}
-          <Storybook.JSXNode name="StackTraceProvider.Frames" /> to build custom layouts.
-          The toolbar lets users toggle between app-only, full, and raw views.
+          Compose toolbar controls and{' '}
+          <Storybook.JSXNode name="StackTraceProvider.Frames" /> to build custom layouts.{' '}
+          <Storybook.JSXNode name="StackTraceProvider.CopyButton" /> is opt-in — add it
+          alongside <Storybook.JSXNode name="StackTraceProvider.DisplayOptions" /> when
+          copy support is needed.
         </p>
-        <div>
-          <StackTraceProvider event={event} stacktrace={stacktrace}>
-            <StackTraceProvider.Toolbar />
-            <StackTraceProvider.Frames />
-          </StackTraceProvider>
-        </div>
-      </Fragment>
-    );
-  });
-
-  story('StackTraceProvider - Raw View', () => {
-    const {event, stacktrace} = makeStackTraceData();
-
-    return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="defaultView" value="raw" /> to show the
-          unprocessed frame list without view-switching controls.
-        </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace} defaultView="raw">
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <Flex justify="end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
+            <StackTraceProvider.DisplayOptions />
+            <CopyButton />
+          </Flex>
           <StackTraceProvider.Frames />
         </StackTraceProvider>
       </Fragment>
@@ -699,8 +720,8 @@ export default Storybook.story('Core/StackTrace', story => {
       const {rows} = useStackTraceContext();
 
       return (
-        <Panel data-test-id="core-stacktrace-content">
-          <div data-test-id="core-stacktrace-frame-list">
+        <Panel>
+          <div>
             {rows.map(row => {
               if (row.kind === 'omitted') {
                 return (
@@ -737,16 +758,128 @@ export default Storybook.story('Core/StackTrace', story => {
     );
   });
 
-  story('StackTrace - Default', () => {
+  story('StackTraceProvider - Composed Frame Actions', () => {
     const {event, stacktrace} = makeStackTraceData();
+
+    function ComposedActionsContent() {
+      const {rows} = useStackTraceContext();
+
+      return (
+        <Panel>
+          <div>
+            {rows.map((row, i) => {
+              if (row.kind === 'omitted') {
+                return null;
+              }
+
+              if (i === 0) {
+                // Default: all actions unchanged
+                return (
+                  <StackTraceProvider.Frame key={row.frameIndex} row={row}>
+                    <StackTraceProvider.Frame.Header />
+                    <StackTraceProvider.Frame.Context />
+                  </StackTraceProvider.Frame>
+                );
+              }
+
+              if (i === 1) {
+                // Custom: SourceLink + Chevron only (no source maps debugger, no hidden toggle)
+                return (
+                  <StackTraceProvider.Frame key={row.frameIndex} row={row}>
+                    <StackTraceProvider.Frame.Header
+                      actions={
+                        <Fragment>
+                          <StackTraceProvider.Frame.Actions.SourceLink />
+                          <StackTraceProvider.Frame.Actions.Chevron />
+                        </Fragment>
+                      }
+                    />
+                    <StackTraceProvider.Frame.Context />
+                  </StackTraceProvider.Frame>
+                );
+              }
+
+              // Custom: extra button injected before the chevron
+              return (
+                <StackTraceProvider.Frame key={row.frameIndex} row={row}>
+                  <StackTraceProvider.Frame.Header
+                    actions={
+                      <StackTraceProvider.Frame.Actions>
+                        <StackTraceProvider.Frame.Actions.SourceLink />
+                        <StackTraceProvider.Frame.Actions.SourceMapsDebugger />
+                        <StackTraceProvider.Frame.Actions.HiddenFramesToggle />
+                        <StackTraceProvider.Frame.Actions.Chevron />
+                      </StackTraceProvider.Frame.Actions>
+                    }
+                  />
+                  <StackTraceProvider.Frame.Context />
+                </StackTraceProvider.Frame>
+              );
+            })}
+          </div>
+        </Panel>
+      );
+    }
+
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="StackTrace" /> is the convenience wrapper: it renders
-          the toolbar and frames in one component.
+          Use <Storybook.JSXProperty name="actions" value="ReactNode" /> on{' '}
+          <Storybook.JSXNode name="StackTraceProvider.Frame.Header" /> to compose exactly
+          the actions you need. The first frame uses the default actions, the second uses
+          only <Storybook.JSXNode name="SourceLink" /> +{' '}
+          <Storybook.JSXNode name="Chevron" />, and the rest use a fully custom{' '}
+          <Storybook.JSXNode name="Frame.Actions" /> container.
         </p>
-        <StackTrace event={event} stacktrace={stacktrace} />
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <ComposedActionsContent />
+        </StackTraceProvider>
       </Fragment>
+    );
+  });
+
+  story('StackTrace - Download Button (Native + Raw)', () => {
+    const {stacktrace} = makeStackTraceData();
+    const event = makeEvent({platform: 'cocoa'});
+
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="DownloadButton" /> appears in the toolbar when the
+          platform is native (e.g. cocoa, objc, swift) and the view is set to Raw Stack
+          Trace. Switch to Raw Stack Trace via the display options to see it.
+        </p>
+        <StackTraceProvider
+          event={event}
+          stacktrace={stacktrace}
+          platform="cocoa"
+          defaultView="raw"
+        >
+          <Flex justify="end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
+            <StackTraceProvider.DownloadButton projectSlug="my-project" />
+            <StackTraceProvider.DisplayOptions />
+          </Flex>
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('StackTrace - Hovercard Preview', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    return (
+      <Flex align="center" justify="center">
+        <WideHovercard
+          body={
+            <StackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
+              <StackTraceProvider.Frames />
+            </StackTraceProvider>
+          }
+        >
+          Hovercard Trigger
+        </WideHovercard>
+      </Flex>
     );
   });
 
@@ -774,32 +907,6 @@ export default Storybook.story('Core/StackTrace', story => {
           stacktrace={stacktrace}
           minifiedStacktrace={minifiedStacktrace}
         />
-      </Fragment>
-    );
-  });
-
-  story('StackTrace - App Frames Only', () => {
-    const {event, stacktrace} = makeStackTraceData();
-    return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="defaultView" value="app" /> to show only
-          in-app frames on initial render.
-        </p>
-        <StackTrace event={event} stacktrace={stacktrace} defaultView="app" />
-      </Fragment>
-    );
-  });
-
-  story('StackTrace - Full Stack', () => {
-    const {event, stacktrace} = makeStackTraceData();
-    return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="defaultView" value="full" /> to show all
-          frames including system frames on initial render.
-        </p>
-        <StackTrace event={event} stacktrace={stacktrace} defaultView="full" />
       </Fragment>
     );
   });
@@ -859,6 +966,77 @@ export default Storybook.story('Core/StackTrace', story => {
     );
   });
 
+  story('ExceptionHeader - Default', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="ExceptionHeader" /> renders the exception type heading,
+          value text, and mechanism pills above a stack trace. Compose it alongside{' '}
+          <Storybook.JSXNode name="StackTraceProvider.Frames" />.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <ExceptionHeader
+            type="ValueError"
+            value="list index out of range"
+            mechanism={{handled: false, type: 'generic'}}
+          />
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('ExceptionHeader - With Module Tooltip', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    return (
+      <Fragment>
+        <p>
+          Pass <Storybook.JSXProperty name="module" value="string" /> to show a tooltip on
+          the heading indicating where the exception originated. Hover the heading to see
+          it.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <ExceptionHeader
+            type="ImportError"
+            value="No module named 'requests'"
+            module="myapp.utils.http"
+            mechanism={{handled: false, type: 'generic'}}
+          />
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('ExceptionHeader - Mechanism Only', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXProperty name="value" value={null} /> is optional — omit it to
+          render only the heading and mechanism pills.
+        </p>
+        <StackTraceProvider event={event} stacktrace={stacktrace}>
+          <ExceptionHeader
+            type="SIGSEGV"
+            mechanism={{
+              handled: false,
+              type: 'signalhandler',
+              meta: {
+                signal: {number: 11, name: 'SIGSEGV', code: 1, code_name: 'SEGV_MAPERR'},
+              },
+            }}
+          />
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
+      </Fragment>
+    );
+  });
+
   story('StackTrace - Chained (Anatomy)', () => (
     <Fragment>
       <p>
@@ -895,17 +1073,18 @@ export default Storybook.story('Core/StackTrace', story => {
       </Fragment>
     );
   });
-
-  story('StackTrace - Chained (Oldest First)', () => {
-    const values = makeChainedExceptionValues();
-    return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="newestFirst" value={false} /> to reverse the
-          order, rendering the original cause first and the most recent exception last.
-        </p>
-        <ChainedStackTrace event={makeEvent()} values={values} newestFirst={false} />
-      </Fragment>
-    );
-  });
 });
+
+// Mirrors the GroupPreviewHovercard pattern: className controls the body styles,
+// so we need an intermediary to forward className → bodyClassName.
+function WideHovercardBase({className, ...rest}: React.ComponentProps<typeof Hovercard>) {
+  return <StyledWideHovercard bodyClassName={className} {...rest} />;
+}
+
+const StyledWideHovercard = styled(Hovercard)`
+  width: 700px;
+`;
+
+const WideHovercard = styled(WideHovercardBase)`
+  padding: 0;
+`;
