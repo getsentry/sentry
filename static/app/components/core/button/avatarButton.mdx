@@ -1,13 +1,13 @@
 ---
 title: AvatarButton
-description: AvatarButton is a button variant that renders an Avatar edge-to-edge from a typed avatar definition.
+description: AvatarButton is a button variant that renders an avatar edge-to-edge. It accepts a typed avatar definition and resolves it to either a letter avatar or an image avatar using the useAvatar hook.
 category: buttons
 source: '@sentry/scraps/button'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/avatarButton.tsx
 ---
 
-import {AvatarButton} from '@sentry/scraps/button';
+import {AvatarButton, Button} from '@sentry/scraps/button';
 
 import * as Storybook from 'sentry/stories';
 
@@ -29,7 +29,9 @@ Use `AvatarButton` when the avatar itself should be the clickable control.
 
 ## Avatar Definitions
 
-`avatar` accepts the same base avatar definitions as `<Avatar />`.
+The `avatar` prop accepts a typed avatar descriptor. Only the data fields are used —
+`type`, `identifier`, `name`, and any type-specific fields (`uploadUrl`, `gravatarId`).
+Style props such as `suggested` or `round` are controlled by the button itself.
 
 <Storybook.Demo>
   <AvatarButton
@@ -87,19 +89,16 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
 <Storybook.Demo>
   <AvatarButton
     size="md"
-    priority="primary"
     aria-label="Primary avatar button"
     avatar={{type: 'letter_avatar', identifier: 'primary', name: 'Primary User'}}
   />
   <AvatarButton
     size="sm"
-    priority="default"
     aria-label="Small avatar button"
     avatar={{type: 'letter_avatar', identifier: 'small', name: 'Small User'}}
   />
   <AvatarButton
     size="xs"
-    priority="transparent"
     disabled
     aria-label="Disabled avatar button"
     avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}
@@ -108,7 +107,6 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
 ```jsx
 <AvatarButton
   size="md"
-  priority="primary"
   aria-label="Primary avatar button"
   avatar={{type: 'letter_avatar', identifier: 'primary', name: 'Primary User'}}
 />
@@ -119,7 +117,6 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
 />
 <AvatarButton
   size="xs"
-  priority="transparent"
   disabled
   aria-label="Disabled avatar button"
   avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}

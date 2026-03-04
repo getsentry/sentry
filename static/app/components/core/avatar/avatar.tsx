@@ -7,8 +7,7 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 import {ImageAvatar} from './imageAvatar/imageAvatar';
 import {LetterAvatar} from './letterAvatar/letterAvatar';
 import type {BaseAvatarStyleProps} from './avatarComponentStyles';
-
-const DEFAULT_REMOTE_SIZE = 120;
+import {useAvatar} from './useAvatar';
 
 export interface AvatarProps extends BaseAvatarStyleProps {
   className?: string;
@@ -60,6 +59,18 @@ export function Avatar({
   // Destructure avatar-specific props to prevent spreading onto DOM
   const {type, identifier, name, title, round, suggested, ...restProps} = avatarProps;
 
+  const avatarDef = useAvatar({
+    identifier,
+    name,
+    imageDefinition:
+      type === 'upload'
+        ? // @TODO(Jonas): rename this from uploadUrl to url
+          {type: 'upload', uploadUrl: avatarProps.uploadUrl}
+        : type === 'gravatar'
+          ? {type: 'gravatar', gravatarId: avatarProps.gravatarId}
+          : undefined,
+  });
+
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
@@ -72,47 +83,25 @@ export function Avatar({
         title={title}
         {...restProps}
       >
-        {type === 'upload' || type === 'gravatar' ? (
+        {avatarDef.type === 'image' ? (
           <ImageAvatar
-            definition={
-              type === 'upload'
-                ? {
-                    type: 'image',
-                    src: buildUploadUrl(avatarProps.uploadUrl),
-                  }
-                : {
-                    type: 'gravatar',
-                    gravatarId: avatarProps.gravatarId,
-                  }
-            }
-            identifier={identifier}
-            name={name}
+            src={avatarDef.src}
+            ref={avatarDef.ref}
+            alt={name}
             round={round}
             suggested={suggested}
           />
-        ) : type === 'letter_avatar' ? (
+        ) : (
           <LetterAvatar
-            identifier={identifier}
-            name={name}
+            initials={avatarDef.initials}
+            avatarColor={avatarDef.avatarColor}
             round={round}
             suggested={suggested}
           />
-        ) : null}
+        )}
       </AvatarContainer>
     </Tooltip>
   );
-}
-
-/**
- * Appends size parameter to uploaded avatar URLs for optimization.
- * Skips data URLs which are already base64 encoded.
- */
-function buildUploadUrl(url: string): string {
-  if (url.startsWith('data:')) {
-    return url;
-  }
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}s=${DEFAULT_REMOTE_SIZE}`;
 }
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a

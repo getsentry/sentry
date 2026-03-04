@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {AvatarButton} from '@sentry/scraps/button';
 
 describe('AvatarButton', () => {
-  it('renders avatar content inside the button', () => {
+  it('renders letter avatar initials inside the button', () => {
     render(
       <AvatarButton
         aria-label="Open profile"
@@ -12,25 +12,29 @@ describe('AvatarButton', () => {
     );
 
     const button = screen.getByRole('button', {name: 'Open profile'});
-    const avatar = button.querySelector('.avatar');
-
-    expect(avatar).toBeInTheDocument();
-    expect(avatar).toHaveStyle({width: '36px', height: '36px'});
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveTextContent('TU');
   });
 
-  it('sets avatar size based on the button size', () => {
+  it('renders image avatar inside the button', () => {
     render(
       <AvatarButton
-        size="sm"
-        aria-label="Open small profile"
-        avatar={{type: 'letter_avatar', identifier: 'small-id', name: 'Small User'}}
+        aria-label="Open profile"
+        avatar={{
+          type: 'upload',
+          identifier: 'test-id',
+          name: 'Test User',
+          uploadUrl: 'https://example.com/avatar.jpg',
+        }}
       />
     );
 
-    const button = screen.getByRole('button', {name: 'Open small profile'});
-    const avatar = button.querySelector('.avatar');
-
-    expect(avatar).toHaveStyle({width: '32px', height: '32px'});
+    const button = screen.getByRole('button', {name: 'Open profile'});
+    expect(button).toBeInTheDocument();
+    expect(button.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://example.com/avatar.jpg?s=120'
+    );
   });
 
   it('calls `onClick` callback', async () => {

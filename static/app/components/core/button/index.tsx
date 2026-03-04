@@ -1,5 +1,5 @@
 export {Button, type ButtonProps} from './button';
-export {AvatarButton, type AvatarButtonProps} from './avatarButton';
+export {AvatarButton} from './avatarButton';
 export {ButtonBar} from './buttonBar';
 export {LinkButton, type LinkButtonProps} from './linkButton';
 
