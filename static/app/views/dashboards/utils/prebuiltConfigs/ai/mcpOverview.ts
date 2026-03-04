@@ -154,15 +154,15 @@ const OVERVIEW_TABLE = {
       fields: [
         SpanFields.SPAN_DESCRIPTION,
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -170,8 +170,8 @@ const OVERVIEW_TABLE = {
       fieldAliases: [
         t('Span Description'),
         t('Requests'),
-        t('Errors'),
         t('Error Rate'),
+        t('Errors'),
         t('Avg'),
         t('P95'),
       ],
