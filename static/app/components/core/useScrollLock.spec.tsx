@@ -6,12 +6,14 @@ describe('useScrollLock', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     container = document.createElement('div');
     container.style.overflow = 'auto';
     document.body.appendChild(container);
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     document.body.removeChild(container);
   });
 
