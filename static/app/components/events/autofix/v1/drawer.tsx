@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {SeerDrawerBody} from 'sentry/components/events/autofix/drawer/drawerBody';
@@ -25,6 +27,8 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
   const aiConfig = useAiConfig(group, project);
   const aiAutofix = useAiAutofix(group, event);
 
+  const handleReset = useHandleReset({aiAutofix, aiConfig});
+
   return (
     <Grid
       className="seer-drawer-container"
@@ -37,10 +41,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
       <SeerDrawerNavigator
         project={project}
         showCopyMarkdown={false}
-        onReset={() => {
-          aiAutofix.reset();
-          aiConfig.refetchAutofixSetup?.();
-        }}
+        onReset={handleReset}
       />
       <SeerDrawerBody>
         <InnerSeerDrawer
@@ -123,4 +124,22 @@ function InnerSeerDrawer({
       aiConfig={aiConfig}
     />
   );
+}
+
+function useHandleReset({
+  aiAutofix,
+  aiConfig,
+}: {
+  aiAutofix: ReturnType<typeof useAiAutofix>;
+  aiConfig: ReturnType<typeof useAiConfig>;
+}) {
+  return useMemo(() => {
+    if (!aiAutofix.autofixData) {
+      return undefined;
+    }
+    return () => {
+      aiAutofix.reset();
+      aiConfig.refetchAutofixSetup?.();
+    };
+  }, [aiAutofix, aiConfig]);
 }
