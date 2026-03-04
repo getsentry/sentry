@@ -92,6 +92,10 @@ describe('Visualize', () => {
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders basic aggregates correctly from the URL params', async () => {
     render(
       <WidgetBuilderProvider>
@@ -409,7 +413,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'p50'}));
 
     // Indicate that the column selection is open, and multiple options are available
-    const option = screen.getByRole('option', {name: 'transaction.duration'});
+    const option = await screen.findByRole('option', {name: 'transaction.duration'});
     expect(option).toBeInTheDocument();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
@@ -1898,6 +1902,70 @@ describe('Visualize', () => {
 
     const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
     expect(columnSelect).toBeDisabled();
+  });
+
+  it('duplicates the last y-axis when adding a series for trace metrics timeseries chart', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            ['metric.name']: 'alpha_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['sum(value,alpha_metric,counter,-)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+              traceMetric: JSON.stringify({
+                name: 'alpha_metric',
+                type: 'counter',
+              }),
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    // Wait for the initial aggregate selector to render
+    const initialAggregateSelectors = await screen.findAllByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(initialAggregateSelectors).toHaveLength(1);
+    expect(initialAggregateSelectors[0]).toHaveTextContent('sum');
+
+    // Click "Add Series"
+    await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
+
+    const metricSelectors = await screen.findAllByRole('button', {
+      name: 'alpha_metric',
+    });
+    expect(metricSelectors).toHaveLength(2);
+    expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
+    expect(metricSelectors[1]).toHaveTextContent('alpha_metric');
+
+    // Should now have two aggregate selectors, both showing 'sum' (duplicated from last)
+    const aggregateSelectors = await screen.findAllByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelectors).toHaveLength(2);
+    expect(aggregateSelectors[0]).toHaveTextContent('sum');
+    expect(aggregateSelectors[1]).toHaveTextContent('sum');
   });
 
   it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
