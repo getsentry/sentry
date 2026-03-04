@@ -105,23 +105,18 @@ function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const logsAttributeOptions = {
-    enabled: true,
-    search: debouncedSearch,
-  };
-
   const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
-    logsAttributeOptions,
+    {search: debouncedSearch},
     'string',
     HiddenLogSearchFields
   );
   const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
-    logsAttributeOptions,
+    {search: debouncedSearch},
     'number',
     HiddenLogSearchFields
   );
   const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
-    logsAttributeOptions,
+    {search: debouncedSearch},
     'boolean',
     HiddenLogSearchFields
   );
@@ -345,23 +340,18 @@ function ToolbarGroupBy() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const logsAttributeOptions = {
-    enabled: true,
-    search: debouncedSearch,
-  };
-
   const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
-    logsAttributeOptions,
+    {search: debouncedSearch},
     'number',
     HiddenLogSearchFields
   );
   const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
-    logsAttributeOptions,
+    {search: debouncedSearch},
     'string',
     HiddenLogSearchFields
   );
   const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
-    logsAttributeOptions,
+    {search: debouncedSearch},
     'boolean',
     HiddenLogSearchFields
   );

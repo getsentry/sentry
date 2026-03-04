@@ -70,20 +70,28 @@ export function PreprodSearchBar({
 }: PreprodSearchBarProps) {
   const organization = useOrganization();
 
-  const preprodAttributeOptions = {
-    enabled: organization.features.includes('preprod-app-size-dashboard'),
-  };
-
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.
   // Otherwise, we use HIDDEN_PREPROD_ATTRIBUTES to hide internal fields.
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
 
   const {attributes: rawStringAttributes, secondaryAliases: rawStringSecondaryAliases} =
-    usePreprodItemAttributes(preprodAttributeOptions, 'string', hiddenKeys);
+    usePreprodItemAttributes(
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
+      'string',
+      hiddenKeys
+    );
   const {attributes: rawNumberAttributes, secondaryAliases: rawNumberSecondaryAliases} =
-    usePreprodItemAttributes(preprodAttributeOptions, 'number', hiddenKeys);
+    usePreprodItemAttributes(
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
+      'number',
+      hiddenKeys
+    );
   const {attributes: rawBooleanAttributes, secondaryAliases: rawBooleanSecondaryAliases} =
-    usePreprodItemAttributes(preprodAttributeOptions, 'boolean', hiddenKeys);
+    usePreprodItemAttributes(
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
+      'boolean',
+      hiddenKeys
+    );
 
   const stringAttributes = useMemo(
     () =>

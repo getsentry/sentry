@@ -121,15 +121,12 @@ function LogsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const logsAttributeOptions = {
-    enabled: isLogsEnabled(organization),
-  };
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes(logsAttributeOptions, 'string');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes(logsAttributeOptions, 'number');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes(logsAttributeOptions, 'boolean');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
@@ -155,16 +152,12 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const logsAttributeOptions = {
-    enabled: isLogsEnabled(organization),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes(logsAttributeOptions, 'string');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes(logsAttributeOptions, 'number');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes(logsAttributeOptions, 'boolean');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

@@ -81,25 +81,21 @@ function TraceMetricsSearchBar({
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
-  const traceMetricAttributeOptions = {
-    query: createTraceMetricFilter(traceMetric),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
-      traceMetricAttributeOptions,
+      {query: createTraceMetricFilter(traceMetric)},
       'string',
       HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      traceMetricAttributeOptions,
+      {query: createTraceMetricFilter(traceMetric)},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      traceMetricAttributeOptions,
+      {query: createTraceMetricFilter(traceMetric)},
       'boolean',
       HiddenTraceMetricSearchFields
     );
@@ -134,16 +130,15 @@ function useTraceMetricsSearchBarDataProvider(
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
-  const traceMetricAttributeOptions = {
-    query: createTraceMetricFilter(traceMetric),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes(traceMetricAttributeOptions, 'string');
+    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes(traceMetricAttributeOptions, 'number');
+    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceMetricItemAttributes(traceMetricAttributeOptions, 'boolean');
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
+      'boolean'
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

@@ -197,25 +197,21 @@ function useMobileAppSizeSearchBarDataProvider(
     selection: {projects},
   } = usePageFilters();
 
-  const preprodAttributeOptions = {
-    enabled: organization.features.includes('preprod-app-size-dashboard'),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     usePreprodItemAttributes(
-      preprodAttributeOptions,
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
       'string',
       HIDDEN_PREPROD_ATTRIBUTES
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     usePreprodItemAttributes(
-      preprodAttributeOptions,
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
       'number',
       HIDDEN_PREPROD_ATTRIBUTES
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     usePreprodItemAttributes(
-      preprodAttributeOptions,
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
       'boolean',
       HIDDEN_PREPROD_ATTRIBUTES
     );
