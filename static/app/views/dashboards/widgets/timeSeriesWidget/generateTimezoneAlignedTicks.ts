@@ -123,9 +123,22 @@ function snapToRoundBoundary(
  *
  * ECharts can only place ticks at browser-local or UTC round boundaries.
  * When the user's configured timezone differs from the browser timezone,
- * ticks appear at non-round times. This function computes tick positions
- * at round boundaries in the user's timezone, for use with ECharts'
- * `customValues` feature.
+ * ticks appear at non-round times (e.g., every tick at "9:30 PM" instead
+ * of "12:00 AM"). This function computes tick positions at round boundaries
+ * in the user's timezone, for use with ECharts' `customValues` option on
+ * both `axisTick` and `axisLabel`.
+ *
+ * Unlike ECharts' built-in multi-level tick generation (which builds a
+ * hierarchy of year → month → day → hour ticks and assigns each a `level`
+ * for formatting), this uses a simpler flat, single-pass approach: pick one
+ * (unit, step) interval, snap to the nearest round boundary, and walk
+ * forward. This works because label formatting is handled separately by
+ * {@link formatXAxisTimestamp}, which inspects each tick value and cascades
+ * through format levels based on what round boundary it falls on (e.g., a
+ * tick at midnight Jan 1 gets "Jan 1st 2025", a tick at midnight gets
+ * "Feb 3rd", a tick at 2:00 PM gets "2:00 PM"). The combination of flat
+ * tick generation + cascading formatter produces the same mixed-granularity
+ * labels as ECharts' hierarchy (e.g., "2025 | Feb | Mar | Apr").
  *
  * @param startMs  Start of the time range (UTC milliseconds)
  * @param endMs    End of the time range (UTC milliseconds)

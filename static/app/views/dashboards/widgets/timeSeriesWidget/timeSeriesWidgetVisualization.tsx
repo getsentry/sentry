@@ -449,7 +449,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // ECharts can only snap axis ticks to browser-local or UTC boundaries. When
   // the user's configured timezone differs from the browser timezone, ticks
   // land at non-round times. Compute custom tick positions aligned to the
-  // user's timezone and pass them via ECharts' `customValues` option.
+  // user's timezone and pass them via ECharts' `customValues` option on both
+  // `axisTick` (tick mark positions) and `axisLabel` (label positions) — these
+  // are independent in ECharts and must both be set. The label formatter
+  // (`formatXAxisTimestamp`) then cascades through format levels based on what
+  // round boundary each tick falls on, producing mixed-granularity labels.
   const startMilliseconds = earliestTimeStamp
     ? new Date(earliestTimeStamp).getTime()
     : undefined;
@@ -461,24 +465,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     if (startMilliseconds === undefined || endMilliseconds === undefined) {
       return undefined;
     }
-    return generateTimezoneAlignedTicks(startMilliseconds, endMilliseconds, 5, timezone);
+    return generateTimezoneAlignedTicks(startMilliseconds, endMilliseconds, 10, timezone);
   }, [startMilliseconds, endMilliseconds, timezone]);
 
   const xAxis = showXAxis
     ? {
         animation: false,
-        // When custom ticks are provided, switch the axis type from 'time' to
-        // 'value'. This avoids an ECharts 6 bug where `customValues` on a time
-        // axis crashes in `leveledFormat` (accessing `tick.time.level` without
-        // a null guard). Since we provide our own label formatter, the axis
-        // type only affects ECharts' internal tick/label generation — which we
-        // are bypassing entirely with `customValues`.
-        ...(customTicks ? {type: 'value' as const} : {}),
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            return formatXAxisTimestamp(value, {
+              utc: utc ?? undefined,
+              timezone,
+            });
           },
           ...(customTicks ? {customValues: customTicks} : {}),
         },

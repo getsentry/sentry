@@ -604,6 +604,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         </p>
 
         <p>
+          This works in two parts. First, <code>generateTimezoneAlignedTicks</code> picks
+          an interval from the same table ECharts uses (1h, 6h, 1d, etc.), snaps to the
+          nearest round boundary in the user's timezone, and walks forward to produce tick
+          positions. Then, <code>formatXAxisTimestamp</code> formats each tick by
+          inspecting what round boundary it falls on — a tick at midnight Jan 1 gets "Jan
+          1st 2025", midnight on any other day gets "Feb 3rd", and a tick on a round hour
+          gets "2:00 PM". This stateless cascading produces mixed-granularity labels
+          (e.g., "2025 | Feb | Mar") without needing ECharts' built-in multi-level tick
+          hierarchy.
+        </p>
+
+        <p>
           <strong>Simulated timezone mismatch:</strong> Browser is{' '}
           <code>{browserTimezone}</code>, user timezone is overridden to{' '}
           <code>{simulatedTimezone}</code> (UTC+5:30). All tick labels below should show
