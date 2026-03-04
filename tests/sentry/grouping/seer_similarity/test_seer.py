@@ -69,6 +69,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "training_mode": False,
                 "hybrid_fingerprint": False,
             },
+            viewer_context={"organization_id": self.project.organization_id},
         )
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
@@ -206,4 +207,5 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                     "training_mode": False,
                     "hybrid_fingerprint": False,
                 },
+                viewer_context={"organization_id": self.project.organization_id},
             )

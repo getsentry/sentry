@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -104,7 +103,7 @@ const TagHeader = styled('h4')`
   justify-content: space-between;
   align-items: center;
 
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
@@ -112,7 +111,7 @@ const TagHeader = styled('h4')`
 const TagValueGrid = styled('ul')`
   display: grid;
   grid-template-columns: auto repeat(3, max-content);
-  gap: ${space(0.25)} ${space(1)};
+  gap: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   margin: 0;
   padding: 0;
   list-style: none;
@@ -124,7 +123,7 @@ const TagValueRow = styled('li')`
   grid-template-columns: subgrid;
 
   align-items: center;
-  padding: ${space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
   font-variant-numeric: tabular-nums;

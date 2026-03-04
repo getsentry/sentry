@@ -19,7 +19,7 @@ const WIDGET_PREFIX = 'grid-item';
 // Keys for grid layout values we track in the server
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
-export type Position = Pick<Layout, 'x' | 'y'>;
+type Position = Pick<Layout, 'x' | 'y'>;
 
 type NextPosition = [position: Position, columnDepths: number[]];
 

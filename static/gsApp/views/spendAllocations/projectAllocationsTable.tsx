@@ -35,7 +35,7 @@ function ProjectAllocationsTable({
   selectedMetric,
   spendAllocations = [],
 }: Props) {
-  const filteredMetrics: SpendAllocation[] = useMemo(() => {
+  const filteredMetrics = useMemo(() => {
     const filtered = spendAllocations.filter(
       allocation =>
         allocation.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name &&

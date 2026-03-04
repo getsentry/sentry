@@ -11,7 +11,6 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
@@ -19,16 +18,16 @@ from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
+from sentry.search.eap.occurrences.common_queries import get_group_to_trace_ids_map
+from sentry.search.eap.occurrences.query_utils import build_snuba_params_from_ids
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
-from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
@@ -238,48 +237,24 @@ def _fetch_associated_groups_eap(
     query_start = start - timedelta(minutes=30)
     query_end = end + timedelta(minutes=30)
 
-    try:
-        organization = Organization.objects.get(id=organization_id)
-        project = Project.objects.get(id=project_id, organization_id=organization_id)
-
-        snuba_params = SnubaParams(
-            start=query_start,
-            end=query_end,
-            organization=organization,
-            projects=[project],
-            environments=[],
-        )
-
-        query_string = f"trace:[{','.join(trace_ids)}]"
-
-        result = Occurrences.run_table_query(
-            params=snuba_params,
-            query_string=query_string,
-            selected_columns=["group_id", "trace", "timestamp"],
-            orderby=["-timestamp"],
-            offset=DEFAULT_OFFSET,
-            limit=DEFAULT_LIMIT,
-            referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
-            config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.ERROR,
-        )
-
-        group_id_data: dict[int, set[str]] = defaultdict(set)
-        for row in result["data"]:
-            group_id = row.get("group_id")
-            trace_id = row.get("trace")
-            if group_id is not None and trace_id is not None:
-                group_id_data[int(group_id)].add(str(trace_id))
-        return dict(group_id_data)
-    except Exception:
-        logger.exception(
-            "Fetching associated groups from EAP failed",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-            },
-        )
+    snuba_params = build_snuba_params_from_ids(
+        organization_id=organization_id,
+        project_ids=[project_id],
+        start=query_start,
+        end=query_end,
+    )
+    if snuba_params is None:
         return {}
+
+    return get_group_to_trace_ids_map(
+        snuba_params=snuba_params,
+        trace_ids=trace_ids,
+        referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
+        limit=DEFAULT_LIMIT,
+        occurrence_category=OccurrenceCategory.ERROR,
+        orderby=["-timestamp"],
+        offset=DEFAULT_OFFSET,
+    )
 
 
 def fetch_associated_groups(

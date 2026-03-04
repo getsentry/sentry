@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -42,11 +43,9 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -61,6 +60,14 @@ import {
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {
+  BulletList,
+  HeaderText,
+  PulseSpacer,
+  PulsingIndicator,
+  SubTitle,
+  useOnboardingProject,
+} from 'sentry/views/insights/pages/onboardingUtils';
 
 import {
   AGENT_INTEGRATION_ICONS,
@@ -68,29 +75,8 @@ import {
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
+  SERVER_SIDE_NODE_INTEGRATIONS,
 } from './utils/agentIntegrations';
-
-const serverSideNodeIntegrations = new Set([
-  AgentIntegration.VERCEL_AI,
-  AgentIntegration.MASTRA,
-]);
-
-function useOnboardingProject() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProject = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-  const agentMonitoringProjects = selectedProject.filter(p =>
-    agentMonitoringPlatforms.has(p.platform as PlatformKey)
-  );
-
-  if (agentMonitoringProjects.length > 0) {
-    return agentMonitoringProjects[0];
-  }
-  return selectedProject[0];
-}
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
@@ -157,6 +143,7 @@ function StepRenderer({
   stepIndex: number;
   trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
@@ -164,7 +151,7 @@ function StepRenderer({
       trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
@@ -279,7 +266,7 @@ export function Onboarding() {
         : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
             : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !serverSideNodeIntegrations.has(integration)
+                integration => !SERVER_SIDE_NODE_INTEGRATIONS.has(integration)
               )
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
@@ -533,32 +520,9 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   padding-right: ${p => p.theme.space['3xl']};
 `;
 
-const PulseSpacer = styled('div')`
-  height: ${p => p.theme.space['3xl']};
-`;
-
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  flex-shrink: 0;
-`;
-
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  li {
-    margin-bottom: ${p => p.theme.space.md};
-  }
 `;
 
 const HeaderWrapper = styled('div')`
@@ -567,14 +531,6 @@ const HeaderWrapper = styled('div')`
   gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
 `;
 
 const BodyTitle = styled('div')`

@@ -201,7 +201,7 @@ describe('getWidgetMetricsUrl', () => {
     });
 
     it('handles the unit of the metric', () => {
-      const widget: Widget = WidgetFixture({
+      const widget = WidgetFixture({
         displayType: DisplayType.LINE,
         widgetType: WidgetType.TRACEMETRICS,
         queries: [

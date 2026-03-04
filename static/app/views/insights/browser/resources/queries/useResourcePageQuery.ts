@@ -31,12 +31,12 @@ export const useResourcePagesQuery = (
 
   const sorts = [sort];
 
-  const finalSorts: Sort[] = sorts?.length
+  const finalSorts = sorts?.length
     ? sorts
     : [
         {
           field: 'epm()',
-          kind: 'desc',
+          kind: 'desc' as const,
         },
       ];
 

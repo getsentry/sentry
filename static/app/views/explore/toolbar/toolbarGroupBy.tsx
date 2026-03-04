@@ -1,7 +1,5 @@
 import {useCallback, useState} from 'react';
 
-import type {SelectOption} from '@sentry/scraps/compactSelect';
-
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
@@ -28,11 +26,19 @@ interface ToolbarGroupByProps {
 export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
-      // automatically switch to aggregates mode when a group by is inserted/updated
-      if (op === 'insert' || op === 'update') {
+      const hasValidGroupBy = columns.some(Boolean);
+
+      // insert/update keeps aggregate mode while a valid group by exists
+      if (op === 'insert' || (op === 'update' && hasValidGroupBy)) {
         setGroupBys(columns, Mode.AGGREGATE);
-      } else {
+        return;
+      }
+
+      if (hasValidGroupBy) {
         setGroupBys(columns);
+      } else {
+        // when the last group by is cleared, return to samples table
+        setGroupBys(columns, Mode.SAMPLES);
       }
     },
     [setGroupBys]
@@ -117,7 +123,7 @@ function ToolbarGroupByItemContent({
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
   const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
 
-  const options: Array<SelectOption<string>> = useGroupByFields({
+  const options = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,

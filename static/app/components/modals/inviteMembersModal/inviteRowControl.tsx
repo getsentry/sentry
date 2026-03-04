@@ -12,7 +12,6 @@ import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersMod
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization, OrgRole} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -226,7 +225,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
 }
 
 const Heading = styled('label')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   font-size: ${p => p.theme.font.size.sm};
@@ -234,7 +233,7 @@ const Heading = styled('label')`
 
 const RoleTeamWrapper = styled('div')`
   display: grid;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   grid-template-columns: 1fr 1fr;
   align-items: start;
 `;

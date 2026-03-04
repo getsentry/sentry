@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -80,6 +81,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
+
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -186,7 +189,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
                 "sort": data["trend"].as_sort(),
             }
 
-            return detect_breakpoints(trends_request)["data"]
+            return detect_breakpoints(trends_request, viewer_context=viewer_context)["data"]
 
         stats_data = self.get_event_stats_data(
             request,

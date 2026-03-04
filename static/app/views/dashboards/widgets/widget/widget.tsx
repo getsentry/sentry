@@ -124,7 +124,7 @@ const HEADER_HEIGHT = '26px';
 const TitleHoverItems = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   margin-left: auto;
 
   opacity: 1;
@@ -168,7 +168,7 @@ export const Header = styled('div')<{noPadding?: boolean}>`
   align-items: center;
   height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
   flex-shrink: 0;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   padding: ${p => (p.noPadding ? 0 : `${Y_GUTTER} ${X_GUTTER} 0 ${X_GUTTER}`)};
 `;
 
