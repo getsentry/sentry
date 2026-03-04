@@ -143,7 +143,10 @@ def get_anomaly_data_from_seer(
     extra_data["dataset"] = snuba_query.dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
-        response = make_detect_anomalies_request(detect_anomalies_request)
+        viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
+        response = make_detect_anomalies_request(
+            detect_anomalies_request, viewer_context=viewer_context
+        )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
@@ -226,8 +229,9 @@ def get_anomaly_threshold_data_from_seer(
         start=start,
         end=end,
     )
+    viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
     try:
-        response = make_get_anomaly_threshold_data_request(body)
+        response = make_get_anomaly_threshold_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None

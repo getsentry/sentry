@@ -57,6 +57,7 @@ type Props = {
   showConfidenceWarning?: boolean;
   showLoadingText?: boolean;
   tableItemLimit?: number;
+  widgetInterval?: string;
   windowWidth?: number;
 };
 
@@ -85,6 +86,7 @@ export function WidgetCardChartContainer({
   onWidgetTableSort,
   onWidgetTableResizeColumn,
   disableTableActions,
+  widgetInterval,
 }: Props) {
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
@@ -118,6 +120,7 @@ export function WidgetCardChartContainer({
       onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
+      widgetInterval={widgetInterval}
     >
       {({
         tableResults,

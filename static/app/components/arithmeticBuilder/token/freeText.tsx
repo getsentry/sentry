@@ -35,7 +35,6 @@ import {IconDivide} from 'sentry/icons/iconDivide';
 import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 interface ArithmeticTokenFreeTextProps {
@@ -605,8 +604,8 @@ const Row = styled('div')`
     [data-hidden-text='true']::before {
       content: '';
       position: absolute;
-      left: ${space(0.5)};
-      right: ${space(0.5)};
+      left: ${p => p.theme.space.xs};
+      right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
       background-color: ${p => p.theme.colors.gray100};
@@ -622,7 +621,7 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space.xs};
     min-width: 9px;
     width: 100%;
   }

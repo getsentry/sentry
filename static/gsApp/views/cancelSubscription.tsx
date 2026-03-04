@@ -17,7 +17,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -292,8 +291,8 @@ function CancelSubscriptionForm() {
 const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 function CancelSubscriptionPage() {
@@ -330,8 +329,8 @@ const RadioGroupContainer = styled(RadioGroupField)`
 const ExtraContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  padding: ${space(1)} 0;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 export default CancelSubscriptionPage;

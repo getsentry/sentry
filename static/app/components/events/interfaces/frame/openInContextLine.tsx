@@ -5,7 +5,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
-import {space} from 'sentry/styles/space';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
@@ -65,7 +64,7 @@ const fadeIn = keyframes`
 
 const OpenInContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   z-index: 1;
   font-family: ${p => p.theme.font.family.sans};
@@ -77,7 +76,7 @@ const OpenInContainer = styled('div')`
 
 const OpenInLink = styled(ExternalLink)`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;

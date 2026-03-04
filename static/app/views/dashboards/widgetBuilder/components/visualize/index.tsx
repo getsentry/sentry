@@ -16,7 +16,6 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDelete, IconLink} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1154,7 +1153,7 @@ export const LegendAliasInput = styled(Input)``;
 export const ParameterRefinements = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   > * {
     flex: 1;
@@ -1164,7 +1163,7 @@ export const ParameterRefinements = styled('div')`
 export const FieldBar = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: 3;
   min-width: 0;
 `;
@@ -1197,18 +1196,18 @@ export function FieldRow(props: FlexProps<'div'>) {
 export const FieldExtras = styled('div')<{compact: boolean}>`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: ${p => (p.compact ? '0' : '1')};
   align-items: center;
 `;
 
 const AddButton = styled(Button)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const AddButtons = styled('div')`
   display: inline-flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

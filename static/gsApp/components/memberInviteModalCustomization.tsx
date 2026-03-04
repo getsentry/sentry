@@ -5,7 +5,6 @@ import {Link} from '@sentry/scraps/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -181,9 +180,9 @@ const TrialInfo = styled('div')<{status?: string}>`
   display: grid;
   min-height: 50px;
   grid-template-columns: 20px 1fr max-content;
-  gap: ${space(1.5)};
-  padding: ${space(1.5)};
-  margin: ${space(2)} 0;
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.lg};
+  margin: ${p => p.theme.space.xl} 0;
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
   background: ${p => p.theme.tokens.background.secondary};

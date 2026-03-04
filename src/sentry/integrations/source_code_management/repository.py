@@ -133,6 +133,10 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
+            except IntegrationConfigurationError:
+                # This is likely due to access being revoked by the user, or
+                # some other misconfiguration on the integration's side.
+                return None
             except (Identity.DoesNotExist, IntegrationError):
                 sentry_sdk.capture_exception()
                 return None

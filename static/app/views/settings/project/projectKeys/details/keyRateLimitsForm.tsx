@@ -14,7 +14,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {ProjectKey} from 'sentry/types/project';
@@ -223,7 +222,7 @@ const RateLimitRow = styled('div')`
   display: grid;
   grid-template-columns: 100px max-content 1fr;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const EventsIn = styled('small')`

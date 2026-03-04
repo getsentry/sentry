@@ -8,7 +8,11 @@ from sentry import features
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError, SummarizeTraceResponse
-from sentry.seer.signed_seer_api import SummarizeTraceRequest, make_summarize_trace_request
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    SummarizeTraceRequest,
+    make_summarize_trace_request,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
@@ -45,10 +49,15 @@ def get_trace_summary(
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
+    viewer_context = SeerViewerContext(organization_id=organization.id)
+    if not isinstance(user, AnonymousUser):
+        viewer_context["user_id"] = user.id
+
     trace_summary = _call_seer(
         traceSlug,
         traceTree,
         onlyTransaction,
+        viewer_context=viewer_context,
     )
 
     trace_summary_dict = trace_summary.dict()
@@ -62,13 +71,14 @@ def _call_seer(
     trace_id: str,
     trace_content: list[Any],
     only_transaction: bool = False,
+    viewer_context: SeerViewerContext | None = None,
 ) -> SummarizeTraceResponse:
     body = SummarizeTraceRequest(
         trace_id=trace_id,
         only_transaction=only_transaction,
         trace={"trace_id": trace_id, "trace": trace_content},
     )
-    response = make_summarize_trace_request(body)
+    response = make_summarize_trace_request(body, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
 

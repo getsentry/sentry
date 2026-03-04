@@ -1,5 +1,5 @@
 import React, {Component, Fragment} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import snakeCase from 'lodash/snakeCase';
@@ -23,7 +23,6 @@ import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -150,6 +149,7 @@ function NoticeModal({
   whichModal,
   billingPermissions,
 }: NoticeModalProps) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const closeModalAndContinue = (link: string) => {
     closeModal();
@@ -274,7 +274,7 @@ function NoticeModal({
         <Button
           priority="primary"
           onClick={() => closeModalAndContinue(link)}
-          style={{marginLeft: space(2)}}
+          style={{marginLeft: theme.space.xl}}
           data-test-id="modal-continue-button"
         >
           {primaryButtonMessage}

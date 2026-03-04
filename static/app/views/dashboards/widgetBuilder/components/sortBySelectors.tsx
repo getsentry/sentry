@@ -7,7 +7,6 @@ import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -294,7 +293,7 @@ export function SortBySelectors({
 
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 200px 1fr;
