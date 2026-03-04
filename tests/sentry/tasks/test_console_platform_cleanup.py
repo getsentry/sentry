@@ -113,3 +113,37 @@ class RemoveRevokedConsolePlatformSourcesTest(TestCase):
 
         sources = ProjectOption.objects.get_value(project, "sentry:builtin_symbol_sources")
         assert sources == ["microsoft", "nintendo"]
+
+    @override_settings(
+        SENTRY_BUILTIN_SOURCES={
+            **SENTRY_BUILTIN_SOURCES_TEST,
+            "multi_platform": {
+                "id": "sentry:multi_platform",
+                "name": "Multi-Platform SDK",
+                "type": "s3",
+                "bucket": "multi-symbols",
+                "region": "us-east-1",
+                "access_key": "test-key",
+                "secret_key": "test-secret",
+                "layout": {"type": "native"},
+                "platforms": ["nintendo-switch", "playstation"],
+            },
+        }
+    )
+    def test_removes_multi_platform_source_when_only_platform_revoked(self) -> None:
+        """
+        When a source has multiple platforms and the org only had access to one,
+        revoking that platform should remove the source even though not all
+        platforms were revoked.
+        """
+        project = self.create_project(organization=self.organization)
+        # Org only has nintendo-switch access, not playstation
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+        project.update_option("sentry:builtin_symbol_sources", ["microsoft", "multi_platform"])
+
+        # Revoke nintendo-switch - the only platform the org had access to
+        remove_revoked_console_platform_sources(self.organization.id, ["nintendo-switch"])
+
+        sources = ProjectOption.objects.get_value(project, "sentry:builtin_symbol_sources")
+        # multi_platform should be removed because org no longer has access to any of its platforms
+        assert sources == ["microsoft"]
