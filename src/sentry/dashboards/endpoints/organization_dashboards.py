@@ -84,6 +84,12 @@ class PrebuiltDashboardId(IntEnum):
     MCP_TOOLS = 20
     MCP_RESOURCES = 21
     MCP_PROMPTS = 22
+    LARAVEL_OVERVIEW = 23
+    FRONTEND_ASSETS = 24
+    FRONTEND_ASSETS_SUMMARY = 25
+    BACKEND_QUEUES = 26
+    BACKEND_QUEUE_SUMMARY = 27
+    BACKEND_CACHES = 28
 
 
 class PrebuiltDashboard(TypedDict):
@@ -188,6 +194,30 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
         "title": "MCP Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
+        "title": "Laravel Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS,
+        "title": "Frontend Assets",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+        "title": "Frontend Assets Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
+        "title": "Queues",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
+        "title": "Queue Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
+        "title": "Caches",
     },
 ]
 

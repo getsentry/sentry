@@ -13,7 +13,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
@@ -37,7 +36,6 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const metricQueries = useMultiMetricsQueryParams();
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {addToDashboard} = useAddMetricToDashboard();
 
   const saveAsItems = useMemo(() => {
@@ -96,10 +94,8 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
   // TODO: Implement alert functionality when organizations:tracemetrics-alerts flag is enabled
 
   const addToDashboardItems = useMemo(() => {
-    const items = [];
-
-    if (hasTraceMetricsDashboards) {
-      items.push({
+    return [
+      {
         key: 'add-to-dashboard',
         label: t('Dashboard widget'),
         textValue: t('Dashboard widget'),
@@ -131,11 +127,9 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
             };
           }),
         ],
-      });
-    }
-
-    return items;
-  }, [hasTraceMetricsDashboards, addToDashboard, metricQueries]);
+      },
+    ];
+  }, [addToDashboard, metricQueries]);
 
   return useMemo(() => {
     return [...saveAsItems, ...addToDashboardItems];

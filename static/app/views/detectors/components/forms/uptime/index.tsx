@@ -5,7 +5,11 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {createMapFormErrors} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {
+  PreviewCheckResultProvider,
+  usePreviewCheckResult,
+} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
@@ -65,7 +69,16 @@ function UptimeDetectorForm() {
 }
 
 export function NewUptimeDetectorForm() {
+  return (
+    <PreviewCheckResultProvider>
+      <NewUptimeDetectorFormContent />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function NewUptimeDetectorFormContent() {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <NewDetectorLayout
@@ -81,7 +94,7 @@ export function NewUptimeDetectorForm() {
           </Fragment>
         ) : undefined
       }
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -89,7 +102,16 @@ export function NewUptimeDetectorForm() {
 }
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
+  return (
+    <PreviewCheckResultProvider>
+      <EditExistingUptimeDetectorFormContent detector={detector} />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function EditExistingUptimeDetectorFormContent({detector}: {detector: UptimeDetector}) {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <EditDetectorLayout
@@ -107,7 +129,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
           </Fragment>
         ) : undefined
       }
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>

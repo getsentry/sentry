@@ -54,9 +54,6 @@ export function useMetricDetectorAnomalyThresholds({
   const organization = useOrganization();
   const theme = useTheme();
 
-  const hasAnomalyDataFlag = organization.features.includes(
-    'anomaly-detection-threshold-data'
-  );
   const isAnomalyDetection = detectionType === 'dynamic';
 
   const {
@@ -82,9 +79,7 @@ export function useMetricDetectorAnomalyThresholds({
     {
       staleTime: 0,
       enabled:
-        hasAnomalyDataFlag &&
-        isAnomalyDetection &&
-        Boolean(detectorId && startTimestamp && endTimestamp),
+        isAnomalyDetection && Boolean(detectorId && startTimestamp && endTimestamp),
     }
   );
 

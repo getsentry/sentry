@@ -65,7 +65,7 @@ export function getBestMaxPickableDays(
   dataCategories: readonly [DataCategory, ...DataCategory[]],
   getMaxPickableDaysFor: (dataCategory: DataCategory) => MaxPickableDaysOptions
 ) {
-  let maxPickableDays: MaxPickableDaysOptions = getMaxPickableDaysFor(dataCategories[0]);
+  let maxPickableDays = getMaxPickableDaysFor(dataCategories[0]);
 
   for (let i = 1; i < dataCategories.length; i++) {
     const dataCategory = dataCategories[i]!;

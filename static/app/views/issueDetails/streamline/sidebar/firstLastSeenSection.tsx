@@ -1,26 +1,22 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
+import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
-}
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
@@ -30,27 +26,12 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
   const {data: allEnvsGroupData} = useFetchAllEnvsGroupData(organization, group);
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/first-last-release/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      ),
-      {
-        query: {
-          ...(environments.length > 0 ? {environment: environments} : {}),
-        },
-      },
-    ],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
+  const {data: groupReleaseData} = useQuery(
+    issueFirstLastReleaseQueryOptions({
+      groupId: group.id,
+      organizationSlug: organization.slug,
+      query: environments.length > 0 ? {environment: environments} : undefined,
+    })
   );
   const {data: openPeriods} = useOpenPeriods(
     {groupId: group.id},
@@ -74,9 +55,9 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
 
   return (
     <Flex direction="column" gap="sm">
-      <div>
-        <Flex gap="xs">
-          <Title>{t('Last seen')}</Title>
+      <Stack>
+        <Flex gap="xs" align="baseline">
+          <Text bold>{t('Last seen')}</Text>
           <SeenInfo
             date={lastSeen}
             dateGlobal={lastSeenGlobal}
@@ -89,10 +70,10 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
         {lastSeen && (
           <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
         )}
-      </div>
-      <div>
-        <Flex gap="xs">
-          <Title>{t('First seen')}</Title>
+      </Stack>
+      <Stack>
+        <Flex gap="xs" align="baseline">
+          <Text bold>{t('First seen')}</Text>
           <SeenInfo
             date={group.firstSeen}
             dateGlobal={allEnvsGroupData?.firstSeen ?? group.firstSeen}
@@ -105,7 +86,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
         {group.firstSeen && (
           <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
         )}
-      </div>
+      </Stack>
     </Flex>
   );
 }
@@ -118,37 +99,21 @@ function ReleaseText({project, release}: {project: Project; release?: Release}) 
   }
 
   return (
-    <Subtitle>
-      {tct('in release [release]', {
-        release: (
-          <VersionHoverCard
-            organization={organization}
-            projectSlug={project.slug}
-            releaseVersion={release.version}
-          >
-            <ReleaseWrapper>
-              <Version version={release.version} projectId={project.id} />
-            </ReleaseWrapper>
-          </VersionHoverCard>
-        ),
-      })}
-    </Subtitle>
+    <Text size="sm" variant="muted">
+      {t('in release')}{' '}
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={project.slug}
+        releaseVersion={release.version}
+      >
+        <ReleaseVersion version={release.version} projectId={project.id} />
+      </VersionHoverCard>
+    </Text>
   );
 }
 
-const ReleaseWrapper = styled('span')`
-  a {
-    color: ${p => p.theme.tokens.content.secondary};
-    text-decoration: underline;
-    text-decoration-style: dotted;
-  }
-`;
-
-const Title = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const Subtitle = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
+const ReleaseVersion = styled(Version)`
   color: ${p => p.theme.tokens.content.secondary};
+  text-decoration: underline;
+  text-decoration-style: dotted;
 `;

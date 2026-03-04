@@ -178,7 +178,7 @@ describe('GroupEventAttachments', () => {
         },
         route: `/organizations/:orgId/issues/:groupId/attachments/`,
       },
-      organization: {...organization, features: ['issue-details-streamline-enforce']},
+      organization,
     });
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',

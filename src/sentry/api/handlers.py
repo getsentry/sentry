@@ -2,6 +2,7 @@ import sentry_sdk
 from rest_framework.exceptions import Throttled
 from rest_framework.views import exception_handler
 
+from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.types.ratelimit import SnubaRateLimitMeta
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -30,9 +31,7 @@ def custom_exception_handler(exc, context):
                 level="warning",
             )
         # let the client know that they've been rate limited with details
-        exc = Throttled(
-            detail="Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
-        )
+        exc = Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
 
     response = exception_handler(exc, context)
 

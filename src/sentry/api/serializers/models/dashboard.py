@@ -100,6 +100,7 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int] | None
+    axisRange: str | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
     changedReason: list[WidgetChangedReasonType] | None
@@ -341,6 +342,7 @@ class DashboardWidgetSerializer(Serializer):
             # Default to discover type if null
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
+            "axisRange": obj.detail.get("axis_range") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
             "changedReason": obj.changed_reason,
         }

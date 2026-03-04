@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -202,6 +201,6 @@ export function IssueDetailsEventNavigation({
 
 const Navigation = styled('div')`
   display: flex;
-  padding-right: ${space(0.25)};
+  padding-right: ${p => p.theme.space['2xs']};
   border-right: 1px solid ${p => p.theme.colors.gray100};
 `;

@@ -20,7 +20,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
@@ -136,12 +135,13 @@ export default function TeamProjects() {
                   {t('Add Project')}
                 </OverlayTrigger.Button>
               )}
-              searchPlaceholder={t('Search Projects')}
+              search={{
+                placeholder: t('Search Projects'),
+                filter: false,
+                onChange: setQuery,
+              }}
               emptyMessage={t('No projects')}
               loading={loadingUnlinkedProjects}
-              searchable
-              disableSearchFilter
-              onSearch={setQuery}
             />
           </div>
         </PanelHeader>
@@ -191,6 +191,6 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   max-width: 100%;
 `;

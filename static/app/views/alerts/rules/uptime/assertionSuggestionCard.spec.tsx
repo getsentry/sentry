@@ -5,27 +5,27 @@ import {
   AssertionSuggestionCardPlaceholder,
 } from 'sentry/views/alerts/rules/uptime/assertionSuggestionCard';
 import {
-  AssertionType,
-  ComparisonType,
-  OpType,
-  type AssertionSuggestion,
+  UptimeAssertionType,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAssertionSuggestion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 function makeSuggestion(
-  overrides: Partial<AssertionSuggestion> = {}
-): AssertionSuggestion {
+  overrides: Partial<UptimeAssertionSuggestion> = {}
+): UptimeAssertionSuggestion {
   return {
-    assertion_type: AssertionType.STATUS_CODE,
-    comparison: ComparisonType.EQUALS,
+    assertion_type: UptimeAssertionType.STATUS_CODE,
+    comparison: UptimeComparisonType.EQUALS,
     expected_value: '200',
     confidence: 0.9,
     explanation: 'Checks for a healthy response',
     json_path: null,
     header_name: null,
     assertion_json: {
-      op: OpType.STATUS_CODE_CHECK,
+      op: UptimeOpType.STATUS_CODE_CHECK,
       id: 'test-1',
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     },
     ...overrides,
@@ -35,8 +35,8 @@ function makeSuggestion(
 describe('AssertionSuggestionCard', () => {
   it('renders status_code assertion label', () => {
     const suggestion = makeSuggestion({
-      assertion_type: AssertionType.STATUS_CODE,
-      comparison: ComparisonType.EQUALS,
+      assertion_type: UptimeAssertionType.STATUS_CODE,
+      comparison: UptimeComparisonType.EQUALS,
       expected_value: '200',
     });
 
@@ -48,8 +48,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders json_path assertion label', () => {
     const suggestion = makeSuggestion({
-      assertion_type: AssertionType.JSON_PATH,
-      comparison: ComparisonType.EQUALS,
+      assertion_type: UptimeAssertionType.JSON_PATH,
+      comparison: UptimeComparisonType.EQUALS,
       expected_value: 'active',
       json_path: '$.status',
     });
@@ -62,8 +62,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders json_path with always comparison as exists', () => {
     const suggestion = makeSuggestion({
-      assertion_type: AssertionType.JSON_PATH,
-      comparison: ComparisonType.ALWAYS,
+      assertion_type: UptimeAssertionType.JSON_PATH,
+      comparison: UptimeComparisonType.ALWAYS,
       json_path: '$.data',
     });
 
@@ -75,8 +75,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders header assertion label', () => {
     const suggestion = makeSuggestion({
-      assertion_type: AssertionType.HEADER,
-      comparison: ComparisonType.EQUALS,
+      assertion_type: UptimeAssertionType.HEADER,
+      comparison: UptimeComparisonType.EQUALS,
       expected_value: 'application/json',
       header_name: 'Content-Type',
     });
@@ -89,8 +89,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders header with always comparison as exists', () => {
     const suggestion = makeSuggestion({
-      assertion_type: AssertionType.HEADER,
-      comparison: ComparisonType.ALWAYS,
+      assertion_type: UptimeAssertionType.HEADER,
+      comparison: UptimeComparisonType.ALWAYS,
       header_name: 'X-Request-Id',
     });
 

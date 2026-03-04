@@ -15,7 +15,6 @@ import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconClose} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -298,11 +297,11 @@ function DocIntegrationModal(props: Props) {
 }
 
 const AddButton = styled(Button)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const RemoveButton = styled(Button)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const ResourceTextField = styled(TextField)`

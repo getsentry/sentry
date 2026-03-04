@@ -34,9 +34,7 @@ export function useFrontendQuery(
     },
   });
 
-  const spanOp: PageSpanOps = getSpanOpFromQuery(
-    decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
-  );
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
 
   const query = new MutableSearch(searchBarQuery);
 

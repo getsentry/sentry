@@ -6,7 +6,6 @@ import NotAvailable from 'sentry/components/notAvailable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 
@@ -52,7 +51,7 @@ function ReleaseStats({organization, release, project}: Props) {
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${p => p.theme.space.xl};
 `;
 
 export default ReleaseStats;

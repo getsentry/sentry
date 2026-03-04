@@ -18,7 +18,6 @@ import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFee
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -303,8 +302,8 @@ function MemberCards({
 
 const StyledCard = styled(Card)`
   display: flex;
-  padding: ${space(2)};
-  padding-bottom: ${space(1.5)};
+  padding: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.lg};
   overflow: hidden;
 `;
 
@@ -321,7 +320,7 @@ const Subtitle = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const MemberEmail = styled('div')`
@@ -339,8 +338,8 @@ const MemberCard = styled(Card)`
   flex-direction: row;
   flex-wrap: wrap;
   min-width: 30%;
-  margin: ${space(1)} ${space(0.5)} 0 0;
-  padding: ${space(2)} 18px;
+  margin: ${p => p.theme.space.md} ${p => p.theme.space.xs} 0 0;
+  padding: ${p => p.theme.space.xl} 18px;
   justify-content: center;
   align-items: center;
 `;
@@ -348,9 +347,9 @@ const MemberCard = styled(Card)`
 const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   font-size: ${p => p.theme.font.size.sm};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`

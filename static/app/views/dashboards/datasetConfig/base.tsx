@@ -28,6 +28,7 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -165,6 +166,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Default Y-axis range for this dataset. Defaults to 'auto' if not set.
+   */
+  axisRange?: AxisRange;
   /**
    * Default field to use as the X-axis category for categorical bar charts.
    * This should be a non-aggregate field name (e.g., 'transaction', 'browser').

@@ -22,7 +22,6 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -437,14 +436,14 @@ const SearchWrapperWithFilter = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const StyledPanelItem = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
   width: 100%;
 `;

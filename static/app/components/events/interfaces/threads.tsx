@@ -31,7 +31,6 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -434,7 +433,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 const Grid = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const TheadStateContainer = styled('div')`
@@ -453,10 +452,10 @@ const LockReason = styled(TextOverflow)`
 const ThreadTraceWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)} ${space(4)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;
 
@@ -464,5 +463,5 @@ const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

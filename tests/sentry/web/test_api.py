@@ -6,7 +6,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion
@@ -271,7 +271,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == other_org.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{other_org.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
                 "superuserUrl": f"http://{self.organization.slug}.testserver",
             }
@@ -352,7 +352,7 @@ class ClientConfigViewTest(TestCase):
         assert data["lastOrganization"] == self.organization.slug
         assert data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
+            "regionUrl": generate_locality_url(),
             "sentryUrl": "http://testserver",
         }
 
@@ -377,7 +377,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -402,7 +402,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -417,7 +417,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -442,7 +442,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "invalid",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -457,7 +457,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -472,7 +472,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"ftp://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 

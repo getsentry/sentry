@@ -202,5 +202,6 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 }
 
 const StyledPanelTable = styled(PanelTable)`
+  margin-bottom: 0;
   grid-template-columns: 1fr repeat(2, max-content);
 `;

@@ -4,7 +4,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function OrgStatsProfilingBanner() {
@@ -72,7 +71,7 @@ const BannerGrid = styled('div')`
   grid-template-columns: 1fr;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, 1fr);
@@ -85,7 +84,7 @@ const BannerGrid = styled('div')`
 const HeaderItem = styled('div')`
   grid-column: span 1;
 
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
@@ -103,7 +102,7 @@ const HeaderItem = styled('div')`
 const CategoryItemLeft = styled('div')`
   grid-column: span 1;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
@@ -118,11 +117,11 @@ const CategoryItemLeft = styled('div')`
 
 const CategoryItemRight = styled('div')`
   grid-column: span 1;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StyledProfilingButton = styled(LinkButton)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 export default OrgStatsProfilingBanner;

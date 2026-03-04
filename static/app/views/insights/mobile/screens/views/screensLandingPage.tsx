@@ -330,7 +330,7 @@ function ScreensLandingPage() {
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Flex = styled('div')<{gap?: number}>`
@@ -341,7 +341,7 @@ const Flex = styled('div')<{gap?: number}>`
   gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 function ScreensLandingPageWithPlatformization() {

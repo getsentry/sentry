@@ -47,7 +47,7 @@ const assetsByTimeSpentQuery = new MutableSearch(
   `has:${SpanFields.NORMALIZED_DESCRIPTION} ${ASSETS_BY_TIME_SPENT_QUERY}`
 );
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-widget',
@@ -98,7 +98,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'issue-counts',
@@ -133,6 +133,13 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           orderby: `-sum(span.duration)`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 25,
+            },
+          ],
         },
       ],
     },

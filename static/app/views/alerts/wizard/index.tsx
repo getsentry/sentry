@@ -18,7 +18,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,14 +29,14 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
-import type {AlertType, MetricAlertType, WizardRuleTemplate} from './options';
+import type {AlertType, MetricAlertType} from './options';
 import {
   AlertWizardAlertNames,
   AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
-import {AlertWizardPanelContent} from './panelContent';
+import {getAlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 const DEFAULT_ALERT_OPTION = 'issues';
@@ -67,7 +66,7 @@ export default function AlertWizard() {
     setAlertOption(option);
   };
 
-  let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+  let metricRuleTemplate =
     alertOption in AlertWizardRuleTemplates
       ? AlertWizardRuleTemplates[alertOption as MetricAlertType]
       : undefined;
@@ -158,7 +157,10 @@ export default function AlertWizard() {
     );
   }
 
-  const panelContent = AlertWizardPanelContent[alertOption];
+  const hasMetricIssues = organization.features.includes(
+    'workflow-engine-metric-issue-ui'
+  );
+  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
@@ -246,22 +248,22 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 const CategoryTitle = styled('h2')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)} !important;
+  margin-bottom: ${p => p.theme.space.md} !important;
 `;
 
 const WizardOptions = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   flex: 3;
-  margin-right: ${space(3)};
-  padding-right: ${space(3)};
+  margin-right: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
   max-width: 300px;
 `;
 
 const WizardImage = styled('img')`
   max-height: 300px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
@@ -289,7 +291,7 @@ const WizardPanel = styled(Panel)<{visible?: boolean}>`
 `;
 
 const ExampleList = styled(List)`
-  margin-bottom: ${space(2)} !important;
+  margin-bottom: ${p => p.theme.space.xl} !important;
 `;
 
 const WizardPanelBody = styled(PanelBody)`
@@ -298,11 +300,11 @@ const WizardPanelBody = styled(PanelBody)`
 `;
 
 const PanelDescription = styled('p')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ExampleHeader = styled('div')`
-  margin: 0 0 ${space(1)} 0;
+  margin: 0 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.lg};
 `;
 
@@ -312,14 +314,15 @@ const ExampleItem = styled(ListItem)`
 
 const WizardFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg}
+    ${p => p.theme.space.lg};
 `;
 
 const WizardButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   a:not(:last-child) {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 

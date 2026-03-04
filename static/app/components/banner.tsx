@@ -115,7 +115,7 @@ const BannerContent = styled('div')`
   justify-items: center;
   grid-template-rows: repeat(3, max-content);
   text-align: center;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const BannerTitle = styled('h1')`
@@ -137,15 +137,15 @@ const BannerSubtitle = styled('div')`
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   width: fit-content;
 `;
 
 const CloseButton = styled(Button)`
   position: absolute;
   display: block;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.xl};
+  right: ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;

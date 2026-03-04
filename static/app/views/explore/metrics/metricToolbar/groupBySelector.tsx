@@ -86,7 +86,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     );
   }, [booleanTags]);
 
-  const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
+  const enabledOptions = useGroupByFields({
     groupBys,
     numberTags: visibleNumberTags ?? {},
     stringTags: visibleStringTags ?? {},
@@ -115,7 +115,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
   return (
     <CompactSelect
       multiple
-      searchable
+      search
       clearable
       trigger={triggerProps => (
         <OverlayTrigger.Button

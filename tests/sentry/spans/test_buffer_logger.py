@@ -315,7 +315,8 @@ class TestEmitObservabilityMetrics:
 
     @mock.patch("sentry.spans.buffer_logger.metrics.timing")
     @mock.patch("sentry.spans.buffer_logger.metrics.gauge")
-    def test_emit_observability_metrics(self, mock_gauge, mock_timing):
+    @mock.patch("sentry.spans.buffer_logger.metrics.incr")
+    def test_emit_observability_metrics(self, mock_incr, mock_gauge, mock_timing):
         emit_observability_metrics(
             latency_metrics=self.data()["latency_metrics"],
             gauge_metrics=self.data()["gauge_metrics"],
@@ -472,6 +473,15 @@ class TestEmitObservabilityMetrics:
                 call(LG, 813.0, tags=t("parent_span_set_before_size")),
                 call(LG, 2134.0, tags=t("parent_span_set_after_size")),
                 call(LG, 55.0, tags=t("spopcalls")),
+            ]
+        )
+
+        # Size Bucket metrics (temporary)
+        mock_incr.assert_has_calls(
+            [
+                call(
+                    "spans.buffer.parent_span_set_after_size_bucket", 2, tags={"size": "2000-5000"}
+                ),
             ]
         )
 

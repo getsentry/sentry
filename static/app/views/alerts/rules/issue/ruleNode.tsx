@@ -14,7 +14,6 @@ import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -637,9 +636,9 @@ const InlineSelectControl = styled(Select)`
 `;
 
 const Separator = styled('span')`
-  margin-right: ${space(1)};
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  margin-right: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`

@@ -68,7 +68,7 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
 `;
 
@@ -81,7 +81,7 @@ const StyledTextField = styled(TextField)`
     width: 100%;
   }
 
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledFormField = styled(FormField)<{extraMargin?: boolean}>`
