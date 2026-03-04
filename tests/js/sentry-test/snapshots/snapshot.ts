@@ -1,14 +1,16 @@
 // eslint-disable-next-line import/no-nodejs-modules
-import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, writeFile} from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
+// eslint-disable-next-line import/no-nodejs-modules
+import {promisify} from 'node:util';
 
 import {createElement, type ReactElement} from 'react';
 import {renderToString} from 'react-dom/server';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
-import {chromium} from 'playwright';
+import {chromium, type Browser} from 'playwright';
 
 import type {SnapshotImageMetadata} from 'sentry-test/snapshots/snapshot-image-metadata';
 
@@ -88,9 +90,9 @@ function getOutputDir(): string {
   return path.resolve(PROJECT_ROOT, '.artifacts/snapshots');
 }
 
-let _browserPromise: ReturnType<typeof chromium.launch> | null = null;
+let _browserPromise: Promise<Browser> | null = null;
 
-function getBrowser(): ReturnType<typeof chromium.launch> {
+function getBrowser(): Promise<Browser> {
   if (!_browserPromise) {
     _browserPromise = chromium.launch({
       args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
@@ -146,11 +148,14 @@ export async function takeSnapshot(
       // Dump additional options as metadata
       ...options,
     };
-    writeFileSync(path.join(outputDir, imageFilename), screenshot);
-    writeFileSync(
-      path.join(outputDir, `${coreFilename}.json`),
-      JSON.stringify(metadata, null, 2)
-    );
+
+    await Promise.all([
+      promisify(writeFile)(path.join(outputDir, imageFilename), screenshot),
+      promisify(writeFile)(
+        path.join(outputDir, `${coreFilename}.json`),
+        JSON.stringify(metadata, null, 2)
+      ),
+    ]);
   } finally {
     await context.close();
   }

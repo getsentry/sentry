@@ -33,7 +33,7 @@ jobs:
   snapshots:
     if: github.event_name != 'pull_request' || needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: visual snapshots
+    name: snapshot tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
