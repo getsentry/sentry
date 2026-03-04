@@ -261,7 +261,7 @@ class Project(Model):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
-    template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
+    template = FlexibleForeignKey("sentry.ProjectTemplate", null=True, db_constraint=False)
 
     # external_id for the projects managed/provisioned through the 3rd party
     external_id = models.CharField(max_length=256, null=True)
