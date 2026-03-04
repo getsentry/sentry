@@ -790,6 +790,18 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
 
+    def format_version_string(self) -> str:
+        parts: list[str] = []
+        if self.build_version:
+            parts.append(self.build_version)
+        if self.build_number:
+            parts.append(f"({self.build_number})")
+        return " ".join(parts) if parts else "--"
+
+    @property
+    def version_string(self) -> str:
+        return self.format_version_string()
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactmobileappinfo"

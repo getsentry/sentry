@@ -206,13 +206,10 @@ def main() -> None:
         logger.info("Done!")
 
         # Show results
-        comment_ids = set()
-        for aid in artifact_ids:
-            artifact = PreprodArtifact.objects.get(id=aid)
-            extras = artifact.extras or {}
-            pr_comments = extras.get("posted_pr_comments", {}).get("build_distribution", {})
-            if pr_comments.get("success"):
-                comment_ids.add(pr_comments["comment_id"])
+        commit_comparison.refresh_from_db()
+        cc_extras = commit_comparison.extras or {}
+        build_dist = cc_extras.get("pr_comments", {}).get("build_distribution", {})
+        comment_ids = {build_dist["comment_id"]} if build_dist.get("success") else set()
 
         if comment_ids:
             logger.info(
