@@ -96,7 +96,7 @@ class Region:
     """
 
     # TODO(cells): drop once category is fully moved to Locality
-    _category: RegionCategory
+    category: RegionCategory
 
     visible: bool = True
     """Whether the region is visible in API responses"""
@@ -217,7 +217,7 @@ def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Region]:
         yield Region(
             name=config_value["name"],
             snowflake_id=config_value["snowflake_id"],
-            _category=RegionCategory(config_value["category"]),
+            category=RegionCategory(config_value["category"]),
             address=config_value["address"],
             visible=config_value.get("visible", True),
         )
@@ -239,7 +239,7 @@ def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable
             name=settings.SENTRY_MONOLITH_REGION,
             snowflake_id=0,
             address=options.get("system.url-prefix"),
-            _category=RegionCategory.MULTI_TENANT,
+            category=RegionCategory.MULTI_TENANT,
         )
     elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
         raise RegionConfigurationError(
@@ -278,7 +278,7 @@ def load_from_config(
                 localities.add(
                     Locality(
                         name=region.name,
-                        category=region._category,
+                        category=region.category,
                         cells=frozenset([region.name]),
                         visible=region.visible,
                     )
