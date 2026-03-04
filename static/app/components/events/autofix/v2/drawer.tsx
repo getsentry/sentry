@@ -127,7 +127,6 @@ function InnerSeerDrawer({
     <SeerDrawerContent
       group={group}
       project={project}
-      event={event}
       aiAutofix={aiAutofix}
       aiConfig={aiConfig}
     />

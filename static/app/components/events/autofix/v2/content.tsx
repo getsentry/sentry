@@ -25,7 +25,6 @@ import {ExplorerAutofixStart} from 'sentry/components/events/autofix/v2/autofixS
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
 import Placeholder from 'sentry/components/placeholder';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,7 +37,6 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 interface SeerDrawerContentProps {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
   aiConfig: ReturnType<typeof useAiConfig>;
-  event: Event;
   group: Group;
   project: Project;
 }
