@@ -47,38 +47,33 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             json={"Python": 50000, "JavaScript": 30000},
             status=200,
         )
-        # Mock 404s for manifest file lookups (no framework detection)
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/contents/requirements.txt",
-            json={"message": "Not Found"},
-            status=404,
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/contents/pyproject.toml",
-            json={"message": "Not Found"},
-            status=404,
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/contents/Pipfile",
-            json={"message": "Not Found"},
-            status=404,
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/contents/package.json",
-            json={"message": "Not Found"},
-            status=404,
-        )
+        # 404 for all manifest file lookups (no framework detection)
+        for manifest in ("requirements.txt", "pyproject.toml", "Pipfile", "package.json"):
+            responses.add(
+                method=responses.GET,
+                url=f"https://api.github.com/repos/Test-Organization/foo/contents/{manifest}",
+                json={"message": "Not Found"},
+                status=404,
+            )
 
         response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
-        platforms = response.data["platforms"]
-        platform_ids = [p["platform"] for p in platforms]
-        assert "python" in platform_ids
-        assert "javascript" in platform_ids
+        assert response.data == {
+            "platforms": [
+                {
+                    "platform": "python",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "medium",
+                },
+                {
+                    "platform": "javascript",
+                    "language": "JavaScript",
+                    "bytes": 30000,
+                    "confidence": "medium",
+                },
+            ]
+        }
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -87,6 +82,13 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             method=responses.GET,
             url="https://api.github.com/repos/Test-Organization/foo/languages",
             json={"Python": 50000},
+            status=200,
+        )
+        # Root directory listing with requirements.txt so framework detection can find it
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/contents",
+            json=[{"name": "requirements.txt", "type": "file"}],
             status=200,
         )
 
@@ -100,13 +102,28 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
-        platforms = response.data["platforms"]
-        platform_ids = [p["platform"] for p in platforms]
-        assert "python-django" in platform_ids
-        assert "python-celery" in platform_ids
-
-        django = next(p for p in platforms if p["platform"] == "python-django")
-        assert django["confidence"] == "high"
+        assert response.data == {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                },
+                {
+                    "platform": "python-celery",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                },
+                {
+                    "platform": "python",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "medium",
+                },
+            ]
+        }
 
     def test_repo_not_found(self) -> None:
         response = self.get_response(self.organization.slug, 99999)
@@ -118,6 +135,19 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             name="non-github-repo",
             provider="integrations:bitbucket",
             external_id="456",
+        )
+
+        response = self.get_response(self.organization.slug, repo.id)
+        assert response.status_code == 400
+        assert "only supported for GitHub" in response.data["detail"]
+
+    def test_github_enterprise_repo_rejected(self) -> None:
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="enterprise-repo",
+            provider="integrations:github_enterprise",
+            external_id="999",
+            integration_id=self.integration.id,
         )
 
         response = self.get_response(self.organization.slug, repo.id)

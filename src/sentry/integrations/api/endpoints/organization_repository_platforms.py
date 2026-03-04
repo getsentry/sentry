@@ -30,8 +30,7 @@ class OrganizationRepositoryPlatformsEndpoint(OrganizationRepositoryEndpoint):
     def get(self, request: Request, organization: Organization, repo: Repository) -> Response:
         if (
             not repo.integration_id
-            or not repo.provider
-            or IntegrationProviderSlug.GITHUB not in repo.provider
+            or repo.provider != f"integrations:{IntegrationProviderSlug.GITHUB}"
         ):
             return Response(
                 {"detail": "Platform detection is only supported for GitHub repositories."},
