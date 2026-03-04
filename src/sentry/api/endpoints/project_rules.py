@@ -728,7 +728,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             queryset = Workflow.objects.filter(
                 detectorworkflow__detector__project=project,
                 status=ObjectStatus.ACTIVE,
-                enabled=True,
             ).distinct()
             serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
         else:
