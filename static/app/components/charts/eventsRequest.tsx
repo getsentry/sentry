@@ -22,7 +22,7 @@ import type {
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -38,6 +38,7 @@ type TimeSeriesData = {
   // timeseries data
   timeseriesData?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   timeseriesTotals?: {count: number};
   yAxis?: string | string[];
 };
@@ -548,10 +549,18 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         )
         .sort((a, b) => a[0] - b[0]);
       const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
+      const timeseriesResultsUnits: Record<string, DataUnit> = {};
       Object.keys(timeseriesData).forEach(key => {
-        const fieldsMeta = timeseriesData[key]!.meta?.fields[getAggregateAlias(key)];
+        const alias = getAggregateAlias(key);
+        const fieldsMeta =
+          timeseriesData[key]!.meta?.fields?.[key] ??
+          timeseriesData[key]!.meta?.fields?.[alias];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;
+        }
+        const unitsMeta = timeseriesData[key]!.meta?.units?.[alias];
+        if (unitsMeta) {
+          timeseriesResultsUnits[key] = unitsMeta as DataUnit;
         }
       });
       const results: Series[] = sortedTimeseriesData.map(item => {
@@ -573,6 +582,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         previousTimeseriesData,
         seriesAdditionalInfo,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
@@ -580,10 +590,19 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     if (timeseriesData) {
       const yAxisKey = yAxis && (typeof yAxis === 'string' ? yAxis : yAxis[0]);
       const yAxisFieldType =
-        yAxisKey && timeseriesData.meta?.fields[getAggregateAlias(yAxisKey)];
+        yAxisKey &&
+        (timeseriesData.meta?.fields[getAggregateAlias(yAxisKey)] ||
+          timeseriesData.meta?.fields[yAxisKey]);
       const timeseriesResultsTypes = yAxisFieldType
         ? {[yAxisKey]: yAxisFieldType}
         : undefined;
+      const yAxisAlias = yAxisKey && getAggregateAlias(yAxisKey);
+      const yAxisUnit =
+        yAxisAlias &&
+        (timeseriesData.meta?.units?.[yAxisAlias] ??
+          timeseriesData.meta?.units?.[yAxisKey]);
+      const timeseriesResultsUnits =
+        yAxisKey && yAxisUnit ? {[yAxisKey]: yAxisUnit as DataUnit} : undefined;
       const {
         data: transformedTimeseriesData,
         comparisonData: transformedComparisonTimeseriesData,
@@ -625,6 +644,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         timeAggregatedData,
         timeframe,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
@@ -650,7 +670,8 @@ export function transformTimeseriesData(
 ): Series[] {
   let scale = 1;
   if (seriesName) {
-    const unit = meta?.units?.[getAggregateAlias(seriesName)];
+    const unit =
+      meta?.units?.[seriesName] ?? meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
     scale =
       ((unit &&

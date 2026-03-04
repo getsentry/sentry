@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -43,7 +44,6 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -150,6 +150,7 @@ function ConversationStepRenderer({
   stepIndex: number;
   trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
@@ -157,7 +158,7 @@ function ConversationStepRenderer({
       trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
@@ -530,7 +531,7 @@ const DescriptionWrapper = styled('div')`
   }
 
   :not(:last-child) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -544,7 +545,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${space(1)};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

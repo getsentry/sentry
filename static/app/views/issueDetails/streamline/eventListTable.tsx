@@ -14,7 +14,6 @@ import {
 } from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import type parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -140,9 +139,10 @@ export function EventListTable({children, pagination, title}: EventListTableProp
 export const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   align-items: center;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   position: sticky;
@@ -182,7 +182,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridHeadCell} {
     height: 36px;
-    padding: 0 ${space(1.5)};
+    padding: 0 ${p => p.theme.space.lg};
     white-space: nowrap;
     text-overflow: ellipsis;
     text-transform: none;
@@ -202,13 +202,13 @@ const StreamlineGridEditable = styled('div')`
       border: 0;
     }
     &:first-child {
-      padding-left: ${space(1.5)};
+      padding-left: ${p => p.theme.space.lg};
     }
   }
 
   ${GridBodyCell} {
     min-height: unset;
-    padding: ${space(1)} ${space(1.5)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
     font-size: ${p => p.theme.font.size.md};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -217,7 +217,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridRow} {
     td:nth-child(2) {
-      padding-left: ${space(1.5)};
+      padding-left: ${p => p.theme.space.lg};
     }
 
     td:not(:nth-child(2)) {

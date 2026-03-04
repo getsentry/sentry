@@ -247,13 +247,13 @@ export default function SeerSection({
 }
 
 const Summary = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   position: relative;
 `;
 
 const ResourcesWrapper = styled('div')<{isExpanded: boolean}>`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ResourcesContent = styled('div')<{isExpanded: boolean}>`
@@ -279,7 +279,7 @@ const ResourcesContent = styled('div')<{isExpanded: boolean}>`
 
 const ExpandButton = styled(Button)`
   position: absolute;
-  bottom: -${space(1)};
+  bottom: -${p => p.theme.space.md};
   right: 0;
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
@@ -295,7 +295,7 @@ const HeaderContainer = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StyledP = styled('p')`
