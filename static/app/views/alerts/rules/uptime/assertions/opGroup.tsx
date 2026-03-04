@@ -31,6 +31,7 @@ interface AssertionOpGroupProps {
   onChange: (op: UptimeLogicalOp) => void;
   value: UptimeLogicalOp;
   disableDropping?: boolean;
+  erroredOp?: UptimeOp;
   onRemove?: () => void;
   root?: boolean;
 }
@@ -46,6 +47,7 @@ export function AssertionOpGroup({
   onRemove,
   root,
   disableDropping,
+  erroredOp,
 }: AssertionOpGroupProps) {
   const isNegated = value.op === UptimeOpType.NOT;
 
@@ -123,6 +125,7 @@ export function AssertionOpGroup({
           <AssertionOpStatusCode
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
           />
@@ -132,6 +135,7 @@ export function AssertionOpGroup({
           <AssertionOpJsonPath
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
           />
@@ -141,6 +145,7 @@ export function AssertionOpGroup({
           <AssertionOpHeader
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
           />
@@ -152,6 +157,7 @@ export function AssertionOpGroup({
           <AssertionOpGroup
             key={op.id}
             value={op}
+            erroredOp={erroredOp}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
             disableDropping={innerDroppableDisabled}

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import orjson
-
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
+    SeerViewerContext,
+    SupergroupsEmbeddingRequest,
+    make_supergroups_embedding_request,
 )
 
 
@@ -14,20 +13,12 @@ def trigger_supergroups_embedding(
     group_id: int,
     artifact_data: dict,
 ) -> None:
-    path = "/v0/issues/supergroups"
-    body = orjson.dumps(
-        {
-            "organization_id": organization_id,
-            "group_id": group_id,
-            "artifact_data": artifact_data,
-        }
+    body = SupergroupsEmbeddingRequest(
+        organization_id=organization_id,
+        group_id=group_id,
+        artifact_data=artifact_data,
     )
-
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        path,
-        body,
-        timeout=5,
-    )
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_supergroups_embedding_request(body, timeout=5, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)

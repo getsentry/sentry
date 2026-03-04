@@ -4,7 +4,6 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconNot} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
@@ -99,6 +98,6 @@ export default DropdownActions;
 
 const StyledIconNot = styled(IconNot)`
   color: ${p => p.theme.colors.red200};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   transform: translateY(2px);
 `;

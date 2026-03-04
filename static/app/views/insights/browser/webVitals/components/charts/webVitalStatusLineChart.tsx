@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -115,5 +114,5 @@ export function WebVitalStatusLineChart({
 const ChartContainer = styled('div')`
   position: relative;
   flex: 1;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;

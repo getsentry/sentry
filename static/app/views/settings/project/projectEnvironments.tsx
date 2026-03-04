@@ -17,7 +17,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
@@ -273,11 +272,11 @@ const EnvironmentItem = styled(PanelItem)`
 `;
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const EnvironmentButton = styled(Button)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 export default function ProjectEnvironmentsWrapper() {

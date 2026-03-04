@@ -10,7 +10,12 @@ from sentry.sentry_apps.external_requests.issue_link_requester import (
     IssueLinkRequester,
     IssueRequestActionType,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType, SentryAppExternalRequestHaltReason
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppExternalRequestFailureReason,
+    SentryAppExternalRequestHaltReason,
+)
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.asserts import (
@@ -20,6 +25,7 @@ from sentry.testutils.asserts import (
     assert_success_metric,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -263,6 +269,41 @@ class TestIssueLinkRequester(TestCase):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_no_webhook_url_configured_response(self, mock_record: MagicMock) -> None:
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.webhook_url = ""
+            self.sentry_app.save()
+
+        # Refresh install to ensure webhook_url is propagated correctly
+        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            IssueLinkRequester(
+                install=self.install,
+                group=self.group,
+                uri="/link-issue",
+                fields={},
+                user=self.rpc_user,
+                action=IssueRequestActionType("create"),
+            ).run()
+        assert exception_info.value.message == "Sentry app webhook_url is not configured"
+        assert exception_info.value.webhook_context == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestFailureReason.MISSING_URL
+            ),
+            "uri": "/link-issue",
+            "sentry_app_slug": self.sentry_app.slug,
+        }
+
+        # SLO assertions
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1

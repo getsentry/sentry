@@ -8,7 +8,6 @@ import type {Client} from 'sentry/api';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDiamond} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
@@ -284,7 +283,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
 }
 
 const StyledIconDiamond = styled(IconDiamond)`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;
 
 const StyledField = styled(FieldGroup)`

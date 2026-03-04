@@ -185,4 +185,5 @@ export default WidgetBuilderTypeSelector;
 const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;
   padding: 0px;
+  border-bottom: none;
 `;

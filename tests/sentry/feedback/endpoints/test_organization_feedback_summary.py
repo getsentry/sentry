@@ -10,11 +10,10 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
-@patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+@patch("sentry.feedback.endpoints.organization_feedback_summary.make_summarize_feedbacks_request")
 def test_get_summary_from_seer_basic(mock_make_seer_api_request: MagicMock) -> None:
     mock_make_seer_api_request.return_value = MockSeerResponse(
         200,
@@ -24,17 +23,17 @@ def test_get_summary_from_seer_basic(mock_make_seer_api_request: MagicMock) -> N
     summary = get_summary_from_seer(["hello world"])
     assert summary == "Test summary of feedback"
     assert mock_make_seer_api_request.call_count == 1
-    body = mock_make_seer_api_request.call_args[1]["body"]
-    assert json.loads(body.decode("utf-8")) == {"feedbacks": ["hello world"]}
+    body = mock_make_seer_api_request.call_args[0][0]
+    assert body == {"feedbacks": ["hello world"]}
 
 
-@patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+@patch("sentry.feedback.endpoints.organization_feedback_summary.make_summarize_feedbacks_request")
 def test_get_summary_from_seer_timeout(mock_make_seer_api_request: MagicMock) -> None:
     mock_make_seer_api_request.side_effect = requests.exceptions.Timeout("Request timed out")
     assert get_summary_from_seer(["hello world"]) is None
 
 
-@patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+@patch("sentry.feedback.endpoints.organization_feedback_summary.make_summarize_feedbacks_request")
 def test_get_summary_from_seer_http_errors(mock_make_seer_api_request: MagicMock) -> None:
     for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
         mock_make_seer_api_request.return_value = MockSeerResponse(

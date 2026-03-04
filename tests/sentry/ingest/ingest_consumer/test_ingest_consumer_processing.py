@@ -348,10 +348,8 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -
 @pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
-    with override_options(
-        {"system.url-prefix": live_server.url, "objectstore.enable_for.cached_attachments": 1}
-    ):
-        # this stores the attachment during processing because of the feature flag above:
+    with override_options({"system.url-prefix": live_server.url}):
+        # this stores the attachment during processing in objectstore:
         do_process_view_hierarchy(default_project, task_runner)
         # this passes an already stored attachment to the ingest consumer:
         do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)

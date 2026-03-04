@@ -64,6 +64,7 @@ def get_detector_validator(
             "organization": project.organization,
             "request": request,
             "access": request.access,
+            "user": request.user,
         },
         data=request.data,
         partial=partial,

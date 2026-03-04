@@ -39,7 +39,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="fruit">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -102,7 +102,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -132,7 +132,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="tags">
               {field => (
                 <field.Select
@@ -163,7 +163,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="tags">
               {field => (
                 // @ts-expect-error value should be string[] when multiple is true
@@ -189,7 +189,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 // @ts-expect-error value should be string when multiple is false
@@ -214,7 +214,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -242,7 +242,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -302,14 +302,17 @@ describe('SelectField disabled', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Favorite Fruit" disabled="Feature not available" />);
 
     expect(screen.getByRole('textbox')).toBeDisabled();
 
-    // Hover on the select container to trigger tooltip
-    const selectContainer = screen.getByRole('textbox').closest('[class*="container"]');
-    await userEvent.hover(selectContainer!);
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -544,7 +547,7 @@ function MultiTestForm({label, defaultValue = [], disabled}: MultiTestFormProps)
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="tags">
         {field => (
           <field.Layout.Row label={label}>
@@ -610,14 +613,17 @@ describe('SelectField multiple', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<MultiTestForm label="Tags" disabled="Feature not available" />);
 
     expect(screen.getByRole('textbox')).toBeDisabled();
 
-    // Hover on the select container to trigger tooltip
-    const selectContainer = screen.getByRole('textbox').closest('[class*="container"]');
-    await userEvent.hover(selectContainer!);
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();

@@ -24,8 +24,8 @@ describe('BuildDetails', () => {
     route: '/organizations/:orgId/preprod/size/:artifactId/',
   };
 
-  const BUILD_DETAILS_URL = `/projects/org-slug/project-1/preprodartifacts/artifact-1/build-details/`;
-  const SIZE_ANALYSIS_URL = `/projects/org-slug/project-1/files/preprodartifacts/artifact-1/size-analysis/`;
+  const BUILD_DETAILS_URL = `/organizations/org-slug/preprodartifacts/artifact-1/build-details/`;
+  const SIZE_ANALYSIS_URL = `/organizations/org-slug/files/preprodartifacts/artifact-1/size-analysis/`;
   const QUOTA_STATE_URL = `/organizations/org-slug/preprod/quota/`;
 
   const createMockSizeAnalysisData = () => ({

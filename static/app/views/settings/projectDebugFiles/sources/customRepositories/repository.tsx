@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
 import type {CustomRepo} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
@@ -40,7 +39,7 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TypeAndStatus = styled('div')`

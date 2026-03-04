@@ -17,7 +17,6 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -48,6 +47,7 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
+import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 interface MetricDetectorEvidenceData {
@@ -468,6 +468,15 @@ function TriggeredConditionDetails({
         />
       </InterimSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
+      {detectorDataset === DetectorDataset.SPANS && openPeriod && (
+        <AttributeComparisonSection
+          snubaQuery={snubaQuery}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+          projectId={projectId}
+          isOpenPeriodLoading={isOpenPeriodLoading}
+        />
+      )}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
           <InterimSection title={t('Contributing Issues')} type="contributing_issues">
@@ -488,7 +497,7 @@ function TriggeredConditionDetails({
 }
 
 const GroupListWrapper = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 export function MetricDetectorTriggeredSection({

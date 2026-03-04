@@ -164,7 +164,9 @@ function AggregateItem({
       {isLoading ? (
         <Placeholder width="20px" height="16px" />
       ) : (
-        <AggregateValue isInteractive={isInteractive}>{value}</AggregateValue>
+        <AggregateValue size="sm" isInteractive={isInteractive}>
+          {value}
+        </AggregateValue>
       )}
     </AggregateItemContainer>
   );

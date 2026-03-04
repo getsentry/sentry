@@ -366,6 +366,41 @@ export function getJsonPathCombinedLabelAndTooltip(op: UptimeJsonPathOp): {
   return {combinedLabel, combinedTooltip};
 }
 
+export const isLeafOp = (op: UptimeOp) =>
+  op.op === UptimeOpType.STATUS_CODE_CHECK ||
+  op.op === UptimeOpType.JSON_PATH ||
+  op.op === UptimeOpType.HEADER_CHECK;
+
+export function leafOpsMatchByValue(a: UptimeOp, b: UptimeOp): boolean {
+  if (a.op !== b.op) return false;
+
+  if (
+    a.op === UptimeOpType.STATUS_CODE_CHECK &&
+    b.op === UptimeOpType.STATUS_CODE_CHECK
+  ) {
+    return a.operator.cmp === b.operator.cmp && a.value === b.value;
+  }
+
+  if (a.op === UptimeOpType.JSON_PATH && b.op === UptimeOpType.JSON_PATH) {
+    return (
+      a.value === b.value &&
+      a.operator.cmp === b.operator.cmp &&
+      JSON.stringify(a.operand) === JSON.stringify(b.operand)
+    );
+  }
+
+  if (a.op === UptimeOpType.HEADER_CHECK && b.op === UptimeOpType.HEADER_CHECK) {
+    return (
+      a.key_op.cmp === b.key_op.cmp &&
+      JSON.stringify(a.key_operand) === JSON.stringify(b.key_operand) &&
+      a.value_op.cmp === b.value_op.cmp &&
+      JSON.stringify(a.value_operand) === JSON.stringify(b.value_operand)
+    );
+  }
+
+  return false;
+}
+
 export function getGroupOpLabel(op: UptimeGroupOp, isNegated: boolean): string {
   if (op.op === UptimeOpType.AND) {
     // By De Morgan's Laws, NOT (A AND B) is equivalent to (NOT A OR NOT B),

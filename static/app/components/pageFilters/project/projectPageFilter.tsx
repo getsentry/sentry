@@ -209,10 +209,6 @@ export function ProjectPageFilter({
 
     const memberProjectList = memberProjects(projects);
     const nonMemberProjectList = nonMemberProjects(projects);
-    const memberProjectIdSet = new Set(memberProjectList.map(p => parseInt(p.id, 10)));
-    const selectedMemberCount = optionSelectionIntent.ids.filter(id =>
-      memberProjectIdSet.has(id)
-    ).length;
 
     const specialItems = [
       ...(projects.length > 1 && nonMemberProjectList.length > 0
@@ -226,7 +222,7 @@ export function ProjectPageFilter({
                     ({projects.length})
                   </Text>
                   {/* Show separator if we are not displaying My Projects */}
-                  {memberProjectList.length < projects.length ? null : (
+                  {memberProjectList.length > 0 ? null : (
                     <Separator
                       orientation="horizontal"
                       aria-hidden
@@ -246,18 +242,12 @@ export function ProjectPageFilter({
               leadingItems: () => (
                 <Fragment>
                   <MenuComponents.Checkbox
-                    checked={
-                      optionSelectionIntent.kind === 'all'
-                        ? true
-                        : optionSelectionIntent.kind === 'my' ||
-                            optionSelectionIntent.kind === 'custom'
-                          ? 'indeterminate'
-                          : false
-                    }
+                    checked={optionSelectionIntent.kind === 'all'}
                     onChange={() => {
                       dispatchRef.current?.({
                         type: 'set staged',
                         value:
+                          // The inverse of All Projects is an empty array
                           optionSelectionIntent.kind === 'all'
                             ? []
                             : [ALL_ACCESS_PROJECTS],
@@ -302,14 +292,7 @@ export function ProjectPageFilter({
                   <MenuComponents.Checkbox
                     checked={
                       optionSelectionIntent.kind === 'all' ||
-                      optionSelectionIntent.kind === 'my' ||
-                      (optionSelectionIntent.kind === 'custom' &&
-                        selectedMemberCount === memberProjectList.length)
-                        ? true
-                        : optionSelectionIntent.kind === 'custom' &&
-                            selectedMemberCount > 0
-                          ? 'indeterminate'
-                          : false
+                      optionSelectionIntent.kind === 'my'
                     }
                     onChange={() => {
                       if (optionSelectionIntent.kind === 'all') {
@@ -328,20 +311,7 @@ export function ProjectPageFilter({
                         });
                         return;
                       }
-                      if (
-                        optionSelectionIntent.kind === 'custom' &&
-                        selectedMemberCount === memberProjectList.length
-                      ) {
-                        // Remove member projects from the custom selection, keeping non-members
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: optionSelectionIntent.ids.filter(
-                            id => !memberProjectIdSet.has(id)
-                          ),
-                        });
-                        return;
-                      }
-                      // indeterminate or none: select all My Projects
+                      // For 'custom' or 'none': select My Projects
                       dispatchRef.current?.({
                         type: 'set staged',
                         value: [MY_PROJECTS_VALUE],
@@ -424,70 +394,55 @@ export function ProjectPageFilter({
     return realStagedValue.length > SELECTION_COUNT_LIMIT;
   }, [stagedValue, showNonMemberProjects, urlProjectSelection, projects]);
 
-  const onToggle = useCallback(
-    (newValue: number[]) => {
-      trackAnalytics('projectselector.toggle', {
-        action: newValue.length > stagedValue.length ? 'added' : 'removed',
-        path: routePath,
-        organization,
-      });
-    },
-    [stagedValue, routePath, organization]
-  );
+  const onToggle = (newValue: number[]) => {
+    trackAnalytics('projectselector.toggle', {
+      action: newValue.length > stagedValue.length ? 'added' : 'removed',
+      path: routePath,
+      organization,
+    });
+  };
 
-  const onReplace = useCallback(() => {
+  const onReplace = () => {
     trackAnalytics('projectselector.direct_selection', {
       path: routePath,
       organization,
     });
-  }, [routePath, organization]);
+  };
 
-  const commitSelection = useCallback(
-    (newValue: number[]) => {
-      // Translate sentinel values to their actual project ID lists
-      let resolvedValue = newValue;
-      if (newValue.includes(ALL_ACCESS_PROJECTS)) {
-        resolvedValue = [];
-      } else if (newValue.includes(MY_PROJECTS_VALUE)) {
-        resolvedValue = memberProjectIds(projects);
-      }
+  const commitSelection = (newValue: number[]) => {
+    // Translate sentinel values to their actual project ID lists
+    let resolvedValue = newValue;
+    if (newValue.includes(ALL_ACCESS_PROJECTS)) {
+      resolvedValue = [];
+    } else if (newValue.includes(MY_PROJECTS_VALUE)) {
+      resolvedValue = memberProjectIds(projects);
+    }
 
-      onChange?.(resolvedValue);
+    onChange?.(resolvedValue);
 
-      trackAnalytics('projectselector.update', {
-        count: resolvedValue.length,
-        path: routePath,
-        organization,
-        multi: resolvedValue.length > 1,
-      });
-
-      updateProjects(
-        toURLSelection({
-          projects,
-          value: resolvedValue,
-          showNonMemberProjects,
-        }),
-        router,
-        {
-          save: true,
-          resetParams: resetParamsOnChange,
-          // Why are we clearing the environments when switching projects?
-          environments: [],
-          storageNamespace,
-        }
-      );
-    },
-    [
-      showNonMemberProjects,
-      resetParamsOnChange,
-      router,
-      projects,
+    trackAnalytics('projectselector.update', {
+      count: resolvedValue.length,
+      path: routePath,
       organization,
-      routePath,
-      onChange,
-      storageNamespace,
-    ]
-  );
+      multi: resolvedValue.length > 1,
+    });
+
+    updateProjects(
+      toURLSelection({
+        projects,
+        value: resolvedValue,
+        showNonMemberProjects,
+      }),
+      router,
+      {
+        save: true,
+        resetParams: resetParamsOnChange,
+        // Why are we clearing the environments when switching projects?
+        environments: [],
+        storageNamespace,
+      }
+    );
+  };
 
   const filterOptionsOnSearch = useCallback(
     (option: SelectOption<number>) =>
@@ -513,24 +468,20 @@ export function ProjectPageFilter({
   dispatchRef.current = stagedSelect.dispatch;
 
   // Derived intent and UI actions
-  const {dispatch} = stagedSelect;
-  const clearDraftSelectionState = useCallback(() => {
-    dispatch({type: 'remove staged'});
-  }, [dispatch]);
+  const clearDraftSelectionState = () => {
+    stagedSelect.dispatch({type: 'remove staged'});
+  };
 
   // Merge the hook's onOpenChange (resets shift-click anchor) with the local
   // snapshot logic (freezes the bookmark sort order while the menu is open).
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-        dispatch({type: 'reset anchor'});
-      }
-    },
-    [dispatch, optimisticallyBookmarkedProjects]
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+      stagedSelect.dispatch({type: 'reset anchor'});
+    }
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     clearDraftSelectionState();
     commitSelection(memberProjectIds(projects));
     onReset?.();
@@ -539,24 +490,17 @@ export function ProjectPageFilter({
       path: routePath,
       organization,
     });
-  }, [
-    clearDraftSelectionState,
-    commitSelection,
-    projects,
-    onReset,
-    routePath,
-    organization,
-  ]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     trackAnalytics('projectselector.cancel', {
       path: routePath,
       organization,
     });
     clearDraftSelectionState();
-  }, [clearDraftSelectionState, routePath, organization]);
+  };
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     trackAnalytics('projectselector.apply', {
       count: stagedSelect.value.length,
       multi: stagedSelect.value.length > 1,
@@ -569,13 +513,7 @@ export function ProjectPageFilter({
       clearDraftSelectionState();
       commitSelection(stagedSelect.value);
     });
-  }, [
-    clearDraftSelectionState,
-    commitSelection,
-    routePath,
-    organization,
-    stagedSelect.value,
-  ]);
+  };
 
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
@@ -608,13 +546,15 @@ export function ProjectPageFilter({
               {t('Create Project')}
             </MenuComponents.CTALinkButton>
           ) : undefined}
-          <Flex gap="md" align="center" justify="end">
-            <MenuComponents.CancelButton onClick={handleCancel} />
-            <MenuComponents.ApplyButton
-              disabled={selectionLimitExceeded}
-              onClick={handleApply}
-            />
-          </Flex>
+          {hasUnstaggedChanges ? (
+            <Flex gap="md" align="center" justify="end">
+              <MenuComponents.CancelButton onClick={handleCancel} />
+              <MenuComponents.ApplyButton
+                disabled={selectionLimitExceeded}
+                onClick={handleApply}
+              />
+            </Flex>
+          ) : null}
         </Flex>
       </Stack>
     ) : null;

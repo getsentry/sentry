@@ -27,7 +27,6 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -60,7 +59,7 @@ export const SEER_THRESHOLD_MAP = [
 ] as const;
 
 const SeerSelectLabel = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 export const seerScannerAutomationField = {
@@ -509,6 +508,6 @@ const Subheading = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   line-height: 1.4;
 `;
