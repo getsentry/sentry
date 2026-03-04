@@ -345,33 +345,4 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    # faster prerequisite check than starting up sentry and running createuser idempotently
-    stdout = proc.run(
-        (
-            "docker",
-            "exec",
-            "postgres-postgres-1",
-            "psql",
-            "sentry",
-            "postgres",
-            "-t",
-            "-c",
-            "select exists (select from auth_user where email = 'admin@sentry.io')",
-        ),
-        stdout=True,
-    )
-    if stdout != "t":
-        proc.run(
-            (
-                f"{venv_dir}/bin/sentry",
-                "createuser",
-                "--superuser",
-                "--email",
-                "admin@sentry.io",
-                "--password",
-                "admin",
-                "--no-input",
-            )
-        )
-
     return 0

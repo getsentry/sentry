@@ -1,5 +1,7 @@
 import sys
 
+from django.conf import settings
+
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
@@ -10,10 +12,23 @@ def create_first_user(**kwargs):
     if User.objects.filter(is_superuser=True).exists():
         return
 
-    if not sys.stdin.isatty() and not is_self_hosted():
-        return
+    from sentry.runner import call_command
 
     if not kwargs["interactive"]:
+        if settings.DEBUG:
+            # In local development, auto-create a default superuser so that
+            # `sentry upgrade --noinput` (via devenv sync) works without
+            # needing to shell out to docker/psql afterward.
+            call_command(
+                "sentry.runner.commands.createuser.createuser",
+                superuser=True,
+                email="admin@sentry.io",
+                password="admin",
+                no_input=True,
+            )
+        return
+
+    if not sys.stdin.isatty() and not is_self_hosted():
         return
 
     import click
@@ -22,8 +37,6 @@ def create_first_user(**kwargs):
         # Not using `abort=1` because we don't want to exit out from further execution
         click.echo("\nRun `sentry createuser` to do this later.\n")
         return
-
-    from sentry.runner import call_command
 
     call_command("sentry.runner.commands.createuser.createuser", superuser=True)
 
