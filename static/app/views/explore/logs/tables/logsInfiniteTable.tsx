@@ -10,6 +10,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -451,6 +452,7 @@ export function LogsInfiniteTable({
   return (
     <Fragment>
       <Table
+        className="logs-infinite-table"
         ref={tableRef}
         style={initialTableStyles}
         css={tableStaticCSS}
@@ -584,6 +586,12 @@ function LogsTableHeader({
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
   return (
     <TableHead>
+      <FloatingButtonArea>
+        <CopyToClipboardButton
+          aria-label={t('Copy logs to clipboard')}
+          text={JSON.stringify(data, null, 2)}
+        />
+      </FloatingButtonArea>
       <LogTableRow>
         <FirstTableHeadCell isFirst align="left">
           <TableHeadCellContent isFrozen />
@@ -799,3 +807,16 @@ function useBox<T>(value: T): RefObject<T> {
   box.current = value;
   return box;
 }
+
+const FloatingButtonArea = styled('div')`
+  opacity: 0;
+  position: absolute;
+  right: 0.25rem;
+  top: 0.35rem;
+  transition: 120ms opacity;
+
+  .logs-infinite-table:focus-within &,
+  .logs-infinite-table:hover & {
+    opacity: 1;
+  }
+`;
