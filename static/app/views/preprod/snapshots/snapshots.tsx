@@ -66,9 +66,9 @@ export default function SnapshotsPage() {
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [overlayColor, setOverlayColor] = useState(() => {
+  const [overlayColor, setOverlayColor] = useState<string>(() => {
     const palette = theme.chart.getColorPalette(10);
-    return palette[palette.length - 1];
+    return palette.at(-1) ?? '#67C800';
   });
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
