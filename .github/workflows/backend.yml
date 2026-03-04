@@ -5,6 +5,7 @@ on:
     branches:
       - mchen/tiered-xdist-v2
       - mchen/tiered-xdist-v2-clean
+      - mchen/pre-migrate-experiment
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
@@ -373,6 +374,11 @@ jobs:
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
 
+      - name: Pre-migrate test databases
+        run: |
+          python3 .github/workflows/scripts/pre-migrate-dbs.py \
+            --workers 5 --pg-host /tmp/pg-sock
+
       - name: Run backend-light tests
         env:
           SELECTED_TESTS_FILE: /tmp/backend-light-tests.txt
@@ -497,6 +503,11 @@ jobs:
                 -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
             until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
 
+            # Pre-migrate test databases (TEMPLATE clone for workers)
+            python3 .github/workflows/scripts/pre-migrate-dbs.py \
+              --workers $XDIST_N --pg-host /tmp/pg-sock &
+            PREMIGRATE_PID=$!
+
             # Bootstrap per-worker Snuba instances
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
@@ -531,6 +542,8 @@ jobs:
                 sleep 1
               done
             done
+
+            wait $PREMIGRATE_PID || { echo "pre-migrate failed"; exit 1; }
 
             touch /tmp/services-ready
           ) 2>&1 &
