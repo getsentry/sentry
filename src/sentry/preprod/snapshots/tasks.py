@@ -37,16 +37,16 @@ class _DiffCandidate(NamedTuple):
     pixel_count: int
 
 
-class _RenameResult(NamedTuple):
+class _ImageDiffResult(NamedTuple):
     renamed_pairs: list[tuple[str, str]]
     added: set[str]
     removed: set[str]
     matched: set[str]
 
 
-def detect_renames(
+def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
-) -> _RenameResult:
+) -> _ImageDiffResult:
     head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
     base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
 
@@ -75,7 +75,7 @@ def detect_renames(
         added.discard(new_name)
         removed.discard(old_name)
 
-    return _RenameResult(renamed_pairs, added, removed, matched)
+    return _ImageDiffResult(renamed_pairs, added, removed, matched)
 
 
 def _image_name_to_path_stem(name: str) -> str:
@@ -253,11 +253,11 @@ def compare_snapshots(
         head_by_name = {meta.image_file_name: h for h, meta in head_images.items()}
         base_by_name = {meta.image_file_name: h for h, meta in base_images.items()}
 
-        rename_result = detect_renames(head_manifest, base_manifest)
-        renamed_pairs = rename_result.renamed_pairs
-        added = rename_result.added
-        removed = rename_result.removed
-        matched = rename_result.matched
+        diff_result = categorize_image_diff(head_manifest, base_manifest)
+        renamed_pairs = diff_result.renamed_pairs
+        added = diff_result.added
+        removed = diff_result.removed
+        matched = diff_result.matched
 
         image_results: dict[str, dict[str, object]] = {}
         changed_count = 0
@@ -452,7 +452,6 @@ def compare_snapshots(
             image_results[new_name] = {
                 "status": "renamed",
                 "head_hash": content_hash,
-                "base_hash": content_hash,
                 "previous_image_file_name": old_name,
             }
 

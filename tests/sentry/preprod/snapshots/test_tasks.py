@@ -1,17 +1,17 @@
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-from sentry.preprod.snapshots.tasks import detect_renames
+from sentry.preprod.snapshots.tasks import categorize_image_diff
 
 
 def _meta(name: str) -> ImageMetadata:
     return ImageMetadata(image_file_name=name, width=100, height=200)
 
 
-class TestDetectRenames:
+class TestCategorizeImageDiff:
     def test_basic_rename(self):
         head = SnapshotManifest(images={"hash_a": _meta("new.png")})
         base = SnapshotManifest(images={"hash_a": _meta("old.png")})
 
-        result = detect_renames(head, base)
+        result = categorize_image_diff(head, base)
 
         assert result.renamed_pairs == [("new.png", "old.png")]
         assert result.added == set()
@@ -21,7 +21,7 @@ class TestDetectRenames:
         head = SnapshotManifest(images={"hash_1": _meta("a.png")})
         base = SnapshotManifest(images={"hash_2": _meta("b.png")})
 
-        result = detect_renames(head, base)
+        result = categorize_image_diff(head, base)
 
         assert len(result.renamed_pairs) == 0
         assert result.added == {"a.png"}
@@ -31,7 +31,7 @@ class TestDetectRenames:
         head = SnapshotManifest(images={"hash_a": _meta("screen.png")})
         base = SnapshotManifest(images={"hash_a": _meta("screen.png")})
 
-        result = detect_renames(head, base)
+        result = categorize_image_diff(head, base)
 
         assert len(result.renamed_pairs) == 0
         assert result.added == set()
@@ -54,7 +54,7 @@ class TestDetectRenames:
             }
         )
 
-        result = detect_renames(head, base)
+        result = categorize_image_diff(head, base)
 
         assert result.renamed_pairs == [("renamed.png", "old_name.png")]
         assert result.added == {"brand_new.png"}
@@ -64,7 +64,7 @@ class TestDetectRenames:
         head = SnapshotManifest(images={"hash_a": _meta("new_a.png"), "hash_b": _meta("new_b.png")})
         base = SnapshotManifest(images={"hash_a": _meta("old_a.png"), "hash_b": _meta("old_b.png")})
 
-        result = detect_renames(head, base)
+        result = categorize_image_diff(head, base)
 
         assert len(result.renamed_pairs) == 2
         rename_dict = dict(result.renamed_pairs)
