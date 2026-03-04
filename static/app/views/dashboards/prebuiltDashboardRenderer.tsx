@@ -1,4 +1,10 @@
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import {
   DashboardState,
@@ -21,6 +27,7 @@ export function PrebuiltDashboardRenderer({
   additionalGlobalFilters,
   storageNamespace,
 }: PrebuiltDashboardRendererProps) {
+  const organization = useOrganization();
   const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
     useGetPrebuiltDashboard(prebuiltId);
@@ -66,8 +73,26 @@ export function PrebuiltDashboardRenderer({
     projects: undefined,
   };
 
+  const dashboardId = populatedPrebuiltDashboard?.id;
+
   return (
     <LoadingContainer isLoading={isLoading} showChildrenWhileLoading={false}>
+      {dashboardId && (
+        <Container padding="xl 3xl 0">
+          <Alert variant="info" showIcon>
+            {tct(
+              'Insights pages are moving to Dashboards. Same functionality you love with more customization (and a less cheesy name). [link:View this page on Dashboards]',
+              {
+                link: (
+                  <Link
+                    to={`/organizations/${organization.slug}/dashboards/${dashboardId}/`}
+                  />
+                ),
+              }
+            )}
+          </Alert>
+        </Container>
+      )}
       <DashboardDetail
         dashboard={dashboard}
         dashboards={[]}

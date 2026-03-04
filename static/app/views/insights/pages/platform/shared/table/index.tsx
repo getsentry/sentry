@@ -11,7 +11,6 @@ import GridEditable from 'sentry/components/tables/gridEditable';
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 interface PlatformInsightsTableProps<DataRow extends Record<string, any>> extends Omit<
@@ -72,7 +71,7 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
 
 const GridEditableContainer = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingOverlay = styled('div')`
