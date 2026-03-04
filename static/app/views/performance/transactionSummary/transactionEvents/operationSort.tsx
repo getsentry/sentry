@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
@@ -13,7 +13,6 @@ import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
@@ -26,13 +25,25 @@ type Props = {
 
 function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const menuEl = useRef<HTMLElement | null>(null);
+  const menuEl = useRef<Element | null>(null);
 
-  const handleClickOutside = useCallback(() => {
-    setIsOpen(false);
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (event.target instanceof Element && !menuEl.current?.contains(event.target)) {
+      setIsOpen(false);
+    }
   }, []);
 
-  useOnClickOutside(menuEl, handleClickOutside);
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside, true);
+    } else {
+      document.removeEventListener('click', handleClickOutside, true);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+    };
+  }, [handleClickOutside, isOpen]);
 
   const toggleOpen = () => {
     setIsOpen(previousIsOpen => !previousIsOpen);
