@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Any, Mapping
 
 import pytest
 from jsonschema import ValidationError
@@ -13,7 +14,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestExistingHighPriorityIssueCondition(ConditionTestCase):
     condition = Condition.EXISTING_HIGH_PRIORITY_ISSUE
-    payload = {"id": ExistingHighPriorityIssueCondition.id}
+    payload: Mapping[str, Any] = {"id": ExistingHighPriorityIssueCondition.id}
 
     def setUp(self) -> None:
         super().setUp()

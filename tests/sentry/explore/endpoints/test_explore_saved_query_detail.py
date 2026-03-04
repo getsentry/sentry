@@ -222,7 +222,13 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
             response = self.client.put(
-                url, {"name": "New query", "projects": [], "range": "24h", "mode": "samples"}
+                url,
+                {
+                    "name": "New query",
+                    "projects": [],
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                },
             )
 
             assert response.status_code == 200
@@ -283,6 +289,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                     "projects": self.project_ids,
                     "range": "24h",
                     "dataset": "spans",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
                 },
             )
             assert response.status_code == 200

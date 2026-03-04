@@ -6,20 +6,20 @@ import {
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {
-  ComparisonType,
-  OpType,
-  type AndOp,
-  type HeaderCheckOp,
-  type JsonPathOp,
-  type Op,
-  type StatusCodeOp,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAndOp,
+  type UptimeHeaderCheckOp,
+  type UptimeJsonPathOp,
+  type UptimeOp,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface AddOpButtonProps extends Omit<DropdownMenuProps, 'items'> {
   /**
    * Callback when an operation type is selected
    */
-  onAddOp: (op: Op) => void;
+  onAddOp: (op: UptimeOp) => void;
 }
 
 export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
@@ -29,10 +29,10 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       label: t('Status Code'),
       details: t('Check HTTP response status code'),
       onAction: () => {
-        const statusCodeOp: StatusCodeOp = {
+        const statusCodeOp: UptimeStatusCodeOp = {
           id: uniqueId(),
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         };
         onAddOp(statusCodeOp);
@@ -43,11 +43,11 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       label: t('JSON Path'),
       details: t('Validate JSON response body content'),
       onAction: () => {
-        const jsonPathOp: JsonPathOp = {
+        const jsonPathOp: UptimeJsonPathOp = {
           id: uniqueId(),
-          op: OpType.JSON_PATH,
+          op: UptimeOpType.JSON_PATH,
           value: '',
-          operator: {cmp: ComparisonType.EQUALS},
+          operator: {cmp: UptimeComparisonType.EQUALS},
           operand: {jsonpath_op: 'literal', value: ''},
         };
         onAddOp(jsonPathOp);
@@ -58,12 +58,12 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       label: t('Header'),
       details: t('Check HTTP response header values'),
       onAction: () => {
-        const headerOp: HeaderCheckOp = {
+        const headerOp: UptimeHeaderCheckOp = {
           id: uniqueId(),
-          op: OpType.HEADER_CHECK,
-          key_op: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.HEADER_CHECK,
+          key_op: {cmp: UptimeComparisonType.EQUALS},
           key_operand: {header_op: 'literal', value: ''},
-          value_op: {cmp: ComparisonType.EQUALS},
+          value_op: {cmp: UptimeComparisonType.EQUALS},
           value_operand: {header_op: 'literal', value: ''},
         };
         onAddOp(headerOp);
@@ -74,9 +74,9 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       label: t('Logical Group'),
       details: t('Combine multiple assertions with AND/OR logic'),
       onAction: () => {
-        const andOp: AndOp = {
+        const andOp: UptimeAndOp = {
           id: uniqueId(),
-          op: OpType.AND,
+          op: UptimeOpType.AND,
           children: [],
         };
         onAddOp(andOp);

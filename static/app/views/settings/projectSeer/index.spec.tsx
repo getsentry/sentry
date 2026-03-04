@@ -36,9 +36,7 @@ describe('ProjectSeer', () => {
 
   beforeEach(() => {
     project = ProjectFixture();
-    organization = OrganizationFixture({
-      features: ['autofix-seer-preferences'],
-    });
+    organization = OrganizationFixture();
 
     // Mock the seer setup check endpoint
     MockApiClient.addMockResponse({
@@ -419,7 +417,7 @@ describe('ProjectSeer', () => {
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
     const orgWithCursorFeature = OrganizationFixture({
-      features: ['autofix-seer-preferences', 'integrations-cursor'],
+      features: ['integrations-cursor'],
     });
 
     const initialProject: Project = {
@@ -564,7 +562,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: ['integrations-cursor'],
       });
 
       const initialProject: Project = {
@@ -643,7 +641,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: ['integrations-cursor'],
       });
 
       const initialProject: Project = {
@@ -751,7 +749,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: ['integrations-cursor'],
       });
 
       const initialProject: Project = {
@@ -841,7 +839,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: ['integrations-cursor'],
       });
 
       const initialProject: Project = {
@@ -964,7 +962,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: ['integrations-cursor'],
       });
 
       const initialProject: Project = {

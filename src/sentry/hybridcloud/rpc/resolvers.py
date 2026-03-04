@@ -11,7 +11,7 @@ from sentry.types.region import (
     Region,
     RegionMappingNotFound,
     RegionResolutionError,
-    get_region_by_name,
+    get_cell_by_name,
 )
 
 
@@ -32,7 +32,7 @@ class RegionResolutionStrategy(ABC):
         except OrganizationMapping.DoesNotExist as e:
             raise RegionMappingNotFound from e
 
-        return get_region_by_name(mapping.region_name)
+        return get_cell_by_name(mapping.region_name)
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,7 @@ class ByRegionName(RegionResolutionStrategy):
 
     def resolve(self, arguments: ArgumentDict) -> Region:
         region_name = arguments[self.parameter_name]
-        return get_region_by_name(region_name)
+        return get_cell_by_name(region_name)
 
 
 @dataclass(frozen=True)
@@ -99,9 +99,9 @@ class RequireSingleOrganization(RegionResolutionStrategy):
             OrganizationMapping.objects.all().values_list("region_name", flat=True).distinct()[:2]
         )
         if len(all_region_names) == 0:
-            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+            return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         if len(all_region_names) != 1:
             raise RegionResolutionError("Expected single-org environment to have only one region")
 
         (single_region_name,) = all_region_names
-        return get_region_by_name(single_region_name)
+        return get_cell_by_name(single_region_name)

@@ -393,32 +393,10 @@ class TestSeerRpcMethods(APITestCase):
             "error": "Organization not found or not active",
         }
 
-    @patch("sentry.features.has")
-    def test_send_seer_webhook_feature_disabled(self, mock_features_has) -> None:
-        """Test that send_seer_webhook returns error when feature is disabled"""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        mock_features_has.return_value = False
-
-        result = send_seer_webhook(
-            event_name="root_cause_started",
-            organization_id=self.organization.id,
-            payload={"test": "data"},
-        )
-
-        assert result == {
-            "success": False,
-            "error": "Seer webhooks are not enabled for this organization",
-        }
-        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
-
-    @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_success(self, mock_delay, mock_features_has) -> None:
+    def test_send_seer_webhook_success(self, mock_delay) -> None:
         """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        mock_features_has.return_value = True
 
         result = send_seer_webhook(
             event_name="root_cause_started",
@@ -427,7 +405,6 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"success": True}
-        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
@@ -435,14 +412,11 @@ class TestSeerRpcMethods(APITestCase):
             payload={"test": "data"},
         )
 
-    @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_all_valid_event_names(self, mock_delay, mock_features_has) -> None:
+    def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
         from sentry.sentry_apps.metrics import SentryAppEventType
-
-        mock_features_has.return_value = True
 
         # Get all seer event types
         seer_events = [
@@ -470,10 +444,7 @@ class TestSeerRpcMethods(APITestCase):
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
-        with (
-            self.feature("organizations:seer-webhooks"),
-            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
-        ):
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
             result = send_seer_webhook(
                 event_name="root_cause_completed",
                 organization_id=self.organization.id,
@@ -494,7 +465,6 @@ class TestSeerRpcMethods(APITestCase):
         event_name = "root_cause_completed"
 
         with (
-            self.feature("organizations:seer-webhooks"),
             self.feature("organizations:seer-slack-workflows"),
             patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
         ):

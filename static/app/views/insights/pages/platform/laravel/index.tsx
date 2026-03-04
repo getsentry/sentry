@@ -5,7 +5,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {type DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -124,5 +123,5 @@ export function LaravelOverviewPage({datePageFilterProps}: LaravelOverPageProps)
 }
 
 const ControlsWrapper = styled('div')`
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
 `;

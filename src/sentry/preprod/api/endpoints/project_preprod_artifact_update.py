@@ -432,9 +432,29 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-        can_run_distro, _ = should_run_distribution(head_artifact)
+        can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
         if can_run_distro:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+        else:
+            if distro_skip_reason == "quota":
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+                distro_error_message = "Distribution quota exceeded"
+            elif distro_skip_reason == "disabled":
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                distro_error_message = "Distribution disabled for this project"
+            else:
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                distro_error_message = "Distribution filtered out by project settings"
+
+            head_artifact.installable_app_error_code = distro_error_code
+            head_artifact.installable_app_error_message = distro_error_message
+            head_artifact.save(
+                update_fields=[
+                    "installable_app_error_code",
+                    "installable_app_error_message",
+                    "date_updated",
+                ]
+            )
 
         return Response(
             {

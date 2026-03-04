@@ -3,11 +3,11 @@ import {useState} from 'react';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
-  ComparisonType,
-  OpType,
-  type Comparison,
-  type JsonPathOp,
-  type JsonPathOperand,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeComparison,
+  type UptimeJsonPathOp,
+  type UptimeJsonPathOperand,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionsDndContext} from './dragDrop';
@@ -18,10 +18,10 @@ describe('AssertionOpJsonPath', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const defaultOperator: Comparison = {cmp: ComparisonType.EQUALS};
-  const defaultOperand: JsonPathOperand = {jsonpath_op: 'literal', value: 'ok'};
+  const defaultOperator: UptimeComparison = {cmp: UptimeComparisonType.EQUALS};
+  const defaultOperand: UptimeJsonPathOperand = {jsonpath_op: 'literal', value: 'ok'};
 
-  const renderOp = async (value: JsonPathOp) => {
+  const renderOp = async (value: UptimeJsonPathOp) => {
     const result = render(
       <AssertionOpJsonPath
         value={value}
@@ -65,7 +65,7 @@ describe('AssertionOpJsonPath', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.JSON_PATH,
+      op: UptimeOpType.JSON_PATH,
       value: 'a',
       operator: defaultOperator,
       operand: defaultOperand,
@@ -87,7 +87,7 @@ describe('AssertionOpJsonPath', () => {
 
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
-      op: OpType.JSON_PATH,
+      op: UptimeOpType.JSON_PATH,
       value: '$.status',
       operator: defaultOperator,
       operand: {jsonpath_op: 'literal', value: 'a'},
@@ -146,7 +146,7 @@ describe('AssertionOpJsonPath', () => {
 
   it('allows < and > comparisons for numeric operand values and hides string type selector', async () => {
     function Stateful() {
-      const [state, setState] = useState<JsonPathOp>({
+      const [state, setState] = useState<UptimeJsonPathOp>({
         ...makeJsonPathOp({
           operator: defaultOperator,
           operand: defaultOperand,
@@ -186,7 +186,7 @@ describe('AssertionOpJsonPath', () => {
       makeJsonPathOp({
         id: 'test-id-1',
         value: '$.status',
-        operator: {cmp: ComparisonType.LESS_THAN},
+        operator: {cmp: UptimeComparisonType.LESS_THAN},
         operand: defaultOperand,
       })
     );
@@ -194,9 +194,9 @@ describe('AssertionOpJsonPath', () => {
     await waitFor(() =>
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-1',
-        op: OpType.JSON_PATH,
+        op: UptimeOpType.JSON_PATH,
         value: '$.status',
-        operator: {cmp: ComparisonType.EQUALS},
+        operator: {cmp: UptimeComparisonType.EQUALS},
         operand: defaultOperand,
       })
     );
@@ -205,9 +205,9 @@ describe('AssertionOpJsonPath', () => {
   it('renders safely when given a legacy op without operator or operand', async () => {
     await renderOp({
       id: 'test-id-1',
-      op: OpType.JSON_PATH,
+      op: UptimeOpType.JSON_PATH,
       value: '$.status',
-    } as JsonPathOp);
+    } as UptimeJsonPathOp);
 
     // Should render with safe defaults (equals + literal) instead of crashing.
     expect(screen.getByTestId('json-path-value-input')).toHaveValue('$.status');

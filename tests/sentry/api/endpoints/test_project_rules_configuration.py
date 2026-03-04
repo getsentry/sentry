@@ -35,7 +35,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.get_success_response(self.organization.slug, project1.slug)
         assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 9
+        assert len(response.data["filters"]) == 10
 
     @property
     def rules(self):
@@ -146,7 +146,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             },
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 9
+        assert len(response.data["filters"]) == 10
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer: MagicMock) -> None:
@@ -177,13 +177,13 @@ class ProjectRuleConfigurationTest(APITestCase):
             "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 9
+        assert len(response.data["filters"]) == 10
 
     def test_issue_type_and_category_filter_feature(self) -> None:
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 9
+        assert len(response.data["filters"]) == 10
 
         response = self.get_success_response(self.organization.slug, self.project.slug)
         tagged_event_filter = next(
@@ -207,7 +207,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert len(response.data["actions"]) == 12
 
         assert len(response.data["conditions"]) == 10
-        assert len(response.data["filters"]) == 9
+        assert len(response.data["filters"]) == 10
         assert len(response.data["conditions"]) == 10
 
         response = self.get_success_response(self.organization.slug, self.project.slug)

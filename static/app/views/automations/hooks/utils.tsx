@@ -169,7 +169,7 @@ const frequencyTypes = new Set<DataConditionType>([
 function findFirstSeenEventConflictingConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
-  const conflictingConditions: Set<string> = new Set<string>();
+  const conflictingConditions = new Set<string>();
 
   // Find incompatible conditions for NONE logic type
   if (conditionGroup.logicType === DataConditionGroupLogicType.NONE) {
@@ -225,7 +225,7 @@ function findFirstSeenEventConflictingConditions(
 function findConflictingPriorityConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
-  const conflictingConditions: Set<string> = new Set<string>();
+  const conflictingConditions = new Set<string>();
 
   const priorityGreaterOrEqualConditions: string[] = [];
   const priorityDeescalatingConditions: string[] = [];
@@ -263,7 +263,7 @@ function findConflictingPriorityConditions(
 
 function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
   const conditionCounts: Record<string, string[]> = {};
-  const duplicates: Set<string> = new Set();
+  const duplicates = new Set<string>();
 
   // Count the number of conditions for each type
   for (const condition of triggers.conditions) {

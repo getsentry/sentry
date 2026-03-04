@@ -15,7 +15,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuthenticatorDevice} from 'sentry/types/auth';
 
 interface U2fEnrolledDetailsProps {
@@ -150,7 +149,7 @@ function Device(props: DeviceProps) {
 
 const DeviceNameInput = styled(Input)`
   width: 50%;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const DeviceInformation = styled('div')`
@@ -158,8 +157,8 @@ const DeviceInformation = styled('div')`
   align-items: center;
   justify-content: space-between;
   flex: 1 1;
-  gap: ${space(1)};
-  margin-right: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const FadedDateTime = styled(DateTime)`
@@ -170,9 +169,9 @@ const FadedDateTime = styled(DateTime)`
 const AddAnotherFooter = styled(PanelFooter)`
   display: flex;
   justify-content: flex-end;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 export default styled(U2fEnrolledDetails)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;

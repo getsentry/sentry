@@ -869,7 +869,7 @@ describe('Results', () => {
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
 
-      expect(projectPageFilter).toHaveTextContent('All Projects');
+      expect(projectPageFilter).toHaveTextContent('Pinned Project');
     });
 
     it('displays tip when events response contains a tip', async () => {

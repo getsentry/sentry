@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
@@ -121,9 +120,9 @@ export function ProfilesTable() {
 
 const ProfileEvents = styled('div')``;
 const StyledPagination = styled(Pagination)`
-  margin-top: ${space(1)};
-  margin-right: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ProfileEventsTableContainer = styled('div')`

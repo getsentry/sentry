@@ -6,7 +6,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
@@ -46,9 +45,6 @@ function SubscriptionBox({
     message = t(
       'Your organization does not have access to the error subscription resource.'
     );
-  } else if (resource === 'seer' && !features.includes('seer-webhooks')) {
-    disabled = true;
-    message = t("Your organization can't subscribe to seer events just yet.");
   }
 
   if (webhookDisabled) {
@@ -96,8 +92,8 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   border-radius: ${p => p.theme.radius.md};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'auto')};
-  margin: ${space(1.5)};
-  padding: ${space(1.5)};
+  margin: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.lg};
   box-sizing: border-box;
 `;
 
@@ -112,5 +108,5 @@ const SubscriptionTitle = styled('div')`
   line-height: 1;
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;

@@ -6,11 +6,9 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -25,8 +23,6 @@ function WidgetBuilderDatasetSelector() {
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
-
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   const datasetOptions = [];
   datasetOptions.push({
@@ -66,10 +62,7 @@ function WidgetBuilderDatasetSelector() {
     });
   }
 
-  if (
-    organization.features.includes('tracemetrics-enabled') &&
-    hasTraceMetricsDashboards
-  ) {
+  if (organization.features.includes('tracemetrics-enabled')) {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
       label: t('Metrics'),
@@ -88,13 +81,11 @@ function WidgetBuilderDatasetSelector() {
     details: t('Session data from releases'),
   });
 
-  if (organization.features.includes('preprod-app-size-dashboard')) {
-    datasetOptions.push({
-      value: WidgetType.PREPROD_APP_SIZE,
-      label: t('Mobile Builds'),
-      details: t('Mobile app size metrics'),
-    });
-  }
+  datasetOptions.push({
+    value: WidgetType.PREPROD_APP_SIZE,
+    label: t('Mobile Builds'),
+    details: t('Mobile app size metrics'),
+  });
 
   datasetOptions.push(transactionsOption);
 
@@ -145,5 +136,5 @@ function WidgetBuilderDatasetSelector() {
 export default WidgetBuilderDatasetSelector;
 
 const StyledSectionHeader = styled(SectionHeader)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

@@ -7,7 +7,7 @@ from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -199,7 +199,17 @@ class RepoTreesIntegration(ABC):
         repo_files: list[str] = cache.get(key, [])
         if use_api:
             # Cache miss – fetch from API
-            tree = self.get_client().get_tree(repo_full_name, tree_sha)
+            try:
+                tree = self.get_client().get_tree(repo_full_name, tree_sha)
+            except ApiConflictError:
+                # Empty repos return 409 — cache the empty result so we don't
+                # keep burning API calls on repos we know have no files.
+                logger.info(
+                    "Caching empty files result for repo",
+                    extra={"repo": repo_full_name},
+                )
+                cache.set(key, [], self.CACHE_SECONDS + shifted_seconds)
+                tree = None
             if tree:
                 # Keep files; discard directories
                 repo_files = [node["path"] for node in tree if node["type"] == "blob"]

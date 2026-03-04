@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getOrganizationAge from 'sentry/utils/getOrganizationAge';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -88,7 +87,7 @@ const LearnMoreWrapper = styled('div')`
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
@@ -99,14 +98,14 @@ const LearnMoreWrapper = styled('div')`
   );
 
   p {
-    margin: 0 0 ${space(0.5)} 0;
+    margin: 0 0 ${p => p.theme.space.xs} 0;
   }
 `;
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1.5)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.lg};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

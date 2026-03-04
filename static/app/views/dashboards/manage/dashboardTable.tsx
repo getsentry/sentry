@@ -26,7 +26,6 @@ import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -391,7 +390,7 @@ export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   display: block;
   width: 100%;
@@ -402,7 +401,7 @@ const DateSelected = styled('div')`
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const StyledButton = styled(Button)`

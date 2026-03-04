@@ -126,6 +126,12 @@ declare global {
      */
     superUserCookieName?: string;
   }
+  interface FocusOptions {
+    /**
+     * https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible
+     */
+    focusVisible?: boolean;
+  }
 }
 
 export interface Region {

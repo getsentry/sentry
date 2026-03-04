@@ -138,6 +138,7 @@ def handle_ignored(
             Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
                 substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
+            serialized_user = None
             with in_test_hide_transaction_boundary():
                 if acting_user:
                     serialized_user = user_service.serialize_many(

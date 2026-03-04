@@ -1,13 +1,13 @@
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-class ProjectUserDetailsTest(APITestCase):
+class ProjectUserDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()

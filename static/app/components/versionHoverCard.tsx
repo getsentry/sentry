@@ -15,7 +15,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -222,7 +221,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
 export default VersionHoverCard;
 
 const ConnectRepo = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   text-align: center;
 `;
 

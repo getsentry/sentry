@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/pageFilters/date/datePageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -62,6 +61,8 @@ import useHasPlatformizedBackendOverview from 'sentry/views/insights/pages/front
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {PlatformizedLaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel/platformizedLaravelOverviewPage';
+import useHasPlatformizedLaravelOverview from 'sentry/views/insights/pages/platform/laravel/useHasPlatformizedLaravelOverview';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
@@ -80,21 +81,30 @@ interface BackendOverviewPageProps {
 function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const hasPlatformizedLaravelOverview = useHasPlatformizedLaravelOverview();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNewBackendExperienceEnabled = useInsightsEap();
   const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+
   if (isLaravelPageAvailable) {
-    return <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />;
+    return hasPlatformizedLaravelOverview ? (
+      <PlatformizedLaravelOverviewPage />
+    ) : (
+      <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />
+    );
   }
-  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
-    return <PlatformizedNextJsOverviewPage />;
+
+  if (isNextJsPageEnabled) {
+    return hasPlatformizedNextJsOverview ? (
+      <PlatformizedNextJsOverviewPage />
+    ) : (
+      <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />
+    );
   }
+
   if (hasPlatformizedBackendOverview) {
     return <PlatformizedBackendOverviewPage />;
-  }
-  if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage datePageFilterProps={datePageFilterProps} />;
@@ -313,5 +323,5 @@ export const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: 300px;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;

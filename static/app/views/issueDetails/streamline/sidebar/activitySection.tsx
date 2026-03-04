@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -14,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
@@ -150,6 +150,7 @@ export default function StreamlinedActivitySection({
   isDrawer,
   filterComments,
 }: StreamlinedActivitySectionProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {teams} = useTeamsById();
   const {baseUrl} = useGroupDetailsRoute();
@@ -284,7 +285,7 @@ export default function StreamlinedActivitySection({
   ) : (
     <SidebarFoldSection
       title={
-        <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
+        <SidebarSectionTitle style={{gap: theme.space.sm, margin: 0}}>
           {t('Activity')}
         </SidebarSectionTitle>
       }

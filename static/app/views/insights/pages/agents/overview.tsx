@@ -21,9 +21,9 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -51,7 +51,9 @@ import {
   TableUrlParams,
   useTraceDrawerQueryState,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
+import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
 interface AgentsOverviewPageProps {
@@ -60,6 +62,17 @@ interface AgentsOverviewPageProps {
 
 function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+
+  if (hasPlatformized) {
+    return (
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.AI_AGENTS_OVERVIEW}
+        storageNamespace={view}
+      />
+    );
+  }
 
   return (
     <Feature
@@ -213,9 +226,7 @@ function PageWithProviders() {
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AgentsOverviewPage datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
+      <AgentsOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }

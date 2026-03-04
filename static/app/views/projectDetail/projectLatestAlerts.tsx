@@ -14,7 +14,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -210,15 +209,15 @@ const AlertRowLink = styled(Link)`
   display: flex;
   align-items: center;
   height: 40px;
-  margin-bottom: ${space(3)};
-  margin-left: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space['2xl']};
+  margin-left: ${p => p.theme.space.xs};
   &,
   &:hover,
   &:focus {
     color: inherit;
   }
   &:first-child {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -238,7 +237,7 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-left: ${space(1.5)};
+  margin-left: ${p => p.theme.space.lg};
   display: block;
   width: 100%;
   white-space: nowrap;

@@ -46,6 +46,8 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     ColumnDefinitions,
     FormulaDefinition,
+    ResolvedArgument,
+    ResolvedArguments,
     ResolvedAttribute,
     ResolvedColumn,
     ResolvedEquation,
@@ -1051,7 +1053,7 @@ class SearchResolver:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
-        parsed_args: list[ResolvedAttribute | Any] = []
+        parsed_args: list[ResolvedAttribute | str | int | float] = []
 
         # Parse the arguments
         arguments = fields.parse_arguments(function_name, columns)
@@ -1093,11 +1095,10 @@ class SearchResolver:
                     if argument_definition.argument_types is None:
                         parsed_args.append(argument)  # assume it's a string
                         continue
-                    # TODO: we assume that the argument is only one type for now, and we only support string/integer
-                    for type in argument_definition.argument_types:
-                        if type == "integer":
+                    for arg_type in argument_definition.argument_types:
+                        if arg_type == "integer":
                             parsed_args.append(int(argument))
-                        if type == "number":
+                        elif arg_type == "number":
                             parsed_args.append(float(argument))
                         else:
                             parsed_args.append(argument)
@@ -1121,12 +1122,13 @@ class SearchResolver:
                         f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                     )
 
-        resolved_arguments = []
+        resolved_arguments: ResolvedArguments = []
         for parsed_arg in parsed_args:
+            resolved_argument: ResolvedArgument
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
                 search_type = function_definition.default_search_type
-            elif isinstance(parsed_arg.proto_definition, AttributeKey):
+            else:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 

@@ -1,10 +1,12 @@
 import hashlib
 
-import pytest
-
 from sentry.notifications.models.notificationrecord import NotificationRecord
 from sentry.notifications.models.notificationthread import NotificationThread
-from sentry.notifications.platform.threading import ThreadingService
+from sentry.notifications.platform.threading import (
+    ThreadingConfig,
+    ThreadingLookup,
+    ThreadingService,
+)
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -19,6 +21,22 @@ class ThreadingServiceTestBase(TestCase):
         self.message_id = "1234567890.123456"
         self.thread_identifier = "1234567890.123456"
         self.thread_key = ThreadingService.compute_thread_key(self.key_type, self.key_data)
+
+        self.threading_lookup: ThreadingLookup = {
+            "key_type": self.key_type,
+            "key_data": self.key_data,
+            "provider_key": self.provider_key,
+            "target_id": self.target_id,
+        }
+
+        self.threading_config: ThreadingConfig = {
+            "key_type": self.key_type,
+            "key_data": self.key_data,
+            "provider_key": self.provider_key,
+            "target_id": self.target_id,
+            "thread_identifier": self.thread_identifier,
+            "provider_data": None,
+        }
 
 
 class ThreadingServiceComputeThreadKeyTest(TestCase):
@@ -82,12 +100,7 @@ class ThreadingServiceResolveTest(ThreadingServiceTestBase):
             key_data=self.key_data,
         )
 
-        result = ThreadingService.resolve(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id=self.target_id,
-        )
+        result = ThreadingService.resolve(threading_lookup=self.threading_lookup)
 
         assert result is not None
         assert isinstance(result, NotificationThread)
@@ -96,10 +109,12 @@ class ThreadingServiceResolveTest(ThreadingServiceTestBase):
 
     def test_resolve_returns_none_when_not_exists(self) -> None:
         result = ThreadingService.resolve(
-            key_type=self.key_type,
-            key_data={"rule_fire_history_id": 999},
-            provider_key=self.provider_key,
-            target_id=self.target_id,
+            threading_lookup={
+                "key_type": self.key_type,
+                "key_data": {"rule_fire_history_id": 999},
+                "provider_key": self.provider_key,
+                "target_id": self.target_id,
+            }
         )
 
         assert result is None
@@ -115,10 +130,12 @@ class ThreadingServiceResolveTest(ThreadingServiceTestBase):
         )
 
         result = ThreadingService.resolve(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id="C2222222222",
+            threading_lookup={
+                "key_type": self.key_type,
+                "key_data": self.key_data,
+                "provider_key": self.provider_key,
+                "target_id": "C2222222222",
+            }
         )
 
         assert result is None
@@ -134,27 +151,24 @@ class ThreadingServiceResolveTest(ThreadingServiceTestBase):
         )
 
         result = ThreadingService.resolve(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=NotificationProviderKey.DISCORD,
-            target_id=self.target_id,
+            threading_lookup={
+                "key_type": self.key_type,
+                "key_data": self.key_data,
+                "provider_key": NotificationProviderKey.DISCORD,
+                "target_id": self.target_id,
+            }
         )
 
         assert result is None
 
 
-class ThreadingServiceStoreTest(ThreadingServiceTestBase):
-    def test_store_creates_thread_and_record_when_no_thread(self) -> None:
-        thread, record = ThreadingService.store(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id=self.target_id,
-            message_id=self.message_id,
-            thread_identifier=self.thread_identifier,
+class ThreadingServiceStoreNewThreadTest(ThreadingServiceTestBase):
+    def test_store_new_thread_creates_thread_and_record(self) -> None:
+        thread, record = ThreadingService.store_new_thread(
+            threading_config=self.threading_config,
+            external_message_id=self.message_id,
         )
 
-        # Returns NotificationThread
         assert isinstance(thread, NotificationThread)
         assert thread.thread_identifier == self.thread_identifier
         assert thread.id is not None
@@ -165,93 +179,60 @@ class ThreadingServiceStoreTest(ThreadingServiceTestBase):
         assert thread.key_data == self.key_data
         assert thread.provider_data == {}
 
-        # Returns NotificationRecord
         assert record.id is not None
         assert record.thread_id == thread.id
         assert record.provider_key == self.provider_key
         assert record.target_id == self.target_id
         assert record.message_id == self.message_id
 
-    def test_store_links_to_existing_thread_when_thread_provided(self) -> None:
-        # First message creates the thread
-        first_message_id = "1234567890.111111"
-        first_thread, first_record = ThreadingService.store(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id=self.target_id,
-            message_id=first_message_id,
-            thread_identifier=first_message_id,
+    def test_store_new_thread_uses_existing_thread_on_race(self) -> None:
+        """If two workers race, the second get_or_create returns the first's thread."""
+        first_thread, _ = ThreadingService.store_new_thread(
+            threading_config=self.threading_config,
+            external_message_id="1234567890.111111",
         )
 
-        # Second message uses thread from first
+        # Second call with a different thread_identifier (simulating race)
+        second_config: ThreadingConfig = {
+            **self.threading_config,
+            "thread_identifier": "1234567890.222222",
+        }
+        second_thread, second_record = ThreadingService.store_new_thread(
+            threading_config=second_config,
+            external_message_id="1234567890.222222",
+        )
+
+        # get_or_create returns the first thread
+        assert first_thread.id == second_thread.id
+        assert second_thread.thread_identifier == self.thread_identifier
+
+        assert NotificationThread.objects.count() == 1
+        assert NotificationRecord.objects.count() == 2
+
+
+class ThreadingServiceStoreExistingThreadTest(ThreadingServiceTestBase):
+    def test_store_existing_thread_links_record_to_thread(self) -> None:
+        # Create a thread first
+        first_thread, first_record = ThreadingService.store_new_thread(
+            threading_config=self.threading_config,
+            external_message_id="1234567890.111111",
+        )
+
+        # Store a second message under the existing thread
         second_message_id = "1234567890.222222"
-        second_thread, second_record = ThreadingService.store(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id=self.target_id,
-            message_id=second_message_id,
-            thread_identifier=first_message_id,
+        second_thread, second_record = ThreadingService.store_existing_thread(
             thread=first_thread,
+            external_message_id=second_message_id,
         )
 
         # Same thread
         assert first_thread.id == second_thread.id
-        assert second_thread.thread_identifier == first_message_id
+        assert second_thread.thread_identifier == self.thread_identifier
 
         # Different records
         assert first_record.id != second_record.id
-        assert first_record.message_id == first_message_id
+        assert first_record.message_id == "1234567890.111111"
         assert second_record.message_id == second_message_id
 
-        # Only one thread in DB
         assert NotificationThread.objects.count() == 1
-        # Two records in DB
         assert NotificationRecord.objects.count() == 2
-
-    def test_store_raises_error_when_thread_mismatches_provider_key(self) -> None:
-        # Create a thread with Slack
-        thread, _ = ThreadingService.store(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id=self.target_id,
-            message_id=self.message_id,
-            thread_identifier=self.thread_identifier,
-        )
-
-        # Try to use that thread with Discord - should fail
-        with pytest.raises(ValueError, match="does not match parameters"):
-            ThreadingService.store(
-                key_type=self.key_type,
-                key_data=self.key_data,
-                provider_key=NotificationProviderKey.DISCORD,
-                target_id=self.target_id,
-                message_id="discord-msg-123",
-                thread_identifier="discord-thread-123",
-                thread=thread,
-            )
-
-    def test_store_raises_error_when_thread_mismatches_target_id(self) -> None:
-        # Create a thread for channel A
-        thread, _ = ThreadingService.store(
-            key_type=self.key_type,
-            key_data=self.key_data,
-            provider_key=self.provider_key,
-            target_id="C1111111111",
-            message_id=self.message_id,
-            thread_identifier=self.thread_identifier,
-        )
-
-        # Try to use that thread for channel B - should fail
-        with pytest.raises(ValueError, match="does not match parameters"):
-            ThreadingService.store(
-                key_type=self.key_type,
-                key_data=self.key_data,
-                provider_key=self.provider_key,
-                target_id="C2222222222",
-                message_id="1234567890.222222",
-                thread_identifier="1234567890.222222",
-                thread=thread,
-            )

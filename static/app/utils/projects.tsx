@@ -172,7 +172,7 @@ class BaseProjects extends Component<Props, State> {
   /**
    * List of projects that need to be fetched via API
    */
-  fetchQueue: Set<string> = new Set();
+  fetchQueue = new Set<string>();
 
   /**
    * Memoized function that returns a `Map<project.slug, project>`
@@ -282,9 +282,7 @@ class BaseProjects extends Component<Props, State> {
     // For each item in the fetch queue, lookup the project object and in the case
     // where something wrong has happened and we were unable to get project summary from
     // the server, just fill in with an object with only the slug
-    const projectsOrPlaceholder: Project[] | ProjectPlaceholder[] = Array.from(
-      this.fetchQueue
-    )
+    const projectsOrPlaceholder = Array.from(this.fetchQueue)
       .map(slug =>
         projectsMap.has(slug)
           ? projectsMap.get(slug)

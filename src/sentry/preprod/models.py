@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from enum import IntEnum
-from typing import ClassVar, Self
+from enum import IntEnum, StrEnum
+from typing import ClassVar, Self, assert_never
 
 import sentry_sdk
 from django.db import models
@@ -80,6 +80,11 @@ class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
         return PreprodArtifactQuerySet(self.model, using=self._db)
 
 
+class Platform(StrEnum):
+    APPLE = "apple"
+    ANDROID = "android"
+
+
 @region_silo_model
 class PreprodArtifact(DefaultFieldsModel):
     """
@@ -149,6 +154,24 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.ARTIFACT_PROCESSING_ERROR, "artifact_processing_error"),
             )
 
+    class InstallableAppErrorCode(IntEnum):
+        UNKNOWN = 0
+        NO_QUOTA = 1
+        """No quota available for distribution."""
+        SKIPPED = 2
+        """Distribution was not requested on this build."""
+        PROCESSING_ERROR = 3
+        """Distribution failed due to a processing error."""
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.NO_QUOTA, "no_quota"),
+                (cls.SKIPPED, "skipped"),
+                (cls.PROCESSING_ERROR, "processing_error"),
+            )
+
     __relocation_scope__ = RelocationScope.Excluded
     objects: ClassVar[PreprodArtifactModelManager] = PreprodArtifactModelManager()
 
@@ -200,6 +223,23 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
+
+    installable_app_error_code = BoundedPositiveIntegerField(
+        choices=InstallableAppErrorCode.as_choices(), null=True
+    )
+    installable_app_error_message = models.TextField(null=True)
+
+    @property
+    def platform(self) -> Platform | None:
+        if self.artifact_type is None:
+            return None
+        match self.artifact_type:
+            case self.ArtifactType.XCARCHIVE:
+                return Platform.APPLE
+            case self.ArtifactType.AAB | self.ArtifactType.APK:
+                return Platform.ANDROID
+            case _:
+                assert_never(self.artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """

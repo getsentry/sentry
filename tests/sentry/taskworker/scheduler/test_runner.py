@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.conf.types.taskworker import crontab
 from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.app import TaskworkerApp
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
 from sentry.testutils.helpers.datetime import freeze_time
@@ -537,8 +538,9 @@ def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
     app = TaskworkerApp(name="sentry")
     namespace = app.taskregistry.create_namespace("test")
 
-    @namespace.register(
+    @instrumented_task(
         name="region_task",
+        namespace=namespace,
         at_most_once=True,
         wait_for_delivery=True,
         silo_mode=SiloMode.REGION,

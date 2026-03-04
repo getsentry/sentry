@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 
@@ -77,7 +76,7 @@ const StyledPanelAlert = styled(PanelAlert)`
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

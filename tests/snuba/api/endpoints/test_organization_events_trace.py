@@ -6,7 +6,8 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
-from sentry.testutils.cases import TraceTestCase
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.testutils.cases import OccurrenceTestCase, TraceTestCase
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -1434,7 +1435,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "measurements" not in trace_transaction
 
 
-class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
+class OrganizationEventsTraceMetaEndpointTest(
+    OrganizationEventsTraceEndpointBase, OccurrenceTestCase
+):
     url_name = "sentry-api-0-organization-events-trace-meta"
 
     def test_no_projects(self) -> None:
@@ -1498,6 +1501,50 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
                 data={"project": -1},
                 format="json",
             )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
+
+    def test_simple_with_eap_as_source_of_truth(self) -> None:
+        self.load_trace()
+        first_group = self.create_group(project=self.project)
+        second_group = self.create_group(project=self.project)
+        self.store_occurrences(
+            [
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=first_group.id,
+                    trace_id=self.trace_id,
+                    occurrence_type="generic",
+                ),
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=second_group.id,
+                    trace_id=self.trace_id,
+                    occurrence_type="generic",
+                ),
+            ]
+        )
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "api.trace.count_performance_issues"
+                ],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1},
+                    format="json",
+                )
+
         assert response.status_code == 200, response.content
         data = response.data
         assert data["projects"] == 4
