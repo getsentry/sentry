@@ -158,10 +158,7 @@ def remove_alert_rule(
                         ip_address=request.META.get("REMOTE_ADDR"),
                     )
                 except (AlertRuleDetector.DoesNotExist, AlertRule.DoesNotExist):
-                    return Response(
-                        "This detector was single written, no alert rule to delete",
-                        status=status.HTTP_204_NO_CONTENT,
-                    )
+                    return Response(status=status.HTTP_204_NO_CONTENT)
 
                 return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
