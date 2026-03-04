@@ -1,4 +1,4 @@
-import {memo, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
@@ -24,7 +24,7 @@ interface DiffImageDisplayProps {
   showOverlay: boolean;
 }
 
-export const DiffImageDisplay = memo(function DiffImageDisplay({
+export function DiffImageDisplay({
   pair,
   imageBaseUrl,
   diffImageBaseUrl,
@@ -126,9 +126,9 @@ export const DiffImageDisplay = memo(function DiffImageDisplay({
       </Flex>
     </Flex>
   );
-});
+}
 
-interface ViewProps {
+interface SplitViewProps {
   baseImageUrl: string;
   diffMaskUrl: string | null;
   headImageUrl: string;
@@ -142,7 +142,7 @@ function SplitView({
   showOverlay,
   overlayColor,
   diffMaskUrl,
-}: ViewProps) {
+}: SplitViewProps) {
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
       <Flex direction="column" gap="sm">

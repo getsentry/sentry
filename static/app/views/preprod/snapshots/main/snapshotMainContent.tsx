@@ -1,30 +1,19 @@
-import {useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-
-const OVERLAY_COLORS = [
-  '#ff0000',
-  '#00cc44',
-  '#0088ff',
-  '#00cccc',
-  '#ff00ff',
-  '#ffcc00',
-  '#ff6600',
-  '#ffffff',
-];
 
 interface SnapshotMainContentProps {
   diffImageBaseUrl: string;
@@ -178,9 +167,9 @@ function OverlayControls({
   overlayColor: string;
   showOverlay: boolean;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(pickerRef, () => setPickerOpen(false));
+  const theme = useTheme();
+
+  const overlayColors = theme.chart.getColorPalette(10);
 
   return (
     <Flex align="center" gap="sm">
@@ -191,36 +180,28 @@ function OverlayControls({
       >
         {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
       </Button>
-      <ColorPickerWrapper ref={pickerRef}>
-        <ColorTrigger
-          $color={overlayColor}
-          onClick={() => setPickerOpen(!pickerOpen)}
-          aria-label={t('Pick overlay color')}
-        />
-        {pickerOpen && (
-          <ColorPickerPopover>
-            {OVERLAY_COLORS.map(color => (
+      <Tooltip
+        isHoverable
+        maxWidth={400}
+        title={
+          <Flex gap="xs">
+            {overlayColors.map(color => (
               <ColorSwatch
                 key={color}
                 $color={color}
                 $selected={overlayColor === color}
-                onClick={() => {
-                  onOverlayColorChange(color);
-                  setPickerOpen(false);
-                }}
-                aria-label={`Overlay color ${color}`}
+                onClick={() => onOverlayColorChange(color)}
+                aria-label={t('Overlay color %s', color)}
               />
             ))}
-          </ColorPickerPopover>
-        )}
-      </ColorPickerWrapper>
+          </Flex>
+        }
+      >
+        <ColorTrigger $color={overlayColor} aria-label={t('Pick overlay color')} />
+      </Tooltip>
     </Flex>
   );
 }
-
-const ColorPickerWrapper = styled('div')`
-  position: relative;
-`;
 
 const ColorTrigger = styled('button')<{$color: string}>`
   width: 24px;
@@ -234,20 +215,6 @@ const ColorTrigger = styled('button')<{$color: string}>`
   &:hover {
     border-color: ${p => p.theme.tokens.border.accent};
   }
-`;
-
-const ColorPickerPopover = styled('div')`
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  display: flex;
-  gap: 6px;
-  padding: 8px;
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowMedium};
-  z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
 const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
