@@ -148,10 +148,20 @@ function useHandleCopyMarkdown({
       return undefined;
     }
 
-    return () => {
-      const blocks = aiAutofix.runState?.blocks ?? [];
-      const artifacts = getArtifactsFromBlocks(blocks);
+    const blocks = aiAutofix.runState?.blocks ?? [];
+    const artifacts = getArtifactsFromBlocks(blocks);
 
+    const hasArtifacts =
+      !!artifacts.root_cause?.data ||
+      !!artifacts.solution?.data ||
+      !!artifacts.impact_assessment?.data ||
+      !!artifacts.triage?.data;
+
+    if (!hasArtifacts) {
+      return undefined;
+    }
+
+    return () => {
       const markdownText = formatArtifactsToMarkdown(
         artifacts as Record<string, {data: Record<string, unknown> | null}>,
         group,

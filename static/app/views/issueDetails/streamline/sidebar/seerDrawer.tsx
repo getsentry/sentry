@@ -11,6 +11,7 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerProps {
   event: Event;
@@ -21,7 +22,10 @@ interface SeerDrawerProps {
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
 
-  if (organization.features.includes('autofix-on-explorer')) {
+  if (
+    isSeerExplorerEnabled(organization) &&
+    organization.features.includes('autofix-on-explorer')
+  ) {
     return <ExplorerSeerDrawer event={event} group={group} project={project} />;
   }
 
