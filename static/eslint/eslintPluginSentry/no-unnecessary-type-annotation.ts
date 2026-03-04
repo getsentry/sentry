@@ -1,4 +1,5 @@
 import {ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {getParserServices} from '@typescript-eslint/utils/eslint-utils';
 import ts from 'typescript';
 
 export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
@@ -14,13 +15,9 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
     },
   },
   create(context) {
-    const parserServices = context.sourceCode.parserServices;
-    if (!parserServices?.program || !parserServices?.esTreeNodeToTSNodeMap) {
-      return {};
-    }
+    const parserServices = getParserServices(context);
 
     const checker = parserServices.program.getTypeChecker();
-    const toTSNode = parserServices.esTreeNodeToTSNodeMap;
 
     function typesAreIdentical(a: ts.Type, b: ts.Type): boolean {
       if (!checker.isTypeAssignableTo(a, b) || !checker.isTypeAssignableTo(b, a)) {
@@ -130,18 +127,14 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        const annotationTSNode = toTSNode.get(node.id.typeAnnotation.typeAnnotation);
-        const initTSNode = toTSNode.get(node.init);
-        if (!annotationTSNode || !initTSNode) {
+        const annotationType = parserServices.getTypeFromTypeNode(
+          node.id.typeAnnotation.typeAnnotation
+        );
+        if (isEscapeHatch(annotationType)) {
           return;
         }
-
-        const annotationType = checker.getTypeFromTypeNode(
-          annotationTSNode as ts.TypeNode
-        );
-        const inferredType = checker.getTypeAtLocation(initTSNode);
-
-        if (isEscapeHatch(annotationType) || containsAny(inferredType)) {
+        const inferredType = parserServices.getTypeAtLocation(node.init);
+        if (containsAny(inferredType)) {
           return;
         }
 
