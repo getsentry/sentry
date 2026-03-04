@@ -3,8 +3,7 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
-
-import {Button, type ButtonProps} from './button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'priority'> {
   'aria-label': string;
