@@ -3,8 +3,6 @@ from __future__ import annotations
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 
-COMMENT_ANCHOR = "<!-- sentry-build-distribution -->"
-
 
 def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
     if not artifacts:
@@ -14,10 +12,10 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
     ios_rows: list[str] = []
 
     for artifact in artifacts:
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
-        app_name = mobile_app_info.app_name if mobile_app_info else None
+        mobile_app_info = artifact.mobile_app_info
+        app_name = mobile_app_info.app_name
         app_id = artifact.app_id or "Unknown"
-        version_string = _format_version_string(artifact)
+        version_string = mobile_app_info.format_version_string()
         config = artifact.build_configuration.name if artifact.build_configuration else "--"
         artifact_url = get_preprod_artifact_url(artifact, view_type="install")
 
@@ -30,7 +28,7 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
         else:
             ios_rows.append(row)
 
-    sections: list[str] = [COMMENT_ANCHOR, "## Sentry Build Distribution"]
+    sections: list[str] = ["## Sentry Build Distribution"]
 
     header = "| App | Version | Configuration |"
     separator = "|-----|---------|---------------|"
@@ -48,15 +46,3 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
             sections.append(f"{header}\n{separator}\n" + "\n".join(android_rows))
 
     return "\n\n".join(sections)
-
-
-def _format_version_string(artifact: PreprodArtifact) -> str:
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
-    build_version = mobile_app_info.build_version if mobile_app_info else None
-    build_number = mobile_app_info.build_number if mobile_app_info else None
-    parts = []
-    if build_version:
-        parts.append(build_version)
-    if build_number:
-        parts.append(f"({build_number})")
-    return " ".join(parts) if parts else "--"

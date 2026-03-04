@@ -7,7 +7,7 @@ from sentry.preprod.models import (
     PreprodArtifactMobileAppInfo,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.vcs.pr_comments.templates import COMMENT_ANCHOR, format_pr_comment
+from sentry.preprod.vcs.pr_comments.templates import format_pr_comment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -58,7 +58,6 @@ class FormatPrCommentTest(TestCase):
 
         result = format_pr_comment([artifact])
 
-        assert COMMENT_ANCHOR in result
         assert "## Sentry Build Distribution" in result
         assert "MyApp" in result
         assert "1.2.3 (456)" in result
