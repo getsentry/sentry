@@ -236,7 +236,7 @@ function OnionView({
         <Text size="sm" variant="muted">
           {t('Base')}
         </Text>
-        <SliderWrapper>
+        <Flex width="200px">
           <Slider
             min={0}
             max={100}
@@ -244,7 +244,7 @@ function OnionView({
             onChange={onOpacityChange}
             formatLabel={v => `${v}%`}
           />
-        </SliderWrapper>
+        </Flex>
         <Text size="sm" variant="muted">
           {t('Head')}
         </Text>
@@ -288,8 +288,4 @@ const OnionOverlayLayer = styled('div')`
   left: 0;
   width: 100%;
   height: 100%;
-`;
-
-const SliderWrapper = styled('div')`
-  width: 200px;
 `;
