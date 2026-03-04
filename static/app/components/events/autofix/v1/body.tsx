@@ -100,7 +100,7 @@ function useAutoScroll({aiAutofix}: {aiAutofix: ReturnType<typeof useAiAutofix>}
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const lastScrollTopRef = useRef(0);
-  const shouldAutoScrollRef = useRef(true);
+  const shouldAutoScrollRef = useRef(false);
 
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
