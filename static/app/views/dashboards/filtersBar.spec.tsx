@@ -200,7 +200,7 @@ describe('FiltersBar', () => {
     expect(onDashboardFilterChange).not.toHaveBeenCalled();
   });
 
-  it('should not render save button on prebuilt dashboard', async () => {
+  it('should render save button but not cancel on prebuilt dashboard with unsaved changes', async () => {
     const newLocation = LocationFixture({
       query: {
         [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
@@ -212,13 +212,14 @@ describe('FiltersBar', () => {
     });
     renderFilterBar({
       location: newLocation,
+      hasUnsavedChanges: true,
       prebuiltDashboardId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
       screen.getByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
   });
 });
