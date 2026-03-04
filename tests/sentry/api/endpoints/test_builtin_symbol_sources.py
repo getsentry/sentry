@@ -49,6 +49,26 @@ class BuiltinSymbolSourcesWithSlugTest(APITestCase):
         assert "hidden" in body[0]
 
 
+class BuiltinSymbolSourcesAuthTest(APITestCase):
+    endpoint = "sentry-api-0-organization-builtin-symbol-sources"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+
+    def test_unauthenticated(self) -> None:
+        """Unauthenticated requests should be rejected"""
+        resp = self.get_response(self.organization.slug)
+        assert resp.status_code == 401
+
+    def test_other_org(self) -> None:
+        """Authenticated user should not access another org's sources"""
+        other_org = self.create_organization()
+        self.login_as(self.user)
+        resp = self.get_response(other_org.slug)
+        assert resp.status_code == 403
+
+
 class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
     endpoint = "sentry-api-0-organization-builtin-symbol-sources"
 
