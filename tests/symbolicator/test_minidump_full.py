@@ -131,6 +131,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert event.data.get("extra") == {"foo": "bar"}
         # Other assertions are performed by `test_full_minidump`
 
+    @pytest.mark.skip(reason="flaky: #109887")
     def test_full_minidump_invalid_extra(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
