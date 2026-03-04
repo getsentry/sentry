@@ -8,6 +8,7 @@ import {
   getEquationAliasIndex,
   isAggregateFieldOrEquation,
   isEquationAlias,
+  type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
   type Sort,
@@ -40,7 +41,7 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
+import {buildTraceMetricField} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricField';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -424,12 +425,11 @@ function useWidgetBuilderState(): {
           const columnsWithoutAlias = columns.map(column => {
             return {...column, alias: undefined};
           });
-          const aggregatesWithoutAlias = aggregates.map(aggregate => {
-            return {...aggregate, alias: undefined};
-          });
-          const yAxisWithoutAlias = yAxis?.map(axis => {
-            return {...axis, alias: undefined};
-          });
+          const aggregatesWithoutAlias = aggregates.map(aggregate => ({
+            ...aggregate,
+            alias: undefined,
+          }));
+          const yAxisWithoutAlias = yAxis?.map(axis => ({...axis, alias: undefined}));
           if (action.payload === DisplayType.TABLE) {
             setLinkedDashboards([], options);
             setLimit(undefined, options);
@@ -748,7 +748,7 @@ function useWidgetBuilderState(): {
                 );
               } else {
                 // At this point, we can assume the fields are the same length so
-                // using the changedFieldIndex in action.payload is safe.
+                // using the changedFieldIndex in fieldsPayload is safe.
                 setSort(
                   [
                     {
@@ -778,14 +778,7 @@ function useWidgetBuilderState(): {
 
             // Adding a grouping, so default the sort to the first aggregate if possible
             let sortField: string | undefined;
-            if (dataset === WidgetType.TRACEMETRICS) {
-              sortField = firstYAxisNotEquation
-                ? generateMetricAggregate(
-                    traceMetric ?? {name: '', type: ''},
-                    firstYAxisNotEquation
-                  )
-                : undefined;
-            } else if (firstYAxisNotEquation) {
+            if (firstYAxisNotEquation) {
               sortField = generateFieldAsString(firstYAxisNotEquation);
             } else if (firstActionPayloadNotEquation) {
               sortField = generateFieldAsString(firstActionPayloadNotEquation);
@@ -816,7 +809,7 @@ function useWidgetBuilderState(): {
           }
           break;
         }
-        case BuilderStateAction.SET_Y_AXIS:
+        case BuilderStateAction.SET_Y_AXIS: {
           setYAxis(action.payload, options);
 
           if (fields?.length && fields.length > 0) {
@@ -833,21 +826,21 @@ function useWidgetBuilderState(): {
           } else if (
             action.payload.length > 0 &&
             dataset === WidgetType.TRACEMETRICS &&
-            traceMetric &&
             sort?.length &&
-            !checkTraceMetricSortUsed(sort, traceMetric, action.payload, fields)
+            !checkTraceMetricSortUsed(sort, action.payload, fields)
           ) {
             setSort(
               [
                 {
                   kind: 'desc',
-                  field: generateMetricAggregate(traceMetric, action.payload[0]!),
+                  field: generateFieldAsString(action.payload[0]!),
                 },
               ],
               options
             );
           }
           break;
+        }
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload, options);
           break;
@@ -947,6 +940,7 @@ function useWidgetBuilderState(): {
             const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
             const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
 
+            const newTraceMetric = action.payload;
             if (aggregateSource && validAggregateOptions.length > 0) {
               updatedAggregates = aggregateSource.map(field => {
                 if (field.kind === 'function' && field.function?.[0]) {
@@ -957,17 +951,14 @@ function useWidgetBuilderState(): {
 
                   if (!isValid) {
                     // Replace with first valid aggregate
-                    return {
-                      function: [
-                        validAggregateOptions[0]?.value ?? '',
-                        'value',
-                        undefined,
-                        undefined,
-                      ],
-                      alias: undefined,
-                      kind: 'function',
-                    } as QueryFieldValue;
+                    return buildTraceMetricField(
+                      validAggregateOptions[0]!.value as AggregationKeyWithAlias,
+                      newTraceMetric
+                    );
                   }
+
+                  // Valid aggregate — update args with new trace metric info
+                  return buildTraceMetricField(aggregate, newTraceMetric);
                 }
                 return field;
               });
@@ -987,7 +978,6 @@ function useWidgetBuilderState(): {
               sort.length > 0 &&
               !checkTraceMetricSortUsed(
                 sort,
-                action.payload,
                 // Depending on the display type, the updated aggregates can be either
                 // the yAxis or the fields
                 usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
@@ -998,10 +988,7 @@ function useWidgetBuilderState(): {
                 setSort(
                   [
                     {
-                      field: generateMetricAggregate(
-                        action.payload,
-                        updatedAggregates[0]!
-                      ),
+                      field: generateFieldAsString(updatedAggregates[0]!),
                       kind: 'desc',
                     },
                   ],
@@ -1135,15 +1122,14 @@ function useWidgetBuilderState(): {
             } else if (
               newYAxis.length > 0 &&
               dataset === WidgetType.TRACEMETRICS &&
-              traceMetric &&
               sort?.length &&
-              !checkTraceMetricSortUsed(sort, traceMetric, newYAxis, fields)
+              !checkTraceMetricSortUsed(sort, newYAxis, fields)
             ) {
               setSort(
                 [
                   {
                     kind: 'desc',
-                    field: generateMetricAggregate(traceMetric, newYAxis[0]!),
+                    field: generateFieldAsString(newYAxis[0]!),
                   },
                 ],
                 options
@@ -1217,7 +1203,6 @@ function useWidgetBuilderState(): {
       limit,
       selectedAggregate,
       setTraceMetric,
-      traceMetric,
     ]
   );
 
@@ -1382,19 +1367,12 @@ function deserializeTraceMetric(traceMetric: string): TraceMetric | undefined {
 
 function checkTraceMetricSortUsed(
   sort: Sort[],
-  traceMetric: TraceMetric,
   yAxis: Column[] = [],
   fields: Column[] = []
 ): boolean {
   const sortValue = sort[0]?.field;
-  const sortInFields = fields?.some(
-    field =>
-      generateFieldAsString(field) === sortValue ||
-      generateMetricAggregate(traceMetric, field) === sortValue
-  );
-  const sortInYAxis = yAxis?.some(
-    field => generateMetricAggregate(traceMetric, field) === sortValue
-  );
+  const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
+  const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
   return sortInFields || sortInYAxis;
 }
 

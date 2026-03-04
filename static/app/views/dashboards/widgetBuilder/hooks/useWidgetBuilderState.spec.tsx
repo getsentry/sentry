@@ -1970,13 +1970,13 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.yAxis).toEqual([
         {
           function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
           function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
     });
@@ -2018,8 +2018,8 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.fields).toEqual([
         {
           function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
     });
@@ -2057,12 +2057,12 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      // sum is valid for distribution, so it should remain unchanged
+      // sum is valid for distribution, so it should remain but with updated args
       expect(result.current.state.yAxis).toEqual([
         {
           function: ['sum', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'distribution', '-'],
         },
       ]);
     });
@@ -2111,21 +2111,22 @@ describe('useWidgetBuilderState', () => {
       });
 
       // sum and count should remain, but p99 should be replaced with per_second (first valid option)
+      // All aggregates get updated args for the new trace metric
       expect(result.current.state.yAxis).toEqual([
         {
           function: ['sum', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
           function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
           function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
           kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
     });

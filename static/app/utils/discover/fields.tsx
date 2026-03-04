@@ -113,6 +113,7 @@ export type QueryFieldValue =
       ];
       kind: 'function';
       alias?: string;
+      args?: string[];
     };
 
 // Column is just an alias of a Query value
@@ -1120,7 +1121,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
   const results = parseFunction(field);
 
   if (results) {
-    return {
+    const column: Column = {
       kind: 'function',
       function: [
         results.name as AggregationKey,
@@ -1130,6 +1131,10 @@ export function explodeFieldString(field: string, alias?: string): Column {
       ],
       alias,
     };
+    if (results.arguments.length > 3) {
+      column.args = results.arguments;
+    }
+    return column;
   }
 
   return {kind: 'field', field, alias};
@@ -1149,6 +1154,9 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
+  if (value.args && value.args.length > 0) {
+    return `${aggregation}(${value.args.join(',')})`;
+  }
   const parameters = value.function.slice(1).filter(i => i);
   return `${aggregation}(${parameters.join(',')})`;
 }
