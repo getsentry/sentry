@@ -26,7 +26,7 @@ def _should_retry_nodestore_fetch(attempt: int, e: Exception) -> bool:
     return not attempt > 3 and (
         # ServiceUnavailable and DeadlineExceeded are generally retriable;
         # we also include RetryError because the nodestore interface doesn't let
-        # us specify a timeout to BigTable and the default is 5s; see c5e2b40.
+        # us specify a timeout to BigTable and the default is 20s.
         isinstance(e, (ServiceUnavailable, RetryError, DeadlineExceeded))
     )
 
