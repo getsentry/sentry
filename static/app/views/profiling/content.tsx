@@ -27,7 +27,6 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
@@ -422,8 +421,8 @@ const LayoutMain = styled(Layout.Main)`
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
   min-height: max(80vh, 300px);
-  margin-bottom: ${space(2)};
-  margin-top: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const LandingAggregateFlamegraphContainer = styled('div')`
@@ -446,23 +445,23 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-template-columns: min-content auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const WidgetsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
 `;
 
 const SearchbarContainer = styled('div')`
-  margin-top: ${space(3)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPagination = styled(Pagination)`
@@ -470,5 +469,5 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
