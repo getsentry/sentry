@@ -21,7 +21,6 @@ import {
 } from 'sentry/components/timeRangeSelector';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -397,11 +396,11 @@ const StyledLayoutBody = styled(Layout.Body)`
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledCloseButton = styled(Button)`

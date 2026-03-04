@@ -3,10 +3,12 @@ import {
   createFormHook,
   formOptions,
   revalidateLogic,
+  type AnyFormApi,
   type DeepKeys,
 } from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
@@ -37,6 +39,7 @@ export const defaultFormOptions = formOptions({
 });
 
 const fieldComponents = {
+  Base: BaseField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
@@ -57,7 +60,7 @@ const {useAppForm} = createFormHook({
   formComponents: {
     FieldGroup,
     SubmitButton,
-    FormWrapper,
+    AppForm,
   },
   fieldContext,
   formContext,
@@ -66,17 +69,26 @@ const {useAppForm} = createFormHook({
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
   return (
-    <form.Subscribe selector={state => state.isSubmitting || state.isDefaultValue}>
-      {isDisabled => (
+    <form.Subscribe selector={state => state.isSubmitting}>
+      {isSubmitting => (
         <Button
           {...props}
           priority="primary"
           type="submit"
           form={form.formId}
-          disabled={isDisabled || props.disabled}
+          busy={isSubmitting}
+          disabled={isSubmitting || props.disabled}
         />
       )}
     </form.Subscribe>
+  );
+}
+
+function AppForm({children, form}: {children: React.ReactNode; form: AnyFormApi}) {
+  return (
+    <formContext.Provider value={form}>
+      <FormWrapper>{children}</FormWrapper>
+    </formContext.Provider>
   );
 }
 

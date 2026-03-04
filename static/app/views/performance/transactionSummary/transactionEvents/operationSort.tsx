@@ -149,7 +149,7 @@ class OperationSort extends Component<Props, State> {
   render() {
     const {title: Title} = this.props;
     const {isOpen} = this.state;
-    const menu: React.ReactPortal | null = isOpen ? this.renderMenu() : null;
+    const menu = isOpen ? this.renderMenu() : null;
 
     return (
       <Manager>

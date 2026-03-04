@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Select} from '@sentry/scraps/select';
 import Feature from 'sentry/components/acl/feature';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
@@ -37,6 +37,7 @@ function ThresholdTypeForm({
   onComparisonTypeChange,
   comparisonDelta,
 }: Props) {
+  const theme = useTheme();
   if (isCrashFreeAlert(dataset)) {
     return null;
   }
@@ -77,7 +78,7 @@ function ThresholdTypeForm({
             styles={{
               container: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
-                marginLeft: space(1),
+                marginLeft: theme.space.md,
               }),
               control: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,

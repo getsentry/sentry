@@ -2,8 +2,6 @@ import {memo} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type PillType = 'positive' | 'negative' | 'error';
 
 type Props = {
@@ -102,7 +100,7 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
 };
 
 const PillName = styled('span')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   min-width: 0;
   white-space: nowrap;
   display: flex;
@@ -128,7 +126,7 @@ const PillValue = styled(PillName)`
   .pill-icon,
   .external-icon {
     display: inline;
-    margin: 0 0 0 ${space(1)};
+    margin: 0 0 0 ${p => p.theme.space.md};
     color: ${p => p.theme.tokens.content.secondary};
     &:hover {
       color: ${p => p.theme.tokens.content.primary};
@@ -138,7 +136,7 @@ const PillValue = styled(PillName)`
 
 const StyledPill = styled('li')<{type?: PillType}>`
   white-space: nowrap;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
   display: flex;
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowLight};

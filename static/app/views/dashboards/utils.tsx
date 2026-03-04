@@ -25,12 +25,14 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
+  ABYTE_UNITS,
   getAggregateAlias,
   getAggregateArg,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
   RateUnit,
+  SIZE_UNIT_MULTIPLIERS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -110,6 +112,13 @@ export function getThresholdUnitSelectOptions(
     }));
   }
 
+  if (dataType === 'size') {
+    return Object.values(ABYTE_UNITS).map(unit => ({
+      label: unit,
+      value: unit,
+    }));
+  }
+
   return [];
 }
 
@@ -121,7 +130,10 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
       : dataType === 'duration'
         ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           DURATION_UNITS[unit]
-        : 1;
+        : dataType === 'size'
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            SIZE_UNIT_MULTIPLIERS[unit]
+          : 1;
   return value * multiplier;
 }
 
@@ -185,7 +197,7 @@ export function getWidgetInterval(
 
 export function getFieldsFromEquations(fields: string[]): string[] {
   // Gather all fields and functions used in equations and prepend them to the provided fields
-  const termsSet: Set<string> = new Set();
+  const termsSet = new Set<string>();
   fields.filter(isEquation).forEach(field => {
     const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
     parsed.fields.forEach(({term}) => termsSet.add(term as string));
@@ -638,6 +650,7 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.TABLE,
     DisplayType.WHEEL,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
   ].includes(displayType);
 };
 
@@ -654,6 +667,7 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   const widgetTypesThatFetchOwnData = [
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
   ];
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };
@@ -664,6 +678,7 @@ export const isWidgetEditable = (widgetType: DisplayType) => {
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
     DisplayType.WHEEL,
+    DisplayType.AGENTS_TRACES_TABLE,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
 };

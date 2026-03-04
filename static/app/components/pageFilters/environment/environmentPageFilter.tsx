@@ -214,14 +214,16 @@ export function EnvironmentPageFilter({
   // (which needs options).
   toggleOptionRef.current = stagedSelect.toggleOption;
 
+  const {dispatch} = stagedSelect;
+
   const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
-  const handleReset = () => {
-    stagedSelect.dispatch({type: 'remove staged'});
+  const handleReset = useCallback(() => {
+    dispatch({type: 'remove staged'});
     handleChange([]);
     onReset?.();
-  };
+  }, [dispatch, handleChange, onReset]);
 
   return (
     <CompactSelect

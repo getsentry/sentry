@@ -32,7 +32,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
@@ -951,8 +950,8 @@ export class Results extends Component<Props, State> {
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;

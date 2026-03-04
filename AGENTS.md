@@ -87,6 +87,17 @@ pre-commit run --files src/sentry/path/to/file.py
 pre-commit run --all-files
 ```
 
+#### Before completing a task
+
+Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
+
+```bash
+# From repo root; for automation use the venv
+cd /path/to/sentry && .venv/bin/pre-commit run --files <file1> [file2 ...]
+```
+
+If pre-commit fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+
 #### Testing
 
 ```bash

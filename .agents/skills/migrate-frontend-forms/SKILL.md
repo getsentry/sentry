@@ -452,7 +452,7 @@ function SlugForm({project}: {project: Project}) {
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="slug">
         {field => (
           <field.Layout.Stack label="Project Slug">

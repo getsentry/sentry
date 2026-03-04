@@ -137,6 +137,9 @@ function transformInputMessages(inputMessages: string): {
 } {
   try {
     const {parsed: json, fixedInvalidJson} = parseJsonWithFix(inputMessages);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, prompt} = json;
     if (system) {
@@ -176,6 +179,9 @@ function transformPrompt(prompt: string): {
 } {
   try {
     const {parsed: json, fixedInvalidJson} = parseJsonWithFix(prompt);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, messages} = json;
     if (system) {
@@ -208,8 +214,10 @@ function transformPrompt(prompt: string): {
 /**
  * Transforms messages from the new parts-based format to the standard content format.
  * The new format uses a `parts` array with typed objects instead of a `content` field.
+ *
+ * Exported for testing purposes only.
  */
-function transformPartsMessages(messages: string): {
+export function transformPartsMessages(messages: string): {
   fixedInvalidJson: boolean;
   result: string | undefined;
 } {
@@ -463,10 +471,12 @@ export function AIInputSection({
   node,
   attributes,
   event,
+  initialCollapse,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
+  initialCollapse?: boolean;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
   const originalMessagesLength = getTraceNodeAttribute(
@@ -499,9 +509,11 @@ export function AIInputSection({
 
   return (
     <FoldSection
+      key={node.id}
       sectionKey={SectionKey.AI_INPUT}
       title={t('Input')}
       disableCollapsePersistence
+      initialCollapse={initialCollapse}
     >
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (

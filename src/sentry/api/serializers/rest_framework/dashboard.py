@@ -305,9 +305,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    description = serializers.CharField(
-        required=False, max_length=255, allow_null=True, allow_blank=True
-    )
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     thresholds = serializers.JSONField(required=False, allow_null=True)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
@@ -319,6 +317,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
+    axis_range = serializers.ChoiceField(
+        choices=[("auto", "auto"), ("dataMin", "dataMin")],
+        required=False,
+        allow_null=True,
+    )
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
         choices=DatasetSourcesTypes.as_text_choices(),
@@ -394,6 +397,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {
                     "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
                 }
+            )
+
+        description = data.get("description")
+        description_length = len(description) if description else 0
+        if description_length > 255:
+            raise serializers.ValidationError(
+                {"description": "Ensure description has no more than 255 characters."}
             )
 
         if data.get("queries"):
@@ -832,7 +842,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
             discover_widget_split=widget_data.get("discover_widget_split", None),
             limit=widget_data.get("limit", None),
-            detail={"layout": widget_data.get("layout")},
+            detail={
+                "layout": widget_data.get("layout"),
+                "axis_range": widget_data.get("axis_range"),
+            },
             dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
         )
 
@@ -1018,6 +1031,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
     def update_widget(self, widget, data):
         prev_layout = widget.detail.get("layout") if widget.detail else None
+        prev_axis_range = widget.detail.get("axis_range") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
         widget.thresholds = data.get("thresholds", widget.thresholds)
@@ -1030,7 +1044,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.limit = data.get("limit", widget.limit)
         new_dataset_source = data.get("dataset_source", widget.dataset_source)
         widget.dataset_source = new_dataset_source
-        widget.detail = {"layout": data.get("layout", prev_layout)}
+        widget.detail = {
+            "layout": data.get("layout", prev_layout),
+            "axis_range": data.get("axis_range", prev_axis_range),
+        }
 
         if widget.widget_type == DashboardWidgetTypes.SPANS:
             if new_dataset_source == DatasetSourcesTypes.USER.value:

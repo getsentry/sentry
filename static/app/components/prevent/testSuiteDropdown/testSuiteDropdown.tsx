@@ -13,7 +13,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 const TEST_SUITES = 'testSuites';
@@ -166,9 +165,9 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  margin-left: ${space(0.5)};
+  margin-top: -${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

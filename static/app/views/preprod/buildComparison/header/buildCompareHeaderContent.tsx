@@ -36,7 +36,6 @@ import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 interface BuildCompareHeaderContentProps {
   buildDetails: BuildDetailsApiResponse;
-  projectId: string;
   baseArtifactId?: string;
   headArtifactId?: string;
   isRerunning?: boolean;
@@ -44,27 +43,23 @@ interface BuildCompareHeaderContentProps {
 }
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
-  const {
-    buildDetails,
-    projectId,
-    headArtifactId,
-    baseArtifactId,
-    onRerunComparison,
-    isRerunning,
-  } = props;
+  const {buildDetails, headArtifactId, baseArtifactId, onRerunComparison, isRerunning} =
+    props;
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, String(buildDetails.project_id), {
+        tab: 'mobile-builds',
+      }),
       label: t('Releases'),
     },
   ];
 
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, projectId, {
+      to: makeReleasesUrl(organization.slug, String(buildDetails.project_id), {
         query: buildDetails.app_info.version,
         tab: 'mobile-builds',
       }),
@@ -90,7 +85,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
               <AppIcon
                 appName={buildDetails.app_info.name}
                 appIconId={buildDetails.app_info.app_icon_id}
-                projectId={projectId}
+                projectId={buildDetails.project_slug}
               />
               <Text>{buildDetails.app_info.name}</Text>
             </Flex>

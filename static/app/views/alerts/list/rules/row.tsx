@@ -72,8 +72,7 @@ function RuleListRow({
       : rule.projects[0]!;
 
   const ruleType =
-    rule &&
-    rule.type === CombinedAlertType.METRIC &&
+    rule?.type === CombinedAlertType.METRIC &&
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
@@ -389,7 +388,7 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
@@ -432,16 +431,16 @@ const IconContainer = styled('div')`
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
 `;
 
 const MarginLeft = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space.lg};
 `;
 
 const DisabledAlertName = styled('span')`

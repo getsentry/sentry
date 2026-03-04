@@ -31,6 +31,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -195,6 +196,7 @@ function SpanNodeDetailsContent({
   onTabScrollToNode,
   project,
   hideNodeActions,
+  initiallyCollapseAiIO,
   issues,
   location,
   onParentClick,
@@ -240,8 +242,14 @@ function SpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         <AIIOAlert node={node} />
-        <AIInputSection node={node} />
-        <AIOutputSection node={node} />
+        <AIInputSection
+          node={node}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
+        <AIOutputSection
+          node={node}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
         <MCPInputSection node={node} />
         <MCPOutputSection node={node} />
         <SpanSections
@@ -429,6 +437,7 @@ function EAPSpanNodeDetailsContent({
   location,
   theme,
   hideNodeActions,
+  initiallyCollapseAiIO,
   traceItemData,
   eventTransaction,
   avgSpanDuration,
@@ -450,7 +459,7 @@ function EAPSpanNodeDetailsContent({
   const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
     attribute => attribute.name === 'thread.id'
   );
-  const threadId: string | undefined =
+  const threadId =
     typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
 
   const span = useMemo(() => {
@@ -520,8 +529,16 @@ function EAPSpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         <AIIOAlert node={node} attributes={attributes} />
-        <AIInputSection node={node} attributes={attributes} />
-        <AIOutputSection node={node} attributes={attributes} />
+        <AIInputSection
+          node={node}
+          attributes={attributes}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
+        <AIOutputSection
+          node={node}
+          attributes={attributes}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />
         <Attributes

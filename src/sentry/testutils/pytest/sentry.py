@@ -165,6 +165,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # enable draft features
     settings.SENTRY_OPTIONS["mail.enable-replies"] = True
+    settings.SENTRY_OPTIONS["objectstore.enable_for.attachments"] = 1.0
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 

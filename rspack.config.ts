@@ -303,8 +303,11 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        // Avoids recompiling core-js based on usage imports
-        exclude: /node_modules[\\/]core-js/,
+        // core-js: Avoids recompiling core-js based on usage imports
+        // react-select: Ships pre-compiled ESM with emotion's keyframes already
+        // compiled via Babel. Re-processing with @swc/plugin-emotion causes
+        // "illegal escape sequence" warnings in dev mode.
+        exclude: /node_modules[\\/](core-js|react-select)/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -578,8 +581,8 @@ const appConfig: Configuration = {
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
-    chunkIds: 'named',
-    moduleIds: 'named',
+    chunkIds: IS_PRODUCTION ? 'deterministic' : 'named',
+    moduleIds: IS_PRODUCTION ? 'deterministic' : 'named',
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our

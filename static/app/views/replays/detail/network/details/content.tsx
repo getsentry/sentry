@@ -2,7 +2,6 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -114,5 +113,5 @@ const SectionList = styled('dl')`
   margin: 0;
 `;
 const ParseError = styled('p')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
