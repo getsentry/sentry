@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 export interface ListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   padding?: string;
   ref?: React.Ref<HTMLLIElement>;
@@ -23,7 +21,7 @@ const ListItem = styled(
   )
 )`
   position: relative;
-  ${p => p.symbol && `padding-left: ${p.padding ?? space(4)};`}
+  ${p => p.symbol && `padding-left: ${p.padding ?? p.theme.space['3xl']};`}
 `;
 
 export default ListItem;

@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import Panel from './panel';
 
@@ -158,14 +157,13 @@ const Wrapper = styled(Panel, {
   grid-template-columns: repeat(${p => p.columns}, auto);
 
   > * {
-    ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
-
-    ${p =>
-      p.disableHeaderBorderBottom
-        ? ''
-        : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
+    padding: ${p => (p.disablePadding ? '0' : p.theme.space.xl)}
+      ${p =>
+        p.disableHeaderBorderBottom
+          ? ''
+          : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
       border-bottom: 1px solid ${p.theme.tokens.border.primary};
-    }`}
+    }`};
   }
 
   > ${TableEmptyStateWarning}, > ${LoadingWrapper} {

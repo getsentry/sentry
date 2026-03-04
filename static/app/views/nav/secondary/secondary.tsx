@@ -13,7 +13,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -371,15 +370,15 @@ interface ItemProps extends LinkProps {
 
 const Item = styled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === NavLayout.MOBILE
-      ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
-      : `${space(0.75)} ${space(1.5)}`};
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
+      : `${p.theme.space.sm} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
@@ -395,7 +394,7 @@ const Item = styled(Link)<ItemProps>`
     transform: translateY(-50%) translateX(100%);
     width: 4px;
     height: 20px;
-    left: -${space(1.5)};
+    left: -${p => p.theme.space.lg};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;

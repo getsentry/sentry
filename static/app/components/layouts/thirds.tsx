@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 import {Container} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {space} from 'sentry/styles/space';
-
 /**
  * Main container for a page.
  */
@@ -113,8 +111,8 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
   letter-spacing: -0.01em;
   margin: 0;
   color: ${p => p.theme.tokens.content.primary};
-  margin-bottom: ${p => p.withMargins && space(3)};
-  margin-top: ${p => p.withMargins && space(1)};
+  margin-bottom: ${p => (p.withMargins ? p.theme.space['2xl'] : undefined)};
+  margin-top: ${p => (p.withMargins ? p.theme.space.md : undefined)};
   line-height: 40px;
 
   display: flex;

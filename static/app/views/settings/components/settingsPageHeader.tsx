@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -105,7 +104,7 @@ const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
-  margin-top: -${space(4)};
+  margin-top: -${p => p.theme.space['3xl']};
 `;
 
 const BodyWrapper = styled('div')`
