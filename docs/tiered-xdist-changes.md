@@ -178,3 +178,11 @@ Both backend-light and backend-test jobs now use `skip-devservices: true` on `se
 - T1 and T2 use the same pattern for consistency. T1's background subshell is simpler (no Snuba bootstrap).
 
 **Why this is safe:** `initialize_app()` (called in `pytest_configure`) does not touch Postgres, Redis, Snuba, or any external service. We verified this by auditing every `ready()` method across all Django apps — they all do pure Python registration (imports, plugin registration, signal receivers). `SENTRY_SKIP_SERVICE_VALIDATION=1` (set by `setup-sentry` on every CI shard since before our changes) skips the only Redis call in `pytest_configure`. Test collection also needs no services — it just discovers test functions via Python imports. Services are only needed when the first test actually executes, which is after `wait_for_services` has confirmed they're ready.
+
+### 6c. Fix: `wait_for_services` timeout and silent failure
+
+**Modified:** `src/sentry/testutils/pytest/sentry.py`, `.github/workflows/backend.yml`
+
+**What:** Changed `wait_for_services` timeout env var from `SNUBA_WAIT_TIMEOUT` (180s) to `SERVICES_WAIT_TIMEOUT` (300s). Timeout now calls `pytest.fail()` instead of silently `break`ing.
+
+**Why:** On GitHub Actions runners without cached Docker images, pulling clickhouse (~500MB) and snuba (~300MB) can take 14+ minutes. The original 180s timeout expired silently, allowing tests to start before services were ready. This caused all Snuba-dependent tests to fail on first attempt, burn through `--reruns=5` retries, and waste minutes of runner time. Observed on shard 10 of run 22653949065: 7 images pulled in 36s (cached), clickhouse + snuba took 14 minutes (uncached). The 300s timeout covers typical slow pulls, and `pytest.fail()` ensures any remaining edge case fails fast with a clear message instead of silently degrading.

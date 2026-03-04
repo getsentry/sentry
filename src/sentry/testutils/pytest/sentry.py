@@ -552,12 +552,12 @@ def wait_for_services():
     sentinel = os.environ.get("SERVICES_READY_FILE")
     if not sentinel:
         return
-    timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "180"))
+    timeout = int(os.environ.get("SERVICES_WAIT_TIMEOUT", "300"))
     start = time.monotonic()
     sentinel_path = Path(sentinel)
     while not sentinel_path.exists():
         if time.monotonic() - start > timeout:
-            break
+            pytest.fail(f"Timed out after {timeout}s waiting for {sentinel}")
         time.sleep(1)
 
 
