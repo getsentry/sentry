@@ -1011,5 +1011,5 @@ class AtomicPerformanceSettingsTest(TestCase):
         assert DetectorType.SLOW_DB_QUERY in updated
 
         detector.refresh_from_db()
-        assert detector.enabled is False
-        assert detector.config == {}
+        assert detector.enabled is True  # Enabled state unchanged
+        assert detector.config == {}  # Config cleared
