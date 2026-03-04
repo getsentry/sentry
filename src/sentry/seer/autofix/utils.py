@@ -123,6 +123,7 @@ class CodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
+    integration_id: int | None = None
 
 
 class CodebaseState(BaseModel):
