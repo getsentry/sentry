@@ -42,6 +42,30 @@ from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detect
 from sentry.workflow_engine.models import Detector
 
 
+def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
+    """
+    Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
+    for backwards compatibility and can be moved back under DELETE after API deprecation.
+    """
+    if not can_delete_detector(detector, request):
+        raise PermissionDenied
+
+    validator = get_detector_validator(request, detector.project, detector.type, instance=detector)
+    validator.delete()
+
+    if detector.type == MetricIssue.slug:
+        schedule_update_project_config(detector)
+
+    create_audit_entry(
+        request=request,
+        organization=detector.project.organization,
+        target_object=detector.id,
+        event=audit_log.get_event_id("DETECTOR_REMOVE"),
+        data=detector.get_audit_log_data(),
+    )
+    return Response(status=204)
+
+
 def get_detector_validator(
     request: Request,
     project: Project,
@@ -208,22 +232,4 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Delete a monitor
         """
-        if not can_delete_detector(detector, request):
-            raise PermissionDenied
-
-        validator = get_detector_validator(
-            request, detector.project, detector.type, instance=detector
-        )
-        validator.delete()
-
-        if detector.type == MetricIssue.slug:
-            schedule_update_project_config(detector)
-
-        create_audit_entry(
-            request=request,
-            organization=detector.project.organization,
-            target_object=detector.id,
-            event=audit_log.get_event_id("DETECTOR_REMOVE"),
-            data=detector.get_audit_log_data(),
-        )
-        return Response(status=204)
+        return remove_detector(request, organization, detector)
