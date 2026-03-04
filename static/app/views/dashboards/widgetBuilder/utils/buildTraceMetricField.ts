@@ -10,7 +10,12 @@ export function buildTraceMetricField(
 ): QueryFieldValue {
   return {
     kind: 'function',
-    function: [aggregation, 'value', undefined, undefined],
-    args: ['value', traceMetric.name, traceMetric.type, traceMetric.unit ?? '-'],
+    function: [
+      aggregation,
+      'value',
+      traceMetric.name,
+      traceMetric.type,
+      traceMetric.unit ?? '-',
+    ],
   };
 }

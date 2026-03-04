@@ -105,15 +105,9 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [
-        AggregationKeyWithAlias,
-        string,
-        AggregationRefinement,
-        AggregationRefinement,
-      ];
+      function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
       alias?: string;
-      args?: string[];
     };
 
 // Column is just an alias of a Query value
@@ -1126,19 +1120,10 @@ export function explodeFieldString(field: string, alias?: string): Column {
       function: [
         results.name as AggregationKey,
         results.arguments[0] ?? '',
-        results.arguments[1] as AggregationRefinement,
-        results.arguments[2] as AggregationRefinement,
+        ...results.arguments.slice(1),
       ],
       alias,
     };
-    if (results.arguments.length > 3) {
-      // If there are more than 3 arguments, we are using the args array to store this information
-      // instead of the function array. This gives us more flexibility to add more arguments in the future.
-      // At the moment, this is only used for trace metrics.
-      column.function[2] = undefined;
-      column.function[3] = undefined;
-      column.args = results.arguments;
-    }
     return column;
   }
 
@@ -1159,9 +1144,6 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  if (value.args && value.args.length > 0) {
-    return `${aggregation}(${value.args.join(',')})`;
-  }
   const parameters = value.function.slice(1).filter(i => i);
   return `${aggregation}(${parameters.join(',')})`;
 }

@@ -2195,18 +2195,17 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.FIELD, field: 'project'},
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', undefined, undefined],
-                args: ['value', 'my.metric', 'counter', '-'],
+                function: ['sum', 'value', 'my.metric', 'counter', '-'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
                 function: [
                   'per_second' as AggregationKeyWithAlias,
                   'value',
-                  undefined,
-                  undefined,
+                  'my.metric',
+                  'counter',
+                  '-',
                 ],
-                args: ['value', 'my.metric', 'counter', '-'],
               },
             ]),
           }),
