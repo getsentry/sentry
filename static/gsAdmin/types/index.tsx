@@ -86,7 +86,7 @@ export type ContractDate = {
   year?: number;
 };
 
-export type ContractPricingTier = {
+type ContractPricingTier = {
   end?: string;
   ratePerUnitCpe?: string;
   start?: string;
@@ -116,7 +116,7 @@ export type ContractMetadata = {
   organizationId?: string;
 };
 
-export type ContractAddress = {
+type ContractAddress = {
   countryCode?: string;
 };
 
