@@ -58,7 +58,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
@@ -2404,6 +2404,8 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
 
         detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        data_source = self.create_data_source()
+        data_source_detector = self.create_data_source_detector(data_source, detector)
         fake_detector_id = get_fake_id_from_object_id(detector.id)
         self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
 
@@ -2415,6 +2417,8 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             run_scheduled_deletions()
 
         assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DataSource.objects.filter(id=data_source.id).exists()
+        assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_dual_delete_detector_id_passed(self) -> None:
