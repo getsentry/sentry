@@ -429,7 +429,7 @@ export const useSeerExplorer = () => {
         optimisticThinkingBlock,
       ];
 
-      const baseSession: NonNullable<SeerExplorerResponse['session']> = sessionData ?? {
+      const baseSession = sessionData ?? {
         run_id: runId ?? undefined,
         blocks: [],
         status: 'processing',

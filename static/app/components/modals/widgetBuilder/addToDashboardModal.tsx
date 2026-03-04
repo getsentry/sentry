@@ -22,7 +22,6 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -568,7 +567,7 @@ function AddToDashboardModal({
 export default AddToDashboardModal;
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledButtonBar = styled((props: GridProps) => (
@@ -576,7 +575,7 @@ const StyledButtonBar = styled((props: GridProps) => (
 ))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

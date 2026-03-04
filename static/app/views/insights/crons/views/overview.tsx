@@ -24,7 +24,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -171,8 +170,8 @@ export default CronsOverview;
 
 const Filters = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
 
   > :last-child {
     flex-grow: 1;

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type UnitTypeProps = {
   description: React.ReactNode;
@@ -28,7 +27,7 @@ export default function UnitTypeItem({unitName, description, weight}: UnitTypePr
 const UnitTypeContainer = styled(PanelItem)`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const UnitColumn = styled('div')`

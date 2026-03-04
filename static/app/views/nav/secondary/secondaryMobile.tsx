@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
@@ -57,8 +56,8 @@ const GroupHeader = styled('h2')`
   background: ${p => p.theme.tokens.background.tertiary};
   display: flex;
   align-items: center;
-  padding: ${space(2)} ${space(1)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
   margin: 0;
 `;
 

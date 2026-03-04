@@ -71,16 +71,22 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["buildId"] == str(self.preprod_artifact.id)
+        assert data["state"] == "PROCESSED"
+        assert data["platform"] == "ANDROID"
+        assert data["projectId"] == str(self.project.id)
+        assert data["projectSlug"] == self.project.slug
+        assert data["buildConfiguration"] is None
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
         assert data["downloadCount"] == 0
-        assert data["platform"] == "ANDROID"
 
         app_info = data["appInfo"]
         assert app_info["appId"] == "com.example.app"
         assert app_info["version"] == "1.0.0"
         assert app_info["buildNumber"] == 42
         assert app_info["artifactType"] == "APK"
+
+        assert data["gitInfo"] is None
 
         # iOS fields should be None for android
         assert data["isCodeSignatureValid"] is None

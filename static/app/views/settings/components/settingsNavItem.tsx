@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
 type Props = {
@@ -61,7 +60,7 @@ const StyledBadge = styled(Badge)`
   height: auto;
   line-height: 1;
   font-size: ${p => p.theme.font.size.xs};
-  padding: 3px ${space(0.75)};
+  padding: 3px ${p => p.theme.space.sm};
   vertical-align: middle;
 `;
 

@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -176,15 +175,15 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const PerformanceScoreChartContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const MainContentContainer = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const LoadingBoxContainer = styled('div')`
@@ -192,11 +191,11 @@ const LoadingBoxContainer = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   flex-wrap: wrap;
 
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingBox = styled('div')`

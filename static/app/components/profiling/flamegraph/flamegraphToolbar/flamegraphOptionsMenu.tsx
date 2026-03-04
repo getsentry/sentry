@@ -47,7 +47,7 @@ function FlamegraphOptionsMenu({
     });
   }, [canvasPoolManager, organization, profileType]);
 
-  const continuousLocationDescriptor: {end: string; start: string} | null = useMemo(
+  const continuousLocationDescriptor = useMemo(
     () => {
       if (
         typeof location.query.start !== 'string' ||

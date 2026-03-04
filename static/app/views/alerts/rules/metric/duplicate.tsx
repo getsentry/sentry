@@ -52,9 +52,7 @@ function MetricRuleDuplicate({
     ruleId: duplicateRuleId,
   });
   const handleSubmitSuccess = (data: any) => {
-    const alertRuleId: string | undefined = data
-      ? (data.id as string | undefined)
-      : undefined;
+    const alertRuleId = data ? (data.id as string | undefined) : undefined;
 
     const target = alertRuleId
       ? {

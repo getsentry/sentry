@@ -52,7 +52,7 @@ export function MultiMetricsQueryParamsProvider({
   const organization = useOrganization();
   const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
-  const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
+  const value = useMemo(() => {
     const metricQueries = getMultiMetricsQueryParamsFromLocation(
       location,
       allowUpTo,
@@ -63,7 +63,7 @@ export function MultiMetricsQueryParamsProvider({
       return function (newQueryParams: ReadableQueryParams) {
         const target = {...location, query: {...location.query}};
 
-        const newMetricQueries: string[] = metricQueries
+        const newMetricQueries = metricQueries
           .map((metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
               return metricQuery;
@@ -141,7 +141,7 @@ export function MultiMetricsQueryParamsProvider({
 
         const target = {...location, query: {...location.query}};
 
-        const newMetricQueries: string[] = metricQueries
+        const newMetricQueries = metricQueries
           .filter((_, j) => i !== j)
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
           .filter(defined)
@@ -200,7 +200,7 @@ export function useAddMetricQuery() {
   return function () {
     const target = {...location, query: {...location.query}};
 
-    const newMetricQueries: string[] = [
+    const newMetricQueries = [
       ...metricQueries,
       metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
     ]
