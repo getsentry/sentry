@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1040_drop_fk_projecttemplate"),
+        ("sentry", "1041_projectkeymapping"),
     ]
 
     operations = [
