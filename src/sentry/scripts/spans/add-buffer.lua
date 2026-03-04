@@ -127,6 +127,7 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 
 -- Merge spans into the parent span set.
 -- Used outside the if statement
+local arg_cleanup_end_time_ms = sunionstore_args_end_time_ms
 if #sunionstore_args > 0 then
     local dest_memory = redis.call("memory", "usage", set_key) or 0
     local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
@@ -196,7 +197,7 @@ if #sunionstore_args > 0 then
         redis.call("del", merged_ibc_key)
     end
 
-    local arg_cleanup_end_time_ms = get_time_ms()
+    arg_cleanup_end_time_ms = get_time_ms()
     table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - unlink_end_time_ms})
 end
 
@@ -212,7 +213,7 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
-local ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
+local ingested_count_step_latency_ms = ingested_count_end_time_ms - arg_cleanup_end_time_ms
 table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_step_latency_ms})
 
 -- Capture end time and calculate latency in milliseconds

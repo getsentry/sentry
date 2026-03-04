@@ -880,22 +880,14 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
         ),
     ]
 
-    with override_options({"spans.buffer.max-segment-bytes": 200}):
+    with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=11)
 
+    # The entire segment should be dropped because it exceeds max_segment_bytes.
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    retained_span_ids = {span.payload["span_id"] for span in segment.spans}
-
-    # Some spans should be evicted because the segment is too large.
-    all_span_ids = {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
-    assert len(retained_span_ids) < len(all_span_ids), "Some spans should have been evicted"
-    assert retained_span_ids.issubset(all_span_ids)
-
-    # NB: We currently accept that we leak redirect keys when we limit segments.
-    # buffer.done_flush_segments(rv)
-    # assert_clean(buffer.client)
+    assert segment.spans == []
 
 
 @mock.patch("sentry.spans.buffer.Project")
@@ -987,7 +979,7 @@ def test_dropped_spans_emit_outcomes(
     )
 
     # Set a very small max-segment-bytes to force Redis to drop spans
-    with override_options({"spans.buffer.max-segment-bytes": 200}):
+    with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         buffer.flush_segments(now=11)
