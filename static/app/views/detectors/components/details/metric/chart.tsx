@@ -20,6 +20,12 @@ import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {
+  DURATION_UNIT_MULTIPLIERS,
+  RateUnit,
+  type DurationUnit,
+  type SizeUnit,
+} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -194,7 +200,14 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
-  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
@@ -313,6 +326,8 @@ export function useMetricDetectorChart({
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
+      unit,
+      serverOutputType,
     });
 
     const isPercentage = outputType === 'percentage';
@@ -330,6 +345,21 @@ export function useMetricDetectorChart({
           undefined,
           undefined,
           2
+        );
+      }
+      if (unit) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          outputType === 'duration'
+            ? value * (DURATION_UNIT_MULTIPLIERS[unit as DurationUnit] ?? 1)
+            : value,
+          outputType,
+          true,
+          outputType === 'duration'
+            ? DURATION_UNIT_MULTIPLIERS[unit as DurationUnit]
+            : undefined,
+          outputType === 'rate' ? (unit as RateUnit) : undefined,
+          undefined,
+          outputType === 'size' ? (unit as SizeUnit) : undefined
         );
       }
       return formatYAxisLabel(value);
@@ -361,6 +391,8 @@ export function useMetricDetectorChart({
     maxValue,
     minValue,
     openPeriodMarkerResult.incidentMarkerYAxis,
+    serverOutputType,
+    unit,
   ]);
 
   const grid = useMemo(() => {
