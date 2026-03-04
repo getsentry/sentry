@@ -60,6 +60,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -96,9 +97,15 @@ import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {ConfidenceFooter as LogsConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
+import {ConfidenceFooter as MetricsConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
+import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
@@ -122,6 +129,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
+    dataScanned?: 'full' | 'partial';
     disableZoom?: boolean;
     isMobile?: boolean;
     isSampled?: boolean | null;
@@ -155,6 +163,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     timeseriesResultsTypes,
     shouldResize,
     confidence,
+    dataScanned,
     showConfidenceWarning,
     sampleCount,
     isSampled,
@@ -170,6 +179,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const location = useLocation();
   const theme = useTheme();
+  const rawCounts = useWidgetRawCounts({selection, widget});
 
   useTrackAnalyticsOnSpanMigrationError({errorMessage, widget, loading});
 
@@ -486,6 +496,67 @@ function WidgetCardChart(props: WidgetCardChartProps) {
           ? 1
           : 0)
       : undefined;
+
+  const isTopN =
+    defined(topEventsCountExcludingOther) && topEventsCountExcludingOther > 1;
+  const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
+  const footerConfidence = confidence ?? combineConfidenceForSeries(series);
+  const footerSampleCount = defined(sampleCount) ? sampleCount : samplingMeta.sampleCount;
+  const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta.isSampled;
+  const footerDataScanned = dataScanned ?? samplingMeta.dataScanned;
+  const hasUserQuery = widget.queries.some(
+    query => (query.conditions ?? '').trim().length > 0
+  );
+  const userQuery =
+    widget.queries.find(query => (query.conditions ?? '').trim().length > 0)
+      ?.conditions ?? '';
+  const footerChartInfo: ChartInfo = {
+    chartType: getExploreChartType(widget.displayType),
+    series,
+    timeseriesResult: {isPending: loading} as ChartInfo['timeseriesResult'],
+    yAxis: axisLabel,
+    confidence: footerConfidence,
+    dataScanned: footerDataScanned,
+    isSampled: footerIsSampled,
+    sampleCount: footerSampleCount,
+    topEvents: topEventsCountExcludingOther,
+  };
+
+  let confidenceFooter: React.ReactNode = null;
+  if (showConfidenceWarning) {
+    if (widget.widgetType === WidgetType.SPANS) {
+      confidenceFooter = (
+        <SpansConfidenceFooter
+          confidence={footerChartInfo.confidence}
+          dataScanned={footerChartInfo.dataScanned}
+          isSampled={footerChartInfo.isSampled}
+          isLoading={loading}
+          rawSpanCounts={rawCounts ?? undefined}
+          sampleCount={footerChartInfo.sampleCount}
+          topEvents={footerChartInfo.topEvents}
+          userQuery={userQuery}
+        />
+      );
+    } else if (widget.widgetType === WidgetType.LOGS && rawCounts) {
+      confidenceFooter = (
+        <LogsConfidenceFooter
+          chartInfo={footerChartInfo}
+          hasUserQuery={hasUserQuery}
+          isLoading={loading}
+          rawLogCounts={rawCounts}
+        />
+      );
+    } else if (widget.widgetType === WidgetType.TRACEMETRICS && rawCounts) {
+      confidenceFooter = (
+        <MetricsConfidenceFooter
+          chartInfo={footerChartInfo}
+          hasUserQuery={hasUserQuery}
+          isLoading={loading}
+          rawMetricCounts={rawCounts}
+        />
+      );
+    }
+  }
   return (
     <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
       {zoomRenderProps => {
@@ -553,14 +624,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                       })}
                     </RenderedChartContainer>
 
-                    {showConfidenceWarning && confidence && (
-                      <ConfidenceFooter
-                        confidence={confidence}
-                        sampleCount={sampleCount}
-                        topEvents={topEventsCountExcludingOther}
-                        isSampled={isSampled}
-                      />
-                    )}
+                    {confidenceFooter}
                   </ChartWrapper>
                 </TransitionChart>
               );
@@ -875,6 +939,19 @@ function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
     case 'line':
     default:
       return <LineChart {...chartProps} />;
+  }
+}
+
+function getExploreChartType(displayType: DisplayType): ChartType {
+  switch (displayType) {
+    case DisplayType.BAR:
+      return ChartType.BAR;
+    case DisplayType.AREA:
+    case DisplayType.TOP_N:
+      return ChartType.AREA;
+    case DisplayType.LINE:
+    default:
+      return ChartType.LINE;
   }
 }
 
