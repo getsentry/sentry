@@ -6,7 +6,8 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.utils.console_platforms import organization_has_console_platform_access
@@ -27,27 +28,14 @@ def normalize_symbol_source(key, source):
 
 
 @region_silo_endpoint
-class BuiltinSymbolSourcesEndpoint(Endpoint):
+class BuiltinSymbolSourcesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = ()
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: Request, organization: Organization, **kwargs) -> Response:
         platform = request.GET.get("platform")
-
-        # Get organization if organization context is available
-        organization = None
-        organization_id_or_slug = kwargs.get("organization_id_or_slug")
-        if organization_id_or_slug:
-            try:
-                if str(organization_id_or_slug).isdecimal():
-                    organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
-                else:
-                    organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
-            except Organization.DoesNotExist:
-                pass
 
         sources = []
         for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
