@@ -13,6 +13,7 @@
 import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
 import {normalizePropertyName} from '../utils/normalizePropertyName';
+import {getStyledInfo} from '../utils/styled';
 
 import type {ExtractorContext, StyleDeclaration} from './types';
 import {decomposeValue} from './value-decomposer';
@@ -35,22 +36,6 @@ export function createStyledExtractor({
     // This avoids matching pseudo-selectors like a:hover
     const match = cssText.match(/(?:^|[{;])\s*([a-z-]+)\s*:\s*[^;{]*$/i);
     return match?.[1] ?? null;
-  }
-
-  /**
-   * Check if a tagged template is a styled/css pattern.
-   */
-  function isStyledOrCssTag(node: TSESTree.TaggedTemplateExpression) {
-    const tag = node.tag;
-    return (
-      (tag.type === 'Identifier' && tag.name === 'css') ||
-      (tag.type === 'MemberExpression' &&
-        ((tag.property.type === 'Identifier' && tag.property.name === 'css') ||
-          (tag.object.type === 'Identifier' && tag.object.name === 'styled'))) ||
-      (tag.type === 'CallExpression' &&
-        tag.callee.type === 'Identifier' &&
-        tag.callee.name === 'styled')
-    );
   }
 
   /**
@@ -174,7 +159,7 @@ export function createStyledExtractor({
 
   return {
     TaggedTemplateExpression(node: TSESTree.TaggedTemplateExpression) {
-      if (!isStyledOrCssTag(node)) {
+      if (!getStyledInfo(node.tag)) {
         return;
       }
       processTemplateLiteral(node.quasi, node);
@@ -182,33 +167,10 @@ export function createStyledExtractor({
 
     // Handle styled.div({ ... }) object syntax
     CallExpression(node: TSESTree.CallExpression) {
-      const callee = node.callee;
-
-      let isStyledCall = false;
-
-      // styled.div({ ... })
-      if (
-        callee.type === 'MemberExpression' &&
-        callee.object.type === 'Identifier' &&
-        callee.object.name === 'styled'
-      ) {
-        isStyledCall = true;
-      }
-
-      // styled('div')({ ... }) - callee is a CallExpression
-      if (
-        callee.type === 'CallExpression' &&
-        callee.callee.type === 'Identifier' &&
-        callee.callee.name === 'styled'
-      ) {
-        isStyledCall = true;
-      }
-
-      if (!isStyledCall) {
+      if (!getStyledInfo(node.callee)) {
         return;
       }
 
-      // Process object argument
       const objectArg = node.arguments[0];
       if (objectArg?.type === 'ObjectExpression') {
         processObjectExpression(objectArg, node);
