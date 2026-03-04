@@ -122,4 +122,5 @@ export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'MCP Prompts',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, PROMPTS_TABLE],
+  onboarding: {type: 'custom', componentId: 'mcp', projectFlags: ['hasInsightsMCP']},
 };

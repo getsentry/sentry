@@ -178,4 +178,9 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     COMMANDS_TABLE,
     JOBS_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    projectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    description: 'Get started with Laravel performance monitoring',
+  },
 };

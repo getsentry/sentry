@@ -3,7 +3,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const BASE_CONDITION = `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`;
 
@@ -111,4 +111,5 @@ export const CACHES_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: DASHBOARD_TITLE,
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, TRANSACTION_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.CACHE},
 };

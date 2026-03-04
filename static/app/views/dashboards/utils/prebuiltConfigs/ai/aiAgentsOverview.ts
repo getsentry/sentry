@@ -192,4 +192,9 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    projectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

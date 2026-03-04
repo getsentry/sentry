@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
@@ -191,4 +191,5 @@ export const HTTP_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, DOMAIN_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.HTTP},
 };

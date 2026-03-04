@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -155,4 +156,9 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       layout: {x: 4, y: 5, w: 2, h: 3, minH: 2},
     },
   ],
+  onboarding: {
+    type: 'module',
+    moduleName: ModuleName.SESSIONS,
+    projectFlags: ['hasSessions'],
+  },
 };

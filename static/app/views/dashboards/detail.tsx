@@ -79,6 +79,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
+import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -999,17 +1000,21 @@ class DashboardDetail extends Component<Props, State> {
                         location={location}
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
-                        <Dashboard
-                          dashboard={modifiedDashboard ?? dashboard}
-                          isEditingDashboard={this.isEditingDashboard}
-                          widgetLimitReached={widgetLimitReached}
-                          onUpdate={this.handleUpdateEditStateWidgets}
-                          handleUpdateWidgetList={this.handleUpdateWidgetList}
-                          handleAddCustomWidget={this.handleAddCustomWidget}
-                          isEmbedded={this.isEmbedded}
-                          isPreview={this.isPreview}
-                          widgetLegendState={this.state.widgetLegendState}
-                        />
+                        <PrebuiltDashboardOnboardingGate
+                          prebuiltId={dashboard.prebuiltId}
+                        >
+                          <Dashboard
+                            dashboard={modifiedDashboard ?? dashboard}
+                            isEditingDashboard={this.isEditingDashboard}
+                            widgetLimitReached={widgetLimitReached}
+                            onUpdate={this.handleUpdateEditStateWidgets}
+                            handleUpdateWidgetList={this.handleUpdateWidgetList}
+                            handleAddCustomWidget={this.handleAddCustomWidget}
+                            isEmbedded={this.isEmbedded}
+                            isPreview={this.isPreview}
+                            widgetLegendState={this.state.widgetLegendState}
+                          />
+                        </PrebuiltDashboardOnboardingGate>
                       </MEPSettingProvider>
                     )}
                   </MetricsDataSwitcher>
@@ -1223,41 +1228,48 @@ class DashboardDetail extends Component<Props, State> {
                           />
 
                           <Fragment>
-                            <WidgetQueryQueueProvider>
-                              <Dashboard
-                                dashboard={modifiedDashboard ?? dashboard}
-                                isEditingDashboard={this.isEditingDashboard}
-                                widgetLimitReached={widgetLimitReached}
-                                onUpdate={this.handleUpdateEditStateWidgets}
-                                handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                handleAddCustomWidget={this.handleAddCustomWidget}
-                                onAddWidget={this.onAddWidget}
-                                isEmbedded={this.isEmbedded}
-                                isPreview={this.isPreview}
-                                widgetLegendState={this.state.widgetLegendState}
-                                onEditWidget={this.onEditWidget}
-                                newlyAddedWidget={newlyAddedWidget}
-                                onNewWidgetScrollComplete={
-                                  this.handleScrollToNewWidgetComplete
-                                }
-                                useTimeseriesVisualization={useTimeseriesVisualization}
-                                widgetInterval={this.props.widgetInterval}
-                              />
-                            </WidgetQueryQueueProvider>
+                            <PrebuiltDashboardOnboardingGate
+                              prebuiltId={dashboard.prebuiltId}
+                            >
+                              <WidgetQueryQueueProvider>
+                                <Dashboard
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  isEditingDashboard={this.isEditingDashboard}
+                                  widgetLimitReached={widgetLimitReached}
+                                  onUpdate={this.handleUpdateEditStateWidgets}
+                                  handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                  handleAddCustomWidget={this.handleAddCustomWidget}
+                                  onAddWidget={this.onAddWidget}
+                                  isEmbedded={this.isEmbedded}
+                                  isPreview={this.isPreview}
+                                  widgetLegendState={this.state.widgetLegendState}
+                                  onEditWidget={this.onEditWidget}
+                                  newlyAddedWidget={newlyAddedWidget}
+                                  onNewWidgetScrollComplete={
+                                    this.handleScrollToNewWidgetComplete
+                                  }
+                                  useTimeseriesVisualization={useTimeseriesVisualization}
+                                  widgetInterval={this.props.widgetInterval}
+                                />
+                              </WidgetQueryQueueProvider>
 
-                            <WidgetBuilderV2
-                              isOpen={this.state.isWidgetBuilderOpen}
-                              openWidgetTemplates={
-                                this.state.openWidgetTemplates ?? false
-                              }
-                              setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
-                              onClose={this.handleCloseWidgetBuilder}
-                              dashboardFilters={
-                                getDashboardFiltersFromURL(location) ?? dashboard.filters
-                              }
-                              dashboard={modifiedDashboard ?? dashboard}
-                              onSave={this.handleSaveWidget}
-                            />
+                              <WidgetBuilderV2
+                                isOpen={this.state.isWidgetBuilderOpen}
+                                openWidgetTemplates={
+                                  this.state.openWidgetTemplates ?? false
+                                }
+                                setOpenWidgetTemplates={
+                                  this.handleChangeWidgetBuilderView
+                                }
+                                onClose={this.handleCloseWidgetBuilder}
+                                dashboardFilters={
+                                  getDashboardFiltersFromURL(location) ??
+                                  dashboard.filters
+                                }
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onSave={this.handleSaveWidget}
+                              />
+                            </PrebuiltDashboardOnboardingGate>
                           </Fragment>
                         </MEPSettingProvider>
                       )}

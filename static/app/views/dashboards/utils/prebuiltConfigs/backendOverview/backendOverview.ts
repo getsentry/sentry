@@ -300,4 +300,9 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
     TRANSACTIONS_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    projectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    description: 'Get started with backend performance monitoring',
+  },
 };

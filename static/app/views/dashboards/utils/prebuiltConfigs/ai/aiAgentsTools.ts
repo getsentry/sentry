@@ -96,4 +96,9 @@ export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'AI Agents Tools',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, TOOLS_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    projectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

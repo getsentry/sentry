@@ -1,3 +1,4 @@
+import type {Project} from 'sentry/types/project';
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
 import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
 import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
@@ -27,6 +28,7 @@ import {QUEUE_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebu
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
 import {WEB_VITALS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageSummary';
 import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
@@ -59,7 +61,36 @@ export enum PrebuiltDashboardId {
   BACKEND_CACHES = 28,
 }
 
-export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
+/** Boolean flags on Project that indicate whether telemetry data has been received. */
+type ProjectTelemetryFlag = Extract<
+  keyof Project,
+  `hasInsights${string}` | 'hasSessions'
+>;
+
+export type OnboardingConfig =
+  | {
+      moduleName: ModulesWithOnboarding;
+      // Single-module onboarding: shows ModulesOnboardingPanel
+      type: 'module';
+      projectFlags?: ProjectTelemetryFlag[];
+    }
+  | {
+      componentId: 'agent-monitoring' | 'mcp';
+      projectFlags: ProjectTelemetryFlag[];
+      // Custom onboarding component (AI Agents, MCP)
+      type: 'custom';
+    }
+  | {
+      description: string;
+      projectFlags: ProjectTelemetryFlag[];
+      // Overview dashboard onboarding: shows a generic onboarding panel
+      // when NONE of the listed project flags are set
+      type: 'overview';
+    };
+
+export type PrebuiltDashboard = Omit<DashboardDetails, 'id'> & {
+  onboarding?: OnboardingConfig;
+};
 
 // NOTE: These configs must be in sync with the prebuilt dashboards declared in
 // the backend in the `PREBUILT_DASHBOARDS` constant.

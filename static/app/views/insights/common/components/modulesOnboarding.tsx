@@ -39,7 +39,7 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-type ModulesWithOnboarding = Exclude<
+export type ModulesWithOnboarding = Exclude<
   ModuleName,
   | ModuleName.AGENT_MODELS
   | ModuleName.AGENT_TOOLS

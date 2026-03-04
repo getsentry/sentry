@@ -122,4 +122,5 @@ export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'MCP Resources',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, RESOURCES_TABLE],
+  onboarding: {type: 'custom', componentId: 'mcp', projectFlags: ['hasInsightsMCP']},
 };

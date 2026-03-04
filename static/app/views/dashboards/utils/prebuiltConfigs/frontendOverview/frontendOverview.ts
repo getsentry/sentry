@@ -254,4 +254,9 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  onboarding: {
+    type: 'overview',
+    projectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
+    description: 'Get started with frontend performance monitoring',
+  },
 };

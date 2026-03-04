@@ -266,4 +266,9 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     SERVER_TRANSACTIONS_TABLE,
     SERVER_TREE_WIDGET,
   ],
+  onboarding: {
+    type: 'overview',
+    projectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
+    description: 'Get started with Next.js performance monitoring',
+  },
 };
