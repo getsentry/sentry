@@ -139,7 +139,7 @@ export function SnapshotSidebarContent({
   return (
     <Flex direction="column" gap="md" height="100%" width="100%">
       <Flex padding="xl" paddingBottom="0">
-        <InputGroup>
+        <InputGroup style={{flex: 1}}>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch size="sm" />
           </InputGroup.LeadingItems>

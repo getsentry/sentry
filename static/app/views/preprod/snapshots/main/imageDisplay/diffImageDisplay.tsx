@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Image} from '@sentry/scraps/image';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Slider} from '@sentry/scraps/slider';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
@@ -186,21 +187,21 @@ function WipeView({
   headImageUrl: string;
 }) {
   return (
-    <WipeContainer>
+    <Flex flex="1" minHeight="0">
       <ContentSliderDiff.Body
         before={
-          <WipeImage>
+          <Flex justify="center" align="center" height="100%">
             <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
-          </WipeImage>
+          </Flex>
         }
         after={
-          <WipeImage>
+          <Flex justify="center" align="center" height="100%">
             <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
-          </WipeImage>
+          </Flex>
         }
         minHeight="200px"
       />
-    </WipeContainer>
+    </Flex>
   );
 }
 
@@ -235,13 +236,15 @@ function OnionView({
         <Text size="sm" variant="muted">
           {t('Base')}
         </Text>
-        <OpacitySlider
-          type="range"
-          min={0}
-          max={100}
-          value={opacity}
-          onChange={e => onOpacityChange(Number(e.target.value))}
-        />
+        <SliderWrapper>
+          <Slider
+            min={0}
+            max={100}
+            value={opacity}
+            onChange={onOpacityChange}
+            formatLabel={v => `${v}%`}
+          />
+        </SliderWrapper>
         <Text size="sm" variant="muted">
           {t('Head')}
         </Text>
@@ -274,18 +277,6 @@ const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
   -webkit-mask-size: 100% 100%;
 `;
 
-const WipeContainer = styled('div')`
-  flex: 1;
-  min-height: 0;
-`;
-
-const WipeImage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-`;
-
 const OnionContainer = styled('div')`
   position: relative;
   display: inline-block;
@@ -299,7 +290,6 @@ const OnionOverlayLayer = styled('div')`
   height: 100%;
 `;
 
-const OpacitySlider = styled('input')`
+const SliderWrapper = styled('div')`
   width: 200px;
-  cursor: pointer;
 `;
