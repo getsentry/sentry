@@ -28,8 +28,7 @@ const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled',
-      'tracemetrics-overlay-charts-ui',],
+    features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
@@ -157,33 +156,6 @@ describe('useSaveAsMetricItems', () => {
 
     expect(saveAsItems.some(item => item.key === 'update-query')).toBe(false);
     expect(saveAsItems.some(item => item.key === 'save-query')).toBe(true);
-  });
-
-  it('should return empty array when metrics saved queries UI is not enabled', () => {
-    const orgWithoutFeature = OrganizationFixture({
-      features: [],
-    });
-
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {
-        wrapper: function ({children}: {children?: React.ReactNode}) {
-          return (
-            <OrganizationContext.Provider value={orgWithoutFeature}>
-              <QueryClientProvider client={queryClient}>
-                <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
-              </QueryClientProvider>
-            </OrganizationContext.Provider>
-          );
-        },
-      }
-    );
-
-    const saveAsItems = result.current;
-    expect(saveAsItems).toEqual([]);
   });
 
   it('formats add-to-dashboard submenu labels for multiple visualizes', () => {
