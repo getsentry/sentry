@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.testutils.silo import control_silo_test
 
 
-@pytest.mark.skipped(reason="fails because projecttemplate was removed")
+@pytest.mark.skip(reason="fails because projecttemplate was removed")
 @control_silo_test
 @override_settings(SENTRY_SELF_HOSTED=True)
 class BackfillSelfHostedSentryAppEmailsTest(TestMigrations):

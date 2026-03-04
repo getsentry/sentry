@@ -5,7 +5,7 @@ from sentry.preprod.models import PreprodArtifactMobileAppInfo
 from sentry.testutils.cases import TestMigrations
 
 
-@pytest.mark.skipped(reason="fails because projecttemplate was removed")
+@pytest.mark.skip(reason="fails because projecttemplate was removed")
 @pytest.mark.migrations
 class BackfillPreprodArtifactMobileAppInfoTest(TestMigrations):
     migrate_from = "0021_add_preprod_artifact_mobile_app_info"
