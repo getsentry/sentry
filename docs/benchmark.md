@@ -106,6 +106,8 @@ Same as Experiment 3, but with `--dist=load` instead of `--dist=loadfile`.
 
 ---
 
+**NOTE: Experiments 6–10 used incorrect shard counts.** backend-light shards were added without reducing backend-test shards, so total shards exceeded 22 (27-28 instead of 22). Wall clock comparisons are still valid but runner-minute/average numbers are inflated because more shards were running than baseline. Experiment 11+ uses the correct 22-shard total.
+
 ## Experiment 6: Tiered workflow — file granularity + loadfile
 
 Split tests into backend-light (5 shards, postgres-only, `-n 4`) and backend-test (22 shards, tier2 only, `-n 3`). File granularity, `--dist=loadfile`.
