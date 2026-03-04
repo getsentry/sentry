@@ -214,16 +214,14 @@ export function EnvironmentPageFilter({
   // (which needs options).
   toggleOptionRef.current = stagedSelect.toggleOption;
 
-  const {dispatch} = stagedSelect;
-
   const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
-  const handleReset = useCallback(() => {
-    dispatch({type: 'remove staged'});
+  const handleReset = () => {
+    stagedSelect.dispatch({type: 'remove staged'});
     handleChange([]);
     onReset?.();
-  }, [dispatch, handleChange, onReset]);
+  };
 
   return (
     <CompactSelect
@@ -259,11 +257,11 @@ export function EnvironmentPageFilter({
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
               disabled={!hasStagedChanges}
-              onClick={() => dispatch({type: 'remove staged'})}
+              onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
               onClick={() => {
-                dispatch({type: 'remove staged'});
+                stagedSelect.dispatch({type: 'remove staged'});
                 handleChange(stagedSelect.value);
               }}
             />
