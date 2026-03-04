@@ -137,6 +137,9 @@ function transformInputMessages(inputMessages: string): {
 } {
   try {
     const {parsed: json, fixedInvalidJson} = parseJsonWithFix(inputMessages);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, prompt} = json;
     if (system) {
@@ -176,6 +179,9 @@ function transformPrompt(prompt: string): {
 } {
   try {
     const {parsed: json, fixedInvalidJson} = parseJsonWithFix(prompt);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, messages} = json;
     if (system) {

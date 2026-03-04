@@ -269,14 +269,17 @@ export function parseJsonWithFix(value: string): {
   fixedInvalidJson: boolean;
   parsed: any;
 } {
-  if (containsFilteredPlaceholder(value)) {
-    return {parsed: null, fixedInvalidJson: true};
-  }
-
   try {
     const parsed = JSON.parse(value);
     return {parsed, fixedInvalidJson: false};
   } catch {
+    // Only treat [Filtered] as unfixable when JSON.parse actually fails.
+    // Valid JSON that happens to contain "[Filtered]" in a quoted string
+    // will have been parsed successfully above.
+    if (containsFilteredPlaceholder(value)) {
+      return {parsed: null, fixedInvalidJson: true};
+    }
+
     try {
       const fixed = fixJson(value);
       const parsed = JSON.parse(fixed);

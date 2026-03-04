@@ -67,6 +67,15 @@ describe('parseJsonWithFix', () => {
     expect(result.parsed).toBeNull();
   });
 
+  it('parses valid JSON that contains "[Filtered]" as a quoted string value', () => {
+    const data = '[{"role":"user","content":"The [Filtered] tag was applied"}]';
+    const result = parseJsonWithFix(data);
+    expect(result.fixedInvalidJson).toBe(false);
+    expect(result.parsed).toEqual([
+      {role: 'user', content: 'The [Filtered] tag was applied'},
+    ]);
+  });
+
   it('handles JSON with bad escape sequences without throwing', () => {
     const data = '{"message":"bad escape \\p sequence"}';
     const result = parseJsonWithFix(data);
