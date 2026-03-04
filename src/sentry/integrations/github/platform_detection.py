@@ -398,8 +398,10 @@ def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifes
     return None
 
 
-def _package_in_manifest(package_name: str, manifest: _PackageManifest) -> bool:
+def _package_in_manifest(package_name: str, manifest: _PackageManifest | None) -> bool:
     """Check if a package exists in a manifest's dependencies or devDependencies."""
+    if manifest is None:
+        return False
     all_deps = manifest["dependencies"] | manifest["dev_dependencies"]
     if package_name in all_deps:
         return True
@@ -417,8 +419,6 @@ def _rule_matches(
 ) -> bool:
     """Evaluate a single detector rule against repository state."""
     if "match_package" in rule:
-        if package_manifest is None:
-            return False
         return _package_in_manifest(rule["match_package"], package_manifest)
 
     path = rule.get("path")
@@ -448,11 +448,7 @@ def _framework_matches(
     if not every and not some:
         return False
 
-    every_pass = (
-        all(_rule_matches(r, root_files, file_contents, package_manifest) for r in every)
-        if every
-        else True
-    )
+    every_pass = all(_rule_matches(r, root_files, file_contents, package_manifest) for r in every)
     some_pass = (
         any(_rule_matches(r, root_files, file_contents, package_manifest) for r in some)
         if some
@@ -467,9 +463,9 @@ def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatfor
 
     e.g. if Next.js is detected, React is redundant since Next.js includes it.
     """
-    detected_ids = {r["platform"] for r in results}
+    platform_ids = {r["platform"] for r in results}
     superseded: set[str] = set()
-    for platform_id in detected_ids:
+    for platform_id in platform_ids:
         for child_id in _SUPERSESSION_MAP.get(platform_id, []):
             superseded.add(child_id)
 
