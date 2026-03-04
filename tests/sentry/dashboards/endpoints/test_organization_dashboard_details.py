@@ -1308,6 +1308,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "Ensure description has no more than 255 characters."
         ]
 
+    def test_add_text_widget_description_exceeds_max_length(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Widget with long description",
+                    "displayType": "text",
+                    "description": "x" * 256,
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature("organizations:dashboards-text-widgets"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 200, response.data
+            assert response.data["widgets"][1]["description"] == "x" * 256
+
     def test_add_widget_with_limit(self) -> None:
         data = {
             "title": "First dashboard",

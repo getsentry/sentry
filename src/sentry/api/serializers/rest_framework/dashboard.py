@@ -426,12 +426,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 }
             )
 
-        description = data.get("description")
-        description_length = len(description) if description else 0
-        if description_length > 255:
-            raise serializers.ValidationError(
-                {"description": "Ensure description has no more than 255 characters."}
-            )
+        if not is_text_widget:
+            description = data.get("description")
+            description_length = len(description) if description else 0
+            if description_length > 255:
+                raise serializers.ValidationError(
+                    {"description": "Ensure description has no more than 255 characters."}
+                )
 
         if data.get("queries") and not is_text_widget:
             # Check each query to see if they have an issue or discover error depending on the type of the widget
