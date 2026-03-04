@@ -94,8 +94,8 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     relativeDays: 7,
     retentionDays: 30,
   });
-  const startISO = (start as Date).toISOString();
-  const endISO = (end as Date).toISOString();
+  const startISO = start.toISOString();
+  const endISO = end.toISOString();
 
   // Initialize the search query with has:span.group because only
   // specific operations have their span.group recorded in the span
