@@ -214,9 +214,12 @@ export default function PrimaryNavSeerConfigReminder() {
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
+          icon: <IconSeer />,
+        }}
       >
-        <IconSeer />
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
           isMobile={layout === NavLayout.MOBILE}

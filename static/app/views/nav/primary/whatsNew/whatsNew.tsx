@@ -135,9 +135,12 @@ export function PrimaryNavigationWhatsNew() {
       <WhatsNewButton
         analyticsKey="broadcasts"
         label={t("What's New")}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
+          icon: <IconBroadcast />,
+        }}
       >
-        <IconBroadcast />
         {unseenPostIds.length > 0 && (
           <SidebarItemUnreadIndicator
             data-test-id="whats-new-unread-indicator"

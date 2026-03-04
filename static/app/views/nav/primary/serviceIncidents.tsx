@@ -31,9 +31,12 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
       <SidebarButton
         analyticsKey="statusupdate"
         label={t('Service status')}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
+          icon: <IconFire />,
+        }}
       >
-        <IconFire />
         <DangerUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
       </SidebarButton>
       {isOpen && (

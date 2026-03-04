@@ -8,11 +8,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
+import {useNavContext} from 'sentry/views/nav/context';
 import {SidebarMenu} from 'sentry/views/nav/primary/components';
 import {
   StackedNavigationTourReminder,
   useStackedNavigationTour,
 } from 'sentry/views/nav/tour/tour';
+import {NavLayout} from 'sentry/views/nav/types';
 
 function getContactSupportItem({
   organization,
@@ -51,10 +53,13 @@ export function PrimaryNavigationHelp() {
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
+  const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
 
   return (
     <SidebarMenu
       triggerWrap={StackedNavigationTourReminder}
+      size={isMobile ? 'xs' : 'sm'}
       items={[
         {
           key: 'search',
@@ -123,8 +128,7 @@ export function PrimaryNavigationHelp() {
       ]}
       analyticsKey="help"
       label={t('Help')}
-    >
-      <IconQuestion />
-    </SidebarMenu>
+      icon={<IconQuestion />}
+    />
   );
 }

@@ -43,16 +43,18 @@ interface SidebarItemDropdownProps {
   analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
   disableTooltip?: boolean;
+  icon?: React.ReactNode;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
+  size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 interface SidebarButtonProps {
   analyticsKey: string;
-  children: React.ReactNode;
   label: string;
   analyticsParams?: Record<string, unknown>;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  children?: React.ReactNode;
   className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
@@ -76,7 +78,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disableTooltip?: boolean;
 }
 
-function SidebarItem({
+export function SidebarItem({
   children,
   label,
   showLabel,
@@ -123,6 +125,8 @@ export function SidebarMenu({
   label,
   onOpen,
   disableTooltip,
+  icon,
+  size,
   triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   // This component can be rendered without an organization in some cases
@@ -155,13 +159,17 @@ export function SidebarMenu({
                   onOpen?.(event);
                 }}
                 isMobile={layout === NavLayout.MOBILE}
+                size={size}
                 icon={
                   showLabel ? (
-                    <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
-                  ) : null
+                    <SidebarItemIcon layout={layout}>{icon}</SidebarItemIcon>
+                  ) : (
+                    icon
+                  )
                 }
               >
-                {showLabel ? label : children}
+                {showLabel ? label : null}
+                {children}
               </NavButton>
             </TriggerWrap>
           </SidebarItem>
@@ -271,11 +279,15 @@ export function SidebarButton({
           onClick?.(e);
         }}
         icon={
-          showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
+          showLabel ? (
+            <SidebarItemIcon layout={layout}>{buttonProps.icon}</SidebarItemIcon>
+          ) : (
+            buttonProps.icon
+          )
         }
       >
-        {null}
-        {showLabel ? label : children}
+        {showLabel ? label : null}
+        {children}
       </NavButton>
     </SidebarItem>
   );
@@ -421,9 +433,14 @@ const StyledNavButton = styled(Button, {
 
   /* On mobile, the buttons are full width and have a gap between the icon and label */
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
-  height: ${p => (p.isMobile ? 'auto' : '44px')};
-  width: ${p => (p.isMobile ? '100%' : '44px')};
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : space(0.5))};
+  height: ${p => (p.isMobile ? 'auto' : p.size === undefined ? '44px' : undefined)};
+  width: ${p => (p.isMobile ? '100%' : p.size === undefined ? '44px' : undefined)};
+  padding: ${p =>
+    p.isMobile
+      ? `${space(1)} ${space(3)}`
+      : p.size === undefined
+        ? space(0.5)
+        : undefined};
 
   svg {
     margin-right: ${p => (p.isMobile ? space(1) : undefined)};
@@ -444,7 +461,7 @@ const NavButton = styled((props: NavButtonProps) => {
     <StyledNavButton
       {...props}
       aria-label={props['aria-label'] ?? ''}
-      size={props.isMobile ? 'zero' : undefined}
+      size={props.isMobile ? 'zero' : props.size}
     />
   );
 })``;

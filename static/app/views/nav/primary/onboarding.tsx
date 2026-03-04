@@ -74,36 +74,42 @@ function OnboardingItem({
     <GuideAnchor target="onboarding_sidebar" position="right">
       <SidebarButton
         analyticsKey="onboarding"
-        buttonProps={{...overlayTriggerProps, onMouseEnter: refetch}}
+        buttonProps={{
+          ...overlayTriggerProps,
+          onMouseEnter: refetch,
+          size: isMobile ? 'xs' : 'sm',
+          icon: (
+            <ProgressRingWrapper isMobile={isMobile}>
+              <OnboardingProgressRing
+                isMobile={isMobile}
+                animate
+                textCss={() => css`
+                  font-size: ${theme.font.size.sm};
+                  font-weight: ${theme.font.weight.sans.medium};
+                  color: ${theme.tokens.content.accent};
+                  ${isMobile && 'display: none'};
+                `}
+                text={
+                  doneTasks.length === allTasks.length ? (
+                    <IconDefaultsProvider>
+                      <IconCheckmark />
+                    </IconDefaultsProvider>
+                  ) : (
+                    doneTasks.length
+                  )
+                }
+                value={(doneTasks.length / allTasks.length) * 100}
+                backgroundColor={theme.colors.gray200}
+                progressEndcaps="round"
+                progressColor={theme.tokens.content.accent}
+                size={isMobile ? 14 : 26}
+                barWidth={isMobile ? 2 : 4}
+              />
+            </ProgressRingWrapper>
+          ),
+        }}
         label={label}
       >
-        <ProgressRingWrapper isMobile={isMobile}>
-          <OnboardingProgressRing
-            isMobile={isMobile}
-            animate
-            textCss={() => css`
-              font-size: ${theme.font.size.sm};
-              font-weight: ${theme.font.weight.sans.medium};
-              color: ${theme.tokens.content.accent};
-              ${isMobile && 'display: none'};
-            `}
-            text={
-              doneTasks.length === allTasks.length ? (
-                <IconDefaultsProvider>
-                  <IconCheckmark />
-                </IconDefaultsProvider>
-              ) : (
-                doneTasks.length
-              )
-            }
-            value={(doneTasks.length / allTasks.length) * 100}
-            backgroundColor={theme.colors.gray200}
-            progressEndcaps="round"
-            progressColor={theme.tokens.content.accent}
-            size={isMobile ? 14 : 26}
-            barWidth={isMobile ? 2 : 4}
-          />
-        </ProgressRingWrapper>
         {pendingCompletionSeen && (
           <SidebarItemUnreadIndicator
             data-test-id="pending-seen-indicator"
