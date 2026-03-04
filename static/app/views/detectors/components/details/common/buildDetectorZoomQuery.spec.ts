@@ -82,7 +82,7 @@ describe('limitDateTimeParamsToMaxPoints', () => {
 
     expect(result).toEqual({
       dateTimeParams: {
-        statsPeriod: '7d',
+        statsPeriod: '168h',
       },
       isRangeLimited: true,
     });

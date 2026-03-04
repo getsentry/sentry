@@ -85,12 +85,14 @@ function parseDateTimeMs(dateTime?: string | null): number | null {
   return parsedDateTime.valueOf();
 }
 
-function toStatsPeriod(durationMs: number): string {
+// Converts the duration of a zoom range to a statsPeriod string.
+// Rounds up to the nearest hour or day (if it's more than 24 hours).
+function zoomDurationToStatsPeriod(durationMs: number): string {
   const hourMs = 60 * 60 * 1000;
-  const durationHours = Math.max(Math.floor(durationMs / hourMs), 4);
+  const durationHours = Math.max(Math.ceil(durationMs / hourMs), 4);
 
-  if (durationHours > 24 && durationHours % 24 <= 12) {
-    return `${Math.floor(durationHours / 24)}d`;
+  if (durationHours >= 24) {
+    return `${Math.ceil(durationHours / 24)}d`;
   }
 
   return `${durationHours}h`;
@@ -132,7 +134,7 @@ export function computeZoomRangeMs({
   }
 
   if (endIsNearNow) {
-    return {statsPeriod: toStatsPeriod(Date.now() - zoomStartMs)};
+    return {statsPeriod: zoomDurationToStatsPeriod(zoomEndMs - zoomStartMs)};
   }
 
   const start = Math.floor(zoomStartMs / 60_000) * 60_000;
@@ -162,8 +164,12 @@ export function limitDateTimeParamsToMaxPoints({
       };
     }
 
+    const hourMs = 60 * 60 * 1000;
+    // Query to the nearest hour, rounded down
+    const durationHours = Math.floor(maxSpanMs / hourMs);
+
     return {
-      dateTimeParams: {statsPeriod: toStatsPeriod(maxSpanMs)},
+      dateTimeParams: {statsPeriod: `${durationHours}h`},
       isRangeLimited: true,
     };
   }

@@ -114,7 +114,7 @@ describe('MetricIssueChart', () => {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          statsPeriod: '7d',
+          statsPeriod: '168h',
         }),
       })
     );
