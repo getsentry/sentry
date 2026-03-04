@@ -14,6 +14,8 @@ import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -66,11 +68,12 @@ export default function ProjectUserFeedback() {
 
   const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<UserFeedbackSchema>) =>
-      fetchMutation({
+      fetchMutation<Project>({
         url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
         data: {options: data},
       }),
+    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
   });
 
   const options = project.options ?? {};
