@@ -267,7 +267,7 @@ function ProfileSummaryPage() {
 
   const rawQuery = decodeScalar(location?.query?.query, '');
 
-  const projectIds: number[] = useMemo(() => {
+  const projectIds = useMemo(() => {
     if (!defined(project)) {
       return [];
     }
@@ -280,7 +280,7 @@ function ProfileSummaryPage() {
     return [projects];
   }, [project]);
 
-  const projectSlugs: string[] = useMemo(() => {
+  const projectSlugs = useMemo(() => {
     return defined(project) ? [project.slug] : [];
   }, [project]);
 

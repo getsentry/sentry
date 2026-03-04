@@ -90,11 +90,11 @@ const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
     p.colorSubtitle ? p.theme.tokens.content.accent : p.theme.colors.gray500};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1.5)} 0 0;
+  padding: ${p => p.theme.space.lg} 0 0;
 `;
 
 const Icon = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`
@@ -110,7 +110,7 @@ const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
 
 const BodyWrapper = styled('div')`
   flex: 1;
-  margin: 0 0 ${space(3)};
+  margin: 0 0 ${p => p.theme.space['2xl']};
 `;
 const TabsWrapper = styled('div')`
   flex: 1;

@@ -69,6 +69,7 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:relay-otlp-traces-endpoint",
     "organizations:relay-otel-logs-endpoint",
+    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
@@ -79,6 +80,7 @@ EXPOSABLE_FEATURES = [
     "projects:trace-attachment-processing",
     "organizations:span-v2-otlp-processing",
     "projects:relay-upload-endpoint",
+    "organizations:new-client-report-processing",
 ]
 
 EXTRACT_METRICS_VERSION = 1

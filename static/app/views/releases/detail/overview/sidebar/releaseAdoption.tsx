@@ -348,7 +348,7 @@ const ChartLabel = styled('div')<{top: string}>`
 
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.sm};
 `;
 

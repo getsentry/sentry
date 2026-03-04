@@ -292,8 +292,8 @@ function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns: GroupListColumn[] = useMemo(
-    () => [...withColumns, 'firstSeen', 'lastSeen'],
+  const columns = useMemo(
+    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
     [withColumns]
   );
 

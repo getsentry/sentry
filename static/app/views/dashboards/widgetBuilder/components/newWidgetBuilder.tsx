@@ -92,7 +92,7 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   }
 
   if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-    enabled = organization.features.includes('preprod-app-size-dashboard');
+    enabled = true;
     traceItemType = TraceItemDataset.PREPROD;
   }
 
@@ -517,11 +517,11 @@ const DroppableGrid = styled('div')`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   position: fixed;
-  gap: ${space(4)};
-  margin: ${space(2)};
+  gap: ${p => p.theme.space['3xl']};
+  margin: ${p => p.theme.space.xl};
   top: ${SIDEBAR_HEIGHT}px;
-  right: ${space(2)};
-  bottom: ${space(2)};
+  right: ${p => p.theme.space.xl};
+  bottom: ${p => p.theme.space.xl};
   left: 0;
 `;
 
@@ -541,7 +541,7 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
 const WidgetPreviewPlaceholder = styled('div')`
   width: 100%;
   height: 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const SlideoutContainer = styled('div')`
@@ -549,7 +549,7 @@ const SlideoutContainer = styled('div')`
 `;
 
 const FilterBarContainer = styled(motion.div)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
 

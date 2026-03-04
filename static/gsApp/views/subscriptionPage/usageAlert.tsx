@@ -5,7 +5,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -311,7 +310,7 @@ export default UsageAlert;
 const UsageInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Description = styled(TextBlock)`

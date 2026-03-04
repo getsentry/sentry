@@ -45,8 +45,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const {tagKey} = useParams<{tagKey: string}>();
   const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
 
   const {
     data: tagValues,
@@ -90,7 +89,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       {tag && tagValues?.length && (
-        <Table>
+        <Table data-test-id="group-tag-value">
           <Header>
             <ColumnTitle>{t('Value')}</ColumnTitle>
             <ColumnSort
@@ -258,6 +257,7 @@ function TagDetailsValue({
           priority="link"
           icon={<IconOpen />}
           aria-label="Open link"
+          data-test-id="group-tag-url"
           size="xs"
           onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
         />

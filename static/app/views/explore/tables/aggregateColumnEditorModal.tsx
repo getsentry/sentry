@@ -123,7 +123,7 @@ export function AggregateColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={column.id}
+                  key={column.uniqueId}
                   organization={organization}
                   canDelete={
                     isGroupBy(column.column) ? canDeleteGroupBy : canDeleteVisualize
@@ -291,7 +291,7 @@ function GroupBySelector({
   stringTags,
   booleanTags,
 }: GroupBySelectorProps) {
-  const options: Array<SelectOption<string>> = useGroupByFields({
+  const options = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
@@ -374,7 +374,7 @@ function AggregateSelector({
     });
   }, []);
 
-  const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
+  const argumentOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,

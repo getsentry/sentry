@@ -27,7 +27,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -229,13 +228,13 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   flex-grow: 1;
 
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   place-items: stretch;
 
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding: ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   }
 
   grid-template-rows: max-content 1fr;

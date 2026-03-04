@@ -151,19 +151,19 @@ function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
     HiddenLogSearchFields
   );
 
-  const sortedNumberKeys: string[] = useMemo(() => {
+  const sortedNumberKeys = useMemo(() => {
     const keys = Object.keys(numberTags);
     keys.sort();
     return keys;
   }, [numberTags]);
 
-  const sortedStringKeys: string[] = useMemo(() => {
+  const sortedStringKeys = useMemo(() => {
     const keys = Object.keys(stringTags);
     keys.sort();
     return keys;
   }, [stringTags]);
 
-  const sortedBooleanKeys: string[] = useMemo(() => {
+  const sortedBooleanKeys = useMemo(() => {
     const keys = Object.keys(booleanTags);
     keys.sort();
     return keys;
@@ -423,11 +423,19 @@ function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
-      // automatically switch to aggregates mode when a group by is inserted/updated
-      if (op === 'insert' || op === 'update') {
+      const hasValidGroupBy = columns.some(Boolean);
+
+      // insert/update keeps aggregate mode while a valid group by exists
+      if (op === 'insert' || (op === 'update' && hasValidGroupBy)) {
         setGroupBys(columns, Mode.AGGREGATE);
-      } else {
+        return;
+      }
+
+      if (hasValidGroupBy) {
         setGroupBys(columns);
+      } else {
+        // when the last group by is cleared, return to samples table
+        setGroupBys(columns, Mode.SAMPLES);
       }
     },
     [setGroupBys]

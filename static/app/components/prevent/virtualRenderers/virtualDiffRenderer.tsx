@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
@@ -244,6 +244,7 @@ export function VirtualDiffRenderer({
   hashedPath,
   lineData,
 }: VirtualDiffRendererProps) {
+  const theme = useTheme();
   const widthDivRef = useRef<HTMLPreElement>(null);
   const codeDisplayOverlayRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -320,8 +321,8 @@ export function VirtualDiffRenderer({
             padding: 0,
             borderTopLeftRadius: '0px',
             borderTopRightRadius: '0px',
-            borderBottomLeftRadius: isOverflowing ? '0px' : space(0.75),
-            borderBottomRightRadius: isOverflowing ? '0px' : space(0.75),
+            borderBottomLeftRadius: isOverflowing ? '0px' : theme.space.sm,
+            borderBottomRightRadius: isOverflowing ? '0px' : theme.space.sm,
           }}
         >
           <CodeBody
@@ -387,8 +388,8 @@ const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`
   height: 100%;
   scrollbar-width: none;
 
-  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-left: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
+  border-right: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
 
   ${p => {
     if (!p.isOverflowing) {

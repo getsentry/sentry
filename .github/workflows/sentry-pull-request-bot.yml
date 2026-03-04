@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Check getsentry membership
         id: org
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             try {
@@ -45,12 +45,13 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Wait for PR merge commit
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         id: mergecommit
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
-            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/wait-for-merge-commit`).waitForMergeCommit({
+            const { waitForMergeCommit } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/wait-for-merge-commit.js`);
+            await waitForMergeCommit({
               github,
               context,
               core,
@@ -58,11 +59,11 @@ jobs:
 
       - name: Dispatch getsentry tests
         if: steps.org.outputs.result == 'true'
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
-            github.rest.actions.createWorkflowDispatch({
+            await github.rest.actions.createWorkflowDispatch({
               owner: 'getsentry',
               repo: 'getsentry',
               workflow_id: 'acceptance.yml',
