@@ -1,7 +1,7 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -30,6 +30,13 @@ export function Button({
     busy,
   });
 
+  const iconGap =
+    props.icon && hasChildren
+      ? size === 'xs' || size === 'zero'
+        ? 'sm'
+        : 'md'
+      : undefined;
+
   return (
     <Tooltip
       skipWrapper
@@ -49,32 +56,28 @@ export function Button({
         onClick={handleClick}
         role="button"
       >
-        {busy && <BusyOverlay data-busy-spinner />}
-        <Flex
-          as="span"
-          align="center"
-          justify="center"
-          minWidth="0"
-          height="100%"
-          whiteSpace="nowrap"
-          style={busy ? {visibility: 'hidden'} : undefined}
-        >
-          {props.icon && (
-            <Flex
-              as="span"
-              align="center"
-              flexShrink={0}
-              marginRight={
-                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
-              }
-            >
-              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                {props.icon}
-              </IconDefaultsProvider>
-            </Flex>
-          )}
-          {props.children}
-        </Flex>
+        <Grid as="span" align="center" justifyItems="center" minWidth="0" height="100%">
+          <Flex
+            as="span"
+            align="center"
+            area="1 / 1"
+            gap={iconGap}
+            style={busy ? {visibility: 'hidden'} : undefined}
+          >
+            {props.icon && (
+              <Flex as="span" align="center" flexShrink={0}>
+                <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
+                  {props.icon}
+                </IconDefaultsProvider>
+              </Flex>
+            )}
+            {props.children}
+          </Flex>
+          <BusySpinner
+            data-busy-spinner
+            style={busy ? undefined : {visibility: 'hidden'}}
+          />
+        </Grid>
       </StyledButton>
     </Tooltip>
   );
@@ -90,16 +93,12 @@ const spin = keyframes`
   }
 `;
 
-const BusyOverlay = styled('span')`
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const BusySpinner = styled('span')`
+  grid-area: 1 / 1;
 
   &::after {
     content: '';
+    display: block;
     width: 1em;
     height: 1em;
     border-radius: 50%;

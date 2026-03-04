@@ -44,7 +44,18 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', {name: 'Busy Button'});
     expect(button).toHaveAttribute('aria-busy', 'true');
-    expect(button.querySelector('[data-busy-spinner]')).toBeInTheDocument();
+
+    const spinner = button.querySelector('[data-busy-spinner]');
+    expect(spinner).toBeInTheDocument();
+    expect(spinner).not.toHaveStyle({visibility: 'hidden'});
+  });
+
+  it('hides spinner when not busy', () => {
+    render(<Button>Normal Button</Button>);
+
+    const button = screen.getByRole('button', {name: 'Normal Button'});
+    const spinner = button.querySelector('[data-busy-spinner]');
+    expect(spinner).toHaveStyle({visibility: 'hidden'});
   });
 });
 
