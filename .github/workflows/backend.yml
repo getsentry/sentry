@@ -541,7 +541,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadscope \
+            --dist=loadfile \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
