@@ -9,7 +9,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TimeSince from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   dateUpdated: string | null;
@@ -106,7 +105,7 @@ const StyledTextArea = styled(TextArea)`
   margin: 0;
   word-break: break-all;
   white-space: pre-wrap;
-  line-height: ${space(3)};
+  line-height: ${p => p.theme.space['2xl']};
   border: none;
   box-shadow: none;
   color: transparent;

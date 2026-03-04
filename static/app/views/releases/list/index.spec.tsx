@@ -541,6 +541,10 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
     render(<ReleasesList />, {
       organization,
       initialRouterConfig: {
@@ -564,7 +568,7 @@ describe('ReleasesList', () => {
   it('toggles display mode in the mobile-builds tab', async () => {
     const organizationWithDistribution = OrganizationFixture({
       slug: organization.slug,
-      features: [...organization.features, 'preprod-build-distribution'],
+      features: [...organization.features],
     });
     const mobileProject = ProjectFixture({
       id: '15',
@@ -612,6 +616,10 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
     const {router} = render(<ReleasesList />, {
       organization: organizationWithDistribution,
       initialRouterConfig: {
@@ -681,6 +689,10 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
     render(<ReleasesList />, {
       organization,
       initialRouterConfig: {
@@ -753,6 +765,10 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
     const {router} = render(<ReleasesList />, {
       organization,
       initialRouterConfig: {

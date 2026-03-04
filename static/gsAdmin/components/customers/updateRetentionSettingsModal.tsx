@@ -91,7 +91,7 @@ function UpdateRetentionSettingsModal({
 
     const data = {retentions, orgRetention};
 
-    api.request(`/_admin/${organization.slug}/retention-settings/`, {
+    api.request(`/_admin/customers/${organization.slug}/retention-settings/`, {
       method: 'POST',
       data,
       success: () => {

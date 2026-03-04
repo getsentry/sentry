@@ -12,7 +12,6 @@ type Options = {
   p95: number;
   query: string;
   sort: Sort;
-  transactionName: string;
   limit?: number;
 };
 
@@ -35,13 +34,7 @@ const FIELDS: SpanProperty[] = [
   'precise.finish_ts',
 ];
 
-export function useSegmentSpansQuery({
-  query,
-  transactionName,
-  sort,
-  p95,
-  limit = DEFAULT_LIMIT,
-}: Options) {
+export function useSegmentSpansQuery({query, sort, p95, limit = DEFAULT_LIMIT}: Options) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
@@ -74,7 +67,7 @@ export function useSegmentSpansQuery({
     pageLinks: multipleQueriesPageLinks,
     meta: multipleQueriesMeta,
   } = useMultipleQueries({
-    transactionName,
+    query,
     sort,
     p95,
     enabled: isMultipleQueriesEnabled,
@@ -150,22 +143,21 @@ function useSingleQuery(options: UseSingleQueryOptions) {
 type UseMultipleQueriesOptions = {
   limit: number;
   p95: number;
+  query: string;
   sort: Sort;
-  transactionName: string;
   enabled?: boolean;
 };
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
-  const {transactionName, sort, p95, enabled, limit} = options;
+  const {query, sort, p95, enabled, limit} = options;
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR_NAME]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
-  const categorizedSpansQuery = new MutableSearch(
-    `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
-  );
+  const categorizedSpansQuery = new MutableSearch(query);
+  categorizedSpansQuery.addFilterValue('span.category', spanCategoryUrlParam ?? '');
 
   // The slow (p95) option is the only one that requires an explicit duration filter
   if (selectedOption === TransactionFilterOptions.SLOW && p95) {

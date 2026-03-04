@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/components/metricsSearchBar';
 import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
 
 export const DetectorMetricsConfig = createEapDetectorConfig({
@@ -10,6 +11,7 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
   defaultField: TraceMetricsConfig.defaultField,
   getAggregateOptions: TraceMetricsConfig.getTableFieldOptions,
   discoverDataset: DiscoverDatasets.TRACEMETRICS,
+  SearchBar: MetricsDetectorSearchBar,
   formatAggregateForTitle: aggregate => {
     if (aggregate === 'count()') {
       return t('Number of metrics');

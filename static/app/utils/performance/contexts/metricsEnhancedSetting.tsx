@@ -59,9 +59,7 @@ export function canUseMetricsData(organization: Organization) {
   const isInternalViewOn = organization.features.includes(
     'performance-transaction-name-only-search'
   );
-  const samplingFeatureFlag = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
-  const isRollingOut =
-    samplingFeatureFlag && organization.features.includes('mep-rollout-flag');
+  const isRollingOut = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
 
   // For plans transitioning from AM2 to AM3, we still want to show metrics
   // until 90d after 100% transaction ingestion to avoid spikes in charts

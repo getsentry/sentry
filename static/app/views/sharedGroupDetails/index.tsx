@@ -10,7 +10,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -111,7 +110,7 @@ function SharedGroupDetails() {
 }
 
 const Container = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 export default SharedGroupDetails;

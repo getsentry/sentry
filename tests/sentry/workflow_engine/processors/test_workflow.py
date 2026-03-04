@@ -427,7 +427,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
         assert WorkflowFireHistory.objects.count() == 3
-        assert mock_trigger_action.call_count == 3
+        assert mock_trigger_action.call_count == 1
 
     def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()

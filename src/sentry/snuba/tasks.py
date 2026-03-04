@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import Any
 
 import orjson
 import sentry_sdk
 from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from snuba_sdk import Request
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
+    BaseEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_key_from_request,
     get_entity_key_from_snuba_query,
@@ -41,7 +44,7 @@ class SubscriptionError(Exception):
     namespace=alerts_tasks,
     retry=Retry(times=5, delay=5),
 )
-def create_subscription_in_snuba(query_subscription_id, **kwargs):
+def create_subscription_in_snuba(query_subscription_id: int, **kwargs: Any) -> None:
     """
     Task to create a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. We store the snuba subscription id locally on success.
@@ -91,13 +94,13 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     retry=Retry(times=5, delay=5),
 )
 def update_subscription_in_snuba(
-    query_subscription_id,
-    old_query_type=None,
-    old_dataset=None,
-    old_aggregate=None,
-    old_query=None,
-    **kwargs,
-):
+    query_subscription_id: int,
+    old_query_type: int | None = None,
+    old_dataset: str | None = None,
+    old_aggregate: str | None = None,
+    old_query: str | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Task to update a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. Updating in Snuba means deleting the existing subscription, then creating a
@@ -166,7 +169,7 @@ def update_subscription_in_snuba(
     namespace=alerts_tasks,
     retry=Retry(times=5, delay=5),
 )
-def delete_subscription_from_snuba(query_subscription_id, **kwargs):
+def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) -> None:
     """
     Task to delete a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry.
@@ -265,7 +268,12 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
 
 # This indirection function only exists such that snql queries can be rewritten
 # by sentry.utils.pytest.metrics
-def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
+def _create_snql_in_snuba(
+    subscription: QuerySubscription,
+    snuba_query: SnubaQuery,
+    snql_query: Request,
+    entity_subscription: BaseEntitySubscription,
+) -> str:
     body = {
         "project_id": subscription.project_id,
         "query": str(snql_query.query),
@@ -296,11 +304,11 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
 
 
 def _create_rpc_in_snuba(
-    subscription,
-    snuba_query,
+    subscription: QuerySubscription,
+    snuba_query: SnubaQuery,
     rpc_time_series_request: TimeSeriesRequest,
-    entity_subscription,
-):
+    entity_subscription: BaseEntitySubscription,
+) -> str:
     subscription_request = CreateSubscriptionRequest(
         time_series_request=rpc_time_series_request,
         time_window_secs=snuba_query.time_window,
@@ -328,7 +336,7 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
     name="sentry.snuba.tasks.subscription_checker",
     namespace=alerts_tasks,
 )
-def subscription_checker(**kwargs):
+def subscription_checker(**kwargs: Any) -> None:
     """
     Checks for subscriptions stuck in a transition status and attempts to repair them
     """

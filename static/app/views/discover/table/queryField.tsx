@@ -14,7 +14,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
@@ -160,7 +159,7 @@ class _QueryField extends Component<Props> {
     }
     const {value} = selected;
     const current = this.props.fieldValue;
-    let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
+    let fieldValue = cloneDeep(this.props.fieldValue);
 
     switch (value.kind) {
       case FieldValueKind.TAG:
@@ -382,8 +381,7 @@ class _QueryField extends Component<Props> {
     let parameterDescriptions: ParameterDescription[] = [];
     // Generate options and values for each parameter.
     if (
-      field &&
-      field.kind === FieldValueKind.FUNCTION &&
+      field?.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
       fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
@@ -754,7 +752,7 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   flex-grow: 1;
@@ -866,11 +864,11 @@ function appendFieldIfUnknown(
     return fieldOptions;
   }
 
-  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+  if (field?.kind === FieldValueKind.TAG && field.meta.unknown) {
     // Clone the options so we don't mutate other rows.
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+  } else if (field?.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[`measurement:${field.meta.name}`] = {
       label: field.meta.name,

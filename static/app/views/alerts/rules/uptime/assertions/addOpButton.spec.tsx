@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ComparisonType, OpType} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeComparisonType, UptimeOpType} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
 
@@ -63,8 +63,8 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: OpType.STATUS_CODE_CHECK,
-        operator: {cmp: ComparisonType.EQUALS},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       });
     });
@@ -79,9 +79,9 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: OpType.JSON_PATH,
+        op: UptimeOpType.JSON_PATH,
         value: '',
-        operator: {cmp: ComparisonType.EQUALS},
+        operator: {cmp: UptimeComparisonType.EQUALS},
         operand: {jsonpath_op: 'literal', value: ''},
       });
     });
@@ -94,10 +94,10 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: OpType.HEADER_CHECK,
-        key_op: {cmp: ComparisonType.EQUALS},
+        op: UptimeOpType.HEADER_CHECK,
+        key_op: {cmp: UptimeComparisonType.EQUALS},
         key_operand: {header_op: 'literal', value: ''},
-        value_op: {cmp: ComparisonType.EQUALS},
+        value_op: {cmp: UptimeComparisonType.EQUALS},
         value_operand: {header_op: 'literal', value: ''},
       });
     });
@@ -112,7 +112,7 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [],
       });
     });
@@ -128,8 +128,8 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenNthCalledWith(1, {
         id: expect.any(String),
-        op: OpType.STATUS_CODE_CHECK,
-        operator: {cmp: ComparisonType.EQUALS},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       });
 
@@ -143,8 +143,8 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenNthCalledWith(2, {
         id: expect.any(String),
-        op: OpType.STATUS_CODE_CHECK,
-        operator: {cmp: ComparisonType.EQUALS},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       });
 

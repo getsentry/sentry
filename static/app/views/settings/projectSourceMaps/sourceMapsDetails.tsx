@@ -17,7 +17,6 @@ import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
@@ -397,11 +396,11 @@ const ActionsColumn = styled(Column)`
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const DetailsPanel = styled(Panel)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ArtifactColumn = styled('div')`
@@ -431,7 +430,7 @@ const SizeColumn = styled('div')`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.font.size.md};
   align-items: center;
@@ -439,7 +438,7 @@ const TimeWrapper = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const SubText = styled('span')`
@@ -449,6 +448,6 @@ const SubText = styled('span')`
 const VersionAndDetails = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   word-break: break-word;
 `;

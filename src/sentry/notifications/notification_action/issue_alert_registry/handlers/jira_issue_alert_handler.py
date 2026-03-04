@@ -5,4 +5,4 @@ from sentry.workflow_engine.models import Action
 
 @issue_alert_handler_registry.register(Action.Type.JIRA)
 class JiraIssueAlertHandler(TicketingIssueAlertHandler):
-    pass
+    label_template = "Create a Jira issue in {integration} with these "

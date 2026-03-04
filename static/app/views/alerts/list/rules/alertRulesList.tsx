@@ -19,7 +19,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -343,7 +342,7 @@ export default function AlertRulesList() {
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   border-radius: 0;
   border-width: 1px 0;
 `;
@@ -352,7 +351,7 @@ const StyledSortLink = styled(Link)`
   color: inherit;
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   :hover {
     color: inherit;

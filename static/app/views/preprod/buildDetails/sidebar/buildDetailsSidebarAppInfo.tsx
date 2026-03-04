@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
@@ -103,23 +102,21 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Text>
           </Flex>
         </Tooltip>
-        <Feature features="organizations:preprod-build-distribution">
-          <Flex gap="2xs" align="center">
-            <InfoIcon>
-              <IconLink />
-            </InfoIcon>
-            <Text>
-              {props.projectId ? (
-                <InstallAppButton
-                  projectId={props.projectId}
-                  artifactId={props.artifactId}
-                  platform={props.appInfo.platform ?? null}
-                  source="build_details_sidebar"
-                />
-              ) : null}
-            </Text>
-          </Flex>
-        </Feature>
+        <Flex gap="2xs" align="center">
+          <InfoIcon>
+            <IconLink />
+          </InfoIcon>
+          <Text>
+            {props.projectId ? (
+              <InstallAppButton
+                projectId={props.projectId}
+                artifactId={props.artifactId}
+                platform={props.appInfo.platform ?? null}
+                source="build_details_sidebar"
+              />
+            ) : null}
+          </Text>
+        </Flex>
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">

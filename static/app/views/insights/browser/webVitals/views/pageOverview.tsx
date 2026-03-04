@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -236,9 +235,9 @@ const ChartContainer = styled('div')`
 `;
 
 const PageSamplePerformanceTableContainer = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;

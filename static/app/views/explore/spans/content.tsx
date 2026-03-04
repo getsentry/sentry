@@ -25,7 +25,6 @@ import {
   MAX_DAYS_FOR_CROSS_EVENTS,
   MAX_PERIOD_FOR_CROSS_EVENTS,
 } from 'sentry/views/explore/constants';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   useQueryParamsCrossEvents,
@@ -107,7 +106,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <ExploreTagsProvider>{children}</ExploreTagsProvider>
+      {children}
     </SpansTabTourProvider>
   );
 }
@@ -142,14 +141,6 @@ function SpansTabTourProvider({children}: SpansTabContextProps) {
 function SpansTabTourTrigger() {
   useExploreSpansTourModal();
   return null;
-}
-
-function ExploreTagsProvider({children}: SpansTabContextProps) {
-  return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-      {children}
-    </TraceItemAttributeProvider>
-  );
 }
 
 function SpansTabHeader() {

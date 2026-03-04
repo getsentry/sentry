@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
@@ -41,7 +41,7 @@ function OrganizationFeatureFlagsIndex() {
           <FieldGroup
             alignRight
             flexibleControlStateSize
-            label={<Large>{t('Evaluation Tracking')}</Large>}
+            label={<Text size="lg">{t('Evaluation Tracking')}</Text>}
             help={t(
               'Evaluation tracking enables Sentry to capture flag values on your error events. Flag evaluations will appear in the "Feature Flags" section of the Issue Details page.'
             )}
@@ -58,7 +58,7 @@ function OrganizationFeatureFlagsIndex() {
           <FieldGroup
             alignRight
             flexibleControlStateSize
-            label={<Large>{t('Change Tracking')}</Large>}
+            label={<Text size="lg">{t('Change Tracking')}</Text>}
             help={t(
               'Change tracking enables Sentry to listen for additions, removals, and modifications to your feature flags.'
             )}
@@ -82,7 +82,3 @@ export default function OrganizationFeatureFlagsIndexRoute() {
     </AnalyticsArea>
   );
 }
-
-const Large = styled('span')`
-  font-size: ${p => p.theme.font.size.lg};
-`;

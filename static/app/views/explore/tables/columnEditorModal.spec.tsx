@@ -117,6 +117,44 @@ describe('ColumnEditorModal', () => {
     expect(onColumnsChange).toHaveBeenCalledWith(['project']);
   });
 
+  it('handles duplicate columns without collapsing rows', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id', 'id', 'project']}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    let columns = screen.getAllByTestId('editor-column');
+    expect(columns).toHaveLength(3);
+    expect(columns[0]).toHaveTextContent('id');
+    expect(columns[1]).toHaveTextContent('id');
+    expect(columns[2]).toHaveTextContent('project');
+
+    await userEvent.click(screen.getAllByLabelText('Remove Column')[1]!);
+
+    columns = screen.getAllByTestId('editor-column');
+    expect(columns).toHaveLength(2);
+    expect(columns[0]).toHaveTextContent('id');
+    expect(columns[1]).toHaveTextContent('project');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith(['id', 'project']);
+  });
+
   it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 

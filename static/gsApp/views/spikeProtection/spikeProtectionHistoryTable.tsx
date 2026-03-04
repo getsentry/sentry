@@ -15,7 +15,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconSettings} from 'sentry/icons';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -279,7 +278,7 @@ const Title = styled('div')`
   display: flex;
   flex: 1;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const EmptySpikeHistory = styled(Panel)`
@@ -287,10 +286,10 @@ const EmptySpikeHistory = styled(Panel)`
   display: flex;
   flex-direction: column;
   text-align: center;
-  padding: ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl};
   b {
     font-size: ${p => p.theme.font.size.lg};
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
   p:last-child {
     margin: 0;

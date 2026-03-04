@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 export interface TimelineItemProps {
   title: React.ReactNode;
   children?: React.ReactNode;
@@ -85,8 +83,8 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   display: grid;
   align-items: start;
   grid-template: auto auto / 22px 1fr auto;
-  grid-column-gap: ${space(1)};
-  margin: ${space(1)} 0;
+  grid-column-gap: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.md} 0;
   &:first-child {
     margin-top: 0;
   }
@@ -106,7 +104,7 @@ const IconWrapper = styled('div')`
   z-index: 10;
   svg {
     display: block;
-    margin: ${space(0.5)};
+    margin: ${p => p.theme.space.xs};
   }
 `;
 
@@ -128,7 +126,7 @@ const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
   color: ${p => p.theme.tokens.content.secondary};
-  margin: ${space(0.25)} 0 0;
+  margin: ${p => p.theme.space['2xs']} 0 0;
   font-size: ${p => p.theme.font.size.sm};
   word-wrap: break-word;
 `;
@@ -142,10 +140,10 @@ const Text = styled('div')`
 `;
 
 const Data = styled('div')`
-  border-radius: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
-  margin: ${space(0.75)} 0 0 -${space(0.75)};
+  margin: ${p => p.theme.space.sm} 0 0 -${p => p.theme.space.sm};
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.secondary};

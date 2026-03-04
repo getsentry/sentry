@@ -8,7 +8,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -143,7 +142,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
             }
 
             if (!hasProjectId || !organizationId) {
-              if (error && error.status === 404) {
+              if (error?.status === 404) {
                 return (
                   <Alert.Container>
                     <Alert variant="danger" showIcon={false}>
@@ -176,5 +175,5 @@ export default redirectDeprecatedProjectRoute;
 
 const Wrapper = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;

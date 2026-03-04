@@ -7,7 +7,6 @@ import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import type {TagValueLoader} from 'sentry/views/issueList/types';
 
@@ -56,7 +55,7 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
 const FiltersWrapper = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);

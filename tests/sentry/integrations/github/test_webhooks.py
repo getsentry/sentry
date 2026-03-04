@@ -35,7 +35,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -1163,7 +1162,6 @@ class PullRequestEventWebhookTest(APITestCase):
         mock_assign_seat.delay.assert_called_once_with(contributor.id)
 
 
-@with_feature("organizations:integrations-github-project-management")
 class IssuesEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"

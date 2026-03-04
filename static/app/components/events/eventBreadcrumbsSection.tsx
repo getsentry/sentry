@@ -21,7 +21,6 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -163,7 +162,7 @@ const BreadcrumbsContainer = styled('div')`
 
 const ActionsWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   @container (max-width: 400px) {
@@ -188,6 +187,6 @@ const ScrollContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   text-align: center;
 `;

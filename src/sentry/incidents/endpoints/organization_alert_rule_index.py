@@ -82,6 +82,7 @@ from sentry.uptime.types import (
 )
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
@@ -828,6 +829,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             alert_count = alert_count.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
+                log_alerting_quota_hit(
+                    object_type="metric_alert",
+                    organization=organization,
+                    actor=request.user if request.user.is_authenticated else None,
+                )
                 raise ValidationError(
                     f"You may not exceed {alert_limit} metric alerts on your current plan."
                 )

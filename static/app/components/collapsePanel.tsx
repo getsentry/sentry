@@ -95,7 +95,7 @@ export default CollapsePanel;
 const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
@@ -114,5 +114,5 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
 `;
 
 const StyledIconList = styled(IconList)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;

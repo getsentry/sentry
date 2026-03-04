@@ -1,6 +1,7 @@
 version = 1
-# Managed skills are gitignored; collaborators must run 'dotagents install'.
 gitignore = true
+# Keeps all the skills up to date
+pin = false
 agents = ["claude", "cursor"]
 
 [trust]
@@ -9,3 +10,11 @@ allow_all = true
 [[skills]]
 name = "*"
 source = "getsentry/skills"
+
+[[skills]]
+name = "warden-sweep"
+source = "getsentry/warden"
+
+[[skills]]
+name = "warden"
+source = "getsentry/warden"

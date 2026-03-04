@@ -42,6 +42,7 @@ def call_endpoint(client, relay, private_key):
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
         "relay.sessions-eap.rollout-rate": 1.0,
+        "relay.objectstore-attachments.sample-rate": 1.0,
         "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",

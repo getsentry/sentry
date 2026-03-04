@@ -249,14 +249,14 @@ function AutofixHighlightPopupContent({
       const lastServerMessage = serverMessages[serverMessages.length - 1];
 
       // If the last server message is from the assistant, clear all pending messages
-      if (lastServerMessage && lastServerMessage.role === 'assistant') {
+      if (lastServerMessage?.role === 'assistant') {
         setPendingUserMessage(null);
         setShowLoadingAssistant(false);
       }
 
       // If the last server message is from the user, keep loading assistant state
       // but clear the pending user message
-      if (lastServerMessage && lastServerMessage.role === 'user') {
+      if (lastServerMessage?.role === 'user') {
         setPendingUserMessage(null);
         setShowLoadingAssistant(true);
       }

@@ -227,7 +227,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get uniqueErrorIssues(): TraceTree.TraceErrorIssue[] {
     const unique: TraceTree.TraceErrorIssue[] = [];
-    const seenIssues: Set<number> = new Set();
+    const seenIssues = new Set<number>();
 
     for (const error of this.errors) {
       if (seenIssues.has(error.issue_id)) {
@@ -242,7 +242,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get uniqueOccurrenceIssues(): TraceTree.TraceOccurrence[] {
     const unique: TraceTree.TraceOccurrence[] = [];
-    const seenIssues: Set<number> = new Set();
+    const seenIssues = new Set<number>();
 
     for (const issue of this.occurrences) {
       if (seenIssues.has(issue.issue_id)) {

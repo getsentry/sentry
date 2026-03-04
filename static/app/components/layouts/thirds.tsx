@@ -40,7 +40,7 @@ export const Header = styled('header')<{
   grid-template-columns: ${p =>
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.primary};
 
   ${p =>
@@ -50,7 +50,8 @@ export const Header = styled('header')<{
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)} ${space(4)} 0 ${space(4)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']} 0
+      ${p => p.theme.space['3xl']};
     grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
@@ -63,7 +64,7 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   max-width: 100%;
 
   ${p =>
@@ -82,11 +83,17 @@ export const HeaderActions = styled('div')`
   flex-direction: column;
   justify-content: normal;
   min-width: max-content;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: max-content;
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
   }
 `;
 
@@ -111,7 +118,7 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
   line-height: 40px;
 
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -126,7 +133,7 @@ export const HeaderTabs = styled(Tabs)`
  * Base container for 66/33 containers.
  */
 export const Body = styled('div')<{noRowGap?: boolean}>`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
   background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
