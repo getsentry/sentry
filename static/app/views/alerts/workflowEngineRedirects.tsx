@@ -1,3 +1,6 @@
+import type {Query} from 'history';
+import * as qs from 'query-string';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -32,6 +35,21 @@ interface IncidentGroupOpenPeriod {
   incidentId: string | null;
   incidentIdentifier: string;
   openPeriodId: string;
+}
+
+function getIssueDetailsPath({
+  orgSlug,
+  groupId,
+  query,
+}: {
+  groupId: string;
+  orgSlug: string;
+  query: Query;
+}) {
+  const search = qs.stringify(query);
+  const pathname = `/organizations/${orgSlug}/issues/${groupId}/`;
+
+  return search ? `${pathname}?${search}` : pathname;
 }
 
 /**
@@ -233,6 +251,7 @@ function RedirectToIssue({
   children: React.ReactNode;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
 
   const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
     useApiQuery<IncidentGroupOpenPeriod>(
@@ -256,7 +275,11 @@ function RedirectToIssue({
   if (incidentGroupOpenPeriod) {
     return (
       <Redirect
-        to={`/organizations/${organization.slug}/issues/${incidentGroupOpenPeriod.groupId}/`}
+        to={getIssueDetailsPath({
+          orgSlug: organization.slug,
+          groupId: incidentGroupOpenPeriod.groupId,
+          query: location.query,
+        })}
       />
     );
   }
@@ -348,6 +371,7 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
 ) {
   return function OpenPeriodRedirectWrapper(props: P) {
     const organization = useOrganization();
+    const location = useLocation();
     const {alertId} = useParams();
 
     const hasRedirectOptOut = organization.features.includes(
@@ -378,7 +402,11 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
       if (incidentGroupOpenPeriod) {
         return (
           <Redirect
-            to={`/organizations/${organization.slug}/issues/${incidentGroupOpenPeriod.groupId}/`}
+            to={getIssueDetailsPath({
+              orgSlug: organization.slug,
+              groupId: incidentGroupOpenPeriod.groupId,
+              query: location.query,
+            })}
           />
         );
       }
