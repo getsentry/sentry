@@ -293,7 +293,7 @@ const ResizableVerticalDrawer = styled('div')`
 
 const InvisibleHandler = styled('div')`
   opacity: 0;
-  width: ${space(1)};
+  width: ${p => p.theme.space.md};
   position: absolute;
   inset: 0;
   cursor: ew-resize;
@@ -308,7 +308,7 @@ const FrameDrawerLabel = styled('label')`
   margin-bottom: 0;
   height: 100%;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out
@@ -342,7 +342,7 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
@@ -350,7 +350,7 @@ const Separator = styled('li')`
 const ProfilingDetailsFrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
   background-color: ${props => props.theme.tokens.background.tertiary};
@@ -376,7 +376,7 @@ const ProfilingDetailsListItem = styled('li')<{
     border-radius: 0;
     font-weight: ${p => p.theme.font.weight.sans.regular};
     margin: 0;
-    padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
+    padding: ${p => (p.size === 'sm' ? p.theme.space['2xs'] : p.theme.space.xs)} 0;
     color: ${p => p.theme.tokens.content.primary};
     max-height: ${p => (p.size === 'sm' ? '24px' : undefined)};
 
@@ -403,7 +403,7 @@ const ProfilingDetailsListItem = styled('li')<{
 `;
 
 const StyledButton = styled('button')<{active: boolean}>`
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
   opacity: ${p => (p.active ? 0.7 : 0.5)};
   background-color: transparent;
 
