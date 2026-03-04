@@ -1271,11 +1271,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     )
                     if revoked_platforms:
                         from sentry.tasks.console_platform_cleanup import (
-                            remove_revoked_console_platform_sources,
+                            remove_inaccessible_console_platform_sources,
                         )
 
-                        remove_revoked_console_platform_sources.delay(
-                            organization.id, list(revoked_platforms)
+                        remove_inaccessible_console_platform_sources.delay(
+                            organization.id, current_console_platforms
                         )
 
                     del changed_data["enabledConsolePlatforms"]
