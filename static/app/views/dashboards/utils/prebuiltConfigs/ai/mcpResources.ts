@@ -86,15 +86,15 @@ const RESOURCES_TABLE = {
       fields: [
         SpanFields.MCP_RESOURCE_URI,
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -102,8 +102,8 @@ const RESOURCES_TABLE = {
       fieldAliases: [
         t('Resource URI'),
         t('Requests'),
-        t('Errors'),
         t('Error Rate'),
+        t('Errors'),
         t('Avg'),
         t('P95'),
       ],
