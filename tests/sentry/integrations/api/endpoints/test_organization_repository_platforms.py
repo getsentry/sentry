@@ -66,10 +66,24 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                 self.organization.slug, self.repo.id, status_code=200
             )
 
-        platforms = response.data["platforms"]
-        platform_ids = [p["platform"] for p in platforms]
-        assert "python" in platform_ids
-        assert "javascript" in platform_ids
+        assert response.data == {
+            "platforms": [
+                {
+                    "platform": "python",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "medium",
+                    "priority": 1,
+                },
+                {
+                    "platform": "javascript",
+                    "language": "JavaScript",
+                    "bytes": 30000,
+                    "confidence": "medium",
+                    "priority": 1,
+                },
+            ]
+        }
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -101,13 +115,31 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                 self.organization.slug, self.repo.id, status_code=200
             )
 
-        platforms = response.data["platforms"]
-        platform_ids = [p["platform"] for p in platforms]
-        assert "python-django" in platform_ids
-        assert "python-celery" in platform_ids
-
-        django = next(p for p in platforms if p["platform"] == "python-django")
-        assert django["confidence"] == "high"
+        assert response.data == {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 90,
+                },
+                {
+                    "platform": "python-celery",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 40,
+                },
+                {
+                    "platform": "python",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "medium",
+                    "priority": 1,
+                },
+            ]
+        }
 
     def test_repo_not_found(self) -> None:
         with self.feature(FEATURE_FLAG):
