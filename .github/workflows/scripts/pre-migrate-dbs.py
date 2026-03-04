@@ -54,15 +54,23 @@ def _create_db(name: str, host: str, port: str, user: str, template: str | None 
 
 def _run_migrations(pg_host: str, pg_port: str) -> float:
     os.environ["SENTRY_SKIP_SERVICE_VALIDATION"] = "1"
+    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry.conf.server"
 
-    from sentry.runner import configure
+    # Prevent initialize_app() from running during django.setup().
+    # initialize_app() makes ORM queries that fail on an empty database
+    # (e.g. SELECT ... FROM sentry_monitor with columns that don't exist yet).
+    # We only need Django's model registry for migrations, not app init.
+    import sentry.runner.initializer
 
-    configure()
+    sentry.runner.initializer.initialize_app = lambda conf, **kw: None
+
+    import django
+
+    django.setup()
 
     from django.conf import settings
     from django.core.management import call_command
 
-    # Override DB names to point to the template test databases
     settings.DATABASES["default"]["NAME"] = DATABASES["default"]
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
     settings.DATABASES["control"]["NAME"] = DATABASES["control"]
