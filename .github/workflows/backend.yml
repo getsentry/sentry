@@ -212,8 +212,8 @@ jobs:
         id: static-shards
         if: needs.prepare-selective-tests.outputs.has-selected-tests != 'true'
         run: |
-          echo "shard-count=15" >> "$GITHUB_OUTPUT"
-          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]" >> "$GITHUB_OUTPUT"
+          echo "shard-count=16" >> "$GITHUB_OUTPUT"
+          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
@@ -329,9 +329,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6]
+        instance: [0, 1, 2, 3, 4, 5]
     env:
-      MATRIX_INSTANCE_TOTAL: 7
+      MATRIX_INSTANCE_TOTAL: 6
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       SENTRY_SKIP_SELENIUM_PLUGIN: '1'
