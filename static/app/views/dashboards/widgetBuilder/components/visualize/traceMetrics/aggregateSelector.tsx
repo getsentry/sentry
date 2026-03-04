@@ -14,7 +14,7 @@ import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/comp
 import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {buildTraceMetricField} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricField';
+import {buildTraceMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -69,7 +69,7 @@ export function AggregateSelector({
       onChange={option => {
         if (field.kind === 'function') {
           const newAggregates = cloneDeep(aggregateSource) ?? [];
-          newAggregates[index] = buildTraceMetricField(
+          newAggregates[index] = buildTraceMetricAggregate(
             option.value as AggregationKeyWithAlias,
             traceMetric
           );

@@ -41,7 +41,7 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import {buildTraceMetricField} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricField';
+import {buildTraceMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -951,14 +951,14 @@ function useWidgetBuilderState(): {
 
                   if (!isValid) {
                     // Replace with first valid aggregate
-                    return buildTraceMetricField(
+                    return buildTraceMetricAggregate(
                       validAggregateOptions[0]!.value as AggregationKeyWithAlias,
                       newTraceMetric
                     );
                   }
 
                   // Valid aggregate — update args with new trace metric info
-                  return buildTraceMetricField(aggregate, newTraceMetric);
+                  return buildTraceMetricAggregate(aggregate, newTraceMetric);
                 }
                 return field;
               });
