@@ -16,6 +16,7 @@ from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.locking import UnableToAcquireLock
 
 
 @region_silo_test
@@ -228,3 +229,25 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         pr_comments = artifact.extras["posted_pr_comments"]["build_distribution"]
         assert pr_comments["success"] is False
         assert pr_comments["error_type"] == "api_error"
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.create_preprod_pr_comment_task.apply_async")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.locks")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    def test_retries_when_lock_unavailable(self, mock_get_client, mock_locks, mock_apply_async):
+        mock_get_client.return_value = Mock()
+        mock_lock = Mock()
+        mock_lock.acquire.side_effect = UnableToAcquireLock()
+        mock_locks.get.return_value = mock_lock
+
+        artifact = self._create_artifact()
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_apply_async.assert_called_once_with(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "retry_after_lock",
+            },
+            countdown=5,
+        )
