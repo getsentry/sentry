@@ -13,6 +13,7 @@ class TestEnvRegionDirectory(RegionDirectory):
 
     def __init__(self, regions: Collection[Region]) -> None:
         super().__init__(regions, frozenset())
+        self._default_region = next(iter(regions))
         self._apply_regions(regions)
 
     def _apply_regions(self, regions: Collection[Region]) -> None:
@@ -33,6 +34,7 @@ class TestEnvRegionDirectory(RegionDirectory):
         local_region: Region | None = None,
     ) -> Generator[None]:
         prev_state = (
+            self._default_region,
             self._cells,
             self._by_name,
             self._localities,
@@ -40,6 +42,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             self._cell_to_locality,
         )
         try:
+            self._default_region = local_region or regions[0]
             self._apply_regions(regions)
             monolith_region = regions[0]
             with override_settings(SENTRY_MONOLITH_REGION=monolith_region.name):
@@ -50,6 +53,7 @@ class TestEnvRegionDirectory(RegionDirectory):
                     yield
         finally:
             (
+                self._default_region,
                 self._cells,
                 self._by_name,
                 self._localities,
@@ -59,9 +63,8 @@ class TestEnvRegionDirectory(RegionDirectory):
 
     @contextmanager
     def swap_to_default_region(self) -> Generator[None]:
-        """Swap to an arbitrary region when entering region mode."""
-        region = next(iter(self._cells))
-        with override_settings(SENTRY_REGION=region.name):
+        """Swap to the monolith region when entering region mode."""
+        with override_settings(SENTRY_REGION=self._default_region.name):
             yield
 
     @contextmanager
