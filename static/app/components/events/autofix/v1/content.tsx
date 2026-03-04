@@ -50,18 +50,18 @@ export function SeerDrawerContent({
       )}
       {aiConfig.hasAutofix && (
         <Fragment>
-          {aiAutofix.autofixData ? (
+          {aiAutofix.isPending ? (
+            <Flex direction="column" gap="xl" marginTop="xl">
+              <Placeholder height="15rem" />
+              <Placeholder height="15rem" />
+            </Flex>
+          ) : aiAutofix.autofixData ? (
             <AutofixSteps
               data={aiAutofix.autofixData}
               groupId={group.id}
               runId={aiAutofix.autofixData.run_id}
               event={event}
             />
-          ) : aiAutofix.isPending ? (
-            <Flex direction="column" gap="xl">
-              <Placeholder height="15rem" />
-              <Placeholder height="15rem" />
-            </Flex>
           ) : (
             <AutofixStartBox onSend={aiAutofix.triggerAutofix} groupId={group.id} />
           )}
