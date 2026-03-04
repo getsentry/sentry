@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from django.conf import settings
+from django.db import router, transaction
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
@@ -39,7 +40,12 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
-from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    BulkWorkflowDetectorsValidator,
+)
+from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -775,6 +781,37 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            # TODO: convert request.data to format expected by WorkflowValidator
+            request_data = request.data
+
+            validator = WorkflowValidator(
+                data=request_data,
+                context={"organization": project.organization, "request": request},
+            )
+            validator.is_valid(raise_exception=True)
+
+            with transaction.atomic(router.db_for_write(Workflow)):
+                workflow = validator.create(validator.validated_data)
+                # XXX: fetch issue stream detector (or leave unconnected?)
+                issue_stream_detector = Detector.objects.filter(
+                    project=project, type=IssueStreamGroupType.slug
+                ).first()
+                if issue_stream_detector:
+                    bulk_validator = BulkWorkflowDetectorsValidator(
+                        data={
+                            "workflow_id": workflow.id,
+                            "detector_ids": [issue_stream_detector.id],
+                        },
+                        context={"organization": project.organization, "request": request},
+                    )
+                    bulk_validator.is_valid(raise_exception=True)
+                    bulk_validator.save()
+
+            return Response(
+                serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                status=200,
+            )
 
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization, "request": request},

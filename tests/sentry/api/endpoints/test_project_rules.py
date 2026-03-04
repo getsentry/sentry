@@ -1230,3 +1230,13 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         clean_rule = Rule.objects.get(id=response.data.get("id"))
         assert not clean_rule.data.get("comparisonInterval")
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine(self) -> None:
+        payload = {}
+        # TODO: construct a valid issue alert rule payload
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **payload,
+        )
