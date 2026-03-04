@@ -12,7 +12,6 @@ import type {
   FetchEmbeddedChildrenState,
   FilterSpans,
   OrphanTreeDepth,
-  RawSpanType,
   SpanChildrenLookupType,
   SpanType,
   TraceBound,
@@ -53,7 +52,7 @@ class SpanTreeModel {
   isNestedSpanGroupExpanded = false;
   // Entries in this set will follow the format 'op.description'.
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
-  expandedSiblingGroups: Set<string> = new Set();
+  expandedSiblingGroups = new Set<string>();
 
   traceInfo: TraceInfo | undefined = undefined;
 
@@ -69,7 +68,7 @@ class SpanTreeModel {
     this.isRoot = isRoot;
     this.traceInfo = traceInfo;
     const spanID = getSpanID(parentSpan);
-    const spanChildren: RawSpanType[] = childSpans?.[spanID] ?? [];
+    const spanChildren = childSpans?.[spanID] ?? [];
 
     // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
     // For example if a span has a span_id that's identical to its parent_span_id.

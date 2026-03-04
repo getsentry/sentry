@@ -118,8 +118,25 @@ function useOverflowTabs({
       element => element && observer.observe(element)
     );
 
+    // When tabs are hidden via `display: none`, IntersectionObserver can no
+    // longer detect them. If the container grows, those tabs would remain
+    // permanently hidden. Resetting overflow state when the container grows
+    // removes `display: none`, allowing the IO to re-evaluate all tabs.
+    let previousWidth = tabListRef.current?.getBoundingClientRect().width ?? 0;
+    const resizeObserver = new ResizeObserver(entries => {
+      const newWidth = entries[0]?.contentRect.width ?? 0;
+      if (newWidth > previousWidth) {
+        setOverflowTabs([]);
+      }
+      previousWidth = newWidth;
+    });
+    if (tabListRef.current) {
+      resizeObserver.observe(tabListRef.current);
+    }
+
     return () => {
       observer.disconnect();
+      resizeObserver.disconnect();
       setOverflowTabs([]);
     };
   }, [tabListRef, tabItemsRef, disabled, theme]);

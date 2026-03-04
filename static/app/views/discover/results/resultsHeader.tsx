@@ -10,7 +10,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -214,7 +213,7 @@ const Subtitle = styled('h4')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  margin: ${space(0.5)} 0 0 0;
+  margin: ${p => p.theme.space.xs} 0 0 0;
 `;
 
 export default withApi(ResultsHeader);

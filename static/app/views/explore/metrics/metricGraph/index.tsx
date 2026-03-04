@@ -126,7 +126,7 @@ function Graph({
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
-    aggregate: `count(value,${traceMetric.name},${traceMetric.type},-)`,
+    aggregate: `count(value,${traceMetric.name},${traceMetric.type},${traceMetric.unit ?? '-'})`,
     enabled: Boolean(traceMetric.name),
   });
 

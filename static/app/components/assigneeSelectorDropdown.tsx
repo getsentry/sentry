@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
+  MenuComponents,
   type SelectOption,
   type SelectOptionOrSection,
 } from '@sentry/scraps/compactSelect';
@@ -24,7 +24,6 @@ import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -533,28 +532,10 @@ export default function AssigneeSelectorDropdown({
     );
   };
 
-  const footerInviteButton = (
-    <Flex align="center" gap="md">
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd />}
-      >
-        {t('Invite Member')}
-      </Button>
-      {additionalMenuFooterItems}
-    </Flex>
-  );
-
   return (
     <AssigneeWrapper>
       <CompactSelect
-        searchable
+        search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
         menuWidth={275}
@@ -566,12 +547,25 @@ export default function AssigneeSelectorDropdown({
             : ''
         }
         menuTitle={t('Assignee')}
-        searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={footerInviteButton}
+        menuFooter={
+          <Flex gap="md">
+            <MenuComponents.CTAButton
+              disabled={loading}
+              onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                event.preventDefault();
+                openInviteMembersModal({source: 'assignee_selector'});
+              }}
+              icon={<IconAdd />}
+            >
+              {t('Invite Member')}
+            </MenuComponents.CTAButton>
+            {additionalMenuFooterItems}
+          </Flex>
+        }
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"
@@ -588,8 +582,8 @@ const AssigneeWrapper = styled('div')`
 
 const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
-  padding-left: ${space(0.5)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
+  padding-right: ${p => p.theme.space.xs};
 `;
 
 const StyledIconUser = styled(IconUser)`

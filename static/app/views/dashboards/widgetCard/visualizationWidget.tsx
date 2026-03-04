@@ -36,6 +36,7 @@ import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/setti
 import type {
   TabularColumn,
   TimeSeries,
+  TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
@@ -46,10 +47,12 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
@@ -63,6 +66,7 @@ interface VisualizationWidgetProps {
     tableResults?: any[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
   }) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
@@ -167,8 +171,10 @@ function VisualizationWidgetContent({
   const firstWidgetQuery = widget.queries[0];
   const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
+  const fields = firstWidgetQuery?.fields ?? [...columns, ...aggregates];
+  const fieldAliases = firstWidgetQuery?.fieldAliases ?? [];
 
-  const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
+  const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
       const seriesName = series.seriesName ?? aggregates[0] ?? '';
       const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
@@ -177,7 +183,8 @@ function VisualizationWidgetContent({
         aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
         aggregates[0];
 
-      const alias =
+      // This is the query name for the series, aka the legend alias from the UI
+      const queryName =
         widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
         undefined;
 
@@ -187,14 +194,21 @@ function VisualizationWidgetContent({
         timeseriesResultsUnits,
         columns,
         yAxis,
-        alias
+        queryName
       );
 
       if (!timeSeries) {
         return null;
       }
 
-      const labelParts = [alias, formatTimeSeriesLabel(timeSeries)];
+      const fieldIndex = yAxis === undefined ? -1 : fields.indexOf(yAxis);
+      // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
+      const fieldAlias =
+        aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0
+          ? fieldAliases[fieldIndex]
+          : undefined;
+
+      const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
       // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
       if (aggregates.length > 1 && columns.length > 1) {
         labelParts.push(timeSeries.yAxis);
@@ -203,7 +217,8 @@ function VisualizationWidgetContent({
         timeSeries,
         widget,
         labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
-        seriesName
+        seriesName,
+        timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
       );
       if (!plottable) {
         return null;
@@ -273,7 +288,13 @@ function VisualizationWidgetContent({
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;
 
-        let labelContent = <Text>{label}</Text>;
+        const labelDisplay = renderBreakdownLabel(
+          firstColumn,
+          firstColumnGroupByValue,
+          label
+        );
+
+        let labelContent = <Text>{labelDisplay}</Text>;
 
         // TODO: to simplify things, we only support one widget query for explore urls right now
         // Otherwise we have to map the correct widget query to the timeseries result
@@ -297,7 +318,7 @@ function VisualizationWidgetContent({
               widget.widgetType
             ),
           });
-          labelContent = <Link to={exploreUrl}>{label}</Link>;
+          labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
         }
 
         if (
@@ -316,7 +337,7 @@ function VisualizationWidgetContent({
             locationQuery: location.query,
           });
           if (linkedDashbordUrl) {
-            labelContent = <Link to={linkedDashbordUrl}>{label}</Link>;
+            labelContent = <Link to={linkedDashbordUrl}>{labelDisplay}</Link>;
           }
         }
 
@@ -392,6 +413,7 @@ function VisualizationWidgetContent({
             releases={releases}
             showReleaseAs={showReleaseAs}
             showLegend="never"
+            axisRange={widget.axisRange}
           />
         </Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
@@ -409,7 +431,28 @@ function VisualizationWidgetContent({
         plottables={plottables}
         releases={releases}
         showReleaseAs={showReleaseAs}
+        axisRange={widget.axisRange}
       />
     </Container>
   );
+}
+
+/**
+ * Returns a custom label element for breakdown legend rows that need special rendering
+ * (e.g., model icons for AI model fields), or falls back to the plain text label.
+ */
+function renderBreakdownLabel(
+  column?: string,
+  groupByValue?: TimeSeriesGroupBy['value'],
+  fallbackLabel?: string
+): React.ReactNode {
+  if (
+    typeof groupByValue === 'string' &&
+    (column === SpanFields.GEN_AI_REQUEST_MODEL ||
+      column === SpanFields.GEN_AI_RESPONSE_MODEL)
+  ) {
+    return <ModelName modelId={groupByValue} size={14} />;
+  }
+
+  return fallbackLabel;
 }

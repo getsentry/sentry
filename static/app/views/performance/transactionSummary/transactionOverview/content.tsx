@@ -270,6 +270,7 @@ function EAPSummaryContentInner({
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
+            query={query}
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>

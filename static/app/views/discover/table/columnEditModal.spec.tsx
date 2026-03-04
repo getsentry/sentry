@@ -97,7 +97,7 @@ describe('Discover -> ColumnEditModal', () => {
   });
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'dashboards-mep'],
+      features: ['performance-view'],
     },
   });
   const columns: QueryFieldValue[] = [

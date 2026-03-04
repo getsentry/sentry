@@ -22,7 +22,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-chart',

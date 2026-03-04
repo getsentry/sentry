@@ -14,7 +14,6 @@ import {
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -176,7 +175,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const TimelineTitle = styled(Text)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   grid-column: 1;
   line-height: 1.2;
   font-weight: bold;

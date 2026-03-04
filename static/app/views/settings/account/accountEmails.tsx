@@ -21,7 +21,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserEmail} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -84,29 +83,27 @@ function AccountEmails() {
       <SettingsPageHeader title={t('Email Addresses')} />
       <EmailAddresses />
       <FormSearch route="/settings/account/emails/">
-        <form.AppForm>
-          <form.FormWrapper>
-            <form.FieldGroup title={t('Add Secondary Emails')}>
-              <form.AppField name="email">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Additional Email')}
-                    hintText={t('Designate an alternative email for this account')}
-                  >
-                    <field.Input
-                      type="email"
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder={t('e.g. secondary@example.com')}
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
-            </form.FieldGroup>
-            <Flex justify="end">
-              <form.SubmitButton>{t('Add email')}</form.SubmitButton>
-            </Flex>
-          </form.FormWrapper>
+        <form.AppForm form={form}>
+          <form.FieldGroup title={t('Add Secondary Emails')}>
+            <form.AppField name="email">
+              {field => (
+                <field.Layout.Row
+                  label={t('Additional Email')}
+                  hintText={t('Designate an alternative email for this account')}
+                >
+                  <field.Input
+                    type="email"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('e.g. secondary@example.com')}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          </form.FieldGroup>
+          <Flex justify="end">
+            <form.SubmitButton>{t('Add email')}</form.SubmitButton>
+          </Flex>
         </form.AppForm>
       </FormSearch>
 
@@ -277,7 +274,7 @@ function EmailRow({
 const EmailTags = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

@@ -1,7 +1,6 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -31,7 +30,7 @@ const Panel = styled(
         : p.dashedBorder
           ? 'dashed' + p.theme.colors.gray400
           : 'solid ' + p.theme.tokens.border.primary};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   position: relative;
 `;
 

@@ -14,7 +14,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -119,7 +118,11 @@ function SingleReleaseSelector({
       )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
-      searchable
+      search={{
+        onChange: debounce(val => {
+          setSearchTerm(val);
+        }, DEFAULT_DEBOUNCE_DURATION),
+      }}
       value={selectorValue || ''}
       options={[
         {
@@ -142,9 +145,6 @@ function SingleReleaseSelector({
             selectorValue && selectorValue !== '' ? options.slice(2) : options.slice(1),
         },
       ]}
-      onSearch={debounce(val => {
-        setSearchTerm(val);
-      }, DEFAULT_DEBOUNCE_DURATION)}
       onChange={onChange}
       onClose={() => {
         setSearchTerm(undefined);
@@ -312,7 +312,7 @@ const StyledPageSelector = styled(PageFilterBar)`
     &:last-child {
       min-width: auto;
       > button[aria-haspopup] {
-        padding-right: ${space(1.5)};
+        padding-right: ${p => p.theme.space.lg};
       }
     }
   }

@@ -2,20 +2,21 @@ from __future__ import annotations
 
 import logging
 
-import orjson
-import requests
-from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    LlmGenerateRequest,
+    SeerViewerContext,
+    make_llm_generate_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,31 +34,23 @@ class IssueViewTitleGeneratePermission(OrganizationPermission):
     }
 
 
-def generate_title_from_query(query: str) -> str | None:
+def generate_title_from_query(
+    query: str, viewer_context: SeerViewerContext | None = None
+) -> str | None:
     truncated_query = query[:MAX_QUERY_LENGTH] if len(query) > MAX_QUERY_LENGTH else query
 
-    body = orjson.dumps(
-        {
-            "provider": "gemini",
-            "model": "flash",
-            "referrer": "sentry.issue-views.title-generate",
-            "prompt": f"Generate a title for this Sentry issue search query: {truncated_query}",
-            "system_prompt": SYSTEM_PROMPT,
-            "temperature": 0.3,
-            "max_tokens": 50,
-        }
+    body = LlmGenerateRequest(
+        provider="gemini",
+        model="flash",
+        referrer="sentry.issue-views.title-generate",
+        prompt=f"Generate a title for this Sentry issue search query: {truncated_query}",
+        system_prompt=SYSTEM_PROMPT,
+        temperature=0.3,
+        max_tokens=50,
     )
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/llm/generate",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-        timeout=10,
-    )
-    response.raise_for_status()
+    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     data = response.json()
     return data.get("content")
 
@@ -84,23 +77,18 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if not features.has(
-            "organizations:issue-view-ai-title", organization=organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "Organization does not have access to this feature"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         try:
-            title = generate_title_from_query(query)
+            viewer_context = SeerViewerContext(
+                organization_id=organization.id, user_id=request.user.id
+            )
+            title = generate_title_from_query(query, viewer_context=viewer_context)
             if not title:
                 return Response(
                     {"detail": "Failed to generate title"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             return Response({"title": title.strip()})
-        except requests.RequestException:
+        except Exception:
             logger.exception("Failed to call Seer LLM proxy")
             return Response(
                 {"detail": "Failed to generate title"},

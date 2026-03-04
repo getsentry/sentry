@@ -208,6 +208,9 @@ class ArithmeticVisitor(NodeVisitor):
         "avg_if",
         "division_if",
         "failure_rate_if",
+        # Mobile vitals uses these functions
+        "ttid_contribution_rate",
+        "ttfd_contribution_rate",
     }
 
     def __init__(self, max_operators: int | None, custom_measurements: set[str] | None):

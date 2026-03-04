@@ -3,8 +3,11 @@ import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -163,15 +166,13 @@ function AddMemberDropdown({
                 memberId: selection.value,
               })
       }
-      menuHeaderTrailingItems={
-        <Button
-          size="zero"
-          priority="link"
+      menuFooter={
+        <MenuComponents.CTAButton
           onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
-        </Button>
+        </MenuComponents.CTAButton>
       }
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
@@ -179,15 +180,16 @@ function AddMemberDropdown({
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>{t('Add Member')}</OverlayTrigger.Button>
       )}
-      searchPlaceholder={t('Search Members')}
+      search={{
+        placeholder: t('Search Members'),
+        filter: false,
+        /**
+         * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+         */
+        onChange: setMemberQuery,
+      }}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}
-      searchable
-      disableSearchFilter
-      /**
-       * We perform an API request to support orgs with > 100 members (since that's the max API returns)
-       */
-      onSearch={setMemberQuery}
     />
   );
 }

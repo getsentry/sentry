@@ -405,6 +405,33 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByText(/budget change/)).not.toBeInTheDocument();
   });
 
+  it('renders size analysis reserved changes with correct display name', () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business'),
+        plan: 'am3_business',
+        planName: 'Business',
+        reserved: {
+          sizeAnalyses: 100,
+        },
+      }),
+    });
+    sub.categories = {
+      ...sub.categories,
+      sizeAnalyses: MetricHistoryFixture({
+        category: 'sizeAnalyses' as any,
+        reserved: 50,
+      }),
+    };
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(
+      screen.getByText('Reserved size analysis builds change to 100')
+    ).toBeInTheDocument();
+  });
+
   it('renders reserved budgets with existing budgets without dynamic sampling', () => {
     const sub = Am3DsEnterpriseSubscriptionFixture({
       organization,

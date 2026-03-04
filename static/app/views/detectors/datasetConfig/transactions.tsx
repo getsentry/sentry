@@ -87,7 +87,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
 
       const hasMetricDataset =
         hasOnDemandMetricAlertFeature(options.organization) ||
-        options.organization.features.includes('mep-rollout-flag') ||
         options.organization.features.includes('dashboards-metrics-transition');
       const isOnDemandQuery =
         options.dataset === Dataset.GENERIC_METRICS &&

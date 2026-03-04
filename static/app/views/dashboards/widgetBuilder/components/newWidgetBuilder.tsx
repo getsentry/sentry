@@ -18,10 +18,8 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {
   DisplayType,
-  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
   type Widget,
@@ -46,10 +44,6 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -67,47 +61,6 @@ type WidgetBuilderV2Props = {
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
-
-function TraceItemAttributeProviderFromDataset({children}: {children: React.ReactNode}) {
-  const {state} = useWidgetBuilderContext();
-  const organization = useOrganization();
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
-
-  let enabled = false;
-  let traceItemType = TraceItemDataset.SPANS;
-  let query = undefined;
-
-  if (state.dataset === WidgetType.SPANS) {
-    enabled = organization.features.includes('visibility-explore-view');
-    traceItemType = TraceItemDataset.SPANS;
-  }
-
-  if (state.dataset === WidgetType.LOGS) {
-    enabled = isLogsEnabled(organization);
-    traceItemType = TraceItemDataset.LOGS;
-  }
-
-  if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
-    enabled = hasTraceMetricsDashboards;
-    traceItemType = TraceItemDataset.TRACEMETRICS;
-    query = createTraceMetricFilter(state.traceMetric);
-  }
-
-  if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-    enabled = organization.features.includes('preprod-app-size-dashboard');
-    traceItemType = TraceItemDataset.PREPROD;
-  }
-
-  return (
-    <TraceItemAttributeProvider
-      traceItemType={traceItemType}
-      enabled={enabled}
-      query={query}
-    >
-      {children}
-    </TraceItemAttributeProvider>
-  );
-}
 
 function WidgetBuilderV2({
   isOpen,
@@ -167,6 +120,8 @@ function WidgetBuilderV2({
     } else if (results.timeseriesResultsTypes) {
       const keys = Object.keys(results.timeseriesResultsTypes);
       dataType = results.timeseriesResultsTypes[keys[0]!];
+      const rawUnit = results.timeseriesResultsUnits?.[keys[0]!];
+      dataUnit = rawUnit ?? undefined;
     }
 
     setThresholdMetaState({dataType, dataUnit});
@@ -193,65 +148,63 @@ function WidgetBuilderV2({
           <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
           <WidgetBuilderProvider>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <TraceItemAttributeProviderFromDataset>
-                <ContainerWithoutSidebar
-                  style={
-                    hasValidNav
-                      ? isMediumScreen
-                        ? {
-                            left: 0,
-                            top: `${dimensions.height ?? 0}px`,
-                            willChange: 'top',
-                          }
-                        : {
-                            left: `${dimensions.width ?? 0}px`,
-                            top: 0,
-                            willChange: 'left',
-                          }
-                      : undefined
-                  }
-                >
-                  <WidgetBuilderContainer>
-                    <SlideoutContainer>
-                      <WidgetBuilderSlideout
-                        onClose={() => {
-                          onClose();
-                          setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                        }}
-                        onSave={onSave}
-                        onQueryConditionChange={setQueryConditionsValid}
-                        dashboard={dashboard}
-                        dashboardFilters={dashboardFilters}
-                        setIsPreviewDraggable={setIsPreviewDraggable}
-                        isWidgetInvalid={!queryConditionsValid}
-                        openWidgetTemplates={openWidgetTemplates}
-                        setOpenWidgetTemplates={setOpenWidgetTemplates}
-                        onDataFetched={handleWidgetDataFetched}
-                        thresholdMetaState={thresholdMetaState}
-                      />
-                    </SlideoutContainer>
-                    {(!isSmallScreen || isPreviewDraggable) && (
-                      <DndContext
-                        onDragEnd={handleDragEnd}
-                        onDragMove={handleDragMove}
-                        collisionDetection={closestCorners}
-                      >
-                        <Flex justify="center" align="center" width="100%" height="100%">
-                          <WidgetPreviewContainer
-                            dashboardFilters={dashboardFilters}
-                            dashboard={dashboard}
-                            dragPosition={translate}
-                            isDraggable={isPreviewDraggable}
-                            isWidgetInvalid={!queryConditionsValid}
-                            onDataFetched={handleWidgetDataFetched}
-                            openWidgetTemplates={openWidgetTemplates}
-                          />
-                        </Flex>
-                      </DndContext>
-                    )}
-                  </WidgetBuilderContainer>
-                </ContainerWithoutSidebar>
-              </TraceItemAttributeProviderFromDataset>
+              <ContainerWithoutSidebar
+                style={
+                  hasValidNav
+                    ? isMediumScreen
+                      ? {
+                          left: 0,
+                          top: `${dimensions.height ?? 0}px`,
+                          willChange: 'top',
+                        }
+                      : {
+                          left: `${dimensions.width ?? 0}px`,
+                          top: 0,
+                          willChange: 'left',
+                        }
+                    : undefined
+                }
+              >
+                <WidgetBuilderContainer>
+                  <SlideoutContainer>
+                    <WidgetBuilderSlideout
+                      onClose={() => {
+                        onClose();
+                        setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                      }}
+                      onSave={onSave}
+                      onQueryConditionChange={setQueryConditionsValid}
+                      dashboard={dashboard}
+                      dashboardFilters={dashboardFilters}
+                      setIsPreviewDraggable={setIsPreviewDraggable}
+                      isWidgetInvalid={!queryConditionsValid}
+                      openWidgetTemplates={openWidgetTemplates}
+                      setOpenWidgetTemplates={setOpenWidgetTemplates}
+                      onDataFetched={handleWidgetDataFetched}
+                      thresholdMetaState={thresholdMetaState}
+                    />
+                  </SlideoutContainer>
+                  {(!isSmallScreen || isPreviewDraggable) && (
+                    <DndContext
+                      onDragEnd={handleDragEnd}
+                      onDragMove={handleDragMove}
+                      collisionDetection={closestCorners}
+                    >
+                      <Flex justify="center" align="center" width="100%" height="100%">
+                        <WidgetPreviewContainer
+                          dashboardFilters={dashboardFilters}
+                          dashboard={dashboard}
+                          dragPosition={translate}
+                          isDraggable={isPreviewDraggable}
+                          isWidgetInvalid={!queryConditionsValid}
+                          onDataFetched={handleWidgetDataFetched}
+                          openWidgetTemplates={openWidgetTemplates}
+                        />
+                      </Flex>
+                    </DndContext>
+                  )}
+                </WidgetBuilderContainer>
+              </ContainerWithoutSidebar>
             </CustomMeasurementsProvider>
           </WidgetBuilderProvider>
         </Fragment>
@@ -517,11 +470,11 @@ const DroppableGrid = styled('div')`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   position: fixed;
-  gap: ${space(4)};
-  margin: ${space(2)};
+  gap: ${p => p.theme.space['3xl']};
+  margin: ${p => p.theme.space.xl};
   top: ${SIDEBAR_HEIGHT}px;
-  right: ${space(2)};
-  bottom: ${space(2)};
+  right: ${p => p.theme.space.xl};
+  bottom: ${p => p.theme.space.xl};
   left: 0;
 `;
 
@@ -541,7 +494,7 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
 const WidgetPreviewPlaceholder = styled('div')`
   width: 100%;
   height: 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const SlideoutContainer = styled('div')`
@@ -549,7 +502,7 @@ const SlideoutContainer = styled('div')`
 `;
 
 const FilterBarContainer = styled(motion.div)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
 

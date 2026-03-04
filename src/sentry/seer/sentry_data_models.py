@@ -80,11 +80,15 @@ class TraceProfiles(BaseModel):
 class IssueDetails(BaseModel):
     id: int
     title: str
+    short_id: str | None = None
     culprit: str | None
     transaction: str | None
     events: list[dict[str, Any]]
     metadata: dict[str, Any] = {}
     message: str = ""
+    project: int | None = None
+    filename: str | None = None
+    function: str | None = None
 
 
 class TransactionIssues(BaseModel):

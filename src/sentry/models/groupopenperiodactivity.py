@@ -47,4 +47,5 @@ class GroupOpenPeriodActivity(DefaultFieldsModel):
         db_table = "sentry_groupopenperiodactivity"
         indexes = [
             models.Index(fields=["group_open_period", "type", "event_id"]),
+            models.Index(fields=["event_id"]),
         ]

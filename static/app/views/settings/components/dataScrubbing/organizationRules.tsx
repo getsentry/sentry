@@ -118,7 +118,7 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: center;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
@@ -13,12 +12,22 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {useMutation} from 'sentry/utils/queryClient';
+import {
+  useAssignIssueMutation,
+  type AssignedBy,
+} from 'sentry/views/issueDetails/useAssignIssueMutation';
+
+type HandleAssignOptions = {
+  assignedBy?: AssignedBy;
+};
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: Group;
-  handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
+  handleAssigneeChange: (
+    assignedActor: AssignableEntity | null,
+    options?: HandleAssignOptions
+  ) => void;
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
@@ -36,34 +45,44 @@ export function useHandleAssigneeChange({
   group,
   onAssign,
   onSuccess,
+  onError,
 }: {
   group: Group;
   organization: Organization;
   onAssign?: OnAssignCallback;
+  onError?: (error: Error) => void;
   onSuccess?: (assignedTo: Group['assignedTo']) => void;
 }) {
-  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation({
-    mutationFn: (newAssignee: AssignableEntity | null): Promise<Group> => {
-      if (newAssignee) {
-        return assignToActor({
-          id: group.id,
-          orgSlug: organization.slug,
-          actor: {id: newAssignee.id, type: newAssignee.type},
-          assignedBy: 'assignee_selector',
-        });
-      }
+  const {mutate: assignMutate, isPending: assigneeLoading} = useAssignIssueMutation();
 
-      return clearAssignment(group.id, organization.slug, 'assignee_selector');
-    },
-    onSuccess: (updatedGroup, newAssignee) => {
-      if (onAssign && newAssignee) {
-        onAssign(newAssignee.type, newAssignee.assignee, newAssignee.suggestedAssignee);
+  const handleAssigneeChange = (
+    newAssignee: AssignableEntity | null,
+    {assignedBy = 'assignee_selector'}: HandleAssignOptions = {}
+  ) => {
+    assignMutate(
+      {
+        groupId: group.id,
+        orgSlug: organization.slug,
+        actor: newAssignee ? {id: newAssignee.id, type: newAssignee.type} : null,
+        assignedBy,
+      },
+      {
+        onSuccess: updatedGroup => {
+          if (onAssign && newAssignee) {
+            onAssign(
+              newAssignee.type,
+              newAssignee.assignee,
+              newAssignee.suggestedAssignee
+            );
+          }
+          onSuccess?.(updatedGroup.assignedTo);
+        },
+        onError: error => {
+          onError?.(error);
+        },
       }
-      onSuccess?.(updatedGroup.assignedTo);
-    },
-    // Error is already handled by GroupStore.onAssignToError which shows an alert
-    onError: () => {},
-  });
+    );
+  };
 
   return {handleAssigneeChange, assigneeLoading};
 }

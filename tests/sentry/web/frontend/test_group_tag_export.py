@@ -1,12 +1,16 @@
 from datetime import datetime
+from unittest.mock import patch
 
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import create_test_regions, region_silo_test
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.web.frontend.group_tag_export import GroupTagExportView
 
 
 @region_silo_test(regions=create_test_regions("us"))
@@ -115,9 +119,24 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         )
         self.url = f"{url}?environment={self.environment.name}"
 
+        # Use a longer window (60s) to prevent the Redis rate limit key's
+        # TTL from expiring during test execution. The view's actual config
+        # uses window=1s, but the Redis key TTL runs on real wall-clock
+        # time regardless of freeze_time.
+        rate_limits = RateLimitConfig(
+            limit_overrides={
+                "GET": {
+                    RateLimitCategory.IP: RateLimit(limit=10, window=60, concurrent_limit=10),
+                    RateLimitCategory.USER: RateLimit(limit=10, window=60, concurrent_limit=10),
+                    RateLimitCategory.ORGANIZATION: RateLimit(
+                        limit=20, window=60, concurrent_limit=5
+                    ),
+                }
+            }
+        )
+
         now = timezone.now()
-        with freeze_time(now):
-            # Make 10 requests within the limit (limit is 10 per user per minute)
+        with freeze_time(now), patch.object(GroupTagExportView, "rate_limits", rate_limits):
             for i in range(10):
                 response = self.client.get(self.url)
                 assert response.status_code == 200

@@ -215,15 +215,14 @@ export default function IntervalSelector({
 
   return (
     <CompactSelect
-      searchPlaceholder={t('Provide a time interval')}
+      search={{
+        placeholder: t('Provide a time interval'),
+        filter: false,
+        onChange: filterValue => setItems(intervalAutoComplete(filterValue)),
+      }}
       value={interval}
       options={items}
       onChange={option => onIntervalChange(option.value)}
-      searchable
-      disableSearchFilter
-      onSearch={filterValue => {
-        setItems(intervalAutoComplete(filterValue));
-      }}
       size="sm"
       position="bottom-end"
       menuWidth={200}

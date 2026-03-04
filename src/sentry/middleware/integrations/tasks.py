@@ -16,7 +16,7 @@ from sentry.silo.client import RegionSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class _AsyncRegionDispatcher(ABC):
         raise NotImplementedError
 
     def _dispatch_to_region(self, region_name: str) -> _AsyncResult:
-        region = get_region_by_name(region_name)
+        region = get_cell_by_name(region_name)
         client = RegionSiloClient(region=region)
         response = client.request(
             method=self.request_payload["method"],

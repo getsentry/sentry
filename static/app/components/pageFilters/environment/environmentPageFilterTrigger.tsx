@@ -4,7 +4,6 @@ import {Badge} from '@sentry/scraps/badge';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 export interface EnvironmentPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
@@ -64,8 +63,8 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
+  margin-top: -${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

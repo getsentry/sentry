@@ -378,14 +378,15 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert not response.data["permissions"]
 
     def test_dashboard_viewable_with_no_edit_permissions(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=1142,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=1289)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -766,11 +767,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
 
     def test_allow_delete_as_superuser_but_no_edit_perms(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
@@ -817,14 +817,15 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             assert response.status_code == 404
 
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=1235)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -832,14 +833,15 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 403
 
     def test_delete_dashboard_with_edit_permissions_disabled(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
-        user = self.create_user(id=1235)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -847,14 +849,14 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
 
     def test_creator_can_delete_dashboard(self) -> None:
+        user = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=user.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=12333)
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -862,9 +864,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204, response.content
 
     def test_user_in_team_with_access_can_delete_dashboard(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -876,7 +879,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         permissions.teams_with_edit_access.set([team])
 
         # Create user and add to team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, teams=[team])
         self.login_as(user)
 
@@ -884,9 +887,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204, response.content
 
     def test_user_in_team_without_access_cannot_delete_dashboard(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -898,7 +902,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         permissions.teams_with_edit_access.set([team])
 
         # Create user not in team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.login_as(user)
 
         response = self.do_request("put", self.url(dashboard.id))
@@ -1032,7 +1036,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.dashboard.projects.set([self.project])
 
         # user has access to the above project
-        user = self.create_user(id=3456)
+        user = self.create_user()
         team = self.create_team(organization=self.organization)
         self.create_member(user=user, organization=self.organization, teams=[team])
         self.project.add_team(team)
@@ -1045,11 +1049,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_allow_put_as_superuser_but_no_edit_perms(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
@@ -1276,6 +1279,34 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Title is required during creation" in response.content
+
+    def test_add_widget_description_exceeds_max_length(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Widget with long description",
+                    "displayType": "line",
+                    "description": "x" * 256,
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][1]["description"] == [
+            "Ensure description has no more than 255 characters."
+        ]
 
     def test_add_widget_with_limit(self) -> None:
         data = {
@@ -1971,6 +2002,88 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             == "Must be '+', '-', or empty string."
         )
 
+    def test_update_widget_with_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Axis Range",
+                    "displayType": "line",
+                    "axisRange": "dataMin",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["axisRange"] == "dataMin"
+
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.detail["axis_range"] == "dataMin"
+
+    def test_update_widget_with_invalid_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Invalid Axis Range",
+                    "displayType": "line",
+                    "axisRange": "invalid_value",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+
+    def test_create_widget_with_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard with Axis Range Widget",
+            "widgets": [
+                {
+                    "title": "New Line Chart",
+                    "displayType": "line",
+                    "axisRange": "dataMin",
+                    "widgetType": "error-events",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["axisRange"] == "dataMin"
+
+        widget = DashboardWidget.objects.get(dashboard=self.dashboard, title="New Line Chart")
+        assert widget.detail["axis_range"] == "dataMin"
+
     def test_update_migrated_spans_widget_reset_changed_reason(self) -> None:
         new_dashboard = Dashboard.objects.create(
             title="New dashboard",
@@ -2617,14 +2730,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert "isEditableByEveryone" in response.data["permissions"]
 
     def test_edit_dashboard_with_edit_permissions_not_granted(self) -> None:
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
-        user = self.create_user(id=3456)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -2632,16 +2746,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 403
 
     def test_all_users_can_edit_dashboard_with_edit_permissions_disabled(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
-        user = self.create_user(id=3456)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -2650,13 +2763,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["title"] == "New Dashboard 9"
 
     def test_creator_can_edit_dashboard(self) -> None:
-        user = self.create_user(id=12333)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=user.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
@@ -2666,10 +2779,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["title"] == "New Dashboard 9"
 
     def test_user_in_team_with_access_can_edit_dashboard(self) -> None:
-        self.create_user(id=11452)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -2681,7 +2794,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         permissions.teams_with_edit_access.set([team])
 
         # Create user and add to team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, teams=[team])
         self.login_as(user)
 
@@ -2689,10 +2802,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
 
     def test_user_in_team_without_access_cannot_edit_dashboard(self) -> None:
-        self.create_user(id=11452)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
-            created_by_id=11452,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         permissions = DashboardPermissions.objects.create(
@@ -2704,7 +2817,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         permissions.teams_with_edit_access.set([team])
 
         # Create user not in team
-        user = self.create_user(id=12345)
+        user = self.create_user()
         self.login_as(user)
 
         response = self.do_request("put", self.url(dashboard.id), data={"title": "New Dashboard 9"})
@@ -2713,7 +2826,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_user_tries_to_update_dashboard_edit_perms(self) -> None:
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=self.dashboard)
 
-        user = self.create_user(id=28193)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
@@ -2731,7 +2844,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_only_owner_can_update_dashboard_edit_perms(self) -> None:
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
 
-        user = self.create_user(id=28193)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
 
@@ -2742,7 +2855,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 403
 
-        user = self.create_user(id=28194)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
 
@@ -3657,17 +3770,62 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 409
         assert "Cannot delete prebuilt Dashboards." in response.content.decode()
 
-    def test_cannot_edit_prebuilt_insights_dashboard(self) -> None:
+    def test_cannot_edit_prebuilt_insights_dashboard_widgets(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Frontend Session Health",
             organization=self.organization,
             prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         )
         response = self.do_request(
-            "put", self.url(dashboard.id), data={"title": "Frontend Session Health Edited"}
+            "put",
+            self.url(dashboard.id),
+            data={
+                "title": "Frontend Session Health",
+                "widgets": [
+                    {
+                        "title": "New Widget",
+                        "displayType": "line",
+                        "queries": [{"name": "", "conditions": "", "fields": ["count()"]}],
+                    }
+                ],
+            },
         )
         assert response.status_code == 409
-        assert "Cannot edit prebuilt Dashboards." in response.content.decode()
+        assert "Cannot edit widgets on prebuilt Dashboards." in response.content.decode()
+
+    def test_cannot_edit_prebuilt_insights_dashboard_title(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={"title": "Renamed Dashboard"},
+        )
+        assert response.status_code == 409
+        assert "Cannot change the title of prebuilt Dashboards." in response.content.decode()
+
+    def test_can_edit_prebuilt_insights_dashboard_global_filters(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        project = self.create_project(organization=self.organization)
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={
+                "title": "Frontend Session Health",
+                "projects": [project.id],
+                "environment": ["production"],
+                "period": "7d",
+                "filters": {"release": ["v1.0"]},
+            },
+        )
+        assert response.status_code == 200
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
