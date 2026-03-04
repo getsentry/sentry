@@ -503,11 +503,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const isTopN =
     defined(topEventsCountExcludingOther) && topEventsCountExcludingOther > 1;
   const footerSeries = toFooterTimeSeries(series, dataScanned);
-  const samplingMeta = determineSeriesSampleCountAndIsSampled(footerSeries, isTopN);
+  const samplingMeta = hasSeriesSamplingMetadata(footerSeries)
+    ? determineSeriesSampleCountAndIsSampled(footerSeries, isTopN)
+    : undefined;
   const footerConfidence = confidence ?? combineConfidenceForSeries(footerSeries);
-  const footerSampleCount = defined(sampleCount) ? sampleCount : samplingMeta.sampleCount;
-  const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta.isSampled;
-  const footerDataScanned = dataScanned ?? samplingMeta.dataScanned;
+  const footerSampleCount = defined(sampleCount)
+    ? sampleCount
+    : samplingMeta?.sampleCount;
+  const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta?.isSampled;
+  const footerDataScanned = dataScanned ?? samplingMeta?.dataScanned;
   const hasUserQuery = widget.queries.some(
     query => (query.conditions ?? '').trim().length > 0
   );
@@ -973,6 +977,16 @@ function toFooterTimeSeries(
       },
     };
   });
+}
+
+function hasSeriesSamplingMetadata(series: TimeSeries[]): boolean {
+  return series.some(
+    seriesEntry =>
+      defined(seriesEntry.meta.dataScanned) ||
+      seriesEntry.values.some(
+        value => defined(value.sampleCount) || defined(value.sampleRate)
+      )
+  );
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
