@@ -467,12 +467,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const xAxis = showXAxis
     ? {
         animation: false,
+        // When custom ticks are provided, switch the axis type from 'time' to
+        // 'value'. This avoids an ECharts 6 bug where `customValues` on a time
+        // axis crashes in `leveledFormat` (accessing `tick.time.level` without
+        // a null guard). Since we provide our own label formatter, the axis
+        // type only affects ECharts' internal tick/label generation — which we
+        // are bypassing entirely with `customValues`.
+        ...(customTicks ? {type: 'value' as const} : {}),
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
             return formatXAxisTimestamp(value, {utc: utc ?? undefined});
           },
+          ...(customTicks ? {customValues: customTicks} : {}),
         },
         axisTick: {
           ...(customTicks ? {customValues: customTicks} : {}),
