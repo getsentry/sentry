@@ -120,7 +120,7 @@
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.2",
     "diff": "8.0.3",
-    "dompurify": "3.2.5",
+    "dompurify": "3.3.1",
     "downsample": "1.4.0",
     "echarts": "6.0.0",
     "echarts-for-react": "3.0.6",
