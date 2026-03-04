@@ -51,7 +51,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.content == png_data
         assert response["Content-Type"] == "image/png"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
-        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
+        mock_session.get.assert_called_once_with(self.image_id)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
     def test_successful_image_retrieval_jpeg(self, mock_get_session):
@@ -68,7 +68,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.content == jpeg_data
         assert response["Content-Type"] == "image/jpeg"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
-        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
+        mock_session.get.assert_called_once_with(self.image_id)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
     def test_successful_image_retrieval_webp(self, mock_get_session):
@@ -85,7 +85,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.content == webp_data
         assert response["Content-Type"] == "image/webp"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
-        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
+        mock_session.get.assert_called_once_with(self.image_id)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
     def test_unknown_image_format(self, mock_get_session):
@@ -102,7 +102,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.content == unknown_data
         assert response["Content-Type"] == "application/octet-stream"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
-        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
+        mock_session.get.assert_called_once_with(self.image_id)
 
     def test_endpoint_requires_project_access(self):
         other_user = self.create_user()

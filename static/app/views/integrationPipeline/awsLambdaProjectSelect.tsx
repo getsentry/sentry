@@ -12,7 +12,6 @@ import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
@@ -86,5 +85,5 @@ const StyledList = styled(List)`
 `;
 
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
-  padding: 0 0 ${space(2)} 0;
+  padding: 0 0 ${p => p.theme.space.xl} 0;
 `;

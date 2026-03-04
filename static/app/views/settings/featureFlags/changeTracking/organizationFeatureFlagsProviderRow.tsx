@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Confirm from 'sentry/components/confirm';
@@ -28,7 +28,9 @@ export function OrganizationFeatureFlagsProviderRow({
     <Fragment>
       <div>
         <div>{secret.provider}</div>
-        <SecretPreview aria-label={t('Secret preview')}>{secret.secret}</SecretPreview>
+        <Text variant="secondary" aria-label={t('Secret preview')}>
+          {secret.secret}
+        </Text>
       </div>
 
       <Flex align="center" gap="xs">
@@ -66,7 +68,3 @@ export function OrganizationFeatureFlagsProviderRow({
     </Fragment>
   );
 }
-
-const SecretPreview = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

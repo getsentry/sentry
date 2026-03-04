@@ -6,7 +6,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {TagWithTopValues} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -194,12 +193,12 @@ function ProjectOwnershipModal({
 }
 
 const Description = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledPre = styled('pre')`
   word-break: break-word;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   line-height: 1.6;
   color: ${p => p.theme.tokens.content.secondary};
 `;

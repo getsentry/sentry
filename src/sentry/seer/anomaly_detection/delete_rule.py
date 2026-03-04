@@ -81,8 +81,9 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
     extra_data = {
         "source_id": source_id,
     }
+    viewer_context = SeerViewerContext(organization_id=organization.id)
     try:
-        response = make_delete_alert_data_request(body)
+        response = make_delete_alert_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning(
             "Timeout error when hitting Seer delete rule data endpoint",

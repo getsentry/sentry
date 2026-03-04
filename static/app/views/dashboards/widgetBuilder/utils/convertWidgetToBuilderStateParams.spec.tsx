@@ -1,6 +1,6 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
@@ -149,7 +149,7 @@ describe('convertWidgetToBuilderStateParams', () => {
 
   describe('traceMetric', () => {
     it('includes the trace metric in the builder params', () => {
-      const widget: Widget = WidgetFixture({
+      const widget = WidgetFixture({
         ...getDefaultWidget(WidgetType.TRACEMETRICS),
         queries: [
           {

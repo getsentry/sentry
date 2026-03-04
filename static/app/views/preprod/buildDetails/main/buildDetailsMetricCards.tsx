@@ -122,7 +122,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     baseArtifactId && projectId && artifactId
       ? getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId: artifactId,
           baseArtifactId,
         })

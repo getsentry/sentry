@@ -10,7 +10,7 @@ from sentry.integrations.bitbucket.webhook import BitbucketWebhookEndpoint
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.types.region import RegionResolutionError, get_region_by_name
+from sentry.types.region import RegionResolutionError, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class BitbucketRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            region = get_region_by_name(mapping.region_name)
+            region = get_cell_by_name(mapping.region_name)
         except RegionResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id

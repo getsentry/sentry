@@ -26,7 +26,6 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
-from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -76,15 +75,6 @@ class SeerOperator[CachePayloadT]:
         If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
         """
         if not has_seer_access(organization):
-            return False
-
-        # Currently, this feature is built around legacy autofix
-        # The explorer autofix pipeline and history is entirely separate, so the runs we trigger
-        # at the moment, won't be visible in-app to users with this flag.
-        # This check can only be removed once this feature migrates to explorer-based autofix.
-        if features.has("organizations:autofix-on-explorer", organization) and not features.has(
-            "organizations:seer-slack-workflows-explorer", organization
-        ):
             return False
 
         if entrypoint_key:
@@ -160,6 +150,7 @@ class SeerOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
+            get_autofix_explorer_client,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
         )
@@ -220,7 +211,7 @@ class SeerOperator[CachePayloadT]:
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    client = SeerExplorerClient(organization=group.organization)
+                    client = get_autofix_explorer_client(group)
                     client.push_changes(run_id, blocking=False)
                 else:
                     # NOTE: Stopping point here is really just what

@@ -1280,6 +1280,34 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Title is required during creation" in response.content
 
+    def test_add_widget_description_exceeds_max_length(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Widget with long description",
+                    "displayType": "line",
+                    "description": "x" * 256,
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][1]["description"] == [
+            "Ensure description has no more than 255 characters."
+        ]
+
     def test_add_widget_with_limit(self) -> None:
         data = {
             "title": "First dashboard",

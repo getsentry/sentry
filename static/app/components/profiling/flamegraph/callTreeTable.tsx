@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
@@ -76,7 +75,7 @@ export const CallTreeTable = styled('div')`
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
     display: flex;
     align-items: center;
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space.md};
     justify-content: flex-end;
 
     &:focus {
@@ -87,7 +86,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.FRAME_CELL} {
     display: flex;
     align-items: center;
-    padding-left: ${space(1)};
+    padding-left: ${p => p.theme.space.md};
     white-space: nowrap;
 
     &:focus {
@@ -130,7 +129,7 @@ export const CallTreeTable = styled('div')`
     border-radius: 2px;
     display: inline-block;
     flex-shrink: 0;
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 
   .${CallTreeTableClassNames.EXPAND_BUTTON} {
@@ -145,7 +144,7 @@ export const CallTreeTable = styled('div')`
     justify-content: center;
     user-select: none;
     transform: rotate(0deg);
-    margin-right: ${space(0.25)};
+    margin-right: ${p => p.theme.space['2xs']};
   }
 
   .${CallTreeTableClassNames.GHOST_ROW_CELL} {
@@ -229,7 +228,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   width: 100%;
   align-items: center;
   justify-content: space-between;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   border: none;
   background-color: ${p => p.theme.tokens.background.tertiary};
   transition: background-color 100ms ease-in-out;
