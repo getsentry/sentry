@@ -85,7 +85,7 @@ function getOutputDir(): string {
   if (process.env.SNAPSHOT_OUTPUT_DIR) {
     return path.resolve(process.env.SNAPSHOT_OUTPUT_DIR);
   }
-  return path.resolve(PROJECT_ROOT, '.artifacts/visual-snapshots');
+  return path.resolve(PROJECT_ROOT, '.artifacts/snapshots');
 }
 
 let _browserPromise: ReturnType<typeof chromium.launch> | null = null;

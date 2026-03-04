@@ -19,11 +19,15 @@ describe('Button', () => {
     </Wrapper>
   ));
 
-  it.snapshot('Primary (dark)', {theme: 'dark'}, () => (
-    <Wrapper>
-      <Button priority="primary">Primary</Button>
-    </Wrapper>
-  ));
+  it.snapshot(
+    'Primary (dark)',
+    () => (
+      <Wrapper>
+        <Button priority="primary">Primary</Button>
+      </Wrapper>
+    ),
+    {theme: 'dark'}
+  );
 
   it.snapshot('Danger', () => (
     <Wrapper>
