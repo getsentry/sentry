@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -23,7 +22,7 @@ function fetchCustomMeasurements(
   organization: Organization,
   selection?: PageFilters
 ): Promise<MeasurementsMetaResponse> {
-  const query: Query = selection?.datetime
+  const query = selection?.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
 

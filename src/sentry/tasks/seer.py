@@ -3,7 +3,11 @@ from __future__ import annotations
 import logging
 
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import RemoveRepositoryRequest, make_remove_repository_request
+from sentry.seer.signed_seer_api import (
+    RemoveRepositoryRequest,
+    SeerViewerContext,
+    make_remove_repository_request,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -33,8 +37,9 @@ def cleanup_seer_repository_preferences(
         repo_external_id=repo_external_id,
     )
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     try:
-        response = make_remove_repository_request(body)
+        response = make_remove_repository_request(body, viewer_context=viewer_context)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
         logger.info(

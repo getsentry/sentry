@@ -23,7 +23,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.VALUE_DISCOVERY
     permission_classes = (OnboardingTaskPermission,)
 
     def post(self, request: Request, organization) -> Response:

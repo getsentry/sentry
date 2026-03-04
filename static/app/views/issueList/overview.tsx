@@ -666,7 +666,7 @@ function IssueListOverview({
       : parseInt(location.query.page?.toString() ?? '', 10);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
-    let cursor: undefined | string = nextCursor;
+    let cursor = nextCursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on

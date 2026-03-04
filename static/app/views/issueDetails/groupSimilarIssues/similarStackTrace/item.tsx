@@ -96,9 +96,9 @@ export function SimilarStackTraceItem(props: Props) {
     [issue, props]
   );
 
-  const similarInterfaces: Array<'exception' | 'message'> = hasSimilarityEmbeddingsFeature
-    ? ['exception']
-    : ['exception', 'message'];
+  const similarInterfaces = hasSimilarityEmbeddingsFeature
+    ? (['exception'] as const)
+    : (['exception', 'message'] as const);
 
   const cx = classNames('group', {
     isResolved: issue.status === 'resolved',

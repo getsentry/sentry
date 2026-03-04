@@ -237,7 +237,7 @@ export function SortBySelectors({
                   ) {
                     // Select the default value if it exists, otherwise get the first option from
                     // the new valid options
-                    const defaultValue: string =
+                    const defaultValue =
                       newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
                       newValidOptions[0]?.value ??
                       '';

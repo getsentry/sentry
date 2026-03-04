@@ -134,7 +134,7 @@ export default function FiltersBar({
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
-  const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
+  const prebuiltDashboardFilters = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
 

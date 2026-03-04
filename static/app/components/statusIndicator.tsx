@@ -16,7 +16,7 @@ export interface StatusIndicatorProps {
  *
  */
 export function StatusIndicator({status, tooltipTitle}: StatusIndicatorProps) {
-  const color: AlertVariant = status === 'resolved' ? 'success' : status;
+  const color = status === 'resolved' ? 'success' : status;
 
   return (
     <Tooltip title={tooltipTitle} skipWrapper>

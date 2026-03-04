@@ -294,7 +294,7 @@ export default function TicketRuleModal({
    * Set the initial data from the Rule, replace `title` and `description` with
    * disabled inputs, and use the cached dynamic choices.
    */
-  const cleanFields: IssueConfigField[] = useMemo(() => {
+  const cleanFields = useMemo(() => {
     const fields: IssueConfigField[] = [
       {
         name: 'title',
@@ -354,7 +354,7 @@ export default function TicketRuleModal({
     return [...fields, ...cleanedFields];
   }, [instance, integrationDetails, cache, showInstanceValues]);
 
-  const formErrors: ExternalIssueFormErrors = useMemo(() => {
+  const formErrors = useMemo(() => {
     const errors: ExternalIssueFormErrors = {};
     for (const field of cleanFields) {
       // If the field is a select and has a default value, make sure that the

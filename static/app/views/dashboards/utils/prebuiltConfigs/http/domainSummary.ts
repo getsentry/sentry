@@ -62,7 +62,7 @@ const DOMAIN_WIDGET: Widget = {
   },
 };
 
-const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-big-number',
@@ -174,7 +174,7 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   {h: 1, minH: 1}
 );
 
-const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const CHART_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-chart',
