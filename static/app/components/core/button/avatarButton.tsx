@@ -1,12 +1,8 @@
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
-import {
-  ImageAvatar,
-  LetterAvatar,
-  useAvatar,
-  type BaseAvatarProps,
-} from '@sentry/scraps/avatar';
+import type {BaseAvatarProps} from '@sentry/scraps/avatar';
+import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 
 import {Button, type ButtonProps} from './button';
 
