@@ -112,6 +112,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         )
 
         # Verify comment ID stored on commit comparison
+        assert artifact.commit_comparison is not None
         artifact.commit_comparison.refresh_from_db()
         build_dist = artifact.commit_comparison.extras["pr_comments"]["build_distribution"]
         assert build_dist["success"] is True
@@ -222,6 +223,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             with pytest.raises(ApiError):
                 create_preprod_pr_comment_task(artifact.id)
 
+        assert artifact.commit_comparison is not None
         artifact.commit_comparison.refresh_from_db()
         build_dist = artifact.commit_comparison.extras["pr_comments"]["build_distribution"]
         assert build_dist["success"] is False
