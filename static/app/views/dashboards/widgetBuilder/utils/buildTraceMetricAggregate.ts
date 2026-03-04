@@ -4,7 +4,7 @@ import type {
 } from 'sentry/utils/discover/fields';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
-export function buildTraceMetricField(
+export function buildTraceMetricAggregate(
   aggregation: AggregationKeyWithAlias,
   traceMetric: TraceMetric
 ): QueryFieldValue {
