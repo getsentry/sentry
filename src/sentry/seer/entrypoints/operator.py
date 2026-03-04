@@ -77,15 +77,6 @@ class SeerOperator[CachePayloadT]:
         if not has_seer_access(organization):
             return False
 
-        # Currently, this feature is built around legacy autofix
-        # The explorer autofix pipeline and history is entirely separate, so the runs we trigger
-        # at the moment, won't be visible in-app to users with this flag.
-        # This check can only be removed once this feature migrates to explorer-based autofix.
-        if features.has("organizations:autofix-on-explorer", organization) and not features.has(
-            "organizations:seer-slack-workflows-explorer", organization
-        ):
-            return False
-
         if entrypoint_key:
             if entrypoint_key not in entrypoint_registry.registrations:
                 logger.error(
