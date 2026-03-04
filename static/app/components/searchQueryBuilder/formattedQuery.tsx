@@ -22,7 +22,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -196,16 +195,16 @@ const QueryWrapper = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  row-gap: ${space(0.5)};
-  column-gap: ${space(1)};
+  row-gap: ${p => p.theme.space.xs};
+  column-gap: ${p => p.theme.space.md};
 `;
 
 export const FilterWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: 24px;

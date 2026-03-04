@@ -463,10 +463,12 @@ export function AIInputSection({
   node,
   attributes,
   event,
+  initialCollapse,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
+  initialCollapse?: boolean;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
   const originalMessagesLength = getTraceNodeAttribute(
@@ -499,9 +501,11 @@ export function AIInputSection({
 
   return (
     <FoldSection
+      key={node.id}
       sectionKey={SectionKey.AI_INPUT}
       title={t('Input')}
       disableCollapsePersistence
+      initialCollapse={initialCollapse}
     >
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (

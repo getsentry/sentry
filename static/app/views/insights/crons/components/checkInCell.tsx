@@ -17,7 +17,6 @@ import {
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
@@ -490,7 +489,7 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
 
 const TimestampContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   font-variant-numeric: tabular-nums;
 `;

@@ -85,13 +85,13 @@ const DescriptionKeyLabel = styled('p')`
 
 const Separator = styled('hr')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   margin: 0;
 `;
 

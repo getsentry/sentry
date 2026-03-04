@@ -7,7 +7,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -56,5 +55,5 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
 }
 
 const HelpFooter = styled(FieldHelp)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

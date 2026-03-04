@@ -7,7 +7,6 @@ import ConfirmDelete from 'sentry/components/confirmDelete';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {Rule} from './types';
 import {getRuleDescription} from './utils';
@@ -92,9 +91,9 @@ const List = styled('ul')<{
 const ListItem = styled('li')`
   display: grid;
   grid-template-columns: auto max-content max-content;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   &:last-child {
     border-bottom: 0;

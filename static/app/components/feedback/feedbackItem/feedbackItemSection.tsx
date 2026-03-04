@@ -6,7 +6,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 interface Props {
@@ -58,12 +57,12 @@ const SectionTitle = styled('h3')`
   user-select: none;
 
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   justify-content: space-between;
   position: relative;
 
-  padding: ${space(1)} ${space(0.75)};
-  margin-inline: -${space(1)} -${space(0.75)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.sm};
+  margin-inline: -${p => p.theme.space.md} -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
 `;

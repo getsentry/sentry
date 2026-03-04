@@ -6,7 +6,6 @@ import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useSourceGroupData} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
 import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
@@ -168,7 +167,7 @@ const StyledInput = styled(Input)`
   flex: 1;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   input {
-    padding-right: ${space(1.5)};
+    padding-right: ${p => p.theme.space.lg};
   }
   margin-bottom: 0;
 `;
@@ -176,7 +175,7 @@ const StyledInput = styled(Input)`
 const Status = styled('div')`
   height: 100%;
   position: absolute;
-  right: ${space(1.5)};
+  right: ${p => p.theme.space.lg};
   top: 0;
   display: flex;
   align-items: center;

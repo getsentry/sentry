@@ -60,6 +60,7 @@ def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,
     raise_on_error: bool = False,
+    viewer_context: SeerViewerContext | None = None,
 ) -> list[SeerSimilarIssueData]:
     """
     Request similar issues data from seer and normalize the results. Returns similar groups
@@ -93,6 +94,7 @@ def get_similarity_data_from_seer(
             retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},
+            viewer_context=viewer_context,
         )
     except (TimeoutError, MaxRetryError) as e:
         logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)

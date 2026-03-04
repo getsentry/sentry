@@ -112,7 +112,6 @@ function LogsHeader() {
       <Layout.HeaderActions>
         <Grid flow="column" align="center" gap="md">
           <FeedbackButton
-            size="xs"
             feedbackOptions={{
               messagePlaceholder: t('How can we make logs work better for you?'),
               tags: {

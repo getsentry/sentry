@@ -6,7 +6,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -82,13 +81,11 @@ function WidgetBuilderDatasetSelector() {
     details: t('Session data from releases'),
   });
 
-  if (organization.features.includes('preprod-app-size-dashboard')) {
-    datasetOptions.push({
-      value: WidgetType.PREPROD_APP_SIZE,
-      label: t('Mobile Builds'),
-      details: t('Mobile app size metrics'),
-    });
-  }
+  datasetOptions.push({
+    value: WidgetType.PREPROD_APP_SIZE,
+    label: t('Mobile Builds'),
+    details: t('Mobile app size metrics'),
+  });
 
   datasetOptions.push(transactionsOption);
 
@@ -139,5 +136,5 @@ function WidgetBuilderDatasetSelector() {
 export default WidgetBuilderDatasetSelector;
 
 const StyledSectionHeader = styled(SectionHeader)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

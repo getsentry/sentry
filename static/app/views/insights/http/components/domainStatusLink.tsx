@@ -4,7 +4,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useStatusPageList} from 'sentry/views/insights/http/queries/useStatusPageList';
 
 interface Props {
@@ -37,5 +36,5 @@ const ExternalDomainLink = styled(ExternalLink)`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

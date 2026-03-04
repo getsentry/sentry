@@ -2491,6 +2491,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "hybridcloud.webhookpayload.push_drain_trigger",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
     type=Sequence,
     default=[],
@@ -3897,8 +3902,6 @@ register(
 
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Fraction of attachments that are being stored on objectstore for processing and long-term storage.
-register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # option used to enable/disable tracking
