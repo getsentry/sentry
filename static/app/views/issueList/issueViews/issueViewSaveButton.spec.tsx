@@ -59,6 +59,11 @@ describe('IssueViewSaveButton', () => {
       url: '/organizations/org-slug/group-search-views/100/',
       body: mockGroupSearchView,
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issue-view-title/generate/',
+      method: 'POST',
+      body: {},
+    });
   });
 
   it('can create a new view when no view is selected', async () => {
