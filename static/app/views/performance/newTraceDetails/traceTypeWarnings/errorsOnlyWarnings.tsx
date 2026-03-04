@@ -123,10 +123,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
-  const hideBanner =
-    droppedTransactionsCount === 0 ||
-    !props.organization.features.includes('trace-view-quota-exceeded-banner') ||
-    !hasExceededPerformanceUsageLimit;
+  const hideBanner = droppedTransactionsCount === 0 || !hasExceededPerformanceUsageLimit;
 
   useEffect(() => {
     if (hideBanner) {

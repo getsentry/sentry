@@ -7,7 +7,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
@@ -183,7 +182,7 @@ export function ScreenLoadSpansContent() {
 
 const FilterContainer = styled('div')`
   display: grid;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space.md};
   grid-template-rows: auto;
   grid-template-columns: auto 1fr;
 `;
@@ -194,7 +193,7 @@ const SampleContainerItem = styled('div')`
 
 const FiltersContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

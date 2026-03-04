@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {IconClock} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
@@ -97,7 +96,7 @@ const PartnerPlanEndingBannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: 600;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

@@ -1787,7 +1787,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const moduleUrlToModule: Record<string, ModuleName> = Object.fromEntries(
+  const moduleUrlToModule = Object.fromEntries(
     Object.values(ModuleName).map(name => [MODULE_BASE_URLS[name], name])
   );
 
@@ -2358,42 +2358,6 @@ function buildRoutes(): RouteObject[] {
     children: exploreChildren,
   };
 
-  const preventRoutes: SentryRouteObject = {
-    path: '/prevent/',
-    withOrgPath: true,
-    component: make(() => import('sentry/views/prevent/index')),
-    children: [
-      {
-        index: true,
-        redirectTo: 'tests/',
-      },
-      {
-        path: 'tests/',
-        component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-        children: [
-          {
-            index: true,
-            component: make(() => import('sentry/views/prevent/tests/tests')),
-          },
-          {
-            path: 'new/',
-            component: make(() => import('sentry/views/prevent/tests/onboarding')),
-          },
-        ],
-      },
-      {
-        path: 'tokens/',
-        component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
-        children: [
-          {
-            index: true,
-            component: make(() => import('sentry/views/prevent/tokens/tokens')),
-          },
-        ],
-      },
-    ],
-  };
-
   const preprodChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2828,7 +2792,6 @@ function buildRoutes(): RouteObject[] {
       issueRoutes,
       alertRoutes,
       monitorRoutes,
-      preventRoutes,
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,

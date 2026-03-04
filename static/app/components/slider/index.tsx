@@ -9,8 +9,6 @@ import {useSliderState} from '@react-stately/slider';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
-
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
@@ -399,7 +397,7 @@ const SliderTick = styled('div')<{
 const SliderTickLabel = styled('small')`
   display: inline-block;
   position: absolute;
-  top: calc(100% + ${space(1)});
+  top: calc(100% + ${p => p.theme.space.md});
   margin: 0 -1px;
 
   color: ${p => p.theme.tokens.content.secondary};

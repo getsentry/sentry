@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -13,7 +14,6 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 
 type Props = {
@@ -35,6 +35,7 @@ function InviteRequestRow({
   onUpdate,
   allRoles,
 }: Props) {
+  const theme = useTheme();
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !role?.isAllowed;
   const {access} = organization;
@@ -43,7 +44,7 @@ function InviteRequestRow({
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>
-        <h5 style={{marginBottom: space(0.5)}}>
+        <h5 style={{marginBottom: theme.space.xs}}>
           <UserName>{inviteRequest.email}</UserName>
         </h5>
         {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
@@ -162,7 +163,7 @@ function InviteRequestRow({
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
@@ -195,7 +196,7 @@ const TeamSelectControl = styled(TeamSelector)`
 const ButtonGroup = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 export default InviteRequestRow;

@@ -302,7 +302,7 @@ function TeamReleases({
 export default TeamReleases;
 
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -315,7 +315,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
@@ -339,5 +339,5 @@ const ScoreWrapper = styled('div')`
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;

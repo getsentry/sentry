@@ -10,6 +10,15 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
+interface SlashCommandHandlers {
+  onConversations: () => void;
+  onFeedback: (() => void) | undefined;
+  onLangfuse: () => void;
+  onMaxSize: () => void;
+  onMedSize: () => void;
+  onNew: () => void;
+}
+
 interface ExplorerMenuProps {
   clearInput: () => void;
   focusInput: () => void;
@@ -17,14 +26,7 @@ interface ExplorerMenuProps {
   onChangeSession: (runId: number) => void;
   panelSize: 'max' | 'med';
   panelVisible: boolean;
-  slashCommandHandlers: {
-    onFeedback: (() => void) | undefined;
-    onLangfuse: () => void;
-    onMaxSize: () => void;
-    onMedSize: () => void;
-    onNew: () => void;
-    onSentryTrace: () => void;
-  };
+  slashCommandHandlers: SlashCommandHandlers;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
   menuAnchorRef?: React.RefObject<HTMLElement | null>;
@@ -348,15 +350,8 @@ function useSlashCommands({
   onNew,
   onFeedback,
   onLangfuse,
-  onSentryTrace,
-}: {
-  onFeedback: (() => void) | undefined;
-  onLangfuse: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onNew: () => void;
-  onSentryTrace: () => void;
-}): MenuItemProps[] {
+  onConversations,
+}: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
   return useMemo(
@@ -404,15 +399,23 @@ function useSlashCommands({
               handler: onLangfuse,
             },
             {
-              title: '/sentry-conversation',
-              key: '/sentry-conversation',
-              description: 'Open Sentry AI trace (conversation view)',
-              handler: onSentryTrace,
+              title: '/conversations',
+              key: '/conversations',
+              description: 'Open Sentry AI trace (conversations view)',
+              handler: onConversations,
             },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, onSentryTrace, isSentryEmployee]
+    [
+      onNew,
+      onMaxSize,
+      onMedSize,
+      onFeedback,
+      onLangfuse,
+      onConversations,
+      isSentryEmployee,
+    ]
   );
 }
 

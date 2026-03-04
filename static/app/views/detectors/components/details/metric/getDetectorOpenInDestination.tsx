@@ -12,7 +12,12 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
@@ -168,12 +173,51 @@ function getDetectorLogsUrl({
   });
 }
 
+function getDetectorMetricsUrl({
+  organization,
+  projectId,
+  snubaQuery,
+  statsPeriod,
+  start,
+  end,
+}: GetDetectorDestinationOptions): string {
+  const interval = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
+  const numericProjectId = Number(projectId);
+
+  const {traceMetric} = parseMetricAggregate(snubaQuery.aggregate ?? '');
+
+  const metricQuery = defaultMetricQuery();
+  metricQuery.metric = traceMetric;
+  metricQuery.queryParams = metricQuery.queryParams.replace({
+    mode: Mode.AGGREGATE,
+    query: snubaQuery.query,
+    aggregateFields: [new VisualizeFunction(snubaQuery.aggregate)],
+  });
+
+  return getMetricsUrl({
+    organization,
+    selection: {
+      datetime: {
+        period: statsPeriod ?? null,
+        start: statsPeriod ? null : (start ?? null),
+        end: statsPeriod ? null : (end ?? null),
+        utc: null,
+      },
+      environments: snubaQuery.environment ? [snubaQuery.environment] : [],
+      projects: [numericProjectId],
+    },
+    interval,
+    metricQueries: [metricQuery],
+  });
+}
+
 /**
  * Get the "Open in" button text and destination URL for a metric detector.
  *
  * Returns the appropriate destination based on the detector's dataset:
  * - SPANS/TRANSACTIONS: Open in Explore
  * - LOGS: Open in Logs
+ * - METRICS: Open in Metrics
  * - ERRORS: Open in Discover
  */
 export function getDetectorOpenInDestination(
@@ -192,6 +236,11 @@ export function getDetectorOpenInDestination(
       return {
         buttonText: t('Open in Logs'),
         to: getDetectorLogsUrl(options),
+      };
+    case DetectorDataset.METRICS:
+      return {
+        buttonText: t('Open in Metrics'),
+        to: getDetectorMetricsUrl(options),
       };
     case DetectorDataset.SPANS:
       return {

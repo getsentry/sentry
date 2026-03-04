@@ -21,7 +21,11 @@ from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import ServiceMapUpdateRequest, make_service_map_update_request
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    ServiceMapUpdateRequest,
+    make_service_map_update_request,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -140,16 +144,17 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         span.set_data("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
-            span_id_filters = " OR ".join([f'id:"{sid}"' for sid in batch])
+            span_ids = ",".join(batch)
             parent_result = Spans.run_table_query(
                 params=snuba_params,
-                query_string=span_id_filters,
+                query_string=f"id:[{span_ids}]",
                 selected_columns=["id", "project.id", "project.slug", "timestamp"],
                 orderby=["-timestamp"],
                 offset=0,
                 limit=len(batch),
                 referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
                 config=SearchResolverConfig(),
+                sampling_mode="HIGHEST_ACCURACY",
             )
 
             for parent_row in parent_result.get("data", []):
@@ -307,6 +312,7 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         },
     )
 
-    response = make_service_map_update_request(body, timeout=30)
+    viewer_context = SeerViewerContext(organization_id=org_id)
+    response = make_service_map_update_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer service map update failed", response.status)

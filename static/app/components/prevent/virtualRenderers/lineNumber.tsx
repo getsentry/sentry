@@ -86,8 +86,8 @@ const LineNumberWrapper = styled('div')<{
   top: 0;
   width: 100%;
   user-select: none;
-  padding-left: ${space(1)};
-  padding-right: ${space(2)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
   text-align: right;
   height: ${p => p.height}px;
   transform: translateY(${p => p.translateY}px);

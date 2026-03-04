@@ -15,7 +15,7 @@ from sentry.conf.server import (
 )
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
@@ -42,6 +42,7 @@ def make_similar_issues_request(
     retries: int | None = None,
     timeout: int | float | None = None,
     metric_tags: dict[str, str | int | bool] | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or seer_grouping_connection_pool,
@@ -50,6 +51,7 @@ def make_similar_issues_request(
         retries=retries,
         timeout=timeout,
         metric_tags=metric_tags,
+        viewer_context=viewer_context,
     )
 
 
@@ -58,6 +60,7 @@ def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,
     raise_on_error: bool = False,
+    viewer_context: SeerViewerContext | None = None,
 ) -> list[SeerSimilarIssueData]:
     """
     Request similar issues data from seer and normalize the results. Returns similar groups
@@ -91,6 +94,7 @@ def get_similarity_data_from_seer(
             retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},
+            viewer_context=viewer_context,
         )
     except (TimeoutError, MaxRetryError) as e:
         logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)

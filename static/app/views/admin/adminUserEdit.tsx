@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,7 +15,6 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -120,6 +120,7 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
 }
 
 function AdminUserEdit() {
+  const theme = useTheme();
   const {id} = useParams<{id: string}>();
   const userEndpoint = getApiUrl('/users/$userId/', {path: {userId: id}});
   const [formModel] = useState(() => new FormModel());
@@ -201,7 +202,7 @@ function AdminUserEdit() {
         extraButton={
           <Button
             onClick={openDeleteModal}
-            style={{marginLeft: space(1)}}
+            style={{marginLeft: theme.space.md}}
             priority="danger"
           >
             {t('Remove User')}
@@ -217,7 +218,7 @@ function AdminUserEdit() {
 const ModalFooter = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: end;
   padding: 20px 30px;
   margin: 20px -30px -30px;
