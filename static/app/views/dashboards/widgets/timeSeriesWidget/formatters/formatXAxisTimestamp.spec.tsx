@@ -8,8 +8,8 @@ import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 describe('formatXAxisTimestamp', () => {
   it.each([
     // Year starts
-    ['2025-01-01T00:00:00', 'Jan 1st 2025'],
-    ['2024-01-01T00:00:00', 'Jan 1st 2024'],
+    ['2025-01-01T00:00:00', '2025'],
+    ['2024-01-01T00:00:00', '2024'],
     // // Month starts
     ['2025-02-01T00:00:00', 'Feb 1st'],
     ['2024-03-01T00:00:00', 'Mar 1st'],

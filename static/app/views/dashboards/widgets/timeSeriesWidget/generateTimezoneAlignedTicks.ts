@@ -135,7 +135,7 @@ function snapToRoundBoundary(
  * forward. This works because label formatting is handled separately by
  * {@link formatXAxisTimestamp}, which inspects each tick value and cascades
  * through format levels based on what round boundary it falls on (e.g., a
- * tick at midnight Jan 1 gets "Jan 1st 2025", a tick at midnight gets
+ * tick at midnight Jan 1 gets "2025", a tick at midnight gets
  * "Feb 3rd", a tick at 2:00 PM gets "2:00 PM"). The combination of flat
  * tick generation + cascading formatter produces the same mixed-granularity
  * labels as ECharts' hierarchy (e.g., "2025 | Feb | Mar | Apr").

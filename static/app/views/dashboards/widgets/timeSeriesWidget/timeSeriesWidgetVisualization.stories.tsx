@@ -579,6 +579,29 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         endMs: Date.UTC(2025, 10, 10, 5, 0, 0), // Nov 10 midnight EST
       },
 
+      // Boundary rollover — shows how the cascading formatter produces
+      // mixed-granularity labels at day, month, and year transitions
+      {
+        label: 'Day boundary (hours across midnight)',
+        startMs: Date.UTC(2025, 0, 15, 18, 0, 0), // 11:30 PM IST Jan 15
+        endMs: Date.UTC(2025, 0, 16, 6, 0, 0), // 11:30 AM IST Jan 16
+      },
+      {
+        label: 'Month boundary (days across month end)',
+        startMs: Date.UTC(2025, 0, 25, 18, 30, 0), // Jan 26 midnight IST
+        endMs: Date.UTC(2025, 1, 5, 18, 30, 0), // Feb 6 midnight IST
+      },
+      {
+        label: 'Year boundary (days across New Year)',
+        startMs: Date.UTC(2024, 11, 25, 18, 30, 0), // Dec 26 midnight IST
+        endMs: Date.UTC(2025, 0, 5, 18, 30, 0), // Jan 6 midnight IST
+      },
+      {
+        label: 'Year boundary (months across New Year)',
+        startMs: Date.UTC(2024, 9, 1, 18, 30, 0), // Oct 2 midnight IST
+        endMs: Date.UTC(2025, 2, 1, 18, 30, 0), // Mar 2 midnight IST
+      },
+
       // Unusual ranges
       {
         label: 'Non-aligned start (14:37 UTC, 6h)',
@@ -608,8 +631,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           an interval from the same table ECharts uses (1h, 6h, 1d, etc.), snaps to the
           nearest round boundary in the user's timezone, and walks forward to produce tick
           positions. Then, <code>formatXAxisTimestamp</code> formats each tick by
-          inspecting what round boundary it falls on — a tick at midnight Jan 1 gets "Jan
-          1st 2025", midnight on any other day gets "Feb 3rd", and a tick on a round hour
+          inspecting what round boundary it falls on — a tick at midnight Jan 1 gets
+          "2025", midnight on any other day gets "Feb 3rd", and a tick on a round hour
           gets "2:00 PM". This stateless cascading produces mixed-granularity labels
           (e.g., "2025 | Feb | Mar") without needing ECharts' built-in multi-level tick
           hierarchy.
@@ -1338,9 +1361,9 @@ const SmallWidget = styled('div')`
 `;
 
 const TickLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
   margin-bottom: 4px;
 `;
 

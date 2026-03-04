@@ -7,7 +7,7 @@ import {getParser, getTimeFormat} from 'sentry/utils/dates';
  * a formatted string whose granularity matches the tick's position. This
  * works by inspecting what "round boundary" the tick falls on:
  *
- * - Midnight on Jan 1 → includes the year: "Jan 1st 2025"
+ * - Midnight on Jan 1 → just the year: "2025"
  * - Midnight on any day → date only: "Feb 3rd"
  * - Any round minute → time only: "2:00 PM"
  * - Otherwise → time with seconds: "2:00:30 PM"
@@ -31,7 +31,7 @@ import {getParser, getTimeFormat} from 'sentry/utils/dates';
  * - Days: ["Feb 1st", "Feb 2nd", "Feb 3rd"]
  * - Hours across a day boundary: ["11:00 PM", "Feb 2nd", "1:00 AM"]
  * - Months: ["Mar 1st", "Apr 1st", "May 1st"]
- * - Months across a year boundary: ["Dec 1st", "Jan 1st 2025", "Feb 1st"]
+ * - Months across a year boundary: ["Dec 1st", "2025", "Feb 1st"]
  * - Hours: ["12:00 PM", "1:00 AM", "2:00 AM", "3:00 AM"]
  */
 export function formatXAxisTimestamp(
@@ -51,8 +51,8 @@ export function formatXAxisTimestamp(
     parsed.minute() === 0 &&
     parsed.second() === 0
   ) {
-    // Start of a year
-    format = 'MMM Do YYYY';
+    // Start of a year — just show the year (e.g., "2025")
+    format = 'YYYY';
   } else if (
     parsed.day() === 0 &&
     parsed.hour() === 0 &&
