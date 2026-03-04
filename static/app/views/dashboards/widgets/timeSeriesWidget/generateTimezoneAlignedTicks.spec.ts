@@ -2,65 +2,21 @@ import moment from 'moment-timezone';
 
 import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 
-/**
- * Helper: convert a timezone-local datetime string to UTC milliseconds.
- */
-function toMs(dateStr: string, timezone: string): number {
-  return moment.tz(dateStr, timezone).valueOf();
-}
-
-/**
- * Helper: format a UTC ms timestamp in a timezone for readable assertions.
- */
-function formatInTz(ms: number, timezone: string, fmt = 'YYYY-MM-DD HH:mm:ss'): string {
-  return moment.tz(ms, timezone).format(fmt);
-}
-
 describe('generateTimezoneAlignedTicks', () => {
   describe('interval selection', () => {
     it.each([
-      {span: '5 minutes', startOffset: 0, endOffset: 5 * 60 * 1000, expectUnit: 'minute'},
-      {span: '1 hour', startOffset: 0, endOffset: 3600 * 1000, expectUnit: 'minute'},
-      {span: '6 hours', startOffset: 0, endOffset: 6 * 3600 * 1000, expectUnit: 'hour'},
-      {
-        span: '24 hours',
-        startOffset: 0,
-        endOffset: 24 * 3600 * 1000,
-        expectUnit: 'hour',
-      },
-      {
-        span: '7 days',
-        startOffset: 0,
-        endOffset: 7 * 86400 * 1000,
-        expectUnit: 'day',
-      },
-      {
-        span: '30 days',
-        startOffset: 0,
-        endOffset: 30 * 86400 * 1000,
-        expectUnit: 'day',
-      },
-      {
-        span: '90 days',
-        startOffset: 0,
-        endOffset: 90 * 86400 * 1000,
-        expectUnit: 'month',
-      },
-      {
-        span: '365 days',
-        startOffset: 0,
-        endOffset: 365 * 86400 * 1000,
-        expectUnit: 'month',
-      },
-      {
-        span: '3 years',
-        startOffset: 0,
-        endOffset: 3 * 365 * 86400 * 1000,
-        expectUnit: 'year',
-      },
+      [0, 5 * 60 * 1000, 'minute'], // 5 minutes
+      [0, 3600 * 1000, 'minute'], // 1 hour
+      [0, 6 * 3600 * 1000, 'hour'], // 6 hours
+      [0, 24 * 3600 * 1000, 'hour'], // 24 hours
+      [0, 7 * 86400 * 1000, 'day'], // 7 days
+      [0, 30 * 86400 * 1000, 'day'], // 30 days
+      [0, 90 * 86400 * 1000, 'month'], // 90 days
+      [0, 365 * 86400 * 1000, 'month'], // 365 days
+      [0, 3 * 365 * 86400 * 1000, 'year'], // 3 years
     ])(
-      'selects $expectUnit-level ticks for $span span',
-      ({startOffset, endOffset, expectUnit}) => {
+      'selects %s-level ticks for offset %d to %d',
+      (startOffset, endOffset, expectUnit) => {
         const base = Date.UTC(2025, 0, 1);
         const ticks = generateTimezoneAlignedTicks(
           base + startOffset,
@@ -69,10 +25,8 @@ describe('generateTimezoneAlignedTicks', () => {
           'UTC'
         );
 
-        // Verify ticks exist
         expect(ticks.length).toBeGreaterThan(0);
 
-        // Verify all ticks are at round boundaries of the expected unit
         for (const tick of ticks) {
           const m = moment.utc(tick);
           if (expectUnit === 'year') {
@@ -104,14 +58,12 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
-      // All ticks should be at round hour boundaries in PST
       for (const tick of ticks) {
         const m = moment.tz(tick, tz);
         expect(m.minute()).toBe(0);
         expect(m.second()).toBe(0);
       }
 
-      // Verify they include PST midnight (which is 08:00 UTC in winter)
       const ticksFormatted = ticks.map(t => formatInTz(t, tz, 'HH:mm'));
       expect(ticksFormatted).toContain('00:00');
     });
@@ -123,7 +75,6 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
-      // All ticks should be at round hour boundaries in IST
       for (const tick of ticks) {
         const m = moment.tz(tick, tz);
         expect(m.minute()).toBe(0);
@@ -160,7 +111,6 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
-      // All ticks should be at midnight in ET
       for (const tick of ticks) {
         const m = moment.tz(tick, tz);
         expect(m.hour()).toBe(0);
@@ -184,7 +134,6 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
-      // All ticks should be at midnight in ET
       for (const tick of ticks) {
         const m = moment.tz(tick, tz);
         expect(m.hour()).toBe(0);
@@ -209,7 +158,6 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
-      // All ticks should be at IST midnight
       for (const tick of ticks) {
         const m = moment.tz(tick, tz);
         expect(m.hour()).toBe(0);
@@ -224,7 +172,6 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
-      // All ticks should be at round hour boundaries in NPT
       for (const tick of ticks) {
         const m = moment.tz(tick, tz);
         expect(m.minute()).toBe(0);
@@ -260,7 +207,6 @@ describe('generateTimezoneAlignedTicks', () => {
       expect(ticks.length).toBeGreaterThan(0);
       expect(ticks.length).toBeLessThan(20);
 
-      // All ticks at year boundaries
       for (const tick of ticks) {
         const m = moment.utc(tick);
         expect(m.month()).toBe(0);
@@ -271,25 +217,28 @@ describe('generateTimezoneAlignedTicks', () => {
 
   describe('tick count', () => {
     it.each([
-      {label: '1 hour', startOffset: 0, endOffset: 3600 * 1000},
-      {label: '24 hours', startOffset: 0, endOffset: 24 * 3600 * 1000},
-      {label: '7 days', startOffset: 0, endOffset: 7 * 86400 * 1000},
-      {label: '30 days', startOffset: 0, endOffset: 30 * 86400 * 1000},
-      {label: '90 days', startOffset: 0, endOffset: 90 * 86400 * 1000},
-    ])('produces roughly splitNumber ticks for $label', ({startOffset, endOffset}) => {
-      const base = Date.UTC(2025, 0, 1);
-      const splitNumber = 5;
-      const ticks = generateTimezoneAlignedTicks(
-        base + startOffset,
-        base + endOffset,
-        splitNumber,
-        'UTC'
-      );
+      [0, 3600 * 1000], // 1 hour
+      [0, 24 * 3600 * 1000], // 24 hours
+      [0, 7 * 86400 * 1000], // 7 days
+      [0, 30 * 86400 * 1000], // 30 days
+      [0, 90 * 86400 * 1000], // 90 days
+    ])(
+      'produces roughly splitNumber ticks for offset %d to %d',
+      (startOffset, endOffset) => {
+        const base = Date.UTC(2025, 0, 1);
+        const splitNumber = 5;
+        const ticks = generateTimezoneAlignedTicks(
+          base + startOffset,
+          base + endOffset,
+          splitNumber,
+          'UTC'
+        );
 
-      // Allow splitNumber ± 3
-      expect(ticks.length).toBeGreaterThanOrEqual(splitNumber - 3);
-      expect(ticks.length).toBeLessThanOrEqual(splitNumber + 3);
-    });
+        // Allow splitNumber ± 3
+        expect(ticks.length).toBeGreaterThanOrEqual(splitNumber - 3);
+        expect(ticks.length).toBeLessThanOrEqual(splitNumber + 3);
+      }
+    );
   });
 
   describe('tick ordering and range', () => {
@@ -299,12 +248,10 @@ describe('generateTimezoneAlignedTicks', () => {
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, 'America/New_York');
 
-      // Ascending order
       for (let i = 1; i < ticks.length; i++) {
         expect(ticks[i]).toBeGreaterThan(ticks[i - 1]!);
       }
 
-      // All within range
       for (const tick of ticks) {
         expect(tick).toBeGreaterThanOrEqual(start);
         expect(tick).toBeLessThanOrEqual(end);
@@ -312,3 +259,13 @@ describe('generateTimezoneAlignedTicks', () => {
     });
   });
 });
+
+/** Convert a timezone-local datetime string to UTC milliseconds. */
+function toMs(dateStr: string, timezone: string): number {
+  return moment.tz(dateStr, timezone).valueOf();
+}
+
+/** Format a UTC ms timestamp in a timezone for readable assertions. */
+function formatInTz(ms: number, timezone: string, fmt = 'YYYY-MM-DD HH:mm:ss'): string {
+  return moment.tz(ms, timezone).format(fmt);
+}

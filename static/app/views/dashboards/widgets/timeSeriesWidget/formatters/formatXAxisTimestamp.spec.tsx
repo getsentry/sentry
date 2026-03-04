@@ -10,12 +10,12 @@ describe('formatXAxisTimestamp', () => {
     // Year starts
     ['2025-01-01T00:00:00', '2025'],
     ['2024-01-01T00:00:00', '2024'],
-    // // Month starts
+    // Month starts
     ['2025-02-01T00:00:00', 'Feb 1st'],
     ['2024-03-01T00:00:00', 'Mar 1st'],
-    // // Day starts
+    // Day starts
     ['2025-02-05T00:00:00', 'Feb 5th'],
-    // // Hour starts
+    // Hour starts
     ['2025-02-05T12:00:00', '12:00 PM'],
     ['2025-02-05T05:00:00', '5:00 AM'],
     ['2025-02-01T01:00:00', '1:00 AM'],
@@ -31,8 +31,8 @@ describe('formatXAxisTimestamp', () => {
     user.options.clock24Hours = false;
     ConfigStore.set('user', user);
 
-    const timestamp = moment(raw).unix() * 1000;
-    expect(formatXAxisTimestamp(timestamp)).toEqual(formatted);
+    const timestamp = moment.tz(raw, 'UTC').valueOf();
+    expect(formatXAxisTimestamp(timestamp, 'UTC')).toEqual(formatted);
   });
 
   it.each([
@@ -48,7 +48,7 @@ describe('formatXAxisTimestamp', () => {
     user.options.clock24Hours = true;
     ConfigStore.set('user', user);
 
-    const timestamp = moment(raw).unix() * 1000;
-    expect(formatXAxisTimestamp(timestamp)).toEqual(formatted);
+    const timestamp = moment.tz(raw, 'UTC').valueOf();
+    expect(formatXAxisTimestamp(timestamp, 'UTC')).toEqual(formatted);
   });
 });

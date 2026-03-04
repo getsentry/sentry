@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {getParser, getTimeFormat} from 'sentry/utils/dates';
+import {getTimeFormat} from 'sentry/utils/dates';
 
 /**
  * A cascading formatter for time axis labels. Given a tick timestamp, returns
@@ -18,13 +18,12 @@ import {getParser, getTimeFormat} from 'sentry/utils/dates';
  * and by {@link generateTimezoneAlignedTicks} (which provides timezone-aware
  * custom tick positions via `customValues`).
  *
- * When a `timezone` is provided, the tick value is interpreted in that
- * timezone. This is important because tick positions from
- * `generateTimezoneAlignedTicks` are at round boundaries in the user's
- * timezone (e.g., midnight IST), not in the browser's local timezone.
- * Without timezone-aware parsing, those ticks would be displayed as
- * non-round browser-local times (e.g., "10:30 AM" PST instead of
- * "12:00 AM" IST).
+ * The tick value is interpreted in the given timezone. This is important
+ * because tick positions from `generateTimezoneAlignedTicks` are at round
+ * boundaries in the user's timezone (e.g., midnight IST), not in the
+ * browser's local timezone. Without timezone-aware parsing, those ticks
+ * would be displayed as non-round browser-local times (e.g., "10:30 AM"
+ * PST instead of "12:00 AM" IST).
  *
  * Example label sets for different time ranges:
  *
@@ -34,13 +33,8 @@ import {getParser, getTimeFormat} from 'sentry/utils/dates';
  * - Months across a year boundary: ["Dec 1st", "2025", "Feb 1st"]
  * - Hours: ["12:00 PM", "1:00 AM", "2:00 AM", "3:00 AM"]
  */
-export function formatXAxisTimestamp(
-  value: number,
-  options: {timezone?: string; utc?: boolean} = {utc: false}
-): string {
-  const parsed = options.timezone
-    ? moment.tz(value, options.timezone)
-    : getParser(!options.utc)(value);
+export function formatXAxisTimestamp(value: number, timezone: string): string {
+  const parsed = moment.tz(value, timezone);
 
   // Cascade from most specific to least specific boundary
   let format = 'MMM Do';

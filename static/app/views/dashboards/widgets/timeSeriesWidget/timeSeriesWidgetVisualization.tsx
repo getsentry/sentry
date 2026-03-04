@@ -475,10 +475,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {
-              utc: utc ?? undefined,
-              timezone,
-            });
+            return formatXAxisTimestamp(value, timezone);
           },
           ...(customTicks ? {customValues: customTicks} : {}),
         },

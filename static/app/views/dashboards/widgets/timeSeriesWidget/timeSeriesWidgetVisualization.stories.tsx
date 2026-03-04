@@ -22,6 +22,7 @@ import type {
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {makeRandomWalkTimeSeries} from './__stories__/makeRandomWalkTimeSeries';
 import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
 import {sampleCrashFreeRateTimeSeries} from './fixtures/sampleCrashFreeRateTimeSeries';
@@ -487,7 +488,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     );
   });
 
-  story('X Axis Ticks', () => {
+  story('X-Axis Ticks', () => {
     // Simulate a Sentry timezone that differs from the browser timezone.
     // This is the scenario that causes misaligned ticks without our fix:
     // the browser might be in e.g. America/Los_Angeles, but the user's
@@ -509,111 +510,6 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         ConfigStore.set('user', previousUser);
       };
     }, []);
-
-    /**
-     * Generate a TimeSeries for an arbitrary time range with a random-walk
-     * shape so charts look organic.
-     */
-    function makeTimeSeries(startMs: number, endMs: number, pointCount = 50): TimeSeries {
-      const interval = Math.max(Math.floor((endMs - startMs) / pointCount), 1);
-      const values: Array<{timestamp: number; value: number}> = [];
-      let current = 100;
-
-      for (let ts = startMs; ts <= endMs; ts += interval) {
-        current += (Math.random() - 0.48) * 10;
-        current = Math.max(current, 1);
-        values.push({timestamp: ts, value: current});
-      }
-
-      return {
-        yAxis: 'count()',
-        meta: {valueType: 'number', valueUnit: null, interval},
-        values,
-      };
-    }
-
-    const MINUTE = 60 * 1000;
-    const HOUR = 60 * MINUTE;
-    const DAY = 24 * HOUR;
-
-    // Base timestamp: Jan 15, 2025 00:00 UTC
-    const base = Date.UTC(2025, 0, 15, 0, 0, 0);
-
-    const testCases: Array<{endMs: number; label: string; startMs: number}> = [
-      // Standard ranges
-      {label: '30 seconds', startMs: base, endMs: base + 30 * 1000},
-      {label: '5 minutes', startMs: base, endMs: base + 5 * MINUTE},
-      {label: '15 minutes', startMs: base, endMs: base + 15 * MINUTE},
-      {label: '1 hour', startMs: base, endMs: base + HOUR},
-      {label: '6 hours', startMs: base, endMs: base + 6 * HOUR},
-      {label: '12 hours', startMs: base, endMs: base + 12 * HOUR},
-      {label: '24 hours', startMs: base, endMs: base + DAY},
-      {label: '3 days', startMs: base, endMs: base + 3 * DAY},
-      {label: '7 days', startMs: base, endMs: base + 7 * DAY},
-      {label: '14 days', startMs: base, endMs: base + 14 * DAY},
-      {label: '30 days', startMs: base, endMs: base + 30 * DAY},
-      {label: '90 days', startMs: base, endMs: base + 90 * DAY},
-      {label: '6 months', startMs: base, endMs: base + 182 * DAY},
-      {label: '1 year', startMs: base, endMs: base + 365 * DAY},
-      {label: '3 years', startMs: base, endMs: base + 3 * 365 * DAY},
-
-      // DST edge cases (America/New_York: spring forward March 9 2025, fall back Nov 2 2025)
-      {
-        label: 'DST spring forward (hours)',
-        startMs: Date.UTC(2025, 2, 9, 4, 0, 0), // ~11PM EST March 8
-        endMs: Date.UTC(2025, 2, 9, 12, 0, 0), // ~8AM EDT March 9
-      },
-      {
-        label: 'DST spring forward (days)',
-        startMs: Date.UTC(2025, 2, 1, 5, 0, 0), // March 1 midnight EST
-        endMs: Date.UTC(2025, 2, 15, 4, 0, 0), // March 15 midnight EDT
-      },
-      {
-        label: 'DST fall back (hours)',
-        startMs: Date.UTC(2025, 10, 2, 2, 0, 0), // ~10PM EDT Nov 1
-        endMs: Date.UTC(2025, 10, 2, 12, 0, 0), // ~7AM EST Nov 2
-      },
-      {
-        label: 'DST fall back (days)',
-        startMs: Date.UTC(2025, 9, 25, 4, 0, 0), // Oct 25 midnight EDT
-        endMs: Date.UTC(2025, 10, 10, 5, 0, 0), // Nov 10 midnight EST
-      },
-
-      // Boundary rollover — shows how the cascading formatter produces
-      // mixed-granularity labels at day, month, and year transitions
-      {
-        label: 'Day boundary (hours across midnight)',
-        startMs: Date.UTC(2025, 0, 15, 18, 0, 0), // 11:30 PM IST Jan 15
-        endMs: Date.UTC(2025, 0, 16, 6, 0, 0), // 11:30 AM IST Jan 16
-      },
-      {
-        label: 'Month boundary (days across month end)',
-        startMs: Date.UTC(2025, 0, 25, 18, 30, 0), // Jan 26 midnight IST
-        endMs: Date.UTC(2025, 1, 5, 18, 30, 0), // Feb 6 midnight IST
-      },
-      {
-        label: 'Year boundary (days across New Year)',
-        startMs: Date.UTC(2024, 11, 25, 18, 30, 0), // Dec 26 midnight IST
-        endMs: Date.UTC(2025, 0, 5, 18, 30, 0), // Jan 6 midnight IST
-      },
-      {
-        label: 'Year boundary (months across New Year)',
-        startMs: Date.UTC(2024, 9, 1, 18, 30, 0), // Oct 2 midnight IST
-        endMs: Date.UTC(2025, 2, 1, 18, 30, 0), // Mar 2 midnight IST
-      },
-
-      // Unusual ranges
-      {
-        label: 'Non-aligned start (14:37 UTC, 6h)',
-        startMs: Date.UTC(2025, 0, 15, 14, 37, 22),
-        endMs: Date.UTC(2025, 0, 15, 20, 37, 22),
-      },
-      {
-        label: 'Cross-year boundary',
-        startMs: Date.UTC(2024, 11, 20, 0, 0, 0),
-        endMs: Date.UTC(2025, 0, 10, 0, 0, 0),
-      },
-    ];
 
     return (
       <Fragment>
@@ -646,14 +542,14 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         </p>
 
         <Storybook.Grid columns={3}>
-          {testCases.map(({label, startMs, endMs}) => (
+          {X_AXIS_TICK_TEST_CASES.map(({label, startMs, endMs}) => (
             <div key={label}>
-              <TickLabel>{label}</TickLabel>
-              <TickChartWidget>
+              <strong>{label}</strong>
+              <div style={{position: 'relative', height: 200}}>
                 <TimeSeriesWidgetVisualization
-                  plottables={[new Line(makeTimeSeries(startMs, endMs))]}
+                  plottables={[new Line(makeRandomWalkTimeSeries(startMs, endMs))]}
                 />
-              </TickChartWidget>
+              </div>
             </div>
           ))}
         </Storybook.Grid>
@@ -1360,18 +1256,6 @@ const SmallWidget = styled('div')`
   height: 160px;
 `;
 
-const TickLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.textColor};
-  margin-bottom: 4px;
-`;
-
-const TickChartWidget = styled('div')`
-  position: relative;
-  height: 200px;
-`;
-
 const SmallStorybookSizingWindow = styled(Storybook.SizingWindow)`
   width: 50%;
   height: 300px;
@@ -1407,3 +1291,86 @@ const NULL_META: TimeSeriesMeta = {
   valueUnit: null,
   interval: 0,
 };
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+// Base timestamp: Jan 15, 2025 00:00 UTC
+const TICK_STORY_BASE = Date.UTC(2025, 0, 15, 0, 0, 0);
+
+const X_AXIS_TICK_TEST_CASES: Array<{endMs: number; label: string; startMs: number}> = [
+  // Standard ranges
+  {label: '30 seconds', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 30 * 1000},
+  {label: '5 minutes', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 5 * MINUTE},
+  {label: '15 minutes', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 15 * MINUTE},
+  {label: '1 hour', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + HOUR},
+  {label: '6 hours', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 6 * HOUR},
+  {label: '12 hours', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 12 * HOUR},
+  {label: '24 hours', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + DAY},
+  {label: '3 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 3 * DAY},
+  {label: '7 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 7 * DAY},
+  {label: '14 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 14 * DAY},
+  {label: '30 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 30 * DAY},
+  {label: '90 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 90 * DAY},
+  {label: '6 months', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 182 * DAY},
+  {label: '1 year', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 365 * DAY},
+  {label: '3 years', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 3 * 365 * DAY},
+
+  // DST edge cases (America/New_York: spring forward March 9 2025, fall back Nov 2 2025)
+  {
+    label: 'DST spring forward (hours)',
+    startMs: Date.UTC(2025, 2, 9, 4, 0, 0),
+    endMs: Date.UTC(2025, 2, 9, 12, 0, 0),
+  },
+  {
+    label: 'DST spring forward (days)',
+    startMs: Date.UTC(2025, 2, 1, 5, 0, 0),
+    endMs: Date.UTC(2025, 2, 15, 4, 0, 0),
+  },
+  {
+    label: 'DST fall back (hours)',
+    startMs: Date.UTC(2025, 10, 2, 2, 0, 0),
+    endMs: Date.UTC(2025, 10, 2, 12, 0, 0),
+  },
+  {
+    label: 'DST fall back (days)',
+    startMs: Date.UTC(2025, 9, 25, 4, 0, 0),
+    endMs: Date.UTC(2025, 10, 10, 5, 0, 0),
+  },
+
+  // Boundary rollover — shows how the cascading formatter produces
+  // mixed-granularity labels at day, month, and year transitions
+  {
+    label: 'Day boundary (hours across midnight)',
+    startMs: Date.UTC(2025, 0, 15, 18, 0, 0),
+    endMs: Date.UTC(2025, 0, 16, 6, 0, 0),
+  },
+  {
+    label: 'Month boundary (days across month end)',
+    startMs: Date.UTC(2025, 0, 25, 18, 30, 0),
+    endMs: Date.UTC(2025, 1, 5, 18, 30, 0),
+  },
+  {
+    label: 'Year boundary (days across New Year)',
+    startMs: Date.UTC(2024, 11, 25, 18, 30, 0),
+    endMs: Date.UTC(2025, 0, 5, 18, 30, 0),
+  },
+  {
+    label: 'Year boundary (months across New Year)',
+    startMs: Date.UTC(2024, 9, 1, 18, 30, 0),
+    endMs: Date.UTC(2025, 2, 1, 18, 30, 0),
+  },
+
+  // Unusual ranges
+  {
+    label: 'Non-aligned start (14:37 UTC, 6h)',
+    startMs: Date.UTC(2025, 0, 15, 14, 37, 22),
+    endMs: Date.UTC(2025, 0, 15, 20, 37, 22),
+  },
+  {
+    label: 'Cross-year boundary',
+    startMs: Date.UTC(2024, 11, 20, 0, 0, 0),
+    endMs: Date.UTC(2025, 0, 10, 0, 0, 0),
+  },
+];
