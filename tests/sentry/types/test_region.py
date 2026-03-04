@@ -20,8 +20,8 @@ from sentry.types.region import (
     RegionConfigurationError,
     RegionDirectory,
     RegionResolutionError,
+    find_all_cell_names,
     find_all_multitenant_region_names,
-    find_all_region_names,
     find_regions_for_sentry_app,
     find_regions_for_user,
     get_cell_by_name,
@@ -218,11 +218,11 @@ class RegionDirectoryTest(TestCase):
             find_regions_for_sentry_app(sentry_app=sentry_app)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_region_names(self) -> None:
+    def test_find_all_cell_names(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            result = find_all_region_names()
+            result = find_all_cell_names()
             assert set(result) == {"us", "eu", "acme"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
