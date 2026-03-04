@@ -473,7 +473,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatter: (value: number) => {
             return formatXAxisTimestamp(value, {utc: utc ?? undefined});
           },
-          ...(customTicks ? {customValues: customTicks} : {}),
         },
         axisTick: {
           ...(customTicks ? {customValues: customTicks} : {}),
