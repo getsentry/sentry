@@ -64,12 +64,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
           query: `transaction:"${transaction}" is_transaction:True`,
           visualize: [{yAxes: ['p95(span.duration)']}],
           selection: {
-            datetime: {
-              start: null,
-              end: null,
-              period: `${RELATIVE_DAYS_WINDOW}d`,
-              utc: null,
-            },
+            datetime,
             environments,
             projects,
           },
