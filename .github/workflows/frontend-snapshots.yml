@@ -63,6 +63,7 @@ jobs:
         run: pnpm run snapshots
 
       - name: Install sentry-cli
+        if: ${{ !cancelled() }}
         run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.2.3 sh
 
       - name: Upload snapshots
@@ -71,11 +72,11 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           SENTRY_ORG: emerge-tools
           SENTRY_PROJECT: sentry-frontend
-        run: sentry-cli build snapshots .artifacts/visual-snapshots --app-id sentry-frontend
+        run: sentry-cli build snapshots .artifacts/snapshots --app-id sentry-frontend
 
       - name: Upload snapshot artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
         if: ${{ !cancelled() }}
         with:
-          name: visual-snapshots
-          path: .artifacts/visual-snapshots/
+          name: snapshots
+          path: .artifacts/snapshots/
