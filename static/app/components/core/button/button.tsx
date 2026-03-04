@@ -1,3 +1,4 @@
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -48,6 +49,7 @@ export function Button({
         onClick={handleClick}
         role="button"
       >
+        {busy && <BusyOverlay data-busy-spinner />}
         <Flex
           as="span"
           align="center"
@@ -55,6 +57,7 @@ export function Button({
           minWidth="0"
           height="100%"
           whiteSpace="nowrap"
+          style={busy ? {visibility: 'hidden'} : undefined}
         >
           {props.icon && (
             <Flex
@@ -79,4 +82,29 @@ export function Button({
 
 const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
+`;
+
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const BusyOverlay = styled('span')`
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::after {
+    content: '';
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: ${spin} 0.6s linear infinite;
+  }
 `;
