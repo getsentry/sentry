@@ -371,4 +371,22 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Team ID'),
     hintText: t('The unique identifier for this team. It cannot be modified.'),
   },
+  'new-provider-form.provider': {
+    name: 'provider',
+    formId: 'new-provider-form',
+    route: '/settings/feature-flags/change-tracking/new-provider/',
+    label: t('Provider'),
+    hintText: t(
+      'If you have already linked this provider, pasting a new secret will override the existing secret.'
+    ),
+  },
+  'new-provider-form.secret': {
+    name: 'secret',
+    formId: 'new-provider-form',
+    route: '/settings/feature-flags/change-tracking/new-provider/',
+    label: t('Secret'),
+    hintText: t(
+      'Paste the signing secret given by your provider when creating the webhook.'
+    ),
+  },
 };
