@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, override
 
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from sentry_redis_tools.sliding_windows_rate_limiter import Quota
 
@@ -188,12 +188,13 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
 
         if detector_state is None:
             try:
-                DetectorState.objects.create(
-                    detector=self.detector,
-                    detector_group_key=None,
-                    is_triggered=True,
-                    state=new_priority,
-                )
+                with transaction.atomic(router.db_for_write(DetectorState)):
+                    DetectorState.objects.create(
+                        detector=self.detector,
+                        detector_group_key=None,
+                        is_triggered=True,
+                        state=new_priority,
+                    )
                 return 1
             except IntegrityError:
                 # Another process created the row first, just exit
