@@ -5,6 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from itertools import chain, repeat
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
 
 from django.utils.functional import cached_property
@@ -76,6 +77,7 @@ filter = date_filter
        / aggregate_size_filter
        / aggregate_date_filter
        / aggregate_rel_date_filter
+       / has_in_filter
        / has_filter
        / is_filter
        / text_in_filter
@@ -123,6 +125,9 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 # aggregate for relative dates
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
+# has filter for not null type checks (single or comma-separated keys)
+has_in_filter = negation? &"has:" search_key sep has_in_list
+
 # has filter for not null type checks
 has_filter = negation? &"has:" search_key sep (text_key / search_value)
 
@@ -168,6 +173,8 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+
+has_in_list            = open_bracket (text_key / search_value) (spaces comma spaces !comma (text_key / search_value)?)* closed_bracket &end_value
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
@@ -1795,6 +1802,60 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
     def visit_spaces(self, node: Node, children: object) -> str:
         return " "
+
+    def visit_has_in_list(
+        self,
+        node: Node,
+        children: tuple[
+            str,  # '['
+            list[SearchKey],  # value
+            tuple[tuple[str, Node, str, Node, tuple[list[SearchKey]]], ...],  # repeat
+            str,  # ']'
+            Node,  # terminating lookahead
+        ],
+    ) -> list[list[SearchKey]]:
+        return process_list(children[1], children[2])
+
+    def visit_has_in_filter(
+        self,
+        node: Node,
+        children: tuple[
+            Node | tuple[Node],  # ! if present
+            Node,  # has: lookahead
+            SearchKey,  # SearchKey('has')
+            Node,  # :
+            list[list[SearchKey]],
+        ],
+    ) -> ParenExpression:
+        (negation, _, _, _, search_key_lst) = children
+        search_keys: list[SearchKey] = [sk for sublist in search_key_lst for sk in sublist]
+
+        # if it matched search value instead, it's not a valid key
+        if any(isinstance(search_key, SearchValue) for search_key in search_keys):
+            raise InvalidSearchQuery(
+                'Invalid format for "has" search: was expecting a field or tag instead'
+            )
+
+        # Some datasets do not support the !has filter, but we allow
+        # team_key_transaction because we control that field and special
+        # case the way it's processed in search
+        if (
+            not self.config.allow_not_has_filter
+            and is_negated(negation)
+            and TEAM_KEY_TRANSACTION_ALIAS not in [search_key.name for search_key in search_keys]
+        ):
+            raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
+
+        operator = "=" if is_negated(negation) else "!="
+        joining_operator: QueryOp = "AND" if is_negated(negation) else "OR"
+        search_value = SearchValue("")
+        all_filters = [
+            SearchFilter(search_key, operator, search_value) for search_key in search_keys
+        ]
+        tokens: Sequence[QueryToken] = list(
+            chain.from_iterable(zip(all_filters[:-1], repeat(joining_operator)))
+        ) + ([all_filters[-1]] if all_filters else [])
+        return ParenExpression(tokens)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node

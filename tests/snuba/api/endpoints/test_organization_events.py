@@ -3122,6 +3122,50 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(data) == 1
             assert data[0]["count(id)"] == 0
 
+    def test_has_and_has_in_filter(self) -> None:
+        """Legacy path: single-key has: and multi-key has:[...] on discover dataset."""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"tag_a": "1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"tag_b": "2"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"tag_a": "3", "tag_c": "4"},
+            },
+            project_id=self.project.id,
+        )
+        features = {"organizations:discover-basic": True}
+        # Multi-key has:[...] (events that have tag_a OR tag_b)
+        response2 = self.do_request(
+            {
+                "field": ["id", "tag_a", "tag_b"],
+                "query": "has:[tag_a,tag_c]",
+                "sort": "id",
+                "statsPeriod": "24h",
+                "dataset": "discover",
+            },
+            features=features,
+        )
+        assert response2.status_code == 200, response2.content
+        data2 = response2.data["data"]
+        assert len(data2) == 2
+        ids2 = {r["id"] for r in data2}
+        assert ids2 == {"a" * 32, "c" * 32}
+
     def test_tag_that_looks_like_aggregation(self) -> None:
         data = {
             "message": "Failure state",

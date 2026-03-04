@@ -987,6 +987,83 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == 'a"b'
 
+    def test_has_in_filter(self):
+        assert parse_search_query("release:['some_text', 'some_other_text']") == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(
+                    [
+                        "'some_text'",
+                        "'some_other_text'",
+                    ]
+                ),
+            )
+        ]
+
+        # normal has filter
+        assert parse_search_query('has:"hi:there"') == [
+            SearchFilter(
+                key=SearchKey(name="hi:there"), operator="!=", value=SearchValue(raw_value="")
+            )
+        ]
+
+        # actual expression simplified
+        assert parse_search_query("has:release OR has:zoo") == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="!=",
+                value=SearchValue(raw_value="", use_raw_value=False),
+            ),
+            "OR",
+            SearchFilter(
+                key=SearchKey(name="zoo"),
+                operator="!=",
+                value=SearchValue(raw_value="", use_raw_value=False),
+            ),
+        ]
+
+        # actual expression in parentheses
+        assert parse_search_query("(has:release OR has:zoo)") == [
+            ParenExpression(
+                children=[
+                    SearchFilter(
+                        key=SearchKey(name="release"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                    "OR",
+                    SearchFilter(
+                        key=SearchKey(name="zoo"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                ]
+            ),
+        ]
+
+        # same expression with has in filter:
+        assert parse_search_query("has:[release,zoo]") == [
+            ParenExpression(
+                children=[
+                    SearchFilter(
+                        key=SearchKey(name="release"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                    "OR",
+                    SearchFilter(
+                        key=SearchKey(name="zoo"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                ]
+            ),
+        ]
+        # malformed key
+        with pytest.raises(InvalidSearchQuery):
+            parse_search_query('has:"hi there"')
+
 
 @pytest.mark.parametrize(
     "raw,result",
