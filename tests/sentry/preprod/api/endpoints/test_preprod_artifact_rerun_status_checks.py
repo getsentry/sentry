@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class PreprodArtifactRerunStatusChecksTest(APITestCase):
-    endpoint = "sentry-api-0-preprod-artifact-rerun-status-checks"
+    endpoint = "sentry-api-0-organization-preprod-artifact-rerun-status-checks"
     method = "post"
 
     def setUp(self):
@@ -63,7 +63,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             check_types=["invalid"],
             status_code=400,
@@ -89,7 +88,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             check_types=[{"type": "size"}],
             status_code=400,
@@ -108,7 +106,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=400,
         )
@@ -167,7 +164,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=403,
         )
