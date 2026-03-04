@@ -10,7 +10,6 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -259,11 +258,11 @@ export default SimilarStackTrace;
 
 const Title = styled('h4')`
   font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const HeaderWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   small {
     color: ${p => p.theme.tokens.content.secondary};
