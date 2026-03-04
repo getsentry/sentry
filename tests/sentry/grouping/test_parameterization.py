@@ -129,6 +129,7 @@ standard_cases = [
     ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
     ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
+    ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
@@ -208,12 +209,6 @@ def test_experimental_parameterization(
 # parameterization. (Remember to remove the last item in each tuple for the cases you fix.)
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
-    (
-        "git sha",
-        "commit a93c7d2",
-        "commit <git_sha>",
-        "commit a93c7d2",
-    ),
     (
         "int - number in word",
         "Encoding: utf-8",
