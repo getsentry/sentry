@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
-import {space} from 'sentry/styles/space';
 
 interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
   InputFieldProps,
@@ -113,10 +112,10 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
 }>`
   position: relative;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.font.weight.sans.regular};

@@ -30,7 +30,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
-import type {AlertType, MetricAlertType, WizardRuleTemplate} from './options';
+import type {AlertType, MetricAlertType} from './options';
 import {
   AlertWizardAlertNames,
   AlertWizardExtraContent,
@@ -67,7 +67,7 @@ export default function AlertWizard() {
     setAlertOption(option);
   };
 
-  let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+  let metricRuleTemplate =
     alertOption in AlertWizardRuleTemplates
       ? AlertWizardRuleTemplates[alertOption as MetricAlertType]
       : undefined;

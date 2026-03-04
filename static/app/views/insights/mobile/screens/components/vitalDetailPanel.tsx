@@ -5,7 +5,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {makePerformanceScoreColors} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
@@ -76,7 +75,7 @@ export function VitalDetailPanel({
 }
 
 const VitalDetailTitle = styled('h4')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Badge = styled('div')<{status: PerformanceScore}>`
@@ -86,7 +85,7 @@ const Badge = styled('div')<{status: PerformanceScore}>`
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.font.size.sm};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   display: inline-block;
   height: 17px;
   vertical-align: middle;
@@ -94,5 +93,5 @@ const Badge = styled('div')<{status: PerformanceScore}>`
 
 const SubHeading = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

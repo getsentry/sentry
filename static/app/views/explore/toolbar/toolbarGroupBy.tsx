@@ -1,7 +1,5 @@
 import {useCallback, useState} from 'react';
 
-import type {SelectOption} from '@sentry/scraps/compactSelect';
-
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
@@ -125,7 +123,7 @@ function ToolbarGroupByItemContent({
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
   const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
 
-  const options: Array<SelectOption<string>> = useGroupByFields({
+  const options = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,

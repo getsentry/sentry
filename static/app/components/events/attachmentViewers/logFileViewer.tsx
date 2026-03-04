@@ -7,7 +7,6 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 function LogFileViewer(props: ViewerProps) {
@@ -78,7 +77,7 @@ const SentryStyleAnsi = styled(Ansi)`
 `;
 
 const CodeWrapper = styled('pre')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   width: 100%;
   margin-bottom: 0;
   &:after {

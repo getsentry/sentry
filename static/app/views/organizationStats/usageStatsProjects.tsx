@@ -144,7 +144,7 @@ export function UsageStatsProjects({
       };
     }
 
-    let key: string = parentTableSort;
+    let key = parentTableSort;
     let direction = -1;
 
     if (parentTableSort.charAt(0) === '-') {

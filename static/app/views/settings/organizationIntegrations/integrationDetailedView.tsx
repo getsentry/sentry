@@ -83,11 +83,9 @@ function makeIntegrationQueryKey({
   ];
 }
 
+const tabs = ['overview', 'configurations', 'features'] as const;
+
 export default function IntegrationDetailedView() {
-  const tabs: IntegrationTab[] = useMemo(
-    () => ['overview', 'configurations', 'features'],
-    []
-  );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
@@ -141,7 +139,7 @@ export default function IntegrationDetailedView() {
       {url: provider?.metadata.issue_url ?? '', title: 'Report Issue'},
     ];
   }, [provider]);
-  const alerts: AlertType[] = useMemo(() => {
+  const alerts = useMemo(() => {
     // The server response for integration installations includes old icon CSS classes
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
@@ -207,7 +205,7 @@ export default function IntegrationDetailedView() {
         onTabChange={onTabChange}
       />
     );
-  }, [provider, tabs, activeTab, onTabChange]);
+  }, [provider, activeTab, onTabChange]);
 
   const onInstall = useCallback(
     (integration: Integration) => {

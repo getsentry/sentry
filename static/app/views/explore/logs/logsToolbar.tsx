@@ -151,19 +151,19 @@ function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
     HiddenLogSearchFields
   );
 
-  const sortedNumberKeys: string[] = useMemo(() => {
+  const sortedNumberKeys = useMemo(() => {
     const keys = Object.keys(numberTags);
     keys.sort();
     return keys;
   }, [numberTags]);
 
-  const sortedStringKeys: string[] = useMemo(() => {
+  const sortedStringKeys = useMemo(() => {
     const keys = Object.keys(stringTags);
     keys.sort();
     return keys;
   }, [stringTags]);
 
-  const sortedBooleanKeys: string[] = useMemo(() => {
+  const sortedBooleanKeys = useMemo(() => {
     const keys = Object.keys(booleanTags);
     keys.sort();
     return keys;

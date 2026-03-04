@@ -22,7 +22,6 @@ import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -189,7 +188,7 @@ export function UptimeDataSection({group, event, project}: Props) {
 
 const DowntimeTooltipTitle = styled('div')`
   display: grid;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space.md};
   grid-template-columns: max-content 1fr;
   justify-items: start;
 `;
@@ -199,7 +198,7 @@ const DowntimeLabel = styled('div')`
 `;
 
 const Text = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const TimelineContainer = styled(Panel)`
