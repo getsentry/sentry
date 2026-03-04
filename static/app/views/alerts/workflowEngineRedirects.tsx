@@ -5,6 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -40,14 +41,16 @@ interface IncidentGroupOpenPeriod {
 function getIssueDetailsPath({
   orgSlug,
   groupId,
+  openPeriodId,
   query,
 }: {
   groupId: string;
+  openPeriodId: string | undefined;
   orgSlug: string;
   query: Query;
 }) {
-  const search = qs.stringify(query);
-  const pathname = `/organizations/${orgSlug}/issues/${groupId}/`;
+  const search = qs.stringify({...query, openPeriod: openPeriodId});
+  const pathname = normalizeUrl(`/organizations/${orgSlug}/issues/${groupId}/`);
 
   return search ? `${pathname}?${search}` : pathname;
 }
@@ -278,6 +281,7 @@ function RedirectToIssue({
         to={getIssueDetailsPath({
           orgSlug: organization.slug,
           groupId: incidentGroupOpenPeriod.groupId,
+          openPeriodId: incidentGroupOpenPeriod.openPeriodId,
           query: location.query,
         })}
       />
@@ -405,6 +409,7 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
             to={getIssueDetailsPath({
               orgSlug: organization.slug,
               groupId: incidentGroupOpenPeriod.groupId,
+              openPeriodId: incidentGroupOpenPeriod.openPeriodId,
               query: location.query,
             })}
           />
