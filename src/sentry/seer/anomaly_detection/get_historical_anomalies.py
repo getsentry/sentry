@@ -136,8 +136,9 @@ def get_historical_anomaly_data_from_seer_preview(
         "config": config,
         "context": context,
     }
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     try:
-        response = make_detect_historical_anomalies_request(body)
+        response = make_detect_historical_anomalies_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
