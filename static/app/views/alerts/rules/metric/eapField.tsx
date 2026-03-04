@@ -16,6 +16,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {BufferedInput} from 'sentry/views/discover/table/queryField';
@@ -72,11 +73,13 @@ const LOG_OPERATIONS = [
 })) satisfies Array<{label: string; value: OurLogsAggregate}>;
 
 export default function EAPField({aggregate, onChange, eventTypes, project}: Props) {
+  const organization = useOrganization();
   const traceItemType =
     getTraceItemTypeForDatasetAndEventType(
       Dataset.EVENTS_ANALYTICS_PLATFORM,
       eventTypes
     ) || TraceItemDataset.SPANS;
+  const isAttributesEnabled = organization.features.includes('visibility-explore-view');
 
   const {name: aggregation, arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
     arguments: undefined,
@@ -84,17 +87,17 @@ export default function EAPField({aggregate, onChange, eventTypes, project}: Pro
 
   const {attributes: storedNumberTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    {projects: project ? [project] : undefined},
+    {enabled: isAttributesEnabled, projects: project ? [project] : undefined},
     'number'
   );
   const {attributes: storedStringTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    {projects: project ? [project] : undefined},
+    {enabled: isAttributesEnabled, projects: project ? [project] : undefined},
     'string'
   );
   const {attributes: storedBooleanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    {projects: project ? [project] : undefined},
+    {enabled: isAttributesEnabled, projects: project ? [project] : undefined},
     'boolean'
   );
 

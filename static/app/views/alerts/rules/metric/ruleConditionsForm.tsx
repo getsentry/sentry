@@ -721,6 +721,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         onFilterSearch(query, parsedQuery);
                         onChange(query, {});
                       }}
+                      enabled={organization.features.includes('visibility-explore-view')}
                       project={project}
                       traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                     />
@@ -842,6 +843,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 }
 
 interface EAPSearchQueryBuilderWithContextProps {
+  enabled: boolean;
   initialQuery: string;
   onSearch: (query: string, isQueryValid: any) => void;
   project: Project;
@@ -849,17 +851,30 @@ interface EAPSearchQueryBuilderWithContextProps {
 }
 
 function EAPSearchQueryBuilderWithContext({
+  enabled,
   initialQuery,
   onSearch,
   project,
   traceItemType,
 }: EAPSearchQueryBuilderWithContextProps) {
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceItemType, {projects: [project]}, 'number');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {enabled, projects: [project]},
+      'number'
+    );
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceItemType, {projects: [project]}, 'string');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {enabled, projects: [project]},
+      'string'
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceItemType, {projects: [project]}, 'boolean');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {enabled, projects: [project]},
+      'boolean'
+    );
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,

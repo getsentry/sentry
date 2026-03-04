@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, type ReactElement} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,8 +7,12 @@ import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 describe('EAPField', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['visibility-explore-view']});
   let fieldsMock: any;
+
+  function renderWithVisibilityFeature(ui: ReactElement) {
+    return render(ui, {organization});
+  }
 
   beforeEach(() => {
     fieldsMock = MockApiClient.addMockResponse({
@@ -17,8 +21,30 @@ describe('EAPField', () => {
     });
   });
 
-  it('renders', () => {
+  it('does not fetch trace item attributes without visibility-explore-view', () => {
+    const orgWithoutVisibilityFeature = OrganizationFixture({
+      slug: 'no-visibility-org',
+      features: [],
+    });
+    const noVisibilityFieldsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithoutVisibilityFeature.slug}/trace-items/attributes/`,
+      method: 'GET',
+    });
+
     render(
+      <EAPField
+        aggregate="count(span.duration)"
+        onChange={() => {}}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+      />,
+      {organization: orgWithoutVisibilityFeature}
+    );
+
+    expect(noVisibilityFieldsMock).not.toHaveBeenCalled();
+  });
+
+  it('renders', () => {
+    renderWithVisibilityFeature(
       <EAPField
         aggregate="count(span.duration)"
         onChange={() => {}}
@@ -49,7 +75,7 @@ describe('EAPField', () => {
   });
 
   it('renders epm with argument disabled', () => {
-    render(
+    renderWithVisibilityFeature(
       <EAPField
         aggregate="epm()"
         onChange={() => {}}
@@ -74,7 +100,7 @@ describe('EAPField', () => {
   });
 
   it('renders failure_rate with argument disabled', () => {
-    render(
+    renderWithVisibilityFeature(
       <EAPField
         aggregate="failure_rate()"
         onChange={() => {}}
@@ -106,7 +132,7 @@ describe('EAPField', () => {
 
   it('should call onChange with the new aggregate string when switching aggregates', async () => {
     const onChange = jest.fn();
-    render(
+    renderWithVisibilityFeature(
       <EAPField
         aggregate="count(span.duration)"
         onChange={onChange}
@@ -142,7 +168,7 @@ describe('EAPField', () => {
       );
     }
 
-    render(<Component />);
+    renderWithVisibilityFeature(<Component />);
 
     // switch from count(spans) -> max(span.duration)
     await userEvent.click(screen.getByText('count'));
@@ -173,7 +199,7 @@ describe('EAPField', () => {
       );
     }
 
-    render(<Component />);
+    renderWithVisibilityFeature(<Component />);
 
     // switch from count(spans) -> count_unique(span.op)
     await userEvent.click(screen.getByText('count'));
@@ -197,7 +223,7 @@ describe('EAPField', () => {
   });
 
   it('renders count with argument disabled for logs', () => {
-    render(
+    renderWithVisibilityFeature(
       <EAPField
         aggregate="count(message)"
         onChange={() => {}}
@@ -238,7 +264,7 @@ describe('EAPField', () => {
       );
     }
 
-    render(<Component />);
+    renderWithVisibilityFeature(<Component />);
 
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -271,7 +297,7 @@ describe('EAPField', () => {
       );
     }
 
-    render(<Component />);
+    renderWithVisibilityFeature(<Component />);
 
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -304,7 +330,7 @@ describe('EAPField', () => {
       );
     }
 
-    render(<Component />);
+    renderWithVisibilityFeature(<Component />);
 
     await userEvent.click(screen.getByText('count'));
     await userEvent.click(await screen.findByText('apdex'));
@@ -322,7 +348,7 @@ describe('EAPField', () => {
 
   it('should call onChange with correct apdex aggregate when switching to apdex', async () => {
     const onChange = jest.fn();
-    render(
+    renderWithVisibilityFeature(
       <EAPField
         aggregate="count(span.duration)"
         onChange={onChange}
@@ -355,7 +381,7 @@ describe('EAPField', () => {
       );
     }
 
-    render(<Component />);
+    renderWithVisibilityFeature(<Component />);
 
     expect(screen.getByText('apdex')).toBeInTheDocument();
     expect(screen.getByText('span.duration')).toBeInTheDocument();
