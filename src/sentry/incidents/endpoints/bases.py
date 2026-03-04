@@ -136,7 +136,7 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
                     kwargs["alert_rule"] = Detector.objects.get(
                         id=detector_id,
                         project__organization=organization,
-                    )
+                    ).select_related("project")
                 except Detector.DoesNotExist:
                     raise ResourceDoesNotExist
 

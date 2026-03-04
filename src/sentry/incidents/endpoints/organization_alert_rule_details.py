@@ -147,20 +147,19 @@ def remove_alert_rule(
 ) -> Response:
     if isinstance(target, Detector):
         try:
-            with transaction.atomic(router.db_for_write(Detector)):
-                remove_detector(request, organization, target)
-                try:
-                    ard = AlertRuleDetector.objects.get(detector_id=target.id)
-                    target = AlertRule.objects.get(id=ard.alert_rule_id)
-                    delete_alert_rule(
-                        target,
-                        user=_anon_to_None(request.user),
-                        ip_address=request.META.get("REMOTE_ADDR"),
-                    )
-                except (AlertRuleDetector.DoesNotExist, AlertRule.DoesNotExist):
-                    return Response(status=status.HTTP_204_NO_CONTENT)
-
+            remove_detector(request, organization, target)
+            try:
+                ard = AlertRuleDetector.objects.get(detector_id=target.id)
+                target = AlertRule.objects.get(id=ard.alert_rule_id)
+                delete_alert_rule(
+                    target,
+                    user=_anon_to_None(request.user),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                )
+            except (AlertRuleDetector.DoesNotExist, AlertRule.DoesNotExist):
                 return Response(status=status.HTTP_204_NO_CONTENT)
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
             return Response(
                 "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
