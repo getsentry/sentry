@@ -98,7 +98,7 @@ describe('limitDateTimeParamsToMaxPoints', () => {
 
     expect(result).toEqual({
       dateTimeParams: {
-        start: getUtcDateString(endMs - 10_100 * 300 * 1000),
+        start: getUtcDateString(endMs - (10_100 - 1) * 300 * 1000),
         end: getUtcDateString(endMs),
       },
       isRangeLimited: true,

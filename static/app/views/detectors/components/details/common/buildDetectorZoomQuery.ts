@@ -46,7 +46,7 @@ interface LimitDateTimeParamsToMaxPointsResult {
 
 function getMaxSpanMs(intervalSeconds?: number): number {
   const intervalMs = Math.max((intervalSeconds ?? 60) * 1000, MIN_INTERVAL_MS);
-  const pointsSpanMs = MAX_DETECTOR_CHART_POINTS * intervalMs;
+  const pointsSpanMs = (MAX_DETECTOR_CHART_POINTS - 1) * intervalMs;
   return Math.min(pointsSpanMs, NINETY_DAYS_MS);
 }
 
