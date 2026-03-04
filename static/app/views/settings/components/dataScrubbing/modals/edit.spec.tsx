@@ -1,5 +1,4 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {createMockAttributeResults} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -33,8 +32,6 @@ const rule = rules[2]!;
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
-const emptyAttributeResults = createMockAttributeResults(true);
-const mockAttributeResults = createMockAttributeResults();
 
 describe('Edit Modal', () => {
   beforeEach(() => {
@@ -58,7 +55,6 @@ describe('Edit Modal', () => {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -146,7 +142,6 @@ describe('Edit Modal', () => {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -200,7 +195,6 @@ describe('Edit Modal', () => {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -234,7 +228,6 @@ describe('Edit Modal', () => {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -266,7 +259,6 @@ describe('Edit Modal', () => {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -298,7 +290,6 @@ describe('Edit Modal', () => {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -350,7 +341,6 @@ describe('Edit Modal with ourlogs-enabled', () => {
           orgSlug={organizationSlug}
           onSubmitSuccess={jest.fn()}
           rule={rule}
-          attributeResults={mockAttributeResults}
         />
       </OrganizationContext.Provider>
     );
@@ -376,7 +366,6 @@ describe('Edit Modal with ourlogs-enabled', () => {
           orgSlug={organizationSlug}
           onSubmitSuccess={jest.fn()}
           rule={rule}
-          attributeResults={mockAttributeResults}
         />
       </OrganizationContext.Provider>
     );

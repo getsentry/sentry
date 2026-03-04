@@ -32,7 +32,6 @@ const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
-const emptyAttributeResults = createMockAttributeResults(true);
 const defaultAttributeResults = createMockAttributeResults();
 
 describe('Add Modal', () => {
@@ -57,7 +56,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -130,7 +128,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -163,7 +160,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -210,7 +206,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -263,7 +258,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -315,7 +309,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={onSubmitSuccess}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -366,7 +359,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -416,7 +408,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -476,7 +467,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -515,7 +505,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -552,7 +541,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -599,7 +587,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -664,7 +651,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -736,7 +722,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -795,7 +780,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -853,7 +837,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -880,7 +863,6 @@ describe('Add Modal', () => {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
-        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -930,7 +912,6 @@ describe('Add Modal with ourlogs-enabled', () => {
           endpoint={endpoint}
           orgSlug={organizationSlug}
           onSubmitSuccess={successfullySaved}
-          attributeResults={mockAttributeResults}
         />
       </OrganizationContext.Provider>
     );
@@ -970,7 +951,6 @@ describe('Add Modal with ourlogs-enabled', () => {
           endpoint={endpoint}
           orgSlug={organizationSlug}
           onSubmitSuccess={successfullySaved}
-          attributeResults={mockAttributeResults}
         />
       </OrganizationContext.Provider>
     );
@@ -1001,7 +981,6 @@ describe('Add Modal with ourlogs-enabled', () => {
           endpoint={endpoint}
           orgSlug={organizationSlug}
           onSubmitSuccess={successfullySaved}
-          attributeResults={mockAttributeResults}
         />
       </OrganizationContext.Provider>
     );
@@ -1046,7 +1025,6 @@ describe('Add Modal with ourlogs-enabled', () => {
           endpoint={endpoint}
           orgSlug={organizationSlug}
           onSubmitSuccess={successfullySaved}
-          attributeResults={mockAttributeResults}
         />
       </OrganizationContext.Provider>
     );
