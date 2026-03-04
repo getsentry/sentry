@@ -17,7 +17,11 @@ from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import TranslateAgenticRequest, make_translate_agentic_request
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    TranslateAgenticRequest,
+    make_translate_agentic_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +64,7 @@ def send_translate_agentic_request(
     natural_language_query: str,
     strategy: str = "Traces",
     model_name: str | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> Any:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
@@ -77,7 +82,7 @@ def send_translate_agentic_request(
     if options:
         body["options"] = options
 
-    response = make_translate_agentic_request(body)
+    response = make_translate_agentic_request(body, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
@@ -134,6 +139,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,
@@ -141,5 +147,6 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             natural_language_query,
             strategy=strategy,
             model_name=model_name,
+            viewer_context=viewer_context,
         )
         return Response(data)

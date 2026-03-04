@@ -159,7 +159,7 @@ class _QueryField extends Component<Props> {
     }
     const {value} = selected;
     const current = this.props.fieldValue;
-    let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
+    let fieldValue = cloneDeep(this.props.fieldValue);
 
     switch (value.kind) {
       case FieldValueKind.TAG:

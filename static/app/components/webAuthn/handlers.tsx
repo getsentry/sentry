@@ -70,7 +70,7 @@ export async function handleEnroll(challengeData: ChallengeData) {
  */
 export async function handleSign(challengeData: ChallengeData) {
   const binaryChallenge = base64urlToUint8(challengeData.webAuthnAuthenticationData);
-  const options: PublicKeyCredentialRequestOptions = decode(binaryChallenge);
+  const options = decode<PublicKeyCredentialRequestOptions>(binaryChallenge);
   const credential = await navigator.credentials.get({publicKey: options});
 
   if (!isPublicKeyCredential(credential)) {

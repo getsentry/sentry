@@ -14,7 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
@@ -140,7 +140,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             else:
                 # We need to generate region specific upload URLs when possible to avoid hitting the API proxy
                 # which tends to cause timeouts and performance issues for uploads.
-                url = absolute_uri(relative_url, generate_region_url())
+                url = absolute_uri(relative_url, generate_locality_url())
         else:
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)

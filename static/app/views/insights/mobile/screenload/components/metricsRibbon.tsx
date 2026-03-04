@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
-import {space} from 'sentry/styles/space';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -79,7 +78,7 @@ export function MobileMetricsRibbon({
 }
 
 const StyledReadoutRibbon = styled(ReadoutRibbon)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function MetricsBlock({

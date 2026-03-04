@@ -565,7 +565,7 @@ function FieldReplacementHelper(
  * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
  */
 function BasicDiscoverRenderer(props: LogFieldRendererProps) {
-  const logMeta: EventsMetaType =
+  const logMeta =
     Object.keys(props.meta ?? {}).length > 0 ? props.meta! : logFieldBasicMetas;
   const basicRenderer = getFieldRenderer(props.item.fieldKey, logMeta, false);
   const attributeType = props.extra.attributeTypes[props.item.fieldKey];

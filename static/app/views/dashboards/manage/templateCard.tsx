@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import Card from 'sentry/components/card';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 
 type Props = {
@@ -64,8 +63,8 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
 }
 
 const StyledCard = styled(Card)`
-  gap: ${space(1)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`

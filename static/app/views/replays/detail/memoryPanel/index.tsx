@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
@@ -64,15 +63,15 @@ const Grid = styled('div')`
   display: grid;
   grid-template-rows: 1fr 1fr;
   grid-template-columns: 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: center;
   height: 100%;
 `;
 
 const ChartWrapper = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${space(0.5)};
-  padding: ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md};
   overflow: hidden;
   display: flex;
   flex-direction: column;

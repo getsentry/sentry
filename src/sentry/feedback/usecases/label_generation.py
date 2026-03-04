@@ -1,6 +1,7 @@
 import logging
 
 from sentry.feedback.lib.seer_api import LabelGenerationRequest, make_label_generation_request
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,11 @@ SEER_RETRIES = 0  # Do not retry since this is called in ingest.
 
 
 @metrics.wraps("feedback.generate_labels")
-def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
+def generate_labels(
+    feedback_message: str,
+    organization_id: int,
+    viewer_context: SeerViewerContext | None = None,
+) -> list[str]:
     """
     Generate labels for a feedback message.
 
@@ -33,6 +38,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             request,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
+            viewer_context=viewer_context,
         )
     except Exception:
         logger.exception("Seer failed to generate user feedback labels")
