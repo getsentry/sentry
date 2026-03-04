@@ -4,7 +4,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {useWidgetRawCounts} from './useWidgetRawCounts';
 
@@ -83,5 +83,29 @@ describe('useWidgetRawCounts', () => {
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     expect(highAccuracyRequest).toHaveBeenCalled();
+  });
+
+  it('does not fetch raw counts for non-timeseries display types', () => {
+    const selection = PageFiltersFixture();
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      displayType: DisplayType.TABLE,
+    });
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(span.duration)': 11}]},
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'spans'})],
+    });
+    const highAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(span.duration)': 13}]},
+      match: [MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'spans'})],
+    });
+
+    render(<TestComponent widget={widget} selection={selection} />, {organization});
+
+    expect(normalRequest).not.toHaveBeenCalled();
+    expect(highAccuracyRequest).not.toHaveBeenCalled();
   });
 });
