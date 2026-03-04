@@ -15,9 +15,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
@@ -37,23 +35,14 @@ export default function BuildComparison() {
     baseArtifactId?: string;
     headArtifactId?: string;
   }>();
-  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
-  if (projectIds.length !== 1) {
-    throw new Error(
-      `Expected exactly one project in query string but got ${projectIds.length}`
-    );
-  }
-  const projectId = projectIds[0]!;
 
   const headBuildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
     [
       getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
             headArtifactId: headArtifactId!,
           },
         }
@@ -61,13 +50,12 @@ export default function BuildComparison() {
     ],
     {
       staleTime: 0,
-      enabled: !!projectId && !!headArtifactId,
+      enabled: !!headArtifactId,
     }
   );
 
   const compareUrl = getCompareApiUrl({
     organizationSlug: organization.slug,
-    projectId,
     headArtifactId: headArtifactId!,
     baseArtifactId: baseArtifactId!,
   });
@@ -144,7 +132,6 @@ export default function BuildComparison() {
         <Layout.Header>
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
-            projectId={projectId}
             headArtifactId={headArtifactId}
             baseArtifactId={baseArtifactId}
             onRerunComparison={() => rerunComparison()}
