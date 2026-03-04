@@ -2,7 +2,12 @@ import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormOptions,
+  FormSearch,
+  setFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -125,63 +130,65 @@ export default function NewProviderForm({
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="provider">
-        {field => (
-          <div>
+    <FormSearch route="/settings/feature-flags/change-tracking/new-provider/">
+      <form.AppForm form={form}>
+        <form.AppField name="provider">
+          {field => (
+            <div>
+              <field.Layout.Row
+                padding="xl"
+                label={t('Provider')}
+                hintText={t(
+                  'If you have already linked this provider, pasting a new secret will override the existing secret.'
+                )}
+                required
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={value => {
+                    field.handleChange(value);
+                    setSelectedProvider(value);
+                  }}
+                  placeholder={t('Select a provider')}
+                  options={Object.values(WebhookProviderEnum).map(p => ({
+                    value: p,
+                    label: p,
+                  }))}
+                />
+              </field.Layout.Row>
+              <WebhookUrlField
+                provider={field.state.value}
+                organizationSlug={organization.slug}
+              />
+            </div>
+          )}
+        </form.AppField>
+        <form.AppField name="secret">
+          {field => (
             <field.Layout.Row
               padding="xl"
-              label={t('Provider')}
+              label={t('Secret')}
               hintText={t(
-                'If you have already linked this provider, pasting a new secret will override the existing secret.'
+                'Paste the signing secret given by your provider when creating the webhook.'
               )}
               required
             >
-              <field.Select
+              <field.Input
                 value={field.state.value}
-                onChange={value => {
-                  field.handleChange(value);
-                  setSelectedProvider(value);
-                }}
-                placeholder={t('Select a provider')}
-                options={Object.values(WebhookProviderEnum).map(p => ({
-                  value: p,
-                  label: p,
-                }))}
+                onChange={field.handleChange}
+                maxLength={100}
               />
             </field.Layout.Row>
-            <WebhookUrlField
-              provider={field.state.value}
-              organizationSlug={organization.slug}
-            />
-          </div>
-        )}
-      </form.AppField>
-      <form.AppField name="secret">
-        {field => (
-          <field.Layout.Row
-            padding="xl"
-            label={t('Secret')}
-            hintText={t(
-              'Paste the signing secret given by your provider when creating the webhook.'
-            )}
-            required
-          >
-            <field.Input
-              value={field.state.value}
-              onChange={field.handleChange}
-              maxLength={100}
-            />
-          </field.Layout.Row>
-        )}
-      </form.AppField>
-      <Flex justify="end" gap="md" padding="xl">
-        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-        <form.SubmitButton disabled={!canSaveSecret}>
-          {existingSecret ? t('Update Provider') : t('Add Provider')}
-        </form.SubmitButton>
-      </Flex>
-    </form.AppForm>
+          )}
+        </form.AppField>
+        <Flex justify="end" gap="md" padding="xl">
+          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+          <form.SubmitButton disabled={!canSaveSecret}>
+            {existingSecret ? t('Update Provider') : t('Add Provider')}
+          </form.SubmitButton>
+        </Flex>
+      </form.AppForm>
+    </FormSearch>
   );
 }
 
