@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -25,6 +24,7 @@ import type {
 
 import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
+import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
 import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
@@ -65,6 +65,7 @@ export default function SnapshotsPage() {
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState('#00cc44');
+  const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
   const {
     size: sidebarWidth,
@@ -198,44 +199,6 @@ export default function SnapshotsPage() {
           </Layout.HeaderActions>
         </Layout.Header>
 
-        {comparisonType === 'diff' && (
-          <Flex
-            align="center"
-            justify="between"
-            gap="lg"
-            padding="lg xl"
-            background="secondary"
-          >
-            <Text size="sm" bold>
-              {t('Comparison')}
-            </Text>
-            <Text size="sm" variant="muted">
-              {t(
-                '%s changed, %s added, %s removed, %s renamed, %s unchanged',
-                firstPageData.changed_count,
-                firstPageData.added_count,
-                firstPageData.removed_count,
-                firstPageData.renamed_count ?? 0,
-                firstPageData.unchanged_count
-              )}
-            </Text>
-            <Flex align="center" gap="sm">
-              <Button
-                size="xs"
-                priority={showOverlay ? 'primary' : 'default'}
-                onClick={() => setShowOverlay(!showOverlay)}
-              >
-                {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
-              </Button>
-              <ColorInput
-                type="color"
-                value={overlayColor}
-                onChange={e => setOverlayColor(e.target.value)}
-              />
-            </Flex>
-          </Flex>
-        )}
-
         <Flex direction="row" height="100%" width="100%" overflow="hidden">
           <Flex flexShrink={0} overflow="hidden" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent
@@ -264,7 +227,11 @@ export default function SnapshotsPage() {
               imageBaseUrl={imageBaseUrl}
               diffImageBaseUrl={diffImageBaseUrl}
               showOverlay={showOverlay}
+              onShowOverlayChange={setShowOverlay}
               overlayColor={overlayColor}
+              onOverlayColorChange={setOverlayColor}
+              diffMode={diffMode}
+              onDiffModeChange={setDiffMode}
             />
           </Flex>
         </Flex>
@@ -290,13 +257,4 @@ const DragHandle = styled('div')`
     user-select: none;
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
-`;
-
-const ColorInput = styled('input')`
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0;
 `;

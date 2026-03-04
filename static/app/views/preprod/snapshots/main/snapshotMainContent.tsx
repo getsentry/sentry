@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
@@ -8,12 +10,16 @@ import {t} from 'sentry/locale';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {DiffImageDisplay} from './imageDisplay/diffImageDisplay';
+import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
 
 interface SnapshotMainContentProps {
   diffImageBaseUrl: string;
+  diffMode: DiffMode;
   imageBaseUrl: string;
+  onDiffModeChange: (mode: DiffMode) => void;
+  onOverlayColorChange: (color: string) => void;
+  onShowOverlayChange: (show: boolean) => void;
   onVariantChange: (index: number) => void;
   overlayColor: string;
   selectedItem: SidebarItem | null;
@@ -28,7 +34,11 @@ export function SnapshotMainContent({
   imageBaseUrl,
   diffImageBaseUrl,
   showOverlay,
+  onShowOverlayChange,
   overlayColor,
+  onOverlayColorChange,
+  diffMode,
+  onDiffModeChange,
 }: SnapshotMainContentProps) {
   if (!selectedItem) {
     return (
@@ -42,10 +52,26 @@ export function SnapshotMainContent({
     const displayName = getImageName(selectedItem.pair.head_image);
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" gap="md" padding="xl">
+        <Flex align="center" justify="between" gap="md" padding="xl">
           <Text size="lg" bold>
             {displayName}
           </Text>
+          {diffMode === 'split' && (
+            <Flex align="center" gap="sm">
+              <Button
+                size="xs"
+                priority={showOverlay ? 'primary' : 'default'}
+                onClick={() => onShowOverlayChange(!showOverlay)}
+              >
+                {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
+              </Button>
+              <ColorInput
+                type="color"
+                value={overlayColor}
+                onChange={e => onOverlayColorChange(e.target.value)}
+              />
+            </Flex>
+          )}
         </Flex>
         <Separator orientation="horizontal" />
         <DiffImageDisplay
@@ -54,6 +80,8 @@ export function SnapshotMainContent({
           diffImageBaseUrl={diffImageBaseUrl}
           showOverlay={showOverlay}
           overlayColor={overlayColor}
+          diffMode={diffMode}
+          onDiffModeChange={onDiffModeChange}
         />
       </Flex>
     );
@@ -133,3 +161,12 @@ export function SnapshotMainContent({
     </Flex>
   );
 }
+
+const ColorInput = styled('input')`
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.sm};
+  padding: 0;
+`;
