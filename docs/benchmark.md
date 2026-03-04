@@ -176,6 +176,43 @@ File granularity + loadfile wins on wall clock. Class + loadscope has slightly b
 
 ---
 
+## Experiment 8-9: see above (G1 results)
+
+## Experiment 10: + H1 overlapped startup (T2 only), 6 backend-light shards
+
+Same as Experiment 9, plus H1 on backend-test: `skip-devservices: true`, background subshell for devservices + pg-socket + Snuba bootstrap, foreground pytest. H1 NOT applied to backend-light (no measurable benefit for 17s service startup).
+
+**backend-light (6 shards, sequential startup):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 10m43s | 124s | 9m13s | 22647711734 |
+| 2 | 9m40s | 90s | 9m02s | 22647710835 |
+| 3 | 9m07s | 33s | 8m49s | 22647710106 |
+| **Mean** | **9m50s** | **82s** | **9m01s** | |
+
+**backend-test (22 shards, overlapped startup):**
+
+| Run | Wall Clock | Spread | Average | Run ID |
+|-----|-----------|--------|---------|--------|
+| 1 | 8m17s | 80s | 7m43s | 22647711734 |
+| 2 | 9m17s | 122s | 8m02s | 22647710835 |
+| 3 | 8m44s | 122s | 7m36s | 22647710106 |
+| **Mean** | **8m46s** | **108s** | **7m47s** | |
+
+**Overall (all 28 shards):**
+
+| Run | Wall Clock | Spread | Average |
+|-----|-----------|--------|---------|
+| 1 | 10m43s | 226s | 8m02s |
+| 2 | 9m40s | 145s | 8m15s |
+| 3 | 9m07s | 145s | 7m52s |
+| **Mean** | **9m50s** | **172s** | **8m03s** |
+
+**Delta vs Experiment 9 (no H1):** backend-test avg −35s (8m22s → 7m47s). Overall avg −29s (8m32s → 8m03s). H1 reverted on backend-light (no benefit for 17s startup).
+
+---
+
 ## Experiment 8: + G1 (pytest_ignore_collect), 5 backend-light shards
 
 Same as Experiment 6, plus G1 — `pytest_ignore_collect` skips importing test files not in the tier's list.
@@ -255,4 +292,5 @@ Same as Experiment 8, but backend-light uses 6 shards instead of 5 to reduce its
 | + pg-socket (Exp 2) | 12m38s | 11m40s | −11m |
 | + relay session (Exp 3) | 12m30s | 11m33s | −3m |
 | + tiered split (Exp 6) | 10m58s | 9m44s | −49m (fewer T1 runner-min) |
-| + G1, 6 shards (Exp 9) | **9m47s** | **8m32s** | **−31m (collection savings)** |
+| + G1, 6 shards (Exp 9) | 9m47s | 8m32s | −31m (collection savings) |
+| + H1 overlapped startup (Exp 10) | **9m50s** | **8m03s** | **−13m (overlap savings on T2)** |

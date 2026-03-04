@@ -55,15 +55,15 @@ def _install_socket_patches() -> None:
     global _original_send, _original_sendall
     _original_send = socket.socket.send
     _original_sendall = socket.socket.sendall
-    socket.socket.send = _patched_send  # type: ignore[method-assign]
-    socket.socket.sendall = _patched_sendall  # type: ignore[method-assign]
+    socket.socket.send = _patched_send  # type: ignore[assignment,method-assign]
+    socket.socket.sendall = _patched_sendall  # type: ignore[assignment,method-assign]
 
 
 def _uninstall_socket_patches() -> None:
     if _original_send is not None:
-        socket.socket.send = _original_send  # type: ignore[method-assign]
+        socket.socket.send = _original_send  # type: ignore[assignment,method-assign]
     if _original_sendall is not None:
-        socket.socket.sendall = _original_sendall  # type: ignore[method-assign]
+        socket.socket.sendall = _original_sendall  # type: ignore[assignment,method-assign]
 
 
 def _detect_static_services(item: pytest.Item) -> set[str]:
