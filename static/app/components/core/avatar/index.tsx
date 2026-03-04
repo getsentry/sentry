@@ -1,5 +1,5 @@
 export {ActorAvatar, type ActorAvatarProps} from './actorAvatar';
-export {Avatar, type AvatarProps} from './avatar';
+export {Avatar, type AvatarProps, type BaseAvatarProps} from './avatar';
 export {AvatarList, CollapsedAvatars} from './avatarList';
 export {DocIntegrationAvatar} from './docIntegrationAvatar';
 export {OrganizationAvatar} from './organizationAvatar';

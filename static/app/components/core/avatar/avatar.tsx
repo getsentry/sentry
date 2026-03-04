@@ -41,6 +41,11 @@ export interface UploadBaseAvatarProps extends AvatarProps {
   uploadUrl: string;
 }
 
+export type BaseAvatarProps =
+  | GravatarBaseAvatarProps
+  | LetterBaseAvatarProps
+  | UploadBaseAvatarProps;
+
 export function Avatar({
   ref,
   className,
@@ -51,7 +56,7 @@ export function Avatar({
   hasTooltip = false,
   'data-test-id': testId,
   ...avatarProps
-}: GravatarBaseAvatarProps | LetterBaseAvatarProps | UploadBaseAvatarProps) {
+}: BaseAvatarProps) {
   // Destructure avatar-specific props to prevent spreading onto DOM
   const {type, identifier, name, title, round, suggested, ...restProps} = avatarProps;
 

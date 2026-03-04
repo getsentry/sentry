@@ -1,0 +1,127 @@
+---
+title: AvatarButton
+description: AvatarButton is a button variant that renders an Avatar edge-to-edge from a typed avatar definition.
+category: buttons
+source: '@sentry/scraps/button'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/avatarButton.tsx
+---
+
+import {AvatarButton} from '@sentry/scraps/button';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/button/avatarButton';
+
+export {documentation};
+
+Use `AvatarButton` when the avatar itself should be the clickable control.
+
+## Basic Usage
+
+```jsx
+<AvatarButton
+  aria-label="Open profile"
+  onClick={() => {}}
+  avatar={{type: 'letter_avatar', identifier: 'user-1', name: 'Jane Doe'}}
+/>
+```
+
+## Avatar Definitions
+
+`avatar` accepts the same base avatar definitions as `<Avatar />`.
+
+<Storybook.Demo>
+  <AvatarButton
+    aria-label="Open Jane Doe profile"
+    avatar={{type: 'letter_avatar', identifier: 'user-1', name: 'Jane Doe'}}
+  />
+  <AvatarButton
+    aria-label="Open upload avatar profile"
+    avatar={{
+      type: 'upload',
+      identifier: 'upload-user',
+      name: 'Upload User',
+      uploadUrl: 'https://avatars.githubusercontent.com/u/1396951?v=4',
+    }}
+  />
+  <AvatarButton
+    aria-label="Open gravatar profile"
+    avatar={{
+      type: 'gravatar',
+      identifier: 'gravatar-user',
+      name: 'Gravatar User',
+      gravatarId: 'jonas.badalic@sentry.io',
+    }}
+  />
+</Storybook.Demo>
+```jsx
+<AvatarButton
+  aria-label="Open Jane Doe profile"
+  avatar={{type: 'letter_avatar', identifier: 'user-1', name: 'Jane Doe'}}
+/>
+<AvatarButton
+  aria-label="Open upload avatar profile"
+  avatar={{
+    type: 'upload',
+    identifier: 'upload-user',
+    name: 'Upload User',
+    uploadUrl: 'https://avatars.githubusercontent.com/u/1396951?v=4',
+  }}
+/>
+<AvatarButton
+  aria-label="Open gravatar profile"
+  avatar={{
+    type: 'gravatar',
+    identifier: 'gravatar-user',
+    name: 'Gravatar User',
+    gravatarId: 'jonas.badalic@sentry.io',
+  }}
+/>
+```
+
+## Sizes and Priorities
+
+You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
+
+<Storybook.Demo>
+  <AvatarButton
+    size="md"
+    priority="primary"
+    aria-label="Primary avatar button"
+    avatar={{type: 'letter_avatar', identifier: 'primary', name: 'Primary User'}}
+  />
+  <AvatarButton
+    size="sm"
+    priority="default"
+    aria-label="Small avatar button"
+    avatar={{type: 'letter_avatar', identifier: 'small', name: 'Small User'}}
+  />
+  <AvatarButton
+    size="xs"
+    priority="transparent"
+    disabled
+    aria-label="Disabled avatar button"
+    avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}
+  />
+</Storybook.Demo>
+```jsx
+<AvatarButton
+  size="md"
+  priority="primary"
+  aria-label="Primary avatar button"
+  avatar={{type: 'letter_avatar', identifier: 'primary', name: 'Primary User'}}
+/>
+<AvatarButton
+  size="sm"
+  aria-label="Small avatar button"
+  avatar={{type: 'letter_avatar', identifier: 'small', name: 'Small User'}}
+/>
+<AvatarButton
+  size="xs"
+  priority="transparent"
+  disabled
+  aria-label="Disabled avatar button"
+  avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}
+/>
+```
