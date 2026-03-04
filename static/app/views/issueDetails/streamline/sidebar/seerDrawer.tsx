@@ -25,7 +25,6 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -537,8 +536,8 @@ export const useOpenSeerDrawer = ({
 const PlaceholderStack = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledCard = styled('div')`
@@ -546,7 +545,7 @@ const StyledCard = styled('div')`
   overflow: visible;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   box-shadow: ${p => p.theme.dropShadowMedium};
   transition: all 0.3s ease-in-out;
 `;
@@ -569,7 +568,7 @@ const SeerDrawerHeader = styled(DrawerHeader)`
 const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} ${space(3)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space['2xl']};
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
@@ -582,9 +581,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
-  scroll-margin: 0 ${space(2)};
+  scroll-margin: 0 ${p => p.theme.space.xl};
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   flex-direction: column;
   direction: rtl;
   * {

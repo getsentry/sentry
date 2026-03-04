@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -88,7 +87,7 @@ const NoPaddingFormField = styled(FormField)`
 const QueryFieldRowWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;

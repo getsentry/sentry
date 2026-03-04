@@ -895,7 +895,7 @@ function EAPSearchQueryBuilderWithContext({
 const StyledListTitle = styled('div')`
   display: flex;
   span {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 `;
 
@@ -910,22 +910,22 @@ const HiddenListItem = styled(ListItem)`
 `;
 
 const Spacer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
   ol,
   h4 {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
