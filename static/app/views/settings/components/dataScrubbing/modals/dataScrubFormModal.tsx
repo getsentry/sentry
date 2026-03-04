@@ -79,7 +79,6 @@ export type DataScrubFormModalProps = ModalRenderProps & {
   onGetNewRules: (values: EditableRule) => Rule[];
   onSubmitSuccess: (data: {relayPiiConfig: string}) => void;
   orgSlug: string;
-  savedRules: Rule[];
   title: string;
   initialState?: Partial<EditableRule>;
   projectId?: Project['id'];

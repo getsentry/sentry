@@ -12,6 +12,7 @@ type Props = Omit<
 > & {
   attributeResults: AttributeResults;
   rule: Rule;
+  savedRules: Rule[];
 };
 
 function Edit({savedRules, rule, ...props}: Props) {
@@ -33,7 +34,6 @@ function Edit({savedRules, rule, ...props}: Props) {
   return (
     <DataScrubFormModal
       {...props}
-      savedRules={savedRules}
       title={t('Edit an advanced data scrubbing rule')}
       initialState={rule}
       onGetNewRules={handleGetNewRules}

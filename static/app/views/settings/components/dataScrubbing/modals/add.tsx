@@ -3,7 +3,12 @@ import type {Rule} from 'sentry/views/settings/components/dataScrubbing/types';
 
 import {DataScrubFormModal, type DataScrubFormModalProps} from './dataScrubFormModal';
 
-type Props = Omit<DataScrubFormModalProps, 'title' | 'initialValues' | 'onGetNewRules'>;
+type Props = Omit<
+  DataScrubFormModalProps,
+  'title' | 'initialValues' | 'onGetNewRules'
+> & {
+  savedRules: Rule[];
+};
 
 function Add({savedRules, ...props}: Props) {
   const handleGetNewRules = (
@@ -15,7 +20,6 @@ function Add({savedRules, ...props}: Props) {
   return (
     <DataScrubFormModal
       {...props}
-      savedRules={savedRules}
       title={t('Add an advanced data scrubbing rule')}
       onGetNewRules={handleGetNewRules}
     />
