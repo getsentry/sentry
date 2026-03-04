@@ -552,7 +552,9 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       const timeseriesResultsUnits: Record<string, DataUnit> = {};
       Object.keys(timeseriesData).forEach(key => {
         const alias = getAggregateAlias(key);
-        const fieldsMeta = timeseriesData[key]!.meta?.fields[alias];
+        const fieldsMeta =
+          timeseriesData[key]!.meta?.fields?.[key] ??
+          timeseriesData[key]!.meta?.fields?.[alias];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;
         }
