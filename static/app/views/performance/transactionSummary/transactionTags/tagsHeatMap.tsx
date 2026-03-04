@@ -112,6 +112,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const theme = useTheme();
   const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
@@ -307,7 +308,6 @@ function TagsHeatMap(
     }
   );
 
-  const theme = useTheme();
   const portaledContent =
     !chartElement || !overlayState.isOpen ? null : (
       <PositionWrapper

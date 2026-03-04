@@ -707,7 +707,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.tokens.content.secondary};
     font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
-    padding: ${p.space.md} ${p.space.xl};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
     border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
     font-size: ${p.theme.font.size.sm};
@@ -731,7 +731,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
-    margin-right: ${p.space.md};
+    margin-right: ${p.theme.space.md};
     display: block;
     width: 100%;
     white-space: nowrap;
@@ -771,7 +771,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
-    gap: ${p.space['2xl']};
+    gap: ${p.theme.space['2xl']};
   }
 
   .tooltip-footer-centered {
