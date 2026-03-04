@@ -33,11 +33,10 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         organization_id = project.organization_id
         project_id = project.id
 
-        object_key = f"{organization_id}/{project_id}/{image_id}"
         session = get_preprod_session(organization_id, project_id)
 
         try:
-            result = session.get(object_key)
+            result = session.get(image_id)
             # Read the entire stream at once (necessary for content_type)
             image_data = result.payload.read()
 
