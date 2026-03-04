@@ -1,7 +1,6 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
@@ -10,13 +9,15 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import TraceMetricsWidgetQueries from './traceMetricsWidgetQueries';
 
 describe('traceMetricsWidgetQueries', () => {
-  const {organization} = initializeOrg();
   const selection = PageFiltersFixture();
 
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(selection);
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   it('calculates confidence and sampling metadata from timeseries', async () => {
@@ -75,8 +76,7 @@ describe('traceMetricsWidgetQueries', () => {
             {confidence}:{sampleCount}:{String(isSampled)}:{dataScanned}
           </div>
         )}
-      </TraceMetricsWidgetQueries>,
-      {organization}
+      </TraceMetricsWidgetQueries>
     );
 
     expect(await screen.findByText('low:30:true:partial')).toBeInTheDocument();

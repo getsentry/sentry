@@ -18,12 +18,6 @@ type RawCountConfig = {
   aggregate?: string;
 };
 
-const UNSUPPORTED_WIDGET_CONFIG: RawCountConfig = {
-  supported: false,
-  dataset: DiscoverDatasets.SPANS,
-  enabled: false,
-};
-
 export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null {
   const rawCountConfig = useMemo<RawCountConfig>(() => {
     const isSupportedDisplayType =
@@ -64,16 +58,15 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
         };
       }
       default:
-        return UNSUPPORTED_WIDGET_CONFIG;
+        return {
+          supported: false,
+          dataset: DiscoverDatasets.SPANS,
+          enabled: false,
+        };
     }
   }, [widget]);
 
-  const rawCounts = useRawCounts({
-    dataset: rawCountConfig.dataset,
-    aggregate: rawCountConfig.aggregate,
-    enabled: rawCountConfig.enabled,
-    selection,
-  });
+  const rawCounts = useRawCounts({...rawCountConfig, selection});
 
   return rawCountConfig.supported ? rawCounts : null;
 }

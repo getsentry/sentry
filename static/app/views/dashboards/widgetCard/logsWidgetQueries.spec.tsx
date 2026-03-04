@@ -1,7 +1,6 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -9,9 +8,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import LogsWidgetQueries from './logsWidgetQueries';
 
 describe('logsWidgetQueries', () => {
-  const {organization} = initializeOrg();
-
-  beforeEach(() => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
@@ -69,8 +66,7 @@ describe('logsWidgetQueries', () => {
             {confidence}:{sampleCount}:{String(isSampled)}:{dataScanned}
           </div>
         )}
-      </LogsWidgetQueries>,
-      {organization}
+      </LogsWidgetQueries>
     );
 
     expect(await screen.findByText('low:30:true:partial')).toBeInTheDocument();

@@ -1,31 +1,16 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {useWidgetRawCounts} from './useWidgetRawCounts';
 
 describe('useWidgetRawCounts', () => {
-  const {organization} = initializeOrg();
-
-  beforeEach(() => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
-
-  function TestComponent({
-    selection,
-    widget,
-  }: {
-    selection: ReturnType<typeof PageFiltersFixture>;
-    widget: ReturnType<typeof WidgetFixture>;
-  }) {
-    const rawCounts = useWidgetRawCounts({widget, selection});
-
-    return <div>{rawCounts?.normal.count ?? 'missing'}</div>;
-  }
 
   it('derives the trace metrics count aggregate from the widget metric', async () => {
     const selection = PageFiltersFixture({
@@ -65,6 +50,7 @@ describe('useWidgetRawCounts', () => {
         }),
       ],
     });
+
     const highAccuracyRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: [{'count(value,duration,d,-)': 13}]},
@@ -79,13 +65,15 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    render(<TestComponent widget={widget} selection={selection} />, {organization});
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
-    expect(highAccuracyRequest).toHaveBeenCalled();
+    await waitFor(() => expect(highAccuracyRequest).toHaveBeenCalled());
   });
 
-  it('does not fetch raw counts for non-timeseries display types', () => {
+  it('does not fetch raw counts for non-timeseries display types', async () => {
     const selection = PageFiltersFixture();
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
@@ -103,9 +91,11 @@ describe('useWidgetRawCounts', () => {
       match: [MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'spans'})],
     });
 
-    render(<TestComponent widget={widget} selection={selection} />, {organization});
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
 
-    expect(normalRequest).not.toHaveBeenCalled();
-    expect(highAccuracyRequest).not.toHaveBeenCalled();
+    await waitFor(() => expect(normalRequest).not.toHaveBeenCalled());
+    await waitFor(() => expect(highAccuracyRequest).not.toHaveBeenCalled());
   });
 });
