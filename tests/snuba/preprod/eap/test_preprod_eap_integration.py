@@ -13,10 +13,10 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.testutils.cases import SnubaTestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
-class PreprodEAPIntegrationTest(SnubaTestCase):
+class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
     def test_write_and_read_size_metric_round_trip(self):
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
