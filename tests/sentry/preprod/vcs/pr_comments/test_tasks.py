@@ -16,7 +16,6 @@ from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.locking import UnableToAcquireLock
 
 
 @region_silo_test
@@ -112,12 +111,11 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             data={"body": "## Sentry Build Distribution\n..."},
         )
 
-        # Verify extras were updated
-        artifact.refresh_from_db()
-        assert artifact.extras is not None
-        pr_comments = artifact.extras["posted_pr_comments"]["build_distribution"]
-        assert pr_comments["success"] is True
-        assert pr_comments["comment_id"] == "99999"
+        # Verify comment ID stored on commit comparison
+        artifact.commit_comparison.refresh_from_db()
+        build_dist = artifact.commit_comparison.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is True
+        assert build_dist["comment_id"] == "99999"
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
@@ -138,15 +136,15 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             pr_number=42,
         )
 
-        # First artifact already has a comment posted
+        # Store existing comment on the commit comparison
+        commit_comparison.extras = {
+            "pr_comments": {"build_distribution": {"success": True, "comment_id": "existing_123"}}
+        }
+        commit_comparison.save(update_fields=["extras"])
+
         self._create_artifact(
             commit_comparison=commit_comparison,
             app_id="com.example.first",
-            extras={
-                "posted_pr_comments": {
-                    "build_distribution": {"success": True, "comment_id": "existing_123"}
-                }
-            },
         )
 
         # Second artifact for the same commit
@@ -224,30 +222,51 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             with pytest.raises(ApiError):
                 create_preprod_pr_comment_task(artifact.id)
 
-        artifact.refresh_from_db()
-        assert artifact.extras is not None
-        pr_comments = artifact.extras["posted_pr_comments"]["build_distribution"]
-        assert pr_comments["success"] is False
-        assert pr_comments["error_type"] == "api_error"
+        artifact.commit_comparison.refresh_from_db()
+        build_dist = artifact.commit_comparison.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is False
+        assert build_dist["error_type"] == "api_error"
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.create_preprod_pr_comment_task.apply_async")
-    @patch("sentry.preprod.vcs.pr_comments.tasks.locks")
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
-    def test_retries_when_lock_unavailable(self, mock_get_client, mock_locks, mock_apply_async):
-        mock_get_client.return_value = Mock()
-        mock_lock = Mock()
-        mock_lock.acquire.side_effect = UnableToAcquireLock()
-        mock_locks.get.return_value = mock_lock
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_reads_fresh_extras_via_select_for_update(self, mock_format, mock_get_client):
+        """select_for_update gives a fresh DB read, so a comment_id written
+        by a concurrent task between artifact load and row lock is found."""
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "updated body"
 
-        artifact = self._create_artifact()
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        artifact = self._create_artifact(commit_comparison=commit_comparison)
+
+        # Simulate a concurrent task having written the comment_id to the DB
+        # *after* this task loaded the artifact (and its commit_comparison).
+        CommitComparison.objects.filter(id=commit_comparison.id).update(
+            extras={
+                "pr_comments": {
+                    "build_distribution": {"success": True, "comment_id": "concurrent_456"}
+                }
+            }
+        )
 
         with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
-        mock_apply_async.assert_called_once_with(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "retry_after_lock",
-            },
-            countdown=5,
+        mock_client.update_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            comment_id="concurrent_456",
+            data={"body": "updated body"},
         )
+        mock_client.create_comment.assert_not_called()

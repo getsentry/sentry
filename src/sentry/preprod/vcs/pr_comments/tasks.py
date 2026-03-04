@@ -8,7 +8,7 @@ from django.db import router, transaction
 
 from sentry import features
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.locks import locks
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.models import PreprodArtifact
@@ -17,7 +17,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigura
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -94,108 +93,97 @@ def create_preprod_pr_comment_task(
         )
         return
 
-    # Serialize access per commit comparison so concurrent tasks don't create
-    # duplicate comments.  The lock ensures that sibling queries, the GitHub
-    # API call, and the extras update all happen atomically with respect to
-    # other tasks for the same commit.
-    lock = locks.get(
-        f"preprod:pr_comment:{commit_comparison.id}",
-        duration=60,
-        name="preprod_pr_comment",
-    )
-    try:
-        with lock.acquire():
-            siblings = artifact.get_sibling_artifacts_for_commit()
-            installable_siblings = [s for s in siblings if is_installable_artifact(s)]
-            if not installable_siblings:
-                return
+    # Use select_for_update on the commit_comparison row to serialize
+    # concurrent tasks for the same commit.  This prevents duplicate
+    # comments when multiple builds finish at the same time and also
+    # guarantees a fresh read of extras (where the comment_id lives).
+    api_error: Exception | None = None
 
-            existing_comment_id = _find_existing_comment_id(installable_siblings)
-            comment_body = format_pr_comment(installable_siblings)
+    with transaction.atomic(router.db_for_write(CommitComparison)):
+        cc = CommitComparison.objects.select_for_update().get(id=commit_comparison.id)
 
-            try:
-                if existing_comment_id:
-                    client.update_comment(
-                        repo=commit_comparison.head_repo_name,
-                        issue_id=str(commit_comparison.pr_number),
-                        comment_id=str(existing_comment_id),
-                        data={"body": comment_body},
-                    )
-                    comment_id = existing_comment_id
-                    logger.info(
-                        "preprod.pr_comments.create.updated",
-                        extra={"artifact_id": artifact.id, "comment_id": comment_id},
-                    )
-                else:
-                    resp = client.create_comment(
-                        repo=commit_comparison.head_repo_name,
-                        issue_id=str(commit_comparison.pr_number),
-                        data={"body": comment_body},
-                    )
-                    comment_id = str(resp["id"])
-                    logger.info(
-                        "preprod.pr_comments.create.created",
-                        extra={"artifact_id": artifact.id, "comment_id": comment_id},
-                    )
-            except Exception as e:
-                extra: dict[str, Any] = {
-                    "artifact_id": artifact.id,
-                    "organization_id": organization.id,
-                    "error_type": type(e).__name__,
-                }
-                if isinstance(e, ApiError):
-                    extra["status_code"] = e.code
-                logger.exception("preprod.pr_comments.create.failed", extra=extra)
-                _update_posted_pr_comment(artifact, success=False, error=e)
-                raise
+        siblings = artifact.get_sibling_artifacts_for_commit()
+        installable_siblings = [s for s in siblings if is_installable_artifact(s)]
+        if not installable_siblings:
+            return
 
-            _update_posted_pr_comment(artifact, success=True, comment_id=comment_id)
-    except UnableToAcquireLock:
-        logger.info(
-            "preprod.pr_comments.create.locked",
-            extra={"artifact_id": artifact.id, "commit_comparison_id": commit_comparison.id},
-        )
-        create_preprod_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": preprod_artifact_id,
-                "caller": "retry_after_lock",
-            },
-            countdown=5,
-        )
+        existing_comment_id = _find_existing_comment_id(cc)
+        comment_body = format_pr_comment(installable_siblings)
+
+        try:
+            if existing_comment_id:
+                client.update_comment(
+                    repo=cc.head_repo_name,
+                    issue_id=str(cc.pr_number),
+                    comment_id=str(existing_comment_id),
+                    data={"body": comment_body},
+                )
+                comment_id = existing_comment_id
+                logger.info(
+                    "preprod.pr_comments.create.updated",
+                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
+                )
+            else:
+                resp = client.create_comment(
+                    repo=cc.head_repo_name,
+                    issue_id=str(cc.pr_number),
+                    data={"body": comment_body},
+                )
+                comment_id = str(resp["id"])
+                logger.info(
+                    "preprod.pr_comments.create.created",
+                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
+                )
+        except Exception as e:
+            extra: dict[str, Any] = {
+                "artifact_id": artifact.id,
+                "organization_id": organization.id,
+                "error_type": type(e).__name__,
+            }
+            if isinstance(e, ApiError):
+                extra["status_code"] = e.code
+            logger.exception("preprod.pr_comments.create.failed", extra=extra)
+            _save_pr_comment_result(cc, success=False, error=e)
+            api_error = e
+        else:
+            _save_pr_comment_result(cc, success=True, comment_id=comment_id)
+
+    if api_error is not None:
+        raise api_error
 
 
-def _find_existing_comment_id(artifacts: list[PreprodArtifact]) -> str | None:
-    for a in artifacts:
-        extras = a.extras or {}
-        pr_comments = extras.get("posted_pr_comments", {})
-        build_dist = pr_comments.get("build_distribution", {})
-        comment_id = build_dist.get("comment_id")
-        if comment_id and build_dist.get("success"):
-            return str(comment_id)
+def _find_existing_comment_id(commit_comparison: CommitComparison) -> str | None:
+    extras = commit_comparison.extras or {}
+    build_dist = extras.get("pr_comments", {}).get("build_distribution", {})
+    comment_id = build_dist.get("comment_id")
+    if comment_id and build_dist.get("success"):
+        return str(comment_id)
     return None
 
 
-def _update_posted_pr_comment(
-    artifact: PreprodArtifact,
+def _save_pr_comment_result(
+    commit_comparison: CommitComparison,
     success: bool,
     comment_id: str | None = None,
     error: Exception | None = None,
 ) -> None:
-    with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        fresh = PreprodArtifact.objects.select_for_update().get(id=artifact.id)
-        extras = fresh.extras or {}
+    """Save the PR comment result to the commit_comparison row.
 
-        posted_pr_comments = extras.get("posted_pr_comments", {})
-        result: dict[str, Any] = {"success": success}
-        if success and comment_id:
-            result["comment_id"] = comment_id
-        if not success:
-            result["error_type"] = _get_error_type(error)
+    Must be called inside a transaction that already holds a
+    select_for_update lock on the commit_comparison row.
+    """
+    extras = commit_comparison.extras or {}
 
-        posted_pr_comments["build_distribution"] = result
-        extras["posted_pr_comments"] = posted_pr_comments
-        fresh.extras = extras
-        fresh.save(update_fields=["extras"])
+    result: dict[str, Any] = {"success": success}
+    if success and comment_id:
+        result["comment_id"] = comment_id
+    if not success:
+        result["error_type"] = _get_error_type(error)
+
+    pr_comments = extras.setdefault("pr_comments", {})
+    pr_comments["build_distribution"] = result
+    commit_comparison.extras = extras
+    commit_comparison.save(update_fields=["extras"])
 
 
 class _ErrorType(StrEnum):
