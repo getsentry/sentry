@@ -50,7 +50,7 @@ export function useAddMetricToDashboard() {
         selection
       );
       newEventView.display =
-        CHART_TYPE_TO_DISPLAY_TYPE[visualizes[0]?.chartType ?? ChartType.LINE];
+        CHART_TYPE_TO_DISPLAY_TYPE[visualizes?.[0]?.chartType ?? ChartType.LINE];
 
       if (fields.length > 0) {
         newEventView.sorts = aggregateSortBys;
