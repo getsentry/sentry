@@ -10,10 +10,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {
-  limitDateTimeParamsToMaxPoints,
-  MAX_DETECTOR_CHART_POINTS,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
@@ -137,8 +134,7 @@ function MetricIssueChartContent({
         {isRangeLimited ? (
           <Alert variant="warning">
             {t(
-              'Showing only the most recent %s data points. Narrow the time range to view older data.',
-              MAX_DETECTOR_CHART_POINTS.toLocaleString()
+              'The selected time range contains too many data points. Narrow the range to view all data.'
             )}
           </Alert>
         ) : null}

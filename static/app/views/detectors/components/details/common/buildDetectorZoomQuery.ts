@@ -7,7 +7,9 @@ import {getUtcDateString} from 'sentry/utils/dates';
 const NEAR_NOW_THRESHOLD_MS = 10 * 60 * 1000;
 const MIN_INTERVAL_MS = 60_000;
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
-export const MAX_DETECTOR_CHART_POINTS = 10_000;
+
+// See MAX_ROLLUP_POINTS in sentry/constants.py
+const MAX_DETECTOR_CHART_POINTS = 10_100;
 
 interface ComputeZoomRangeOptions {
   endMs: number;
@@ -85,10 +87,10 @@ function parseDateTimeMs(dateTime?: string | null): number | null {
 
 function toStatsPeriod(durationMs: number): string {
   const hourMs = 60 * 60 * 1000;
-  const durationHours = Math.max(Math.ceil(durationMs / hourMs), 4);
+  const durationHours = Math.max(Math.floor(durationMs / hourMs), 4);
 
-  if (durationHours > 24) {
-    return `${Math.ceil(durationHours / 24)}d`;
+  if (durationHours > 24 && durationHours % 24 <= 12) {
+    return `${Math.floor(durationHours / 24)}d`;
   }
 
   return `${durationHours}h`;

@@ -52,7 +52,7 @@ describe('buildDetectorZoomQuery', () => {
     });
   });
 
-  it('uses day units when the duration resolves to whole days', () => {
+  it('uses hours for multi-day durations', () => {
     setMockDate(Date.parse('2026-02-05T00:00:00Z'));
     const zoomRange = computeZoomRangeMs({
       startMs: Date.parse('2026-02-02T00:10:00Z'),
@@ -98,7 +98,7 @@ describe('limitDateTimeParamsToMaxPoints', () => {
 
     expect(result).toEqual({
       dateTimeParams: {
-        start: getUtcDateString(endMs - 10_000 * 300 * 1000),
+        start: getUtcDateString(endMs - 10_100 * 300 * 1000),
         end: getUtcDateString(endMs),
       },
       isRangeLimited: true,
