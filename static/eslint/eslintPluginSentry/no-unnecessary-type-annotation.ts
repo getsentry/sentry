@@ -96,8 +96,8 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
 
     return {
       VariableDeclarator(node) {
-        // Only const declarations
-        if (node.parent?.type !== 'VariableDeclaration' || node.parent.kind !== 'const') {
+        // Only const/let declarations (skip var)
+        if (node.parent.kind !== 'const' && node.parent.kind !== 'let') {
           return;
         }
 
@@ -133,7 +133,13 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
         if (isEscapeHatch(annotationType)) {
           return;
         }
-        const inferredType = parserServices.getTypeAtLocation(node.init);
+        let inferredType = parserServices.getTypeAtLocation(node.init);
+        // For let declarations, TypeScript widens literal types (e.g. "" → string).
+        // getTypeAtLocation returns the narrow literal type, so widen it to match
+        // what TS would actually infer without the annotation.
+        if (node.parent.kind === 'let') {
+          inferredType = checker.getBaseTypeOfLiteralType(inferredType);
+        }
         if (containsAny(inferredType)) {
           return;
         }
