@@ -143,17 +143,18 @@ def update_alert_rule(
 
 
 def remove_alert_rule(
-    request: Request, organization: Organization, alert_rule: AlertRule | Detector
+    request: Request, organization: Organization, target: AlertRule | Detector
 ) -> Response:
-    if isinstance(alert_rule, Detector):
+    if isinstance(target, Detector):
+        detector = target
         try:
             with transaction.atomic(router.db_for_write(Detector)):
-                remove_detector(request, organization, alert_rule)
+                remove_detector(request, organization, detector)
                 try:
-                    ard = AlertRuleDetector.objects.get(detector_id=alert_rule.id)
-                    alert_rule = AlertRule.objects.get(id=ard.alert_rule_id)
+                    ard = AlertRuleDetector.objects.get(detector_id=detector.id)
+                    detector = AlertRule.objects.get(id=ard.alert_rule_id)
                     delete_alert_rule(
-                        alert_rule,
+                        detector,
                         user=_anon_to_None(request.user),
                         ip_address=request.META.get("REMOTE_ADDR"),
                     )
@@ -172,7 +173,7 @@ def remove_alert_rule(
         # that the extra table data is deleted. If the rows don't exist, we'll exit early.
         with transaction.atomic(router.db_for_write(AlertRule)):
             try:
-                dual_delete_migrated_alert_rule(alert_rule=alert_rule)
+                dual_delete_migrated_alert_rule(alert_rule=target)
             except Exception as e:
                 logger.exception(
                     "Error when dual deleting alert rule",
@@ -183,7 +184,7 @@ def remove_alert_rule(
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             delete_alert_rule(
-                alert_rule,
+                target,
                 user=_anon_to_None(request.user),
                 ip_address=request.META.get("REMOTE_ADDR"),
             )

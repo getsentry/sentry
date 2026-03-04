@@ -116,6 +116,12 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
         organization = kwargs["organization"]
         validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
+        # Allow orgs that have downgraded plans to delete metric alerts
+        if request.method != "DELETE" and not features.has(
+            "organizations:incidents", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
         if features.has("organizations:workflow-engine-rule-serializers", organization):
             try:
                 ard = AlertRuleDetector.objects.get(
@@ -135,12 +141,6 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
                     raise ResourceDoesNotExist
 
             return args, kwargs
-
-        # Allow orgs that have downgraded plans to delete metric alerts
-        if request.method != "DELETE" and not features.has(
-            "organizations:incidents", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
 
         try:
             kwargs["alert_rule"] = AlertRule.objects.get(
