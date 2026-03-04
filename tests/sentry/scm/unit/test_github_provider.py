@@ -156,7 +156,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
 def test_raises_scm_provider_exception_on_api_error(method: str, kwargs: dict[str, Any]):
     repository = make_repository()
     client = _make_client(raise_api_error=True)
-    provider = GitHubProvider(client, repository)
+    provider = GitHubProvider(client, repository["organization_id"], repository)
 
     with pytest.raises(SCMProviderException):
         getattr(provider, method)(**kwargs)
@@ -553,7 +553,7 @@ def test_delegates_to_correct_client_method(
 ):
     repository = make_repository()
     client = _make_client()
-    provider = GitHubProvider(client, repository)
+    provider = GitHubProvider(client, repository["organization_id"], repository)
 
     getattr(provider, method)(**kwargs)
 
@@ -1051,7 +1051,7 @@ def test_transforms_response(
 ):
     repository = make_repository()
     client = _make_client(**client_attrs)
-    provider = GitHubProvider(client, repository)
+    provider = GitHubProvider(client, repository["organization_id"], repository)
 
     result = getattr(provider, method)(**kwargs)
 
@@ -1065,7 +1065,7 @@ class TestGetIssueCommentsEdgeCases:
     def test_returns_none_author_when_user_is_none(self):
         repository = make_repository()
         client = _make_client(issue_comments=[{"id": 1, "body": "ghost comment", "user": None}])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         comments = provider.get_issue_comments("42")
 
@@ -1079,7 +1079,7 @@ class TestGetIssueCommentsEdgeCases:
         client = _make_client(
             issue_comments=[{"id": 1, "body": None, "user": {"id": 1, "login": "testuser"}}]
         )
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         comments = provider.get_issue_comments("42")
 
@@ -1094,7 +1094,7 @@ class TestGetPullRequestEdgeCases:
     def test_raises_key_error_on_malformed_response(self):
         repository = make_repository()
         client = _make_client(pull_request_data={"id": 1, "title": "test"})
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         with pytest.raises(KeyError):
             provider.get_pull_request("42")
@@ -1104,7 +1104,7 @@ class TestGetIssueReactionsEdgeCases:
     def test_returns_none_author_when_user_is_none(self):
         repository = make_repository()
         client = _make_client(issue_reactions=[{"id": 1, "content": "eyes", "user": None}])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         reactions = provider.get_issue_reactions("42")
 
@@ -1116,7 +1116,7 @@ class TestGetIssueReactionsEdgeCases:
     def test_raises_key_error_on_malformed_response(self):
         repository = make_repository()
         client = _make_client(issue_reactions=[{"id": 1}])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         with pytest.raises(KeyError):
             provider.get_issue_reactions("42")
@@ -1127,7 +1127,7 @@ class TestGetCommitEdgeCases:
         repository = make_repository()
         raw = {"sha": "abc", "commit": {"message": "msg", "author": None}, "files": []}
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_commit("abc")
 
@@ -1138,7 +1138,7 @@ class TestGetCommitEdgeCases:
         repository = make_repository()
         raw = {"sha": "abc", "commit": {"message": "msg"}}
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_commit("abc")
 
@@ -1150,7 +1150,7 @@ class TestGetCommitEdgeCases:
             files=[make_github_commit_file(filename="image.png", status="added", patch=None)]
         )
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_commit("abc123")
 
@@ -1162,7 +1162,7 @@ class TestGetCommitEdgeCases:
             files=[make_github_commit_file(filename="file.py", status="unknown_status")]
         )
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_commit("abc123")
 
@@ -1172,7 +1172,7 @@ class TestGetCommitEdgeCases:
         repository = make_repository()
         raw = make_github_commit(files=[{"filename": "file.py"}])
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_commit("abc123")
 
@@ -1183,7 +1183,7 @@ class TestGetFileContentEdgeCases:
     def test_passes_ref_to_client(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.get_file_content("README.md", ref="feature-branch")
 
@@ -1197,7 +1197,7 @@ class TestGetFileContentEdgeCases:
         repository = make_repository()
         raw = make_github_file_content(content="", encoding="", size=0)
         client = _make_client(file_content_data=raw)
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_file_content("empty.txt")
 
@@ -1209,7 +1209,7 @@ class TestListPullRequestsEdgeCases:
     def test_returns_empty_list_when_no_prs(self):
         repository = make_repository()
         client = _make_client(pull_requests_data=[])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_pull_requests()
 
@@ -1220,7 +1220,7 @@ class TestCreatePullRequestEdgeCases:
     def test_passes_draft_flag(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_pull_request("T", "B", "feature", "main", draft=True)
 
@@ -1238,7 +1238,7 @@ class TestUpdatePullRequestEdgeCases:
     def test_only_includes_non_none_fields(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.update_pull_request("42", title="New title")
 
@@ -1251,7 +1251,7 @@ class TestUpdatePullRequestEdgeCases:
     def test_empty_update_sends_empty_data(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.update_pull_request("42")
 
@@ -1268,7 +1268,7 @@ class TestPullRequestCommitEdgeCases:
         raw = make_github_pull_request_commit(author_login=None)
         raw["commit"]["author"] = None
         client = _make_client(pr_commits_data=[raw])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_pull_request_commits("42")
 
@@ -1280,7 +1280,7 @@ class TestCreateReviewCommentEdgeCases:
     def test_file_comment(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_review_comment_file("42", "abc123", "comment", "src/main.py", "RIGHT")
 
@@ -1303,7 +1303,7 @@ class TestCreateReviewCommentEdgeCases:
     def test_line_comment(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_review_comment_line("42", "abc123", "comment", "src/main.py", 10, "RIGHT")
 
@@ -1327,7 +1327,7 @@ class TestCreateReviewCommentEdgeCases:
     def test_multiline_comment(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_review_comment_multiline(
             "42", "abc123", "comment", "src/main.py", 5, "RIGHT", 10, "RIGHT"
@@ -1355,7 +1355,7 @@ class TestCreateReviewCommentEdgeCases:
     def test_reply_comment(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_review_comment_reply("42", "comment", "999")
 
@@ -1377,7 +1377,7 @@ class TestCreateReviewEdgeCases:
     def test_with_empty_comments(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_review("42", "abc123", "approve", [])
 
@@ -1394,7 +1394,7 @@ class TestCreateReviewEdgeCases:
     def test_with_body(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_review("42", "abc123", "comment", [], body="Overall looks good")
 
@@ -1418,7 +1418,7 @@ class TestCreateCheckRunEdgeCases:
     def test_with_output(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.create_check_run(
             "Seer Review",
@@ -1448,7 +1448,7 @@ class TestUpdateCheckRunEdgeCases:
     def test_only_conclusion(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.update_check_run("300", conclusion="failure")
 
@@ -1461,7 +1461,7 @@ class TestUpdateCheckRunEdgeCases:
     def test_empty_update_sends_empty_data(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.update_check_run("300")
 
@@ -1476,7 +1476,7 @@ class TestGetPullRequestCommentsEdgeCases:
     def test_empty_comments(self):
         repository = make_repository()
         client = _make_client(issue_comments=[])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_pull_request_comments("42")
 
@@ -1485,7 +1485,7 @@ class TestGetPullRequestCommentsEdgeCases:
     def test_null_author(self):
         repository = make_repository()
         client = _make_client(issue_comments=[{"id": 1, "body": "ghost comment", "user": None}])
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         result = provider.get_pull_request_comments("42")
 
@@ -1495,7 +1495,7 @@ class TestGetPullRequestCommentsEdgeCases:
     def test_delegates_to_issue_comments_client(self):
         repository = make_repository()
         client = _make_client()
-        provider = GitHubProvider(client, repository)
+        provider = GitHubProvider(client, repository["organization_id"], repository)
 
         provider.get_pull_request_comments("42")
 

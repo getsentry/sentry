@@ -65,7 +65,7 @@ def map_integration_to_provider(
     client = get_installation(integration, organization_id).get_client()
 
     if integration.provider == "github":
-        return GitHubProvider(client, repository)
+        return GitHubProvider(client, organization_id, repository)
     else:
         raise SCMCodedError(integration.provider, code="unsupported_integration")
 

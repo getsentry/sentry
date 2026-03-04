@@ -133,15 +133,18 @@ def catch_provider_exception(fn):
 
 
 class GitHubProvider:
-    def __init__(self, client: GitHubApiClient, repository: Repository) -> None:
+    def __init__(
+        self, client: GitHubApiClient, organization_id: int, repository: Repository
+    ) -> None:
         self.client = client
+        self.organization_id = organization_id
         self.repository = repository
 
-    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
+    def is_rate_limited(self, referrer: Referrer) -> bool:
         from sentry.scm.helpers import is_rate_limited_with_allocation_policy
 
         return is_rate_limited_with_allocation_policy(
-            organization_id,
+            self.organization_id,
             referrer,
             provider="github",
             window=3600,
