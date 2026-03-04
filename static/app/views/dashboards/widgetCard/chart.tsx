@@ -848,6 +848,12 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {
+  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
+
+  if (!hasTextWidgets) {
+    return null;
+  }
+
   return <TextWidgetVisualization description={props.widget.description} />;
 }
 
