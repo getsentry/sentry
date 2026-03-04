@@ -220,6 +220,7 @@ def resolve_fingerprint_variable(
     variable_key: str,
     event: Event,
     use_legacy_unknown_variable_handling: bool,
+    parameterize_message: bool = True,
 ) -> str | None:
     if variable_key == "transaction":
         return event.data.get("transaction") or "<no-transaction>"
@@ -230,6 +231,11 @@ def resolve_fingerprint_variable(
             or get_path(event.data, "logentry", "message")
             or get_path(event.data, "exception", "values", -1, "value")
         )
+
+        # Fingerprint variables can be used in custom titles, and there we want the original message
+        if not parameterize_message:
+            return message or "<no-message>"
+
         normalized_message = (
             normalize_message_for_grouping(message, event, source="fingerprint", trim_message=False)
             if message
