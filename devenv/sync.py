@@ -186,6 +186,7 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
+    IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
 
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"
@@ -309,33 +310,10 @@ def main(context: dict[str, str]) -> int:
         ):
             print("⚠️  agent skills failed to install (non-fatal)")
 
-    # In a worktree, .git is a file; hooks live in the shared git dir. Resolve it so
-    # devenv sync works from both main clone and worktrees.
-    try:
-        out = subprocess.run(
-            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"),
-            cwd=reporoot,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        git_common_dir = os.path.normpath(out.stdout.strip())
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        git_common_dir = os.path.join(reporoot, ".git")
-
-    # Use main clone root for hook sources so symlinks don't dangle when a worktree is removed.
-    main_repo_root = os.path.dirname(git_common_dir)
-    hooks_src = os.path.join(main_repo_root, "config", "hooks")
-    hooks_dir = os.path.join(git_common_dir, "hooks")
-
-    if os.path.isdir(git_common_dir):
+    if not IN_GIT_WORKTREE:
+        fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
         fs.ensure_symlink(
-            os.path.join(hooks_src, "post-merge"),
-            os.path.join(hooks_dir, "post-merge"),
-        )
-        fs.ensure_symlink(
-            os.path.join(hooks_src, "post-checkout"),
-            os.path.join(hooks_dir, "post-checkout"),
+            "../../config/hooks/post-checkout", f"{reporoot}/.git/hooks/post-checkout"
         )
 
     sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
