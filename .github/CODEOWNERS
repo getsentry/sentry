@@ -629,6 +629,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
+## Onboarding (Value Discovery)
+# These must come after /src/sentry/api/endpoints/ catch-all above
+/src/sentry/api/endpoints/organization_onboarding_tasks.py                       @getsentry/value-discovery
+/src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
+/src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
+## End of Onboarding
+
 ## AI Conversations (Telemetry Experience)
 # These must come after /src/sentry/api/endpoints/ catch-all above
 /src/sentry/api/endpoints/organization_ai_conversation*.py                       @getsentry/telemetry-experience
