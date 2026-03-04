@@ -55,27 +55,25 @@ def _create_db(name: str, host: str, port: str, user: str, template: str | None 
 def _run_migrations(pg_host: str, pg_port: str) -> float:
     os.environ["SENTRY_SKIP_SERVICE_VALIDATION"] = "1"
 
+    from sentry.runner import configure
+
+    configure()
+
     from django.conf import settings
+    from django.core.management import call_command
 
-    for alias, test_name in DATABASES.items():
-        if alias == "default":
-            settings.DATABASES["default"]["NAME"] = test_name
-        else:
-            settings.DATABASES[alias] = settings.DATABASES["default"].copy()
-            settings.DATABASES[alias]["NAME"] = test_name
-
+    # Override DB names to point to the template test databases
+    settings.DATABASES["default"]["NAME"] = DATABASES["default"]
+    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["control"]["NAME"] = DATABASES["control"]
+    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["secondary"]["NAME"] = DATABASES["secondary"]
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
     if pg_host.startswith("/"):
         for db_cfg in settings.DATABASES.values():
             db_cfg["HOST"] = pg_host
             db_cfg["PORT"] = ""
-
-    from sentry.runner import configure
-
-    configure()
-
-    from django.core.management import call_command
 
     start = time.monotonic()
     for alias in DATABASES:
