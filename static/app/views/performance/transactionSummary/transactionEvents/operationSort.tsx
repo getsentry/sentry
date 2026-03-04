@@ -45,9 +45,9 @@ function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
     };
   }, [handleClickOutside, isOpen]);
 
-  const toggleOpen = () => {
+  const toggleOpen = useCallback(() => {
     setIsOpen(previousIsOpen => !previousIsOpen);
-  };
+  }, []);
 
   function generateSortLink(field: any): LocationDescriptorObject | undefined {
     if (!tableMeta) {
