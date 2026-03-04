@@ -1,5 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -18,6 +19,7 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
@@ -75,6 +77,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
+
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -281,7 +285,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
 
             # send the data to microservice
             with ThreadPoolExecutor(thread_name_prefix=__name__) as query_thread_pool:
-                results = list(query_thread_pool.map(detect_breakpoints, trends_requests))
+                results = list(
+                    query_thread_pool.map(
+                        partial(detect_breakpoints, viewer_context=viewer_context),
+                        trends_requests,
+                    )
+                )
             trend_results = []
 
             # append all the results

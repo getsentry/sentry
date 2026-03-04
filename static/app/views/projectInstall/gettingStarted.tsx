@@ -4,7 +4,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import allPlatforms from 'sentry/data/platforms';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -50,5 +49,5 @@ export default function GettingStarted() {
 
 const GettingStartedLayout = styled(Layout.Page)`
   background: ${p => p.theme.tokens.background.primary};
-  padding-top: ${space(3)};
+  padding-top: ${p => p.theme.space['2xl']};
 `;

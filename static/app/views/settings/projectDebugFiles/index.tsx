@@ -15,7 +15,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -286,10 +285,10 @@ const Actions = styled('div')`
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   align-items: center;
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space['3xl']};
+  margin-bottom: ${p => p.theme.space.md};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
@@ -300,7 +299,7 @@ const Filters = styled('div')`
   grid-template-columns: min-content minmax(200px, 400px);
   align-items: center;
   justify-content: flex-end;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: min-content 1fr;
   }
@@ -312,5 +311,5 @@ const Label = styled('label')`
   align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

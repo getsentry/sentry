@@ -32,6 +32,7 @@ from sentry.seer.explorer.on_completion_hook import (
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -207,6 +208,8 @@ class SeerExplorerClient:
 
         self.enable_coding = enable_coding
 
+        self.viewer_context = self._build_viewer_context()
+
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
             raise ValueError("category_key and category_value cannot be empty strings")
@@ -217,6 +220,12 @@ class SeerExplorerClient:
         has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
+
+    def _build_viewer_context(self) -> SeerViewerContext:
+        context = SeerViewerContext(organization_id=self.organization.id)
+        if self.user and hasattr(self.user, "id") and self.user.id is not None:
+            context["user_id"] = self.user.id
+        return context
 
     def start_run(
         self,
@@ -298,7 +307,7 @@ class SeerExplorerClient:
         ):
             chat_body["is_context_engine_enabled"] = True
 
-        response = make_explorer_chat_request(chat_body)
+        response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -361,7 +370,7 @@ class SeerExplorerClient:
         ):
             chat_body["is_context_engine_enabled"] = True
 
-        response = make_explorer_chat_request(chat_body)
+        response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -485,7 +494,7 @@ class SeerExplorerClient:
         if end is not None:
             runs_body["end"] = end
 
-        response = make_explorer_runs_request(runs_body)
+        response = make_explorer_runs_request(runs_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -523,12 +532,17 @@ class SeerExplorerClient:
             SeerApiError: If the Seer API request fails
         """
         # Trigger PR creation
+        payload: dict[str, Any] = {"type": "create_pr"}
+        if repo_name:
+            payload["repo_name"] = repo_name
+        if self.on_completion_hook:
+            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = ExplorerUpdateRequest(
             run_id=run_id,
             organization_id=self.organization.id,
-            payload={"type": "create_pr", "repo_name": repo_name},
+            payload=payload,
         )
-        response = make_explorer_update_request(update_body)
+        response = make_explorer_update_request(update_body, viewer_context=self.viewer_context)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 

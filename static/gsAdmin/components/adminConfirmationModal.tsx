@@ -8,7 +8,6 @@ import type {
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import InputField from 'sentry/components/forms/fields/inputField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
-import {space} from 'sentry/styles/space';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 
@@ -215,7 +214,7 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
 }
 
 const AuditFields = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 export default AdminConfirmationModal;

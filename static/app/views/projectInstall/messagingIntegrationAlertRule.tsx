@@ -6,7 +6,6 @@ import {Select, SelectOption} from '@sentry/scraps/select';
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -185,13 +184,13 @@ export default function MessagingIntegrationAlertRule({
 }
 
 const Rule = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const InlineSelectControl = styled(Select)`
