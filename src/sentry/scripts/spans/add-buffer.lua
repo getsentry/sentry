@@ -28,6 +28,7 @@ ARGS:
 - set_timeout -- int
 - max_segment_bytes -- int -- The maximum number of bytes the segment can contain.
 - byte_count -- int -- The total number of bytes in the subsegment.
+- zero_copy_dest_threshold -- int -- When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set exceeds this many bytes.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
@@ -47,7 +48,8 @@ local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
 local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
-local NUM_ARGS = 6
+local zero_copy_dest_threshold = tonumber(ARGV[7])
+local NUM_ARGS = 7
 
 local function get_time_ms()
     local time = redis.call("TIME")
@@ -127,17 +129,43 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 -- Used outside the if statement
 local spop_end_time_ms = -1
 if #sunionstore_args > 0 then
-    if (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes then
-        table.insert(metrics_table, {"parent_span_set_already_oversized", 1})
-    else
-        table.insert(metrics_table, {"parent_span_set_already_oversized", 0})
-    end
+    local dest_memory = redis.call("memory", "usage", set_key) or 0
+    local already_oversized = dest_memory > max_segment_bytes
+    table.insert(metrics_table, {"parent_span_set_already_oversized", already_oversized and 1 or 0})
+
+    local use_zero_copy_dest = not already_oversized and zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
 
     local start_output_size = redis.call("scard", set_key)
     local scard_end_time_ms = get_time_ms()
     table.insert(latency_table, {"scard_step_latency_ms", scard_end_time_ms - sunionstore_args_end_time_ms})
 
-    local output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
+    local output_size
+    if already_oversized then
+        -- Dest already exceeds max_segment_bytes, skip merge entirely.
+        -- The SPOP loop would just remove what we added.
+        output_size = start_output_size
+    elseif use_zero_copy_dest then
+        -- Zero-copy: read each source set and SADD its members into dest.
+        -- Avoids SUNIONSTORE re-reading the entire large destination set.
+        local all_members = {}
+        for i = 1, #sunionstore_args do
+            local members = redis.call("smembers", sunionstore_args[i])
+            for j = 1, #members do
+                all_members[#all_members + 1] = members[j]
+            end
+        end
+        table.insert(metrics_table, {"zero_copy_dest_source_members", #all_members})
+        -- Batch SADD in chunks to avoid exceeding Lua's unpack() stack limit.
+        local BATCH = 7000
+        for i = 1, #all_members, BATCH do
+            local last = math.min(i + BATCH - 1, #all_members)
+            redis.call("sadd", set_key, unpack(all_members, i, last))
+        end
+        output_size = redis.call("scard", set_key)
+    else
+        output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
+    end
+    table.insert(metrics_table, {"used_zero_copy_dest", use_zero_copy_dest and 1 or 0})
     local sunionstore_end_time_ms = get_time_ms()
     table.insert(latency_table, {"sunionstore_step_latency_ms", sunionstore_end_time_ms - scard_end_time_ms})
 

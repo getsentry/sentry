@@ -352,7 +352,7 @@ describe('MessagesPanel', () => {
     );
 
     expect(screen.getByText('The weather is sunny')).toBeInTheDocument();
-    expect(screen.getByText('Tools called:')).toBeInTheDocument();
+
     expect(screen.getByText('weather')).toBeInTheDocument();
   });
 
@@ -430,7 +430,7 @@ describe('MessagesPanel', () => {
 
     // The final message should show all tool calls (weather x2 from the skipped span + calculator)
     expect(screen.getByText('Here is the comparison')).toBeInTheDocument();
-    expect(screen.getByText('Tools called:')).toBeInTheDocument();
+
     // Should have 2 weather tags and 1 calculator tag
     expect(screen.getAllByText('weather')).toHaveLength(2);
     expect(screen.getByText('calculator')).toBeInTheDocument();

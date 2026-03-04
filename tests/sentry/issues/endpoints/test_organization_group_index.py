@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import Any
+from unittest import mock
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
@@ -23,9 +24,11 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
     FeedbackGroup,
+    NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
@@ -500,39 +503,61 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(group2.id)
 
     def test_perf_issue(self) -> None:
-        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
-        self.login_as(user=self.user)
-        with self.feature(
-            {
-                "organizations:issue-search-allow-postgres-only-search": True,
-            }
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            fingerprint=["perf-issue-occurrence"],
+            type=PerformanceNPlusOneGroupType.type_id,
+            project_id=self.project.id,
+        )
+        with mock.patch.object(
+            PerformanceNPlusOneGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
         ):
-            response = self.get_success_response(query="issue.category:performance")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(perf_group.id)
+            saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        perf_group = group_info.group
+        self.login_as(user=self.user)
+        response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
 
     def test_has_seer_last_run(self) -> None:
         """Test filtering issues by whether they have seer_autofix_last_triggered set."""
-        # Create two groups - one with seer_autofix_last_triggered and one without
-        group_with_seer = self.create_group()
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_seer = event1.group
         group_with_seer.update(seer_autofix_last_triggered=timezone.now())
-        group_without_seer = self.create_group()
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["no-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_without_seer = event2.group
 
         self.login_as(user=self.user)
-        with self.feature(
-            {
-                "organizations:issue-search-allow-postgres-only-search": True,
-            }
-        ):
-            # Query for issues that have seer_autofix_last_triggered set
-            response = self.get_success_response(query="has:issue.seer_last_run")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group_with_seer.id)
+        # Query for issues that have seer_autofix_last_triggered set
+        response = self.get_success_response(query="has:issue.seer_last_run")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group_with_seer.id)
 
-            # Query for issues that do NOT have seer_autofix_last_triggered set
-            response = self.get_success_response(query="!has:issue.seer_last_run")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group_without_seer.id)
+        # Query for issues that do NOT have seer_autofix_last_triggered set
+        response = self.get_success_response(query="!has:issue.seer_last_run")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group_without_seer.id)
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project

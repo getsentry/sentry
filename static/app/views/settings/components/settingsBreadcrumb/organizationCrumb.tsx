@@ -83,7 +83,7 @@ export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbP
       hasMenu={hasMenu}
       route={route}
       value={organization.slug}
-      searchPlaceholder={t('Search Organizations')}
+      search={{placeholder: t('Search Organizations')}}
       options={sortBy(organizations, ['name'])
         .filter(org => org.status.id === 'active')
         .map(org => ({

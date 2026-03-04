@@ -4,7 +4,6 @@ import re
 from datetime import timedelta
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -133,12 +132,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if span_data and span_data.get("http.request.prefetch"):
             return False
 
-        if features.has(
-            "organizations:large-http-payload-detector-improvements",
-            self.organization,
-        ):
-            if any(path in description for path in self.filtered_paths):
-                return False
+        if any(path in description for path in self.filtered_paths):
+            return False
 
         return True
 

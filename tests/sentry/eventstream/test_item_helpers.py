@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue
 from sentry.db.models import NodeData
 from sentry.eventstream.item_helpers import (
     _ENCODE_MAX_DEPTH,
-    encode_attributes,
+    _encode_attributes,
     serialize_event_data_as_item,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -41,7 +41,7 @@ class ItemHelpersTest(TestCase):
             data=event_data,
             project_id=self.project.id,
         )
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["string_field"] == AnyValue(string_value="test")
         assert result["int_field"] == AnyValue(int_value=123)
@@ -60,7 +60,7 @@ class ItemHelpersTest(TestCase):
             data=event_data,
             project_id=self.project.id,
         )
-        result = encode_attributes(event, event_data, ignore_fields={"ignore_field"})
+        result = _encode_attributes(event, event_data, ignore_fields={"ignore_field"})
 
         assert "keep_field" in result
         assert "another_keep" in result
@@ -78,7 +78,7 @@ class ItemHelpersTest(TestCase):
             data=event_data,
             project_id=self.project.id,
         )
-        result = encode_attributes(event, event_data, ignore_fields={"field1", "field3"})
+        result = _encode_attributes(event, event_data, ignore_fields={"field1", "field3"})
 
         assert "field1" not in result
         assert "field2" in result
@@ -88,7 +88,7 @@ class ItemHelpersTest(TestCase):
         event_data = {"field": "value", "tags": []}
 
         event = self.create_group_event(event_data)
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["group_id"] == AnyValue(int_value=event.group.id)
         assert result["field"] == AnyValue(string_value="value")
@@ -102,7 +102,7 @@ class ItemHelpersTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
@@ -123,7 +123,7 @@ class ItemHelpersTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["tags[environment]"] == AnyValue(string_value="production")
         assert result["tags[release]"] == AnyValue(string_value="1.0.0")
@@ -147,7 +147,7 @@ class ItemHelpersTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["field"] == AnyValue(string_value="value")
         # No tags[] keys should be present
@@ -164,7 +164,7 @@ class ItemHelpersTest(TestCase):
         }
 
         event = self.create_group_event(event_data)
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["tags[numeric_tag]"] == AnyValue(string_value="42")
         assert result["tags[string_tag]"] == AnyValue(string_value="value")
@@ -178,12 +178,11 @@ class ItemHelpersTest(TestCase):
             data=event_data,
             project_id=self.project.id,
         )
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
-        # "tags" field itself gets encoded as a non-scalar value in the loop
-        # Then tags are processed separately, but empty list adds no tag attributes
-        assert len(result) == 2
-        assert result["tags"] == AnyValue(array_value=ArrayValue(values=[]))
+        assert len(result) == 1
+        assert "tag_keys" in result
+        assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
     def test_encode_attributes_with_complex_types(self) -> None:
         event_data = {
@@ -198,7 +197,7 @@ class ItemHelpersTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["list_field"] == AnyValue(
             array_value=ArrayValue(
@@ -218,7 +217,7 @@ class ItemHelpersTest(TestCase):
         )
 
     def test_encode_attributes_with_none_tags(self) -> None:
-        """Test that encode_attributes handles None tags gracefully."""
+        """Test that _encode_attributes handles None tags gracefully."""
         event_data = {
             "field": "value",
             "tags": None,
@@ -230,7 +229,7 @@ class ItemHelpersTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["field"] == AnyValue(string_value="value")
         # No tags[] keys should be present when tags is None
@@ -239,7 +238,7 @@ class ItemHelpersTest(TestCase):
         assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
     def test_encode_attributes_with_none_elements_in_tags(self) -> None:
-        """Test that encode_attributes handles tags list containing None values."""
+        """Test that _encode_attributes handles tags list containing None values."""
         event_data = {
             "field": "value",
             "tags": [
@@ -256,7 +255,7 @@ class ItemHelpersTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         assert result["field"] == AnyValue(string_value="value")
         assert result["tags[tag1]"] == AnyValue(string_value="value1")
@@ -440,7 +439,7 @@ class ItemHelpersTest(TestCase):
 
         event_data = {"field": nested, "tags": []}
         event = Event(event_id="a" * 32, data=event_data, project_id=self.project.id)
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         current = result["field"]
         for _ in range(_ENCODE_MAX_DEPTH):
@@ -457,7 +456,7 @@ class ItemHelpersTest(TestCase):
 
         event_data = {"field": nested, "tags": []}
         event = Event(event_id="a" * 32, data=event_data, project_id=self.project.id)
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         # Walk down to the stringification boundary
         current = result["field"]
@@ -476,7 +475,7 @@ class ItemHelpersTest(TestCase):
 
         event_data = {"field": nested, "tags": []}
         event = Event(event_id="a" * 32, data=event_data, project_id=self.project.id)
-        result = encode_attributes(event, event_data)
+        result = _encode_attributes(event, event_data)
 
         current = result["field"]
         for _ in range(_ENCODE_MAX_DEPTH + 1):

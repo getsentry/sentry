@@ -48,13 +48,12 @@ function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
       hasMenu={hasMenu}
       route={route}
       value={team.slug}
-      searchPlaceholder={t('Search Teams')}
+      search={{placeholder: t('Search Teams'), onChange: onSearch}}
       options={teams.map(teamItem => ({
         value: teamItem.slug,
         leadingItems: <TeamAvatar team={teamItem} size={16} />,
         label: `#${teamItem.slug}`,
       }))}
-      onSearch={onSearch}
       loading={fetching}
       {...props}
     />

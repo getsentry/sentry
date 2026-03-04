@@ -29,8 +29,8 @@ from sentry.silo.util import (
 from sentry.types.region import (
     Region,
     RegionResolutionError,
+    get_cell_by_name,
     get_global_directory,
-    get_region_by_name,
 )
 from sentry.utils import metrics
 
@@ -116,7 +116,7 @@ class RegionSiloClient(BaseApiClient):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
 
         # Ensure the region is registered
-        self.region = get_region_by_name(region.name)
+        self.region = get_cell_by_name(region.name)
         self.base_url = self.region.address
         self.retry = retry
 

@@ -646,9 +646,6 @@ class Referrer(StrEnum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
-    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
-        "dynamic_sampling.tasks.custom_rule_notifications"
-    )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
@@ -799,6 +796,7 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
     SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"

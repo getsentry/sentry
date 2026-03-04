@@ -25,9 +25,8 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
-from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-    WorkflowEngineDetectorSerializer,
-)
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -59,14 +58,14 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
 )
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
@@ -222,20 +221,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:incidents")
     def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
         ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
         self.detector = Detector.objects.get(id=ard.detector_id)
+        fake_detector_id = get_fake_id_from_object_id(self.detector.id)
 
-        with (
-            self.feature("organizations:incidents"),
-            self.feature("organizations:workflow-engine-rule-serializers"),
-        ):
-            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
-
-        assert resp.data == serialize(self.detector, serializer=WorkflowEngineDetectorSerializer())
+        self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
 
     def test_aggregate_translation(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
@@ -786,33 +782,18 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.refresh_from_db()
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
         ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
         self.detector = Detector.objects.get(id=ard.detector_id)
+        fake_detector_id = get_fake_id_from_object_id(self.detector.id)
 
-        alert_rule = self.alert_rule
-        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["name"] = "what"
-
-        with (
-            self.feature("organizations:incidents"),
-            self.feature("organizations:workflow-engine-rule-serializers"),
-            outbox_runner(),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
-
-        alert_rule.name = "what"
-        alert_rule.date_modified = resp.data["dateModified"]
-        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-        assert resp.data == serialize(detector, serializer=WorkflowEngineDetectorSerializer())
-        assert resp.data["name"] == "what"
-        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
+        with outbox_runner():
+            self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
 
     def test_not_updated_fields(self) -> None:
         self.create_member(
@@ -2414,3 +2395,47 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
 
         with self.feature("organizations:incidents"):
             self.get_success_response(self.organization.slug, other_alert_rule.id, status_code=204)
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_detector_deleted(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        data_source = self.create_data_source()
+        data_source_detector = self.create_data_source_detector(data_source, detector)
+        fake_detector_id = get_fake_id_from_object_id(detector.id)
+        self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
+
+        # Detector.objects excludes PENDING_DELETION, so the detector not appearing here confirms
+        # it was scheduled for deletion.
+        assert not Detector.objects.filter(id=detector.id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DataSource.objects.filter(id=data_source.id).exists()
+        assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_dual_delete_detector_id_passed(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
+        fake_detector_id = get_fake_id_from_object_id(ard.detector_id)
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+        assert not Detector.objects.filter(id=ard.detector_id).exists()

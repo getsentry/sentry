@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconBusiness, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 
@@ -72,6 +71,6 @@ const Wrapper = styled('div')`
   text-transform: none;
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

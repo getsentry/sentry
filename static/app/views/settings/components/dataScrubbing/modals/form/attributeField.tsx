@@ -7,7 +7,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -79,7 +78,7 @@ export default function AttributeField({
     setSuggestedAttributeValues,
   ]);
 
-  const suggestions: AttributeSuggestion[] = useMemo(() => {
+  const suggestions = useMemo(() => {
     if (!suggestedAttributeValues) {
       return [];
     }
@@ -243,7 +242,7 @@ const Suggestions = styled('ul')`
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 0 0 ${space(0.5)} ${space(0.5)};
+  border-radius: 0 0 ${p => p.theme.space.xs} ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.primary};
   top: 100%;
   left: 0;
@@ -256,9 +255,9 @@ const Suggestions = styled('ul')`
 const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   background: ${p =>

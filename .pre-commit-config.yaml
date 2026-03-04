@@ -22,13 +22,13 @@ repos:
       # Configuration for ruff exists in pyproject.toml.
       - id: ruff-check
         name: ruff check
-        entry: ruff check --force-exclude --fix
+        entry: .venv/bin/ruff check --force-exclude --fix
         language: system
         types: [python]
         require_serial: true
       - id: ruff-format
         name: ruff format
-        entry: ruff format --force-exclude
+        entry: .venv/bin/ruff format --force-exclude
         language: system
         types_or: [python, pyi]
         require_serial: true
@@ -37,14 +37,14 @@ repos:
       # Configuration for flake8 S* rules exists in setup.cfg.
       - id: flake8-sentry
         name: flake8 (sentry rules)
-        entry: flake8 --select=S
+        entry: .venv/bin/flake8 --select=S
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
         require_serial: true
       - id: mypy
         name: mypy
-        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy "$@"; fi' --
         language: system
         stages: [pre-push]
         types: [python]

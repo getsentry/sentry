@@ -37,7 +37,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiRateLimitedError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -437,13 +442,18 @@ class GitHubBaseClient(
             interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
             provider_key=self.integration_name,
             integration_id=self.integration.id,
-        ).capture():
-            # We do not cache this call since it is a rather large object
-            contents: dict[str, Any] = self.get(
-                f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-                # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-                params={"recursive": 1},
-            )
+        ).capture() as lifecycle:
+            try:
+                # We do not cache this call since it is a rather large object
+                contents: dict[str, Any] = self.get(
+                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                    params={"recursive": 1},
+                )
+            except ApiConflictError as e:
+                # Empty repos return a 409 which is expected
+                lifecycle.record_halt(e)
+                raise
             # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
             # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
             # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.

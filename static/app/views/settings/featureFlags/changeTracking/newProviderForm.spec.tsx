@@ -9,7 +9,6 @@ describe('NewProviderForm', () => {
       <NewProviderForm
         onCreatedSecret={callback}
         setSelectedProvider={callback}
-        selectedProvider="LaunchDarkly"
         setError={callback}
         canSaveSecret
         existingSecret={undefined}

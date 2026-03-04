@@ -26,6 +26,8 @@ import {
   isAValidSort,
   QueuesTable,
 } from 'sentry/views/insights/queues/components/tables/queuesTable';
+import {useHasPlatformizedQueues} from 'sentry/views/insights/queues/utils/useHasPlatformizedQueues';
+import {PlatformizedQueuesOverview} from 'sentry/views/insights/queues/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
@@ -107,9 +109,14 @@ function QueuesLandingPage() {
 }
 
 function PageWithProviders() {
+  const hasPlatformizedQueues = useHasPlatformizedQueues();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  if (hasPlatformizedQueues) {
+    return <PlatformizedQueuesOverview />;
+  }
 
   return (
     <ModulePageProviders

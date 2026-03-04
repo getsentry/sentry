@@ -473,7 +473,7 @@ export default SchemaHintsList;
 const SchemaHintsContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-wrap: nowrap;
 
   > * {
@@ -490,7 +490,7 @@ export const SchemaHintsSection = styled('div')`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   margin-top: -4px;
   height: fit-content;
 

@@ -17,6 +17,7 @@ import {
 export interface TraceMetric {
   name: string;
   type: string;
+  unit?: string;
 }
 
 function isTraceMetric(value: unknown): value is TraceMetric {

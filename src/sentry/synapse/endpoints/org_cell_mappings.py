@@ -1,16 +1,15 @@
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.paginator import BadPaginationError, DateTimePaginator
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.synapse.endpoints.authentication import (
     SynapseAuthPermission,
     SynapseSignatureAuthentication,
 )
+from sentry.synapse.paginator import SynapsePaginator
 from sentry.types.region import get_global_directory
 
 
@@ -28,7 +27,7 @@ class OrgCellMappingsEndpoint(Endpoint):
     authentication_classes = (SynapseSignatureAuthentication,)
     permission_classes = (SynapseAuthPermission,)
 
-    MAX_LIMIT = 1000
+    MAX_LIMIT = 10000
 
     def get(self, request: Request) -> Response:
         """
@@ -46,23 +45,21 @@ class OrgCellMappingsEndpoint(Endpoint):
             ]
             query = query.filter(region_name__in=cell_names)
 
-        try:
-            per_page = self.get_per_page(request, max_per_page=self.MAX_LIMIT)
-            cursor = self.get_cursor_from_request(request)
-            paginator = DateTimePaginator(
-                queryset=query, order_by="-date_updated", max_limit=self.MAX_LIMIT
-            )
-            pagination_result = paginator.get_result(
-                limit=per_page,
-                cursor=cursor,
-            )
-        except BadPaginationError as e:
-            raise ParseError(detail=str(e))
+        per_page = self.get_per_page(request, max_per_page=self.MAX_LIMIT)
+        paginator = SynapsePaginator(
+            queryset=query,
+            id_field="id",
+            timestamp_field="date_updated",
+        )
+        pagination_result = paginator.get_result(
+            limit=per_page,
+            cursor_str=request.GET.get("cursor"),
+        )
 
-        mappings = {}
-        for item in pagination_result.results:
-            mappings[item.slug] = item.region_name
-            mappings[str(item.organization_id)] = item.region_name
+        mappings = [
+            {"id": str(item.organization_id), "slug": item.slug, "cell": item.region_name}
+            for item in pagination_result.results
+        ]
 
         cell_to_locality = {
             cell.name: loc.name
@@ -73,8 +70,8 @@ class OrgCellMappingsEndpoint(Endpoint):
         response_data = {
             "data": mappings,
             "metadata": {
-                "cursor": str(pagination_result.next),
-                "has_more": pagination_result.next.has_results,
+                "cursor": pagination_result.next_cursor,
+                "has_more": pagination_result.has_more,
                 "cell_to_locality": cell_to_locality,
             },
         }

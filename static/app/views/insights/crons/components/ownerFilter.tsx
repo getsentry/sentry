@@ -36,16 +36,17 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
     <CompactSelect
       multiple
       clearable
-      searchable
+      search={{
+        onChange: value => {
+          onMemberSearch(value);
+          onTeamSearch(value);
+        },
+      }}
       loading={fetching}
       disabled={isDemoModeActive()}
       menuTitle={t('Filter owners')}
       options={[{label: t('Suggested'), options: suggestedOptions}, ...options]}
       value={selectedOwners}
-      onSearch={value => {
-        onMemberSearch(value);
-        onTeamSearch(value);
-      }}
       onChange={opts => {
         // Compact select type inference does not work - onChange type is actually T | null.
         if (!opts) {

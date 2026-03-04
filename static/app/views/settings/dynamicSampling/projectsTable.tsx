@@ -14,7 +14,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -420,7 +419,7 @@ const SortableHeader = styled('button')`
   text-transform: inherit;
   align-items: center;
   justify-content: flex-end;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const TableRowWrapper = styled(Grid)`
@@ -446,10 +445,10 @@ const SubContent = styled('div')`
 
   & > div {
     line-height: 2;
-    margin-left: -${space(2)};
-    padding-left: ${space(2)};
-    margin-right: -${space(2)};
-    padding-right: ${space(2)};
+    margin-left: -${p => p.theme.space.xl};
+    padding-left: ${p => p.theme.space.xl};
+    margin-right: -${p => p.theme.space.xl};
+    padding-right: ${p => p.theme.space.xl};
     text-overflow: ellipsis;
     overflow: hidden;
 
@@ -459,15 +458,15 @@ const SubContent = styled('div')`
   }
 
   &[data-is-first-column] > div {
-    margin-left: -${space(1)};
-    padding-left: ${space(1)};
+    margin-left: -${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.md};
     border-top-left-radius: ${p => p.theme.radius.md};
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 
   &[data-is-last-column] > div {
-    margin-right: -${space(1)};
-    padding-right: ${space(1)};
+    margin-right: -${p => p.theme.space.md};
+    padding-right: ${p => p.theme.space.md};
     border-top-right-radius: ${p => p.theme.radius.md};
     border-bottom-right-radius: ${p => p.theme.radius.md};
   }
@@ -475,7 +474,7 @@ const SubContent = styled('div')`
 
 const SubProjects = styled(SubContent)`
   text-align: left;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const HiddenButton = styled('button')`
@@ -495,12 +494,12 @@ const HiddenButton = styled('button')`
 const StyledIconChevron = styled(IconChevron)`
   height: 12px;
   width: 12px;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SettingsButton = styled(LinkButton)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   visibility: hidden;
 

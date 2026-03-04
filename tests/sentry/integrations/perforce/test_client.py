@@ -1,3 +1,5 @@
+import os
+import threading
 from datetime import datetime, timezone
 from unittest import mock
 
@@ -609,3 +611,191 @@ class PerforceClientTest(TestCase):
 
         path = self.p4_client.build_depot_path(nested_repo, "src/main.cpp")
         assert path == "//depot/game/project/src/main.cpp"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_sets_isolated_trust_and_ticket_paths(self, mock_p4_class):
+        """_connect() must point P4TRUST and ticket_file at an isolated tmpdir."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        with self.p4_client._connect():
+            pass
+
+        # Verify set_env was called with P4TRUST pointing into an isolated tmpdir.
+        mock_p4.set_env.assert_called_once()
+        trust_path = mock_p4.set_env.call_args[0][1]
+        assert "sentry-p4-" in trust_path
+        assert trust_path.endswith("/.p4trust")
+
+        # Verify ticket_file was set to the same tmpdir
+        ticket_path = mock_p4.ticket_file
+        assert "sentry-p4-" in ticket_path
+        assert ticket_path.endswith("/.p4tickets")
+
+    def test_set_env_p4trust_is_per_p4_instance(self):
+        """Verify P4.set_env('P4TRUST') is per-P4() instance, not a global side effect.
+
+        This is critical for multi-tenant safety: if set_env were global,
+        concurrent customers would overwrite each other's trust file paths.
+        """
+        from P4 import P4
+
+        p4a = P4()
+        p4b = P4()
+
+        # set_env may raise when P4ENVIRO is /dev/null, but the in-memory
+        # per-instance value is still set (tested separately).
+        try:
+            p4a.set_env("P4TRUST", "/tmp/customer_a/.p4trust")
+        except Exception:
+            pass
+        try:
+            p4b.set_env("P4TRUST", "/tmp/customer_b/.p4trust")
+        except Exception:
+            pass
+
+        # Each instance must read back its own value
+        assert p4a.env("P4TRUST") == "/tmp/customer_a/.p4trust"
+        assert p4b.env("P4TRUST") == "/tmp/customer_b/.p4trust"
+
+    def test_set_env_p4trust_does_not_affect_os_environ(self):
+        """Verify P4.set_env does not leak into the process environment."""
+        from P4 import P4
+
+        original = os.environ.get("P4TRUST")
+        p4 = P4()
+        try:
+            p4.set_env("P4TRUST", "/tmp/should_not_leak/.p4trust")
+        except Exception:
+            pass
+
+        assert os.environ.get("P4TRUST") == original
+
+    def test_set_env_writes_to_p4enviro_file_by_default(self):
+        """Verify the problem: without P4ENVIRO redirect, set_env writes to disk.
+
+        P4.set_env() persists values to the P4ENVIRO file (~/.p4enviro by
+        default). This is the disk contention we need to prevent — multiple
+        tenants would race writing to the same file.
+        """
+        import tempfile
+
+        from P4 import P4
+
+        # Point P4ENVIRO to a writable temp file so set_env writes there
+        tmpdir = tempfile.mkdtemp(prefix="sentry-p4-test-enviro-")
+        enviro_path = os.path.join(tmpdir, ".p4enviro")
+
+        old_enviro = os.environ.get("P4ENVIRO")
+        os.environ["P4ENVIRO"] = enviro_path
+        try:
+            p4 = P4()
+            p4.set_env("P4TRUST", "/tmp/some_trust_path")
+
+            # set_env wrote our value to the enviro file on disk
+            assert os.path.exists(enviro_path)
+            with open(enviro_path) as f:
+                content = f.read()
+            assert "P4TRUST=/tmp/some_trust_path" in content
+        finally:
+            if old_enviro is not None:
+                os.environ["P4ENVIRO"] = old_enviro
+            else:
+                os.environ.pop("P4ENVIRO", None)
+            import shutil
+
+            shutil.rmtree(tmpdir)
+
+    def test_p4enviro_devnull_prevents_disk_writes(self):
+        """Verify the fix: P4ENVIRO=/dev/null prevents set_env from persisting to disk.
+
+        Our module sets os.environ["P4ENVIRO"] = "/dev/null". This test
+        verifies that set_env raises (can't write to /dev/null) but doesn't
+        write to ~/.p4enviro or anywhere else.
+        """
+        from P4 import P4, P4Exception
+
+        old_enviro = os.environ.get("P4ENVIRO")
+        os.environ["P4ENVIRO"] = os.devnull
+        try:
+            p4 = P4()
+            with pytest.raises(P4Exception, match="registry"):
+                p4.set_env("P4TRUST", "/tmp/should_not_persist")
+        finally:
+            if old_enviro is not None:
+                os.environ["P4ENVIRO"] = old_enviro
+            else:
+                os.environ.pop("P4ENVIRO", None)
+
+    def test_set_env_in_memory_value_survives_disk_write_failure(self):
+        """Verify that set_env sets the per-instance value even when disk write raises.
+
+        This is the key behavior our implementation relies on: set_env always
+        updates the in-memory per-instance map, and P4 operations (run_trust,
+        connect, etc.) read from that map — not from disk.
+        """
+        from P4 import P4
+
+        old_enviro = os.environ.get("P4ENVIRO")
+        os.environ["P4ENVIRO"] = os.devnull
+        try:
+            p4 = P4()
+            expected = "/tmp/survives_failure/.p4trust"
+
+            # set_env raises because it can't write to /dev/null...
+            try:
+                p4.set_env("P4TRUST", expected)
+            except Exception:
+                pass
+
+            # ...but the in-memory value is set anyway
+            assert p4.env("P4TRUST") == expected
+        finally:
+            if old_enviro is not None:
+                os.environ["P4ENVIRO"] = old_enviro
+            else:
+                os.environ.pop("P4ENVIRO", None)
+
+    def test_module_level_p4enviro_is_set(self):
+        """Verify that importing the client module sets P4ENVIRO to /dev/null."""
+        # The import already happened at top of file, which triggers the
+        # os.environ.setdefault("P4ENVIRO", os.devnull) in client.py
+        assert os.environ.get("P4ENVIRO") == os.devnull
+
+    def test_set_env_p4trust_concurrent_isolation(self):
+        """Stress test: concurrent P4 instances must each retain their own P4TRUST.
+
+        Simulates multiple customers connecting at the same time.
+        """
+        from P4 import P4
+
+        num_threads = 10
+        barrier = threading.Barrier(num_threads)
+        errors: list[str] = []
+
+        def worker(thread_id: int) -> None:
+            try:
+                expected = f"/tmp/customer_{thread_id}/.p4trust"
+                barrier.wait(timeout=5)  # Maximize contention window
+
+                p4 = P4()
+                try:
+                    p4.set_env("P4TRUST", expected)
+                except Exception:
+                    pass  # Expected with P4ENVIRO=/dev/null
+
+                barrier.wait(timeout=5)  # All threads have set_env by now
+
+                actual = p4.env("P4TRUST")
+                if actual != expected:
+                    errors.append(f"Thread {thread_id}: expected {expected}, got {actual}")
+            except Exception as e:
+                errors.append(f"Thread {thread_id}: {e}")
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        assert not errors, f"Concurrent P4TRUST isolation failures: {errors}"

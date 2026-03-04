@@ -17,7 +17,6 @@ import SelectField from 'sentry/components/deprecatedforms/selectField';
 import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import withApi from 'sentry/utils/withApi';
@@ -1122,7 +1121,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 const Columns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;
 
 const SectionHeader = styled('h5')`
@@ -1131,7 +1130,7 @@ const SectionHeader = styled('h5')`
 
 const SectionHeaderDescription = styled('small')`
   display: block;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const modalCss = css`

@@ -5,7 +5,7 @@ import {expectTypeOf} from 'expect-type';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
@@ -99,7 +99,7 @@ describe('apiOptions', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useQuery({...options, select: selectJsonWithHeaders})
+      useQuery({...options, select: _ => _})
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));

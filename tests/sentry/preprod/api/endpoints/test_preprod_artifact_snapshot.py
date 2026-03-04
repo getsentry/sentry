@@ -23,10 +23,9 @@ class ProjectPreprodSnapshotTest(APITestCase):
         )
 
     def _get_detail_url(self, snapshot_id):
-        """URL for GET (retrieving snapshots)"""
         return reverse(
             "sentry-api-0-project-preprod-snapshots-detail",
-            args=[self.org.slug, self.project.slug, snapshot_id],
+            args=[self.org.slug, snapshot_id],
         )
 
     def test_successful_snapshot_upload(self):
@@ -35,7 +34,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "abc123def456": {
-                    "file_name": "test.png",
+                    "display_name": "Test Screen",
+                    "image_file_name": "test.png",
                     "width": 375,
                     "height": 812,
                     "dark_mode": True,
@@ -72,7 +72,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "pr_number": 123,
             "images": {
                 "img1": {
-                    "file_name": "screen1.png",
+                    "display_name": "Screen 1",
+                    "image_file_name": "screen1.png",
                     "width": 100,
                     "height": 200,
                     "device": "iPhone 14",
@@ -101,7 +102,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
-                    "file_name": "screen1.png",
+                    "display_name": "Screen 1",
+                    "image_file_name": "screen1.png",
                     "width": 100,
                     "height": 200,
                 },
@@ -138,9 +140,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     def test_snapshot_missing_required_field(self):
         url = self._get_create_url()
-        data: dict[str, str] = {
-            # Missing images field
-        }
+        data: dict[str, str] = {}
 
         with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
@@ -172,7 +172,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
-                    "file_name": "test.png",
+                    "display_name": "Test Screen",
+                    "image_file_name": "test.png",
                     "width": -100,
                     "height": 812,
                 },
@@ -260,7 +261,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
     def _get_detail_url(self, snapshot_id):
         return reverse(
             "sentry-api-0-project-preprod-snapshots-detail",
-            args=[self.org.slug, self.project.slug, snapshot_id],
+            args=[self.org.slug, snapshot_id],
         )
 
     def _create_artifact_with_manifest(self, images=None, commit_comparison=None):
@@ -269,13 +270,13 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             images = {
                 "img1": {
                     "display_name": "Screen1",
-                    "file_name": "Screen1",
+                    "image_file_name": "Screen1",
                     "width": 375,
                     "height": 812,
                 },
                 "img2": {
                     "display_name": "Screen2",
-                    "file_name": "Screen2",
+                    "image_file_name": "Screen2",
                     "width": 1080,
                     "height": 1920,
                 },
@@ -321,7 +322,9 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
         assert response.data["images"][0]["key"] == "img1"
-        assert response.data["images"][0]["file_name"] == "Screen1"
+        assert (
+            response.data["images"][0]["image_file_name"] == "Screen1"
+        )  # response field is still "file_name"
         assert response.data["images"][1]["key"] == "img2"
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
@@ -358,7 +361,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         images = {
             f"img{i:03d}": {
                 "display_name": f"Image {i}",
-                "file_name": f"image{i}.png",
+                "image_file_name": f"image{i}.png",
                 "width": 100,
                 "height": 200,
             }
@@ -394,9 +397,10 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot not found"
 
-    def test_get_snapshot_wrong_project(self):
-        """Artifact belonging to a different project should return 404 (IDOR protection)."""
-        other_project = self.create_project(organization=self.org)
+    def test_get_snapshot_wrong_organization(self):
+        """Artifact belonging to a different organization should return 404 (IDOR protection)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
         artifact = PreprodArtifact.objects.create(
             project=other_project,
             state=PreprodArtifact.ArtifactState.UPLOADED,

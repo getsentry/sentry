@@ -8,7 +8,6 @@ import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -194,7 +193,7 @@ function AutomationListTable({
 const AutomationsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='last-triggered'],
   [data-column-name='action'],

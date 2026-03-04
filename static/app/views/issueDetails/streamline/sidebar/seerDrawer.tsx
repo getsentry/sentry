@@ -7,7 +7,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import Feature from 'sentry/components/acl/feature';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
@@ -26,7 +25,6 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -411,16 +409,14 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
         </Flex>
         <ButtonBarWrapper data-test-id="seer-button-bar">
           <Grid flow="column" align="center" gap="md">
-            <Feature features={['organizations:autofix-seer-preferences']}>
-              <LinkButton
-                external
-                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                size="xs"
-                tooltipProps={{title: t('Project Settings for Seer')}}
-                aria-label={t('Project Settings for Seer')}
-                icon={<IconSettings />}
-              />
-            </Feature>
+            <LinkButton
+              external
+              href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+              size="xs"
+              tooltipProps={{title: t('Project Settings for Seer')}}
+              aria-label={t('Project Settings for Seer')}
+              icon={<IconSettings />}
+            />
             {aiConfig.hasAutofix && (
               <Button
                 size="xs"
@@ -508,21 +504,14 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
-    const isExplorerVersion =
-      isSeerExplorerEnabled(organization) &&
-      organization.features.includes('autofix-on-explorer');
-
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: isExplorerVersion
-        ? undefined
-        : css`
-            height: fit-content;
-            max-height: 100%;
-          `,
-      resizable: !isExplorerVersion,
-      drawerWidth: isExplorerVersion ? '50%' : undefined,
+      drawerCss: css`
+        height: fit-content;
+        max-height: 100%;
+      `,
+      resizable: true,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -547,8 +536,8 @@ export const useOpenSeerDrawer = ({
 const PlaceholderStack = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledCard = styled('div')`
@@ -556,7 +545,7 @@ const StyledCard = styled('div')`
   overflow: visible;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   box-shadow: ${p => p.theme.dropShadowMedium};
   transition: all 0.3s ease-in-out;
 `;
@@ -564,7 +553,7 @@ const StyledCard = styled('div')`
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
   position: relative;
   background: ${p => p.theme.tokens.background.secondary};
 `;
@@ -579,7 +568,7 @@ const SeerDrawerHeader = styled(DrawerHeader)`
 const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} ${space(3)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space['2xl']};
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
@@ -592,9 +581,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
-  scroll-margin: 0 ${space(2)};
+  scroll-margin: 0 ${p => p.theme.space.xl};
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   flex-direction: column;
   direction: rtl;
   * {

@@ -15,7 +15,6 @@ import type {
   Mentioned,
 } from 'sentry/components/activity/note/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -242,7 +241,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
 const NoteInputForm = styled('form')<{error?: string}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: flex-end;
   width: 100%;
   transition: padding 0.2s ease-in-out;

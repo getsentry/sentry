@@ -14,7 +14,6 @@ import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -151,7 +150,7 @@ export default function InsightIssuesList({
 const Heading = styled('h6')`
   display: flex;
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.xl};
   width: 60px;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
@@ -203,8 +202,8 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`
@@ -226,7 +225,7 @@ const ColumnWrapper = styled('div')`
   justify-content: flex-end;
   align-self: center;
   width: 60px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.xl};
 `;
 
 const EventsWrapper = styled(ColumnWrapper)`
@@ -262,6 +261,6 @@ const PrimaryCount = styled(Count)`
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
+  padding-bottom: ${p => p.theme.space.md};
 `;
