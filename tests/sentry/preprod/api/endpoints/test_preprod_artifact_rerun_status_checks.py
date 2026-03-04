@@ -34,7 +34,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
         ) as mock_task:
             response = self.get_success_response(
                 self.organization.slug,
-                self.project.slug,
                 artifact.id,
                 status_code=202,
             )
@@ -135,7 +134,6 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
             response = self.get_error_response(
                 self.organization.slug,
-                self.project.slug,
                 artifact.id,
                 status_code=500,
             )
