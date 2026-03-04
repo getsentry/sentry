@@ -1,8 +1,5 @@
 import {t} from 'sentry/locale';
-import type {
-  AttributeResults,
-  Rule,
-} from 'sentry/views/settings/components/dataScrubbing/types';
+import type {Rule} from 'sentry/views/settings/components/dataScrubbing/types';
 
 import {DataScrubFormModal, type DataScrubFormModalProps} from './dataScrubFormModal';
 
@@ -10,7 +7,6 @@ type Props = Omit<
   DataScrubFormModalProps,
   'title' | 'initialValues' | 'onGetNewRules'
 > & {
-  attributeResults: AttributeResults;
   rule: Rule;
   savedRules: Rule[];
 };

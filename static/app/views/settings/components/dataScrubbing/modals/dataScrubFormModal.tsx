@@ -26,7 +26,6 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import type {
-  AttributeResults,
   EditableRule,
   Rule,
   SourceSuggestion,
@@ -74,7 +73,6 @@ const dataScrubSchema = z
 
 export type DataScrubFormModalProps = ModalRenderProps & {
   api: Client;
-  attributeResults: AttributeResults;
   endpoint: string;
   onGetNewRules: (values: EditableRule) => Rule[];
   onSubmitSuccess: (data: {relayPiiConfig: string}) => void;
@@ -86,7 +84,6 @@ export type DataScrubFormModalProps = ModalRenderProps & {
 
 export function DataScrubFormModal({
   api,
-  attributeResults: _attributeResults,
   endpoint,
   onGetNewRules,
   onSubmitSuccess,
