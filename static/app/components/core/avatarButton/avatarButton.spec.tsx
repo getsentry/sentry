@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AvatarButton} from '@sentry/scraps/button';
+import {AvatarButton} from '@sentry/scraps/avatarButton';
 
 describe('AvatarButton', () => {
   it('renders letter avatar initials inside the button', () => {
