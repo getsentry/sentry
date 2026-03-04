@@ -167,8 +167,8 @@ function IssueEscalatingDebugging() {
       }
     );
 
-    const forecast: Forecast = data.forecast;
-    const hourlyCount: Array<[number, number]> = data.stats['24h']!;
+    const forecast = data.forecast;
+    const hourlyCount = data.stats['24h']!;
 
     if (forecast && forecast.data.length > 0) {
       const timestamps = hourlyCount.map(

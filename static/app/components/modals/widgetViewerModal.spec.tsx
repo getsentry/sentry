@@ -66,12 +66,12 @@ async function renderModal({
   widget: any;
   dashboardFilters?: DashboardFilters;
 }) {
-  const routerLocation: LocationConfig = initialRouterConfig.location;
+  const routerLocation = initialRouterConfig.location;
   const routerConfig: RouterConfig = {
     ...initialRouterConfig,
     location: routerLocation,
   };
-  const widgetLegendLocation: Location = {
+  const widgetLegendLocation = {
     ...routerLocation,
     hash: '',
     search: '',

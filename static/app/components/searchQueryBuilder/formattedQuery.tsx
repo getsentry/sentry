@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -24,7 +23,6 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
   query: string;
@@ -77,23 +75,11 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
-  const hasConditionalsSelect = useOrganization().features.includes(
-    'search-query-builder-add-boolean-operator-select'
-  );
-
-  if (hasConditionalsSelect) {
-    const label = token.text.toUpperCase();
-    return (
-      <FilterWrapper aria-label={label}>
-        <Text variant="muted">{label}</Text>
-      </FilterWrapper>
-    );
-  }
-
+  const label = token.text.toUpperCase();
   return (
-    <Flex align="center">
-      <Text variant="muted">{token.text}</Text>
-    </Flex>
+    <FilterWrapper aria-label={label}>
+      <Text variant="muted">{label}</Text>
+    </FilterWrapper>
   );
 }
 

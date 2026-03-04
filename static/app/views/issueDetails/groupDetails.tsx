@@ -20,7 +20,6 @@ import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
@@ -937,7 +936,7 @@ function GroupDetails() {
 export default Sentry.withProfiler(GroupDetails);
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
 `;
 
 const GroupTabPanels = styled(TabPanels)`

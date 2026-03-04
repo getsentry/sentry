@@ -115,10 +115,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     );
 
     if (exactRelease) {
-      const exactOption: (typeof baseOptions)[number] = makeReleaseOption(
-        exactRelease,
-        currentUser?.email
-      );
+      const exactOption = makeReleaseOption(exactRelease, currentUser?.email);
 
       const filtered = baseOptions.filter(opt => opt.value !== exactOption.value);
       filtered.unshift(exactOption);

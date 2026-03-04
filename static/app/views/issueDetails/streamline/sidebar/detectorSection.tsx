@@ -4,7 +4,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -176,5 +175,5 @@ function DetectorSectionContent({
 }
 
 const DetectorDescription = styled('p')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;

@@ -459,7 +459,7 @@ function EAPSpanNodeDetailsContent({
   const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
     attribute => attribute.name === 'thread.id'
   );
-  const threadId: string | undefined =
+  const threadId =
     typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
 
   const span = useMemo(() => {
