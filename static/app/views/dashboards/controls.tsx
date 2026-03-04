@@ -14,7 +14,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -418,7 +417,7 @@ const StyledButtonBar = styled((props: GridProps) => (
 ))`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space.md};
     width: 100%;
   }
 `;

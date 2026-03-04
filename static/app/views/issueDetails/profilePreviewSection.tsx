@@ -143,8 +143,7 @@ function InlineFlamegraphPreview({
     profileGroup.profiles[0] ??
     null;
 
-  const sort: 'left heavy' | 'call order' =
-    viewMode === 'timeline' ? 'call order' : 'left heavy';
+  const sort = viewMode === 'timeline' ? 'call order' : 'left heavy';
 
   const flamegraph = useMemo(
     () => (active ? new FlamegraphModel(active, {sort}) : null),

@@ -27,13 +27,13 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   }> = [];
   const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
 
-  const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
+  const storyFn: StoryContext = (name, render) => {
     stories.push({name, render});
   };
 
-  const apiReferenceFn: (
+  const apiReferenceFn = (
     documentation: TypeLoader.ComponentDocWithFilename | undefined
-  ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
+  ) => {
     APIDocumentation.push(documentation);
   };
 

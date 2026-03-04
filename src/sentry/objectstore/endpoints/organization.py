@@ -25,6 +25,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationReleasePermission
 from sentry.models.organization import Organization
 from sentry.objectstore import parse_accept_encoding
 
@@ -38,6 +39,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
+    permission_classes = (OrganizationReleasePermission,)
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
 
     def _check_flag(self, request: Request, organization: Organization) -> Response | None:

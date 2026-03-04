@@ -103,7 +103,7 @@ const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
 `;

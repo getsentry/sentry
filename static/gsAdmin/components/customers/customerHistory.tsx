@@ -3,17 +3,12 @@ import moment from 'moment-timezone';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import ResultGrid from 'admin/components/resultGrid';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {
-  BillingHistory,
-  ReservedBudget,
-  ReservedBudgetMetricHistory,
-} from 'getsentry/types';
+import type {BillingHistory, ReservedBudgetMetricHistory} from 'getsentry/types';
 import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -48,7 +43,7 @@ function CustomerHistory({orgId, ...props}: Props) {
       ]}
       columnsForRow={(row: BillingHistory) => {
         const sortedCategories = sortCategories(row.categories);
-        const reservedBudgets: ReservedBudget[] = row.reservedBudgets ?? [];
+        const reservedBudgets = row.reservedBudgets ?? [];
         const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
           {};
         const reservedBudgetNameMapping: Record<string, string> = {};
@@ -189,7 +184,7 @@ function CustomerHistory({orgId, ...props}: Props) {
 }
 
 const DisplayName = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 export default CustomerHistory;

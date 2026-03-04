@@ -26,7 +26,6 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
-from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -160,6 +159,7 @@ class SeerOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
+            get_autofix_explorer_client,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
         )
@@ -220,7 +220,7 @@ class SeerOperator[CachePayloadT]:
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    client = SeerExplorerClient(organization=group.organization)
+                    client = get_autofix_explorer_client(group)
                     client.push_changes(run_id, blocking=False)
                 else:
                     # NOTE: Stopping point here is really just what

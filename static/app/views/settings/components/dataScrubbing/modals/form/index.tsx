@@ -458,9 +458,9 @@ export default withOrganization(Form);
 
 const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${space(2)};
+    gap: ${p => p.theme.space.xl};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
     margin-bottom: ${p => p.theme.space.xl};
   }
@@ -501,7 +501,7 @@ const Toggle = styled(Button)`
   }
   > *:first-child {
     display: grid;
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space.xs};
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }

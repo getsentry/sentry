@@ -5,7 +5,6 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -132,7 +131,7 @@ export function ScreensOverview() {
 }
 
 const Container = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
 `;
 
 const getFreeTextFromQuery = (query: string) => {
