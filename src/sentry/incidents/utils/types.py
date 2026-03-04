@@ -36,16 +36,6 @@ class AnomalyDetectionValues(TypedDict):
 
 @dataclass
 class AnomalyDetectionUpdate:
-    """
-    values has format:
-    {
-        "value": float,
-        "source_id": str,
-        "subscription_id": str,
-        "timestamp": datetime,
-    }
-    """
-
     entity: str
     subscription_id: str
     values: AnomalyDetectionValues
