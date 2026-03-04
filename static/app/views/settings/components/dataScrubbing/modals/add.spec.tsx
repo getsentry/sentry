@@ -644,6 +644,84 @@ describe('Add Modal', () => {
     ).not.toBeChecked();
   });
 
+  it('resets replaceCaptured when pattern is edited to remove capture groups', async () => {
+    const mockPutRequest = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {relayPiiConfig: '{}'},
+    });
+
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    // Select PATTERN type
+    await selectEvent.select(
+      screen.getByText(getRuleLabel(RuleType.CREDITCARD)),
+      getRuleLabel(RuleType.PATTERN)
+    );
+
+    // Type regex with capture group
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Regex matches'}),
+      '(secret).*'
+    );
+
+    // Check replaceCaptured
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    );
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).toBeChecked();
+
+    // Edit the pattern to remove capture groups
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Regex matches'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Regex matches'}),
+      'secret.*'
+    );
+
+    // Checkbox should be disabled AND unchecked (auto-reset)
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', {name: 'Only replace first capture match'})
+    ).not.toBeChecked();
+
+    // Fill source and submit
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '$message');
+    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    await waitFor(() => {
+      expect(mockPutRequest).toHaveBeenCalled();
+    });
+
+    // Should NOT contain replaceGroups since pattern has no capture groups
+    const submittedData = JSON.parse(mockPutRequest.mock.calls[0][1].data.relayPiiConfig);
+    expect(submittedData.rules['3']).toEqual({
+      type: 'pattern',
+      pattern: 'secret.*',
+      redaction: {method: 'mask'},
+    });
+  });
+
   it('replaceCaptured checkbox is disabled without capture groups', async () => {
     render(
       <Add

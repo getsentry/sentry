@@ -362,7 +362,16 @@ export function DataScrubFormModal({
               )}
             </form.AppField>
             {type === RuleType.PATTERN && (
-              <form.AppField name="pattern">
+              <form.AppField
+                name="pattern"
+                listeners={{
+                  onChange: ({value}) => {
+                    if (!hasCaptureGroups(value)) {
+                      form.setFieldValue('replaceCaptured', false);
+                    }
+                  },
+                }}
+              >
                 {patternField => (
                   <patternField.Layout.Stack
                     label={t('Regex matches')}
