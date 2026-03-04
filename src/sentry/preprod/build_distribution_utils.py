@@ -312,3 +312,64 @@ def find_latest_installable_artifact(
         potential_artifacts_qs = potential_artifacts_qs.filter(install_groups_q)
 
     return potential_artifacts_qs.first()
+
+
+def find_current_and_latest(
+    project: Project,
+    app_id: str,
+    platform: str,
+    build_version: str | None = None,
+    build_number: int | None = None,
+    main_binary_identifier: str | None = None,
+    build_configuration: str | None = None,
+    codesigning_type: str | None = None,
+    install_groups: Sequence[str] | None = None,
+) -> tuple[PreprodArtifact | None, PreprodArtifact | None]:
+    """Find the current artifact and the latest installable artifact.
+
+    When build_version is provided, looks up the current artifact first and
+    inherits its build_configuration, codesigning_type, and install_groups
+    for the latest lookup when those aren't explicitly provided.
+
+    Returns (current_artifact, latest_artifact).
+    """
+    current_artifact = None
+
+    effective_build_configuration = build_configuration
+    effective_codesigning_type = codesigning_type
+    effective_install_groups = install_groups
+
+    if build_version:
+        current_artifact = find_current_artifact(
+            project=project,
+            app_id=app_id,
+            platform=platform,
+            build_version=build_version,
+            build_number=build_number,
+            main_binary_identifier=main_binary_identifier,
+            build_configuration=build_configuration,
+            codesigning_type=codesigning_type,
+        )
+
+        if current_artifact:
+            if not effective_build_configuration and current_artifact.build_configuration:
+                effective_build_configuration = current_artifact.build_configuration.name
+
+            if not effective_codesigning_type and current_artifact.extras:
+                effective_codesigning_type = current_artifact.extras.get("codesigning_type")
+
+            if not effective_install_groups and current_artifact.extras:
+                current_groups = current_artifact.extras.get("install_groups")
+                if current_groups and isinstance(current_groups, list):
+                    effective_install_groups = current_groups
+
+    latest_artifact = find_latest_installable_artifact(
+        project=project,
+        app_id=app_id,
+        platform=platform,
+        build_configuration_name=effective_build_configuration,
+        codesigning_type=effective_codesigning_type,
+        install_groups=effective_install_groups,
+    )
+
+    return current_artifact, latest_artifact

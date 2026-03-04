@@ -190,7 +190,6 @@ export default function SnapshotsPage() {
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
-              projectSlug={firstPageData.project_id}
               snapshotId={snapshotId}
               comparisonRunInfo={comparisonRunInfo}
               hasBaseArtifact={firstPageData.base_artifact_id !== null}

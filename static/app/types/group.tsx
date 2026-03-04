@@ -204,13 +204,15 @@ export enum IssueType {
   PREPROD_SIZE_ANALYSIS = 'preprod_size_analysis',
 }
 
+// Issue types that should not be visible to users anywhere in the UI
 // Update this if adding an issue type that you don't want to show up in search!
+const HIDDEN_ISSUE_TYPES: IssueType[] = [
+  IssueType.LLM_DETECTED_EXPERIMENTAL,
+  IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+];
+
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
-  type =>
-    ![
-      IssueType.LLM_DETECTED_EXPERIMENTAL,
-      IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
-    ].includes(type)
+  type => !HIDDEN_ISSUE_TYPES.includes(type)
 );
 
 export enum IssueTitle {
@@ -345,6 +347,14 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11002: IssueType.PREPROD_DELTA,
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
+
+// Occurrence type IDs for hidden issue types - used to filter API queries.
+// Note: This only works for issuePlatform events not discover/error events.
+export const HIDDEN_OCCURRENCE_TYPE_IDS: number[] = Object.entries(
+  OCCURRENCE_TYPE_TO_ISSUE_TYPE
+)
+  .filter(([_, issueType]) => HIDDEN_ISSUE_TYPES.includes(issueType))
+  .map(([id]) => Number(id));
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 

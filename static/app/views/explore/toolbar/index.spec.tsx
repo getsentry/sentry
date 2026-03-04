@@ -14,7 +14,6 @@ import {
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -28,16 +27,9 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        {children}
-      </TraceItemAttributeProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 jest.mock('sentry/actionCreators/modal');
