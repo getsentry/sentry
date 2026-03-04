@@ -65,7 +65,7 @@ export default function WebVitalMetersWithIssues({
 
   const renderVitals = () => {
     return ORDER.map((webVital, index) => {
-      const webVitalKey: keyof ProjectData = `p75(measurements.${webVital})`;
+      const webVitalKey = `p75(measurements.${webVital})` as const;
       const score = projectScore[`${webVital}Score`];
       const meterValue = projectData?.[0]?.[webVitalKey];
 

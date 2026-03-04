@@ -28,7 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -89,19 +89,18 @@ export function SizeCompareSelectionContent({
     ...(projectId && {project: projectId}),
   };
 
-  const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
-    useApiQuery<ListBuildsApiResponse>(
-      [
-        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: queryParams},
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId,
-      }
-    );
+  const buildsQuery = useApiQuery<ListBuildsApiResponse>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: queryParams},
+    ],
+    {
+      staleTime: 0,
+      enabled: !!projectId,
+    }
+  );
 
   const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
 

@@ -15,7 +15,6 @@ import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -29,15 +28,15 @@ import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/ma
 import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {
-  isSizeAnalysisComparisonInProgress,
-  MetricsArtifactType,
-  SizeAnalysisComparisonState,
-} from 'sentry/views/preprod/types/appSizeTypes';
 import type {
   SizeAnalysisComparison,
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  isSizeAnalysisComparisonInProgress,
+  MetricsArtifactType,
+  SizeAnalysisComparisonState,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {
   getCompareApiUrl,
@@ -89,15 +88,14 @@ export function SizeCompareMainContent() {
     baseArtifactId,
   });
 
-  const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
-    useApiQuery<SizeComparisonApiResponse>([compareUrl], {
-      staleTime: 0,
-      enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
-      refetchInterval: query => {
-        const mainComparison = getMainComparison(query.state.data?.[0]);
-        return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
-      },
-    });
+  const sizeComparisonQuery = useApiQuery<SizeComparisonApiResponse>([compareUrl], {
+    staleTime: 0,
+    enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+    refetchInterval: query => {
+      const mainComparison = getMainComparison(query.state.data?.[0]);
+      return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+    },
+  });
 
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 

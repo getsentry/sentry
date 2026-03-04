@@ -13,16 +13,15 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
+import type {
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+} from '@sentry/scraps/compactSelect';
 import {
   getDisabledOptions,
   getHiddenOptions,
   itemIsSectionWithKey,
   ListBox,
-} from '@sentry/scraps/compactSelect';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-  SelectOptionWithKey,
 } from '@sentry/scraps/compactSelect';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -72,7 +71,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const hiddenOptions: Set<SelectKey> = useMemo(() => {
+  const hiddenOptions = useMemo(() => {
     const {hidden} = getHiddenOptions(
       items,
       shouldFilterResults ? filterValue : '',
