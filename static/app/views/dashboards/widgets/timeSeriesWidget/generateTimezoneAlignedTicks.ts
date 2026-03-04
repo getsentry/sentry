@@ -64,7 +64,7 @@ export function generateTimezoneAlignedTicks(
     performance.now() - start,
     {
       unit: 'millisecond',
-      tags: {interval_unit: unit, tick_count: String(ticks.length)},
+      attributes: {interval_unit: unit, tick_count: String(ticks.length)},
     }
   );
 
