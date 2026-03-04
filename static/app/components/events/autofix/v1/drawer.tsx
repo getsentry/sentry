@@ -2,11 +2,11 @@ import {useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {SeerDrawerBody} from 'sentry/components/events/autofix/drawer/drawerBody';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/drawer/drawerHeader';
 import {SeerDrawerNavigator} from 'sentry/components/events/autofix/drawer/drawerNavigator';
 import {SeerWelcomeScreen} from 'sentry/components/events/autofix/drawer/welcomeScreen';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {SeerDrawerBody} from 'sentry/components/events/autofix/v1/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v1/content';
 import {AiSetupConfiguration} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
 import Placeholder from 'sentry/components/placeholder';
@@ -34,7 +34,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
       className="seer-drawer-container"
       position="relative"
       height="100%"
-      overflowY="scroll"
+      overflowY="hidden"
       direction="column"
       background="secondary"
     >
@@ -44,7 +44,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
         showCopyMarkdown={false}
         onReset={handleReset}
       />
-      <SeerDrawerBody>
+      <SeerDrawerBody aiAutofix={aiAutofix}>
         <InnerSeerDrawer
           group={group}
           project={project}
