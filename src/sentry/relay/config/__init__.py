@@ -79,6 +79,7 @@ EXPOSABLE_FEATURES = [
     "projects:trace-attachment-processing",
     "organizations:span-v2-otlp-processing",
     "projects:relay-upload-endpoint",
+    "organizations:new-client-report-processing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
