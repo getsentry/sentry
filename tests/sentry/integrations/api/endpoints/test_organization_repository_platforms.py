@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
@@ -88,8 +89,6 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             json={"Python": 50000},
             status=200,
         )
-
-        from base64 import b64encode
 
         requirements_content = b64encode(b"Django==4.2\ncelery>=5.0\n").decode()
         responses.add(
