@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {SeerDrawerBody} from 'sentry/components/events/autofix/drawer/drawerBody';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/drawer/drawerHeader';
@@ -30,12 +30,11 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
   const handleReset = useHandleReset({aiAutofix, aiConfig});
 
   return (
-    <Grid
+    <Flex
       className="seer-drawer-container"
       position="relative"
-      height="100%"
+      direction="column"
       background="secondary"
-      rows="max-content max-content auto"
     >
       <SeerDrawerHeader group={group} project={project} event={event} />
       <SeerDrawerNavigator
@@ -52,7 +51,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
           aiConfig={aiConfig}
         />
       </SeerDrawerBody>
-    </Grid>
+    </Flex>
   );
 }
 
