@@ -120,7 +120,7 @@ function computeLeftShiftPx(viewportWidth: number): number {
  */
 function createIsExcluded(): (el: Element | null) => boolean {
   return (el: Element | null): boolean => {
-    let node: Element | null = el;
+    let node = el;
     while (node) {
       if ((node as HTMLElement).dataset?.seerExplorerRoot !== undefined) {
         return true;
@@ -702,7 +702,7 @@ function renderTextNodes(
   } = context;
 
   const isWithinChart = (el: Element | null): boolean => {
-    let node: Element | null = el;
+    let node = el;
     while (node) {
       if (chartContainers.has(node)) {
         return true;
@@ -713,7 +713,7 @@ function renderTextNodes(
   };
 
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let node: Node | null = walker.nextNode();
+  let node = walker.nextNode();
 
   while (node) {
     const textNode = node as Text;

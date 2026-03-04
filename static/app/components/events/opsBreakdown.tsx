@@ -71,7 +71,7 @@ export function generateStats(
     }
   );
 
-  let spans: RawSpanType[] = spanEntry?.data ?? [];
+  let spans = spanEntry?.data ?? [];
 
   const rootSpan = {
     op: traceContext.op,

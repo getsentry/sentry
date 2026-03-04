@@ -707,7 +707,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       // for all node children when they are expanded. Since stack size is capped, this should never
       // exceed a couple hundred iterations and **should** be a reasonable tradeoff in performance.
       const edges: Array<VirtualizedTreeNode<T>> = [];
-      let path: VirtualizedTreeNode<T> | null = node.parent;
+      let path = node.parent;
 
       while (path && !path.expanded) {
         edges.push(path);

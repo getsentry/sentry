@@ -109,7 +109,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   // Each item of the response is a component in the tree with a path
   for (const item of response) {
     const path = item['function.nextjs.path'];
-    let currentFolder: TreeContainer = root;
+    let currentFolder = root;
 
     // Custom spans with span.op:function.nextjs will not have a component type and cannot be added to the tree
     const componentType = item['function.nextjs.component_type'];
