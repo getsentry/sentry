@@ -18,7 +18,6 @@ import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser'
 import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -134,7 +133,7 @@ const AutoWideHovercard = styled(Hovercard)`
 
 const Title = styled('h4')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Before = styled('span')`

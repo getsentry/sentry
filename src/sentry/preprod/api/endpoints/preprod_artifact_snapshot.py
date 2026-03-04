@@ -38,6 +38,7 @@ from sentry.preprod.snapshots.manifest import ComparisonManifest, ImageMetadata,
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -265,6 +266,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 added_count=len(categorized.added),
                 removed=categorized.removed,
                 removed_count=len(categorized.removed),
+                renamed=categorized.renamed,
+                renamed_count=len(categorized.renamed),
                 unchanged=categorized.unchanged,
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
@@ -439,6 +442,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "artifactId": str(artifact.id),
                 "snapshotMetricsId": str(snapshot_metrics.id),
                 "imageCount": snapshot_metrics.image_count,
+                "snapshotUrl": get_preprod_artifact_url(artifact, view_type="snapshots"),
             },
             status=200,
         )

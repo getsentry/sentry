@@ -20,7 +20,6 @@ import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTo
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 const enum MyTour {
   NAME = 'my-tour-name',
@@ -355,8 +354,8 @@ function TourProvider({
 const BlurBoundary = styled('div')`
   position: relative;
   border: 1px dashed ${p => p.theme.tokens.border.accent.vibrant};
-  padding: ${space(2)};
-  margin: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const Image = styled('img')`

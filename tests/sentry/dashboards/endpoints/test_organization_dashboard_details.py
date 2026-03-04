@@ -1280,6 +1280,34 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Title is required during creation" in response.content
 
+    def test_add_widget_description_exceeds_max_length(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Widget with long description",
+                    "displayType": "line",
+                    "description": "x" * 256,
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][1]["description"] == [
+            "Ensure description has no more than 255 characters."
+        ]
+
     def test_add_widget_with_limit(self) -> None:
         data = {
             "title": "First dashboard",
@@ -3742,17 +3770,62 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 409
         assert "Cannot delete prebuilt Dashboards." in response.content.decode()
 
-    def test_cannot_edit_prebuilt_insights_dashboard(self) -> None:
+    def test_cannot_edit_prebuilt_insights_dashboard_widgets(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Frontend Session Health",
             organization=self.organization,
             prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         )
         response = self.do_request(
-            "put", self.url(dashboard.id), data={"title": "Frontend Session Health Edited"}
+            "put",
+            self.url(dashboard.id),
+            data={
+                "title": "Frontend Session Health",
+                "widgets": [
+                    {
+                        "title": "New Widget",
+                        "displayType": "line",
+                        "queries": [{"name": "", "conditions": "", "fields": ["count()"]}],
+                    }
+                ],
+            },
         )
         assert response.status_code == 409
-        assert "Cannot edit prebuilt Dashboards." in response.content.decode()
+        assert "Cannot edit widgets on prebuilt Dashboards." in response.content.decode()
+
+    def test_cannot_edit_prebuilt_insights_dashboard_title(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={"title": "Renamed Dashboard"},
+        )
+        assert response.status_code == 409
+        assert "Cannot change the title of prebuilt Dashboards." in response.content.decode()
+
+    def test_can_edit_prebuilt_insights_dashboard_global_filters(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        project = self.create_project(organization=self.organization)
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={
+                "title": "Frontend Session Health",
+                "projects": [project.id],
+                "environment": ["production"],
+                "period": "7d",
+                "filters": {"release": ["v1.0"]},
+            },
+        )
+        assert response.status_code == 200
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

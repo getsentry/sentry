@@ -17,7 +17,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -224,7 +223,7 @@ const TimelineRow = styled('li')<TimelineRowProps>`
 const TimelineContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   grid-column: 2/-1;
   opacity: var(--disabled-opacity);
 `;

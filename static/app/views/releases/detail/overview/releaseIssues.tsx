@@ -14,7 +14,6 @@ import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -443,7 +442,7 @@ const ControlsWrapper = styled('div')`
 const OpenInButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const StyledPagination = styled(Pagination)`

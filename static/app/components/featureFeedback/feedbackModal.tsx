@@ -26,7 +26,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -353,7 +352,7 @@ export const modalCss = css`
 `;
 
 const BackButtonWrapper = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   width: 100%;
 `;
 

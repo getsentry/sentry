@@ -2212,7 +2212,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                response = make_severity_score_request(payload, timeout=timeout)
+                viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
+                response = make_severity_score_request(
+                    payload, timeout=timeout, viewer_context=viewer_context
+                )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError:

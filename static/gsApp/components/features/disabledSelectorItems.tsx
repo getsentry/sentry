@@ -8,7 +8,6 @@ import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
 import withSubscription from 'getsentry/components/withSubscription';
@@ -106,9 +105,9 @@ function DisabledSelectorItems({
 }
 
 const SelectorItemLabel = styled('div')`
-  margin-left: ${space(0.5)};
-  margin-top: ${space(0.25)};
-  margin-bottom: ${space(0.25)};
+  margin-left: ${p => p.theme.space.xs};
+  margin-top: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const UpsellMessage = styled('p')`
@@ -120,7 +119,7 @@ const UpsellMessage = styled('p')`
 const StyledIconBusiness = styled(IconBusiness)`
   display: grid;
   align-items: center;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 export default withSubscription(DisabledSelectorItems, {noLoader: true});

@@ -36,7 +36,7 @@ export function TransactionHighlights(props: HighlightProps) {
     organization: props.organization,
   });
 
-  const avgDurationInSeconds: number = useMemo(() => {
+  const avgDurationInSeconds = useMemo(() => {
     return (
       Number(averageDurationQueryResult?.data?.[0]?.['avg(transaction.duration)']) / 1000
     );

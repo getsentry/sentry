@@ -1,0 +1,12 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [["message", "*dog*"]],
+      "fingerprint": ["dogs are great", "{{ message }}"],
+      "attributes": {"title": "{{ message }}"}
+    }
+  ],
+  "logentry": {
+    "formatted": "Number 1 dog, dog #1"
+  }
+}

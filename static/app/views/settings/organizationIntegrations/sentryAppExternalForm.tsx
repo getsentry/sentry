@@ -285,7 +285,7 @@ class SentryAppExternalForm extends Component<Props, State> {
     let requiredFields = config.required_fields || [];
     let optionalFields = config.optional_fields || [];
 
-    const fieldList: FieldFromSchema[] = requiredFields.concat(optionalFields);
+    const fieldList = requiredFields.concat(optionalFields);
 
     // could have multiple impacted fields
     const impactedFields = fieldList.filter(({depends_on}) => {
