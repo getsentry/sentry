@@ -1,17 +1,17 @@
 import {useRef, useState} from 'react';
+import xor from 'lodash/xor';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 
-import type {HybridFilterRef} from 'sentry/components/pageFilters/hybridFilter';
-import {
-  HybridFilter,
-  useStagedCompactSelect,
-} from 'sentry/components/pageFilters/hybridFilter';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 
-function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>>) {
+function useTestOptions(
+  toggleOptionRef: React.MutableRefObject<((val: string) => void) | undefined>
+) {
   return [
     {
       value: 'one',
@@ -20,7 +20,7 @@ function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>
         <Checkbox
           size="sm"
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption?.('one')}
+          onChange={() => toggleOptionRef.current?.('one')}
           aria-label="Select Option One"
           tabIndex={-1}
         />
@@ -33,7 +33,7 @@ function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>
         <Checkbox
           size="sm"
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption?.('two')}
+          onChange={() => toggleOptionRef.current?.('two')}
           aria-label="Select Option Two"
           tabIndex={-1}
         />
@@ -46,7 +46,7 @@ function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>
         <Checkbox
           size="sm"
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption?.('three')}
+          onChange={() => toggleOptionRef.current?.('three')}
           aria-label="Select Option Three"
           tabIndex={-1}
         />
@@ -55,41 +55,51 @@ function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>
   ];
 }
 
-describe('HybridFilter', () => {
+describe('useStagedCompactSelect', () => {
   it('renders', async () => {
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-      const options = useTestOptions(hybridFilterRef);
+      const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+      const options = useTestOptions(toggleOptionRef);
+      const value: string[] = [];
+      const onChange = (_value: string[]) => {};
       const stagedSelect = useStagedCompactSelect({
-        value: [] as string[],
-        defaultValue: [],
+        value,
         options,
-        onChange: () => {},
+        onChange,
         multiple: true,
       });
+      toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
-        <HybridFilter
+        <CompactSelect
+          grid
+          multiple
           search
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
+          {...stagedSelect.compactSelectProps}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
-              <div>
+            xor(stagedSelect.value, value).length > 0 ? (
+              <Flex>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={xor(stagedSelect.value, value).length === 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
-              </div>
+              </Flex>
             ) : null
           }
         />
@@ -110,38 +120,47 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent({value}: {value: string[]}) {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-      const options = useTestOptions(hybridFilterRef);
+      const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+      const options = useTestOptions(toggleOptionRef);
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue: [],
         options,
         onChange,
         multiple: true,
       });
+      toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
-        <HybridFilter
+        <CompactSelect
+          grid
+          multiple
           search
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
+          closeOnSelect
+          {...stagedSelect.compactSelectProps}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
-              <div>
+            xor(stagedSelect.value, value).length > 0 ? (
+              <Flex>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={xor(stagedSelect.value, value).length === 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
-              </div>
+              </Flex>
             ) : null
           }
         />
@@ -169,41 +188,50 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
     function ControlledHybridFilter() {
       const [value, setValue] = useState<string[]>([]);
-      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-      const options = useTestOptions(hybridFilterRef);
+      const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+      const options = useTestOptions(toggleOptionRef);
+      const handleChange = (newValue: string[]) => {
+        onChange(newValue);
+        setValue(newValue);
+      };
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue: [],
         options,
-        onChange: newValue => {
-          onChange(newValue);
-          setValue(newValue);
-        },
+        onChange: handleChange,
         multiple: true,
       });
+      toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
-        <HybridFilter
+        <CompactSelect
+          grid
+          multiple
           search
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
+          {...stagedSelect.compactSelectProps}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  handleChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
-              <div>
+            xor(stagedSelect.value, value).length > 0 ? (
+              <Flex>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={xor(stagedSelect.value, value).length === 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    handleChange(stagedSelect.value);
+                  }}
                 />
-              </div>
+              </Flex>
             ) : null
           }
         />
@@ -243,38 +271,47 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-      const options = useTestOptions(hybridFilterRef);
+      const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+      const options = useTestOptions(toggleOptionRef);
+      const value: string[] = [];
       const stagedSelect = useStagedCompactSelect({
-        value: [] as string[],
-        defaultValue: [],
+        value,
         options,
         onChange,
         multiple: true,
       });
+      toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
-        <HybridFilter
+        <CompactSelect
+          grid
+          multiple
           search
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
+          {...stagedSelect.compactSelectProps}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
-              <div>
+            xor(stagedSelect.value, value).length > 0 ? (
+              <Flex>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={xor(stagedSelect.value, value).length === 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
-              </div>
+              </Flex>
             ) : null
           }
         />
@@ -302,43 +339,53 @@ describe('HybridFilter', () => {
     const onReset = jest.fn();
 
     function TestComponent() {
-      const [value, setValue] = useState<string[]>(['one']);
-      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-      const options = useTestOptions(hybridFilterRef);
+      const defaultValue = ['one'] as string[];
+      const [value, setValue] = useState<string[]>(defaultValue);
+      const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+      const options = useTestOptions(toggleOptionRef);
+      const handleChange = (newValue: string[]) => {
+        onChange(newValue);
+        setValue(newValue);
+      };
       const stagedSelect = useStagedCompactSelect({
         value,
-        defaultValue: ['one'] as string[],
         options,
-        onChange: newValue => {
-          onChange(newValue);
-          setValue(newValue);
-        },
-        onReset,
+        onChange: handleChange,
         multiple: true,
       });
+      toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
-        <HybridFilter
+        <CompactSelect
+          grid
+          multiple
           search
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
+          {...stagedSelect.compactSelectProps}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            xor(stagedSelect.value, defaultValue).length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  handleChange(defaultValue);
+                  onReset();
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
-              <div>
+            xor(stagedSelect.value, value).length > 0 ? (
+              <Flex>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={xor(stagedSelect.value, value).length === 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    handleChange(stagedSelect.value);
+                  }}
                 />
-              </div>
+              </Flex>
             ) : null
           }
         />
@@ -371,38 +418,47 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-      const options = useTestOptions(hybridFilterRef);
+      const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+      const options = useTestOptions(toggleOptionRef);
+      const value: string[] = [];
       const stagedSelect = useStagedCompactSelect({
-        value: [] as string[],
-        defaultValue: [],
+        value,
         options,
         onChange,
         multiple: true,
       });
+      toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
-        <HybridFilter
+        <CompactSelect
+          grid
+          multiple
           search
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
+          {...stagedSelect.compactSelectProps}
           menuHeaderTrailingItems={
-            stagedSelect.shouldShowReset ? (
-              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+            stagedSelect.value.length > 0 ? (
+              <MenuComponents.ResetButton
+                onClick={() => {
+                  stagedSelect.dispatch({type: 'remove staged'});
+                  onChange([]);
+                }}
+              />
             ) : null
           }
           menuFooter={
-            stagedSelect.hasStagedChanges ? (
-              <div>
+            xor(stagedSelect.value, value).length > 0 ? (
+              <Flex>
                 <MenuComponents.CancelButton
-                  disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  disabled={xor(stagedSelect.value, value).length === 0}
+                  onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                 />
                 <MenuComponents.ApplyButton
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() => {
+                    stagedSelect.dispatch({type: 'remove staged'});
+                    onChange(stagedSelect.value);
+                  }}
                 />
-              </div>
+              </Flex>
             ) : null
           }
         />
@@ -444,35 +500,39 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                    onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
                   />
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -506,32 +566,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -565,32 +629,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -619,32 +687,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>(['one', 'two', 'three']);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -676,29 +748,32 @@ describe('HybridFilter', () => {
     it('keeps menu open during shift-click', async () => {
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
           onChange: setValue,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      setValue(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -731,32 +806,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -790,32 +869,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -849,32 +932,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -910,32 +997,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />
@@ -973,32 +1064,36 @@ describe('HybridFilter', () => {
 
       function TestComponent() {
         const [value, setValue] = useState<string[]>([]);
-        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
-        const options = useTestOptions(hybridFilterRef);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
         const stagedSelect = useStagedCompactSelect({
           value,
-          defaultValue: [],
           options,
-          onChange: newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          },
+          onChange: handleChange,
           multiple: true,
         });
+        toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
-          <HybridFilter
+          <CompactSelect
+            grid
+            multiple
             search
-            ref={hybridFilterRef}
-            options={options}
-            stagedSelect={stagedSelect}
+            {...stagedSelect.compactSelectProps}
             menuFooter={
-              stagedSelect.hasStagedChanges ? (
-                <div>
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
                   <MenuComponents.ApplyButton
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
                   />
-                </div>
+                </Flex>
               ) : null
             }
           />

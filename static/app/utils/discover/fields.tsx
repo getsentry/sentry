@@ -1402,6 +1402,7 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(

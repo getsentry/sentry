@@ -4,7 +4,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {
   useUpdateQueryAtIndex,
@@ -20,9 +20,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function GroupBySection({query, index}: Props) {
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 

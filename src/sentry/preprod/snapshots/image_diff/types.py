@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class DiffResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    diff_mask_png: str
+    diff_mask_png: bytes
     changed_pixels: int
     total_pixels: int
     aligned_height: int

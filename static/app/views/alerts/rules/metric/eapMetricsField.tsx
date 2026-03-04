@@ -217,7 +217,7 @@ export default function EAPMetricsField({
           options={isFetching ? previousOptions : (metricOptions ?? [])}
           value={traceMetricSelectValue}
           loading={isFetching}
-          onSearch={debouncedSetSearch}
+          onInputChange={debouncedSetSearch}
           placeholder={t('Select a metric')}
           noOptionsMessage={() => t('No metrics found')}
           onChange={(option: MetricSelectOption) => handleMetricChange(option)}

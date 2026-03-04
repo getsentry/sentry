@@ -23,7 +23,6 @@ import {
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
@@ -66,14 +65,11 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {project: projectId, cursor} = useLocationQuery({
+  const {cursor} = useLocationQuery({
     fields: {
-      project: decodeScalar,
       cursor: decodeScalar,
     },
   });
-  const project = ProjectsStore.getBySlug(projectId);
-  const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
@@ -84,9 +80,9 @@ export function SizeCompareSelectionContent({
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
     build_configuration: headBuildDetails.app_info?.build_configuration,
+    project: headBuildDetails.project_id,
     ...(cursor && {cursor}),
     ...(searchQuery && {query: searchQuery}),
-    ...(projectId && {project: projectId}),
   };
 
   const buildsQuery = useApiQuery<ListBuildsApiResponse>(
@@ -98,7 +94,6 @@ export function SizeCompareSelectionContent({
     ],
     {
       staleTime: 0,
-      enabled: !!projectId,
     }
   );
 
@@ -117,7 +112,6 @@ export function SizeCompareSelectionContent({
       return api.requestPromise(
         getCompareApiUrl({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId,
           baseArtifactId,
         }),
@@ -128,7 +122,6 @@ export function SizeCompareSelectionContent({
       navigate(
         getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId: headBuildDetails.id,
           baseArtifactId: selectedBaseBuild?.id,
         })
@@ -178,7 +171,6 @@ export function SizeCompareSelectionContent({
               navigate(
                 getCompareBuildPath({
                   organizationSlug: organization.slug,
-                  projectId,
                   headArtifactId: headBuildDetails.id,
                 }),
                 {replace: true}
@@ -209,12 +201,10 @@ export function SizeCompareSelectionContent({
                   trackAnalytics('preprod.builds.compare.select_base_build', {
                     organization,
                     build_id: build.id,
-                    project_slug: projectId,
                     platform:
                       build.app_info?.platform ??
                       headBuildDetails.app_info?.platform ??
                       null,
-                    project_type: projectType,
                   });
                 }}
               />

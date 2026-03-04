@@ -9,7 +9,6 @@ import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
@@ -97,14 +96,14 @@ const ConnectedDetectors = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const HovercardRow = styled('div')`
   position: relative;
   display: flex;
   justify-content: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   min-height: 64px;
 
   &:not(:last-child) {
@@ -116,5 +115,5 @@ const MoreText = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
