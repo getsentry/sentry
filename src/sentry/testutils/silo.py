@@ -91,7 +91,7 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
             name=name,
             snowflake_id=index + 1,
             address=generate_locality_url(name),
-            _category=(
+            category=(
                 RegionCategory.SINGLE_TENANT
                 if name in single_tenants
                 else RegionCategory.MULTI_TENANT

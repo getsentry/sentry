@@ -143,7 +143,7 @@ class ApiGatewayTestCase(APITestCase):
         name="us",
         snowflake_id=1,
         address="http://us.internal.sentry.io",
-        _category=RegionCategory.MULTI_TENANT,
+        category=RegionCategory.MULTI_TENANT,
     )
 
     def setUp(self):
