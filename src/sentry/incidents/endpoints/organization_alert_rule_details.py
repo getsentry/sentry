@@ -146,22 +146,28 @@ def remove_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule | Detector
 ) -> Response:
     if isinstance(alert_rule, Detector):
-        remove_detector(request, organization, alert_rule)
         try:
-            ard = AlertRuleDetector.objects.get(detector_id=alert_rule.id)
-            alert_rule = AlertRule.objects.get(id=ard.alert_rule_id)
-            delete_alert_rule(
-                alert_rule,
-                user=_anon_to_None(request.user),
-                ip_address=request.META.get("REMOTE_ADDR"),
-            )
-        except (AlertRuleDetector.DoesNotExist, AlertRule.DoesNotExist):
-            return Response(
-                "This detector was single written, no alert rule to delete",
-                status=status.HTTP_204_NO_CONTENT,
-            )
+            with transaction.atomic(router.db_for_write(Detector)):
+                remove_detector(request, organization, alert_rule)
+                try:
+                    ard = AlertRuleDetector.objects.get(detector_id=alert_rule.id)
+                    alert_rule = AlertRule.objects.get(id=ard.alert_rule_id)
+                    delete_alert_rule(
+                        alert_rule,
+                        user=_anon_to_None(request.user),
+                        ip_address=request.META.get("REMOTE_ADDR"),
+                    )
+                except (AlertRuleDetector.DoesNotExist, AlertRule.DoesNotExist):
+                    return Response(
+                        "This detector was single written, no alert rule to delete",
+                        status=status.HTTP_204_NO_CONTENT,
+                    )
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+        except AlreadyDeletedError:
+            return Response(
+                "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
+            )
 
     try:
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
