@@ -88,7 +88,7 @@ function ConfigureIntegration() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;

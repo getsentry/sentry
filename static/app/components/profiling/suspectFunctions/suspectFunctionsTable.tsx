@@ -178,9 +178,7 @@ export function SuspectFunctionsTable({
         continue;
       }
 
-      const frameExamples:
-        | Array<Exclude<Profiling.ProfileReference, string>>
-        | undefined = examples[i];
+      const frameExamples = examples[i];
       if (!frameExamples?.length) {
         continue;
       }

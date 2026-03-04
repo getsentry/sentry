@@ -88,7 +88,7 @@ function IntegrationTabs({
   getTabDisplay,
 }: {
   activeTab: IntegrationTab;
-  tabs: IntegrationTab[];
+  tabs: readonly IntegrationTab[];
   getTabDisplay?: (tab: IntegrationTab) => string;
   onTabChange?: (tab: IntegrationTab) => void;
 }) {

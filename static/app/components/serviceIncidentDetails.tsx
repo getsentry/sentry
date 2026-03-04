@@ -141,16 +141,16 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
 
 const Title = styled('h2')`
   font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const AffectedServices = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;
 
 const UpdatesList = styled(List)`
-  gap: ${space(3)};
-  margin-left: ${space(1.5)};
+  gap: ${p => p.theme.space['2xl']};
+  margin-left: ${p => p.theme.space.lg};
   position: relative;
 
   &::before {
@@ -159,7 +159,7 @@ const UpdatesList = styled(List)`
     position: absolute;
     height: 100%;
     width: 2px;
-    margin: ${space(1)} 0 ${space(1)} -${space(1.5)};
+    margin: ${p => p.theme.space.md} 0 ${p => p.theme.space.md} -${p => p.theme.space.lg};
     background: ${p => p.theme.colors.gray100};
   }
 
@@ -167,8 +167,8 @@ const UpdatesList = styled(List)`
     content: '';
     display: block;
     position: absolute;
-    bottom: -${space(1)};
-    margin-left: -${space(1.5)};
+    bottom: -${p => p.theme.space.md};
+    margin-left: -${p => p.theme.space.lg};
     height: 30px;
     width: 2px;
     background: linear-gradient(
@@ -225,7 +225,7 @@ const StatusDate = styled('div')`
 `;
 
 const ComponentList = styled(List)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   display: block;
   column-count: 2;
 `;

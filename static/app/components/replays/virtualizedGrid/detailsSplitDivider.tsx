@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import Stacked from 'sentry/components/container/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 
@@ -57,7 +56,7 @@ const CloseButtonWrapper = styled('div')`
   position: absolute;
   right: 0;
   height: 100%;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   z-index: ${p => p.theme.zIndex.initial};
   display: flex;
   align-items: center;

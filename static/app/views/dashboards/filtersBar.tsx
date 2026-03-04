@@ -20,7 +20,6 @@ import {
 } from 'sentry/constants/releases';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -135,7 +134,7 @@ export default function FiltersBar({
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
-  const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
+  const prebuiltDashboardFilters = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
 
@@ -366,15 +365,15 @@ const parseReleaseSort = createParser({
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
   align-items: flex-start;
 `;
 
 const FiltersRow = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
   flex: 1;
 

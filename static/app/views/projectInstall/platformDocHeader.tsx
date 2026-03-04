@@ -9,7 +9,6 @@ import {removeProject} from 'sentry/actionCreators/projects';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -115,7 +114,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
 const StyledPageHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 
   h2 {
     margin: 0;
@@ -126,7 +125,7 @@ const StyledPageHeader = styled('div')`
     align-items: flex-start;
 
     h2 {
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p => p.theme.space.xl};
     }
   }
 `;

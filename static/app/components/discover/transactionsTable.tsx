@@ -12,14 +12,12 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Alignments} from 'sentry/utils/discover/fields';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -80,7 +78,7 @@ function TransactionsTable(props: Props) {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index]!;
-      const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
+      const align = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
@@ -270,11 +268,11 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
 }
 
 const HeadCellContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const BodyCellContainer = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: block;
   width: 100%;
   white-space: nowrap;

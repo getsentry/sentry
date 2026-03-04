@@ -9,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -380,21 +379,21 @@ export default function DataDownload() {
 
 const Header = styled('header')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(3)} 40px 0;
+  padding: ${p => p.theme.space['2xl']} 40px 0;
   h3 {
     font-size: 24px;
-    margin: 0 0 ${space(3)} 0;
+    margin: 0 0 ${p => p.theme.space['2xl']} 0;
   }
 `;
 
 const Body = styled('div')`
-  padding: ${space(2)} 40px;
+  padding: ${p => p.theme.space.xl} 40px;
   max-width: 500px;
   p {
-    margin: ${space(1.5)} 0;
+    margin: ${p => p.theme.space.lg} 0;
   }
 `;
 
 const DownloadButton = styled(LinkButton)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;

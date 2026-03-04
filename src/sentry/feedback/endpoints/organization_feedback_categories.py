@@ -26,6 +26,7 @@ from sentry.feedback.lib.seer_api import (
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -106,6 +107,8 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "AI categorization is not available for this organization."}, status=403
             )
+
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             start, end = get_date_range_from_stats_period(
@@ -192,6 +195,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                     seer_request,
                     timeout=SEER_TIMEOUT_S,
                     retries=SEER_RETRIES,
+                    viewer_context=viewer_context,
                 )
             except Exception:
                 logger.exception("Seer failed to generate user feedback label groups")

@@ -1,16 +1,14 @@
-import {Component, createContext} from 'react';
-import isEqual from 'lodash/isEqual';
+import {createContext, useCallback, useEffect, useState} from 'react';
 
 import type {TeamKeyTransactions} from 'sentry/actionCreators/performance';
 import {
   fetchTeamKeyTransactions,
   toggleKeyTransaction,
 } from 'sentry/actionCreators/performance';
-import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
 export type TeamSelection = {
   action: 'key' | 'unkey';
@@ -39,7 +37,6 @@ const TeamKeyTransactionsManagerContext =
   });
 
 type Props = {
-  api: Client;
   children: React.ReactNode;
   organization: Organization;
   selectedTeams: string[];
@@ -51,42 +48,33 @@ type State = Omit<
   TeamKeyTransactionManagerChildrenProps,
   'teams' | 'counts' | 'getKeyedTeams' | 'handleToggleKeyTransaction'
 > & {
-  keyFetchID: symbol | null;
+  keyFetchID: symbol | null | undefined;
   teamKeyTransactions: TeamKeyTransactions;
 };
 
-class UnwrappedProvider extends Component<Props> {
-  state: State = {
-    keyFetchID: null,
-    isLoading: true,
-    error: null,
-    teamKeyTransactions: [],
-  };
+const initialState = {
+  keyFetchID: null,
+  isLoading: true,
+  error: null,
+  teamKeyTransactions: [],
+};
 
-  componentDidMount() {
-    this.fetchData();
-  }
+export function Provider({
+  children,
+  organization,
+  selectedProjects,
+  selectedTeams,
+  teams,
+}: Props) {
+  const api = useApi();
 
-  componentDidUpdate(prevProps: Props) {
-    const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-    const selectedTeamsChanged = !isEqual(
-      prevProps.selectedTeams,
-      this.props.selectedTeams
-    );
-    const selectedProjectsChanged = !isEqual(
-      prevProps.selectedProjects,
-      this.props.selectedProjects
-    );
+  const [state, setState] = useState<State>(initialState);
+  const refetchKey = JSON.stringify({selectedTeams, selectedProjects});
 
-    if (orgSlugChanged || selectedTeamsChanged || selectedProjectsChanged) {
-      this.fetchData();
-    }
-  }
-
-  async fetchData() {
-    const {api, organization, selectedTeams, selectedProjects} = this.props;
+  const fetchData = useCallback(async () => {
     const keyFetchID = Symbol('keyFetchID');
-    this.setState({isLoading: true, keyFetchID});
+
+    setState(previousState => ({...previousState, isLoading: true, keyFetchID}));
 
     let teamKeyTransactions: TeamKeyTransactions = [];
     let error: string | null = null;
@@ -102,17 +90,23 @@ class UnwrappedProvider extends Component<Props> {
       error = err.responseJSON?.detail ?? t('Error fetching team key transactions');
     }
 
-    this.setState({
+    setState({
       isLoading: false,
       keyFetchID: undefined,
       error,
       teamKeyTransactions,
     });
-  }
+    // This component receives referentially new selectedTeams and selectedProjects
+    // on many renders. Ideally fetchTeamKeyTransactions should be refactored to use
+    // `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, organization.slug, refetchKey]);
 
-  getCounts() {
-    const {teamKeyTransactions} = this.state;
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
+  function getCounts(teamKeyTransactions: TeamKeyTransactions) {
     const counts = new Map<string, number>();
 
     teamKeyTransactions.forEach(({team, count}) => {
@@ -122,99 +116,100 @@ class UnwrappedProvider extends Component<Props> {
     return counts;
   }
 
-  getKeyedTeams = (projectId: string, transactionName: string) => {
-    const {teamKeyTransactions} = this.state;
+  const getKeyedTeams = useCallback(
+    (projectId: string, transactionName: string) => {
+      const keyedTeams = new Set<string>();
 
-    const keyedTeams = new Set<string>();
+      state.teamKeyTransactions.forEach(({team, keyed}) => {
+        const isKeyedByTeam = keyed.find(
+          keyedTeam =>
+            keyedTeam.project_id === projectId &&
+            keyedTeam.transaction === transactionName
+        );
+        if (isKeyedByTeam) {
+          keyedTeams.add(team);
+        }
+      });
 
-    teamKeyTransactions.forEach(({team, keyed}) => {
-      const isKeyedByTeam = keyed.find(
-        keyedTeam =>
-          keyedTeam.project_id === projectId && keyedTeam.transaction === transactionName
-      );
-      if (isKeyedByTeam) {
-        keyedTeams.add(team);
-      }
-    });
+      return keyedTeams;
+    },
+    [state.teamKeyTransactions]
+  );
 
-    return keyedTeams;
-  };
+  const handleToggleKeyTransaction = useCallback(
+    async (selection: TeamSelection) => {
+      const {teamKeyTransactions} = state;
+      const {action, project, transactionName, teamIds} = selection;
+      const isKeyTransaction = action === 'unkey';
 
-  handleToggleKeyTransaction = async (selection: TeamSelection) => {
-    const {api, organization} = this.props;
-    const {teamKeyTransactions} = this.state;
-    const {action, project, transactionName, teamIds} = selection;
-    const isKeyTransaction = action === 'unkey';
+      const teamIdSet = new Set(teamIds);
 
-    const teamIdSet = new Set(teamIds);
+      const newTeamKeyTransactions = teamKeyTransactions.map(({team, count, keyed}) => {
+        if (!teamIdSet.has(team)) {
+          return {team, count, keyed};
+        }
 
-    const newTeamKeyTransactions = teamKeyTransactions.map(({team, count, keyed}) => {
-      if (!teamIdSet.has(team)) {
-        return {team, count, keyed};
-      }
-
-      if (isKeyTransaction) {
+        if (isKeyTransaction) {
+          return {
+            team,
+            count: count - 1,
+            keyed: keyed.filter(
+              keyTransaction =>
+                keyTransaction.project_id !== project.id ||
+                keyTransaction.transaction !== transactionName
+            ),
+          };
+        }
         return {
           team,
-          count: count - 1,
-          keyed: keyed.filter(
-            keyTransaction =>
-              keyTransaction.project_id !== project.id ||
-              keyTransaction.transaction !== transactionName
-          ),
+          count: count + 1,
+          keyed: [
+            ...keyed,
+            {
+              project_id: project.id,
+              transaction: transactionName,
+            },
+          ],
         };
-      }
-      return {
-        team,
-        count: count + 1,
-        keyed: [
-          ...keyed,
-          {
-            project_id: project.id,
-            transaction: transactionName,
-          },
-        ],
-      };
-    });
-
-    try {
-      await toggleKeyTransaction(
-        api,
-        isKeyTransaction,
-        organization.slug,
-        [project.id],
-        transactionName,
-        teamIds
-      );
-      this.setState({teamKeyTransactions: newTeamKeyTransactions});
-    } catch (err: any) {
-      this.setState({
-        error: err.responseJSON?.detail ?? null,
       });
-    }
+
+      try {
+        await toggleKeyTransaction(
+          api,
+          isKeyTransaction,
+          organization.slug,
+          [project.id],
+          transactionName,
+          teamIds
+        );
+        setState(previousState => ({
+          ...previousState,
+          teamKeyTransactions: newTeamKeyTransactions,
+        }));
+      } catch (err: any) {
+        setState(previousState => ({
+          ...previousState,
+          error: err.responseJSON?.detail ?? null,
+        }));
+      }
+    },
+    [api, organization.slug, state]
+  );
+
+  const childrenProps: TeamKeyTransactionManagerChildrenProps = {
+    teams,
+    isLoading: state.isLoading,
+    error: state.error,
+    counts: getCounts(state.teamKeyTransactions),
+    getKeyedTeams,
+    handleToggleKeyTransaction,
   };
 
-  render() {
-    const {teams} = this.props;
-    const {isLoading, error} = this.state;
-
-    const childrenProps: TeamKeyTransactionManagerChildrenProps = {
-      teams,
-      isLoading,
-      error,
-      counts: this.getCounts(),
-      getKeyedTeams: this.getKeyedTeams,
-      handleToggleKeyTransaction: this.handleToggleKeyTransaction,
-    };
-
-    return (
-      <TeamKeyTransactionsManagerContext value={childrenProps}>
-        {this.props.children}
-      </TeamKeyTransactionsManagerContext>
-    );
-  }
+  return (
+    <TeamKeyTransactionsManagerContext value={childrenProps}>
+      {children}
+    </TeamKeyTransactionsManagerContext>
+  );
 }
-
-export const Provider = withApi(UnwrappedProvider);
 
 export const Consumer = TeamKeyTransactionsManagerContext.Consumer;

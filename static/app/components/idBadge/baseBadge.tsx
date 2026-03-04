@@ -136,7 +136,7 @@ const DisplayName = styled('span')`
 
 const Description = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 14px;
   display: block;
