@@ -63,7 +63,9 @@ class Lock {
         document.body.style.paddingRight = this.initialBodyStyles.paddingRight;
         const {x, y} = this.scroll;
         requestAnimationFrame(() => {
-          window.scrollTo(x, y);
+          if (this.acquiredBy.size === 0) {
+            window.scrollTo(x, y);
+          }
         });
         this.initialBodyStyles = null;
       }
