@@ -54,17 +54,18 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       trigger={triggerProps => (
         <AvatarButton
           avatar={
-            organization.avatar.avatarType === 'upload'
+            organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
               ? {
                   type: 'upload',
-                  uploadUrl: organization.avatar.avatarUrl ?? '',
+                  uploadUrl: organization.avatar.avatarUrl,
                   identifier: organization.slug,
                   name: organization.name,
                 }
-              : organization.avatar.avatarType === 'gravatar'
+              : organization.avatar.avatarType === 'gravatar' &&
+                  organization.avatar.avatarUrl
                 ? {
                     type: 'gravatar',
-                    gravatarId: organization.avatar.avatarUrl ?? '',
+                    gravatarId: organization.avatar.avatarUrl,
                     identifier: organization.slug,
                     name: organization.name,
                   }
