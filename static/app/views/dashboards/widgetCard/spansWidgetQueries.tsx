@@ -48,7 +48,7 @@ type SpansWidgetQueriesProps = {
 type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
   getConfidenceInformation: (result: SeriesResult) => {
     seriesConfidence: Confidence | null;
-    seriesDataScanned: 'full' | 'partial';
+    seriesDataScanned: 'full' | 'partial' | undefined;
     seriesIsSampled: boolean | null;
     seriesSampleCount: number | undefined;
   };
@@ -60,7 +60,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
       let seriesConfidence: Confidence | null;
       let seriesSampleCount: number | undefined;
       let seriesIsSampled: boolean | null;
-      let seriesDataScanned: 'full' | 'partial';
+      let seriesDataScanned: 'full' | 'partial' | undefined;
 
       if (isEventsStats(result)) {
         const [_order, timeSeries] = convertEventsStatsToTimeSeriesData(

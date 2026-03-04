@@ -28,6 +28,8 @@ import type {
   EChartLegendSelectChangeHandler,
   ECharts,
   ReactEchartsRef,
+  Series,
+  SeriesDataUnit,
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -83,6 +85,7 @@ import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/setti
 import type {
   TabularColumn,
   TabularData,
+  TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
@@ -499,8 +502,9 @@ function WidgetCardChart(props: WidgetCardChartProps) {
 
   const isTopN =
     defined(topEventsCountExcludingOther) && topEventsCountExcludingOther > 1;
-  const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
-  const footerConfidence = confidence ?? combineConfidenceForSeries(series);
+  const footerSeries = toFooterTimeSeries(series, dataScanned);
+  const samplingMeta = determineSeriesSampleCountAndIsSampled(footerSeries, isTopN);
+  const footerConfidence = confidence ?? combineConfidenceForSeries(footerSeries);
   const footerSampleCount = defined(sampleCount) ? sampleCount : samplingMeta.sampleCount;
   const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta.isSampled;
   const footerDataScanned = dataScanned ?? samplingMeta.dataScanned;
@@ -512,7 +516,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       ?.conditions ?? '';
   const footerChartInfo: ChartInfo = {
     chartType: getExploreChartType(widget.displayType),
-    series,
+    series: footerSeries,
     timeseriesResult: {isPending: loading} as ChartInfo['timeseriesResult'],
     yAxis: axisLabel,
     confidence: footerConfidence,
@@ -925,6 +929,50 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
       selection={props.selection}
     />
   );
+}
+
+function toFooterTimeSeries(
+  series: Array<Series & {fieldName?: string}>,
+  dataScanned?: 'full' | 'partial'
+): TimeSeries[] {
+  return series.map((seriesEntry, seriesIndex) => {
+    const values = seriesEntry.data.map((datum, pointIndex) => {
+      const samplingDatum = datum as SeriesDataUnit & {
+        confidence?: Confidence;
+        sampleCount?: number | null;
+        sampleRate?: number | null;
+      };
+
+      const numericTimestamp =
+        typeof samplingDatum.name === 'number'
+          ? samplingDatum.name
+          : new Date(samplingDatum.name).getTime();
+
+      return {
+        timestamp: Number.isFinite(numericTimestamp)
+          ? numericTimestamp
+          : seriesIndex * 1000 + pointIndex,
+        value: samplingDatum.value,
+        confidence: samplingDatum.confidence,
+        sampleCount: samplingDatum.sampleCount,
+        sampleRate: samplingDatum.sampleRate,
+      };
+    });
+
+    const interval =
+      values.length >= 2 ? Math.max(0, values[1]!.timestamp - values[0]!.timestamp) : 0;
+
+    return {
+      yAxis: seriesEntry.seriesName,
+      values,
+      meta: {
+        interval,
+        valueType: 'number',
+        valueUnit: null,
+        dataScanned,
+      },
+    };
+  });
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {

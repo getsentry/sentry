@@ -41,14 +41,20 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
         };
       case WidgetType.TRACEMETRICS: {
         const traceMetric = extractTraceMetricFromWidget(widget);
-        const hasMetric = Boolean(traceMetric?.name && traceMetric?.type);
+        if (!traceMetric?.name || !traceMetric?.type) {
+          return {
+            supported: true,
+            dataset: DiscoverDatasets.TRACEMETRICS,
+            aggregate: 'count(value,,,-)',
+            enabled: false,
+          };
+        }
+
         return {
           supported: true,
           dataset: DiscoverDatasets.TRACEMETRICS,
-          aggregate: hasMetric
-            ? `count(value,${traceMetric.name},${traceMetric.type},${traceMetric.unit ?? '-'})`
-            : 'count(value,,,-)',
-          enabled: hasMetric,
+          aggregate: `count(value,${traceMetric.name},${traceMetric.type},${traceMetric.unit ?? '-'})`,
+          enabled: true,
         };
       }
       default:

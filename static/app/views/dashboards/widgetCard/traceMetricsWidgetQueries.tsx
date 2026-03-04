@@ -40,7 +40,7 @@ type TraceMetricsWidgetQueriesProps = {
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
   getConfidenceInformation: (result: SeriesResult) => {
     seriesConfidence: Confidence | null;
-    seriesDataScanned: 'full' | 'partial';
+    seriesDataScanned: 'full' | 'partial' | undefined;
     seriesIsSampled: boolean | null;
     seriesSampleCount: number | undefined;
   };
