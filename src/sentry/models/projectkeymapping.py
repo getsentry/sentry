@@ -32,10 +32,11 @@ class ProjectKeyMapping(Model):
         db_table = "sentry_projectkeymapping"
         indexes = [
             IndexWithPostgresNameLimits(
+                "cell_name",
                 TruncSecond("date_updated"),
                 "id",
-                name="sentry_projkeymapping_date_updated_id_idx",
-            )
+                name="sentry_projkeymapping_cell_name_date_updated_id_idx",
+            ),
         ]
 
     __repr__ = sane_repr("public_key", "cell_name")
