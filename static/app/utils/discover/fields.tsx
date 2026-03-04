@@ -1132,6 +1132,11 @@ export function explodeFieldString(field: string, alias?: string): Column {
       alias,
     };
     if (results.arguments.length > 3) {
+      // If there are more than 3 arguments, we are using the args array to store this information
+      // instead of the function array. This gives us more flexibility to add more arguments in the future.
+      // At the moment, this is only used for trace metrics.
+      column.function[2] = undefined;
+      column.function[3] = undefined;
       column.args = results.arguments;
     }
     return column;

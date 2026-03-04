@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import type {Column} from 'sentry/utils/discover/fields';
+import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -2129,6 +2129,100 @@ describe('useWidgetBuilderState', () => {
           args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
+    });
+
+    it('preserves trace metric args when switching from line to categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'sum(value,my.metric,counter,-)',
+              'per_second(value,my.metric,counter,-)',
+            ],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'counter'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Verify initial yAxis has args preserved from deserialization.
+      // explodeFieldString puts the first 3 args into function[1..3] and
+      // stores all args in the args array when there are more than 3.
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+          args: ['value', 'my.metric', 'counter', '-'],
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.CATEGORICAL_BAR,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // yAxis should be cleared
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: [],
+          }),
+        }),
+        expect.anything()
+      );
+
+      // fields should contain the default X-axis (project) plus both aggregates with args
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'project'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', undefined, undefined],
+                args: ['value', 'my.metric', 'counter', '-'],
+              },
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: [
+                  'per_second' as AggregationKeyWithAlias,
+                  'value',
+                  undefined,
+                  undefined,
+                ],
+                args: ['value', 'my.metric', 'counter', '-'],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // sort should reference the full aggregate string with args
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-per_second(value,my.metric,counter,-)'],
+          }),
+        }),
+        expect.anything()
+      );
     });
 
     it('only applies validation for trace metrics dataset', () => {
