@@ -88,7 +88,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
   async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
 
-    if (!incidentList || incidentList.length !== 0) {
+    if (incidentList?.length !== 0) {
       this.setState({hasAlertRule: true, firstVisitShown: false});
       return;
     }

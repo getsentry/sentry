@@ -12,6 +12,7 @@ from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
 from sentry.seer.entrypoints.operator import (
     AUTOFIX_FALLBACK_CAUSE_ID,
     SeerOperator,
+    get_autofix_explorer_status,
     process_autofix_updates,
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
@@ -20,6 +21,7 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
+from sentry.seer.explorer.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import TestCase
 
@@ -496,3 +498,119 @@ class SeerOperatorTest(TestCase):
             }
         ):
             assert SeerOperator.can_trigger_autofix(group=self.group) is False
+
+
+class TestGetAutofixExplorerStatus(TestCase):
+    @staticmethod
+    def _make_block(step: str, block_id: str = "1") -> MemoryBlock:
+        return MemoryBlock(
+            id=block_id,
+            message=Message(role="assistant", metadata={"step": step}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    @staticmethod
+    def _make_state(
+        blocks: list[MemoryBlock],
+        status: str = "completed",
+        repo_pr_states: dict[str, RepoPRState] | None = None,
+    ) -> SeerRunState:
+        return SeerRunState(
+            run_id=1,
+            blocks=blocks,
+            status=status,
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states=repo_pr_states or {},
+        )
+
+    def test_no_blocks_returns_none(self):
+        state = self._make_state(blocks=[])
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
+
+    def test_blocks_with_no_metadata_returns_none(self):
+        block = MemoryBlock(
+            id="1",
+            message=Message(role="assistant", metadata=None),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        state = self._make_state(blocks=[block])
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
+
+    def test_blocks_with_metadata_but_no_step_key_returns_none(self):
+        block = MemoryBlock(
+            id="1",
+            message=Message(role="assistant", metadata={"other": "value"}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        state = self._make_state(blocks=[block])
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
+
+    def test_block_with_invalid_step_value_returns_none(self):
+        block = MemoryBlock(
+            id="1",
+            message=Message(role="assistant", metadata={"step": "not_a_real_step"}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        state = self._make_state(blocks=[block])
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
+
+    def test_matching_last_block_processing_returns_false(self):
+        block = self._make_block("root_cause")
+        state = self._make_state(blocks=[block], status="processing")
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is False
+
+    def test_matching_last_block_completed_returns_true(self):
+        block = self._make_block("root_cause")
+        state = self._make_state(blocks=[block], status="completed")
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
+
+    def test_matching_last_block_error_returns_true(self):
+        block = self._make_block("root_cause")
+        state = self._make_state(blocks=[block], status="error")
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
+
+    def test_matching_block_not_last_returns_true(self):
+        root_cause_block = self._make_block("root_cause", block_id="1")
+        solution_block = self._make_block("solution", block_id="2")
+        state = self._make_state(blocks=[root_cause_block, solution_block], status="processing")
+        # root_cause is not the last block, so it's already completed
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
+
+    def test_open_pr_no_repo_pr_states_returns_false(self):
+        block = self._make_block("code_changes")
+        state = self._make_state(blocks=[block], repo_pr_states={})
+        assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is None
+
+    def test_open_pr_all_prs_completed_returns_true(self):
+        block = self._make_block("code_changes")
+        pr_states = {
+            "repo1": RepoPRState(repo_name="repo1", pr_creation_status="completed"),
+            "repo2": RepoPRState(repo_name="repo2", pr_creation_status="completed"),
+        }
+        state = self._make_state(blocks=[block], repo_pr_states=pr_states)
+        assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is True
+
+    def test_open_pr_some_prs_still_creating_returns_false(self):
+        block = self._make_block("code_changes")
+        pr_states = {
+            "repo1": RepoPRState(repo_name="repo1", pr_creation_status="completed"),
+            "repo2": RepoPRState(repo_name="repo2", pr_creation_status="creating"),
+        }
+        state = self._make_state(blocks=[block], repo_pr_states=pr_states)
+        assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is False
+
+    def test_multiple_stopping_points(self):
+        """Verify from_autofix_stopping_point mapping works for various stopping points."""
+        root_cause_block = self._make_block("root_cause", block_id="1")
+        solution_block = self._make_block("solution", block_id="2")
+        code_changes_block = self._make_block("code_changes", block_id="3")
+        state = self._make_state(
+            blocks=[root_cause_block, solution_block, code_changes_block],
+            status="processing",
+        )
+
+        # root_cause and solution are not the last block → True
+        assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
+        assert get_autofix_explorer_status(AutofixStoppingPoint.SOLUTION, state) is True
+        # code_changes is the last block and status is processing → False
+        assert get_autofix_explorer_status(AutofixStoppingPoint.CODE_CHANGES, state) is False

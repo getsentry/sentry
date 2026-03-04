@@ -7,11 +7,10 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconTable} from 'sentry/icons/iconTable';
+import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -45,8 +44,6 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
-  const organization = useOrganization();
-
   const crossEvents = useQueryParamsCrossEvents();
 
   const aggregateFields = useQueryParamsAggregateFields();
@@ -58,10 +55,6 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: booleanTags} = useTraceItemTags('boolean');
-
-  const attributeBreakdownsEnabled = organization.features.includes(
-    'performance-spans-suspect-attributes'
-  );
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -113,23 +106,21 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-            {attributeBreakdownsEnabled ? (
-              <TabList.Item
-                key={Tab.ATTRIBUTE_BREAKDOWNS}
-                disabled={defined(crossEvents) && crossEvents.length > 0}
-              >
-                {t('Attribute Breakdowns')}
-                <Badge variant="beta">Beta</Badge>
-              </TabList.Item>
-            ) : null}
+            <TabList.Item
+              key={Tab.ATTRIBUTE_BREAKDOWNS}
+              disabled={defined(crossEvents) && crossEvents.length > 0}
+            >
+              {t('Attribute Breakdowns')}
+              <Badge variant="beta">Beta</Badge>
+            </TabList.Item>
           </TabList>
         </Tabs>
         {props.tab === Tab.SPAN ? (
-          <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
+          <Button onClick={openColumnEditor} icon={<IconEdit />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : props.tab === Mode.AGGREGATE ? (
-          <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
+          <Button onClick={openAggregateColumnEditor} icon={<IconEdit />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : (
@@ -140,7 +131,7 @@ export function ExploreTables(props: ExploreTablesProps) {
                 : t('Use the Group By and Visualize controls to change table columns')
             }
           >
-            <Button disabled onClick={openColumnEditor} icon={<IconTable />} size="sm">
+            <Button disabled onClick={openColumnEditor} icon={<IconEdit />} size="sm">
               {t('Edit Table')}
             </Button>
           </Tooltip>

@@ -2,15 +2,82 @@ from __future__ import annotations
 
 import logging
 import secrets
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
+from packaging.version import parse as parse_version
 
+from sentry.models.project import Project
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ArtifactInstallInfo:
+    """Computed install state for a PreprodArtifact.
+
+    WARNING: This is used by PUBLIC API endpoints. Changes to this dataclass
+    or to get_artifact_install_info() may break the public API contract.
+    Always verify public endpoint tests pass after modifying.
+    """
+
+    is_installable: bool
+    install_url: str | None
+    download_count: int
+    release_notes: str | None
+    install_groups: list[str] | None
+    is_code_signature_valid: bool | None
+    profile_name: str | None
+    codesigning_type: str | None
+
+
+def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
+    """Compute install state for an artifact.
+
+    WARNING: This is used by PUBLIC API endpoints. Changes here may break the
+    public API contract. Always verify public endpoint tests pass after modifying.
+    """
+    extras = artifact.extras or {}
+    installable = is_installable_artifact(artifact)
+    install_url: str | None = None
+
+    if installable:
+        if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+            if extras.get("is_code_signature_valid") is not True:
+                installable = False
+
+        if installable:
+            install_url = get_download_url_for_artifact(artifact)
+
+    download_count = get_download_count_for_artifact(artifact) if installable else 0
+    release_notes = extras.get("release_notes")
+    install_groups = extras.get("install_groups")
+
+    is_code_signature_valid: bool | None = None
+    profile_name: str | None = None
+    codesigning_type: str | None = None
+
+    if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+        is_code_signature_valid = extras.get("is_code_signature_valid") is True
+        profile_name = extras.get("profile_name")
+        codesigning_type = extras.get("codesigning_type")
+
+    return ArtifactInstallInfo(
+        is_installable=installable,
+        install_url=install_url,
+        download_count=download_count,
+        release_notes=release_notes,
+        install_groups=install_groups,
+        is_code_signature_valid=is_code_signature_valid,
+        profile_name=profile_name,
+        codesigning_type=codesigning_type,
+    )
 
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
@@ -105,3 +172,143 @@ def create_installable_preprod_artifact(
     )
 
     return installable_artifact
+
+
+def get_platform_artifact_type_filter(platform: str) -> dict[str, Any]:
+    """Map platform string to artifact_type query filter kwargs."""
+    if platform == "apple":
+        return {"artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE}
+    elif platform == "android":
+        return {
+            "artifact_type__in": [
+                PreprodArtifact.ArtifactType.AAB,
+                PreprodArtifact.ArtifactType.APK,
+            ]
+        }
+    return {}
+
+
+def build_install_groups_q(groups: Sequence[str]) -> Q | None:
+    """Build OR query for install_groups contains filtering."""
+    if not groups:
+        return None
+    q = Q()
+    for group in groups:
+        q |= Q(extras__install_groups__contains=[group])
+    return q
+
+
+def find_current_artifact(
+    project: Project,
+    app_id: str,
+    platform: str,
+    build_version: str,
+    build_number: int | None = None,
+    main_binary_identifier: str | None = None,
+    build_configuration: str | None = None,
+    codesigning_type: str | None = None,
+) -> PreprodArtifact | None:
+    """Find the current artifact matching the provided build identifiers."""
+    filter_kwargs: dict[str, Any] = {
+        "project": project,
+        "app_id": app_id,
+        "state": PreprodArtifact.ArtifactState.PROCESSED,
+        "mobile_app_info__build_version": build_version,
+    }
+    filter_kwargs.update(get_platform_artifact_type_filter(platform))
+
+    if main_binary_identifier:
+        filter_kwargs["main_binary_identifier"] = main_binary_identifier
+
+    if build_number is not None:
+        filter_kwargs["mobile_app_info__build_number"] = build_number
+
+    if build_configuration:
+        filter_kwargs["build_configuration__name"] = build_configuration
+
+    if codesigning_type:
+        filter_kwargs["extras__codesigning_type"] = codesigning_type
+
+    try:
+        return (
+            PreprodArtifact.objects.select_related(
+                "project__organization",
+                "build_configuration",
+                "commit_comparison",
+                "mobile_app_info",
+            )
+            .filter(**filter_kwargs)
+            .latest("date_added")
+        )
+    except PreprodArtifact.DoesNotExist:
+        return None
+
+
+def find_latest_installable_artifact(
+    project: Project,
+    app_id: str,
+    platform: str,
+    build_configuration_name: str | None = None,
+    codesigning_type: str | None = None,
+    install_groups: Sequence[str] | None = None,
+) -> PreprodArtifact | None:
+    """Find the latest installable artifact using semver comparison with build number tiebreaker."""
+    filter_kwargs: dict[str, Any] = {
+        "project": project,
+        "app_id": app_id,
+        "state": PreprodArtifact.ArtifactState.PROCESSED,
+        "installable_app_file_id__isnull": False,
+        "mobile_app_info__build_number__isnull": False,
+    }
+    filter_kwargs.update(get_platform_artifact_type_filter(platform))
+
+    if platform == "apple":
+        filter_kwargs["extras__is_code_signature_valid"] = True
+
+    if build_configuration_name:
+        filter_kwargs["build_configuration__name"] = build_configuration_name
+
+    if codesigning_type:
+        filter_kwargs["extras__codesigning_type"] = codesigning_type
+
+    install_groups_q = build_install_groups_q(install_groups) if install_groups else None
+
+    # Get all distinct versions from installable artifacts only
+    versions_queryset = PreprodArtifact.objects.filter(**filter_kwargs)
+    if install_groups_q:
+        versions_queryset = versions_queryset.filter(install_groups_q)
+
+    all_versions = versions_queryset.values_list(
+        "mobile_app_info__build_version", flat=True
+    ).distinct()
+
+    # Find the highest semver version
+    highest_version: str | None = None
+    for version in all_versions:
+        if version:
+            try:
+                parsed_version = parse_version(version)
+                if highest_version is None or parsed_version > parse_version(highest_version):
+                    highest_version = version
+            except Exception:
+                continue
+
+    if not highest_version:
+        return None
+
+    # Get the installable artifact with the highest build number for this version
+    filter_kwargs["mobile_app_info__build_version"] = highest_version
+    potential_artifacts_qs = (
+        PreprodArtifact.objects.select_related(
+            "project__organization",
+            "build_configuration",
+            "commit_comparison",
+            "mobile_app_info",
+        )
+        .filter(**filter_kwargs)
+        .order_by("-mobile_app_info__build_number", "-date_added")
+    )
+    if install_groups_q:
+        potential_artifacts_qs = potential_artifacts_qs.filter(install_groups_q)
+
+    return potential_artifacts_qs.first()

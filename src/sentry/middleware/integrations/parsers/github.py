@@ -136,9 +136,6 @@ class GithubRequestParser(BaseRequestParser):
                 self.try_forward_to_codecov(event=event)
 
         github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
-        mailbox_name = f"{self.provider}:{self.get_mailbox_identifier(integration, event)}"
-        allowlist = options.get("github.webhook.drop-unprocessed-events.mailbox-allowlist") or ()
-        mailbox_in_allowlist = any(mailbox_name == m for m in allowlist)
 
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the region
@@ -147,7 +144,6 @@ class GithubRequestParser(BaseRequestParser):
             github_event
             and github_event not in REGION_PROCESSED_GITHUB_EVENTS
             and options.get("github.webhook.drop-unprocessed-events.enabled")
-            and mailbox_in_allowlist
         ):
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",

@@ -7,6 +7,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
@@ -30,7 +31,7 @@ from sentry.seer.anomaly_detection.utils import (
     get_event_types,
     translate_direction,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
@@ -42,6 +43,19 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 MIN_DAYS = 7
+
+
+def make_store_data_request(
+    body: StoreDataRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_anomaly_detection_connection_pool,
+        SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+        body=json.dumps(body).encode("utf-8"),
+        viewer_context=viewer_context,
+    )
 
 
 class SeerMethod(StrEnum):
@@ -229,12 +243,9 @@ def send_historical_data_to_seer_legacy(
             "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
         },
     )
+    viewer_context = SeerViewerContext(organization_id=alert_rule.organization.id)
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-            body=json.dumps(body).encode("utf-8"),
-        )
+        response = make_store_data_request(body, viewer_context=viewer_context)
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(

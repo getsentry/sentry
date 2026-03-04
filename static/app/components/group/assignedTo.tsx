@@ -21,7 +21,6 @@ import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
@@ -315,7 +314,7 @@ const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: space-between;
   width: 100%;
   cursor: pointer;
@@ -324,7 +323,7 @@ const DropdownButton = styled('div')`
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
   line-height: 1;
 `;
@@ -340,7 +339,7 @@ const ActorName = styled('div')`
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`
   justify-content: space-between;
-  margin-right: -${space(1)};
+  margin-right: -${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

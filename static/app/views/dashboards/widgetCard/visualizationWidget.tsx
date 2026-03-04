@@ -66,6 +66,7 @@ interface VisualizationWidgetProps {
     tableResults?: any[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
   }) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
@@ -171,7 +172,7 @@ function VisualizationWidgetContent({
   const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
 
-  const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
+  const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
       const seriesName = series.seriesName ?? aggregates[0] ?? '';
       const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
@@ -402,6 +403,7 @@ function VisualizationWidgetContent({
             releases={releases}
             showReleaseAs={showReleaseAs}
             showLegend="never"
+            axisRange={widget.axisRange}
           />
         </Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
@@ -419,6 +421,7 @@ function VisualizationWidgetContent({
         plottables={plottables}
         releases={releases}
         showReleaseAs={showReleaseAs}
+        axisRange={widget.axisRange}
       />
     </Container>
   );

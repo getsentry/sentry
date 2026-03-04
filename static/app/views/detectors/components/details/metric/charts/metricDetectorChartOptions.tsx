@@ -334,7 +334,7 @@ export function getMetricDetectorChartOption(
           }
         });
 
-        if (selectedOpenPeriod && openPeriod.id === selectedOpenPeriod.id) {
+        if (openPeriod.id === selectedOpenPeriod?.id) {
           const selectedIncidentColor =
             incidentColor === theme.colors.yellow400
               ? theme.colors.yellow100

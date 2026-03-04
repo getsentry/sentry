@@ -126,7 +126,7 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
 }>`
   display: grid;
-  gap: 0 ${space(0.75)};
+  gap: 0 ${p => p.theme.space.sm};
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};

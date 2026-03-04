@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ from sentry.api.helpers.environments import get_environment, get_environment_fun
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
@@ -41,6 +43,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
+    @extend_schema(
+        operation_id="List a Project's User Feedback",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, project) -> Response:
         """
         List a Project's User Feedback

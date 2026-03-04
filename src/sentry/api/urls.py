@@ -53,8 +53,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
-from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
@@ -1715,16 +1713,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events/anomalies/$",
         OrganizationEventsAnomaliesEndpoint.as_view(),
         name="sentry-api-0-organization-events-anomalies",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/project-templates/$",
-        OrganizationProjectTemplatesIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-project-templates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/project-templates/(?P<template_id>[^/]+)/$",
-        OrganizationProjectTemplateDetailEndpoint.as_view(),
-        name="sentry-api-0-organization-project-template-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",

@@ -9,13 +9,11 @@ from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
-    SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
     MatchedRows,
     fetch_rows_matching_pattern,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.utils import json
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -241,7 +239,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert len(result["rows"]) == 1
         assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
 
-    @patch("sentry.replays.usecases.delete.make_signed_seer_api_request")
+    @patch("sentry.replays.usecases.delete.make_replay_delete_request")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_has_seer_data_true(
@@ -294,18 +292,16 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert mock_make_seer_api_request.call_count == 2
 
         first_call = mock_make_seer_api_request.call_args_list[0]
-        assert first_call[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
-        request_body = json.loads(first_call[1]["body"].decode())
-        assert request_body == {
+        body = first_call[0][0]
+        assert body == {
             "replay_ids": ["a", "b"],
             "organization_id": self.job.organization_id,
             "project_id": self.job.project_id,
         }
 
         second_call = mock_make_seer_api_request.call_args_list[1]
-        assert second_call[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
-        request_body = json.loads(second_call[1]["body"].decode())
-        assert request_body == {
+        body = second_call[0][0]
+        assert body == {
             "replay_ids": ["c"],
             "organization_id": self.job.organization_id,
             "project_id": self.job.project_id,

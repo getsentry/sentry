@@ -485,7 +485,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
 
-    if (rule && rule.environment === ALL_ENVIRONMENTS_KEY) {
+    if (rule?.environment === ALL_ENVIRONMENTS_KEY) {
       delete rule.environment;
     }
 

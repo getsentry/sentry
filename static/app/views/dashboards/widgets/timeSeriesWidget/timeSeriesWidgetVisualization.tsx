@@ -34,6 +34,7 @@ import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
@@ -66,7 +67,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
    * Default: `auto`
    */
-  axisRange?: 'auto' | 'dataMin';
+  axisRange?: AxisRange;
 
   /**
    * Reference to the chart instance
@@ -232,9 +233,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
-  const axisRangeProp = props.axisRange ?? 'auto';
+  const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
-  const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
+  const leftYAxis = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
         formatter: (value: number) =>
@@ -246,7 +247,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     axisRangeProp
   );
 
-  const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
+  const rightYAxis = rightYAxisType
     ? TimeSeriesWidgetYAxis(
         {
           axisLabel: {

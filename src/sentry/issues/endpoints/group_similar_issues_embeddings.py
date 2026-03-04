@@ -18,6 +18,7 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
@@ -66,6 +67,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         }
         for similar_issue_data in similar_issues_data:
             if parent_hashes_group_ids[similar_issue_data.parent_hash] != group.id:
+                # Results are sorted by ascending distance, so the first occurrence of each
+                # group has the best (lowest distance / highest similarity) score. Skip
+                # duplicates to avoid overwriting a better score with a worse one while
+                # keeping the dict insertion position from the first (best) entry.
+                if similar_issue_data.parent_group_id in group_data:
+                    continue
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
                     "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                     "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
@@ -132,7 +139,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
-        results = get_similarity_data_from_seer(similar_issues_params)
+        viewer_context = SeerViewerContext(
+            organization_id=group.project.organization.id, user_id=request.user.id
+        )
+        results = get_similarity_data_from_seer(
+            similar_issues_params, viewer_context=viewer_context
+        )
 
         analytics.record(
             GroupSimilarIssuesEmbeddingsCountEvent(

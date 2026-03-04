@@ -154,6 +154,11 @@ class OdiffServer:
                 proc.stdin.close()
             except OSError:
                 pass
+        if proc.stdout:
+            try:
+                proc.stdout.close()
+            except OSError:
+                pass
         try:
             proc.wait(timeout=3)
             return

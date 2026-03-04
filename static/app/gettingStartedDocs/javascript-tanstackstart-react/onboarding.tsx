@@ -114,6 +114,13 @@ export const getRouter = () => {
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,`
           : ''
+      }${
+        params.isLogsSelected
+          ? `
+
+      // Enable logs to be sent to Sentry
+      enableLogs: true,`
+          : ''
       }
     });
   }
@@ -154,41 +161,58 @@ Sentry.init({
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+      : ''
   }
 });`,
             },
           ],
         },
         {
-          type: 'conditional',
-          condition: params.isPerformanceSelected,
-          content: [
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: true,
+          text: tct(
+            "If you can't use the [code:--import] flag (e.g. in serverless environments like Vercel or Netlify), follow the [link:TanStack Start React guide] for alternative setup instructions.",
             {
-              type: 'text',
-              text: tct(
-                'To enable tracing for server-side requests, you need to explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
-                {
-                  code: <code />,
-                  serverEntryLink: (
-                    <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
-                  ),
-                }
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/#without---import-flag-eg-vercel-netlify" />
               ),
-            },
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'To capture server-side errors and traces, explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
             {
-              type: 'text',
-              text: tct('Create a [code:src/server.ts] file in your project:', {
-                code: <code />,
-              }),
-            },
+              code: <code />,
+              serverEntryLink: (
+                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct('Create a [code:src/server.ts] file in your project:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'TypeScript',
-                  language: 'typescript',
-                  filename: 'src/server.ts',
-                  code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'src/server.ts',
+              code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 export default createServerEntry(
@@ -198,8 +222,6 @@ export default createServerEntry(
     },
   })
 );`,
-                },
-              ],
             },
           ],
         },

@@ -157,6 +157,33 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const AGENTS_TRACES_TABLE = {
+  id: 'ai-agents-traces-table',
+  title: t('Traces'),
+  displayType: DisplayType.AGENTS_TRACES_TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '1h',
+  tableWidths: [110, 600, -1, -1, -1, -1, -1, -1, -1],
+  limit: 20,
+  queries: [
+    {
+      conditions: '',
+      fields: [],
+      columns: [],
+      aggregates: [],
+      name: '',
+      orderby: '',
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 6,
+    w: 6,
+    h: 4,
+    minH: 2,
+  },
+};
+
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
@@ -164,5 +191,5 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS],
+  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
 };

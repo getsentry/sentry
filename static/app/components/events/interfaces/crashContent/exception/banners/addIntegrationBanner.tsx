@@ -6,7 +6,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AddIntegrationBannerProps {
   onDismiss: () => void;
@@ -53,8 +52,8 @@ const StacktraceIntegrationBannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)};
-  margin: ${space(1)} 0;
+  padding: ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.md} 0;
   background: linear-gradient(
     90deg,
     color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
@@ -65,20 +64,20 @@ const StacktraceIntegrationBannerWrapper = styled('div')`
 
 const IntegationBannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
   max-width: 340px;
 `;
 
 const CloseBannerButton = styled(Button)`
   position: absolute;
   display: block;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.xl};
+  right: ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;

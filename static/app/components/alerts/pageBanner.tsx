@@ -8,7 +8,6 @@ import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   description: ReactNode;
@@ -61,7 +60,7 @@ export default function PageBanner({
 
 const Wrapper = styled(Panel)`
   display: flex;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   min-height: 100px;
   justify-content: space-between;
   align-items: center;
@@ -71,8 +70,8 @@ const Wrapper = styled(Panel)`
 const CloseButton = styled(Button)`
   justify-content: center;
   position: absolute;
-  top: -${space(1)};
-  right: -${space(1)};
+  top: -${p => p.theme.space.md};
+  right: -${p => p.theme.space.md};
   border-radius: 50%;
   height: ${() => SvgIcon.ICON_SIZES.lg};
   width: ${() => SvgIcon.ICON_SIZES.lg};
@@ -100,7 +99,7 @@ const TextContainer = styled('div')`
   justify-content: space-between;
   z-index: 1;
   h4 {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;
 
@@ -114,6 +113,6 @@ const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   text-transform: uppercase;
 `;

@@ -30,7 +30,7 @@ export default function CursorAgentSettings({
       disabled={Boolean(disabledReason)}
       disabledReason={disabledReason}
       name="cursorAutoCreatePullRequests"
-      label={t('Auto-Create Pull Requests')}
+      label={t('Auto Create Pull Requests')}
       help={t(
         'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
       )}

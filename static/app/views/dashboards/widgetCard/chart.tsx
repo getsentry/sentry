@@ -74,6 +74,7 @@ import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
@@ -252,6 +253,17 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <TableWrapper>
+        <AgentsTracesTableWidgetVisualization
+          limit={widget.limit}
+          tableWidths={widget.tableWidths}
+        />
+      </TableWrapper>
     );
   }
 
@@ -905,7 +917,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 ))`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -966,18 +978,18 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const RenderedChartContainer = styled('div')`

@@ -38,6 +38,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -323,6 +324,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored,
     orgFeatures,
     seriesAdditionalInfo,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
   }: {
     isLoading: boolean;
     isQueryValid: boolean;
@@ -335,6 +338,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored?: boolean;
     minutesThresholdToDisplaySeconds?: number;
     seriesAdditionalInfo?: Record<string, any>;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
   }) {
     const {
       triggers,
@@ -401,6 +406,8 @@ class TriggersChart extends PureComponent<Props, State> {
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             isExtrapolatedData={showExtrapolatedChartData}
+            timeseriesResultsTypes={timeseriesResultsTypes}
+            timeseriesResultsUnits={timeseriesResultsUnits}
           />
         )}
 
@@ -700,6 +707,8 @@ class TriggersChart extends PureComponent<Props, State> {
             reloading,
             timeseriesData,
             comparisonTimeseriesData,
+            timeseriesResultsTypes,
+            timeseriesResultsUnits,
           }) => {
             let comparisonMarkLines: LineChartSeries[] = [];
             if (renderComparisonStats && comparisonTimeseriesData) {
@@ -723,6 +732,8 @@ class TriggersChart extends PureComponent<Props, State> {
               isQueryValid,
               errored,
               orgFeatures: organization.features,
+              timeseriesResultsTypes,
+              timeseriesResultsUnits,
             });
           }}
         </EventsRequest>

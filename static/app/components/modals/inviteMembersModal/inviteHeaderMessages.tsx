@@ -4,7 +4,6 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export function ErrorAlert() {
   const {error} = useInviteMembersContext();
@@ -32,5 +31,5 @@ export function InviteMessage() {
 
 const Subtext = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;

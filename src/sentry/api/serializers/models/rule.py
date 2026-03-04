@@ -20,6 +20,7 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -28,8 +29,10 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
@@ -416,21 +419,52 @@ class WorkflowEngineRuleSerializer(Serializer):
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         from sentry.workflow_engine.migration_helpers.rule_conditions import (
+            FILTER_ID_TO_CONDITION_TYPE_MAPPING,
             translate_to_rule_condition_filters,
         )
 
         all_conditions: list[dict[str, Any]] = []
         all_filters: list[dict[str, Any]] = []
 
-        def update_condition_name(condition: dict[str, Any]) -> dict[str, Any]:
-            condition["name"] = generate_rule_label(project=project, rule=None, data=condition)
-            return condition
+        def update_condition_name(
+            condition_data: dict[str, Any], is_slow_condition: bool = False
+        ) -> dict[str, Any]:
+            from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+                BaseEventFrequencyQueryHandler,
+                slow_condition_query_handler_registry,
+            )
+            from sentry.workflow_engine.types import DataConditionHandler
+
+            condition_type = condition_data.pop("condition_type", None)
+
+            handler: type[BaseEventFrequencyQueryHandler] | type[DataConditionHandler[Any]]
+            if is_slow_condition:
+                try:
+                    handler = slow_condition_query_handler_registry.get(condition_type)
+                except NoRegistrationExistsError:
+                    raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+            else:
+                try:
+                    handler = condition_handler_registry.get(condition_type)
+                except NoRegistrationExistsError:
+                    raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+
+            condition_data["name"] = handler.render_label(condition_data)
+            return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
             for cond in conditions:
-                condition, filters = translate_to_rule_condition_filters(cond, is_filter=is_filter)
-                if condition:
-                    all_conditions.append(update_condition_name(condition))
+                condition_data, filters = translate_to_rule_condition_filters(
+                    cond, is_filter=is_filter
+                )
+                if condition_data.get("id"):
+                    condition_data["condition_type"] = cond.type
+                    all_conditions.append(
+                        update_condition_name(condition_data, is_slow_condition(cond))
+                    )
+                for f in filters:
+                    f["condition_type"] = FILTER_ID_TO_CONDITION_TYPE_MAPPING[f["id"]]
+
                 all_filters.extend([update_condition_name(f) for f in filters])
 
         trigger_conditions = (
@@ -449,6 +483,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return {wf_id: date for wf_id, date in results.items() if date is not None}
 
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
+        from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
         from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 
         # Bulk fetch users that created workflows
@@ -477,7 +512,9 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             result[workflow]["environment"] = workflow.environment
             result[workflow]["projects"] = list(workflow_to_projects[workflow])
-            result[workflow]["rule_id"] = workflow_rule_ids[workflow.id]
+            result[workflow]["rule_id"] = workflow_rule_ids.get(
+                workflow.id, get_fake_id_from_object_id(workflow.id)
+            )
 
             result[workflow]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
@@ -521,7 +558,6 @@ class WorkflowEngineRuleSerializer(Serializer):
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
             )
-
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 
