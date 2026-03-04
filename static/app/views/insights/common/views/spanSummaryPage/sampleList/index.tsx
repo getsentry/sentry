@@ -29,7 +29,6 @@ import type {
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
-import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -170,63 +169,61 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   return (
     <PageAlertProvider>
-      <InsightsSpanTagProvider>
-        <EventDrawerHeader>
-          <SampleDrawerHeaderTransaction
-            project={project}
-            transaction={transactionName}
-            transactionMethod={transactionMethod}
-          />
-        </EventDrawerHeader>
+      <EventDrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={transactionName}
+          transactionMethod={transactionMethod}
+        />
+      </EventDrawerHeader>
 
-        <SampleDrawerBody>
-          <PageAlert />
+      <SampleDrawerBody>
+        <PageAlert />
 
-          <SampleInfo
-            groupId={groupId}
-            transactionName={transactionName}
-            transactionMethod={transactionMethod}
-            subregions={subregions}
-          />
+        <SampleInfo
+          groupId={groupId}
+          transactionName={transactionName}
+          transactionMethod={transactionMethod}
+          subregions={subregions}
+        />
 
-          <DurationChart
-            groupId={groupId}
-            transactionName={transactionName}
-            transactionMethod={transactionMethod}
-            subregions={subregions}
-            additionalFields={additionalFields}
-            onClickSample={handleClickSample}
-            onMouseOverSample={handleMouseOverSample}
-            onMouseLeaveSample={handleMouseLeaveSample}
-            spanSearch={spanSearch}
-            highlightedSpanId={highlightedSpanId}
-          />
+        <DurationChart
+          groupId={groupId}
+          transactionName={transactionName}
+          transactionMethod={transactionMethod}
+          subregions={subregions}
+          additionalFields={additionalFields}
+          onClickSample={handleClickSample}
+          onMouseOverSample={handleMouseOverSample}
+          onMouseLeaveSample={handleMouseLeaveSample}
+          spanSearch={spanSearch}
+          highlightedSpanId={highlightedSpanId}
+        />
 
-          <StyledSearchBar>
-            <SampleListSearchQueryBuilder
-              query={spanSearchQuery ?? ''}
-              moduleName={moduleName}
-              selection={selection}
-              handleSearch={handleSearch}
-            />
-          </StyledSearchBar>
-
-          <SampleTable
-            highlightedSpanId={highlightedSpanId}
-            transactionMethod={transactionMethod}
-            onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
-            onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-            groupId={groupId}
+        <StyledSearchBar>
+          <SampleListSearchQueryBuilder
+            query={spanSearchQuery ?? ''}
             moduleName={moduleName}
-            transactionName={transactionName}
-            subregions={subregions}
-            spanSearch={spanSearch}
-            columnOrder={columnOrder}
-            additionalFields={additionalFields}
-            referrer={referrer}
+            selection={selection}
+            handleSearch={handleSearch}
           />
-        </SampleDrawerBody>
-      </InsightsSpanTagProvider>
+        </StyledSearchBar>
+
+        <SampleTable
+          highlightedSpanId={highlightedSpanId}
+          transactionMethod={transactionMethod}
+          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+          groupId={groupId}
+          moduleName={moduleName}
+          transactionName={transactionName}
+          subregions={subregions}
+          spanSearch={spanSearch}
+          columnOrder={columnOrder}
+          additionalFields={additionalFields}
+          referrer={referrer}
+        />
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }

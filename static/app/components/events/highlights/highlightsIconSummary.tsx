@@ -24,7 +24,6 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -243,7 +242,7 @@ const IconBar = styled('div')`
 
 const IconDescription = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.md};
 `;
 
@@ -276,5 +275,5 @@ const DividerWrapper = styled('div')`
 `;
 
 const StyledRuntimeText = styled(Text)`
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;

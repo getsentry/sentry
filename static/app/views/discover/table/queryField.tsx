@@ -14,7 +14,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
@@ -753,7 +752,7 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   flex-grow: 1;

@@ -183,6 +183,7 @@ function VisualizationWidgetContent({
         aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
         aggregates[0];
 
+      // This is the query name for the series, aka the legend alias from the UI
       const queryName =
         widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
         undefined;

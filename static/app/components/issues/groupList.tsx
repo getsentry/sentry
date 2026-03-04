@@ -15,7 +15,6 @@ import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -377,7 +376,7 @@ function GroupList({
 export default GroupList;
 
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};

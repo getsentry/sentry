@@ -183,7 +183,6 @@ class RuleSerializer(Serializer):
                     rpc_install = install_context.installation
                     rpc_component = install_context.component
                     rpc_app = rpc_install.sentry_app
-
                     component = (
                         prepare_ui_component(
                             rpc_install,
@@ -482,6 +481,34 @@ class WorkflowEngineRuleSerializer(Serializer):
         results = get_last_fired_dates([w.id for w in item_list])
         return {wf_id: date for wf_id, date in results.items() if date is not None}
 
+    def _fetch_sentry_app_installations_by_uuid(
+        self,
+        workflow: Workflow,
+        action_to_action_data: Mapping[Action, Any],
+        actions_with_handlers: list[Action],
+    ) -> Mapping[str, RpcSentryAppComponentContext]:
+        from sentry.sentry_apps.services.app import app_service
+
+        sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
+        if self.prepare_component_fields:
+            sentry_app_uuids = [
+                sentry_app_uuid
+                for sentry_app_uuid in (
+                    action_to_action_data[action].get("sentryAppInstallationUuid")
+                    for action in actions_with_handlers
+                )
+                if sentry_app_uuid is not None
+            ]
+            install_contexts = app_service.get_component_contexts(
+                filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
+                component_type="alert-rule-action",
+            )
+            sentry_app_installations_by_uuid = {
+                install_context.installation.uuid: install_context
+                for install_context in install_contexts
+            }
+        return sentry_app_installations_by_uuid
+
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
         from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
         from sentry.notifications.notification_action.registry import issue_alert_handler_registry
@@ -523,16 +550,58 @@ class WorkflowEngineRuleSerializer(Serializer):
             workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
-            serialized_actions = []
-            for action in self._fetch_actions(workflow_dcg.condition_group):
+            # build up actions data
+            actions = self._fetch_actions(workflow_dcg.condition_group)
+            action_to_handler = {}
+            for action in actions:
                 try:
                     handler = issue_alert_handler_registry.get(action.type)
+                    action_to_handler[action] = handler
                 except Exception:
-                    # just keep iterating through the actions in case we have valid ones in there
-                    continue
+                    continue  # just keep iterating through the actions in case we have valid ones in there
+            actions_with_handlers = list(action_to_handler.keys())
+            action_to_action_data = {
+                action: action_to_handler[action].build_rule_action_blob(
+                    action, workflow.organization_id
+                )
+                for action in actions_with_handlers  # skip over actions w/o handlers
+            }
 
-                action_data = handler.build_rule_action_blob(action, workflow.organization_id)
-                action_data["name"] = handler.render_label(workflow.organization_id, action_data)
+            sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
+                workflow, action_to_action_data, actions_with_handlers
+            )
+            serialized_actions = []
+            errors = []
+            for action in actions_with_handlers:
+                action_data = action_to_action_data[action]
+                action_data["name"] = action_to_handler[action].render_label(
+                    workflow.organization_id, action_data
+                )
+                installation_uuid = action_data.get("sentryAppInstallationUuid")
+                install_context = None
+                if installation_uuid:
+                    install_context = sentry_app_installations_by_uuid.get(installation_uuid)
+                if install_context:
+                    rpc_install = install_context.installation
+                    rpc_component = install_context.component
+                    rpc_app = rpc_install.sentry_app
+                    component = (
+                        prepare_ui_component(
+                            rpc_install,
+                            rpc_component,
+                            self.project_slug,
+                            action_data.get("settings"),
+                        )
+                        if rpc_component
+                        else None
+                    )
+                    if component is None:
+                        errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
+                        action_data["disabled"] = True
+                        serialized_actions.append(action_data)
+                        continue
+
+                    action_data["formFields"] = component.app_schema.get("settings", {})
 
                 # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
 
@@ -554,6 +623,8 @@ class WorkflowEngineRuleSerializer(Serializer):
 
                 serialized_actions.append(action_data)
 
+            if len(errors):
+                result[workflow]["errors"] = errors
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg

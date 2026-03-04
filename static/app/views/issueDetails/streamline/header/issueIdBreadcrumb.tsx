@@ -11,7 +11,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -122,7 +121,7 @@ const StyledShortId = styled(ShortId)`
 
 const ShortIdCopyable = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   /* hardcoded height avoids layout shift on button hover */
   height: 36px;
