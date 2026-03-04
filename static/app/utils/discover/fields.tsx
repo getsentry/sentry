@@ -1115,7 +1115,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
   const results = parseFunction(field);
 
   if (results) {
-    const column: Column = {
+    return {
       kind: 'function',
       function: [
         results.name as AggregationKey,
@@ -1124,7 +1124,6 @@ export function explodeFieldString(field: string, alias?: string): Column {
       ],
       alias,
     };
-    return column;
   }
 
   return {kind: 'field', field, alias};
