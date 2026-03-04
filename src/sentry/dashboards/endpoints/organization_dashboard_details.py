@@ -174,7 +174,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         self.check_object_permissions(request, dashboard)
 
         if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
-            return self.respond({"Cannot edit prebuilt Dashboards."}, status=409)
+            if "widgets" in request.data:
+                return self.respond(
+                    {"detail": "Cannot edit widgets on prebuilt Dashboards."}, status=409
+                )
 
         tombstone = None
         if isinstance(dashboard, dict):
