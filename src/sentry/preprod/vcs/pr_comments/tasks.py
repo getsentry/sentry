@@ -156,7 +156,7 @@ def _find_existing_comment_id(commit_comparison: CommitComparison) -> str | None
     extras = commit_comparison.extras or {}
     build_dist = extras.get("pr_comments", {}).get("build_distribution", {})
     comment_id = build_dist.get("comment_id")
-    if comment_id and build_dist.get("success"):
+    if comment_id:
         return str(comment_id)
     return None
 
@@ -174,8 +174,14 @@ def _save_pr_comment_result(
     """
     extras = commit_comparison.extras or {}
 
+    # Preserve the existing comment_id on failure so retries use
+    # update_comment instead of creating a duplicate.
+    if not comment_id:
+        existing = extras.get("pr_comments", {}).get("build_distribution", {})
+        comment_id = existing.get("comment_id")
+
     result: dict[str, Any] = {"success": success}
-    if success and comment_id:
+    if comment_id:
         result["comment_id"] = comment_id
     if not success:
         result["error_type"] = _get_error_type(error)

@@ -231,6 +231,60 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_retry_after_update_failure_uses_update_not_create(self, mock_format, mock_get_client):
+        """When update_comment fails, the stored comment_id must survive so
+        that the retry calls update_comment again instead of create_comment."""
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "body"
+
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+            extras={
+                "pr_comments": {"build_distribution": {"success": True, "comment_id": "orig_789"}}
+            },
+        )
+
+        artifact = self._create_artifact(commit_comparison=commit_comparison)
+
+        # First call: update_comment fails
+        mock_client.update_comment.side_effect = ApiError("server error", code=500)
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            with pytest.raises(ApiError):
+                create_preprod_pr_comment_task(artifact.id)
+
+        # comment_id must be preserved despite the failure
+        commit_comparison.refresh_from_db()
+        build_dist = commit_comparison.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is False
+        assert build_dist["comment_id"] == "orig_789"
+
+        # Second call (retry): should call update_comment, not create_comment
+        mock_client.reset_mock()
+        mock_client.update_comment.side_effect = None
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.update_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            comment_id="orig_789",
+            data={"body": "body"},
+        )
+        mock_client.create_comment.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_reads_fresh_extras_via_select_for_update(self, mock_format, mock_get_client):
         """select_for_update gives a fresh DB read, so a comment_id written
         by a concurrent task between artifact load and row lock is found."""
