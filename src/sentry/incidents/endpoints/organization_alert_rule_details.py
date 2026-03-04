@@ -146,15 +146,14 @@ def remove_alert_rule(
     request: Request, organization: Organization, target: AlertRule | Detector
 ) -> Response:
     if isinstance(target, Detector):
-        detector = target
         try:
             with transaction.atomic(router.db_for_write(Detector)):
-                remove_detector(request, organization, detector)
+                remove_detector(request, organization, target)
                 try:
-                    ard = AlertRuleDetector.objects.get(detector_id=detector.id)
-                    detector = AlertRule.objects.get(id=ard.alert_rule_id)
+                    ard = AlertRuleDetector.objects.get(detector_id=target.id)
+                    target = AlertRule.objects.get(id=ard.alert_rule_id)
                     delete_alert_rule(
-                        detector,
+                        target,
                         user=_anon_to_None(request.user),
                         ip_address=request.META.get("REMOTE_ADDR"),
                     )
