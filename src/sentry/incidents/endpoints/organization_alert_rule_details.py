@@ -150,7 +150,7 @@ def remove_alert_rule(
             remove_detector(request, organization, target)
             try:
                 ard = AlertRuleDetector.objects.get(detector_id=target.id)
-                target = AlertRule.objects.get(id=ard.alert_rule_id)
+                target = AlertRule.objects.get(id=ard.alert_rule_id, organization=organization)
                 delete_alert_rule(
                     target,
                     user=_anon_to_None(request.user),
