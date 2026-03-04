@@ -1,4 +1,3 @@
-import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
@@ -14,6 +13,8 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+
+PREPROD_PRODUCER_MOCK_PATH = "sentry.preprod.eap.write._eap_producer.produce"
 
 
 class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
@@ -58,41 +59,35 @@ class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
             analysis_file_id=123,
         )
 
-        produce_preprod_size_metric_to_eap(
+        self.produce_and_store_eap_items(
+            PREPROD_PRODUCER_MOCK_PATH,
+            produce_preprod_size_metric_to_eap,
             size_metric=size_metric,
             organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
 
-        max_attempts = 20
-        found = False
-
-        for attempt in range(max_attempts):
-            time.sleep(0.5)
-
-            app_filter = TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str="com.example.integrationtest"),
-                )
+        app_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="com.example.integrationtest"),
             )
+        )
 
-            response = query_preprod_size_metrics(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                start=datetime.now(dt_timezone.utc) - timedelta(hours=1),
-                end=datetime.now(dt_timezone.utc) + timedelta(hours=1),
-                referrer="test.preprod.integration",
-                filter=app_filter,
-            )
+        response = query_preprod_size_metrics(
+            organization_id=self.organization.id,
+            project_ids=[self.project.id],
+            start=datetime.now(dt_timezone.utc) - timedelta(hours=1),
+            end=datetime.now(dt_timezone.utc) + timedelta(hours=1),
+            referrer="test.preprod.integration",
+            filter=app_filter,
+        )
 
-            if response.column_values:
-                found = True
-                break
-
-        assert found, f"Data not found in Snuba after {max_attempts} attempts"
+        assert response.column_values and response.column_values[0].results, (
+            "Data not found in Snuba"
+        )
 
         columns = {cv.attribute_name: idx for idx, cv in enumerate(response.column_values)}
 
@@ -154,49 +149,44 @@ class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
             max_install_size=1000,
         )
 
-        produce_preprod_size_metric_to_eap(
+        self.produce_and_store_eap_items(
+            PREPROD_PRODUCER_MOCK_PATH,
+            produce_preprod_size_metric_to_eap,
             size_metric=size_metric_main,
             organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
 
-        produce_preprod_size_metric_to_eap(
+        self.produce_and_store_eap_items(
+            PREPROD_PRODUCER_MOCK_PATH,
+            produce_preprod_size_metric_to_eap,
             size_metric=size_metric_watch,
             organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
 
-        max_attempts = 20
-        found_count = 0
-
-        for attempt in range(max_attempts):
-            time.sleep(0.5)
-
-            app_filter = TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str="com.example.multitest"),
-                )
+        app_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="com.example.multitest"),
             )
+        )
 
-            response = query_preprod_size_metrics(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                start=datetime.now(dt_timezone.utc) - timedelta(hours=1),
-                end=datetime.now(dt_timezone.utc) + timedelta(hours=1),
-                referrer="test.preprod.integration",
-                filter=app_filter,
-            )
+        response = query_preprod_size_metrics(
+            organization_id=self.organization.id,
+            project_ids=[self.project.id],
+            start=datetime.now(dt_timezone.utc) - timedelta(hours=1),
+            end=datetime.now(dt_timezone.utc) + timedelta(hours=1),
+            referrer="test.preprod.integration",
+            filter=app_filter,
+        )
 
-            if response.column_values:
-                found_count = len(response.column_values[0].results)
-            if found_count >= 2:
-                break
-
-        assert found_count == 2, f"Expected 2 records, found {found_count}"
+        assert response.column_values and len(response.column_values[0].results) == 2, (
+            f"Expected 2 records, found {len(response.column_values[0].results) if response.column_values else 0}"
+        )
 
         columns = {cv.attribute_name: idx for idx, cv in enumerate(response.column_values)}
         num_rows = len(response.column_values[0].results)
