@@ -62,7 +62,7 @@ export function Button({
             align="center"
             area="1 / 1"
             gap={iconGap}
-            style={busy ? {visibility: 'hidden'} : undefined}
+            visibility={busy ? 'hidden' : undefined}
           >
             {props.icon && (
               <Flex as="span" align="center" flexShrink={0}>
