@@ -53,46 +53,53 @@ def _create_db(name: str, host: str, port: str, user: str, template: str | None 
 
 
 def _run_migrations(pg_host: str, pg_port: str) -> float:
-    os.environ["SENTRY_SKIP_SERVICE_VALIDATION"] = "1"
-    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry.conf.server"
+    """Migrate test_region via `sentry django migrate` subprocess.
 
-    # Prevent initialize_app() from running during django.setup().
-    # initialize_app() makes ORM queries that fail on an empty database
-    # (e.g. SELECT ... FROM sentry_monitor with columns that don't exist yet).
-    # We only need Django's model registry for migrations, not app init.
-    import sentry.runner.initializer
+    Using subprocess avoids Sentry's chicken-and-egg problem: module-level
+    code needs options registered by initialize_app(), but initialize_app()
+    makes ORM queries that fail on an empty database. The `sentry` CLI
+    handles this correctly by running configure() → setup() → migrate()
+    in the right order on a database that already exists (we created it
+    in step 1).
 
-    sentry.runner.initializer.initialize_app = lambda conf, **kw: None
-
-    import django
-
-    django.setup()
-
-    from django.conf import settings
-    from django.core.management import call_command
-
-    settings.DATABASES["default"]["NAME"] = DATABASES["default"]
-    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
-    settings.DATABASES["control"]["NAME"] = DATABASES["control"]
-    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
-    settings.DATABASES["secondary"]["NAME"] = DATABASES["secondary"]
-    settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
-
+    We only migrate test_region. test_control and test_secondary are
+    cloned from it via TEMPLATE — all three have identical schemas because
+    Django runs all migrations on each database regardless of the router.
+    """
     if pg_host.startswith("/"):
-        for db_cfg in settings.DATABASES.values():
-            db_cfg["HOST"] = pg_host
-            db_cfg["PORT"] = ""
+        db_url = f"postgres://postgres@/{DATABASES['default']}?host={pg_host}"
+    else:
+        db_url = f"postgres://postgres@{pg_host}:{pg_port}/{DATABASES['default']}"
+
+    env = {
+        **os.environ,
+        "DATABASE_URL": db_url,
+        "SENTRY_SKIP_SERVICE_VALIDATION": "1",
+    }
 
     start = time.monotonic()
-    for alias in DATABASES:
-        call_command("migrate", database=alias, verbosity=0, interactive=False, run_syncdb=True)
+    result = subprocess.run(
+        ["sentry", "django", "migrate", "--noinput", "-v", "0"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"  Migration failed:\n{result.stderr}", file=sys.stderr)
+        return -1
     return time.monotonic() - start
 
 
-def _close_all_connections() -> None:
-    from django.db import connections
-
-    connections.close_all()
+def _close_all_connections(host: str, port: str, user: str) -> None:
+    """Disconnect all backends from template DBs so TEMPLATE copy can proceed."""
+    for name in DATABASES.values():
+        _psql(
+            f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+            f"WHERE datname='{name}' AND pid <> pg_backend_pid()",
+            host,
+            port,
+            user,
+        )
 
 
 def main() -> int:
@@ -104,28 +111,36 @@ def main() -> int:
     args = parser.parse_args()
 
     t0 = time.monotonic()
+    h, p, u = args.pg_host, args.pg_port, args.pg_user
 
-    # Step 1: create template databases
-    print("Step 1: Creating template databases")
-    for name in DATABASES.values():
-        if not _create_db(name, args.pg_host, args.pg_port, args.pg_user):
-            return 1
+    # Step 1: create the primary template database
+    print("Step 1: Creating template database")
+    primary = DATABASES["default"]
+    if not _create_db(primary, h, p, u):
+        return 1
 
-    # Step 2: run Django migrations on templates
+    # Step 2: run Django migrations on it
     print("Step 2: Running migrations")
     elapsed = _run_migrations(args.pg_host, args.pg_port)
+    if elapsed < 0:
+        return 1
     print(f"  Migrations completed in {elapsed:.1f}s")
 
-    # Must close connections before TEMPLATE copy (postgres requirement)
-    _close_all_connections()
+    # Step 3: clone primary → control + secondary templates
+    print("Step 3: Cloning control + secondary from primary")
+    _close_all_connections(h, p, u)
+    for alias in ("control", "secondary"):
+        if not _create_db(DATABASES[alias], h, p, u, template=primary):
+            return 1
 
-    # Step 3: clone for each xdist worker
-    print(f"Step 3: Cloning for {args.workers} workers")
+    # Step 4: clone all templates for each xdist worker
+    print(f"Step 4: Cloning for {args.workers} workers")
+    _close_all_connections(h, p, u)
     clone_start = time.monotonic()
     for i in range(args.workers):
         for name in DATABASES.values():
             target = f"{name}_gw{i}"
-            if not _create_db(target, args.pg_host, args.pg_port, args.pg_user, template=name):
+            if not _create_db(target, h, p, u, template=name):
                 return 1
     print(f"  Cloned {args.workers * len(DATABASES)} databases in {time.monotonic() - clone_start:.1f}s")
 
