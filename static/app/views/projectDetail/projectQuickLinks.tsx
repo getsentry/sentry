@@ -18,7 +18,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
@@ -32,7 +31,7 @@ type Props = {
 };
 
 function ProjectQuickLinks({organization, project}: Props) {
-  const domainView: DomainView | undefined = project
+  const domainView = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
 

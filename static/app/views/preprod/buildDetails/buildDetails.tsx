@@ -12,12 +12,7 @@ import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  type UseApiQueryResult,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
@@ -50,64 +45,62 @@ export default function BuildDetails() {
     artifactId,
   });
 
-  const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
-    useApiQuery<BuildDetailsApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: artifactId,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!artifactId,
-        refetchInterval: query => {
-          const data = query.state.data;
-          const sizeInfo = data?.[0]?.size_info;
-          return isSizeInfoPendingOrProcessing(sizeInfo) ? 10_000 : false;
-        },
-      }
-    );
+  const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!projectId && !!artifactId,
+      refetchInterval: query => {
+        const data = query.state.data;
+        const sizeInfo = data?.[0]?.size_info;
+        return isSizeInfoPendingOrProcessing(sizeInfo) ? 10_000 : false;
+      },
+    }
+  );
 
   const sizeInfo = buildDetailsQuery.data?.size_info;
   const isPendingOrProcessing = isSizeInfoPendingOrProcessing(sizeInfo);
 
-  const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
-    useApiQuery<AppSizeApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: artifactId,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        retry: (failureCount, apiError: RequestError) => {
-          // By default we retry 404s 3 times which causes
-          // latency when loading the page if there is no size-analysis
-          // (which is legitimate if size was not run on this artifact).
-          // Instead don't retry 404s:
-          if (apiError?.status === 404) {
-            return false;
-          }
-          // Keep default behaviour otherwise:
-          return failureCount < 2;
-        },
-        enabled: !!projectId && !!artifactId,
-      }
-    );
+  const appSizeQuery = useApiQuery<AppSizeApiResponse>(
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      retry: (failureCount, apiError: RequestError) => {
+        // By default we retry 404s 3 times which causes
+        // latency when loading the page if there is no size-analysis
+        // (which is legitimate if size was not run on this artifact).
+        // Instead don't retry 404s:
+        if (apiError?.status === 404) {
+          return false;
+        }
+        // Keep default behaviour otherwise:
+        return failureCount < 2;
+      },
+      enabled: !!projectId && !!artifactId,
+    }
+  );
 
   const wasPendingOrProcessingRef = useRef(isPendingOrProcessing);
 

@@ -152,7 +152,7 @@ function getDefaultNodeImports({
   if (sdkImport === null || !libraryMap[sdkImport]) {
     return '';
   }
-  const imports: string[] = getImport(libraryMap[sdkImport], defaultMode);
+  const imports = getImport(libraryMap[sdkImport], defaultMode);
 
   if (params.isProfilingSelected) {
     imports.push(getProfilingImport(defaultMode));

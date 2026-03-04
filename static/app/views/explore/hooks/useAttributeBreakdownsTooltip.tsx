@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import type {ECharts, TooltipComponentFormatterCallbackParams} from 'echarts';
+import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -91,7 +91,7 @@ export function useAttributeBreakdownsTooltip({
   //   tooltip actions (if passed in).
   // - Sets up the listener for clicks anywhere on the chart to toggle the frozen tooltip state.
   useEffect(() => {
-    const chartInstance: ECharts | undefined = chartRef.current?.getEchartsInstance();
+    const chartInstance = chartRef.current?.getEchartsInstance();
     if (!chartInstance) return;
 
     if (frozenPosition) {

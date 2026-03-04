@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +40,7 @@ function WidgetBuilderSortBySelector() {
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
-  let tags: TagCollection = useTags();
+  let tags = useTags();
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricGroupByFields;

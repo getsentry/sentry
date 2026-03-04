@@ -5,7 +5,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -60,7 +59,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     });
   }, [organization]);
 
-  const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
+  const breadcrumbTrails = useMemo(() => {
     return [
       {type: 'landing', payload: {query: location.query}},
       {
@@ -80,7 +79,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           query: location.query,
         },
       },
-    ];
+    ] as const;
   }, [location, projectSlug, transactionName, profileId]);
 
   return (

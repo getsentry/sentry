@@ -18,7 +18,6 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,8 +48,8 @@ function EditAccessSelector({
   disabled = false,
 }: EditAccessSelectorProps) {
   const theme = useTheme();
-  const currentUser: User = useUser();
-  const dashboardCreator: User | undefined = dashboard.createdBy;
+  const currentUser = useUser();
+  const dashboardCreator = dashboard.createdBy;
 
   const organization = useOrganization();
   const userCanEditDashboardPermissions =

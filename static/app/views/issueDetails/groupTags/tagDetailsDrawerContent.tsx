@@ -45,8 +45,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const {tagKey} = useParams<{tagKey: string}>();
   const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
 
   const {
     data: tagValues,
