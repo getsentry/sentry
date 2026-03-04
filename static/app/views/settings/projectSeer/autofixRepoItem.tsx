@@ -19,7 +19,6 @@ import {
   IconTag,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 
 interface Props {
@@ -314,7 +313,7 @@ const SelectedRepoHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)} ${space(3)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   cursor: pointer;
 `;
 
@@ -325,15 +324,15 @@ const RepoName = styled('div')`
 const RepoProvider = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const ExpandedContent = styled('div')`
-  padding: 0 ${space(2)} ${space(1)} 40px;
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space.md} 40px;
   background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -377,7 +376,7 @@ const ClearButton = styled(Button)`
 `;
 
 const StyledIconExpandToggle = styled(IconExpandToggle)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const AddOverrideButton = styled(Button)`

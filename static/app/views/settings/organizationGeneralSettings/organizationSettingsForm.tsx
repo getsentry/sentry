@@ -27,7 +27,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
@@ -747,7 +746,7 @@ export default OrganizationSettingsForm;
 const PoweredByCodecov = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   & > span {
     display: flex;

@@ -497,7 +497,7 @@ def test_project_config_with_trace_health_checks_enabled(
         "version": 2,
         "rules": [
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.02},
+                "samplingValue": {"type": "sampleRate", "value": 0.1 / 3},
                 "type": "trace",
                 "condition": {
                     "op": "or",

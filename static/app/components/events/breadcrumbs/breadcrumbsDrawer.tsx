@@ -37,7 +37,6 @@ import {
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -269,5 +268,5 @@ const EmptyMessage = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(3)} ${space(1)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.md};
 `;

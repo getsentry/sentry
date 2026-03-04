@@ -5,7 +5,6 @@ import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
@@ -111,8 +110,8 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
+  margin-top: -${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

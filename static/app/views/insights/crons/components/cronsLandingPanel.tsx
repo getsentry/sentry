@@ -15,7 +15,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
@@ -151,14 +150,14 @@ export function CronsLandingPanel() {
 const BackButton = styled(Button)`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  margin: ${space(1)} 0 0 ${space(1)};
-  padding-left: ${space(0.5)};
-  padding-right: ${space(0.5)};
+  margin: ${p => p.theme.space.md} 0 0 ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.xs};
+  padding-right: ${p => p.theme.space.xs};
 `;
 
 const GuideContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding-top: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space.xl};
 `;

@@ -296,12 +296,12 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self) -> str:
-        from sentry.api.utils import generate_region_url
+        from sentry.api.utils import generate_locality_url
 
         endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                endpoint = generate_region_url()
+                endpoint = generate_locality_url()
             else:
                 endpoint = options.get("system.url-prefix")
             assert endpoint is not None

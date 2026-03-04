@@ -9,7 +9,6 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -131,8 +130,8 @@ export function OtherPlatformsInfo({
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 const Suggestion = styled(Wrapper)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

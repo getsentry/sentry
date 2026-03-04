@@ -76,14 +76,14 @@ export const ScorePanel = styled(Panel)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   min-height: 96px;
 `;
 
 const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   width: fit-content;
 `;
