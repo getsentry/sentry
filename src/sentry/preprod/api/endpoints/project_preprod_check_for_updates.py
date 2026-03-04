@@ -15,6 +15,7 @@ from sentry.preprod.build_distribution_utils import (
     find_current_and_latest,
     get_download_url_for_artifact,
 )
+from sentry.preprod.models import PreprodArtifact
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -40,7 +41,7 @@ class CheckForUpdatesApiResponse(BaseModel):
     current: InstallableBuildDetails | None = None
 
 
-def _build_details_from_artifact(artifact):
+def _build_details_from_artifact(artifact: PreprodArtifact) -> InstallableBuildDetails | None:
     """Convert a PreprodArtifact to InstallableBuildDetails, or None."""
     mobile_app_info = getattr(artifact, "mobile_app_info", None)
     if (
