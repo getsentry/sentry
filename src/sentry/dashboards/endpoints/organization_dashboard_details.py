@@ -173,15 +173,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         self.check_object_permissions(request, dashboard)
 
-        if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
-            if "widgets" in request.data:
-                return self.respond(
-                    {"detail": "Cannot edit widgets on prebuilt Dashboards."}, status=409
-                )
-            if "title" in request.data and request.data["title"] != dashboard.title:
-                return self.respond(
-                    {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
-                )
+        is_prebuilt = isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None
+        prebuilt_title = dashboard.title if is_prebuilt else None
 
         tombstone = None
         if isinstance(dashboard, dict):
@@ -201,6 +194,20 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+        if is_prebuilt:
+            if "widgets" in serializer.validated_data:
+                return self.respond(
+                    {"detail": "Cannot edit widgets on prebuilt Dashboards."}, status=409
+                )
+            if (
+                "title" in serializer.validated_data
+                and serializer.validated_data["title"] != prebuilt_title
+            ):
+                return self.respond(
+                    {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
+                )
+
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 serializer.save()
