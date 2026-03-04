@@ -155,6 +155,28 @@ ruleTester.run('no-unnecessary-type-annotation', noUnnecessaryTypeAnnotation, {
       `,
       filename: 'valid.ts',
     },
+
+    // Generic type parameter — annotation widens from generic to concrete type
+    {
+      code: `
+        function example<T extends string>(value: T) {
+          let url: string = value;
+          return url;
+        }
+      `,
+      filename: 'valid.ts',
+    },
+
+    // const with generic type parameter
+    {
+      code: `
+        function example<T extends string>(value: T) {
+          const url: string = value;
+          return url;
+        }
+      `,
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [

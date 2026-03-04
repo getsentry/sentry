@@ -134,10 +134,21 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
         let inferredType = parserServices.getTypeAtLocation(node.init);
+        // Skip type parameters (generics) — the annotation intentionally widens
+        // from a generic to a concrete type (e.g. `let url: string = path` where
+        // path is TApiPath extends string).
+        if ((inferredType.flags & ts.TypeFlags.TypeParameter) !== 0) {
+          return;
+        }
         // For let declarations, TypeScript widens literal types (e.g. "" → string).
         // getTypeAtLocation returns the narrow literal type, so widen it to match
         // what TS would actually infer without the annotation.
-        if (node.parent.kind === 'let') {
+        // Only widen single literal types, not unions — widening a union of string
+        // literals to `string` is a real semantic change (e.g. generic constraints).
+        if (
+          node.parent.kind === 'let' &&
+          (inferredType.flags & ts.TypeFlags.Union) === 0
+        ) {
           inferredType = checker.getBaseTypeOfLiteralType(inferredType);
         }
         if (containsAny(inferredType)) {
