@@ -1,4 +1,5 @@
 import type React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
@@ -43,7 +44,14 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
   );
 }
 
-const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
+const LetterAvatarComponent = styled('svg', {
+  shouldForwardProp: prop =>
+    isPropValid(prop) &&
+    prop !== 'suggested' &&
+    prop !== 'round' &&
+    prop !== 'avatarColor' &&
+    prop !== 'initials',
+})<LetterAvatarProps>`
   ${baseAvatarStyles};
 
   rect {
