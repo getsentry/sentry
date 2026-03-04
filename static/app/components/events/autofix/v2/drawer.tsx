@@ -40,6 +40,8 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
     <Flex
       className="seer-drawer-container"
       position="relative"
+      height="100%"
+      overflowY="scroll"
       direction="column"
       background="secondary"
     >
