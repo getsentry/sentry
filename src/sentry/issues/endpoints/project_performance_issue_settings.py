@@ -359,10 +359,13 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
 
         if project_overrides:
             to_preserve: set[str] = set(management_options) | set(disabled_options)
-            # Get actual values from merged settings (includes defaults for management options)
-            current_settings = get_current_performance_settings(project)
+            # Use project_overrides directly (not get_current_performance_settings) to avoid
+            # writing default values to ProjectOption. DELETE should only preserve what the
+            # user explicitly set, allowing everything else to fall back to system defaults.
             unchanged_options = {
-                option: value for option, value in current_settings.items() if option in to_preserve
+                option: value
+                for option, value in project_overrides.items()
+                if option in to_preserve
             }
             sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
             reset_performance_settings(project, unchanged_options, sync_detectors=sync_detectors)
