@@ -35,7 +35,7 @@ export function InstallAppButton({
       project_slug: projectId,
       source,
     });
-    openInstallModal(projectId, artifactId);
+    openInstallModal(artifactId);
   };
 
   if (variant === 'icon') {

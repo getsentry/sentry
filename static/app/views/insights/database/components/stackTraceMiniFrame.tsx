@@ -6,7 +6,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -82,8 +81,8 @@ const FrameContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 
   font-family: ${p => p.theme.font.family.sans};
   font-size: ${p => p.theme.font.size.md};
@@ -94,7 +93,7 @@ const FrameContainer = styled('div')`
 `;
 
 const ProjectAvatarContainer = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Emphasize = styled('span')`
@@ -152,7 +151,7 @@ function SourceCodeIntegrationLink({
 const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

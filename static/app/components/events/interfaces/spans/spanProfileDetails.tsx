@@ -9,7 +9,6 @@ import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashC
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -87,7 +86,7 @@ export function useSpanProfileDetails(
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const nodes: CallTreeNode[] = useMemo(() => {
+  const nodes = useMemo(() => {
     if (profile === null || !event) {
       return [];
     }
@@ -324,7 +323,7 @@ function getTopNodes(
 ): CallTreeNode[] {
   let duration = profile.startedAt;
 
-  const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);
+  const callTree = new CallTreeNode(ProfilingFrame.Root, null);
 
   for (let i = 0; i < profile.samples.length; i++) {
     const sample = profile.samples[i]!;
@@ -454,10 +453,10 @@ const SpanContainer = styled('div')`
   }
 `;
 const SpanDetails = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`

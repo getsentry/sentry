@@ -10,7 +10,6 @@ import {Link} from '@sentry/scraps/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -158,7 +157,7 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="xl" {...props} />
 ))`
-  margin: ${space(2)} ${space(4)};
+  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   justify-self: end;
   margin-left: auto;
 `;
@@ -166,7 +165,7 @@ const OnboardingButtonBar = styled((props: GridProps) => (
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   color: ${p =>
     p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
@@ -194,7 +193,7 @@ const StatusWrapper = styled(motion.div)`
 `;
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space['3xl']};
   white-space: nowrap;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 
 interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
@@ -21,7 +20,7 @@ function ReplayPanel({image, noCenter, children, ...props}: Props) {
 }
 
 const Container = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   position: relative;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -57,11 +56,12 @@ const IlloBox = styled(StyledBox)`
   min-height: 100px;
   max-width: 300px;
   min-width: 150px;
-  margin: ${space(2)} auto;
+  margin: ${p => p.theme.space.xl} auto;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
-    margin: 120px ${space(3)} ${space(3)} ${space(3)};
+    margin: 120px ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
+      ${p => p.theme.space['2xl']};
     max-width: auto;
   }
 `;

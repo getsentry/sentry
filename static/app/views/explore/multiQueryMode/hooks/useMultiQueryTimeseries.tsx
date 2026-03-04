@@ -74,7 +74,7 @@ function useMultiQueryTimeseriesImpl({
 
   const mode = getQueryMode(groupBys);
 
-  const fields: string[] = useMemo(() => {
+  const fields = useMemo(() => {
     if (mode === Mode.SAMPLES) {
       return [];
     }

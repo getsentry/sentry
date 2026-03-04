@@ -260,7 +260,7 @@ const StyledOverlay = styled(Overlay)`
 
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
@@ -278,7 +278,7 @@ const MenuTitle = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
@@ -287,5 +287,5 @@ const MenuTitle = styled('div')`
 const Separator = styled('li')`
   list-style-type: none;
   border-top: solid 1px ${p => p.theme.tokens.border.secondary};
-  margin: ${space(0.5)} ${space(1.5)};
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;

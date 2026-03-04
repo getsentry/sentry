@@ -313,8 +313,10 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <ContinuousProfilingBillingRequirementBanner project={project} />
+      <DescriptionWrapper>
+        {introduction}
+        <ContinuousProfilingBillingRequirementBanner project={project} />
+      </DescriptionWrapper>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
@@ -465,7 +467,7 @@ const DescriptionWrapper = styled('div')`
     color: ${p => p.theme.colors.pink500};
   }
 
-  :not(:last-child) {
+  :not(:last-child):has(*) {
     margin-bottom: ${CONTENT_SPACING};
   }
 

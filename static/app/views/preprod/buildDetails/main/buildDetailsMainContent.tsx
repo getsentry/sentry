@@ -25,8 +25,8 @@ import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymM
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
   isSizeInfoPending,
@@ -100,7 +100,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       fieldName: 'categories',
     });
 
-  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+  const selectedCategories = selectedCategoriesParam
     ? new Set(
         selectedCategoriesParam
           .split(',')
@@ -109,7 +109,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           )
           .map(c => c as TreemapType)
       )
-    : new Set();
+    : new Set<TreemapType>();
 
   const handleToggleCategory = (category: TreemapType) => {
     const next = new Set(selectedCategories);

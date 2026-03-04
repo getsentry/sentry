@@ -84,8 +84,11 @@ def make_breakpoint_detection_request(
     )
 
 
-def detect_breakpoints(breakpoint_request: BreakpointRequest) -> BreakpointResponse:
-    response = make_breakpoint_detection_request(breakpoint_request)
+def detect_breakpoints(
+    breakpoint_request: BreakpointRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BreakpointResponse:
+    response = make_breakpoint_detection_request(breakpoint_request, viewer_context=viewer_context)
 
     if response.status >= 200 and response.status < 300:
         try:
