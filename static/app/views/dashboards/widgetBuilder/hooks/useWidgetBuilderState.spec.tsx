@@ -1969,14 +1969,12 @@ describe('useWidgetBuilderState', () => {
       // p50 and p90 are now invalid for counter, so they should be replaced with per_second
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
     });
@@ -2017,9 +2015,8 @@ describe('useWidgetBuilderState', () => {
       // Aggregate should be updated to valid one for counter (per_second is the first valid option)
       expect(result.current.state.fields).toEqual([
         {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
     });
@@ -2060,9 +2057,8 @@ describe('useWidgetBuilderState', () => {
       // sum is valid for distribution, so it should remain but with updated args
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', undefined, undefined],
+          function: ['sum', 'value', 'my.metric', 'distribution', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'distribution', '-'],
         },
       ]);
     });
@@ -2114,19 +2110,16 @@ describe('useWidgetBuilderState', () => {
       // All aggregates get updated args for the new trace metric
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', undefined, undefined],
+          function: ['sum', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
     });
@@ -2155,16 +2148,14 @@ describe('useWidgetBuilderState', () => {
       // stores all args in the args array when there are more than 3.
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', undefined, undefined],
+          function: ['sum', 'value', 'my.metric', 'counter', '-'],
           alias: undefined,
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
         {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           alias: undefined,
           kind: 'function',
-          args: ['value', 'my.metric', 'counter', '-'],
         },
       ]);
 
