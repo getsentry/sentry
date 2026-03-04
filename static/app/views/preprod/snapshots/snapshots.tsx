@@ -83,7 +83,7 @@ export default function SnapshotsPage() {
   const comparisonType = firstPageData?.comparison_type ?? 'solo';
   const comparisonRunInfo = firstPageData?.comparison_run_info;
 
-  const sidebarItems: SidebarItem[] = useMemo(() => {
+  const sidebarItems = useMemo(() => {
     if (!data?.pages) {
       return [];
     }
