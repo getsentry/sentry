@@ -1057,7 +1057,12 @@ function Visualize({error, setError}: VisualizeProps) {
             onClick={() => {
               dispatch({
                 type: updateAction,
-                payload: [...(fields ?? []), cloneDeep(defaultField)],
+                payload: [
+                  ...(fields ?? []),
+                  state.dataset === WidgetType.TRACEMETRICS && fields?.length
+                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    : cloneDeep(defaultField),
+                ],
               });
 
               trackAnalytics('dashboards_views.widget_builder.change', {
