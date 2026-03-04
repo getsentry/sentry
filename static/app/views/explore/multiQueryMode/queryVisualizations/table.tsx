@@ -46,7 +46,6 @@ import {
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const TABLE_HEIGHT = 258;
 

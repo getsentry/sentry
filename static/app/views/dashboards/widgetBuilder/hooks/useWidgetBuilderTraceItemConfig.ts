@@ -35,7 +35,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
     return {
       traceItemType: TraceItemDataset.PREPROD,
-      enabled: organization.features.includes('preprod-app-size-dashboard'),
+      enabled: true,
     };
   }
 

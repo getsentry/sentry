@@ -56,9 +56,7 @@ export type TraceItemAttributeConfig = {
   search?: string;
 };
 
-export type TraceItemAttributeOptions = Partial<
-  Omit<TraceItemAttributeConfig, 'traceItemType'>
->;
+type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 
 function useTraceItemAttributeConfig({
   traceItemType,
