@@ -4,55 +4,45 @@ from typing import cast
 from django.conf import settings
 
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import symbolication_tasks
-from sentry.utils.console_platforms import organization_has_console_platform_access
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.console_platform_cleanup.remove_revoked_console_platform_sources",
+    name="sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources",
     namespace=symbolication_tasks,
     silo_mode=SiloMode.REGION,
 )
-def remove_revoked_console_platform_sources(
-    organization_id: int, revoked_platforms: list[str], **kwargs
+def remove_inaccessible_console_platform_sources(
+    organization_id: int, current_platforms: list[str], **kwargs
 ) -> None:
     """
-    Remove symbol sources associated with revoked console platforms from all
-    projects in an organization.
+    Remove symbol sources that the organization can no longer access from all
+    projects in the organization.
 
-    When an organization loses access to a console platform (e.g., nintendo-switch),
-    this task removes any builtin symbol sources that the organization no longer
-    has access to from all projects in the organization.
+    Called when console platform access is revoked.  ``current_platforms`` is the
+    set of console platforms the organization still has access to *after* the
+    revocation.  Any builtin source whose required platforms are all absent from
+    this list is removed from every project's ``sentry:builtin_symbol_sources``.
     """
-    try:
-        organization = Organization.objects.get_from_cache(id=organization_id)
-    except Organization.DoesNotExist:
-        return
-
-    # Find source keys the org no longer has access to.  This mirrors
-    # the endpoint logic: a source is accessible when the org has access
-    # to *any* of its platforms, so it must be removed when the org has
+    # A source is accessible when the org has access to *any* of its platforms
+    # (mirroring BuiltinSymbolSourcesEndpoint), so remove it when the org has
     # access to *none* of them.
+    current_platform_set = set(current_platforms)
     source_keys_to_remove: set[str] = set()
     for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
         source_platforms: list[str] | None = cast("list[str] | None", source.get("platforms"))
         if source_platforms is None:
             continue
-        has_access = any(
-            organization_has_console_platform_access(organization, p) for p in source_platforms
-        )
-        if not has_access:
+        if not current_platform_set.intersection(source_platforms):
             source_keys_to_remove.add(key)
 
     if not source_keys_to_remove:
         return
 
-    # Find all projects in this org that have explicit builtin symbol sources
     project_options = ProjectOption.objects.filter(
         project__organization_id=organization_id,
         key="sentry:builtin_symbol_sources",
