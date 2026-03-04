@@ -690,6 +690,34 @@ A list of actions that take place when all required conditions and filters for t
     )
 
 
+def format_request_data(
+    data: dict[str, Any],
+) -> dict[str, Any]:
+    workflow_payload = {
+        "name": data.get("name"),
+        "enabled": True if data.get("status") == "active" else False,
+        "environment": data.get("environment"),
+        "config": {"frequency": data.get("frequency")},
+    }
+
+    triggers = {"logicType": data.get("actionMatch", "any-short"), "conditions": []}
+    # TODO do I need to always change 'any' to 'any-short'?
+    for condition in data.get("conditions"):
+        translated_condition = {
+            # "type": condition.get("id"), # TODO translate this, e.g. "sentry.rules.conditions.regression_event.RegressionEventCondition" -> Condition.REGRESSION_EVENT.value
+            "type": "regression_event",
+            "comparison": True,  # ????
+            "conditionResult": True,  # ???
+        }
+        triggers["conditions"].append(translated_condition)
+
+    workflow_payload["triggers"] = triggers
+    workflow_payload[
+        "action_filters"
+    ] = []  # TODO: combine data.get("filters") with data.get("actions")
+    return workflow_payload
+
+
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -782,9 +810,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            # TODO: convert request.data to format expected by WorkflowValidator
-            request_data = request.data
-
+            request_data = format_request_data(request.data)
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},

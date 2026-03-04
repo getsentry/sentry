@@ -1233,7 +1233,39 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine(self) -> None:
-        payload = {}
+        payload = {
+            "name": "Owner Alert",
+            "frequency": 1440,
+            "environment": None,
+            "status": "active",
+            "snooze": False,  # enabled: True
+            "conditions": [
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                }
+            ],
+            "filters": [
+                {
+                    "targetType": "Unassigned",
+                    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                    "targetIdentifier": "",
+                }
+            ],
+            "actions": [  # actions nested inside actionFilters
+                {
+                    "targetType": "Member",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": self.user.id,
+                }
+            ],
+            "actionMatch": "any-short",  # was any originally
+            "filterMatch": "all",
+            # "dateCreated": "2023-09-08T20:00:07.244602Z",
+            "owner": "team:74234",
+            # "createdBy": {"id": 24601, "name": "Jean Valjean", "email": "jean@example.com"},
+            # "projects": [self.project], # project not supported in workflows
+        }
         # TODO: construct a valid issue alert rule payload
         self.get_success_response(
             self.project.organization.slug,
