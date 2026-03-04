@@ -544,11 +544,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/group_index/                        @getsentry/issue-workflow
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
 /src/sentry/api/endpoints/                                  @getsentry/issue-workflow
-## Value Discovery
-/src/sentry/api/endpoints/organization_onboarding_tasks.py                       @getsentry/value-discovery
-/src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
-/src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
-## End of Value Discovery
 /src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
@@ -630,6 +625,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
+
+## Value Discovery
+# These must come after /src/sentry/api/endpoints/ catch-all above
+/src/sentry/api/endpoints/organization_onboarding_tasks.py                       @getsentry/value-discovery
+/src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
+/src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
+## End of Value Discovery
 
 ## AI Conversations (Telemetry Experience)
 # These must come after /src/sentry/api/endpoints/ catch-all above
