@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {memo, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
@@ -24,7 +24,7 @@ interface DiffImageDisplayProps {
   showOverlay: boolean;
 }
 
-export function DiffImageDisplay({
+export const DiffImageDisplay = memo(function DiffImageDisplay({
   pair,
   imageBaseUrl,
   diffImageBaseUrl,
@@ -126,7 +126,7 @@ export function DiffImageDisplay({
       </Flex>
     </Flex>
   );
-}
+});
 
 interface ViewProps {
   baseImageUrl: string;

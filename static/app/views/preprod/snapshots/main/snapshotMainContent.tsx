@@ -1,3 +1,4 @@
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,11 +8,23 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
+
+const OVERLAY_COLORS = [
+  '#ff0000',
+  '#00cc44',
+  '#0088ff',
+  '#00cccc',
+  '#ff00ff',
+  '#ffcc00',
+  '#ff6600',
+  '#ffffff',
+];
 
 interface SnapshotMainContentProps {
   diffImageBaseUrl: string;
@@ -57,20 +70,12 @@ export function SnapshotMainContent({
             {displayName}
           </Text>
           {diffMode === 'split' && (
-            <Flex align="center" gap="sm">
-              <Button
-                size="xs"
-                priority={showOverlay ? 'primary' : 'default'}
-                onClick={() => onShowOverlayChange(!showOverlay)}
-              >
-                {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
-              </Button>
-              <ColorInput
-                type="color"
-                value={overlayColor}
-                onChange={e => onOverlayColorChange(e.target.value)}
-              />
-            </Flex>
+            <OverlayControls
+              showOverlay={showOverlay}
+              onShowOverlayChange={onShowOverlayChange}
+              overlayColor={overlayColor}
+              onOverlayColorChange={onOverlayColorChange}
+            />
           )}
         </Flex>
         <Separator orientation="horizontal" />
@@ -162,11 +167,98 @@ export function SnapshotMainContent({
   );
 }
 
-const ColorInput = styled('input')`
-  width: 28px;
-  height: 28px;
+function OverlayControls({
+  showOverlay,
+  onShowOverlayChange,
+  overlayColor,
+  onOverlayColorChange,
+}: {
+  onOverlayColorChange: (color: string) => void;
+  onShowOverlayChange: (show: boolean) => void;
+  overlayColor: string;
+  showOverlay: boolean;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(pickerRef, () => setPickerOpen(false));
+
+  return (
+    <Flex align="center" gap="sm">
+      <Button
+        size="xs"
+        priority={showOverlay ? 'primary' : 'default'}
+        onClick={() => onShowOverlayChange(!showOverlay)}
+      >
+        {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
+      </Button>
+      <ColorPickerWrapper ref={pickerRef}>
+        <ColorTrigger
+          $color={overlayColor}
+          onClick={() => setPickerOpen(!pickerOpen)}
+          aria-label={t('Pick overlay color')}
+        />
+        {pickerOpen && (
+          <ColorPickerPopover>
+            {OVERLAY_COLORS.map(color => (
+              <ColorSwatch
+                key={color}
+                $color={color}
+                $selected={overlayColor === color}
+                onClick={() => {
+                  onOverlayColorChange(color);
+                  setPickerOpen(false);
+                }}
+                aria-label={`Overlay color ${color}`}
+              />
+            ))}
+          </ColorPickerPopover>
+        )}
+      </ColorPickerWrapper>
+    </Flex>
+  );
+}
+
+const ColorPickerWrapper = styled('div')`
+  position: relative;
+`;
+
+const ColorTrigger = styled('button')<{$color: string}>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   cursor: pointer;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.sm};
+  border: 2px solid ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.$color};
   padding: 0;
+
+  &:hover {
+    border-color: ${p => p.theme.tokens.border.accent};
+  }
+`;
+
+const ColorPickerPopover = styled('div')`
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  box-shadow: ${p => p.theme.dropShadowMedium};
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
+
+const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid
+    ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
+  background-color: ${p => p.$color};
+  padding: 0;
+  outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
+  outline-offset: 1px;
 `;
