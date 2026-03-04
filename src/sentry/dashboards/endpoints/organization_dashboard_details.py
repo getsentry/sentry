@@ -178,6 +178,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                 return self.respond(
                     {"detail": "Cannot edit widgets on prebuilt Dashboards."}, status=409
                 )
+            if "title" in request.data and request.data["title"] != dashboard.title:
+                return self.respond(
+                    {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
+                )
 
         tombstone = None
         if isinstance(dashboard, dict):

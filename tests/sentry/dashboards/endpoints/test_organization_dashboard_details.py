@@ -3793,6 +3793,20 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 409
         assert "Cannot edit widgets on prebuilt Dashboards." in response.content.decode()
 
+    def test_cannot_edit_prebuilt_insights_dashboard_title(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={"title": "Renamed Dashboard"},
+        )
+        assert response.status_code == 409
+        assert "Cannot change the title of prebuilt Dashboards." in response.content.decode()
+
     def test_can_edit_prebuilt_insights_dashboard_global_filters(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Frontend Session Health",
