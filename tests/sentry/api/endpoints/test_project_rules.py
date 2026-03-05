@@ -1238,7 +1238,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "frequency": 1440,
             "environment": None,
             "status": "active",
-            "snooze": False,  # enabled: True
+            "snooze": False,
             "conditions": [
                 {
                     "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -1251,7 +1251,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                     "targetIdentifier": "",
                 }
             ],
-            "actions": [  # actions nested inside actionFilters
+            "actions": [
                 {
                     "targetType": "Member",
                     "fallthroughType": "ActiveMembers",
@@ -1259,14 +1259,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                     "targetIdentifier": self.user.id,
                 }
             ],
-            "actionMatch": "any-short",  # was any originally
-            "filterMatch": "all",
-            # "dateCreated": "2023-09-08T20:00:07.244602Z",
+            "actionMatch": "any-short",  # was any originally, can we support that?
+            "filterMatch": "any-short",  # was all originally
             "owner": "team:74234",
             # "createdBy": {"id": 24601, "name": "Jean Valjean", "email": "jean@example.com"},
             # "projects": [self.project], # project not supported in workflows
         }
-        # TODO: construct a valid issue alert rule payload
         self.get_success_response(
             self.project.organization.slug,
             self.project.slug,

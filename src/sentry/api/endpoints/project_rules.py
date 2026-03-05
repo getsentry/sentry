@@ -35,6 +35,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channe
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
@@ -46,6 +47,9 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 )
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition_data,
+)
+from sentry.workflow_engine.migration_helpers.rule_action import (
+    translate_rule_data_actions_to_notification_actions,
 )
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
@@ -704,18 +708,35 @@ def format_request_data(
     }
 
     triggers = {"logicType": data.get("actionMatch", "any-short"), "conditions": []}
+    fake_dcg = DataConditionGroup()
     # TODO do I need to always change 'any' to 'any-short'?
     for condition in data.get("conditions"):
-        translated_condition = asdict(
-            translate_to_data_condition_data(condition, DataConditionGroup())
-        )  # pass a fake DCG
-        translated_condition.pop("condition_group")
-        triggers["conditions"].append(translated_condition)
+        translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
+        translated_conditions.pop("condition_group")
+        triggers["conditions"].append(translated_conditions)
 
     workflow_payload["triggers"] = triggers
-    workflow_payload[
-        "action_filters"
-    ] = []  # TODO: combine data.get("filters") with data.get("actions")
+
+    for filter_data in data.get("filters"):
+        translated_filters = asdict(translate_to_data_condition_data(condition, fake_dcg))
+        translated_filters.pop("condition_group")
+
+    translated_actions = translate_rule_data_actions_to_notification_actions(
+        data.get("actions"), False
+    )
+    for action in translated_actions:
+        target_type = action.get("config", {}).get("target_type")
+        if target_type:
+            action["config"]["target_type"] = ActionTarget.get_name(target_type)
+
+    action_filters = {
+        "logicType": data.get("filterMatch"),
+        "conditions": [translated_filters],
+        "actions": translated_actions,
+    }
+    workflow_payload["actionFilters"] = [action_filters]
+    workflow_payload["actionFilters"][0]["logicType"] = data.get("filterMatch")
+
     return workflow_payload
 
 

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 def translate_rule_data_actions_to_notification_actions(
     actions: list[dict[str, Any]], skip_failures: bool
-) -> list[Action]:
+) -> list[dict[str, Any]]:
     """
     Builds notification actions from action field in Rule's data blob.
     Will only create actions that are valid, and log any errors.
@@ -19,7 +19,7 @@ def translate_rule_data_actions_to_notification_actions(
     :return: list of notification actions (Action)
     """
 
-    notification_actions: list[Action] = []
+    notification_actions: list[dict[str, Any]] = []
 
     for action in actions:
         # Fetch the registry ID
@@ -68,14 +68,14 @@ def translate_rule_data_actions_to_notification_actions(
             )
 
         try:
-            notification_action = Action(
-                type=translator.action_type,
-                data=translator.get_sanitized_data(),
-                integration_id=translator.integration_id,
-                config=translator.action_config,
-            )
+            notification_action_data = {
+                "type": translator.action_type,
+                "data": translator.get_sanitized_data(),
+                "integration_id": translator.integration_id,
+                "config": translator.action_config,
+            }
 
-            notification_actions.append(notification_action)
+            notification_actions.append(notification_action_data)
         except Exception as e:
             if not skip_failures:
                 raise
@@ -103,12 +103,13 @@ def build_notification_actions_from_rule_data_actions(
     :return: list of notification actions (Action)
     """
 
-    notification_actions = translate_rule_data_actions_to_notification_actions(
+    notification_actions_data = translate_rule_data_actions_to_notification_actions(
         actions, skip_failures=not is_dry_run
     )
+    actions = [Action(**action_data) for action_data in notification_actions_data]
 
     # Create the actions if not a dry run
     if not is_dry_run:
-        for action in notification_actions:
+        for action in actions:
             action.save()
-    return notification_actions
+    return actions
