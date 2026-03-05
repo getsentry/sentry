@@ -76,6 +76,42 @@ def instrumented_task(
         )
         def func():
             ...
+
+    Parameters
+    ----------
+
+    name : str
+        The name of the task. This is serialized and must be stable across deploys.
+    namespace : TaskNamespace
+        The namespace of the task. This is used to group tasks together.
+    alias : str | None
+        The alias of the task. Used to rename a task.
+    alias_namespace : TaskNamespace | None
+        The namespace of the alias task. Used to move a task to a different namespace.
+    retry : Retry | None
+        The retry policy for the task. If none and at_most_once is not enabled
+        the Task namespace default retry policy will be used.
+        The task will only retry for specified exceptions in the Retry object.
+        i.e. Retry(on=(Exception,), ignore=(IgnorableException,))
+    expires : int | datetime.timedelta | None
+        The duration in seconds that a task has to start execution.
+        After received_at + expires has passed an activation is expired and will not be executed.
+    processing_deadline_duration : int | datetime.timedelta | None
+        The duration in seconds that a worker has to complete task execution.
+        When an activation is moved from pending -> processing a result is expected
+        in this many seconds. If not provided, the default task duration of
+        DEFAULT_PROCESSING_DEADLINE will be used.
+    at_most_once : bool
+        Enable at-most-once execution. Tasks with `at_most_once` cannot
+        define retry policies, and use a worker side idempotency key to
+        prevent processing deadline based retries.
+    wait_for_delivery : bool
+        If true, the task will wait for the delivery report to be received
+        before returning.
+    compression_type : CompressionType
+        The compression type to use to compress the task parameters.
+    silo_mode : SiloMode | None
+        The silo that the task will run in. This should be the silo that the task was called from.
     """
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
