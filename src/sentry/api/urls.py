@@ -514,6 +514,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
+from sentry.seer.endpoints.demo_hello_world import DemoHelloWorldEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -2350,6 +2351,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issue-view-title/generate/$",
         IssueViewTitleGenerateEndpoint.as_view(),
         name="sentry-api-0-issue-view-title-generate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/demo-hello-world/$",
+        DemoHelloWorldEndpoint.as_view(),
+        name="sentry-api-0-demo-hello-world",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/search-agent/translate/$",
