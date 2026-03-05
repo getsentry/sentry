@@ -185,6 +185,7 @@ const getVerifyConfig = (params: Params) => [
 ];
 
 export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
+  hideInstructionsCopy: true,
   introduction: () =>
     tct("In this quick guide you'll use our [strong: Loader Script] to set up:", {
       strong: <strong />,
@@ -382,6 +383,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
+  hideInstructionsCopy: true,
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",

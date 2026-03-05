@@ -184,13 +184,16 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
-              const copyButton =
-                copyEnabled && index === 0 ? (
-                  <OnboardingCopyMarkdownButton
-                    steps={steps}
-                    source={newOrg ? 'first_time_setup' : 'project_getting_started'}
-                  />
-                ) : null;
+              const showCopy =
+                copyEnabled &&
+                index === 0 &&
+                !(docsConfig[configType] ?? docsConfig.onboarding)?.hideInstructionsCopy;
+              const copyButton = showCopy ? (
+                <OnboardingCopyMarkdownButton
+                  steps={steps}
+                  source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                />
+              ) : null;
 
               const trailingItems = copyButton ? (
                 step.trailingItems ? (

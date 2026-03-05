@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {getInstallSnippet} from './utils';
 
 export const onboarding: OnboardingConfig = {
+  hideInstructionsCopy: true,
   install: (params: DocsParams) => [
     {
       title: t('Automatic Configuration (Recommended)'),
