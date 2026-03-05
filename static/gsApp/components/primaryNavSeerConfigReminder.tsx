@@ -101,9 +101,6 @@ function useCanSeeReminder(organization: Organization) {
     [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
   );
 
-  // TODO: remove this override before merging
-  return {canSeeReminder: true, analyticsParams};
-
   if (!organization.features.includes('seer-config-reminder')) {
     return {canSeeReminder: false, analyticsParams};
   }
@@ -251,7 +248,4 @@ export default function PrimaryNavSeerConfigReminder() {
   );
 }
 
-const SeerButton = styled(SidebarButton)`
-  /* TODO: remove this override before merging */
-  display: flex;
-`;
+const SeerButton = styled(SidebarButton)``;

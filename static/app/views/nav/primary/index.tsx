@@ -64,7 +64,7 @@ function SidebarBody({
 function FooterButtons({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   if (layout === NavLayout.MOBILE) {
-    return <Stack>{children}</Stack>;
+    return <Stack width="100%">{children}</Stack>;
   }
   return <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>;
 }
@@ -253,7 +253,8 @@ const FooterButtonBarContainer = styled('div')<{isMobile: boolean}>`
   margin-top: auto;
   margin-bottom: ${p => (p.isMobile ? p.theme.space.md : p.theme.space.lg)};
   display: flex;
-  justify-content: center;
+  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
+  ${p => p.isMobile && 'width: 100%;'}
 `;
 
 const FooterButtonBar = styled(ButtonBar)`
