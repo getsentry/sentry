@@ -1,8 +1,5 @@
 name: meta(labels)
 on:
-  pull_request:
-    paths:
-      - .github/labels.yml
   push:
     branches:
       - master

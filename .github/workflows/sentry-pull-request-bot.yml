@@ -5,8 +5,6 @@ name: sentry pull request bot
 on:
   issue_comment:
     types: [created, edited]
-  pull_request:
-    types: [opened, edited]
 
 jobs:
   # TODO(billy): Move this into an external action as we add more functionality

@@ -2,7 +2,7 @@
 name: meta(labels)
 
 on:
-  pull_request_target:
+  workflow_dispatch:
 
 jobs:
   label-pullrequest:
