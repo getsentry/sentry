@@ -1,11 +1,10 @@
 import {Fragment, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {ButtonBar} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -64,12 +63,15 @@ function SidebarBody({
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
   return (
-    <SidebarItemDefaults size={layout === NavLayout.MOBILE ? 'xs' : 'sm'}>
-      <FooterButtonBarContainer isMobile={layout === NavLayout.MOBILE}>
-        <FooterButtonBar orientation="vertical" isMobile={layout === NavLayout.MOBILE}>
-          {children}
-        </FooterButtonBar>
+    <SidebarItemDefaults size={isMobile ? 'xs' : 'sm'}>
+      <FooterButtonBarContainer isMobile={isMobile}>
+        {isMobile ? (
+          <Stack>{children}</Stack>
+        ) : (
+          <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
+        )}
       </FooterButtonBarContainer>
     </SidebarItemDefaults>
   );
@@ -250,15 +252,11 @@ const FooterButtonBarContainer = styled('div')<{isMobile: boolean}>`
   justify-content: center;
 `;
 
-const FooterButtonBar = styled(ButtonBar)<{isMobile: boolean}>`
-  ${p =>
-    !p.isMobile &&
-    css`
-      & > button {
-        width: 34px;
-        height: 34px;
-      }
-    `}
+const FooterButtonBar = styled(ButtonBar)`
+  & > button {
+    width: 34px;
+    height: 34px;
+  }
 `;
 
 const BetaBadge = styled(FeatureBadge)`
