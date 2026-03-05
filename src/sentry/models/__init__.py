@@ -15,6 +15,7 @@ from .authprovider import *  # NOQA
 from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
+from .code_review_event import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
 from .commitcomparison import *  # NOQA

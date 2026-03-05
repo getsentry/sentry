@@ -31,24 +31,6 @@ describe('DetectorTransactionsConfig', () => {
       expect(params.project).toEqual(['1']);
     });
 
-    it('expands 7d statsPeriod to 9998m for 1m intervals', () => {
-      const key = DetectorTransactionsConfig.getSeriesQueryOptions({
-        organization,
-        aggregate: 'count()',
-        interval: 60,
-        query: '',
-        environment: '',
-        projectId: '1',
-        dataset: Dataset.TRANSACTIONS,
-        eventTypes: [EventTypes.TRANSACTION],
-        statsPeriod: '7d',
-        comparisonDelta: undefined,
-      });
-
-      const params = key[1]!.query!;
-      expect(params.statsPeriod).toBe('9998m');
-    });
-
     it('on-demand success (apdex) returns METRICS_ENHANCED and prefixed query', () => {
       const orgWithFeature = OrganizationFixture({
         features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui'],

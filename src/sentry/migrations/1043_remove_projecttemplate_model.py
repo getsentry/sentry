@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1041_projectkeymapping"),
+        ("sentry", "1042_create_code_review_event"),
     ]
 
     operations = [
