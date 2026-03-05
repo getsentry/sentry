@@ -265,7 +265,7 @@ For one-off fields that don't have a built-in component (e.g. a color picker, or
 ```tsx
 <form.AppField name="color">
   {field => (
-    <field.Layout.Row label="Brand Color:">
+    <field.Layout.Row label="Brand Color">
       <field.Base<HTMLInputElement>>
         {(baseProps, {indicator}) => (
           <Flex flexGrow={1}>
