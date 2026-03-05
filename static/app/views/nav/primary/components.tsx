@@ -1,4 +1,4 @@
-import {createContext, Fragment, use, useContext, type MouseEventHandler} from 'react';
+import {createContext, Fragment, useContext, type MouseEventHandler} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -74,21 +74,10 @@ interface SidebarItemDefaultsValue {
   size?: ButtonProps['size'];
 }
 
-const SidebarItemDefaultsContext = createContext<SidebarItemDefaultsValue>({});
+export const SidebarItemDefaultsContext = createContext<SidebarItemDefaultsValue>({});
+
 export function useSidebarItemDefaults() {
   return useContext(SidebarItemDefaultsContext);
-}
-
-export function SidebarItemDefaults({
-  size,
-  children,
-}: {
-  children: React.ReactNode;
-  size?: ButtonProps['size'];
-}) {
-  return (
-    <SidebarItemDefaultsContext value={{size}}>{children}</SidebarItemDefaultsContext>
-  );
 }
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {

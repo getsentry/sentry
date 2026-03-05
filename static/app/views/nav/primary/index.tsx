@@ -23,7 +23,7 @@ import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
-  SidebarItemDefaults,
+  SidebarItemDefaultsContext,
   SidebarLink,
   SidebarList,
 } from 'sentry/views/nav/primary/components';
@@ -64,7 +64,7 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   }
 
   return (
-    <SidebarItemDefaults size={isMobile ? 'xs' : 'sm'}>
+    <SidebarItemDefaultsContext.Provider value={{size: isMobile ? 'xs' : 'sm'}}>
       <Flex
         display="flex"
         // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
@@ -80,7 +80,7 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
           <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
         )}
       </Flex>
-    </SidebarItemDefaults>
+    </SidebarItemDefaultsContext.Provider>
   );
 }
 
@@ -252,8 +252,8 @@ export function PrimaryNavigationItems() {
   );
 }
 
+// Force all buttons to the same size
 const FooterButtonBar = styled(ButtonBar)`
-  // Force all buttons to the same size
   & > button {
     width: ${p => p.theme.form.md.height};
     height: ${p => p.theme.form.md.height};
