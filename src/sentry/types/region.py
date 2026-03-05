@@ -477,11 +477,6 @@ def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
 
 
-def find_all_region_names() -> Iterable[str]:
-    """Deprecated. Use find_all_cell_names."""
-    return find_all_cell_names()
-
-
 def find_all_multitenant_region_names() -> list[str]:
     """
     Return all visible multi_tenant regions.
