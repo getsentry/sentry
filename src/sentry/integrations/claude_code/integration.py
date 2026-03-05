@@ -343,6 +343,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         client = self.get_client()
 
         state = client.launch(webhook_url=webhook_url, request=request)
+        state.integration_id = self.model.id
 
         if client.environment_id and client.environment_id != self.environment_id:
             self.update_environment_id(client.environment_id)

@@ -123,7 +123,6 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
-    branch_name: str | None = None
     pr_url: str | None = None
 
     class Config:
@@ -140,6 +139,7 @@ class ExplorerCodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = Field(default_factory=list)
+    integration_id: int | None = None
 
     class Config:
         extra = "allow"
