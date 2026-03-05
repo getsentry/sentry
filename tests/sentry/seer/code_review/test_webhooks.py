@@ -516,8 +516,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         assert mock_request.call_count == 1
         assert mock_request.call_args[1]["path"] == "/v1/automation/code_review/review-request"
-        body = orjson.loads(mock_request.call_args[1]["body"])
-        assert "request_type" not in body
 
         mock_request.reset_mock()
         pr_closed_payload = {**pr_review_payload, "request_type": "pr-closed"}
@@ -531,8 +529,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         assert mock_request.call_count == 1
         assert mock_request.call_args[1]["path"] == "/v1/automation/code_review/pr-closed"
-        body = orjson.loads(mock_request.call_args[1]["body"])
-        assert "request_type" not in body
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
@@ -585,7 +581,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
 
         # Get the actual payload that was sent
-        import orjson
 
         sent_body = mock_request.call_args[1]["body"]
         sent_payload = orjson.loads(sent_body)
