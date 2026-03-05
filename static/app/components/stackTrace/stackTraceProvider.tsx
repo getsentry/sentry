@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useId, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -15,6 +15,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+import useProjects from 'sentry/utils/useProjects';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
 import {
@@ -47,6 +48,14 @@ import type {FrameRow, StackTraceProviderProps} from './types';
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
   const framePlatform = stacktrace.frames?.find(frame => !!frame.platform)?.platform;
   return event.platform ?? framePlatform ?? 'other';
+}
+
+function createInitialExpandedFrameMap(lastFrameIndex: number) {
+  const expandedMap: Record<number, boolean> = {};
+  if (lastFrameIndex >= 0) {
+    expandedMap[lastFrameIndex] = true;
+  }
+  return expandedMap;
 }
 
 function Root({
@@ -83,19 +92,16 @@ function Root({
     () => componentsProp ?? storeStacktraceLinkComponents,
     [componentsProp, storeStacktraceLinkComponents]
   );
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(candidate => candidate.id === event.projectID),
+    [event.projectID, projects]
+  );
+  const lastFrameIndex = useMemo(() => getLastFrameIndex(frames), [frames]);
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
     createInitialHiddenFrameToggleMap(frames, view === 'full')
   );
-
-  const [expandedFrames, setExpandedFrames] = useState<Record<number, boolean>>(() => {
-    const expandedMap: Record<number, boolean> = {};
-    const lastFrameIndex = getLastFrameIndex(frames);
-    if (lastFrameIndex >= 0) {
-      expandedMap[lastFrameIndex] = true;
-    }
-    return expandedMap;
-  });
 
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
@@ -139,6 +145,7 @@ function Root({
       event,
       frameBadge,
       platform,
+      project,
       stacktrace: activeStacktrace,
       frameSourceMapDebuggerData,
       frames,
@@ -146,17 +153,8 @@ function Root({
       hideSourceMapDebugger,
       rows,
       meta,
-      expandedFrames,
       hiddenFrameToggleMap,
-      lastFrameIndex: getLastFrameIndex(frames),
-      toggleFrameExpansion: (frameIndex: number) => {
-        setExpandedFrames(prevState => {
-          return {
-            ...prevState,
-            [frameIndex]: !prevState[frameIndex],
-          };
-        });
-      },
+      lastFrameIndex,
       toggleHiddenFrames: (frameIndex: number) => {
         setHiddenFrameToggleMap(prevState => ({
           ...prevState,
@@ -167,15 +165,16 @@ function Root({
     [
       components,
       event,
-      expandedFrames,
       frameBadge,
       frameSourceMapDebuggerData,
       frames,
       getFrameLineCoverage,
       hideSourceMapDebugger,
       hiddenFrameToggleMap,
+      lastFrameIndex,
       meta,
       platform,
+      project,
       rows,
       activeStacktrace,
     ]
@@ -187,21 +186,20 @@ function Root({
 }
 
 interface StackTraceFrameProps {
+  isExpanded: boolean;
+  onToggleExpansion: (frameIndex: number) => void;
   row: FrameRow;
   children?: React.ReactNode;
 }
 
-function FrameRoot({row, children}: StackTraceFrameProps) {
-  const {
-    event,
-    frames,
-    platform,
-    stacktrace,
-    expandedFrames,
-    hiddenFrameToggleMap,
-    toggleFrameExpansion,
-    toggleHiddenFrames,
-  } = useStackTraceContext();
+const FrameRoot = memo(function FrameRoot({
+  row,
+  children,
+  isExpanded,
+  onToggleExpansion,
+}: StackTraceFrameProps) {
+  const {event, frames, platform, stacktrace, hiddenFrameToggleMap, toggleHiddenFrames} =
+    useStackTraceContext();
 
   const registers = row.frameIndex === frames.length - 1 ? stacktrace.registers : {};
 
@@ -211,7 +209,6 @@ function FrameRoot({row, children}: StackTraceFrameProps) {
     platform,
   });
 
-  const isExpanded = !!expandedFrames[row.frameIndex];
   const frameContextId = useId();
 
   const value = useMemo<StackTraceFrameContextValue>(
@@ -228,7 +225,7 @@ function FrameRoot({row, children}: StackTraceFrameProps) {
       platform,
       timesRepeated: row.timesRepeated,
       toggleExpansion: () => {
-        toggleFrameExpansion(row.frameIndex);
+        onToggleExpansion(row.frameIndex);
       },
       toggleHiddenFrames: () => {
         toggleHiddenFrames(row.frameIndex);
@@ -246,7 +243,7 @@ function FrameRoot({row, children}: StackTraceFrameProps) {
       row.hiddenFrameCount,
       row.nextFrame,
       row.timesRepeated,
-      toggleFrameExpansion,
+      onToggleExpansion,
       toggleHiddenFrames,
     ]
   );
@@ -263,7 +260,7 @@ function FrameRoot({row, children}: StackTraceFrameProps) {
       </FrameRowContainer>
     </StackTraceFrameContext.Provider>
   );
-}
+});
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
   const [start, end] = omittedFrames;
@@ -277,8 +274,30 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 }
 
 function Frames() {
-  const {rows, stacktrace, event} = useStackTraceContext();
+  const {rows, stacktrace, event, lastFrameIndex} = useStackTraceContext();
   const {view} = useStackTraceViewState();
+  const [expandedFrames, setExpandedFrames] = useState<Record<number, boolean>>(() =>
+    createInitialExpandedFrameMap(lastFrameIndex)
+  );
+
+  useEffect(() => {
+    setExpandedFrames(prevState => {
+      if (lastFrameIndex < 0 || prevState[lastFrameIndex] !== undefined) {
+        return prevState;
+      }
+      return {
+        ...prevState,
+        [lastFrameIndex]: true,
+      };
+    });
+  }, [lastFrameIndex]);
+
+  const onToggleExpansion = useCallback((frameIndex: number) => {
+    setExpandedFrames(prevState => ({
+      ...prevState,
+      [frameIndex]: !prevState[frameIndex],
+    }));
+  }, []);
 
   if (view === 'raw') {
     return (
@@ -308,7 +327,14 @@ function Frames() {
             );
           }
 
-          return <FrameRoot key={row.frameIndex} row={row} />;
+          return (
+            <FrameRoot
+              key={row.frameIndex}
+              row={row}
+              isExpanded={!!expandedFrames[row.frameIndex]}
+              onToggleExpansion={onToggleExpansion}
+            />
+          );
         })}
       </FrameList>
     </FramesPanel>

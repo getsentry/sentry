@@ -6,7 +6,7 @@ import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import type {
@@ -61,8 +61,6 @@ export interface StackTraceContextValue {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   /** Event payload for project/platform metadata and integrations. */
   event: Event;
-  /** Expanded/collapsed state keyed by frame index. */
-  expandedFrames: Record<number, boolean>;
   /** Active frame list for the selected (symbolicated/minified) stacktrace. */
   frames: Frame[];
   /** Hidden-system-frame expansion state keyed by frame index. */
@@ -77,8 +75,6 @@ export interface StackTraceContextValue {
   rows: Row[];
   /** Currently active stacktrace (symbolicated or minified). */
   stacktrace: StacktraceType;
-  /** Toggles source/context expansion for a frame row. */
-  toggleFrameExpansion: (frameIndex: number) => void;
   /** Toggles hidden system frames adjacent to a visible row. */
   toggleHiddenFrames: (frameIndex: number) => void;
   /** Optional row badge renderer, used by IssueStackTrace ANR suspect-frame markers. */
@@ -89,6 +85,8 @@ export interface StackTraceContextValue {
   getFrameLineCoverage?: FrameLineCoverageResolver;
   /** Optional redaction metadata used by variable/register renderers. */
   meta?: StackTraceMeta;
+  /** Active project from ProjectsStore, used by frame source-link actions. */
+  project?: Project;
 }
 
 export interface StackTraceFrameContextValue {

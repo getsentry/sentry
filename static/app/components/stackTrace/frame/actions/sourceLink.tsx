@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -9,7 +8,6 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import useProjects from 'sentry/utils/useProjects';
 
 import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from './utils';
 
@@ -22,13 +20,8 @@ interface SourceLinkActionProps {
 
 export function SourceLinkAction({isHovering = false}: SourceLinkActionProps) {
   const {frame, event, isExpanded, frameIndex} = useStackTraceFrameContext();
-  const {components, frameSourceMapDebuggerData, hideSourceMapDebugger} =
+  const {components, frameSourceMapDebuggerData, hideSourceMapDebugger, project} =
     useStackTraceContext();
-  const {projects} = useProjects();
-  const project = useMemo(
-    () => projects.find(candidate => candidate.id === event.projectID),
-    [event.projectID, projects]
-  );
 
   const contextLine = frame.context?.find(([lineNumber]) => lineNumber === frame.lineNo);
   const frameCanShowActions =

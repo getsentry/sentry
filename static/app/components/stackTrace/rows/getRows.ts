@@ -1,22 +1,5 @@
+import type {FrameRow, OmittedFramesRow, Row} from 'sentry/components/stackTrace/types';
 import type {Frame} from 'sentry/types/event';
-
-type FrameRow = {
-  frame: Frame;
-  frameIndex: number;
-  hiddenFrameCount: number | undefined;
-  isSubFrame: boolean;
-  kind: 'frame';
-  nextFrame: Frame | undefined;
-  timesRepeated: number;
-};
-
-type OmittedFramesRow = {
-  kind: 'omitted';
-  omittedFrames: [number, number];
-  rowKey: string;
-};
-
-type Row = FrameRow | OmittedFramesRow;
 
 function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   if (!nextFrame) {
@@ -115,36 +98,34 @@ function getHiddenFrameIndices({
   frames: Frame[];
   hiddenFrameToggleMap: Record<number, boolean>;
 }) {
-  const repeatedIndices: number[] = [];
+  const repeatedIndices = new Set<number>();
 
   frames.forEach((frame, frameIdx) => {
     const nextFrame = frames[frameIdx + 1];
     if (isRepeatedFrame(frame, nextFrame)) {
-      repeatedIndices.push(frameIdx);
+      repeatedIndices.add(frameIdx);
     }
   });
 
-  let hiddenFrameIndices: number[] = [];
+  const hiddenFrameIndices = new Set<number>();
 
-  Object.keys(hiddenFrameToggleMap)
-    .filter(frameIndex => hiddenFrameToggleMap[Number(frameIndex)] === true)
-    .forEach(indexString => {
-      const index = Number(indexString);
-      const indicesToBeAdded: number[] = [];
+  Object.entries(hiddenFrameToggleMap).forEach(([indexString, isExpanded]) => {
+    if (!isExpanded) {
+      return;
+    }
 
-      let i = 1;
-      let numHidden = frameCountMap[index] ?? 0;
+    const index = Number(indexString);
+    let i = 1;
+    let numHidden = frameCountMap[index] ?? 0;
 
-      while (numHidden > 0) {
-        if (!repeatedIndices.includes(index - i)) {
-          indicesToBeAdded.push(index - i);
-          numHidden -= 1;
-        }
-        i += 1;
+    while (numHidden > 0) {
+      if (!repeatedIndices.has(index - i)) {
+        hiddenFrameIndices.add(index - i);
+        numHidden -= 1;
       }
-
-      hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
-    });
+      i += 1;
+    }
+  });
 
   return hiddenFrameIndices;
 }
@@ -174,7 +155,7 @@ export function getRows({
 
   let nRepeats = 0;
 
-  let rows: Row[] = frames
+  let rows = frames
     .map((frame, frameIndex) => {
       const nextFrame = frames[frameIndex + 1];
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
@@ -185,7 +166,7 @@ export function getRows({
 
       if (
         (frameIsVisible(frame, nextFrame, includeSystemFrames) && !repeatedFrame) ||
-        hiddenFrameIndices.includes(frameIndex)
+        hiddenFrameIndices.has(frameIndex)
       ) {
         const row: FrameRow = {
           kind: 'frame',
@@ -193,7 +174,7 @@ export function getRows({
           frameIndex,
           nextFrame,
           timesRepeated: nRepeats,
-          isSubFrame: hiddenFrameIndices.includes(frameIndex),
+          isSubFrame: hiddenFrameIndices.has(frameIndex),
           hiddenFrameCount: frameCountMap[frameIndex],
         };
 
