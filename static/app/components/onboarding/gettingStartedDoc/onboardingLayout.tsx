@@ -160,6 +160,9 @@ export function OnboardingLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
+    ?.hideInstructionsCopy;
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <TabSelectionScope>
@@ -184,10 +187,7 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
-              const showCopy =
-                copyEnabled &&
-                index === 0 &&
-                !(docsConfig[configType] ?? docsConfig.onboarding)?.hideInstructionsCopy;
+              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
               const copyButton = showCopy ? (
                 <OnboardingCopyMarkdownButton
                   steps={steps}

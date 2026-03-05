@@ -6,7 +6,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-export function CopyDsnField({params}: {params: DocsParams<any>}) {
+function CopyDsnField({params}: {params: DocsParams<any>}) {
   return (
     <Wrapper>
       <p>
@@ -39,7 +39,13 @@ export function copyDsnFieldBlock(params: DocsParams<any>): ContentBlock {
   return {
     type: 'custom',
     content: <CopyDsnField params={params} />,
-    markdown: `${t("If you already have the configuration for Sentry in your application, and just need this project's (%s) DSN, you can find it below:", params.project.slug)}\n\n\`\`\`\n${params.dsn.public}\n\`\`\``,
+    markdown: [
+      t(
+        "If you already have the configuration for Sentry in your application, and just need this project's (%s) DSN, you can find it below:",
+        params.project.slug
+      ),
+      `\`\`\`\n${params.dsn.public}\n\`\`\``,
+    ].join('\n\n'),
   };
 }
 
