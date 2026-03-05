@@ -77,7 +77,7 @@ def test_basic(kafka_slice_id: int | None) -> None:
                 step.poll()
                 real_sleep(0.1)
 
-            (msg,) = messages
+            (_, msg, _) = messages[0]
 
             assert orjson.loads(msg.value) == {
                 "spans": [

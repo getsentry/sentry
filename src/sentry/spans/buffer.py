@@ -559,11 +559,10 @@ class SpansBuffer:
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
             )
-            project_id, _, _ = parse_segment_key(segment_key)
             return_segments[segment_key] = FlushedSegment(
                 queue_key=queue_key,
                 spans=output_spans,
-                project_id=int(project_id),
+                project_id=int(project_id.decode("ascii")),
             )
             num_has_root_spans += int(has_root_span)
 
