@@ -144,8 +144,6 @@ def handle_check_run_event(
         github_event=github_event.value,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
-        action=validated_event.action,
-        html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         trigger_id=github_delivery_id,
         organization_id=organization.id if organization else None,
