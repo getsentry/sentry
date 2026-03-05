@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1042_create_code_review_event"),
+        ("sentry", "1043_big_redirect_slug"),
     ]
 
     operations = [
