@@ -69,8 +69,6 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
         display="flex"
         // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
         align="center"
-        marginTop="auto"
-        marginBottom={isMobile ? 'md' : 'lg'}
         justify={isMobile ? 'start' : 'center'}
         width={isMobile ? '100%' : 'auto'}
       >
@@ -93,7 +91,6 @@ function showPreventNav() {
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
-  const {layout} = useNavContext();
   const prefix = `organizations/${organization.slug}`;
   const ref = useRef<HTMLUListElement>(null);
 
@@ -227,34 +224,32 @@ export function PrimaryNavigationItems() {
         </NavTourElement>
       </SidebarBody>
 
-      <SidebarFooter>
-        <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationOnboarding />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:try-business" organization={organization} />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:seer-config-reminder" organization={organization} />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:billing-status" organization={organization} />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationServiceIncidents />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationWhatsNew />
-        </ErrorBoundary>
-        <PrimaryNavigationHelp />
-      </SidebarFooter>
-      <Flex
-        justify={layout === NavLayout.MOBILE ? 'start' : 'center'}
-        marginBottom="md"
-        width={layout === NavLayout.MOBILE ? '100%' : 'auto'}
-      >
-        <UserDropdown />
-      </Flex>
+      <Stack gap="md" marginTop="auto" paddingBottom="md">
+        <SidebarFooter>
+          <ErrorBoundary customComponent={null}>
+            <PrimaryNavigationOnboarding />
+          </ErrorBoundary>
+          <ErrorBoundary customComponent={null}>
+            <Hook name="sidebar:try-business" organization={organization} />
+          </ErrorBoundary>
+          <ErrorBoundary customComponent={null}>
+            <Hook name="sidebar:seer-config-reminder" organization={organization} />
+          </ErrorBoundary>
+          <ErrorBoundary customComponent={null}>
+            <Hook name="sidebar:billing-status" organization={organization} />
+          </ErrorBoundary>
+          <ErrorBoundary customComponent={null}>
+            <PrimaryNavigationServiceIncidents />
+          </ErrorBoundary>
+          <ErrorBoundary customComponent={null}>
+            <PrimaryNavigationWhatsNew />
+          </ErrorBoundary>
+          <PrimaryNavigationHelp />
+        </SidebarFooter>
+        <SidebarFooter>
+          <UserDropdown />
+        </SidebarFooter>
+      </Stack>
     </Fragment>
   );
 }
