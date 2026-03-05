@@ -34,7 +34,6 @@ import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -73,15 +72,12 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
-import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
-import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -159,7 +155,7 @@ type State = {
   widgetLimitReached: boolean;
   newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
-} & WidgetViewerContextProps;
+};
 
 function getDashboardLocation({
   organization,
@@ -199,9 +195,6 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
-    setData: data => {
-      this.setState(data);
-    },
     widgetLegendState: new WidgetLegendSelectionState({
       dashboard: this.props.dashboard,
       organization: this.props.organization,
@@ -280,30 +273,13 @@ class DashboardDetail extends Component<Props, State> {
       router,
       navigate,
     } = this.props;
-    const {
-      seriesData,
-      tableData,
-      pageLinks,
-      totalIssuesCount,
-      seriesResultsType,
-      confidence,
-      sampleCount,
-      modifiedDashboard,
-    } = this.state;
+    const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
           organization,
           widget,
-          seriesData: WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
-            widget,
-            seriesData
-          ),
-          seriesResultsType,
-          tableData,
-          pageLinks,
-          totalIssuesCount,
           widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           dashboardPermissions: dashboard.permissions,
@@ -338,8 +314,6 @@ class DashboardDetail extends Component<Props, State> {
             this.onEditWidget(widget);
             return;
           },
-          confidence,
-          sampleCount,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -1074,8 +1048,6 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard,
       dashboardState,
       widgetLimitReached,
-      seriesData,
-      setData,
       newlyAddedWidget,
       isCommittingChanges,
     } = this.state;
@@ -1249,48 +1221,43 @@ class DashboardDetail extends Component<Props, State> {
                             }}
                           />
 
-                          <WidgetViewerContext value={{seriesData, setData}}>
-                            <Fragment>
-                              <WidgetQueryQueueProvider>
-                                <Dashboard
-                                  dashboard={modifiedDashboard ?? dashboard}
-                                  isEditingDashboard={this.isEditingDashboard}
-                                  widgetLimitReached={widgetLimitReached}
-                                  onUpdate={this.handleUpdateEditStateWidgets}
-                                  handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                  handleAddCustomWidget={this.handleAddCustomWidget}
-                                  onAddWidget={this.onAddWidget}
-                                  isEmbedded={this.isEmbedded}
-                                  isPreview={this.isPreview}
-                                  widgetLegendState={this.state.widgetLegendState}
-                                  onEditWidget={this.onEditWidget}
-                                  newlyAddedWidget={newlyAddedWidget}
-                                  onNewWidgetScrollComplete={
-                                    this.handleScrollToNewWidgetComplete
-                                  }
-                                  useTimeseriesVisualization={useTimeseriesVisualization}
-                                  widgetInterval={this.props.widgetInterval}
-                                />
-                              </WidgetQueryQueueProvider>
-
-                              <WidgetBuilderV2
-                                isOpen={this.state.isWidgetBuilderOpen}
-                                openWidgetTemplates={
-                                  this.state.openWidgetTemplates ?? false
-                                }
-                                setOpenWidgetTemplates={
-                                  this.handleChangeWidgetBuilderView
-                                }
-                                onClose={this.handleCloseWidgetBuilder}
-                                dashboardFilters={
-                                  getDashboardFiltersFromURL(location) ??
-                                  dashboard.filters
-                                }
+                          <Fragment>
+                            <WidgetQueryQueueProvider>
+                              <Dashboard
                                 dashboard={modifiedDashboard ?? dashboard}
-                                onSave={this.handleSaveWidget}
+                                isEditingDashboard={this.isEditingDashboard}
+                                widgetLimitReached={widgetLimitReached}
+                                onUpdate={this.handleUpdateEditStateWidgets}
+                                handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                handleAddCustomWidget={this.handleAddCustomWidget}
+                                onAddWidget={this.onAddWidget}
+                                isEmbedded={this.isEmbedded}
+                                isPreview={this.isPreview}
+                                widgetLegendState={this.state.widgetLegendState}
+                                onEditWidget={this.onEditWidget}
+                                newlyAddedWidget={newlyAddedWidget}
+                                onNewWidgetScrollComplete={
+                                  this.handleScrollToNewWidgetComplete
+                                }
+                                useTimeseriesVisualization={useTimeseriesVisualization}
+                                widgetInterval={this.props.widgetInterval}
                               />
-                            </Fragment>
-                          </WidgetViewerContext>
+                            </WidgetQueryQueueProvider>
+
+                            <WidgetBuilderV2
+                              isOpen={this.state.isWidgetBuilderOpen}
+                              openWidgetTemplates={
+                                this.state.openWidgetTemplates ?? false
+                              }
+                              setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
+                              onClose={this.handleCloseWidgetBuilder}
+                              dashboardFilters={
+                                getDashboardFiltersFromURL(location) ?? dashboard.filters
+                              }
+                              dashboard={modifiedDashboard ?? dashboard}
+                              onSave={this.handleSaveWidget}
+                            />
+                          </Fragment>
                         </MEPSettingProvider>
                       )}
                     </MetricsDataSwitcher>
@@ -1376,13 +1343,13 @@ class DashboardDetail extends Component<Props, State> {
 const StyledPageHeader = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${p => p.theme.space.xl};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${space(2)};
+    grid-column-gap: ${p => p.theme.space.xl};
     height: 40px;
   }
 `;

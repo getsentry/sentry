@@ -5,7 +5,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -55,7 +54,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
 }
 
 const DownloadButton = styled('a')`
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 
   display: flex;

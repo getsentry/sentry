@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
@@ -55,11 +54,11 @@ const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
  */
 const Content = styled('div')`
   flex: 1;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   min-width: 0; /* keep children from stretching container */
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
+    padding: ${p => p.theme.space.xl};
   }
 
   /**

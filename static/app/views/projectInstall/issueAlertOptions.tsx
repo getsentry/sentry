@@ -6,7 +6,6 @@ import {Select} from '@sentry/scraps/select';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import IssueAlertNotificationOptions, {
@@ -213,9 +212,9 @@ export default function IssueAlertOptions({
 }
 
 const Content = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: ${space(4)};
+  padding-top: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space['3xl']};
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;

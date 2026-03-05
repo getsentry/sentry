@@ -6,7 +6,6 @@ import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Column} from 'sentry/utils/discover/fields';
 import {generateFieldAsString, isLegalEquationColumn} from 'sentry/utils/discover/fields';
 
@@ -416,7 +415,7 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   max-height: 300px;
   overflow-y: auto;
 `;
@@ -443,17 +442,17 @@ const DropdownTitle = styled('header')`
   font-size: ${p => p.theme.font.size.md};
 
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   & > svg {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.font.size.lg};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   cursor: pointer;
 
   &:hover {
@@ -479,7 +478,7 @@ const DropdownItemTitleWrapper = styled('div')`
 
 const Info = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
 

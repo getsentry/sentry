@@ -8,7 +8,6 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
@@ -166,7 +165,7 @@ function PriorityRow({
 
 const MetricField = styled(SegmentedRadioField)`
   padding-left: 0;
-  padding-block: ${space(1)};
+  padding-block: ${p => p.theme.space.md};
   border-bottom: none;
   max-width: 420px;
 
@@ -177,7 +176,7 @@ const MetricField = styled(SegmentedRadioField)`
 
 const MeasurementField = styled(SegmentedRadioField)`
   padding-left: 0;
-  padding-block: ${space(1)};
+  padding-block: ${p => p.theme.space.md};
   border-bottom: none;
   max-width: 840px;
 
@@ -203,7 +202,7 @@ const PriorityLabel = styled('span')`
 
 const RequiredAsterisk = styled('span')`
   color: ${p => p.theme.tokens.content.danger};
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
 `;
 
 const ThresholdField = styled(NumberField)`

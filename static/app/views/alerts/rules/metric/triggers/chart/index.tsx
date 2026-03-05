@@ -29,7 +29,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {
   Confidence,
@@ -38,6 +37,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -323,6 +323,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored,
     orgFeatures,
     seriesAdditionalInfo,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
   }: {
     isLoading: boolean;
     isQueryValid: boolean;
@@ -335,6 +337,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored?: boolean;
     minutesThresholdToDisplaySeconds?: number;
     seriesAdditionalInfo?: Record<string, any>;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
   }) {
     const {
       triggers,
@@ -401,6 +405,8 @@ class TriggersChart extends PureComponent<Props, State> {
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             isExtrapolatedData={showExtrapolatedChartData}
+            timeseriesResultsTypes={timeseriesResultsTypes}
+            timeseriesResultsUnits={timeseriesResultsUnits}
           />
         )}
 
@@ -700,6 +706,8 @@ class TriggersChart extends PureComponent<Props, State> {
             reloading,
             timeseriesData,
             comparisonTimeseriesData,
+            timeseriesResultsTypes,
+            timeseriesResultsUnits,
           }) => {
             let comparisonMarkLines: LineChartSeries[] = [];
             if (renderComparisonStats && comparisonTimeseriesData) {
@@ -723,6 +731,8 @@ class TriggersChart extends PureComponent<Props, State> {
               isQueryValid,
               errored,
               orgFeatures: organization.features,
+              timeseriesResultsTypes,
+              timeseriesResultsUnits,
             });
           }}
         </EventsRequest>
@@ -741,18 +751,18 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
 
 const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${p => p.theme.space.xl};
   height: 184px;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
   /* Height and margin should with the alert should match up placeholder height of (184px) */
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   height: 119px;
 `;
 
 const ChartErrorWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 interface ErrorChartProps extends React.ComponentProps<'div'> {

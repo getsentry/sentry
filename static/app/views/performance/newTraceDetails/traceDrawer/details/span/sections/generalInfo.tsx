@@ -36,8 +36,8 @@ type GeneralnfoProps = {
 
 function SpanDuration({node}: {node: SpanNode}) {
   const span = node.value;
-  const startTimestamp: number = span.start_timestamp;
-  const endTimestamp: number = span.timestamp;
+  const startTimestamp = span.start_timestamp;
+  const endTimestamp = span.timestamp;
   const duration = endTimestamp - startTimestamp;
 
   return (
@@ -54,8 +54,8 @@ function SpanDuration({node}: {node: SpanNode}) {
 
 function SpanSelfTime({node}: {node: SpanNode}) {
   const span = node.value;
-  const startTimestamp: number = span.start_timestamp;
-  const endTimestamp: number = span.timestamp;
+  const startTimestamp = span.start_timestamp;
+  const endTimestamp = span.timestamp;
   const duration = endTimestamp - startTimestamp;
 
   if (
@@ -82,7 +82,7 @@ function SpanSelfTime({node}: {node: SpanNode}) {
 export function GeneralInfo(props: GeneralnfoProps) {
   const span = props.node.value;
 
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
@@ -255,7 +255,7 @@ function getFormattedSpanDescription(span: TraceTree.Span) {
   }
 
   const formatter = new SQLishFormatter();
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );

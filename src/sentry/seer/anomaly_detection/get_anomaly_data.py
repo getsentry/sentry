@@ -8,7 +8,7 @@ from sentry.conf.server import (
     SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
     SEER_ANOMALY_DETECTION_ENDPOINT_URL,
 )
-from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -97,7 +97,7 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: AnomalyDetectionUpdate,
+    subscription_update: AnomalyDetectionValues,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
     aggregation_value = subscription_update.get("value")
@@ -143,7 +143,10 @@ def get_anomaly_data_from_seer(
     extra_data["dataset"] = snuba_query.dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
-        response = make_detect_anomalies_request(detect_anomalies_request)
+        viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
+        response = make_detect_anomalies_request(
+            detect_anomalies_request, viewer_context=viewer_context
+        )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
@@ -226,8 +229,9 @@ def get_anomaly_threshold_data_from_seer(
         start=start,
         end=end,
     )
+    viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
     try:
-        response = make_get_anomaly_threshold_data_request(body)
+        response = make_get_anomaly_threshold_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None

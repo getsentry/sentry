@@ -10,7 +10,6 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Repository} from 'sentry/types/integrations';
@@ -140,7 +139,7 @@ function ResolutionBox(props: Props) {
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.sm};
 `;
 
@@ -157,7 +156,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   align-self: center;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: ${space(0.5)} !important;
+    margin-top: ${p => p.theme.space.xs} !important;
     align-self: flex-start;
   }
 `;
@@ -178,7 +177,7 @@ const StreamlinedCommitLink = styled(CommitLink)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   &:hover {
     color: ${p => p.theme.colors.green500};
     text-decoration: none;

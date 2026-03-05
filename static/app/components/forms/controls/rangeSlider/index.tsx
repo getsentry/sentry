@@ -222,7 +222,7 @@ function RangeSlider({
 }
 
 const StyledSlider = styled(Slider)`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const StyledInput = styled(Input)<{hasLabel: boolean}>`

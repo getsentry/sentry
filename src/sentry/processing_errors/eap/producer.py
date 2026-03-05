@@ -67,6 +67,11 @@ def produce_processing_errors_to_eap(
         sdk = event_data.get("sdk") or {}
         sdk_name = sdk.get("name")
         sdk_version = sdk.get("version")
+        received = (
+            Timestamp(seconds=int(event_data["received"]))
+            if "received" in event_data
+            else timestamp
+        )
 
         count = 0
         for index, error in enumerate(processing_errors):
@@ -103,6 +108,7 @@ def produce_processing_errors_to_eap(
                 item_id=item_id,
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
                 timestamp=timestamp,
+                received=received,
                 trace_id=trace_id,
                 retention_days=retention_days,
                 attributes={k: anyvalue(v) for k, v in attributes.items()},

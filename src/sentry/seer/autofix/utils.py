@@ -461,9 +461,11 @@ def has_project_connected_repos(
 
 def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_get_project_preferences_request(
         BulkGetProjectPreferencesRequest(organization_id=organization_id, project_ids=project_ids),
         timeout=10,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
@@ -478,9 +480,11 @@ def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) 
     if not preferences:
         return
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_set_project_preferences_request(
         BulkSetProjectPreferencesRequest(organization_id=organization_id, preferences=preferences),
         timeout=15,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
@@ -532,7 +536,8 @@ def get_autofix_state(
         check_repo_access=check_repo_access,
         is_user_fetching=is_user_fetching,
     )
-    response = make_get_autofix_state_request(body)
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")

@@ -17,7 +17,6 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -351,7 +350,7 @@ const DisabledText = styled('span')`
 
 const StyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding-top: ${space(3)};
+  padding-top: ${p => p.theme.space['2xl']};
 `;
 
 const SaveAsButton = styled(Button)`

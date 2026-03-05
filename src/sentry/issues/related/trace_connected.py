@@ -1,24 +1,20 @@
 # Module to evaluate if other errors happened in the same trace.
 #
 # Refer to README in module for more details.
-import logging
-
 from sentry.api.utils import default_start_end_dates
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.common_queries import get_group_ids_for_trace_id
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
-
-logger = logging.getLogger(__name__)
 
 
 # If we drop trace connected issues from similar issues we can stop using the group
@@ -93,36 +89,15 @@ def _trace_connected_issues_eap(
         environments=[],
     )
 
-    try:
-        result = Occurrences.run_table_query(
-            params=snuba_params,
-            query_string=f"trace:{trace_id}",
-            selected_columns=["group_id", "count()"],
-            orderby=None,
-            offset=0,
-            limit=100,
-            referrer=Referrer.API_ISSUES_RELATED_ISSUES.value,
-            config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.ERROR,
-        )
-        group_ids: set[int] = set()
-        for row in result["data"]:
-            group_id = row.get("group_id")
-            if group_id is not None:
-                gid = int(group_id)
-                if gid != exclude_group_id:
-                    group_ids.add(gid)
-        return group_ids
-    except Exception:
-        logger.exception(
-            "Fetching trace connected issues from EAP failed",
-            extra={
-                "trace_id": trace_id,
-                "organization_id": organization.id,
-                "exclude_group_id": exclude_group_id,
-            },
-        )
-        return set()
+    group_ids = get_group_ids_for_trace_id(
+        snuba_params=snuba_params,
+        trace_id=trace_id,
+        referrer=Referrer.API_ISSUES_RELATED_ISSUES.value,
+        occurrence_category=OccurrenceCategory.ERROR,
+        limit=100,
+    )
+    group_ids.discard(exclude_group_id)
+    return group_ids
 
 
 def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[str, str]]:

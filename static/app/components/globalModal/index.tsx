@@ -13,7 +13,6 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
-import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -305,20 +304,20 @@ const Modal = styled(motion.div)`
   width: 640px;
   pointer-events: auto;
   margin-top: 64px;
-  padding: ${space(2)} ${space(1.5)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: 50px;
-    padding: ${space(4)} ${space(2)};
+    padding: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl};
   }
 `;
 
 const Content = styled('div')`
   position: relative;
-  padding: ${space(4)} ${space(3)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(4)};
+    padding: ${p => p.theme.space['3xl']};
   }
 `;
 

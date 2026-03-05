@@ -14,7 +14,7 @@ from sentry.hybridcloud.apigateway.proxy import (
     proxy_request,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.region import get_region_by_name
+from sentry.types.region import get_cell_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ def proxy_request_if_needed(
         request.resolver_match
         and request.resolver_match.url_name in settings.REGION_PINNED_URL_NAMES
     ):
-        region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         metrics.incr(
             "apigateway.proxy_request",
             tags={
