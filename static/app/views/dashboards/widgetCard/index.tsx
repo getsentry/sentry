@@ -126,6 +126,7 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
