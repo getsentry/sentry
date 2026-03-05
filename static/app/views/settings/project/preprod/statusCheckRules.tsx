@@ -21,6 +21,7 @@ import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {StatusCheckRuleItem} from './statusCheckRuleItem';
+import {DEFAULT_ARTIFACT_TYPE} from './types';
 import {useStatusCheckRules} from './useStatusCheckRules';
 
 export function StatusCheckRules() {
@@ -127,7 +128,7 @@ export function StatusCheckRules() {
                             project_slug: project.slug,
                             metric: updated.metric,
                             measurement: updated.measurement,
-                            artifact_type: updated.artifactType ?? 'all_artifacts',
+                            artifact_type: updated.artifactType ?? DEFAULT_ARTIFACT_TYPE,
                             value: updated.value,
                           });
                           if (rule.id === newRuleId) {

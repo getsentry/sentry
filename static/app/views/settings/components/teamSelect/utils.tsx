@@ -1,6 +1,9 @@
 import {TeamAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -93,16 +96,14 @@ export function DropdownAddTeam({
       search={{placeholder: t('Search Teams'), onChange: onSearch}}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
-      menuHeaderTrailingItems={({closeOverlay}) => {
+      menuFooter={({closeOverlay}) => {
         return (
-          <Button
+          <MenuComponents.CTAButton
             tooltipProps={{
               title: canCreateTeam
                 ? undefined
                 : t('You must be a Org Owner/Manager to create teams'),
             }}
-            priority="link"
-            size="xs"
             disabled={!canCreateTeam}
             onClick={() => {
               openCreateTeamModal({
@@ -113,7 +114,7 @@ export function DropdownAddTeam({
             }}
           >
             {t('Create Team')}
-          </Button>
+          </MenuComponents.CTAButton>
         );
       }}
     />

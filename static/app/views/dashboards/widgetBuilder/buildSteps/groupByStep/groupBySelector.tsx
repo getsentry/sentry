@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -282,24 +281,24 @@ function FieldValidationErrors(props: {
 }
 
 const StyledField = styled(FieldGroup)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const SortableQueryFields = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Ghost = styled('div')`
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {

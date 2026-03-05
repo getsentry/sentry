@@ -2,7 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
@@ -98,7 +105,9 @@ describe('ProjectPageFilter', () => {
 
     // Open the menu, search input has focus
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
-    expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    });
 
     // Move focus to Option One
     await userEvent.keyboard('{ArrowDown}');
@@ -348,5 +357,63 @@ describe('ProjectPageFilter', () => {
     expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
     MockApiClient.clearMockResponses();
+  });
+
+  describe('single-project org label', () => {
+    it('shows the project name when the org has one member project auto-selected', async () => {
+      const singleProject = ProjectFixture({
+        id: '42',
+        slug: 'only-project',
+        isMember: true,
+      });
+      ProjectsStore.loadInitialData([singleProject]);
+      PageFiltersStore.onInitializeUrlState({
+        projects: [42],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {project: '42'},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'only-project'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows the project name when the org has one non-member project auto-selected', async () => {
+      const singleProject = ProjectFixture({
+        id: '42',
+        slug: 'only-project',
+        isMember: false,
+      });
+      ProjectsStore.loadInitialData([singleProject]);
+      PageFiltersStore.onInitializeUrlState({
+        projects: [42],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {project: '42'},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'only-project'})
+      ).toBeInTheDocument();
+    });
   });
 });

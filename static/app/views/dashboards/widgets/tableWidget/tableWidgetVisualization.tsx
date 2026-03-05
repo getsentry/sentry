@@ -134,7 +134,7 @@ interface TableWidgetVisualizationProps {
   sort?: Sort;
 }
 
-const FRAMELESS_STYLES = {
+export const FRAMELESS_STYLES = {
   borderTopLeftRadius: 0,
   borderTopRightRadius: 0,
   marginBottom: 0,

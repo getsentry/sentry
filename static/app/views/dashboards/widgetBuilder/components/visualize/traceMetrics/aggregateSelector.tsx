@@ -4,19 +4,17 @@ import cloneDeep from 'lodash/cloneDeep';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {
-  type AggregationKeyWithAlias,
-  type QueryFieldValue,
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {
-  renderDropdownMenuFooter,
-  sortSelectedFirst,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {buildTraceMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -68,22 +66,13 @@ export function AggregateSelector({
       options={sortSelectedFirst(aggregateValue, aggregateOptions)}
       value={aggregateValue}
       position="bottom-start"
-      menuFooter={
-        state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
-      }
       onChange={option => {
         if (field.kind === 'function') {
           const newAggregates = cloneDeep(aggregateSource) ?? [];
-          newAggregates[index] = {
-            function: [
-              option.value as AggregationKeyWithAlias,
-              'value',
-              undefined,
-              undefined,
-            ],
-            alias: undefined,
-            kind: 'function',
-          };
+          newAggregates[index] = buildTraceMetricAggregate(
+            option.value as AggregationKeyWithAlias,
+            traceMetric
+          );
           dispatch({
             type: actionType,
             payload: newAggregates,

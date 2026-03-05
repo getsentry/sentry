@@ -6,6 +6,7 @@ import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
+from django.test import override_settings
 
 from sentry.sentry_metrics.aggregation_option_registry import (
     AggregationOption,
@@ -704,8 +705,8 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids() -> None:
 
 
 @pytest.mark.django_db
-def test_all_resolved(caplog, settings) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_all_resolved(caplog) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -855,8 +856,8 @@ def test_all_resolved(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_all_resolved_with_routing_information(caplog, settings) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_all_resolved_with_routing_information(caplog) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1011,7 +1012,8 @@ def test_all_resolved_with_routing_information(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_all_resolved_retention_days_honored(caplog, settings) -> None:
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_all_resolved_retention_days_honored(caplog) -> None:
     """
     Tests that the indexer batch honors the incoming retention_days values
     from Relay or falls back to 90.
@@ -1019,8 +1021,6 @@ def test_all_resolved_retention_days_honored(caplog, settings) -> None:
 
     distribution_payload_modified = distribution_payload.copy()
     distribution_payload_modified["retention_days"] = 30
-
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1169,7 +1169,8 @@ def test_all_resolved_retention_days_honored(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_batch_resolve_with_values_not_indexed(caplog, settings) -> None:
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_batch_resolve_with_values_not_indexed(caplog) -> None:
     """
     Tests that the indexer batch skips resolving tag values for indexing and
     sends the raw tag value to Snuba.
@@ -1179,7 +1180,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings) -> None:
     different and mapping_meta is smaller. The payload also contains the
     version field to specify that the tag values are not indexed.
     """
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1321,8 +1321,8 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_metric_id_rate_limited(caplog, settings) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_metric_id_rate_limited(caplog) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1438,8 +1438,8 @@ def test_metric_id_rate_limited(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_tag_key_rate_limited(caplog, settings) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_tag_key_rate_limited(caplog) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1532,8 +1532,8 @@ def test_tag_key_rate_limited(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_tag_value_rate_limited(caplog, settings) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_tag_value_rate_limited(caplog) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1675,8 +1675,8 @@ def test_tag_value_rate_limited(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_one_org_limited(caplog, settings) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_one_org_limited(caplog) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),

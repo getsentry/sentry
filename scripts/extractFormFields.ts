@@ -137,32 +137,17 @@ class FormFieldExtractor {
   }
 
   private getFormId(sourceFile: ts.SourceFile): string {
-    // Look for: const FORM_ID = 'user-profile'
-    let formId: string | null = null;
+    let formId: string | null;
 
-    const visit = (node: ts.Node) => {
-      if (ts.isVariableStatement(node)) {
-        for (const decl of node.declarationList.declarations) {
-          if (ts.isIdentifier(decl.name) && decl.name.text === 'FORM_ID') {
-            if (decl.initializer && ts.isStringLiteral(decl.initializer)) {
-              formId = decl.initializer.text;
-            }
-          }
-        }
-      }
-      ts.forEachChild(node, visit);
-    };
-
-    visit(sourceFile);
-
-    // Fallback: use filename
-    if (!formId) {
-      const basename = path.basename(sourceFile.fileName, '.tsx');
-      formId = basename.replace(/([A-Z])/g, '-$1').toLowerCase();
-      // Remove leading dash if present (e.g., "FormStories" -> "-form-stories" -> "form-stories")
-      if (formId.startsWith('-')) {
-        formId = formId.slice(1);
-      }
+    // use filename, but if it's index.tsx, use the parent directory name instead
+    let basename = path.basename(sourceFile.fileName, '.tsx');
+    if (basename === 'index') {
+      basename = path.basename(path.dirname(sourceFile.fileName));
+    }
+    formId = basename.replace(/([A-Z])/g, '-$1').toLowerCase();
+    // Remove leading dash if present (e.g., "FormStories" -> "-form-stories" -> "form-stories")
+    if (formId.startsWith('-')) {
+      formId = formId.slice(1);
     }
 
     return formId;

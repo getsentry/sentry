@@ -8,6 +8,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
@@ -28,20 +29,26 @@ function metricOptionsQueryKey({
   datetime,
   search,
   environments,
-}: UseMetricOptionsProps = {}): ApiQueryKey {
+  hasMetricUnitsUI,
+}: UseMetricOptionsProps & {hasMetricUnitsUI?: boolean} = {}): ApiQueryKey {
   const searchValue = new MutableSearch('');
   if (search) {
     searchValue.addStringContainsFilter(
       `${TraceMetricKnownFieldKey.METRIC_NAME}:${search}`
     );
   }
+  const queryFields = [
+    TraceMetricKnownFieldKey.METRIC_NAME,
+    TraceMetricKnownFieldKey.METRIC_TYPE,
+    `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
+  ];
+  if (hasMetricUnitsUI) {
+    queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);
+  }
+
   const query: Record<string, string | string[] | number[]> = {
     dataset: DiscoverDatasets.TRACEMETRICS,
-    field: [
-      TraceMetricKnownFieldKey.METRIC_NAME,
-      TraceMetricKnownFieldKey.METRIC_TYPE,
-      `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
-    ],
+    field: queryFields,
     query: searchValue.formatString(),
     referrer: 'api.explore.metric-options',
   };
@@ -83,6 +90,7 @@ export function useMetricOptions({
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const queryKey = useMemo(
     () =>
@@ -92,6 +100,7 @@ export function useMetricOptions({
         projectIds: projectIds ?? selection.projects,
         datetime: datetime ?? selection.datetime,
         environments: environments ?? selection.environments,
+        hasMetricUnitsUI,
       }),
     [
       organization.slug,
@@ -102,6 +111,7 @@ export function useMetricOptions({
       datetime,
       environments,
       selection.environments,
+      hasMetricUnitsUI,
     ]
   );
 

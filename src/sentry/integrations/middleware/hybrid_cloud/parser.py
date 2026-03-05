@@ -19,6 +19,7 @@ from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPay
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -30,7 +31,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
+from sentry.types.region import Region, find_regions_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 
@@ -176,7 +177,9 @@ class BaseRequestParser(ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        for region in regions:
+        # mailbox_name is provider:identifier, which is constant for all regions in
+        # this loop. Create all payloads first, then trigger a single drain.
+        payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
@@ -185,6 +188,10 @@ class BaseRequestParser(ABC):
                 integration_id=integration_id,
                 request=self.request,
             )
+            for region in regions
+        ]
+        if payloads:
+            maybe_trigger_drain(payloads[0].mailbox_name)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -209,15 +216,34 @@ class BaseRequestParser(ABC):
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
         if not use_buckets:
+            metrics.incr(
+                "hybridcloud.webhookpayload.mailbox_routing",
+                tags={"provider": self.provider, "bucketed": "false"},
+            )
             return str(integration.id)
 
+        return self._build_bucketed_identifier(integration, data)
+
+    def _build_bucketed_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
+        """Compute a sub-mailbox identifier from mailbox_bucket_id, falling back to
+        the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
+            metrics.incr(
+                "hybridcloud.webhookpayload.mailbox_routing",
+                tags={"provider": self.provider, "bucketed": "false"},
+            )
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={"provider": self.provider, "bucketed": "true"},
+        )
 
         return f"{integration.id}:{bucket_number}"
 
@@ -349,7 +375,7 @@ class BaseRequestParser(ABC):
             return []
 
         region_names = find_regions_for_orgs([org.id for org in organizations])
-        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
+        return sorted([get_cell_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)

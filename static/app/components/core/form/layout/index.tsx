@@ -35,6 +35,7 @@ function RowLayout(props: RowLayoutProps) {
       align="center"
       justify="between"
       padding={props.padding}
+      flexGrow={1}
     >
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
@@ -69,6 +70,7 @@ function StackLayout(props: StackLayoutProps) {
       direction="column"
       gap="md"
       padding={props.padding}
+      flexGrow={1}
     >
       <Flex gap="xs" align="center">
         <FieldMeta.Label
@@ -104,8 +106,6 @@ const highlightFade = keyframes`
 
 const HighlightableFlex = styled(Flex)`
   --highlight-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-  margin: calc(${p => p.theme.space.xl} * -1);
-  padding: ${p => p.theme.space.xl};
 
   &[data-highlight] {
     animation: ${highlightFade} ${p => p.theme.motion.smooth.slow};

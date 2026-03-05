@@ -27,7 +27,6 @@ describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
   const organization = OrganizationFixture();
   let configState: Config;
-  let membersRequest: jest.Mock;
 
   beforeEach(() => {
     configState = ConfigStore.getState();
@@ -41,10 +40,6 @@ describe('OrganizationGeneralSettings', () => {
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
       body: [GitHubIntegrationFixture()],
-    });
-    membersRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
     });
   });
 
@@ -176,15 +171,13 @@ describe('OrganizationGeneralSettings', () => {
     );
   });
 
-  it('disables the entire form if user does not have write access', async () => {
+  it('disables the entire form if user does not have write access', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     OrganizationStore.onUpdate(readOnlyOrg, {replace: true});
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
     });
-
-    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     const formElements = [
       ...screen.getAllByRole('textbox'),
@@ -207,15 +200,13 @@ describe('OrganizationGeneralSettings', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not have remove organization button without org:admin permission', async () => {
+  it('does not have remove organization button without org:admin permission', () => {
     const orgWithWriteAccess = OrganizationFixture({access: ['org:write']});
     OrganizationStore.onUpdate(orgWithWriteAccess, {replace: true});
 
     render(<OrganizationGeneralSettings />, {
       organization: orgWithWriteAccess,
     });
-
-    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})

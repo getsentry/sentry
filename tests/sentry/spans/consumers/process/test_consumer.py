@@ -105,66 +105,69 @@ def test_basic(kafka_slice_id: int | None) -> None:
 )
 def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
     """Test that schema validator rejects spans with None values in critical fields"""
-    topic = Topic("test")
-    messages: list[KafkaPayload] = []
+    with mock.patch("time.sleep"):
+        topic = Topic("test")
+        messages: list[KafkaPayload] = []
 
-    fac = ProcessSpansStrategyFactory(
-        max_batch_size=1,
-        max_batch_time=10,
-        num_processes=1,
-        input_block_size=None,
-        output_block_size=None,
-        produce_to_pipe=messages.append,
-    )
-
-    commits = []
-
-    def add_commit(offsets, force=False):
-        commits.append(offsets)
-
-    step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
-    with pytest.raises(InvalidMessage):
-        span_data = {
-            "organization_id": 1,
-            "project_id": 12,
-            "span_id": "a" * 16,
-            "trace_id": "b" * 32,
-            "start_timestamp": 1699999999.0,
-            "end_timestamp": 1700000000.0,
-            "retention_days": 90,
-            "received": 1699999999.0,
-            "name": "test-span",
-            "status": "ok",
-            "is_segment": False,
-        }
-        # Set the field to None
-        span_data[field_to_set_none] = None
-
-        step.submit(
-            Message(
-                BrokerValue(
-                    partition=Partition(topic, 0),
-                    offset=1,
-                    payload=KafkaPayload(
-                        None,
-                        orjson.dumps(span_data),
-                        [],
-                    ),
-                    timestamp=datetime.now(),
-                )
-            )
+        fac = ProcessSpansStrategyFactory(
+            max_batch_size=1,
+            max_batch_time=10,
+            num_processes=1,
+            input_block_size=None,
+            output_block_size=None,
+            produce_to_pipe=messages.append,
         )
 
-        step.poll()
-        fac._flusher.current_drift.value = 9000
+        commits = []
 
-        for _ in range(20):
-            step.poll()
-            real_sleep(0.01)
+        def add_commit(offsets, force=False):
+            commits.append(offsets)
 
-    # The span should be rejected by schema validator, so no messages produced
-    assert len(messages) == 0
-    fac._flusher.join()
+        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+        try:
+            with pytest.raises(InvalidMessage):
+                span_data = {
+                    "organization_id": 1,
+                    "project_id": 12,
+                    "span_id": "a" * 16,
+                    "trace_id": "b" * 32,
+                    "start_timestamp": 1699999999.0,
+                    "end_timestamp": 1700000000.0,
+                    "retention_days": 90,
+                    "received": 1699999999.0,
+                    "name": "test-span",
+                    "status": "ok",
+                    "is_segment": False,
+                }
+                # Set the field to None
+                span_data[field_to_set_none] = None
+
+                step.submit(
+                    Message(
+                        BrokerValue(
+                            partition=Partition(topic, 0),
+                            offset=1,
+                            payload=KafkaPayload(
+                                None,
+                                orjson.dumps(span_data),
+                                [],
+                            ),
+                            timestamp=datetime.now(),
+                        )
+                    )
+                )
+
+                step.poll()
+                fac._flusher.current_drift.value = 9000
+
+                for _ in range(20):
+                    step.poll()
+                    real_sleep(0.01)
+
+            # The span should be rejected by schema validator, so no messages produced
+            assert len(messages) == 0
+        finally:
+            fac._flusher.join()
 
 
 @override_options(
@@ -172,64 +175,67 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
 )
 def test_schema_validator_rejects_string_timestamps() -> None:
     """Test that schema validator rejects spans with string timestamps instead of floats"""
-    topic = Topic("test")
-    messages: list[KafkaPayload] = []
+    with mock.patch("time.sleep"):
+        topic = Topic("test")
+        messages: list[KafkaPayload] = []
 
-    fac = ProcessSpansStrategyFactory(
-        max_batch_size=1,
-        max_batch_time=10,
-        num_processes=1,
-        input_block_size=None,
-        output_block_size=None,
-        produce_to_pipe=messages.append,
-    )
-
-    commits = []
-
-    def add_commit(offsets, force=False):
-        commits.append(offsets)
-
-    step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
-    with pytest.raises(InvalidMessage):
-        span_data = {
-            "organization_id": 1,
-            "project_id": 12,
-            "span_id": "a" * 16,
-            "trace_id": "b" * 32,
-            "start_timestamp": 1699999999.0,
-            "end_timestamp": "1700000000.0",
-            "retention_days": 90,
-            "received": 1699999999.0,
-            "name": "test-span",
-            "status": "ok",
-            "is_segment": False,
-        }
-
-        step.submit(
-            Message(
-                BrokerValue(
-                    partition=Partition(topic, 0),
-                    offset=1,
-                    payload=KafkaPayload(
-                        None,
-                        orjson.dumps(span_data),
-                        [],
-                    ),
-                    timestamp=datetime.now(),
-                )
-            )
+        fac = ProcessSpansStrategyFactory(
+            max_batch_size=1,
+            max_batch_time=10,
+            num_processes=1,
+            input_block_size=None,
+            output_block_size=None,
+            produce_to_pipe=messages.append,
         )
 
-        step.poll()
-        fac._flusher.current_drift.value = 9000
+        commits = []
 
-        for _ in range(20):
-            step.poll()
-            real_sleep(0.01)
+        def add_commit(offsets, force=False):
+            commits.append(offsets)
 
-    # The span should be rejected by schema validator, so no messages produced
-    assert len(messages) == 0
-    fac._flusher.join()
+        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+        try:
+            with pytest.raises(InvalidMessage):
+                span_data = {
+                    "organization_id": 1,
+                    "project_id": 12,
+                    "span_id": "a" * 16,
+                    "trace_id": "b" * 32,
+                    "start_timestamp": 1699999999.0,
+                    "end_timestamp": "1700000000.0",
+                    "retention_days": 90,
+                    "received": 1699999999.0,
+                    "name": "test-span",
+                    "status": "ok",
+                    "is_segment": False,
+                }
+
+                step.submit(
+                    Message(
+                        BrokerValue(
+                            partition=Partition(topic, 0),
+                            offset=1,
+                            payload=KafkaPayload(
+                                None,
+                                orjson.dumps(span_data),
+                                [],
+                            ),
+                            timestamp=datetime.now(),
+                        )
+                    )
+                )
+
+                step.poll()
+                fac._flusher.current_drift.value = 9000
+
+                for _ in range(20):
+                    step.poll()
+                    real_sleep(0.01)
+
+            # The span should be rejected by schema validator, so no messages produced
+            assert len(messages) == 0
+        finally:
+            fac._flusher.join()
 
 
 @override_options(

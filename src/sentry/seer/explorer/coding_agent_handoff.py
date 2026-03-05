@@ -17,6 +17,7 @@ from sentry import features
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
@@ -145,22 +146,31 @@ def launch_coding_agents(
             failure_type = "generic"
             error_message = "Failed to launch coding agent"
             github_installation_id: str | None = None
-            if isinstance(e, ApiError) and e.code == 403 and is_github_copilot:
-                if e.text and "not licensed" in e.text.lower():
-                    failure_type = "github_copilot_not_licensed"
-                    error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
-                else:
-                    failure_type = "github_app_permissions"
-                    error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
-                    try:
-                        github_integrations = integration_service.get_integrations(
-                            organization_id=organization.id,
-                            providers=["github"],
-                        )
-                        if github_integrations:
-                            github_installation_id = github_integrations[0].external_id
-                    except Exception:
-                        sentry_sdk.capture_exception(level="warning")
+            if isinstance(e, ApiError):
+                if e.code == 403 and is_github_copilot:
+                    if e.text and "not licensed" in e.text.lower():
+                        failure_type = "github_copilot_not_licensed"
+                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                    else:
+                        failure_type = "github_app_permissions"
+                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                        try:
+                            github_integrations = integration_service.get_integrations(
+                                organization_id=organization.id,
+                                providers=["github"],
+                            )
+                            if github_integrations:
+                                github_installation_id = github_integrations[0].external_id
+                        except Exception:
+                            sentry_sdk.capture_exception(level="warning")
+                elif (
+                    isinstance(installation, CursorAgentIntegration)
+                    and e.code == 400
+                    and e.text
+                    and "Failed to verify existence of branch" in e.text
+                ):
+                    failure_type = "cursor_github_access"
+                    error_message = "Cursor does not have GitHub access to this repository. Please install the Cursor GitHub App to grant access."
 
             failure: dict = {
                 "repo_name": repo_name,

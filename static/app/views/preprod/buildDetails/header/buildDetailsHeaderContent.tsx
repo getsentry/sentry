@@ -44,7 +44,7 @@ import {useBuildDetailsActions} from './useBuildDetailsActions';
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectSlug: string;
   projectType: string | null;
 }
 
@@ -52,7 +52,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const organization = useOrganization();
   const router = useRouter();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId, projectType} = props;
+  const {buildDetailsQuery, projectSlug, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
     isRerunningStatusChecks,
@@ -61,7 +61,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleDownloadAction,
     handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
-    projectId,
+    projectId: projectSlug,
     artifactId,
   });
 
@@ -89,11 +89,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getById(projectId);
+  const project = ProjectsStore.getBySlug(projectSlug);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectSlug, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -103,7 +103,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, projectId, {
+      to: makeReleasesUrl(organization.slug, projectSlug, {
         query: version,
         tab: 'mobile-builds',
       }),
@@ -141,7 +141,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     router.push(
       getCompareBuildPath({
         organizationSlug: organization.slug,
-        projectId,
         headArtifactId: buildDetailsData.id,
       })
     );

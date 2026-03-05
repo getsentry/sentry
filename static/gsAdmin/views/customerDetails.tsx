@@ -3,6 +3,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
 
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -244,7 +246,7 @@ export default function CustomerDetails() {
       subscription.planDetails.categories
         .filter(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
-          return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+          return categoryInfo?.freeEventsMultiple;
         })
         .map(category => {
           const reserved = subscription.categories?.[category]?.reserved;
@@ -923,6 +925,14 @@ export default function CustomerDetails() {
           {
             noPanel: true,
             content: <CustomerPolicies orgId={orgId} />,
+          },
+          {
+            name: 'Contract',
+            content: (
+              <Link to={`/_admin/customers/${orgId}/contract/`}>
+                View Contract Details
+              </Link>
+            ),
           },
         ]}
       />
