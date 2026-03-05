@@ -47,7 +47,7 @@ const assetsByTimeSpentQuery = new MutableSearch(
   `has:${SpanFields.NORMALIZED_DESCRIPTION} ${ASSETS_BY_TIME_SPENT_QUERY}`
 );
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-widget',
@@ -98,7 +98,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'issue-counts',

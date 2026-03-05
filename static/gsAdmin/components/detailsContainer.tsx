@@ -1,17 +1,15 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const DetailsContainer = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-template-columns: 1fr 1fr;
   align-items: start;
 
   h6 {
-    margin-top: ${space(3)};
-    margin-bottom: ${space(2)};
-    padding-bottom: ${space(0.5)};
+    margin-top: ${p => p.theme.space['2xl']};
+    margin-bottom: ${p => p.theme.space.xl};
+    padding-bottom: ${p => p.theme.space.xs};
     text-transform: uppercase;
     font-size: ${p => p.theme.font.size.md};
     color: ${p => p.theme.tokens.content.secondary};

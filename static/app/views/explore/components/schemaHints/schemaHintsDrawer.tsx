@@ -11,7 +11,6 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -232,9 +231,9 @@ const CheckboxLabelContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   cursor: pointer;
-  padding-right: ${space(0.25)};
+  padding-right: ${p => p.theme.space['2xs']};
 `;
 
 const CheckboxLabel = styled('span')`
@@ -255,7 +254,7 @@ const StyledMultipleCheckbox = styled(MultipleCheckbox)`
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   width: 100%;
-  padding: ${space(1)} ${space(0.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -315,7 +314,7 @@ const NoAttributesMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

@@ -4,6 +4,7 @@ from sentry import features
 from sentry.feedback.lib.seer_api import SpamDetectionRequest, make_spam_detection_request
 from sentry.models.project import Project
 from sentry.seer.seer_setup import has_seer_access
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,11 @@ SEER_RETRIES = 0
 
 
 @metrics.wraps("feedback.spam_detection_seer")
-def is_spam_seer(message: str, organization_id: int) -> bool | None:
+def is_spam_seer(
+    message: str,
+    organization_id: int,
+    viewer_context: SeerViewerContext | None = None,
+) -> bool | None:
     """
     Check if a message is spam using Seer.
 
@@ -30,6 +35,7 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
             seer_request,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
+            viewer_context=viewer_context,
         )
     except Exception:
         logger.exception("Seer failed to check if message is spam")

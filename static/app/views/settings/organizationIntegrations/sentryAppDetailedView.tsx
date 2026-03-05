@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -17,7 +18,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationFeature,
   SentryApp,
@@ -56,6 +56,7 @@ function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQu
 }
 
 export default function SentryAppDetailedView() {
+  const theme = useTheme();
   const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -349,7 +350,7 @@ export default function SentryAppDetailedView() {
             priority="danger"
           >
             <StyledButton size="sm" data-test-id="sentry-app-uninstall">
-              <IconSubtract style={{marginRight: space(0.75)}} />
+              <IconSubtract style={{marginRight: theme.space.sm}} />
               {t('Uninstall')}
             </StyledButton>
           </Confirm>
@@ -367,7 +368,7 @@ export default function SentryAppDetailedView() {
             onClick={() => handleInstall()}
             priority="primary"
             size="sm"
-            style={{marginLeft: space(1)}}
+            style={{marginLeft: theme.space.md}}
           >
             {t('Accept & Install')}
           </InstallButton>
@@ -389,6 +390,7 @@ export default function SentryAppDetailedView() {
       integrationType,
       install,
       recordUninstallClicked,
+      theme.space,
     ]
   );
 
@@ -441,11 +443,11 @@ const Text = styled('p')`
 `;
 
 const PermissionWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -455,7 +457,7 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 `;
 
 const InstallButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const StyledButton = styled(Button)`

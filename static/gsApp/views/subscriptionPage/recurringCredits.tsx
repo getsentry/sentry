@@ -6,7 +6,6 @@ import {Container} from '@sentry/scraps/layout';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 
 import {useRecurringCredits} from 'getsentry/hooks/useRecurringCredits';
@@ -145,7 +144,7 @@ export default RecurringCredits;
 
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h4 {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
 `;
 
@@ -159,5 +158,5 @@ const Title = styled('td')`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

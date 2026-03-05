@@ -889,6 +889,42 @@ class BuildsEndpointTest(APITestCase):
         assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
 
     @with_feature("organizations:preprod-frontend-routes")
+    def test_distribution_error_code_filter(self) -> None:
+        self.create_preprod_artifact(
+            app_id="quota.app",
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+            installable_app_error_message="Distribution quota exceeded",
+        )
+        self.create_preprod_artifact(
+            app_id="skipped.app",
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.SKIPPED,
+            installable_app_error_message="Distribution not requested",
+        )
+        self.create_preprod_artifact(app_id="ok.app")
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 3
+
+        response = self._request({"query": "distribution_error_code:no_quota"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 1
+        assert response.json()[0]["app_info"]["app_id"] == "quota.app"
+
+        response = self._request({"query": "!distribution_error_code:skipped"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 2
+
+        response = self._request({"query": "distribution_error_code:[no_quota, skipped]"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 2
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_distribution_error_code_invalid_values(self) -> None:
+        self.create_preprod_artifact(app_id="test.app")
+        assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
+
+    @with_feature("organizations:preprod-frontend-routes")
     @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
         mock_cutoff.return_value = before_now(days=30)

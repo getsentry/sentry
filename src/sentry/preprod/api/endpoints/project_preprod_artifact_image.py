@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
+from objectstore_client.client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -42,7 +43,18 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
             # Detect content type from the image data
             return HttpResponse(image_data, content_type=result.metadata.content_type)
-
+        except RequestError as e:
+            if e.status == 404:
+                return Response({"detail": "Image not found"}, status=404)
+            logger.exception(
+                "Unexpected error retrieving image",
+                extra={
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "image_id": image_id,
+                },
+            )
+            return Response({"detail": "Internal server error"}, status=500)
         except Exception:
             logger.exception(
                 "Unexpected error retrieving image",

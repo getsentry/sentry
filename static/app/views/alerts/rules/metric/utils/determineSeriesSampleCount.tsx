@@ -35,7 +35,7 @@ export function determineSeriesSampleCountAndIsSampled(
   let hasUnsampledInterval = false;
   let dataScanned: 'full' | 'partial' | undefined;
 
-  const series: number[] = data[0]?.values?.map(item => item.sampleCount ?? 0) ?? [];
+  const series = data[0]?.values?.map(item => item.sampleCount ?? 0) ?? [];
 
   for (let i = 0; i < data.length; i++) {
     for (let j = 0; j < data[i]!.values.length; j++) {

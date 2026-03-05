@@ -9,7 +9,6 @@ import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -116,7 +115,7 @@ const StyledImageVisualization = styled(ImageVisualization)`
 `;
 const FileDownload = styled('a')`
   cursor: pointer;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   text-decoration: underline;
   color: inherit;
   :hover {
@@ -127,7 +126,7 @@ const FileDownload = styled('a')`
 
 const File = styled(StyledPanel)`
   background: ${p => p.theme.tokens.background.transparent.accent.muted};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   max-width: 300px;
 `;
 
@@ -136,7 +135,7 @@ const NoPreviewFound = styled('p')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: center;
   margin: 0;
 `;

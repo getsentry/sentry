@@ -77,6 +77,7 @@ class PluginSettings<
   }
 
   changeField(name: string, value: any) {
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const formData: State['formData'] = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
@@ -211,7 +212,7 @@ class PluginSettings<
       );
     }
 
-    const fieldList: State['fieldList'] = this.state.fieldList;
+    const fieldList = this.state.fieldList;
 
     if (!fieldList?.length) {
       return null;

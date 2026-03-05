@@ -18,7 +18,7 @@ interface Props {
 export function ExternalIssueSidebarList({event, group, project}: Props) {
   return (
     <SidebarFoldSection
-      data-test-id="linked-issues"
+      dataTestId="linked-issues"
       title={
         <Heading as="h3" size="md">
           {t('Issue Tracking')}

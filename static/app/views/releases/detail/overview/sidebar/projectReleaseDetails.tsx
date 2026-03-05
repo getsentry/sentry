@@ -15,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -202,7 +201,7 @@ const ButtonContainer = styled('div')`
 
 const FinalizeButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
-  padding-inline: ${space(0.5)};
+  padding-inline: ${p => p.theme.space.xs};
 `;
 
 export default ProjectReleaseDetails;

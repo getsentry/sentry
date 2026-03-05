@@ -315,7 +315,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert get_group_hourly_count_snuba(group) == 1
+        assert get_group_hourly_count_snuba(group) == (1, False)
 
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
@@ -380,10 +380,12 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         )[0].group
         assert group is not None
 
-        snuba_count = get_group_hourly_count_snuba(group)
-        eap_count = get_group_hourly_count_eap(group)
+        snuba_count, snuba_cached = get_group_hourly_count_snuba(group)
+        eap_count, eap_cached = get_group_hourly_count_eap(group)
 
         assert snuba_count == eap_count == 6
+        assert snuba_cached is False
+        assert eap_cached is False
 
     @freeze_time(FROZEN_TIME)
     def test_eap_hourly_count_excludes_old_events(self) -> None:
@@ -395,10 +397,12 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         )[0].group
         assert group is not None
 
-        snuba_count = get_group_hourly_count_snuba(group)
-        eap_count = get_group_hourly_count_eap(group)
+        snuba_count, snuba_cached = get_group_hourly_count_snuba(group)
+        eap_count, eap_cached = get_group_hourly_count_eap(group)
 
         assert snuba_count == eap_count == 1
+        assert snuba_cached is False
+        assert eap_cached is False
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_single_group(self) -> None:

@@ -269,6 +269,18 @@ export function initializeUrlState({
     }
   }
 
+  // When the organization only has a single project, automatically select it
+  // instead of defaulting to "My Projects" or "All Projects".
+  if (
+    memberProjects.length + nonMemberProjects.length === 1 &&
+    pageFilters.projects.length === 0
+  ) {
+    const onlyProject = memberProjects[0] ?? nonMemberProjects[0];
+    if (onlyProject) {
+      pageFilters.projects = [getProjectIdFromProject(onlyProject)];
+    }
+  }
+
   const hasNoMemberProjects = memberProjects.length === 0;
   const hasAccessibleProjects = nonMemberProjects.length > 0;
   if (

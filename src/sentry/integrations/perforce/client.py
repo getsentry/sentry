@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import logging
+import os
 import tempfile
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, TypedDict
+
+# Redirect P4's environment persistence file (P4ENVIRO) to /dev/null BEFORE
+# importing P4. P4.set_env() writes to ~/.p4enviro by default, which causes
+# disk contention when multiple tenants call set_env() concurrently.
+# By pointing P4ENVIRO to /dev/null, set_env() still sets the per-instance
+# in-memory value (which is what P4 operations actually use) but the disk
+# write becomes a harmless no-op.
+os.environ.setdefault("P4ENVIRO", os.devnull)
 
 from P4 import P4, P4Exception
 
@@ -133,8 +142,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Context manager for P4 connections with automatic cleanup.
 
         Yields a connected P4 instance and ensures disconnection on exit.
-        Uses a per-connection temporary directory for P4TRUST to avoid
+        Creates a temporary directory for P4TRUST/P4TICKETS files to avoid
         lock contention between concurrent connections from different tenants.
+        The temp directory lives for the duration of this context manager and
+        is cleaned up automatically on exit.
 
         Uses P4Python API:
         - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
@@ -145,17 +156,24 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             with self._connect() as p4:
                 result = p4.run("info")
         """
-        # Use a temporary directory for P4TRUST and P4TICKETS to isolate each
-        # connection. Without this, all connections share ~/.p4trust and its
-        # lock file (~/.p4trust.lck), causing lock contention and failures
-        # when multiple tenants connect concurrently.
-        with tempfile.TemporaryDirectory(prefix="sentry-p4-") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix="sentry-p4-") as p4_home:
             p4 = P4()
             p4.port = self.p4port
             p4.user = self.user
             p4.password = self.password
-            p4.trust_file = f"{tmpdir}/.p4trust"
-            p4.ticket_file = f"{tmpdir}/.p4tickets"
+
+            # Point trust and ticket files to an isolated temp directory.
+            # P4Python doesn't expose a trust_file property, so we use set_env
+            # which sets P4TRUST per-instance. ticket_file is a direct property.
+            # set_env always sets the per-instance in-memory value (which P4
+            # operations use), but may raise P4Exception when it can't persist
+            # to the P4ENVIRO file on disk — this is expected and harmless since
+            # we redirect P4ENVIRO to /dev/null at module level.
+            try:
+                p4.set_env("P4TRUST", f"{p4_home}/.p4trust")
+            except P4Exception:
+                pass
+            p4.ticket_file = f"{p4_home}/.p4tickets"
 
             if self.client_name:
                 p4.client = self.client_name

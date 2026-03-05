@@ -38,7 +38,7 @@ export function AssertionOpJsonPath({
 }: AssertionOpJsonPathProps) {
   const inputId = useId();
 
-  const normalizedOp: UptimeJsonPathOp = normalizeJsonPathOp(value);
+  const normalizedOp = normalizeJsonPathOp(value);
 
   const operandValue = getJsonPathOperandValue(normalizedOp.operand);
   const {combinedLabel, combinedTooltip} =

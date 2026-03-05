@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
@@ -284,6 +285,36 @@ class TestLaunchAgentsForRepos(TestCase):
         assert "Please check that your API credentials are correct" in error_message
         assert "401" in error_message
         assert '{"code":"internal","message":"Error"}' in error_message
+
+    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    def test_verify_branch_error_returns_cursor_github_access_failure_type(
+        self, mock_get_preferences, mock_get_prompt, mock_store_states
+    ):
+        """Test that a 400 ApiError with 'Failed to verify existence of branch' returns cursor_github_access failure_type."""
+        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
+        mock_get_prompt.return_value = "Test prompt"
+
+        mock_installation = MagicMock(spec=CursorAgentIntegration)
+        mock_installation.launch.side_effect = ApiError(
+            text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
+            code=400,
+        )
+
+        result = _launch_agents_for_repos(
+            installation=mock_installation,
+            autofix_state=self.autofix_state,
+            run_id=self.run_id,
+            organization=self.organization,
+            trigger_source=AutofixTriggerSource.SOLUTION,
+        )
+
+        assert len(result["failures"]) == 1
+        failure = result["failures"][0]
+        assert failure["failure_type"] == "cursor_github_access"
+        assert "Cursor does not have GitHub access" in failure["error_message"]
+        assert "install the Cursor GitHub App" in failure["error_message"]
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")

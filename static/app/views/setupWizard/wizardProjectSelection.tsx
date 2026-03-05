@@ -18,7 +18,6 @@ import platforms from 'sentry/data/platforms';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -473,7 +472,7 @@ export function WizardProjectSelection({
 }
 
 const Heading = styled('h5')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
@@ -483,7 +482,7 @@ function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
 const Columns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr;
@@ -510,5 +509,5 @@ const SelectPlaceholder = styled('span')`
 `;
 
 const SubmitButton = styled(Button)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

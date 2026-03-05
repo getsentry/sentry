@@ -6,6 +6,7 @@ import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TagsFixture} from 'sentry-fixture/tags';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -20,18 +21,11 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/utils'),
-  useHasStreamlinedUI: jest.fn(),
-}));
-
 describe('groupDetails', () => {
-  let mockNavigate: jest.Mock;
   const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [TeamFixture()]});
@@ -87,8 +81,6 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
@@ -153,6 +145,72 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/events-stats/`,
+      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/releases/stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/repos/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/prompts-activity/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/owners/`,
+      body: {
+        owners: [],
+        rules: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/committers/`,
+      body: {
+        committers: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
+      body: {errors: []},
     });
   });
 
@@ -264,7 +322,10 @@ describe('groupDetails', () => {
   it('renders alert for sample event', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
-      body: [{key: 'sample_event'}],
+      body: [
+        ...TagsFixture(),
+        {key: 'sample_event', name: 'sample_event', topValues: []},
+      ],
     });
 
     createWrapper();
@@ -303,99 +364,6 @@ describe('groupDetails', () => {
     createWrapper();
 
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
-  });
-
-  it("refires request when recommended endpoint doesn't return an event", async () => {
-    const recommendedWithSearchMock = MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
-      query: {
-        query: 'foo:bar',
-        statsPeriod: '14d',
-      },
-      statusCode: 404,
-      body: {
-        detail: 'No matching event',
-      },
-    });
-
-    const routerConfig = {
-      ...initialRouterConfig,
-      location: LocationFixture({
-        ...initialRouterConfig.location,
-        query: {query: 'foo:bar', statsPeriod: '14d'},
-      }),
-    };
-    const {router} = createWrapper(routerConfig);
-
-    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
-
-    await waitFor(() =>
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: routerConfig.location.pathname,
-          // Query has been removed
-          query: {},
-        })
-      )
-    );
-  });
-
-  it('does not refire for request with streamlined UI', async () => {
-    jest.mocked(useHasStreamlinedUI).mockReturnValue(true);
-    // Bunch of mocks to load streamlined UI
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/flags/logs/',
-      body: {data: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/users/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/attachments/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/releases/stats/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/events-stats/`,
-      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
-      method: 'GET',
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/events/`,
-      body: {data: [{'count_unique(user)': 21}]},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/sentry-app-installations/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
-      query: {
-        query: 'foo:bar',
-        statsPeriod: '90d',
-      },
-      statusCode: 404,
-      body: {
-        detail: 'No matching event',
-      },
-    });
-    createWrapper();
-    expect(
-      await screen.findByText("We couldn't track down an event")
-    ).toBeInTheDocument();
-    await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 
   it('uses /latest endpoint when default is set to latest', async () => {

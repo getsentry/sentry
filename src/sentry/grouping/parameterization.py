@@ -57,6 +57,10 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="ip",
         raw_pattern=r"""
+            # This negative lookbehind ensures two things (depending on the pattern):
+            #     - We don't match starting in the middle of a valid set of initial characters
+            #     - We don't match things like `::` when they appear in expressions like `SomeClass::someMethod()`
+            (?<![0-9a-zA-Z_])
             (
                 ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
                 ([0-9a-fA-F]{1,4}:){1,7}:|
@@ -74,7 +78,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 ([0-9a-fA-F]{1,4}:){1,4}:
                 ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
                 (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            ) |
+            )
+            # This negative lookahead works with the negative lookbehind above to block false
+            # positives on expressions of the form `SomeClass::someMethod()`, ensuring that even if
+            # the class name is valid hex, the method name being invalid will block the match
+            (?![0-9a-zA-Z])
+            |
             (
                 \b((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
                 (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
@@ -116,8 +125,21 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # JavaScript
             ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2}\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT[+-]\d{4}(?:\s\([^)]+\))?)
             |
-            # Datetime:
-            (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
+            # Datetime with timezone offset (Z=UTC):
+            # (Note: These come before plain datetimes so the offset is seen as part of the time and
+            # not a separate int value.)
+            (
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d\.\d+([+-][0-2]\d:?[0-5]\d|Z))| # decimal seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d([+-][0-2]\d:?[0-5]\d|Z))| # seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d([+-][0-2]\d:?[0-5]\d|Z)) # no seconds
+            )
+            |
+            # Datetime
+            (
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d\.\d+)| # decimal seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d)| # seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d) # no seconds
+            )
             |
             # Kitchen
             ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
@@ -129,11 +151,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             ([0-2]\d:[0-5]\d:[0-5]\d)
             |
             # Old Date Formats, TODO: possibly safe to remove?
-            (
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))
-            ) |
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
                 (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
@@ -170,7 +187,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-128 digits, and
+            # Hex value without `0x/0X` prefix (between 8 and 128 digits, including a number, and
             # either all uppercase or all lowercase - we're more conservative here on all three
             # scores in order to reduce false positives).
             #
@@ -180,13 +197,24 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # then the <int> pattern would already have caught it. Given that we're here, it didn't,
             # so the only thing we need the lookahead to guard against is it being all letters.
             #
-            # Each regex consists of two parts:
-            # (?=.*[0-9])             The aforementioned lookahead - at least one `0-9` is present
-            # [0-9a-f/A-F]{8 | 16,64}   8 or 16-128 hex characters
-            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=.*[0-9])[0-9a-f]{16,128}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{8}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{16,128}\b)
+            # Each regex consists of two parts, the lookahead and the hex characters themselves. For
+            # example, for the lowercase pattern we have:
+            #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
+            #                         preceded by some number of hex letters
+            #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
+            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
+            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+        """,
+    ),
+    ParameterizationRegex(
+        name="git_sha",
+        raw_pattern=r"""
+            # This is similar to the hex pattern above, except it has lookaheads for both numbers
+            # and letters, to guarantee we have at least one of each. (This means it will miss git
+            # shas which consist of only letters or only numbers, but fortunately > 96% of 7-digit
+            # hex values are mixed, so that's a tradeoff we're okay with.) Also, it only includes
+            # lowercase letters, since git shas are always expressed that way.
+            (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),

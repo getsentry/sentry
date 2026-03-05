@@ -11,7 +11,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -123,7 +122,7 @@ const EmailForm = styled('form')`
   display: grid;
   grid-auto-flow: column;
   align-items: start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   /* override selector in PanelBody > form */
   && {

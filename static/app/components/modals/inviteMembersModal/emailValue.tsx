@@ -9,7 +9,6 @@ import type {
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import type {InviteStatus} from './types';
 
@@ -44,7 +43,7 @@ function EmailValue<Option extends OptionTypeBase>({
 const EmailLabel = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;
 

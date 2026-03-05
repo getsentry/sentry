@@ -23,7 +23,6 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -553,5 +552,5 @@ const DurationChange = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
