@@ -39,8 +39,13 @@ class OrganizationMapping(Model):
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
-    # TODO(cells): rename to cell_name
-    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
+    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+
+    # TODO(cells): remove once all callers have been migrated to cell_name
+    @property
+    def region_name(self) -> str:
+        return self.cell_name
+
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
     # Replicated from the Organization.flags attribute
@@ -69,7 +74,7 @@ class OrganizationMapping(Model):
             )
         ]
 
-    __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
+    __repr__ = sane_repr("organization_id", "slug", "cell_name", "verified")
 
     @staticmethod
     def find_expected_provisioned(user_id: int, slug: str) -> OrganizationMapping | None:

@@ -470,8 +470,8 @@ def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
     ).values_list("organization_id")
     regions = (
         OrganizationMapping.objects.filter(organization_id__in=organizations_with_installations)
-        .distinct("region_name")
-        .values_list("region_name")
+        .distinct("cell_name")
+        .values_list("cell_name")
     )
     return {r[0] for r in regions}
 

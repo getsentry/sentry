@@ -23,6 +23,10 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
     status: int | None = None
     flags: RpcOrganizationMappingFlags = Field(default_factory=RpcOrganizationMappingFlags)
 
+    @property
+    def cell_name(self) -> str:
+        return self.region_name
+
 
 class CustomerId(RpcModel):
     value: str | None
