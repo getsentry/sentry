@@ -558,6 +558,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
   | '/organizations/$organizationIdOrSlug/seer/setup-check/'
+  | '/organizations/$organizationIdOrSlug/seer/supergroups/'
+  | '/organizations/$organizationIdOrSlug/seer/supergroups/$supergroupId/'
   | '/organizations/$organizationIdOrSlug/sent-first-event/'
   | '/organizations/$organizationIdOrSlug/sentry-app-components/'
   | '/organizations/$organizationIdOrSlug/sentry-app-installations/'
