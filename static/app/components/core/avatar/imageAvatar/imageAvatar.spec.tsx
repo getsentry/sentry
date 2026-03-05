@@ -7,9 +7,11 @@ describe('ImageAvatar', () => {
   it('renders image with the provided src and alt', () => {
     render(
       <ImageAvatar
-        src="https://example.com/avatar.jpg"
-        alt="Jane Bloggs"
-        ref={() => undefined}
+        configuration={{
+          src: 'https://example.com/avatar.jpg' as string & {__avatar: boolean},
+          alt: 'Jane Bloggs' as string & {__avatar: boolean},
+          ref: () => undefined,
+        }}
       />
     );
     const img = screen.getByRole('img');

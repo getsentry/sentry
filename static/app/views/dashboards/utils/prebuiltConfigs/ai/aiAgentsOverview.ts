@@ -21,6 +21,8 @@ const DEFAULT_GLOBAL_FILTERS = [
   },
 ];
 
+export const DEFAULT_TRACES_TABLE_WIDTHS = [110, 600, 140, 110, 110, 110, 120, 110, 110];
+
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
@@ -161,9 +163,8 @@ const AGENTS_TRACES_TABLE = {
   id: 'ai-agents-traces-table',
   title: t('Traces'),
   displayType: DisplayType.AGENTS_TRACES_TABLE,
-  widgetType: WidgetType.SPANS,
   interval: '1h',
-  tableWidths: [110, 600, -1, -1, -1, -1, -1, -1, -1],
+  tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
   limit: 20,
   queries: [
     {

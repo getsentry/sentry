@@ -1,35 +1,34 @@
 import type React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentStyles';
 
-interface LetterAvatarProps
+export interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>, BaseAvatarStyleProps {
-  /**
-   * Resolved color for the avatar background and text.
-   * Compute this via useAvatar() or getColor() from useAvatar.tsx.
-   * Named avatarColor to avoid conflict with HTMLAttributes<SVGSVGElement>["color"].
-   */
-  avatarColor: {background: string; content: string};
-  /**
-   * Initials to display inside the avatar.
-   * Compute this via useAvatar() or getInitials() from useAvatar.tsx.
-   */
-  initials: string;
+  configuration: {
+    background: string & {__avatar: boolean};
+    content: string & {__avatar: boolean};
+    initials: string & {__avatar: boolean};
+  };
   ref?: React.Ref<SVGSVGElement>;
 }
 
-export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProps) {
+export function LetterAvatar({configuration, ...props}: LetterAvatarProps) {
+  const theme = useTheme();
   return (
-    <LetterAvatarComponent
-      viewBox="0 0 120 120"
-      avatarColor={avatarColor}
-      initials={initials}
-      {...props}
-    >
-      <rect x="0" y="0" width="120" height="120" />
+    <LetterAvatarComponent viewBox="0 0 120 120" {...props}>
+      <rect
+        x="0"
+        y="0"
+        width="120"
+        height="120"
+        fill={
+          props.suggested ? theme.tokens.background.primary : configuration.background
+        }
+      />
       <text
         x="50%"
         y="50%"
@@ -37,8 +36,9 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
         fontWeight="bold"
         style={{dominantBaseline: 'central'}}
         textAnchor="middle"
+        fill={props.suggested ? theme.tokens.content.secondary : configuration.content}
       >
-        {initials}
+        {configuration.initials}
       </text>
     </LetterAvatarComponent>
   );
@@ -46,24 +46,7 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
 
 const LetterAvatarComponent = styled('svg', {
   shouldForwardProp: prop =>
-    isPropValid(prop) &&
-    prop !== 'suggested' &&
-    prop !== 'round' &&
-    prop !== 'avatarColor' &&
-    prop !== 'initials',
-})<LetterAvatarProps>`
+    isPropValid(prop) && prop !== 'suggested' && prop !== 'round',
+})<BaseAvatarStyleProps>`
   ${baseAvatarStyles};
-
-  rect {
-    fill: ${props =>
-      props.suggested
-        ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
-          props.theme.tokens.background.primary
-        : props.avatarColor.background};
-  }
-
-  text {
-    fill: ${props =>
-      props.suggested ? props.theme.tokens.content.secondary : props.avatarColor.content};
-  }
 `;
