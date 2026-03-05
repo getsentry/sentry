@@ -73,11 +73,7 @@ export function Button({
             )}
             {props.children}
           </Flex>
-          <BusySpinner
-            role="status"
-            aria-label="Busy"
-            style={busy ? undefined : {visibility: 'hidden'}}
-          />
+          {busy ? <BusySpinner role="status" aria-label="Busy" /> : null}
         </Grid>
       </StyledButton>
     </Tooltip>
