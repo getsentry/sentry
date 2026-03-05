@@ -45,12 +45,15 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.numbers import clip
@@ -66,6 +69,10 @@ MATCHING_COUNT_ALIAS = "matching_count"
 
 def is_trace_name_candidate(span):
     return span["span.op"] in CANDIDATE_SPAN_OPS
+
+
+def _reasonable_trace_count_map_match(snuba_map: dict[str, int], eap_map: dict[str, int]) -> bool:
+    return all(eap_map[trace_id] <= snuba_map.get(trace_id, -float("inf")) for trace_id in eap_map)
 
 
 class TraceInterval(TypedDict):
@@ -143,8 +150,6 @@ class OrganizationTracesEndpointBase(OrganizationEventsEndpointBase):
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
-        ) and not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         ):
             return Response(status=404)
@@ -341,6 +346,49 @@ class TracesExecutor:
         traces_occurrences: dict[str, int] = {
             row["trace"]: row["count()"] for row in extra_results[1]["data"]
         }
+
+        organization_id = snuba_params.organization.id if snuba_params.organization else None
+        debug_context = {
+            "trace_ids": trace_ids,
+            "organization_id": organization_id,
+            "project_ids": [project.id for project in snuba_params.projects],
+            "start": snuba_params.start.isoformat() if snuba_params.start else None,
+            "end": snuba_params.end.isoformat() if snuba_params.end else None,
+        }
+
+        errors_callsite = "api.trace_explorer.traces_errors"
+        if EAPOccurrencesComparator.should_check_experiment(errors_callsite):
+            eap_traces_errors = count_occurrences_grouped_by_trace_ids(
+                snuba_params=snuba_params,
+                trace_ids=trace_ids,
+                referrer=Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+            traces_errors = EAPOccurrencesComparator.check_and_choose(
+                traces_errors,
+                eap_traces_errors,
+                errors_callsite,
+                is_experimental_data_a_null_result=len(eap_traces_errors) == 0,
+                reasonable_match_comparator=_reasonable_trace_count_map_match,
+                debug_context=debug_context,
+            )
+
+        occurrences_callsite = "api.trace_explorer.traces_occurrences"
+        if EAPOccurrencesComparator.should_check_experiment(occurrences_callsite):
+            eap_traces_occurrences = count_occurrences_grouped_by_trace_ids(
+                snuba_params=snuba_params,
+                trace_ids=trace_ids,
+                referrer=Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+                occurrence_category=OccurrenceCategory.GENERIC,
+            )
+            traces_occurrences = EAPOccurrencesComparator.check_and_choose(
+                traces_occurrences,
+                eap_traces_occurrences,
+                occurrences_callsite,
+                is_experimental_data_a_null_result=len(eap_traces_occurrences) == 0,
+                reasonable_match_comparator=_reasonable_trace_count_map_match,
+                debug_context=debug_context,
+            )
 
         self.enrich_traces_with_extra_data(
             traces,

@@ -18,6 +18,7 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -41,7 +42,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -191,16 +192,29 @@ function MobileAppSizeSearchBar({
 function useMobileAppSizeSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
+  const organization = useOrganization();
   const {
     selection: {projects},
   } = usePageFilters();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes(
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
+      'string',
+      HIDDEN_PREPROD_ATTRIBUTES
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes(
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
+      'number',
+      HIDDEN_PREPROD_ATTRIBUTES
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes('boolean', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes(
+      {enabled: organization.features.includes('preprod-app-size-dashboard')},
+      'boolean',
+      HIDDEN_PREPROD_ATTRIBUTES
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

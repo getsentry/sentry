@@ -15,7 +15,6 @@ import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -259,12 +258,12 @@ const UrlContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   width: 100%;
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -283,7 +282,7 @@ const TextContainer = styled('div')`
 
 const CheckboxContainer = styled('label')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
@@ -298,11 +297,11 @@ const SwitchWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
   white-space: nowrap;
 `;
 

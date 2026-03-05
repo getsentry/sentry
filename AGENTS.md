@@ -168,11 +168,9 @@ CI=true pnpm test <file_path>
 CI=true pnpm test components/avatar.spec.tsx
 ```
 
-> For detailed development patterns, see nested AGENTS.md files:
->
-> - **Backend patterns**: `src/AGENTS.md`
-> - **Backend testing patterns**: `tests/AGENTS.md`
-> - **Frontend patterns**: `static/AGENTS.md`
+### Git worktrees
+
+Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
 ### Context-Aware Loading
 

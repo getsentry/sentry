@@ -100,8 +100,8 @@ export const isHiddenDataKey = (key: string) => {
 };
 
 const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
-  const startTimestamp: number = spanBounds.startTimestamp;
-  const endTimestamp: number = spanBounds.endTimestamp;
+  const startTimestamp = spanBounds.startTimestamp;
+  const endTimestamp = spanBounds.endTimestamp;
 
   if (startTimestamp < endTimestamp) {
     return TimestampStatus.STABLE;
@@ -412,7 +412,7 @@ export function parseTrace(
     }
   );
 
-  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
+  const spans = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = traceContext?.trace_id || '';
@@ -500,7 +500,7 @@ export function parseTrace(
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: SpanType[] = acc.childSpans[span.parent_span_id] ?? [];
+    const spanChildren = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 

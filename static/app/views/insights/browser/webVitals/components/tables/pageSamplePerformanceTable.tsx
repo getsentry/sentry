@@ -19,7 +19,6 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeProjects} from 'sentry/utils/discover/eventView';
@@ -657,9 +656,9 @@ const AlignCenter = styled('div')`
 `;
 
 const StyledProjectAvatar = styled(ProjectAvatar)`
-  top: ${space(0.25)};
+  top: ${p => p.theme.space['2xs']};
   position: relative;
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 const NoValue = styled('span')`

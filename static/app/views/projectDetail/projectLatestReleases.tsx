@@ -16,7 +16,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Version from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
@@ -230,10 +229,10 @@ const ReleasesTable = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   & > * {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
     height: 32px;
   }
 

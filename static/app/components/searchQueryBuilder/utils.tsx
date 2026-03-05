@@ -236,7 +236,7 @@ export function findNearestFreeTextKey(
   startKey: Key | null,
   direction: 'right' | 'left'
 ): Key | null {
-  let key: Key | null = startKey;
+  let key = startKey;
   while (key) {
     const item = state.collection.getItem(key);
     if (!item) {

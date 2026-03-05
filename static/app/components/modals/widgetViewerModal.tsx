@@ -103,6 +103,7 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
@@ -519,6 +520,14 @@ function WidgetViewerModal(props: Props) {
   };
 
   function renderWidgetViewerTable() {
+    if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+      return (
+        <AgentsTracesTableWidgetVisualization
+          limit={FULL_TABLE_ITEM_LIMIT}
+          tableWidths={widget.tableWidths}
+        />
+      );
+    }
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
         return (
@@ -526,7 +535,8 @@ function WidgetViewerModal(props: Props) {
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
@@ -543,7 +553,8 @@ function WidgetViewerModal(props: Props) {
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
@@ -561,7 +572,8 @@ function WidgetViewerModal(props: Props) {
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
@@ -587,11 +599,15 @@ function WidgetViewerModal(props: Props) {
     dashboardCreator
   );
 
+  const shouldRenderChartVisualization =
+    widget.displayType !== DisplayType.TABLE &&
+    widget.displayType !== DisplayType.AGENTS_TRACES_TABLE;
+
   function renderWidgetViewer() {
     return (
       <Fragment>
         {hasSessionDuration && SESSION_DURATION_ALERT}
-        {widget.displayType !== DisplayType.TABLE && (
+        {shouldRenderChartVisualization && (
           <Container
             height={
               widget.displayType === DisplayType.BIG_NUMBER
@@ -605,6 +621,7 @@ function WidgetViewerModal(props: Props) {
               dashboardFilters={dashboardFilters}
               // Top N charts rely on the orderby of the table
               widget={primaryWidget}
+              tableItemLimit={widget.limit}
               onZoom={onZoom}
               onLegendSelectChanged={onLegendSelectChanged}
               legendOptions={{

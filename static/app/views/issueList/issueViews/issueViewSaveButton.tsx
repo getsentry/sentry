@@ -11,7 +11,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -217,7 +216,7 @@ const PrimarySaveButton = Button;
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
   border-left: none;
 `;

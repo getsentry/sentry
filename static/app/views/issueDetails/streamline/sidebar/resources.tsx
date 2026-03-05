@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,6 +55,6 @@ const LinkSection = styled('div')`
   align-items: flex-start;
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.md};
 `;

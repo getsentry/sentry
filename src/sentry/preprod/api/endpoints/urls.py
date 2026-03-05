@@ -42,6 +42,7 @@ from .project_preprod_artifact_install_details import ProjectPreprodInstallDetai
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
+from .project_preprod_distribution import ProjectPreprodDistributionEndpoint
 from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
@@ -51,6 +52,9 @@ from .public.organization_preprod_artifact_install_details import (
     OrganizationPreprodArtifactPublicInstallDetailsEndpoint,
 )
 from .public.organization_preprod_size_analysis import OrganizationPreprodPublicSizeAnalysisEndpoint
+from .public.project_preprod_build_distribution_latest import (
+    ProjectPreprodBuildDistributionLatestEndpoint,
+)
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .pull_request.organization_pullrequest_size_analysis_download import (
@@ -126,6 +130,12 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_size_metric_id>[^/]+)/(?P<base_size_metric_id>[^/]+)/download/$",
         ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare-download",
+    ),
+    # Public API endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/build-distribution/latest/$",
+        ProjectPreprodBuildDistributionLatestEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-public-builds",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod-artifact/rerun-analysis/(?P<head_artifact_id>[^/]+)/$",
@@ -232,6 +242,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/recompare/$",
         PreprodSnapshotRecompareEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-snapshots-recompare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/distribution/$",
+        ProjectPreprodDistributionEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-distribution",
     ),
 ]
 

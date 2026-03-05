@@ -167,7 +167,7 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.region import Region, get_local_region, get_region_by_name
+from sentry.types.region import Cell, get_cell_by_name, get_local_region
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
@@ -378,7 +378,7 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
+    def create_organization(name=None, owner=None, region: Cell | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
@@ -386,10 +386,10 @@ class Factories:
             if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
                 region_name = get_local_region().name
             else:
-                if isinstance(region, Region):
+                if isinstance(region, Cell):
                     region_name = region.name
                 else:
-                    region_obj = get_region_by_name(region)  # Verify it exists
+                    region_obj = get_cell_by_name(region)  # Verify it exists
                     region_name = region_obj.name
 
                 ctx.enter_context(

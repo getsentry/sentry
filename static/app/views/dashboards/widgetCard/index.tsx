@@ -14,7 +14,6 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -44,7 +43,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
-import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
@@ -192,15 +190,7 @@ function WidgetCard(props: Props) {
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
-    const queries = widget.queries.map(query => ({
-      ...query,
-      // Use the last aggregate because that's where the y-axis is stored
-      aggregates: query.aggregates.length
-        ? [query.aggregates[query.aggregates.length - 1]!]
-        : [],
-    }));
-    widget.queries = queries;
-    widget.limit = DEFAULT_RESULTS_LIMIT;
+    widget.displayType = DisplayType.AREA;
   }
 
   const hasSessionDuration = widget.queries.some(query =>
@@ -262,16 +252,14 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge: string | undefined =
+  const onDemandExtractionBadge =
     extractionStatus === 'extracted'
       ? t('Extracted')
       : extractionStatus === 'not-extracted'
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge: string | undefined = indexedEventsWarning
-    ? t('Indexed')
-    : undefined;
+  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
@@ -547,7 +535,7 @@ const ErrorCard = styled(Placeholder)`
   border: 1px solid ${p => p.theme.colors.red200};
   color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export const WidgetDescription = styled('small')`

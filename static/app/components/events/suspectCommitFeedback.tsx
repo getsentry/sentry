@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -75,12 +74,12 @@ export function SuspectCommitFeedback({
 
 const FeedbackContainer = styled('div')`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   @media (max-width: ${p => p.theme.breakpoints.xs}) {
     display: none;

@@ -8,7 +8,6 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -28,7 +27,6 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   SpanFields,
@@ -181,105 +179,103 @@ export function SpanSamplesContainer({
 
   return (
     <Fragment>
-      <InsightsSpanTagProvider>
-        <PaddedTitle>
-          {release && (
-            <SectionTitle>
-              <Tooltip title={release}>
-                <Link
-                  to={{
-                    pathname: normalizeUrl(
-                      `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-                        release
-                      )}/`
-                    ),
-                  }}
-                >
-                  {formatVersionAndCenterTruncate(release)}
-                </Link>
-              </Tooltip>
-            </SectionTitle>
-          )}
-        </PaddedTitle>
+      <PaddedTitle>
+        {release && (
+          <SectionTitle>
+            <Tooltip title={release}>
+              <Link
+                to={{
+                  pathname: normalizeUrl(
+                    `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+                      release
+                    )}/`
+                  ),
+                }}
+              >
+                {formatVersionAndCenterTruncate(release)}
+              </Link>
+            </Tooltip>
+          </SectionTitle>
+        )}
+      </PaddedTitle>
 
-        <StyledReadoutRibbon>
-          <MetricReadout
-            title={DataTitles.avg}
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-            unit={DurationUnit.MILLISECOND}
-            isLoading={isPending}
-          />
-          <MetricReadout
-            title={DataTitles.count}
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            value={spanMetrics?.['count()'] ?? 0}
-            unit="count"
-            isLoading={isPending}
-          />
-        </StyledReadoutRibbon>
-
-        <DurationChart
-          spanSearch={spanSearch}
-          additionalFilters={additionalFilters}
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          onClickSample={handleClickSample}
-          onMouseOverSample={handleMouseOverSample}
-          onMouseLeaveSample={handleMouseLeaveSample}
-          highlightedSpanId={highlightedSpanId}
-          release={release}
-          platform={isProjectCrossPlatform ? selectedPlatform : undefined}
+      <StyledReadoutRibbon>
+        <MetricReadout
+          title={DataTitles.avg}
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
+          unit={DurationUnit.MILLISECOND}
+          isLoading={isPending}
         />
+        <MetricReadout
+          title={DataTitles.count}
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          value={spanMetrics?.['count()'] ?? 0}
+          unit="count"
+          isLoading={isPending}
+        />
+      </StyledReadoutRibbon>
 
-        <StyledSearchBar>
-          <SpanSamplesPanelContainerSearchQueryBuilder
-            query={searchQuery ?? ''}
-            moduleName={moduleName}
-            selection={selection}
-            handleSearch={handleSearch}
-          />
-        </StyledSearchBar>
+      <DurationChart
+        spanSearch={spanSearch}
+        additionalFilters={additionalFilters}
+        groupId={groupId}
+        transactionName={transactionName}
+        transactionMethod={transactionMethod}
+        onClickSample={handleClickSample}
+        onMouseOverSample={handleMouseOverSample}
+        onMouseLeaveSample={handleMouseLeaveSample}
+        highlightedSpanId={highlightedSpanId}
+        release={release}
+        platform={isProjectCrossPlatform ? selectedPlatform : undefined}
+      />
 
-        <SampleTable
-          referrer={TraceViewSources.APP_STARTS_MODULE}
-          spanSearch={spanSearch}
-          additionalFilters={additionalFilters}
-          highlightedSpanId={highlightedSpanId}
-          transactionMethod={transactionMethod}
-          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
-          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-          groupId={groupId}
-          transactionName={transactionName}
+      <StyledSearchBar>
+        <SpanSamplesPanelContainerSearchQueryBuilder
+          query={searchQuery ?? ''}
           moduleName={moduleName}
-          release={release}
-          columnOrder={[
-            {
-              key: 'span_id',
-              name: t('Span ID'),
-              width: COL_WIDTH_UNDEFINED,
-            },
-            {
-              key: 'profile_id',
-              name: t('Profile'),
-              width: COL_WIDTH_UNDEFINED,
-            },
-            {
-              key: 'avg_comparison',
-              name: t('Compared to Average'),
-              width: COL_WIDTH_UNDEFINED,
-            },
-          ]}
-          additionalFields={[SpanFields.PROFILER_ID]}
+          selection={selection}
+          handleSearch={handleSearch}
         />
-      </InsightsSpanTagProvider>
+      </StyledSearchBar>
+
+      <SampleTable
+        referrer={TraceViewSources.APP_STARTS_MODULE}
+        spanSearch={spanSearch}
+        additionalFilters={additionalFilters}
+        highlightedSpanId={highlightedSpanId}
+        transactionMethod={transactionMethod}
+        onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+        onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+        groupId={groupId}
+        transactionName={transactionName}
+        moduleName={moduleName}
+        release={release}
+        columnOrder={[
+          {
+            key: 'span_id',
+            name: t('Span ID'),
+            width: COL_WIDTH_UNDEFINED,
+          },
+          {
+            key: 'profile_id',
+            name: t('Profile'),
+            width: COL_WIDTH_UNDEFINED,
+          },
+          {
+            key: 'avg_comparison',
+            name: t('Compared to Average'),
+            width: COL_WIDTH_UNDEFINED,
+          },
+        ]}
+        additionalFields={[SpanFields.PROFILER_ID]}
+      />
     </Fragment>
   );
 }
 
 const StyledReadoutRibbon = styled(ReadoutRibbon)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const SectionTitle = styled('div')`
@@ -290,9 +286,9 @@ const SectionTitle = styled('div')`
 `;
 
 const PaddedTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledSearchBar = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;
