@@ -20,11 +20,11 @@ interface DownloadButtonProps {
 export function DownloadButton({projectSlug}: DownloadButtonProps) {
   const {view, isMinified} = useStackTraceViewState();
   const ctx = useStackTraceContext();
-  const platform = ctx?.platform;
+  const platform = ctx.platform;
   const organization = useOrganization();
   const api = useApi();
 
-  if (!isNativePlatform(platform) || view !== 'raw' || !ctx) {
+  if (!isNativePlatform(platform) || view !== 'raw') {
     return null;
   }
 

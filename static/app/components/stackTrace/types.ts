@@ -89,7 +89,10 @@ export interface StackTraceProviderProps {
   maxDepth?: number;
   /** Relay PII/scrubbing metadata used to render redaction annotations on frame variables. */
   meta?: StackTraceMeta;
-  /** When provided alongside defaultIsMinified, enables toggling between symbolicated and minified views. */
+  /**
+   * Enables toggling between symbolicated and minified views when present.
+   * The initial minified selection is controlled by StackTraceViewStateProvider.
+   */
   minifiedStacktrace?: StacktraceType;
   /** Override the platform used for frame rendering logic. Defaults to the event/frame platform. */
   platform?: PlatformKey;
