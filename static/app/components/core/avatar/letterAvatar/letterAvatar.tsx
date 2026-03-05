@@ -1,5 +1,6 @@
 import type React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
@@ -22,14 +23,16 @@ interface LetterAvatarProps
 }
 
 export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProps) {
+  const theme = useTheme();
   return (
-    <LetterAvatarComponent
-      viewBox="0 0 120 120"
-      avatarColor={avatarColor}
-      initials={initials}
-      {...props}
-    >
-      <rect x="0" y="0" width="120" height="120" />
+    <LetterAvatarComponent viewBox="0 0 120 120" {...props}>
+      <rect
+        x="0"
+        y="0"
+        width="120"
+        height="120"
+        fill={props.suggested ? theme.tokens.background.primary : avatarColor.background}
+      />
       <text
         x="50%"
         y="50%"
@@ -37,6 +40,7 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
         fontWeight="bold"
         style={{dominantBaseline: 'central'}}
         textAnchor="middle"
+        fill={props.suggested ? theme.tokens.content.secondary : avatarColor.content}
       >
         {initials}
       </text>
@@ -46,24 +50,7 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
 
 const LetterAvatarComponent = styled('svg', {
   shouldForwardProp: prop =>
-    isPropValid(prop) &&
-    prop !== 'suggested' &&
-    prop !== 'round' &&
-    prop !== 'avatarColor' &&
-    prop !== 'initials',
-})<LetterAvatarProps>`
+    isPropValid(prop) && prop !== 'suggested' && prop !== 'round',
+})<BaseAvatarStyleProps>`
   ${baseAvatarStyles};
-
-  rect {
-    fill: ${props =>
-      props.suggested
-        ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
-          props.theme.tokens.background.primary
-        : props.avatarColor.background};
-  }
-
-  text {
-    fill: ${props =>
-      props.suggested ? props.theme.tokens.content.secondary : props.avatarColor.content};
-  }
 `;
