@@ -6,25 +6,25 @@ from dataclasses import dataclass
 
 from django.test import override_settings
 
-from sentry.types.region import Locality, Region, RegionDirectory, get_global_directory
+from sentry.types.region import Cell, Locality, RegionDirectory, get_global_directory
 
 
 @dataclass(frozen=True)
 class _TemporaryRegionDirectoryState:
-    regions: frozenset[Region]
-    default_region: Region
+    regions: frozenset[Cell]
+    default_region: Cell
 
 
 class TestEnvRegionDirectory(RegionDirectory):
     __test__ = False
 
-    def __init__(self, regions: Collection[Region]) -> None:
+    def __init__(self, regions: Collection[Cell]) -> None:
         super().__init__(regions, self.localities_from_regions(regions))
         self._tmp_state = _TemporaryRegionDirectoryState(
             regions=super().regions, default_region=next(iter(regions))
         )
 
-    def localities_from_regions(self, regions: Collection[Region]) -> frozenset[Locality]:
+    def localities_from_regions(self, regions: Collection[Cell]) -> frozenset[Locality]:
         return frozenset(
             Locality(name=cell.name, cells=frozenset([cell.name]), category=cell.category)
             for cell in regions
@@ -33,8 +33,8 @@ class TestEnvRegionDirectory(RegionDirectory):
     @contextmanager
     def swap_state(
         self,
-        regions: Sequence[Region],
-        local_region: Region | None = None,
+        regions: Sequence[Cell],
+        local_region: Cell | None = None,
     ) -> Generator[None]:
         monolith_region = regions[0]
         new_regions = self.regions if regions is None else frozenset(regions)
@@ -73,7 +73,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             yield
 
     @property
-    def regions(self) -> frozenset[Region]:
+    def regions(self) -> frozenset[Cell]:
         return self._tmp_state.regions
 
     @property
@@ -88,7 +88,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             for r in self._tmp_state.regions
         )
 
-    def get_cell_by_name(self, region_name: str) -> Region | None:
+    def get_cell_by_name(self, region_name: str) -> Cell | None:
         match = (r for r in self._tmp_state.regions if r.name == region_name)
         try:
             return next(match)
@@ -117,7 +117,7 @@ class TestEnvRegionDirectory(RegionDirectory):
             visible=region.visible,
         )
 
-    def get_cells_for_locality(self, locality_name: str) -> Iterable[Region]:
+    def get_cells_for_locality(self, locality_name: str) -> Iterable[Cell]:
         region = self.get_cell_by_name(locality_name)
         if region is None:
             return ()
@@ -131,9 +131,7 @@ def get_test_env_directory() -> TestEnvRegionDirectory:
 
 
 @contextmanager
-def override_regions(
-    regions: Sequence[Region], local_region: Region | None = None
-) -> Generator[None]:
+def override_regions(regions: Sequence[Cell], local_region: Cell | None = None) -> Generator[None]:
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and

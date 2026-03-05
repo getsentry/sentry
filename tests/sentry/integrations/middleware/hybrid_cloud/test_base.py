@@ -18,10 +18,10 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 
 
-def error_regions(region: Region, invalid_region_names: Iterable[str]) -> HttpResponse:
+def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
     if region.name in invalid_region_names:
         raise SiloLimit.AvailabilityError("Region is offline!")
     return HttpResponse(region.name, status=200)
@@ -35,8 +35,8 @@ class ExampleRequestParser(BaseRequestParser):
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = [
-        Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
     ]
     factory = RequestFactory()
 

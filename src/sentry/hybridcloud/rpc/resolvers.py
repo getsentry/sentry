@@ -8,7 +8,7 @@ from django.conf import settings
 
 from sentry.hybridcloud.rpc import ArgumentDict
 from sentry.types.region import (
-    Region,
+    Cell,
     RegionMappingNotFound,
     RegionResolutionError,
     get_cell_by_name,
@@ -19,12 +19,12 @@ class RegionResolutionStrategy(ABC):
     """Interface for directing a service call to a remote region."""
 
     @abstractmethod
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Cell:
         """Return the region determined by a service call's arguments."""
         raise NotImplementedError
 
     @staticmethod
-    def _get_from_mapping(**query: Any) -> Region:
+    def _get_from_mapping(**query: Any) -> Cell:
         from sentry.models.organizationmapping import OrganizationMapping
 
         try:
@@ -41,7 +41,7 @@ class ByRegionName(RegionResolutionStrategy):
 
     parameter_name: str = "region_name"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Cell:
         region_name = arguments[self.parameter_name]
         return get_cell_by_name(region_name)
 
@@ -52,7 +52,7 @@ class ByOrganizationId(RegionResolutionStrategy):
 
     parameter_name: str = "organization_id"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Cell:
         organization_id = arguments[self.parameter_name]
         return self._get_from_mapping(organization_id=organization_id)
 
@@ -63,7 +63,7 @@ class ByOrganizationSlug(RegionResolutionStrategy):
 
     parameter_name: str = "slug"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Cell:
         slug = arguments[self.parameter_name]
         return self._get_from_mapping(slug=slug)
 
@@ -75,7 +75,7 @@ class ByOrganizationIdAttribute(RegionResolutionStrategy):
     parameter_name: str
     attribute_name: str = "organization_id"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Cell:
         argument = arguments[self.parameter_name]
         organization_id = getattr(argument, self.attribute_name)
         return self._get_from_mapping(organization_id=organization_id)
@@ -89,7 +89,7 @@ class RequireSingleOrganization(RegionResolutionStrategy):
     region.
     """
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Cell:
         from sentry.models.organizationmapping import OrganizationMapping
 
         if not settings.SENTRY_SINGLE_ORGANIZATION:

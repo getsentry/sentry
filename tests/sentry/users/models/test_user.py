@@ -40,15 +40,15 @@ from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Region, RegionCategory, find_regions_for_user
+from sentry.types.region import Cell, RegionCategory, find_regions_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from tests.sentry.backup import expect_models
 
 _TEST_REGIONS = (
-    Region("na", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Cell("na", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+    Cell("eu", 2, "http://na.testserver", RegionCategory.MULTI_TENANT),
 )
 
 

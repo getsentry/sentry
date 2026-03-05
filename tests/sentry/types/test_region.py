@@ -14,8 +14,8 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
+    Cell,
     Locality,
-    Region,
     RegionCategory,
     RegionConfigurationError,
     RegionDirectory,
@@ -64,9 +64,9 @@ class RegionDirectoryTest(TestCase):
     ]
 
     _EXPECTED_OUTPUTS = (
-        Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-        Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
+        Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
     )
 
     @staticmethod
