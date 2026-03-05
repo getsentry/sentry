@@ -81,6 +81,19 @@ class AuthOrganizationLoginView(AuthLoginView):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
+        if request.user.is_authenticated:
+            membership = organization_service.check_membership_by_id(
+                organization_id=organization.id, user_id=request.user.id
+            )
+            if membership is None:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"Your account ({request.user.email}) is not a member of the "
+                    f"{organization.name} organization. Ask an organization admin to "
+                    f"invite you, or sign in with a different account.",
+                )
+
         session_expired = "session_expired" in request.COOKIES
         if session_expired:
             messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)

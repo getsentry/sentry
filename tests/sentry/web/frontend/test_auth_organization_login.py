@@ -61,6 +61,16 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.context["join_request_link"] is None
 
+    def test_renders_non_member_warning(self) -> None:
+        non_member = self.create_user("nonmember@example.com")
+        self.login_as(non_member)
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert "is not a member of the" in str(messages[0])
+
     def test_renders_session_expire_message(self) -> None:
         self.client.cookies["session_expired"] = "1"
         resp = self.client.get(self.path)
