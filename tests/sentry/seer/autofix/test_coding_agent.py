@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+from requests import HTTPError
+
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
@@ -891,12 +893,12 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_continues_on_api_error(
+    def test_continues_on_http_error(
         self, mock_integration_service, mock_import_string, mock_update_state
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.get_session_status.side_effect = Exception("API Error")
+        mock_client.get_session_status.side_effect = HTTPError("Request Error")
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent()}
