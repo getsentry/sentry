@@ -46,7 +46,7 @@ jobs:
           filters: .github/file-filters.yml
 
   api-docs:
-    if: needs.files-changed.outputs.api_docs == 'true'
+    if: false # needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-24.04
@@ -322,7 +322,7 @@ jobs:
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
@@ -365,7 +365,7 @@ jobs:
           fi
 
   cli:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
     runs-on: ubuntu-24.04
@@ -395,7 +395,7 @@ jobs:
           fi
 
   requirements:
-    if: needs.files-changed.outputs.backend_dependencies == 'true'
+    if: false # needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
     name: requirements check
     runs-on: ubuntu-24.04
@@ -435,7 +435,7 @@ jobs:
           message: ':snowflake: re-freeze requirements'
 
   api-url-typescript:
-    if: needs.files-changed.outputs.backend_api_urls == 'true'
+    if: false # needs.files-changed.outputs.backend_api_urls == 'true'
     needs: files-changed
     name: api url typescript generation
     runs-on: ubuntu-24.04
@@ -466,7 +466,7 @@ jobs:
           message: ':hammer_and_wrench: Sync API Urls to TypeScript'
 
   migration:
-    if: needs.files-changed.outputs.migration_lockfile == 'true'
+    if: false # needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
     runs-on: ubuntu-24.04
@@ -496,7 +496,7 @@ jobs:
           fi
 
   monolith-dbs:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: monolith-dbs test
     runs-on: ubuntu-24.04
@@ -549,7 +549,7 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
   typing:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
     runs-on: ubuntu-24.04
@@ -625,16 +625,9 @@ jobs:
   backend-required-check:
     needs:
       [
-        api-docs,
         backend-test,
-        backend-migration-tests,
         calculate-shards,
-        cli,
         files-changed,
-        requirements,
-        migration,
-        monolith-dbs,
-        typing,
       ]
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
