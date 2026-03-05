@@ -142,8 +142,8 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert response.status_code == 204
             self.mock_seer.assert_not_called()
 
-    def test_success_case(self) -> None:
-        """Test that Seer request includes trigger metadata from the comment."""
+    def test_success_case_uses_legacy_endpoint_by_default(self) -> None:
+        """Test that with option disabled, issue comment uses overwatch-request."""
         with self.code_review_setup(), self.tasks():
             event_dict = orjson.loads(
                 self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
@@ -172,3 +172,27 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
             # sentry_received_trigger_at is set to current time when transform happens
             assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
+
+    def test_success_case_uses_new_endpoint_when_option_enabled(self) -> None:
+        """Test that with use_new_endpoints option, issue comment uses review-request."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            self.options({"coding_workflows.code_review.seer.use_new_endpoints": True}),
+        ):
+            event_dict = orjson.loads(
+                self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+            )
+            event_dict["comment"]["user"] = {"login": "test-user"}
+            event = orjson.dumps(event_dict)
+
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+            self.mock_seer.assert_called_once()
+            call_args = self.mock_seer.call_args
+            assert call_args[1]["path"] == "/v1/automation/code_review/review-request"
+            payload = call_args[1]["payload"]
+            assert "request_type" not in payload
+            assert "external_owner_id" in payload
+            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
+            assert payload["data"]["config"]["trigger_user"] == "test-user"

@@ -60,8 +60,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer = mock_seer
             yield
 
-    def test_pull_request_opened(self) -> None:
-        """Test that opened action triggers Seer request and adds reaction."""
+    def test_pull_request_opened_uses_legacy_endpoint_by_default(self) -> None:
+        """Test that with option disabled, opened action uses overwatch-request."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             assert event["action"] == "opened"
@@ -76,6 +76,35 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
             assert payload["request_type"] == SeerCodeReviewRequestType.PR_REVIEW.value
+
+            self.mock_reaction.assert_called_once_with(
+                event["repository"]["full_name"],
+                str(event["pull_request"]["number"]),
+                GitHubReaction.EYES,
+            )
+
+    def test_pull_request_opened_uses_new_endpoint_when_option_enabled(self) -> None:
+        """Test that with use_new_endpoints option, opened action uses review-request."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            self.options({"coding_workflows.code_review.seer.use_new_endpoints": True}),
+        ):
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            assert event["action"] == "opened"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            call_kwargs = self.mock_seer.call_args[1]
+            assert call_kwargs["path"] == "/v1/automation/code_review/review-request"
+            payload = call_kwargs["payload"]
+            assert "request_type" not in payload
+            assert "external_owner_id" in payload
+            assert "data" in payload
 
             self.mock_reaction.assert_called_once_with(
                 event["repository"]["full_name"],
@@ -234,8 +263,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
             self.mock_reaction.assert_not_called()
 
-    def test_pull_request_closed_action(self) -> None:
-        """Test that closed action triggers Seer request with pr-closed request type and skips reaction."""
+    def test_pull_request_closed_uses_legacy_endpoint_by_default(self) -> None:
+        """Test that with option disabled, closed action uses overwatch-request."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "closed"
@@ -260,6 +289,31 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
             # sentry_received_trigger_at is set to current time when transform happens
             assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
+            self.mock_reaction.assert_not_called()
+
+    def test_pull_request_closed_uses_new_endpoint_when_option_enabled(self) -> None:
+        """Test that with use_new_endpoints option, closed action uses pr-closed endpoint."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            self.options({"coding_workflows.code_review.seer.use_new_endpoints": True}),
+        ):
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            call_kwargs = self.mock_seer.call_args[1]
+            assert call_kwargs["path"] == "/v1/automation/code_review/pr-closed"
+            payload = call_kwargs["payload"]
+            assert "request_type" not in payload
+            assert "external_owner_id" in payload
+            assert "data" in payload
+            assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:

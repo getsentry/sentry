@@ -25,9 +25,11 @@ from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
+    SeerEndpoint,
     convert_enum_keys_to_strings,
-    get_seer_endpoint_for_event,
+    get_seer_path_for_request,
     make_seer_request,
+    payload_for_new_seer_endpoints,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,8 +132,15 @@ def process_github_webhook_event(
     try:
         if tags:
             sentry_sdk.set_tags(tags)
-        path = get_seer_endpoint_for_event(github_event).value
-        make_seer_request(path=path, payload=event_payload)
+        path = get_seer_path_for_request(github_event, event_payload)
+        if path in (
+            SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value,
+            SeerEndpoint.CODE_REVIEW_PR_CLOSED.value,
+        ):
+            payload = payload_for_new_seer_endpoints(event_payload)
+        else:
+            payload = dict(event_payload)
+        make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+import orjson
 import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState
 from urllib3 import BaseHTTPResponse
@@ -21,6 +22,7 @@ from sentry.seer.code_review.webhooks.task import (
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class ProcessGitHubWebhookEventTest(TestCase):
@@ -419,7 +421,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:
-        """Test that CHECK_RUN events use rerun endpoint while PR events use overwatch-request."""
+        """Test that CHECK_RUN uses rerun endpoint; PR events use overwatch-request when option off."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
         process_github_webhook_event._func(
@@ -473,6 +475,64 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
         pr_call = mock_request.call_args
         assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_pr_event_uses_new_endpoints_when_option_enabled(self, mock_request: MagicMock) -> None:
+        """Test that with use_new_endpoints option, PR review uses review-request and pr-closed uses pr-closed."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        pr_review_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": None,
+                },
+            },
+        }
+
+        with override_options({"coding_workflows.code_review.seer.use_new_endpoints": True}):
+            process_github_webhook_event._func(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event_payload=pr_review_payload,
+                enqueued_at_str=self.enqueued_at_str,
+            )
+
+        assert mock_request.call_count == 1
+        assert mock_request.call_args[1]["path"] == "/v1/automation/code_review/review-request"
+        body = orjson.loads(mock_request.call_args[1]["body"])
+        assert "request_type" not in body
+
+        mock_request.reset_mock()
+        pr_closed_payload = {**pr_review_payload, "request_type": "pr-closed"}
+
+        with override_options({"coding_workflows.code_review.seer.use_new_endpoints": True}):
+            process_github_webhook_event._func(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event_payload=pr_closed_payload,
+                enqueued_at_str=self.enqueued_at_str,
+            )
+
+        assert mock_request.call_count == 1
+        assert mock_request.call_args[1]["path"] == "/v1/automation/code_review/pr-closed"
+        body = orjson.loads(mock_request.call_args[1]["body"])
+        assert "request_type" not in body
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
