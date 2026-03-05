@@ -47,6 +47,11 @@ from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
+# Filter keys that apply to individual events rather than group attributes. When any of these
+# are present, we must use Snuba for sort-by-date so that last_seen is computed over
+# matching events only (e.g. level:fatal → last seen among fatal events).
+EVENT_LEVEL_FILTER_KEYS = frozenset({"level"})
+
 
 class TrendsSortWeights(TypedDict):
     log_level: int
@@ -804,12 +809,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
+        # Do not use Postgres when event-level filters (e.g. level) are present, so that
+        # last_seen ordering reflects the last matching event, not the group's overall last_seen.
         if (
             # XXX: Don't enable this for now, it doesn't properly respect issue platform rules for hiding issue types.
             # We'll need to consolidate where we apply the type filters if we do want this.
             allow_postgres_only_search
             and cursor is None
             and sort_by == "date"
+            and not any(sf.key.name in EVENT_LEVEL_FILTER_KEYS for sf in (search_filters or ()))
             and
             # This handles tags and date parameters for search filters.
             not [
