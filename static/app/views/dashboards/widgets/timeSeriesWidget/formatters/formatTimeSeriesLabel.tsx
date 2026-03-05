@@ -1,10 +1,5 @@
 import {t} from 'sentry/locale';
-import {
-  getAggregateArg,
-  getMeasurementSlug,
-  maybeEquationAlias,
-  stripEquationPrefix,
-} from 'sentry/utils/discover/fields';
+import {maybeEquationAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -54,16 +49,6 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
   // correctly specify `yAxis` and `groupBy`, and/or to use the time
   // `/events-timeseries` endpoint which does this automatically.
   seriesName = formatVersion(seriesName);
-
-  // Check for special-case measurement formatting
-  const arg = getAggregateArg(seriesName);
-  if (arg) {
-    const slug = getMeasurementSlug(arg);
-
-    if (slug) {
-      seriesName = slug.toUpperCase();
-    }
-  }
 
   // Strip equation prefix
   if (maybeEquationAlias(seriesName)) {

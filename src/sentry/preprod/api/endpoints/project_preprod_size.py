@@ -39,8 +39,9 @@ def parse_request_with_pydantic(request: Request, model: type[T]) -> T:
         # can be used instead of parse_obj_as
         return parse_obj_as(model, j)
     except pydantic.ValidationError:
-        logger.exception("Could not parse PutSize")
-        raise serializers.ValidationError("Could not parse PutSize")
+        name = getattr(model, "__name__", str(model))
+        logger.exception("Could not parse %s", name)
+        raise serializers.ValidationError(f"Could not parse {name}")
 
 
 @internal_region_silo_endpoint

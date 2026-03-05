@@ -50,6 +50,25 @@ ButtonBar is used to create merged button groups where buttons are visually join
 </ButtonBar>
 ```
 
+## Orientation
+
+Use `orientation="vertical"` to stack buttons vertically with joined borders.
+
+<Storybook.Demo>
+  <ButtonBar orientation="vertical">
+    <Button>One</Button>
+    <Button>Two</Button>
+    <Button>Three</Button>
+  </ButtonBar>
+</Storybook.Demo>
+```jsx
+<ButtonBar orientation="vertical">
+  <Button>One</Button>
+  <Button>Two</Button>
+  <Button>Three</Button>
+</ButtonBar>
+```
+
 ## Notes
 
 ButtonBar is a simple presentational component that handles only the visual layout of buttons. It does not manage any internal state such as which button is active or selected. If you need to track an active button or manage selection state, you should handle that in your parent component and pass the appropriate props (like `priority="primary"`) to the active button.
