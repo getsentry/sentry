@@ -10,7 +10,7 @@ interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'pri
   size?: Exclude<ButtonProps['size'], 'zero'>;
 }
 
-export function AvatarButton({avatar, size, ...props}: AvatarButtonProps) {
+export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps) {
   const avatarDefinition = useAvatar({
     identifier: avatar.identifier,
     name: avatar.name,
@@ -23,8 +23,8 @@ export function AvatarButton({avatar, size, ...props}: AvatarButtonProps) {
   });
 
   return (
-    <StyledAvatarButton size={size ?? 'md'} {...props}>
-      <AvatarContainer size={size ?? 'md'}>
+    <StyledAvatarButton {...props} size={size}>
+      <AvatarContainer size={size}>
         {avatarDefinition.type === 'image' ? (
           <StyledImageAvatar configuration={avatarDefinition.configuration} />
         ) : (
@@ -35,7 +35,7 @@ export function AvatarButton({avatar, size, ...props}: AvatarButtonProps) {
   );
 }
 
-const AvatarContainer = styled('div')<{size: ButtonProps['size']}>`
+const AvatarContainer = styled('div')<{size: NonNullable<ButtonProps['size']>}>`
   width: 100%;
   height: 100%;
   overflow: hidden;
