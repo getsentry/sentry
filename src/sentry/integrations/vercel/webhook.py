@@ -160,14 +160,20 @@ class VercelWebhookEndpoint(Endpoint):
         )
         return external_id
 
-    def post(self, request: Request) -> Response | None:
+    def _require_valid_signature(self, request: Request) -> Response | None:
+        """Returns a 401 Response if signature is missing or invalid, else None."""
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.warning("vercel.webhook.missing-signature")
             return self.respond(status=401)
-        is_valid = verify_signature(request)
-        if not is_valid:
+        if not verify_signature(request):
             logger.warning("vercel.webhook.invalid-signature")
             return self.respond(status=401)
+        return None
+
+    def post(self, request: Request) -> Response | None:
+        error = self._require_valid_signature(request)
+        if error:
+            return error
 
         # Vercel's webhook allows you to subscribe to different events,
         # denoted by the `type` attribute. We currently subscribe to:
@@ -187,10 +193,12 @@ class VercelWebhookEndpoint(Endpoint):
             return self._deployment_created(external_id, request)
         return None
 
-    def delete(self, request: Request):
+    def delete(self, request: Request) -> Response:
+        error = self._require_valid_signature(request)
+        if error:
+            return error
         external_id = self.parse_external_id(request)
         configuration_id = request.data["payload"]["configuration"]["id"]
-
         return self._delete(external_id, configuration_id, request)
 
     def _delete(self, external_id, configuration_id, request):
