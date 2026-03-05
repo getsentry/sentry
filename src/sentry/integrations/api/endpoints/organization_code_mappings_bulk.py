@@ -1,6 +1,7 @@
 import logging
 
 from django.db import router, transaction
+from django.db.models.signals import post_save
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -20,7 +21,10 @@ from sentry.integrations.api.endpoints.organization_code_mappings import (
     OrganizationIntegrationMixin,
     gen_path_regex_field,
 )
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import (
+    RepositoryProjectPathConfig,
+    process_resource_change,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -144,48 +148,68 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
         mappings = data["mappings"]
         results = []
         has_errors = False
+        last_saved_config = None
 
-        for mapping in mappings:
-            try:
-                with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-                    config, created = RepositoryProjectPathConfig.objects.update_or_create(
-                        project=project,
-                        stack_root=mapping["stack_root"],
-                        defaults={
-                            "repository": repo,
-                            "organization_integration_id": org_integration.id,
+        # Suppress per-save signals during the loop to avoid redundant
+        # cache clears and celery task dispatches for every mapping.
+        post_save.disconnect(
+            sender=RepositoryProjectPathConfig,
+            dispatch_uid="repository_project_path_config_post_save",
+        )
+        try:
+            for mapping in mappings:
+                try:
+                    with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
+                        config, created = RepositoryProjectPathConfig.objects.update_or_create(
+                            project=project,
+                            stack_root=mapping["stack_root"],
+                            defaults={
+                                "repository": repo,
+                                "organization_integration_id": org_integration.id,
+                                "organization_id": organization.id,
+                                "integration_id": repo.integration_id,
+                                "source_root": mapping["source_root"],
+                                "default_branch": default_branch,
+                                "automatically_generated": False,
+                            },
+                        )
+                    last_saved_config = config
+                    results.append(
+                        {
+                            "stackRoot": mapping["stack_root"],
+                            "sourceRoot": mapping["source_root"],
+                            "status": "created" if created else "updated",
+                        }
+                    )
+                except Exception:
+                    logger.exception(
+                        "bulk_code_mappings.mapping_error",
+                        extra={
                             "organization_id": organization.id,
-                            "integration_id": repo.integration_id,
-                            "source_root": mapping["source_root"],
-                            "default_branch": default_branch,
-                            "automatically_generated": False,
+                            "project_id": project.id,
+                            "stack_root": mapping["stack_root"],
                         },
                     )
-                results.append(
-                    {
-                        "stackRoot": mapping["stack_root"],
-                        "sourceRoot": mapping["source_root"],
-                        "status": "created" if created else "updated",
-                    }
-                )
-            except Exception:
-                logger.exception(
-                    "bulk_code_mappings.mapping_error",
-                    extra={
-                        "organization_id": organization.id,
-                        "project_id": project.id,
-                        "stack_root": mapping["stack_root"],
-                    },
-                )
-                has_errors = True
-                results.append(
-                    {
-                        "stackRoot": mapping["stack_root"],
-                        "sourceRoot": mapping["source_root"],
-                        "status": "error",
-                        "detail": "Failed to save mapping.",
-                    }
-                )
+                    has_errors = True
+                    results.append(
+                        {
+                            "stackRoot": mapping["stack_root"],
+                            "sourceRoot": mapping["source_root"],
+                            "status": "error",
+                            "detail": "Failed to save mapping.",
+                        }
+                    )
+        finally:
+            post_save.connect(
+                lambda instance, **kwargs: process_resource_change(instance, **kwargs),
+                sender=RepositoryProjectPathConfig,
+                weak=False,
+                dispatch_uid="repository_project_path_config_post_save",
+            )
+
+        # Fire side effects once for the entire batch.
+        if last_saved_config is not None:
+            process_resource_change(last_saved_config)
 
         created_count = sum(1 for r in results if r["status"] == "created")
         updated_count = sum(1 for r in results if r["status"] == "updated")
