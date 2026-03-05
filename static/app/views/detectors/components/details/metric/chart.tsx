@@ -20,12 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import {
-  DURATION_UNIT_MULTIPLIERS,
-  RateUnit,
-  type DurationUnit,
-  type SizeUnit,
-} from 'sentry/utils/discover/fields';
+import {RateUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -349,17 +344,13 @@ export function useMetricDetectorChart({
       }
       if (unit) {
         return axisLabelFormatterUsingAggregateOutputType(
-          outputType === 'duration'
-            ? value * (DURATION_UNIT_MULTIPLIERS[unit as DurationUnit] ?? 1)
-            : value,
+          value,
           outputType,
           true,
-          outputType === 'duration'
-            ? DURATION_UNIT_MULTIPLIERS[unit as DurationUnit]
-            : undefined,
+          undefined,
           outputType === 'rate' ? (unit as RateUnit) : undefined,
           undefined,
-          outputType === 'size' ? (unit as SizeUnit) : undefined
+          unit as DataUnit
         );
       }
       return formatYAxisLabel(value);
@@ -423,6 +414,8 @@ export function useMetricDetectorChart({
         valueFormatter: getDetectorChartFormatters({
           detectionType,
           aggregate,
+          unit,
+          serverOutputType,
         }).formatTooltipValue,
       },
       ...chartZoomProps,
@@ -442,6 +435,8 @@ export function useMetricDetectorChart({
     isLoading,
     openPeriodMarkerResult,
     series,
+    serverOutputType,
+    unit,
     yAxes,
   ]);
 

@@ -5,11 +5,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import {
   aggregateOutputType,
-  DURATION_UNIT_MULTIPLIERS,
-  SizeUnit,
   type AggregationOutputType,
   type DataUnit,
-  type DurationUnit,
   type RateUnit,
 } from 'sentry/utils/discover/fields';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -43,17 +40,13 @@ export function getDetectorChartFormatters({
   const formatYAxisLabel = (value: number): string => {
     if (unit) {
       return axisLabelFormatterUsingAggregateOutputType(
-        outputType === 'duration'
-          ? value * (DURATION_UNIT_MULTIPLIERS[unit as DurationUnit] ?? 1)
-          : value,
+        value,
         outputType,
         true,
-        outputType === 'duration'
-          ? DURATION_UNIT_MULTIPLIERS[unit as DurationUnit]
-          : undefined,
+        undefined,
         outputType === 'rate' ? (unit as RateUnit) : undefined,
         undefined,
-        outputType === 'size' ? (unit as SizeUnit) : undefined
+        unit as DataUnit
       );
     }
     const base = axisLabelFormatterUsingAggregateOutputType(value, outputType, true);
@@ -62,20 +55,11 @@ export function getDetectorChartFormatters({
 
   const formatTooltipValue = (value: number): string => {
     if (unit) {
-      if (outputType === 'size' || outputType === 'rate') {
-        return tooltipFormatterUsingAggregateOutputType(
-          value,
-          outputType,
-          unit as DataUnit
-        );
-      }
-      if (outputType === 'duration') {
-        // Convert value from the API's duration unit to milliseconds,
-        // since the formatter expects ms input
-        const msPerUnit = DURATION_UNIT_MULTIPLIERS[unit as DurationUnit] ?? 1;
-        const valueInMs = value * msPerUnit;
-        return tooltipFormatterUsingAggregateOutputType(valueInMs, outputType);
-      }
+      return tooltipFormatterUsingAggregateOutputType(
+        value,
+        outputType,
+        unit as DataUnit
+      );
     }
     const base = tooltipFormatterUsingAggregateOutputType(value, outputType);
     return shouldAppendSuffix ? `${base}${unitSuffix}` : base;
