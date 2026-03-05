@@ -63,7 +63,7 @@ function MyForm() {
     <form.AppForm form={form}>
       <form.AppField name="name">
         {field => (
-          <field.Layout.Row label="Name" required>
+          <field.Layout.Row label={t('Name')} required>
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
@@ -147,7 +147,7 @@ For conditional validation on individual fields, use the `validators` prop on `A
   }}
 >
   {field => (
-    <field.Layout.Row label="Secret" required>
+    <field.Layout.Row label={t('Secret')} required>
       <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
@@ -164,8 +164,8 @@ Label above, field below. Best for forms with longer labels or when vertical spa
 
 ```jsx
 <field.Layout.Stack
-  label="Email Address"
-  hintText="We'll never share your email"
+  label={t('Email Address')}
+  hintText={t("We'll never share your email")}
   required
 >
   <field.Input value={field.state.value} onChange={field.handleChange} />
@@ -178,8 +178,8 @@ Label on the left (~50%), field on the right. Compact layout for settings pages.
 
 ```jsx
 <field.Layout.Row
-  label="Email Address"
-  hintText="We will never share your email address"
+  label={t('Email Address')}
+  hintText={t('We will never share your email address')}
   required
 >
   <field.Input value={field.state.value} onChange={field.handleChange} />
@@ -196,12 +196,12 @@ Both layouts support `variant="compact"`, which moves hint text into a tooltip o
 
 ```jsx
 // Default: hint text appears below the label
-<field.Layout.Row label="Email" hintText="We'll never share your email">
+<field.Layout.Row label={t("Email")} hintText={t("We'll never share your email")}>
   <field.Input ... />
 </field.Layout.Row>
 
 // Compact: hint text appears in tooltip when hovering the label
-<field.Layout.Row label="Email" hintText="We'll never share your email" variant="compact">
+<field.Layout.Row label={t("Email")} hintText={t("We'll never share your email")} variant="compact">
   <field.Input ... />
 </field.Layout.Row>
 ```
@@ -223,7 +223,7 @@ You can skip the built-in layouts and use `field.Meta.Label` and `field.Meta.Hin
 <form.AppField name="firstName">
   {field => (
     <Flex gap="md">
-      <field.Meta.Label required>First Name:</field.Meta.Label>
+      <field.Meta.Label required>{t('First Name')}</field.Meta.Label>
       <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
     </Flex>
   )}
@@ -235,12 +235,12 @@ You can skip the built-in layouts and use `field.Meta.Label` and `field.Meta.Hin
 Group related fields into titled sections using `form.FieldGroup`. It renders a `Panel` with a header and body.
 
 ```jsx
-<form.FieldGroup title="Personal Information">
+<form.FieldGroup title={t("Personal Information")}>
   <form.AppField name="firstName">{/* ... */}</form.AppField>
   <form.AppField name="lastName">{/* ... */}</form.AppField>
 </form.FieldGroup>
 
-<form.FieldGroup title="Contact Information">
+<form.FieldGroup title={t("Contact Information")}>
   <form.AppField name="email">{/* ... */}</form.AppField>
   <form.AppField name="phone">{/* ... */}</form.AppField>
 </form.FieldGroup>
@@ -256,7 +256,7 @@ Fields accept `disabled` as a boolean or a string. When a string is provided, it
 
 // String — disabled with a reason shown as tooltip
 <field.Input
-  disabled="This feature requires a Business plan"
+  disabled={t("This feature requires a Business plan")}
   value={field.state.value}
   onChange={field.handleChange}
 />
@@ -279,7 +279,7 @@ Use `form.Subscribe` to show or hide fields based on other field values:
     showBilling ? (
       <form.AppField name="billingEmail">
         {field => (
-          <field.Layout.Row label="Billing Email" required>
+          <field.Layout.Row label={t('Billing Email')} required>
             <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
           </field.Layout.Row>
         )}

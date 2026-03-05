@@ -101,7 +101,7 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
 
 // Conditional — only confirm when enabling
 <AutoSaveField
-  confirm={value => value ? 'Are you sure you want to enable this?' : undefined}
+  confirm={value => value ? t('Are you sure you want to enable this?') : undefined}
   {...otherProps}
 >
 
@@ -109,8 +109,8 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
 <AutoSaveField
   confirm={value =>
     value
-      ? 'Enable 2FA requirement for all members?'
-      : 'Allow members without 2FA?'
+      ? t('Enable 2FA requirement for all members?')
+      : t('Allow members without 2FA?')
   }
   {...otherProps}
 >

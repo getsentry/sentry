@@ -15,6 +15,8 @@ import {
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
+import {t} from 'sentry/locale';
+
 // ──────────────────────────────────────────────
 // form.mdx demos
 // ──────────────────────────────────────────────
@@ -42,25 +44,25 @@ export function QuickStartDemo() {
 
   return (
     <form.AppForm form={form}>
-      <form.FieldGroup title="Quick Start">
+      <form.FieldGroup title={t('Quick Start')}>
         <form.AppField name="name">
           {field => (
-            <field.Layout.Row label="Name" required>
+            <field.Layout.Row label={t('Name')} required>
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
-                placeholder="Enter your name"
+                placeholder={t('Enter your name')}
               />
             </field.Layout.Row>
           )}
         </form.AppField>
         <form.AppField name="email">
           {field => (
-            <field.Layout.Row label="Email" required>
+            <field.Layout.Row label={t('Email')} required>
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
-                placeholder="you@example.com"
+                placeholder={t('you@example.com')}
               />
             </field.Layout.Row>
           )}
@@ -81,12 +83,12 @@ export function CompactDemo() {
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup title="Row Layout">
+      <FieldGroup title={t('Row Layout')}>
         <form.AppField name="field1">
           {field => (
             <field.Layout.Row
-              label="Default Variant"
-              hintText="This hint text appears below the label"
+              label={t('Default Variant')}
+              hintText={t('This hint text appears below the label')}
             >
               <field.Input value={field.state.value} onChange={field.handleChange} />
             </field.Layout.Row>
@@ -95,8 +97,8 @@ export function CompactDemo() {
         <form.AppField name="field2">
           {field => (
             <field.Layout.Row
-              label="Compact Variant"
-              hintText="This hint text appears in a tooltip when hovering the label"
+              label={t('Compact Variant')}
+              hintText={t('This hint text appears in a tooltip when hovering the label')}
               variant="compact"
             >
               <field.Input value={field.state.value} onChange={field.handleChange} />
@@ -104,12 +106,12 @@ export function CompactDemo() {
           )}
         </form.AppField>
       </FieldGroup>
-      <FieldGroup title="Stack Layout">
+      <FieldGroup title={t('Stack Layout')}>
         <form.AppField name="field3">
           {field => (
             <field.Layout.Stack
-              label="Default Variant"
-              hintText="This hint text appears below the input"
+              label={t('Default Variant')}
+              hintText={t('This hint text appears below the input')}
             >
               <field.Input value={field.state.value} onChange={field.handleChange} />
             </field.Layout.Stack>
@@ -118,8 +120,8 @@ export function CompactDemo() {
         <form.AppField name="field4">
           {field => (
             <field.Layout.Stack
-              label="Compact Variant"
-              hintText="This hint text appears in a tooltip when hovering the label"
+              label={t('Compact Variant')}
+              hintText={t('This hint text appears in a tooltip when hovering the label')}
               variant="compact"
             >
               <field.Input value={field.state.value} onChange={field.handleChange} />
@@ -149,10 +151,10 @@ export function ConditionalDemo() {
 
   return (
     <form.AppForm form={form}>
-      <form.FieldGroup title="Conditional Fields">
+      <form.FieldGroup title={t('Conditional Fields')}>
         <form.AppField name="plan">
           {field => (
-            <field.Layout.Row label="Plan">
+            <field.Layout.Row label={t('Plan')}>
               <field.Select
                 value={field.state.value}
                 onChange={field.handleChange}
@@ -169,7 +171,7 @@ export function ConditionalDemo() {
             showBilling ? (
               <form.AppField name="billingEmail">
                 {field => (
-                  <field.Layout.Row label="Billing Email" required>
+                  <field.Layout.Row label={t('Billing Email')} required>
                     <field.Input
                       value={field.state.value ?? ''}
                       onChange={field.handleChange}
@@ -209,10 +211,10 @@ export function BaseFieldDemo() {
 
   return (
     <form.AppForm form={form}>
-      <form.FieldGroup title="Custom Field">
+      <form.FieldGroup title={t('Custom Field')}>
         <form.AppField name="color">
           {field => (
-            <field.Layout.Stack label="Brand Color:">
+            <field.Layout.Stack label={t('Brand Color:')}>
               <field.Base<HTMLInputElement>>
                 {(baseProps, {indicator}) => (
                   <Flex flexGrow={1}>
@@ -256,15 +258,15 @@ const basicMutationOptions = {
 
 export function BasicAutoSaveDemo() {
   return (
-    <FieldGroup title="Profile Settings">
+    <FieldGroup title={t('Profile Settings')}>
       <AutoSaveField
         name="displayName"
         schema={basicSchema}
-        initialValue="Jane Doe"
+        initialValue={t('Jane Doe')}
         mutationOptions={basicMutationOptions}
       >
         {field => (
-          <field.Layout.Row label="Display Name">
+          <field.Layout.Row label={t('Display Name')}>
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
@@ -297,15 +299,15 @@ export function FullAutoSaveDemo() {
   };
 
   return (
-    <FieldGroup title="User Settings">
+    <FieldGroup title={t('User Settings')}>
       <AutoSaveField
         name="name"
         schema={fullSchema}
-        initialValue="Jane Doe"
+        initialValue={t('Jane Doe')}
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Layout.Row label="Full Name" required>
+          <field.Layout.Row label={t('Full Name')} required>
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
@@ -323,7 +325,7 @@ export function FullAutoSaveDemo() {
         }
       >
         {field => (
-          <field.Layout.Row label="Email Notifications">
+          <field.Layout.Row label={t('Email Notifications')}>
             <field.Switch
               checked={field.state.value ?? false}
               onChange={field.handleChange}
@@ -339,7 +341,7 @@ export function FullAutoSaveDemo() {
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Layout.Row label="Tags" hintText="Select multiple tags">
+          <field.Layout.Row label={t('Tags')} hintText={t('Select multiple tags')}>
             <field.Select
               multiple
               value={field.state.value ?? []}
@@ -353,7 +355,7 @@ export function FullAutoSaveDemo() {
       <AutoSaveField
         name="priority"
         schema={fullSchema}
-        initialValue="medium"
+        initialValue={t('medium')}
         mutationOptions={fullMutationOptions}
       >
         {field => (
@@ -361,11 +363,11 @@ export function FullAutoSaveDemo() {
             value={field.state.value ?? ''}
             onChange={field.handleChange}
           >
-            <field.Layout.Row label="Priority" hintText="Select issue priority">
+            <field.Layout.Row label={t('Priority')} hintText={t('Select issue priority')}>
               <Flex gap="lg">
-                <field.Radio.Item value="low">Low</field.Radio.Item>
-                <field.Radio.Item value="medium">Medium</field.Radio.Item>
-                <field.Radio.Item value="high">High</field.Radio.Item>
+                <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
+                <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
+                <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
               </Flex>
             </field.Layout.Row>
           </field.Radio.Group>
@@ -379,7 +381,7 @@ export function FullAutoSaveDemo() {
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Layout.Row label="Bio" hintText="Tell us about yourself">
+          <field.Layout.Row label={t('Bio')} hintText={t('Tell us about yourself')}>
             <field.TextArea
               value={field.state.value ?? ''}
               onChange={field.handleChange}
@@ -395,7 +397,7 @@ export function FullAutoSaveDemo() {
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Layout.Row label="Volume">
+          <field.Layout.Row label={t('Volume')}>
             <field.Range
               value={field.state.value ?? 50}
               onChange={field.handleChange}
