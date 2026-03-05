@@ -142,29 +142,58 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
-    from sentry.taskworker.runtime import app
-    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
-    from sentry.utils.redis import redis_clusters
+    if settings.TASKWORKER_USE_LIBRARY:
+        from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    app.load_modules()
-    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+        from sentry.taskworker.metrics import SentryMetricsBackend
+        from sentry.taskworker.runtime import app
+        from sentry.utils.redis import redis_clusters
 
-    with managed_bgtasks(role="taskworker-scheduler"):
-        runner = ScheduleRunner(app, run_storage)
-        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            runner.add(key, schedule_data)
-
-        logger.info(
-            "taskworker.scheduler.schedule_data",
-            extra={
-                "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
-            },
+        app.load_modules()
+        run_storage = RunStorage(
+            metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
         )
 
-        runner.log_startup()
-        while True:
-            sleep_time = runner.tick()
-            time.sleep(sleep_time)
+        with managed_bgtasks(role="taskworker-scheduler"):
+            runner = ScheduleRunner(app, run_storage)
+            for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+                runner.add(key, schedule_data)
+
+            logger.info(
+                "taskworker.scheduler.schedule_data",
+                extra={
+                    "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
+                },
+            )
+
+            runner.log_startup()
+            while True:
+                sleep_time = runner.tick()
+                time.sleep(sleep_time)
+    else:
+        from sentry.taskworker.runtime import app
+        from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+        from sentry.utils.redis import redis_clusters
+
+        app.load_modules()
+        run_storage = RunStorage(redis_clusters.get(redis_cluster))
+
+        with managed_bgtasks(role="taskworker-scheduler"):
+            runner = ScheduleRunner(app, run_storage)
+            for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+                runner.add(key, schedule_data)
+
+            logger.info(
+                "taskworker.scheduler.schedule_data",
+                extra={
+                    "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
+                },
+            )
+
+            runner.log_startup()
+            while True:
+                sleep_time = runner.tick()
+                time.sleep(sleep_time)
 
 
 @run.command()
@@ -327,28 +356,55 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from sentry.taskworker.client.client import make_broker_hosts
-    from sentry.taskworker.worker import TaskWorker
+    from django.conf import settings
 
-    with managed_bgtasks(role="taskworker"):
-        worker = TaskWorker(
-            app_module="sentry.taskworker.runtime:app",
-            broker_hosts=make_broker_hosts(
-                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-            ),
-            max_child_task_count=max_child_task_count,
-            namespace=namespace,
-            concurrency=concurrency,
-            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-            result_queue_maxsize=result_queue_maxsize,
-            rebalance_after=rebalance_after,
-            processing_pool_name=processing_pool_name,
-            health_check_file_path=health_check_file_path,
-            health_check_sec_per_touch=health_check_sec_per_touch,
-            **options,
-        )
-        exitcode = worker.start()
-        raise SystemExit(exitcode)
+    if settings.TASKWORKER_USE_LIBRARY:
+        from taskbroker_client.worker import TaskWorker
+
+        from sentry.taskworker.client.client import make_broker_hosts
+
+        with managed_bgtasks(role="taskworker"):
+            worker = TaskWorker(
+                app_module="sentry.taskworker.runtime:app",
+                broker_hosts=make_broker_hosts(
+                    host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+                ),
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                **options,
+            )
+            exitcode = worker.start()
+            raise SystemExit(exitcode)
+    else:
+        from sentry.taskworker.client.client import make_broker_hosts
+        from sentry.taskworker.worker import TaskWorker
+
+        with managed_bgtasks(role="taskworker"):
+            worker = TaskWorker(
+                app_module="sentry.taskworker.runtime:app",
+                broker_hosts=make_broker_hosts(
+                    host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+                ),
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                **options,
+            )
+            exitcode = worker.start()
+            raise SystemExit(exitcode)
 
 
 @run.command()
