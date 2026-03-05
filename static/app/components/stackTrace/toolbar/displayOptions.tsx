@@ -98,7 +98,7 @@ export function DisplayOptions() {
           label: t('Display'),
           options: [
             {
-              label: t('Unsymbolicated'),
+              label: t('Minified'),
               value: 'minified',
               disabled: !hasMinifiedStacktrace,
               tooltip: hasMinifiedStacktrace

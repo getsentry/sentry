@@ -854,7 +854,7 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
-  story('StackTrace - Minified Toggle', () => {
+  story('StackTraceProvider - Minified Toggle', () => {
     const {event, stacktrace} = makeStackTraceData();
     const minifiedStacktrace: StacktraceWithFrames = {
       ...stacktrace,
@@ -870,14 +870,20 @@ export default Storybook.story('StackTrace', story => {
       <Fragment>
         <p>
           Pass <Storybook.JSXProperty name="minifiedStacktrace" value={Object} /> to
-          enable a toggle button in the toolbar that switches between the original and
-          minified frames.
+          unlock the <strong>Minified</strong> option in the Display Options (
+          <code>···</code>) dropdown. The stack trace below starts in the minified view —
+          open Display Options and deselect <em>Minified</em> to switch back to the
+          symbolicated frames.
         </p>
-        <StackTrace
+        <StackTraceProvider
           event={event}
           stacktrace={stacktrace}
           minifiedStacktrace={minifiedStacktrace}
-        />
+          defaultIsMinified
+        >
+          <StackTraceProvider.Toolbar />
+          <StackTraceProvider.Frames />
+        </StackTraceProvider>
       </Fragment>
     );
   });
