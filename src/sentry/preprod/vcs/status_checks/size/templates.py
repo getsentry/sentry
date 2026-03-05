@@ -468,15 +468,10 @@ def _get_size_metric_display_data(
 
 def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str:
     """Format version string from build_version and build_number."""
-    version_parts = []
     mobile_app_info = artifact.get_mobile_app_info()
-    build_version = mobile_app_info.build_version if mobile_app_info else None
-    build_number = mobile_app_info.build_number if mobile_app_info else None
-    if build_version:
-        version_parts.append(build_version)
-    if build_number:
-        version_parts.append(f"({build_number})")
-    return " ".join(version_parts) if version_parts else default
+    if mobile_app_info is None:
+        return default
+    return mobile_app_info.format_version_string(default=default)
 
 
 def _get_size_metric_type_display_name(

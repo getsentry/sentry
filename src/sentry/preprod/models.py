@@ -794,13 +794,13 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
 
-    def format_version_string(self) -> str:
+    def format_version_string(self, default: str = "--") -> str:
         parts: list[str] = []
         if self.build_version:
             parts.append(self.build_version)
         if self.build_number:
             parts.append(f"({self.build_number})")
-        return " ".join(parts) if parts else "--"
+        return " ".join(parts) if parts else default
 
     class Meta:
         app_label = "preprod"
