@@ -2226,6 +2226,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert text_widget.description == "This is a text widget description"
             assert text_widget.widget_type is None
 
+            assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
+
     def test_post_with_text_widget_without_feature_flag(self) -> None:
         data = {
             "title": "Dashboard from Post",
@@ -2264,12 +2266,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 ],
             }
             response = self.do_request("post", self.url, data=data)
-            assert response.status_code == 201, response.data
-            dashboard = Dashboard.objects.get(
-                organization=self.organization, title="Dashboard from Post"
-            )
-            widgets = self.get_widgets(dashboard.id)
-            assert len(widgets) == 1
-            widget = widgets[0]
-            assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
-            assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
+            assert response.status_code == 400, response.data
+            assert "widgets" in response.data, response.data
+            assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"

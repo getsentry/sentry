@@ -1318,15 +1318,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "text",
                     "description": "x" * 256,
                     "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
+                    "queries": [],
                 },
             ],
         }
@@ -3925,6 +3917,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert text_widget["displayType"] == "text"
             assert text_widget["description"] == "Now it's a text widget"
             assert text_widget.get("widgetType") is None
+            assert text_widget["queries"] == []
 
             # Verify in database that queries were removed
             widget = DashboardWidget.objects.get(id=self.widget_1.id)
@@ -3932,7 +3925,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert widget.widget_type is None
             assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
 
-    def test_text_widget_ignores_provided_queries(self) -> None:
+    def test_text_widget_errors_provided_queries(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):
             data = {
                 "title": "First dashboard",
@@ -3955,17 +3948,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 ],
             }
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
+            assert response.status_code == 400, response.data
 
-            widgets = response.data["widgets"]
-            assert len(widgets) == 2
-
-            # Verify widget was created but queries were not stored
-            widget_id = widgets[1]["id"]
-            widget = DashboardWidget.objects.get(id=widget_id)
-            assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
-            assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
-            assert response.data["widgets"][1]["queries"] == []
+            assert "queries" in response.data["widgets"][1], response.data
+            assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

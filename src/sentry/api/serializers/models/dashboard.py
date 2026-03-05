@@ -343,7 +343,7 @@ class DashboardWidgetSerializer(Serializer):
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
             "limit": obj.limit,
-            # Default to discover type if null
+            # Default to discover type if null and not a text widget
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "axisRange": obj.detail.get("axis_range") if obj.detail else None,
