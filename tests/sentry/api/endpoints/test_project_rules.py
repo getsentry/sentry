@@ -14,7 +14,10 @@ from slack_sdk.web import SlackResponse
 
 from sentry.api.endpoints.project_rules import get_max_alerts
 from sentry.constants import ObjectStatus
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
@@ -44,8 +47,16 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models import (
+    Condition,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -1366,7 +1377,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload = {
             "name": "Owner Alert",
             "frequency": 1440,
-            "environment": None,
+            "environment": self.environment.name,
             "status": "active",
             "snooze": False,
             "conditions": conditions,
@@ -1399,8 +1410,68 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://example.com/sentry/alert-rule",
             status=status.HTTP_202_ACCEPTED,
         )
-        self.get_success_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
             **payload,
         )
+        assert len(response.data["conditions"]) == len(conditions)
+        assert len(response.data["filters"]) == len(filters)
+        assert len(response.data["actions"]) == len(payload["actions"])
+
+        workflow = Workflow.objects.get(id=get_object_id_from_fake_id(int(response.data["id"])))
+        assert workflow.environment.name == payload["environment"]
+        assert workflow.name == payload["name"]
+        assert workflow.enabled is True
+
+        assert DetectorWorkflow.objects.filter(
+            workflow=workflow, detector__type=IssueStreamGroupType.slug
+        ).exists()
+
+        triggers = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert len(triggers) == len(payload["conditions"])
+        # spot check
+        event_attr_trigger = None
+        for trigger in triggers:
+            if trigger.type == Condition.EVENT_ATTRIBUTE.value:
+                event_attr_trigger = trigger
+
+        assert event_attr_trigger
+        assert event_attr_trigger.comparison == {
+            "match": "eq",
+            "attribute": "message",
+            "value": "test",
+        }
+        assert event_attr_trigger.condition_result is True
+
+        wdcg = WorkflowDataConditionGroup.objects.get(workflow=workflow)
+        dcgs = DataConditionGroup.objects.filter(id=wdcg.condition_group_id)
+        filters = DataCondition.objects.filter(condition_group__in=dcgs)
+        assert len(filters) == len(payload["filters"])
+        # spot check
+        tagged_event_filter = None
+        for f in filters:
+            if f.type == Condition.TAGGED_EVENT.value:
+                tagged_event_filter = f
+
+        assert tagged_event_filter
+        assert tagged_event_filter.comparison == {
+            "match": "is",
+            "key": "environment",
+        }
+        assert tagged_event_filter.condition_result is True
+
+        dcgas = DataConditionGroupAction.objects.filter(condition_group__in=[dcg for dcg in dcgs])
+        # spot check
+        slack_action = None
+        for action in [dcga.action for dcga in dcgas]:
+            if action.type == "slack":
+                slack_action = action
+
+        assert slack_action
+        assert slack_action.data == {"notes": "", "tags": ""}
+        assert slack_action.config == {
+            "target_type": 0,
+            "target_display": "team-team-team",
+            "target_identifier": "CSVK0921",
+        }

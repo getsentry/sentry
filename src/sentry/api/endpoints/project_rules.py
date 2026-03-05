@@ -710,7 +710,7 @@ def format_request_data(
 
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
     translated_conditions: dict[str, Any] = {}
-    translated_filters: dict[str, Any] = {}
+    translated_filter_list = []
     fake_dcg = DataConditionGroup()
 
     for condition in data.get("conditions", []):
@@ -723,6 +723,7 @@ def format_request_data(
     for filter_data in data.get("filters", []):
         translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
         translated_filters.pop("condition_group")
+        translated_filter_list.append(translated_filters)
 
     translated_actions = translate_rule_data_actions_to_notification_actions(
         data.get("actions", []), False
@@ -734,7 +735,7 @@ def format_request_data(
 
     action_filters = {
         "logicType": data.get("filterMatch", "any-short"),
-        "conditions": [translated_filters],
+        "conditions": translated_filter_list,
         "actions": translated_actions,
     }
     workflow_payload["actionFilters"] = [action_filters]
