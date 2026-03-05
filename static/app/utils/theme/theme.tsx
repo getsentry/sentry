@@ -18,9 +18,11 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
+import {makeSwatch, type Swatch} from './swatch';
 import type {MotionDuration, MotionEasing} from './types';
 
-type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type BaseTheme = typeof baseLightTheme | typeof baseDarkTheme;
+type Tokens = BaseTheme['tokens'];
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -289,6 +291,7 @@ export interface SentryTheme extends Omit<
   chart: {
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
   };
+  swatch: Swatch;
   tokens: Tokens;
 }
 
@@ -858,6 +861,8 @@ const lightThemeDefinition = {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
+  swatch: makeSwatch(color.categorical.light, baseLightTheme.tokens.content.onVibrant),
+
   colors: lightColors,
 };
 
@@ -892,6 +897,8 @@ export const darkTheme: SentryTheme = {
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
+
+  swatch: makeSwatch(color.categorical.dark, baseDarkTheme.tokens.content.onVibrant),
 
   colors: darkColors,
 };
