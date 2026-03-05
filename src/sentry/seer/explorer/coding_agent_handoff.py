@@ -127,6 +127,9 @@ def launch_coding_agents(
             if client is not None:
                 # User-authenticated client (e.g., GitHub Copilot)
                 coding_agent_state = client.launch(webhook_url="", request=launch_request)
+                # Set integration_id here for org-installed integrations like Claude Code.
+                if integration_id is not None:
+                    coding_agent_state.integration_id = integration_id
             elif installation is not None:
                 # Org-installed integration (e.g., Cursor)
                 coding_agent_state = installation.launch(launch_request)
