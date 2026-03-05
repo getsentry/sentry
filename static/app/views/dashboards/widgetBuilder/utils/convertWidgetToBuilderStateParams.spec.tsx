@@ -1,6 +1,6 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
@@ -123,7 +123,7 @@ describe('convertWidgetToBuilderStateParams', () => {
     );
   });
 
-  it('omits axisRange when widget axisRange is null', () => {
+  it('defaults axisRange to auto when widget axisRange is null', () => {
     const widget = {
       ...getDefaultWidget(WidgetType.ERRORS),
       axisRange: null,
@@ -132,10 +132,10 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(
       widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
     );
-    expect(params.axisRange).toBeUndefined();
+    expect(params.axisRange).toBe('auto');
   });
 
-  it('omits axisRange when widget axisRange is invalid', () => {
+  it('defaults axisRange to auto when widget axisRange is invalid', () => {
     const widget = {
       ...getDefaultWidget(WidgetType.ERRORS),
       axisRange: 'invalid',
@@ -144,12 +144,12 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(
       widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
     );
-    expect(params.axisRange).toBeUndefined();
+    expect(params.axisRange).toBe('auto');
   });
 
   describe('traceMetric', () => {
     it('includes the trace metric in the builder params', () => {
-      const widget: Widget = WidgetFixture({
+      const widget = WidgetFixture({
         ...getDefaultWidget(WidgetType.TRACEMETRICS),
         queries: [
           {

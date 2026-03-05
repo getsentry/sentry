@@ -825,9 +825,12 @@ class RPCBase:
             other_row_conditions = []
             for key in groupby_columns:
                 if key == "project.id":
-                    value = resolver.params.project_slug_map[
-                        event.get("project") or event["project.slug"]
-                    ]
+                    if "project.id" in event:
+                        value = event["project.id"]
+                    else:
+                        value = resolver.params.project_slug_map[
+                            event.get("project") or event["project.slug"]
+                        ]
                 else:
                     value = event[key]
                 resolved_term, context = resolver.resolve_term(

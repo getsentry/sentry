@@ -6,7 +6,6 @@ import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {renderTableBody} from 'sentry/views/prevent/tests/testAnalyticsTable/tableBody';
 import {renderTableHeader} from 'sentry/views/prevent/tests/testAnalyticsTable/tableHeader';
@@ -145,7 +144,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
 const MessageContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   width: 350px;
   justify-items: center;
   align-items: center;
@@ -162,5 +161,5 @@ const Title = styled('div')`
 `;
 
 const StyledIconSearch = styled(IconSearch)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;

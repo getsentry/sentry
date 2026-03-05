@@ -10,7 +10,6 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
-import orjson
 import pytest
 
 from sentry.search.events.types import SnubaParams
@@ -68,13 +67,13 @@ class TestSendToSeer(TestCase):
         mock_response.status = 200
 
         with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
+            "sentry.seer.explorer.explorer_service_map_utils.make_service_map_update_request",
             return_value=mock_response,
         ) as mock_request:
             _send_to_seer(org.id, nodes, edges)
 
         mock_request.assert_called_once()
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = mock_request.call_args[0][0]
         assert body["organization_id"] == org.id
         assert body["nodes"] == nodes
         assert body["edges"] == edges
@@ -112,12 +111,12 @@ class TestSendToSeer(TestCase):
         mock_response.status = 200
 
         with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
+            "sentry.seer.explorer.explorer_service_map_utils.make_service_map_update_request",
             return_value=mock_response,
         ) as mock_request:
             _send_to_seer(org.id, nodes, edges)
 
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = mock_request.call_args[0][0]
         assert len(body["nodes"]) == 1
         assert body["nodes"][0]["project_slug"] == "frontend"
         assert body["edges"] == []

@@ -17,7 +17,6 @@ import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDate
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -233,5 +232,5 @@ const MonitorRows = styled('ul')`
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;

@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {nullableValue} from './fieldRenderers';
 
@@ -49,7 +48,7 @@ const ArrayContainer = styled('div')<{expanded: boolean}>`
     padding: 0;
     cursor: pointer;
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 

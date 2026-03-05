@@ -219,7 +219,7 @@ describe('TestUptimeMonitorButton', () => {
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
       statusCode: 400,
-      body: {assertion: {error: 'compilation_error', details: 'Invalid'}},
+      body: {assertion: {error: 'serialization_error', details: 'Invalid'}},
     });
 
     render(
@@ -239,7 +239,9 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Uptime check failed (Assertion Serialization Error)'
+      );
     });
   });
 

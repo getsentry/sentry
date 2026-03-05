@@ -37,7 +37,6 @@ export function PreprodBuildsDistributionTable({
     const linkUrl =
       getInstallBuildPath({
         organizationSlug,
-        projectId: build.project_id.toString(),
         baseArtifactId: build.id,
       }) ?? '';
     const isInstallable = build.distribution_info?.is_installable ?? false;

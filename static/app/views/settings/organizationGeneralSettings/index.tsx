@@ -17,7 +17,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
@@ -66,7 +65,7 @@ export default function OrganizationGeneralSettings() {
 
   const handleSaveForm: React.ComponentProps<
     typeof OrganizationSettingsForm
-  >['onSave'] = (prevData: Organization, updated: Organization) => {
+  >['onSave'] = (prevData, updated) => {
     if (updated.slug && updated.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, updated);
 

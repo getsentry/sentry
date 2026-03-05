@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {
   UptimeComparisonType,
+  type UptimeOp,
   type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
@@ -17,12 +18,14 @@ interface AssertionOpStatusCodeProps {
   onChange: (op: UptimeStatusCodeOp) => void;
   onRemove: () => void;
   value: UptimeStatusCodeOp;
+  erroredOp?: UptimeOp;
 }
 
 export function AssertionOpStatusCode({
   value,
   onChange,
   onRemove,
+  erroredOp,
 }: AssertionOpStatusCodeProps) {
   const inputId = useId();
 
@@ -66,6 +69,7 @@ export function AssertionOpStatusCode({
       onRemove={onRemove}
       inputId={inputId}
       op={value}
+      erroredOp={erroredOp}
     >
       <InputGroup>
         <InputGroup.LeadingItems>

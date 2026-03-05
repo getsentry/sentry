@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import logging
 from typing import NamedTuple
 
@@ -13,7 +12,11 @@ from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.image_diff.compare import compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
-from sentry.preprod.snapshots.manifest import SnapshotManifest
+from sentry.preprod.snapshots.manifest import (
+    ComparisonManifest,
+    ComparisonSummary,
+    SnapshotManifest,
+)
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -31,6 +34,49 @@ class _DiffCandidate(NamedTuple):
     head_hash: str
     base_hash: str
     pixel_count: int
+
+
+class _ImageDiffResult(NamedTuple):
+    renamed_pairs: list[tuple[str, str]]
+    added: set[str]
+    removed: set[str]
+    matched: set[str]
+    head_by_name: dict[str, str]
+    base_by_name: dict[str, str]
+
+
+def categorize_image_diff(
+    head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
+) -> _ImageDiffResult:
+    head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
+    base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
+
+    matched = head_by_name.keys() & base_by_name.keys()
+    added = head_by_name.keys() - base_by_name.keys()
+    removed = base_by_name.keys() - head_by_name.keys()
+
+    added_hash_to_names: dict[str, list[str]] = {}
+    for name in added:
+        h = head_by_name[name]
+        added_hash_to_names.setdefault(h, []).append(name)
+
+    removed_hash_to_names: dict[str, list[str]] = {}
+    for name in removed:
+        h = base_by_name[name]
+        removed_hash_to_names.setdefault(h, []).append(name)
+
+    renamed_pairs: list[tuple[str, str]] = []
+    for h in added_hash_to_names.keys() & removed_hash_to_names.keys():
+        a_names = added_hash_to_names[h]
+        r_names = removed_hash_to_names[h]
+        if len(a_names) == 1 and len(r_names) == 1:
+            renamed_pairs.append((a_names[0], r_names[0]))
+
+    for new_name, old_name in renamed_pairs:
+        added.discard(new_name)
+        removed.discard(old_name)
+
+    return _ImageDiffResult(renamed_pairs, added, removed, matched, head_by_name, base_by_name)
 
 
 def _image_name_to_path_stem(name: str) -> str:
@@ -205,12 +251,13 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
-        head_by_name = {meta.image_file_name: h for h, meta in head_images.items()}
-        base_by_name = {meta.image_file_name: h for h, meta in base_images.items()}
-
-        matched = head_by_name.keys() & base_by_name.keys()
-        added = head_by_name.keys() - base_by_name.keys()
-        removed = base_by_name.keys() - head_by_name.keys()
+        categories = categorize_image_diff(head_manifest, base_manifest)
+        renamed_pairs = categories.renamed_pairs
+        added = categories.added
+        removed = categories.removed
+        matched = categories.matched
+        head_by_name = categories.head_by_name
+        base_by_name = categories.base_by_name
 
         image_results: dict[str, dict[str, object]] = {}
         changed_count = 0
@@ -351,12 +398,11 @@ def compare_snapshots(
                     diff_mask_key = (
                         f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
                     )
-                    diff_mask_bytes = base64.b64decode(diff_result.diff_mask_png)
+                    diff_mask_bytes = diff_result.diff_mask_png
                     logger.info(
-                        "compare_snapshots: uploading mask for %s (%d bytes, diff=%.4f, changed_px=%d)",
+                        "compare_snapshots: uploading mask for %s (%d bytes, changed_px=%d)",
                         name,
                         len(diff_mask_bytes),
-                        diff_result.diff_score,
                         diff_result.changed_pixels,
                         extra={
                             "head_artifact_id": head_artifact_id,
@@ -377,7 +423,6 @@ def compare_snapshots(
                         "status": "changed" if is_changed else "unchanged",
                         "head_hash": head_hash,
                         "base_hash": base_hash,
-                        "diff_score": diff_result.diff_score,
                         "changed_pixels": diff_result.changed_pixels,
                         "total_pixels": diff_result.total_pixels,
                         "diff_mask_key": diff_mask_key,
@@ -387,7 +432,6 @@ def compare_snapshots(
                         "after_width": diff_result.after_width,
                         "after_height": diff_result.after_height,
                         "aligned_height": diff_result.aligned_height,
-                        "width": diff_result.width,
                     }
 
         for name in sorted(added):
@@ -403,25 +447,34 @@ def compare_snapshots(
                 "before_height": base_meta.height,
             }
 
-        comparison_manifest = {
-            "head_artifact_id": head_artifact_id,
-            "base_artifact_id": base_artifact_id,
-            "summary": {
-                "total": len(matched) + len(added) + len(removed),
-                "changed": changed_count,
-                "unchanged": unchanged_count,
-                "added": len(added),
-                "removed": len(removed),
-                "errored": error_count,
-            },
-            "images": image_results,
-        }
+        for new_name, old_name in sorted(renamed_pairs):
+            content_hash = head_by_name[new_name]
+            image_results[new_name] = {
+                "status": "renamed",
+                "head_hash": content_hash,
+                "previous_image_file_name": old_name,
+            }
+
+        comparison_manifest = ComparisonManifest(
+            head_artifact_id=head_artifact_id,
+            base_artifact_id=base_artifact_id,
+            summary=ComparisonSummary(
+                total=len(matched) + len(added) + len(removed) + len(renamed_pairs),
+                changed=changed_count,
+                unchanged=unchanged_count,
+                added=len(added),
+                removed=len(removed),
+                errored=error_count,
+                renamed=len(renamed_pairs),
+            ),
+            images=image_results,
+        )
 
         comparison_key = (
             f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/comparison.json"
         )
         session.put(
-            orjson.dumps(comparison_manifest),
+            orjson.dumps(comparison_manifest.dict()),
             key=comparison_key,
             content_type="application/json",
         )
@@ -432,6 +485,7 @@ def compare_snapshots(
         comparison.images_unchanged = unchanged_count
         comparison.images_added = len(added)
         comparison.images_removed = len(removed)
+        comparison.images_renamed = len(renamed_pairs)
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
@@ -444,6 +498,7 @@ def compare_snapshots(
                 "images_unchanged",
                 "images_added",
                 "images_removed",
+                "images_renamed",
                 "extras",
                 "date_updated",
             ]
@@ -458,6 +513,7 @@ def compare_snapshots(
                 "unchanged": unchanged_count,
                 "added": len(added),
                 "removed": len(removed),
+                "renamed": len(renamed_pairs),
                 "errored": error_count,
             },
         )

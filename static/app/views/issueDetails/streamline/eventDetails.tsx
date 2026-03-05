@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
@@ -90,7 +89,7 @@ const GroupContent = styled('div')`
 `;
 
 const ContentPadding = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const BannerPadding = styled('div')`

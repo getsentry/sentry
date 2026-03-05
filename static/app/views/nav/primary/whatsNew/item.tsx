@@ -6,7 +6,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,8 +55,8 @@ export function WhatsNewItem({
 
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
-  margin: 0 ${space(3)};
-  padding: ${space(2)} 0;
+  margin: 0 ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.xl} 0;
 
   :not(:first-child) {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
@@ -84,5 +83,5 @@ const Media = styled('img')`
 `;
 
 const CategoryTag = styled(Tag)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

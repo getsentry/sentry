@@ -8,7 +8,6 @@ import {Input} from '@sentry/scraps/input';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
@@ -308,8 +307,8 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
 const QueryFieldRowWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 

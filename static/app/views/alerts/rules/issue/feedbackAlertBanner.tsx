@@ -4,7 +4,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -44,5 +43,5 @@ export default function FeedbackAlertBanner({
 }
 
 const StyledFeedbackAlert = styled(Alert)`
-  margin: ${space(1)} 0 0 0;
+  margin: ${p => p.theme.space.md} 0 0 0;
 `;

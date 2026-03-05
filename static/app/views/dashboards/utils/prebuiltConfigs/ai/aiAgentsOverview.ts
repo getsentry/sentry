@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -20,6 +21,8 @@ const DEFAULT_GLOBAL_FILTERS = [
     value: '',
   },
 ];
+
+export const DEFAULT_TRACES_TABLE_WIDTHS = [110, 600, 140, 110, 110, 110, 120, 110, 110];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -157,6 +160,32 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const AGENTS_TRACES_TABLE = {
+  id: 'ai-agents-traces-table',
+  title: t('Traces'),
+  displayType: DisplayType.AGENTS_TRACES_TABLE,
+  interval: '1h',
+  tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
+  limit: 20,
+  queries: [
+    {
+      conditions: '',
+      fields: [],
+      columns: [],
+      aggregates: [],
+      name: '',
+      orderby: '',
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 6,
+    w: 6,
+    h: 4,
+    minH: TABLE_MIN_HEIGHT,
+  },
+};
+
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
@@ -164,5 +193,5 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS],
+  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
 };

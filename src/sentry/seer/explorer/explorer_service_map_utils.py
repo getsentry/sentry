@@ -22,16 +22,14 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
+    SeerViewerContext,
+    ServiceMapUpdateRequest,
+    make_service_map_update_request,
 )
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger("sentry.seer.explorer.explorer_service_map_utils")
-
-# Seer endpoint path
-SEER_SERVICE_MAP_PATH = "/v1/explorer/service-map/update"
 
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000
@@ -146,16 +144,17 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         span.set_data("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
-            span_id_filters = " OR ".join([f'id:"{sid}"' for sid in batch])
+            span_ids = ",".join(batch)
             parent_result = Spans.run_table_query(
                 params=snuba_params,
-                query_string=span_id_filters,
+                query_string=f"id:[{span_ids}]",
                 selected_columns=["id", "project.id", "project.slug", "timestamp"],
                 orderby=["-timestamp"],
                 offset=0,
                 limit=len(batch),
                 referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
                 config=SearchResolverConfig(),
+                sampling_mode="HIGHEST_ACCURACY",
             )
 
             for parent_row in parent_result.get("data", []):
@@ -296,13 +295,12 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         if e.get("source_project_slug") is not None and e.get("target_project_slug") is not None
     ]
 
-    payload = {
-        "organization_id": org_id,
-        "nodes": valid_nodes,
-        "edges": valid_edges,
-    }
-
-    body = orjson.dumps(payload)
+    body = ServiceMapUpdateRequest(
+        organization_id=org_id,
+        nodes=valid_nodes,
+        edges=valid_edges,
+    )
+    body_bytes = orjson.dumps(body)
 
     logger.info(
         "Sending service map to Seer",
@@ -310,15 +308,11 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
             "org_id": org_id,
             "node_count": len(valid_nodes),
             "edge_count": len(valid_edges),
-            "payload_size_bytes": len(body),
+            "payload_size_bytes": len(body_bytes),
         },
     )
 
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        SEER_SERVICE_MAP_PATH,
-        body,
-        timeout=30,
-    )
+    viewer_context = SeerViewerContext(organization_id=org_id)
+    response = make_service_map_update_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer service map update failed", response.status)

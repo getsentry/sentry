@@ -13,7 +13,6 @@ import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
@@ -249,5 +248,5 @@ export default withApi(SuperuserStaffAccessFormContent);
 
 const BackWrapper = styled('div')`
   width: 100%;
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space['3xl']};
 `;
