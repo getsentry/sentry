@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function CopyDsnField({params}: {params: DocsParams<any>}) {
@@ -28,6 +29,18 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
       </TextCopyInput>
     </Wrapper>
   );
+}
+
+/**
+ * Returns a `custom` content block for `CopyDsnField` with a `markdown`
+ * representation so the DSN is included in copied markdown output.
+ */
+export function copyDsnFieldBlock(params: DocsParams<any>): ContentBlock {
+  return {
+    type: 'custom',
+    content: <CopyDsnField params={params} />,
+    markdown: `${t("If you already have the configuration for Sentry in your application, and just need this project's (%s) DSN, you can find it below:", params.project.slug)}\n\n\`\`\`\n${params.dsn.public}\n\`\`\``,
+  };
 }
 
 const Wrapper = styled('div')`
