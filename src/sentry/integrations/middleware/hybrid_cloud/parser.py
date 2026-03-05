@@ -386,6 +386,9 @@ class BaseRequestParser(ABC):
         self,
         external_id: str | None = None,
     ):
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
+
         rollout_rate = options.get("codecov.forward-webhooks.rollout")
 
         # we don't want to emit metrics unless we've started to roll this out

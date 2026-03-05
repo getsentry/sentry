@@ -163,7 +163,11 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
     @override_options(
-        {"codecov.forward-webhooks.rollout": 1.0, "codecov.forward-webhooks.regions": ["us"]}
+        {
+            "codecov.forward-webhooks.rollout": 1.0,
+            "codecov.forward-webhooks.regions": ["us"],
+            "codecov.forward-webhooks.disabled": False,
+        }
     )
     @override_regions(region_config)
     def test_webhook_for_codecov(self):
@@ -195,10 +199,55 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
     @override_options(
-        {"codecov.forward-webhooks.rollout": 1.0, "codecov.forward-webhooks.regions": []}
+        {
+            "codecov.forward-webhooks.rollout": 1.0,
+            "codecov.forward-webhooks.regions": [],
+            "codecov.forward-webhooks.disabled": False,
+        }
     )
     @override_regions(region_config)
     def test_webhook_for_codecov_no_regions(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.content == b""
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+            destination_types={DestinationType.SENTRY_REGION: 1},
+        )
+        with pytest.raises(
+            Exception,
+            match="Missing 1 WebhookPayloads for codecov",
+        ):
+            assert_webhook_payloads_for_mailbox(
+                request=request,
+                mailbox_name="github:codecov:1",
+                region_names=[],
+                destination_types={DestinationType.CODECOV: 1},
+            )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.forward-webhooks.rollout": 1.0,
+            "codecov.forward-webhooks.regions": ["us"],
+            "codecov.forward-webhooks.disabled": True,
+        }
+    )
+    @override_regions(region_config)
+    def test_webhook_no_codecov_payload_when_forwarding_disabled(self):
+        """When codecov.forward-webhooks.disabled is True, only region payload is created."""
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
