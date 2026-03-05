@@ -11,7 +11,7 @@ import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = {
   authConfig: AuthConfig;
@@ -19,6 +19,7 @@ type Props = {
 
 function RegisterForm({authConfig}: Props) {
   const {hasNewsletter} = authConfig;
+  const navigate = useNavigate();
 
   const [error, setError] = useState('');
 
@@ -30,7 +31,7 @@ function RegisterForm({authConfig}: Props) {
       submitLabel={t('Continue')}
       onSubmitSuccess={response => {
         ConfigStore.set('user', response.user);
-        browserHistory.push({pathname: response.nextUri});
+        navigate({pathname: response.nextUri});
       }}
       onSubmitError={response => {
         setError(response.responseJSON.detail);
