@@ -1,20 +1,18 @@
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 describe('WidgetCardConfidenceFooter', () => {
-  const rawCounts: RawCounts = {
-    normal: {count: 120, isLoading: false},
-    highAccuracy: {count: 500, isLoading: false},
-  };
+  const selection = PageFiltersFixture();
 
   const series: Array<Series & {fieldName?: string}> = [
     {
@@ -48,12 +46,25 @@ describe('WidgetCardConfidenceFooter', () => {
     {seriesName: 'series-b'},
   ] as unknown as GenericWidgetQueriesResult['timeseriesResults'];
 
+  beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(selection);
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('does not render when confidence warning is disabled', () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(span.duration)': 0}]},
+    });
+
     render(
       <WidgetCardConfidenceFooter
         loading={false}
         other="Other"
-        rawCounts={null}
         series={series}
         showConfidenceWarning={false}
         timeseriesResults={timeseriesResults}
@@ -71,11 +82,21 @@ describe('WidgetCardConfidenceFooter', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders spans footer with user query and top event metadata', () => {
+  it('renders spans footer with user query and top event metadata', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(span.duration)': 120}]},
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'spans'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(span.duration)': 500}]},
+      match: [MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'spans'})],
+    });
+
     render(
       <WidgetCardConfidenceFooter
         loading={false}
-        rawCounts={null}
         series={series}
         showConfidenceWarning
         shouldColorOther={false}
@@ -96,26 +117,24 @@ describe('WidgetCardConfidenceFooter', () => {
       />
     );
 
-    const footer = screen.getByText(/Estimated for top 2 groups from/i);
-    expect(footer).toHaveTextContent('18 spans');
+    const footer = await screen.findByText(/Estimated for top 2 groups from/i);
+    expect(footer).toHaveTextContent('18 matches');
+    expect(footer).toHaveTextContent('500 spans');
   });
 
-  it('does not render logs footer when raw counts are missing', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.LOGS,
-      queries: [WidgetQueryFixture()],
-    });
-
+  it('does not render footer for unsupported widget types', () => {
     render(
       <WidgetCardConfidenceFooter
         loading={false}
-        rawCounts={null}
         other="Other"
         series={series}
         showConfidenceWarning
         timeseriesResults={timeseriesResults}
-        widget={widget}
+        widget={WidgetFixture({
+          displayType: DisplayType.LINE,
+          widgetType: WidgetType.ERRORS,
+          queries: [WidgetQueryFixture()],
+        })}
         yAxis="count()"
       />
     );
@@ -123,75 +142,81 @@ describe('WidgetCardConfidenceFooter', () => {
     expect(screen.queryByText(/Estimated from/i)).not.toBeInTheDocument();
   });
 
-  it('renders logs footer when raw counts are present', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.LOGS,
-      queries: [WidgetQueryFixture()],
+  it('renders logs footer with raw counts from API', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(message)': 120}]},
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'ourlogs'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(message)': 500}]},
+      match: [
+        MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'ourlogs'}),
+      ],
     });
 
     render(
       <WidgetCardConfidenceFooter
         loading={false}
         other="Other"
-        rawCounts={rawCounts}
         series={series}
         showConfidenceWarning
         timeseriesResults={timeseriesResults}
-        widget={widget}
+        widget={WidgetFixture({
+          displayType: DisplayType.LINE,
+          widgetType: WidgetType.LOGS,
+          queries: [WidgetQueryFixture()],
+        })}
         yAxis="count()"
       />
     );
 
-    const footer = screen.getByText(/Estimated from/i);
+    const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
     expect(footer).toHaveTextContent('500 logs');
   });
 
-  it('does not render metrics footer when raw counts are missing', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.TRACEMETRICS,
-      queries: [WidgetQueryFixture()],
+  it('renders metrics footer with raw counts from API', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value,duration,d,-)': 120}]},
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'tracemetrics'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value,duration,d,-)': 500}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'HIGHEST_ACCURACY',
+          dataset: 'tracemetrics',
+        }),
+      ],
     });
 
     render(
       <WidgetCardConfidenceFooter
         loading={false}
-        rawCounts={null}
         other="Other"
         series={series}
         showConfidenceWarning
         timeseriesResults={timeseriesResults}
-        widget={widget}
+        widget={WidgetFixture({
+          displayType: DisplayType.LINE,
+          widgetType: WidgetType.TRACEMETRICS,
+          queries: [
+            WidgetQueryFixture({
+              aggregates: ['avg(value,duration,d,-)'],
+              fields: ['avg(value,duration,d,-)'],
+              columns: [],
+            }),
+          ],
+        })}
         yAxis="count()"
       />
     );
 
-    expect(screen.queryByText(/Estimated from/i)).not.toBeInTheDocument();
-  });
-
-  it('renders metrics footer when raw counts are present', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.TRACEMETRICS,
-      queries: [WidgetQueryFixture()],
-    });
-
-    render(
-      <WidgetCardConfidenceFooter
-        loading={false}
-        rawCounts={rawCounts}
-        other="Other"
-        series={series}
-        showConfidenceWarning
-        timeseriesResults={timeseriesResults}
-        widget={widget}
-        yAxis="count()"
-      />
-    );
-
-    const footer = screen.getByText(/Estimated from/i);
+    const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
     expect(footer).toHaveTextContent('500 data points');
   });

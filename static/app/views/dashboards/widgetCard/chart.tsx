@@ -98,7 +98,6 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
@@ -173,7 +172,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const location = useLocation();
   const theme = useTheme();
-  const rawCounts = useWidgetRawCounts({selection, widget});
 
   useTrackAnalyticsOnSpanMigrationError({errorMessage, widget, loading});
 
@@ -549,7 +547,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                       isSampled={isSampled}
                       other={OTHER}
                       loading={loading}
-                      rawCounts={rawCounts}
                       sampleCount={sampleCount}
                       series={series}
                       shouldColorOther={shouldColorOther}

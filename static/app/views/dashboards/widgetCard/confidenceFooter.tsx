@@ -1,3 +1,4 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -8,16 +9,15 @@ import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ConfidenceFooter as LogsConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {ConfidenceFooter as MetricsConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type Props = {
   loading: boolean;
   other: 'Other';
-  rawCounts: RawCounts | null;
   series: Array<Series & {fieldName?: string}>;
   timeseriesResults: GenericWidgetQueriesResult['timeseriesResults'];
   widget: Widget;
@@ -36,7 +36,6 @@ export function WidgetCardConfidenceFooter({
   isSampled,
   loading,
   other,
-  rawCounts,
   sampleCount,
   series,
   shouldColorOther,
@@ -45,6 +44,9 @@ export function WidgetCardConfidenceFooter({
   widget,
   yAxis,
 }: Props) {
+  const {selection} = usePageFilters();
+  const rawCounts = useWidgetRawCounts({selection, widget});
+
   if (!showConfidenceWarning) {
     return null;
   }
