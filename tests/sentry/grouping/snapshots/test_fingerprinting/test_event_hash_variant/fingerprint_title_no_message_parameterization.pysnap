@@ -16,7 +16,7 @@ config:
 fingerprint:
 - dogs are great
 - '{{ message }}'
-title: 'Number <int> dog, dog #<int>'
+title: 'Number 1 dog, dog #1'
 variants:
   custom_server_fingerprint:
     contributes: true

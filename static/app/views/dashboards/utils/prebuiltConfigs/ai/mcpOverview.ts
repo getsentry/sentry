@@ -92,6 +92,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_TOOL_NAME,
+              staticDashboardId: 20,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -112,6 +119,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_RESOURCE_URI],
           fieldAliases: [t('Resource'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_RESOURCE_URI,
+              staticDashboardId: 21,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -132,6 +146,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_PROMPT_NAME],
           fieldAliases: [t('Prompt'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_PROMPT_NAME,
+              staticDashboardId: 22,
+            },
+          ],
         },
       ],
       limit: 3,

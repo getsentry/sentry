@@ -262,6 +262,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <AgentsTracesTableWidgetVisualization
           limit={widget.limit}
           tableWidths={widget.tableWidths}
+          frameless
         />
       </TableWrapper>
     );
@@ -754,14 +755,6 @@ function BigNumberComponent({
 
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {widget, tableResults, loading} = props;
-
-  const hasCategoricalBarCharts = useOrganization().features.includes(
-    'dashboards-categorical-bar-charts'
-  );
-
-  if (!hasCategoricalBarCharts) {
-    return null;
-  }
 
   if (loading || !tableResults?.[0]) {
     return <LoadingPlaceholder />;
