@@ -258,6 +258,55 @@ class SCIMDetailPatchTest(SCIMTestCase):
             team_id=self.team.id, organizationmember_id=self.member_two.id
         ).exists()
 
+    def test_add_multiple_members(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {"value": self.member_one.id, "display": "one@example.com"},
+                    {"value": self.member_two.id, "display": "two@example.com"},
+                ],
+            },
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_preserves_overlapping_membership_row(self) -> None:
+        original_omt = OrganizationMemberTeam.objects.get(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        )
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {"value": self.member_on_team.id, "display": "existing@example.com"},
+                    {"value": self.member_one.id, "display": "new@example.com"},
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        # The overlapping member's row is the same DB object, not deleted and re-created
+        assert OrganizationMemberTeam.objects.filter(id=original_omt.id).exists()
+        # New member was added
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        # member_two was not in the replace list and should not be on the team
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
     def test_replace_members_with_identical_list_is_noop(self) -> None:
         # Replacing with the same member already on the team should change nothing
         self.base_data["Operations"] = [
