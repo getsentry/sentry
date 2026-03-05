@@ -229,6 +229,10 @@ class PreprodArtifact(DefaultFieldsModel):
     )
     installable_app_error_message = models.TextField(null=True)
 
+    def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
+        """Safely access the related mobile_app_info without raising RelatedObjectDoesNotExist."""
+        return getattr(self, "mobile_app_info", None)
+
     @property
     def platform(self) -> Platform | None:
         if self.artifact_type is None:
