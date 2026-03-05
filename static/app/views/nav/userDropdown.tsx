@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -13,13 +12,8 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
+import {DropdownNoWrap} from 'sentry/views/nav/primary/components';
 import {NavLayout} from 'sentry/views/nav/types';
-
-// Eliminates the DropdownMenu wrapper div so the trigger button is a direct
-// child of ButtonBar.
-function DropdownNoWrap({children}: {children?: React.ReactNode}) {
-  return <Fragment>{children}</Fragment>;
-}
 
 export function UserDropdown() {
   const api = useApi();

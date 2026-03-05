@@ -417,7 +417,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     );
   };
 
-  const {isPromptDismissed, snoozePrompt} = usePrompts({
+  const {isLoading, isError, isPromptDismissed, snoozePrompt} = usePrompts({
     features: promptsToCheck,
     organization,
     daysToSnooze:
@@ -484,6 +484,15 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     overlayState,
     subscription?.onDemandPeriodStart,
   ]);
+
+  const shouldShow =
+    exceededCategories.length > 0 &&
+    subscription &&
+    subscription.canSelfServe &&
+    !subscription.hasOverageNotificationsDisabled;
+  if (!shouldShow || isLoading || isError) {
+    return null;
+  }
 
   const onDismiss = ({
     categories,

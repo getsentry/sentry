@@ -52,6 +52,10 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
 export function PrimaryNavigationServiceIncidents() {
   const {data: incidents = []} = useServiceIncidents();
 
+  if (!incidents.length) {
+    return null;
+  }
+
   return <ServiceIncidentsButton incidents={incidents} />;
 }
 

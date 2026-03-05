@@ -168,6 +168,10 @@ export function PrimaryNavigationOnboarding() {
     allTasksCompleted,
   ]);
 
+  if (skipQuickStart) {
+    return null;
+  }
+
   return (
     <OnboardingItem
       allTasks={allTasks}

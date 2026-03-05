@@ -131,7 +131,7 @@ export function SidebarItem({
 
 // Eliminates the DropdownMenu wrapper div so the trigger button is a direct
 // child of its container (e.g. ButtonBar).
-function DropdownNoWrap({children}: {children?: React.ReactNode}) {
+export function DropdownNoWrap({children}: {children?: React.ReactNode}) {
   return <Fragment>{children}</Fragment>;
 }
 
