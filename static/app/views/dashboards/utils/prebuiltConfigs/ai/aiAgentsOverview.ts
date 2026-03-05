@@ -108,6 +108,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
           fieldAliases: [t('Model'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              staticDashboardId: 17,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -131,6 +138,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              staticDashboardId: 17,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -151,6 +165,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_TOOL_NAME,
+              staticDashboardId: 18,
+            },
+          ],
         },
       ],
       limit: 3,
