@@ -5,7 +5,7 @@ Usage::
     pytest -n4 tests/sentry/foo/
 
 Distributes all collected tests upfront across N worker subprocesses.
-Each worker gets isolated databases, Redis, and Kafka via the xdist module.
+Each worker gets isolated databases, Redis, and Kafka via the isolation module.
 
 No execnet, no dynamic load balancing, no master-worker IPC beyond temp files.
 Workers are plain ``pytest`` processes with ``SENTRY_TEST_WORKER_ID`` and
@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from sentry.testutils.pytest.xdist import _MAX_SLOTS
+from sentry.testutils.pytest.isolation import _MAX_SLOTS
 
 # Tiny plugin injected into workers for structured result reporting.
 # Writes one JSON line per test to a temp file the coordinator polls.
@@ -83,9 +83,12 @@ class _CoordinatorPlugin:
         self._completed = 0
         self._total = 0
         self._failed = 0
-        self._dots = ""  # accumulated .Fs characters for non-verbose mode
-        self._dots_on_line = 0  # characters on the current dot-output line
+        self._dots_on_line = 0  # dot characters on the current output line
         self._dots_width = 50  # dot chars per line before wrapping
+        # \r + ANSI escape only works on real terminals.  On pipes (CI)
+        # we just stream dots and print the counter on line wraps.
+        tw = config.get_terminal_writer()
+        self._isatty = getattr(tw, "hasmarkup", False)
 
     def run(self, session: pytest.Session) -> bool:
         if not session.items:
@@ -196,36 +199,39 @@ class _CoordinatorPlugin:
             parts.append(f"{self._failed} failed")
         return " ".join(parts)
 
-    def _write_dot_progress(self, char: str, tw: pytest.TerminalWriter, **markup: bool) -> None:
+    def _write_dot_progress(self, char: str, tw: pytest.TerminalWriter) -> None:
         """Write a dot character and update the in-place progress suffix."""
-        # Wrap to a new line if we've hit the width limit.
         if self._dots_on_line >= self._dots_width:
-            tw.write("\r\033[K")  # clear the progress suffix
-            tw.write(self._dots[-self._dots_on_line :])  # rewrite current dots
-            tw.line("")  # newline
+            # Commit the current line.
+            if self._isatty:
+                tw.write("\r\033[K")
+            suffix = self._progress_suffix()
+            tw.line(f"{'.' * self._dots_on_line}  {suffix}")
             self._dots_on_line = 0
 
-        self._dots += char
         self._dots_on_line += 1
 
-        # Write: dots on this line, then a gap, then the progress counter.
-        # Use \r to keep overwriting the same line.
-        suffix = self._progress_suffix()
-        tw.write("\r\033[K")
-        tw.write(self._dots[-self._dots_on_line :])
-        tw.write(f"  {suffix}")
-        tw.flush()
+        if self._isatty:
+            # Overwrite the line in-place with dots + counter.
+            tw.write("\r\033[K")
+            tw.write(f"{'.' * self._dots_on_line}  {self._progress_suffix()}")
+            tw.flush()
+        else:
+            # Dumb terminal / pipe: just append the character.
+            tw.write(char)
+            tw.flush()
 
     def _clear_progress(self, tw: pytest.TerminalWriter) -> None:
-        """Clear the current in-place progress line."""
-        tw.write("\r\033[K")
-        tw.flush()
+        """Clear the current in-place progress line (TTY only, no-op on pipes)."""
+        if self._isatty:
+            tw.write("\r\033[K")
+            tw.flush()
 
     def _redraw_progress(self, tw: pytest.TerminalWriter) -> None:
-        """Redraw dots + progress suffix after an interruption (e.g. failure output)."""
-        suffix = self._progress_suffix()
-        tw.write(self._dots[-self._dots_on_line :] + f"  {suffix}")
-        tw.flush()
+        """Redraw dots + progress suffix after a failure interruption (TTY only)."""
+        if self._isatty:
+            tw.write(f"{'.' * self._dots_on_line}  {self._progress_suffix()}")
+            tw.flush()
 
     def _print_result(self, worker_idx: int, ev: dict, tw: pytest.TerminalWriter) -> None:
         """Print a test result, respecting verbosity level.
@@ -254,15 +260,17 @@ class _CoordinatorPlugin:
                     tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)", red=True)
             else:
                 if outcome == "passed":
-                    self._write_dot_progress(".", tw, green=True)
+                    self._write_dot_progress(".", tw)
                 elif outcome == "skipped":
-                    self._write_dot_progress("s", tw, yellow=True)
+                    self._write_dot_progress("s", tw)
                 else:
-                    self._write_dot_progress("F", tw, red=True)
+                    self._write_dot_progress("F", tw)
 
             if outcome == "failed" and longrepr:
                 if not self._verbose:
                     self._clear_progress(tw)
+                    if not self._isatty:
+                        tw.line("")  # newline after inline dots
                 tw.line(f"FAILED {nodeid} ({duration:.2f}s)", red=True)
                 for line in longrepr.splitlines():
                     tw.line(f"    {line}")
@@ -315,41 +323,57 @@ class _CoordinatorPlugin:
         # Poll result files, print our output, and collect reports for pytest.
         reports: list[pytest.TestReport] = []
         alive = {i for i, _, _ in workers}
-        offsets = {i: 0 for i, _, _ in workers}
+        offsets: dict[int, int] = {i: 0 for i, _, _ in workers}
+
+        def _read_results(idx: int, rpath: Path) -> None:
+            try:
+                with open(rpath) as f:
+                    f.seek(offsets[idx])
+                    for raw_line in f:
+                        raw_line = raw_line.strip()
+                        if not raw_line:
+                            continue
+                        ev = json.loads(raw_line)
+                        self._print_result(idx, ev, tw)
+                        item = items_by_nodeid.get(ev["n"])
+                        if item is not None:
+                            reports.append(self._make_report(ev, item))
+                    offsets[idx] = f.tell()
+            except FileNotFoundError:
+                pass
+
         while alive:
             for idx, proc, rpath in workers:
                 if idx not in alive:
                     continue
-                try:
-                    with open(rpath) as f:
-                        f.seek(offsets[idx])
-                        for line in f:
-                            line = line.strip()
-                            if not line:
-                                continue
-                            ev = json.loads(line)
-                            self._print_result(idx, ev, tw)
-                            item = items_by_nodeid.get(ev["n"])
-                            if item is not None:
-                                reports.append(self._make_report(ev, item))
-                        offsets[idx] = f.tell()
-                except FileNotFoundError:
-                    pass
-
+                _read_results(idx, rpath)
                 if proc.poll() is not None:
                     alive.discard(idx)
-
             time.sleep(0.3)
+
+        # Final drain — pick up results written between last read and exit.
+        for idx, _, rpath in workers:
+            _read_results(idx, rpath)
 
         # Finalize the dot-output line.
         if not self._verbose:
             self._clear_progress(tw)
-            tw.line(self._dots[-self._dots_on_line :] + f"  {self._progress_suffix()}")
+            if self._isatty:
+                tw.line(f"{'.' * self._dots_on_line}  {self._progress_suffix()}")
+            else:
+                tw.line(f"  {self._progress_suffix()}")
 
         for t in threads:
             t.join(timeout=5)
-        for _, proc, _ in workers:
+
+        # Print captured stdout from workers that crashed.
+        for i, (idx, proc, _) in enumerate(workers):
             proc.wait()
+            if proc.returncode not in (0, 1) and worker_output[i]:
+                tw.line("")
+                tw.sep("-", f"worker {idx} crashed (exit {proc.returncode})")
+                for out_line in worker_output[i]:
+                    tw.line(out_line)
 
         # Feed collected reports into the terminal reporter's stats so the
         # summary line is correct, then re-register it for summary output.

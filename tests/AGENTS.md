@@ -13,6 +13,32 @@ Notice that we prefix `tests/` to the path and prefix `test_` to the module name
 
 **Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
 
+## Parallel Test Execution
+
+Multiple `pytest` processes can run simultaneously without interference. Each process automatically gets isolated PostgreSQL databases, Redis DBs, and Kafka topics via `src/sentry/testutils/pytest/isolation.py`.
+
+### Running tests in parallel
+
+Use `pytest -n4` to distribute tests across 4 workers via the built-in `sentry-parallel` plugin, or just run multiple independent `pytest` invocations (auto-allocated via file locks).
+
+### How isolation works
+
+- **No env vars needed** — plain `pytest` auto-isolates by default via file-lock slot allocation.
+- **`SENTRY_PYTEST_SERIAL=1`** — disables isolation (old single-process behaviour).
+- **`SENTRY_TEST_WORKER_ID=N`** — explicitly assign a slot (set automatically by `-n`).
+- **Max 15 parallel slots** — constrained by Redis DB limit (DBs 1–15).
+- **PostgreSQL** — each slot gets uniquely suffixed databases (e.g., `region_0`, `control_0`).
+- **Redis** — each slot gets its own DB number (1–15), no cross-session data leaks.
+- **Kafka** — topics are suffixed with the worker ID (e.g., `ingest-events-0`).
+- **ClickHouse/Snuba** — tables are _not_ truncated between tests. Isolation relies on PostgreSQL sequence uniqueness: each test gets fresh `project_id`s that never collide, so ClickHouse rows from other tests are invisible. Tests that query ClickHouse without filtering by `project_id` may see cross-worker data.
+- **`--reuse-db`** — works because slot-based suffixes are stable across runs.
+
+### Output modes
+
+- **Default** — dots (`.Fs`) with an in-place progress counter on TTYs; plain streaming dots on CI pipes.
+- **`-v` / `--verbose`** — full per-test lines: `[w0] tests/sentry/foo/test_bar.py::TestClass::test_method PASSED (0.42s)`.
+- **Failures** — always print the full traceback regardless of verbosity.
+
 ## Testing Best Practices
 
 ### Python Tests

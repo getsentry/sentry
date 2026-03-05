@@ -172,15 +172,6 @@ CI=true pnpm test components/avatar.spec.tsx
 
 Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
-### Parallel test execution
-
-Multiple `pytest` processes can run simultaneously without interference. Each process automatically gets isolated PostgreSQL databases, Redis DBs, and Kafka topics via `src/sentry/testutils/pytest/xdist.py`. Use `pytest -n4` to distribute tests across 4 workers via the built-in `sentry-parallel` plugin, or just run multiple independent `pytest` invocations (auto-allocated via file locks).
-
-- **No env vars needed** — plain `pytest` auto-isolates by default.
-- **`SENTRY_PYTEST_SERIAL=1`** — disables isolation (old single-process behaviour).
-- **ClickHouse/Snuba** — tables are _not_ truncated between tests. Isolation relies on PostgreSQL sequence uniqueness: each test gets fresh `project_id`s that never collide, so ClickHouse rows from other tests are invisible.
-- **Max 7 parallel slots** — constrained by Redis DB limit (DBs 9–15).
-
 ### Context-Aware Loading
 
 Cursor is configured to automatically load relevant AGENTS.md files based on the file being edited (via `.cursor/rules/*.mdc`). This provides context-specific guidance without token bloat:
