@@ -361,7 +361,61 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        # 35129377 % 100 = 77
+        # 35129377 % 100 = 77, event type appended for per-event-type isolation
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}:77:push",
+            region_names=[region.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_outbox_creation_with_bucketing_isolates_event_types(self) -> None:
+        """Different event types for the same repo land in different mailboxes."""
+        integration = self.get_integration()
+        push_request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        check_run_request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.CHECK_RUN.value},
+        )
+
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
+            push_parser = GithubRequestParser(
+                request=push_request, response_handler=self.get_response
+            )
+            check_run_parser = GithubRequestParser(
+                request=check_run_request, response_handler=self.get_response
+            )
+            assert push_parser.get_mailbox_identifier(
+                integration, {}
+            ) != check_run_parser.get_mailbox_identifier(integration, {})
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_outbox_creation_with_bucketing_no_event_type_header(self) -> None:
+        """Falls back gracefully when X-GitHub-Event header is absent."""
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            # No X-GITHUB-EVENT header
+        )
+
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
+            parser = GithubRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # No event type header — identifier is repo-bucket only
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"github:{integration.id}:77",
@@ -391,7 +445,8 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_webhook_without_repository_falls_back_to_single_mailbox(self) -> None:
+    def test_webhook_without_repository_uses_event_type_only(self) -> None:
+        """No repository ID means no repo bucket, but event type still provides isolation."""
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -408,7 +463,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:issues",
             region_names=[region.name],
         )
 
