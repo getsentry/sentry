@@ -1,4 +1,5 @@
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -26,6 +27,7 @@ type Props = {
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   sampleCount?: number;
+  selection?: PageFilters;
   shouldColorOther?: boolean;
   showConfidenceWarning?: boolean;
 };
@@ -37,6 +39,7 @@ export function WidgetCardConfidenceFooter({
   loading,
   other,
   sampleCount,
+  selection: selectionProp,
   series,
   shouldColorOther,
   showConfidenceWarning,
@@ -44,7 +47,8 @@ export function WidgetCardConfidenceFooter({
   widget,
   yAxis,
 }: Props) {
-  const {selection} = usePageFilters();
+  const {selection: pageFilterSelection} = usePageFilters();
+  const selection = selectionProp ?? pageFilterSelection;
   const rawCounts = useWidgetRawCounts({selection, widget});
 
   if (!showConfidenceWarning) {

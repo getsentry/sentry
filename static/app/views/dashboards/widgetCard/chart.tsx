@@ -548,6 +548,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                       other={OTHER}
                       loading={loading}
                       sampleCount={sampleCount}
+                      selection={selection}
                       series={series}
                       shouldColorOther={shouldColorOther}
                       showConfidenceWarning={showConfidenceWarning}
