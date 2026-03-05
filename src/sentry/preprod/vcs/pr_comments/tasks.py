@@ -7,10 +7,9 @@ from typing import Any
 from django.db import router, transaction
 
 from sentry import features
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.build_distribution_utils import is_installable_artifact
-from sentry.preprod.integration_utils import get_github_client
+from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.vcs.pr_comments.templates import format_pr_comment
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
@@ -66,17 +65,6 @@ def create_preprod_pr_comment_task(
         )
         return
 
-    _SUPPORTED_PROVIDERS = {
-        IntegrationProviderSlug.GITHUB.value,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-    }
-    if commit_comparison.provider not in _SUPPORTED_PROVIDERS:
-        logger.info(
-            "preprod.pr_comments.create.unsupported_provider",
-            extra={"artifact_id": artifact.id, "provider": commit_comparison.provider},
-        )
-        return
-
     organization = artifact.project.organization
     if not features.has("organizations:preprod-build-distribution-pr-comments", organization):
         logger.info(
@@ -85,12 +73,12 @@ def create_preprod_pr_comment_task(
         )
         return
 
-    client = get_github_client(
+    client = get_commit_context_client(
         organization, commit_comparison.head_repo_name, commit_comparison.provider
     )
     if not client:
         logger.info(
-            "preprod.pr_comments.create.no_github_client",
+            "preprod.pr_comments.create.no_client",
             extra={"artifact_id": artifact.id},
         )
         return

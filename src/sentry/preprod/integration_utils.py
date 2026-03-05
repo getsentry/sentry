@@ -7,10 +7,22 @@ from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.source_code_management.commit_context import CommitContextClient
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
+
+
+def get_commit_context_client(
+    organization: Organization, repo_name: str, provider: str = "github"
+) -> CommitContextClient | None:
+    """Get a CommitContextClient for this organization and repository.
+
+    Currently delegates to get_github_client; any integration that
+    implements CommitContextClient will work automatically.
+    """
+    return get_github_client(organization, repo_name, provider)
 
 
 def get_github_client(

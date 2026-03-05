@@ -92,7 +92,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             integration_id=123,
         )
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_creates_comment(self, mock_format, mock_get_client):
         mock_client = Mock()
@@ -118,7 +118,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         assert build_dist["success"] is True
         assert build_dist["comment_id"] == "99999"
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_updates_existing_comment(self, mock_format, mock_get_client):
         mock_client = Mock()
@@ -201,7 +201,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
     def test_skips_nonexistent_artifact(self):
         create_preprod_pr_comment_task(99999)
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     def test_skips_when_no_github_client(self, mock_get_client):
         mock_get_client.return_value = None
         artifact = self._create_artifact()
@@ -209,7 +209,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_handles_api_error(self, mock_format, mock_get_client):
         mock_client = Mock()
@@ -229,7 +229,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         assert build_dist["success"] is False
         assert build_dist["error_type"] == "api_error"
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_retry_after_update_failure_uses_update_not_create(self, mock_format, mock_get_client):
         """When update_comment fails, the stored comment_id must survive so
@@ -283,7 +283,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         )
         mock_client.create_comment.assert_not_called()
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_retry_after_create_failure_creates_again(self, mock_format, mock_get_client):
         """When create_comment fails, no comment_id is stored, so the retry
@@ -329,7 +329,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         assert build_dist["success"] is True
         assert build_dist["comment_id"] == "77777"
 
-    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_reads_fresh_extras_via_select_for_update(self, mock_format, mock_get_client):
         """select_for_update gives a fresh DB read, so a comment_id written
