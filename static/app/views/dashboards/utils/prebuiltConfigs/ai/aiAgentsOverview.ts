@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -181,7 +182,7 @@ const AGENTS_TRACES_TABLE = {
     y: 6,
     w: 6,
     h: 4,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
