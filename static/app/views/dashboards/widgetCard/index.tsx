@@ -351,6 +351,7 @@ function WidgetCard(props: Props) {
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
