@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import internal_region_silo_endpoint
-from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.endpoints.project_preprod_size import parse_request_with_pydantic
 from sentry.preprod.authentication import (
@@ -39,7 +38,6 @@ class ProjectPreprodDistributionEndpoint(PreprodArtifactEndpoint):
     def put(
         self,
         request: Request,
-        project: Project,
         head_artifact_id: int,
         head_artifact: PreprodArtifact,
     ) -> Response:
