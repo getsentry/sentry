@@ -75,10 +75,17 @@ class _CoordinatorPlugin:
     def __init__(self, config: pytest.Config, num_workers: int) -> None:
         self.config = config
         self.num_workers = num_workers
+        self._verbose = config.option.verbose > 0
         self._work_dir = Path(tempfile.mkdtemp(prefix="sentry_parallel_"))
         self._reporter_path = self._work_dir / "_reporter.py"
         self._reporter_path.write_text(_WORKER_REPORTER)
         self._print_lock = threading.Lock()
+        self._completed = 0
+        self._total = 0
+        self._failed = 0
+        self._dots = ""  # accumulated .Fs characters for non-verbose mode
+        self._dots_on_line = 0  # characters on the current dot-output line
+        self._dots_width = 50  # dot chars per line before wrapping
 
     def run(self, session: pytest.Session) -> bool:
         if not session.items:
@@ -95,6 +102,7 @@ class _CoordinatorPlugin:
             tw.line(f"  worker {i}: {len(grp)} tests ({files} files)")
         tw.line("")
 
+        self._total = len(session.items)
         items_by_nodeid: dict[str, pytest.Item] = {it.nodeid: it for it in session.items}
 
         active = [(i, test_files[i]) for i, grp in enumerate(groups) if grp]
@@ -181,8 +189,51 @@ class _CoordinatorPlugin:
             workers.append((i, proc, result_path))
         return workers
 
+    def _progress_suffix(self) -> str:
+        pct = self._completed * 100 // self._total if self._total else 0
+        parts = [f"{self._completed}/{self._total} ({pct}%)"]
+        if self._failed:
+            parts.append(f"{self._failed} failed")
+        return " ".join(parts)
+
+    def _write_dot_progress(self, char: str, tw: pytest.TerminalWriter, **markup: bool) -> None:
+        """Write a dot character and update the in-place progress suffix."""
+        # Wrap to a new line if we've hit the width limit.
+        if self._dots_on_line >= self._dots_width:
+            tw.write("\r\033[K")  # clear the progress suffix
+            tw.write(self._dots[-self._dots_on_line :])  # rewrite current dots
+            tw.line("")  # newline
+            self._dots_on_line = 0
+
+        self._dots += char
+        self._dots_on_line += 1
+
+        # Write: dots on this line, then a gap, then the progress counter.
+        # Use \r to keep overwriting the same line.
+        suffix = self._progress_suffix()
+        tw.write("\r\033[K")
+        tw.write(self._dots[-self._dots_on_line :])
+        tw.write(f"  {suffix}")
+        tw.flush()
+
+    def _clear_progress(self, tw: pytest.TerminalWriter) -> None:
+        """Clear the current in-place progress line."""
+        tw.write("\r\033[K")
+        tw.flush()
+
+    def _redraw_progress(self, tw: pytest.TerminalWriter) -> None:
+        """Redraw dots + progress suffix after an interruption (e.g. failure output)."""
+        suffix = self._progress_suffix()
+        tw.write(self._dots[-self._dots_on_line :] + f"  {suffix}")
+        tw.flush()
+
     def _print_result(self, worker_idx: int, ev: dict, tw: pytest.TerminalWriter) -> None:
-        """Print a test result line, holding the lock so output doesn't interleave."""
+        """Print a test result, respecting verbosity level.
+
+        Non-verbose: dots (.Fs) with an in-place progress counter.
+        Verbose (-v): full line with worker, nodeid, outcome, duration.
+        Failures/errors always print the full traceback regardless of verbosity.
+        """
         nodeid = ev["n"]
         outcome = ev["o"]
         duration = ev.get("d", 0.0)
@@ -190,17 +241,34 @@ class _CoordinatorPlugin:
         longrepr = ev.get("r")
 
         with self._print_lock:
-            if outcome == "passed":
-                tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)")
-            elif outcome == "skipped":
-                tw.line(f"[w{worker_idx}] {nodeid} {label}")
+            self._completed += 1
+            if outcome == "failed":
+                self._failed += 1
+
+            if self._verbose:
+                if outcome == "passed":
+                    tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)")
+                elif outcome == "skipped":
+                    tw.line(f"[w{worker_idx}] {nodeid} {label}")
+                else:
+                    tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)", red=True)
             else:
-                tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)", red=True)
-                if longrepr:
-                    tw.line("")
-                    for line in longrepr.splitlines():
-                        tw.line(f"    {line}")
-                    tw.line("")
+                if outcome == "passed":
+                    self._write_dot_progress(".", tw, green=True)
+                elif outcome == "skipped":
+                    self._write_dot_progress("s", tw, yellow=True)
+                else:
+                    self._write_dot_progress("F", tw, red=True)
+
+            if outcome == "failed" and longrepr:
+                if not self._verbose:
+                    self._clear_progress(tw)
+                tw.line(f"FAILED {nodeid} ({duration:.2f}s)", red=True)
+                for line in longrepr.splitlines():
+                    tw.line(f"    {line}")
+                tw.line("")
+                if not self._verbose:
+                    self._redraw_progress(tw)
 
     @staticmethod
     def _make_report(ev: dict, item: pytest.Item) -> pytest.TestReport:
@@ -272,6 +340,11 @@ class _CoordinatorPlugin:
                     alive.discard(idx)
 
             time.sleep(0.3)
+
+        # Finalize the dot-output line.
+        if not self._verbose:
+            self._clear_progress(tw)
+            tw.line(self._dots[-self._dots_on_line :] + f"  {self._progress_suffix()}")
 
         for t in threads:
             t.join(timeout=5)
