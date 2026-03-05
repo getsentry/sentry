@@ -17,15 +17,21 @@ from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.outcomes import Outcome, track_outcome
 
 MAX_PROCESS_RESTARTS = 10
 
 logger = logging.getLogger(__name__)
+
+
+type ProduceToPipe = Callable[[int, KafkaPayload, int], None]
 
 
 class MultiProducer:
@@ -130,7 +136,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         buffer: SpansBuffer,
         next_step: ProcessingStrategy[FilteredPayload | int],
         max_processes: int | None = None,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
+        produce_to_pipe: ProduceToPipe | None = None,
     ):
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
@@ -259,13 +265,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         current_drift,
         backpressure_since,
         healthy_since,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None,
+        produce_to_pipe: ProduceToPipe | None,
     ) -> None:
         logger.info("Flusher process main started for shards %s", shards)
-
-        # TODO: remove once span buffer is live in all regions
-        scope = sentry_sdk.get_isolation_scope()
-        scope.level = "warning"
 
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
@@ -284,8 +286,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
                 logger.info("Flusher Kafka producer created for shards %s", shard_tag)
 
-                def produce(payload: KafkaPayload) -> None:
-                    producer_futures.append(producer_manager.produce(payload))
+                def produce(project_id: int, payload: KafkaPayload, dropped: int) -> None:
+                    producer_futures.append(
+                        (project_id, producer_manager.produce(payload), dropped)
+                    )
 
             first_iteration = True
             while not stopped.value:
@@ -326,11 +330,31 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                             len(kafka_payload.value),
                             tags={"shard": shard_tag},
                         )
-                        produce(kafka_payload)
+                        produce(flushed_segment.project_id, kafka_payload, len(spans))
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
-                    for future in producer_futures:
-                        future.result()
+                    for project_id, future, dropped in producer_futures:
+                        try:
+                            future.result()
+                        except Exception:
+                            logger.exception("Error producing segment to Kafka")
+                            try:
+                                project = Project.objects.get_from_cache(id=project_id)
+                            except Project.DoesNotExist:
+                                logger.warning(
+                                    "Project does not exist for segment with dropped spans",
+                                    extra={"project_id": project_id},
+                                )
+                            else:
+                                track_outcome(
+                                    org_id=project.organization_id,
+                                    project_id=project_id,
+                                    key_id=None,
+                                    outcome=Outcome.INVALID,
+                                    reason="segment_too_large",
+                                    category=DataCategory.SPAN_INDEXED,
+                                    quantity=dropped,
+                                )
 
                 producer_futures.clear()
 

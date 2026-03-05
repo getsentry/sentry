@@ -21,7 +21,7 @@ def test_basic(kafka_slice_id: int | None) -> None:
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):
         topic = Topic("test")
-        messages: list[KafkaPayload] = []
+        messages: list[tuple[int, KafkaPayload, int]] = []
 
         fac = ProcessSpansStrategyFactory(
             max_batch_size=1,
@@ -29,7 +29,9 @@ def test_basic(kafka_slice_id: int | None) -> None:
             num_processes=1,
             input_block_size=None,
             output_block_size=None,
-            produce_to_pipe=messages.append,
+            produce_to_pipe=lambda project_id, payload, dropped: messages.append(
+                (project_id, payload, dropped)
+            ),
             kafka_slice_id=kafka_slice_id,
         )
 
@@ -107,7 +109,7 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
     """Test that schema validator rejects spans with None values in critical fields"""
     with mock.patch("time.sleep"):
         topic = Topic("test")
-        messages: list[KafkaPayload] = []
+        messages: list[tuple[int, KafkaPayload, int]] = []
 
         fac = ProcessSpansStrategyFactory(
             max_batch_size=1,
@@ -115,7 +117,9 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
             num_processes=1,
             input_block_size=None,
             output_block_size=None,
-            produce_to_pipe=messages.append,
+            produce_to_pipe=lambda project_id, payload, dropped: messages.append(
+                (project_id, payload, dropped)
+            ),
         )
 
         commits = []
@@ -177,7 +181,7 @@ def test_schema_validator_rejects_string_timestamps() -> None:
     """Test that schema validator rejects spans with string timestamps instead of floats"""
     with mock.patch("time.sleep"):
         topic = Topic("test")
-        messages: list[KafkaPayload] = []
+        messages: list[tuple[int, KafkaPayload, int]] = []
 
         fac = ProcessSpansStrategyFactory(
             max_batch_size=1,
@@ -185,7 +189,9 @@ def test_schema_validator_rejects_string_timestamps() -> None:
             num_processes=1,
             input_block_size=None,
             output_block_size=None,
-            produce_to_pipe=messages.append,
+            produce_to_pipe=lambda project_id, payload, dropped: messages.append(
+                (project_id, payload, dropped)
+            ),
         )
 
         commits = []
@@ -246,7 +252,7 @@ def test_flusher_processes_limit() -> None:
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):
         topic = Topic("test")
-        messages: list[KafkaPayload] = []
+        messages: list[tuple[int, KafkaPayload, int]] = []
 
         # Create factory with limited flusher processes
         fac = ProcessSpansStrategyFactory(
@@ -256,7 +262,9 @@ def test_flusher_processes_limit() -> None:
             input_block_size=None,
             output_block_size=None,
             flusher_processes=2,  # Limit to 2 processes even if more shards
-            produce_to_pipe=messages.append,
+            produce_to_pipe=lambda project_id, payload, dropped: messages.append(
+                (project_id, payload, dropped)
+            ),
         )
 
         commits = []
@@ -280,4 +288,77 @@ def test_flusher_processes_limit() -> None:
             assert total_shards == 4  # All 4 shards should be assigned
         finally:
             # shutdown flusher thread
+            fac._flusher.join()
+
+
+@override_options(
+    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+)
+@pytest.mark.parametrize("kafka_slice_id", [None, 2])
+def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:
+    # Flush very aggressively to make test pass instantly
+    with (
+        mock.patch("time.sleep"),
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.MultiProducer.produce",
+            side_effect=Exception("Kafka exception"),
+        ),
+    ):
+        topic = Topic("test")
+        messages: list[tuple[int, KafkaPayload, int]] = []
+
+        fac = ProcessSpansStrategyFactory(
+            max_batch_size=1,
+            max_batch_time=10,
+            num_processes=1,
+            input_block_size=None,
+            output_block_size=None,
+            produce_to_pipe=None,
+            kafka_slice_id=kafka_slice_id,
+        )
+
+        commits = []
+
+        def add_commit(offsets, force=False):
+            commits.append(offsets)
+
+        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+
+        try:
+            step.submit(
+                Message(
+                    BrokerValue(
+                        partition=Partition(topic, 0),
+                        offset=1,
+                        payload=KafkaPayload(
+                            None,
+                            orjson.dumps(
+                                {
+                                    "project_id": 12,
+                                    "span_id": "a" * 16,
+                                    "trace_id": "b" * 32,
+                                    "start_timestamp": 1699999999.0,
+                                    "end_timestamp": 1700000000.0,
+                                }
+                            ),
+                            [],
+                        ),
+                        timestamp=datetime.now(),
+                    )
+                )
+            )
+
+            step.poll()
+            fac._flusher.current_drift.value = 9000  # "advance" our "clock"
+
+            step.poll()
+            # Give flusher threads time to process after drift change
+            for _ in range(20):
+                if messages:
+                    break
+                step.poll()
+                real_sleep(0.1)
+
+            assert len(messages) == 0
+        finally:
             fac._flusher.join()

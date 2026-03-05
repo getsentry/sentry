@@ -136,6 +136,7 @@ class OutputSpan(NamedTuple):
 class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
+    project_id: int  # Used to track outcomes
 
 
 class SpansBuffer:
@@ -528,7 +529,7 @@ class SpansBuffer:
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
-
+            project_id, _, _ = parse_segment_key(segment_key)
             if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 
@@ -558,9 +559,11 @@ class SpansBuffer:
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
             )
+            project_id, _, _ = parse_segment_key(segment_key)
             return_segments[segment_key] = FlushedSegment(
                 queue_key=queue_key,
                 spans=output_spans,
+                project_id=int(project_id),
             )
             num_has_root_spans += int(has_root_span)
 
