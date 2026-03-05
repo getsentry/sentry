@@ -12,7 +12,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventGroupingConfig} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,7 +55,6 @@ export default function ProjectIssueGrouping() {
   const endpoint = `/projects/${organization.slug}/${project.slug}/`;
 
   const access = new Set(organization.access.concat(project.access));
-  const activeSuperUser = isActiveSuperuser();
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const jsonFormProps = {
@@ -106,14 +104,12 @@ export default function ProjectIssueGrouping() {
           fields={[fields.groupingEnhancements]}
         />
 
-        {activeSuperUser && (
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Derived Grouping Enhancements')}
-            fields={[fields.derivedGroupingEnhancements]}
-            disabled
-          />
-        )}
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Derived Grouping Enhancements')}
+          fields={[fields.derivedGroupingEnhancements]}
+          disabled
+        />
       </Form>
     </SentryDocumentTitle>
   );

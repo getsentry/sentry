@@ -137,9 +137,9 @@ export function SnapshotSidebarContent({
   const isGroupedDiff = isDiffMode && groupedItems !== null;
 
   return (
-    <Flex direction="column" gap="md" height="100%">
+    <Flex direction="column" gap="md" height="100%" width="100%">
       <Flex padding="xl" paddingBottom="0">
-        <InputGroup>
+        <InputGroup style={{flex: 1}}>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch size="sm" />
           </InputGroup.LeadingItems>
@@ -171,7 +171,7 @@ export function SnapshotSidebarContent({
                     <Disclosure.Title
                       trailingItems={
                         <Flex align="center" gap="xs">
-                          <Text size="xs" variant="muted">
+                          <Text size="xs" bold>
                             {sectionItems.length}
                           </Text>
                           {section.icon}
@@ -264,6 +264,16 @@ const SectionWrapper = styled('div')`
   [data-disclosure] > :not(:first-child) {
     padding-left: 0;
     padding-right: 0;
+  }
+
+  [data-disclosure] > div > button {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  [data-disclosure] > div > button ~ * {
+    flex-shrink: 0;
+    padding-right: ${p => p.theme.space.md};
   }
 `;
 

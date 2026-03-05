@@ -12,7 +12,6 @@ import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStac
 import Version from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -566,7 +565,7 @@ function FieldReplacementHelper(
  * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
  */
 function BasicDiscoverRenderer(props: LogFieldRendererProps) {
-  const logMeta: EventsMetaType =
+  const logMeta =
     Object.keys(props.meta ?? {}).length > 0 ? props.meta! : logFieldBasicMetas;
   const basicRenderer = getFieldRenderer(props.item.fieldKey, logMeta, false);
   const attributeType = props.extra.attributeTypes[props.item.fieldKey];
@@ -675,7 +674,7 @@ const ClickableTimestamp = styled('span')`
   display: flex;
   align-items: flex-start;
   align-self: baseline;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
   line-height: 1em;
 `;

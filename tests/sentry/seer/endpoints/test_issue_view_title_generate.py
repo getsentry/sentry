@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -27,7 +26,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_successful_title_generation(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
@@ -44,7 +42,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.data == {"title": "My Assigned Errors"}
         mock_request.assert_called_once()
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_title_is_stripped(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
@@ -60,31 +57,18 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"title": "Title With Whitespace"}
 
-    @with_feature("organizations:issue-view-ai-title")
     def test_missing_query_parameter(self) -> None:
         response = self.client.post(self.url, data={}, format="json")
 
         assert response.status_code == 400
         assert response.data == {"detail": "Missing required parameter: query"}
 
-    @with_feature("organizations:issue-view-ai-title")
     def test_empty_query_parameter(self) -> None:
         response = self.client.post(self.url, data={"query": ""}, format="json")
 
         assert response.status_code == 400
         assert response.data == {"detail": "Missing required parameter: query"}
 
-    def test_feature_flag_not_enabled(self) -> None:
-        response = self.client.post(
-            self.url,
-            data={"query": "is:unresolved"},
-            format="json",
-        )
-
-        assert response.status_code == 403
-        assert response.data == {"detail": "Organization does not have access to this feature"}
-
-    @with_feature("organizations:issue-view-ai-title")
     def test_ai_features_disabled_for_org(self) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
 
@@ -97,7 +81,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 403
         assert response.data == {"detail": "AI features are disabled for this organization."}
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_seer_api_error(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
@@ -111,7 +94,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 500
         assert response.data == {"detail": "Failed to generate title"}
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_empty_response_from_seer(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
@@ -127,7 +109,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 500
         assert response.data == {"detail": "Failed to generate title"}
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_long_query_is_truncated(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
@@ -149,7 +130,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert "x" * 500 in request_body["prompt"]
         assert "x" * 600 not in request_body["prompt"]
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_org_read_permission(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
@@ -166,7 +146,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             assert response.status_code == 200
             assert response.data == {"title": "My Assigned Errors"}
 
-    @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_requires_org_scope(self, mock_request: MagicMock) -> None:
         token = self._create_token("project:read")

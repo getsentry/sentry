@@ -10,7 +10,6 @@ import Panel from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SavedSearchVisibility} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -149,23 +148,23 @@ const TooltipSubLink = styled(Link)`
 const Card = styled(Panel)`
   width: 80%;
   background-color: ${p => p.theme.tokens.background.secondary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const CardHeading = styled('h2')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const QueryGrid = styled('ul')`
   display: grid;
   grid-template-columns: 1fr 4fr;
-  column-gap: ${space(2)};
-  margin: 0 -${space(2)};
+  column-gap: ${p => p.theme.space.xl};
+  margin: 0 -${p => p.theme.space.xl};
   padding: 0;
 `;
 
@@ -200,7 +199,7 @@ const QueryButton = styled('button')`
   margin: 0;
   width: 100%;
   text-align: left;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-radius: 0;
 
   &:focus-visible {

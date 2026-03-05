@@ -5,18 +5,18 @@ from contextlib import contextmanager
 
 from django.test import override_settings
 
-from sentry.types.region import Locality, Region, RegionDirectory, get_global_directory
+from sentry.types.region import Cell, Locality, RegionDirectory, get_global_directory
 
 
 class TestEnvRegionDirectory(RegionDirectory):
     __test__ = False
 
-    def __init__(self, regions: Collection[Region]) -> None:
+    def __init__(self, regions: Collection[Cell]) -> None:
         super().__init__(regions, frozenset())
         self._default_region = next(iter(regions))
         self._apply_regions(regions)
 
-    def _apply_regions(self, regions: Collection[Region]) -> None:
+    def _apply_regions(self, regions: Collection[Cell]) -> None:
         localities = frozenset(
             Locality(name=r.name, cells=frozenset([r.name]), category=r.category, visible=r.visible)
             for r in regions
@@ -30,8 +30,8 @@ class TestEnvRegionDirectory(RegionDirectory):
     @contextmanager
     def swap_state(
         self,
-        regions: Sequence[Region],
-        local_region: Region | None = None,
+        regions: Sequence[Cell],
+        local_region: Cell | None = None,
     ) -> Generator[None]:
         prev_state = (
             self._default_region,
@@ -84,9 +84,7 @@ def get_test_env_directory() -> TestEnvRegionDirectory:
 
 
 @contextmanager
-def override_regions(
-    regions: Sequence[Region], local_region: Region | None = None
-) -> Generator[None]:
+def override_regions(regions: Sequence[Cell], local_region: Cell | None = None) -> Generator[None]:
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and

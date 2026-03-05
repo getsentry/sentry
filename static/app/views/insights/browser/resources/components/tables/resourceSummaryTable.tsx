@@ -12,7 +12,6 @@ import type {
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -200,7 +199,7 @@ function ResourceSummaryTable() {
 }
 
 const TitleWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const DescriptionWrapper = styled('div')`

@@ -160,6 +160,9 @@ export function OnboardingLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
+    ?.hideInstructionsCopy;
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <TabSelectionScope>
@@ -184,13 +187,13 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
-              const copyButton =
-                copyEnabled && index === 0 ? (
-                  <OnboardingCopyMarkdownButton
-                    steps={steps}
-                    source={newOrg ? 'first_time_setup' : 'project_getting_started'}
-                  />
-                ) : null;
+              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
+              const copyButton = showCopy ? (
+                <OnboardingCopyMarkdownButton
+                  steps={steps}
+                  source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                />
+              ) : null;
 
               const trailingItems = copyButton ? (
                 step.trailingItems ? (
@@ -283,6 +286,6 @@ const Wrapper = styled('div')`
 
 const Introduction = styled('div')`
   & > p:not(:last-child) {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;

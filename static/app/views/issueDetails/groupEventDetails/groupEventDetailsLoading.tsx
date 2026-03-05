@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import Placeholder from 'sentry/components/placeholder';
-import {space} from 'sentry/styles/space';
 
 /**
  * Do not import more things into this component since it is used in routes.ts
@@ -47,11 +46,11 @@ const LoadingGroupContent = styled('div')`
 `;
 
 const LoadingHeader = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   overflow: hidden;
 `;

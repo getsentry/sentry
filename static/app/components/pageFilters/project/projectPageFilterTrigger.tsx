@@ -30,10 +30,16 @@ export function ProjectPageFilterTrigger({
     value.includes(parseInt(p.id, 10))
   );
 
-  const isMyProjectsSelected = isMemberProjectsSelected && memberProjects.length > 0;
+  // "My Projects" / "All Projects" labels only apply when there are multiple projects.
+  // With a single-project org, always show the project name.
+  const totalProjects = memberProjects.length + nonMemberProjects.length;
+
+  const isMyProjectsSelected =
+    isMemberProjectsSelected && memberProjects.length > 0 && totalProjects > 1;
 
   const isAllProjectsSelected =
-    value.length === 0 || (isMyProjectsSelected && isNonMemberProjectsSelected);
+    value.length === 0 ||
+    (totalProjects > 1 && isMyProjectsSelected && isNonMemberProjectsSelected);
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects

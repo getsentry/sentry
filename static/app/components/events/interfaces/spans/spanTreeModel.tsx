@@ -12,7 +12,6 @@ import type {
   FetchEmbeddedChildrenState,
   FilterSpans,
   OrphanTreeDepth,
-  RawSpanType,
   SpanChildrenLookupType,
   SpanType,
   TraceBound,
@@ -69,7 +68,7 @@ class SpanTreeModel {
     this.isRoot = isRoot;
     this.traceInfo = traceInfo;
     const spanID = getSpanID(parentSpan);
-    const spanChildren: RawSpanType[] = childSpans?.[spanID] ?? [];
+    const spanChildren = childSpans?.[spanID] ?? [];
 
     // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
     // For example if a span has a span_id that's identical to its parent_span_id.

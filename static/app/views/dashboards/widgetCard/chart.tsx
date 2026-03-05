@@ -262,6 +262,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <AgentsTracesTableWidgetVisualization
           limit={widget.limit}
           tableWidths={widget.tableWidths}
+          frameless
         />
       </TableWrapper>
     );
@@ -755,14 +756,6 @@ function BigNumberComponent({
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {widget, tableResults, loading} = props;
 
-  const hasCategoricalBarCharts = useOrganization().features.includes(
-    'dashboards-categorical-bar-charts'
-  );
-
-  if (!hasCategoricalBarCharts) {
-    return null;
-  }
-
   if (loading || !tableResults?.[0]) {
     return <LoadingPlaceholder />;
   }
@@ -917,7 +910,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 ))`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -978,18 +971,18 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const RenderedChartContainer = styled('div')`
