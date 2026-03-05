@@ -1,20 +1,14 @@
 import {Fragment, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {ButtonBar} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
-
-// eslint-disable-next-line no-restricted-imports
-import PrimaryNavSeerConfigReminder from 'getsentry/components/primaryNavSeerConfigReminder';
-// eslint-disable-next-line no-restricted-imports
-import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
-// eslint-disable-next-line no-restricted-imports
-import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-
 import {
   IconCompass,
   IconDashboard,
@@ -29,7 +23,6 @@ import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
-  SidebarFooterWrapper,
   SidebarItemDefaults,
   SidebarLink,
   SidebarList,
@@ -42,6 +35,13 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
+
+// eslint-disable-next-line boundaries/element-types
+import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
+// eslint-disable-next-line boundaries/element-types
+import PrimaryNavSeerConfigReminder from 'getsentry/components/primaryNavSeerConfigReminder';
+// eslint-disable-next-line boundaries/element-types
+import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 
 function SidebarBody({
   children,
@@ -65,16 +65,13 @@ function SidebarBody({
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
-    <SidebarFooterWrapper isMobile={layout === NavLayout.MOBILE}>
-      <SidebarItemDefaults size={layout === NavLayout.MOBILE ? 'xs' : 'sm'}>
-        <SidebarList
-          isMobile={layout === NavLayout.MOBILE}
-          compact={layout === NavLayout.SIDEBAR}
-        >
+    <SidebarItemDefaults size={layout === NavLayout.MOBILE ? 'xs' : 'sm'}>
+      <FooterButtonBarContainer isMobile={layout === NavLayout.MOBILE}>
+        <FooterButtonBar orientation="vertical" isMobile={layout === NavLayout.MOBILE}>
           {children}
-        </SidebarList>
-      </SidebarItemDefaults>
-    </SidebarFooterWrapper>
+        </FooterButtonBar>
+      </FooterButtonBarContainer>
+    </SidebarItemDefaults>
   );
 }
 
@@ -222,16 +219,13 @@ export function PrimaryNavigationItems() {
 
       <SidebarFooter>
         <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationWhatsNew />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
           <PrimaryNavigationOnboarding />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <PrimaryNavSeerConfigReminder organization={organization} />
+          <TryBusinessSidebarItem organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <TryBusinessSidebarItem organization={organization} />
+          <PrimaryNavSeerConfigReminder organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationQuotaExceeded organization={organization} />
@@ -239,12 +233,33 @@ export function PrimaryNavigationItems() {
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationServiceIncidents />
         </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationWhatsNew />
+        </ErrorBoundary>
         <PrimaryNavigationHelp />
         <UserDropdown />
       </SidebarFooter>
     </Fragment>
   );
 }
+
+const FooterButtonBarContainer = styled('div')<{isMobile: boolean}>`
+  margin-top: auto;
+  margin-bottom: ${p => (p.isMobile ? p.theme.space.md : p.theme.space.lg)};
+  display: flex;
+  justify-content: center;
+`;
+
+const FooterButtonBar = styled(ButtonBar)<{isMobile: boolean}>`
+  ${p =>
+    !p.isMobile &&
+    css`
+      & > button {
+        width: 34px;
+        height: 34px;
+      }
+    `}
+`;
 
 const BetaBadge = styled(FeatureBadge)`
   position: absolute;

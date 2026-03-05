@@ -101,6 +101,9 @@ function useCanSeeReminder(organization: Organization) {
     [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
   );
 
+  // TODO: remove this override before merging
+  return {canSeeReminder: true, analyticsParams};
+
   if (!organization.features.includes('seer-config-reminder')) {
     return {canSeeReminder: false, analyticsParams};
   }
@@ -230,7 +233,7 @@ export default function PrimaryNavSeerConfigReminder() {
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
-            <Flex justify="end">
+            <Flex justify="start">
               <LinkButton
                 to={copy.pathname}
                 priority="primary"
@@ -249,10 +252,6 @@ export default function PrimaryNavSeerConfigReminder() {
 }
 
 const SeerButton = styled(SidebarButton)`
-  display: none;
-
-  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
-  @media (min-height: 724px) {
-    display: flex;
-  }
+  /* TODO: remove this override before merging */
+  display: flex;
 `;

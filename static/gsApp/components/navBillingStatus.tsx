@@ -15,7 +15,10 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useNavContext} from 'sentry/views/nav/context';
-import {SidebarButton, SidebarItemUnreadIndicator} from 'sentry/views/nav/primary/components';
+import {
+  SidebarButton,
+  SidebarItemUnreadIndicator,
+} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
@@ -414,7 +417,12 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     );
   };
 
-  const {isLoading, isError, isPromptDismissed, snoozePrompt} = usePrompts({
+  const {
+    isLoading: _isLoading,
+    isError: _isError,
+    isPromptDismissed,
+    snoozePrompt,
+  } = usePrompts({
     features: promptsToCheck,
     organization,
     daysToSnooze:
@@ -481,7 +489,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     overlayState,
     subscription?.onDemandPeriodStart,
   ]);
-
 
   const onDismiss = ({
     categories,

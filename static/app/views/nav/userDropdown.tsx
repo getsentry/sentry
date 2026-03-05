@@ -1,10 +1,11 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {Button} from '@sentry/scraps/button';
 
 import {logout} from 'sentry/actionCreators/account';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
@@ -12,8 +13,13 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
-import {SidebarItem} from 'sentry/views/nav/primary/components';
 import {NavLayout} from 'sentry/views/nav/types';
+
+// Eliminates the DropdownMenu wrapper div so the trigger button is a direct
+// child of ButtonBar.
+function DropdownNoWrap({children}: {children?: React.ReactNode}) {
+  return <Fragment>{children}</Fragment>;
+}
 
 export function UserDropdown() {
   const api = useApi();
@@ -41,63 +47,74 @@ export function UserDropdown() {
         : {type: 'letter_avatar' as const, identifier, name};
 
   return (
-    <SidebarItem label={user.email} showLabel={isMobile} disableTooltip>
-      <DropdownMenu
-        position={isMobile ? 'bottom' : 'right-end'}
-        minMenuWidth={200}
-        trigger={triggerProps =>
-          isMobile ? (
-            <MobileUserButton
-              {...triggerProps}
-              aria-label={user.email}
-              icon={<UserAvatar user={user} size={16} />}
-              priority="transparent"
-              size="zero"
-            >
-              {t('User Settings')}
-            </MobileUserButton>
-          ) : (
-            <AvatarButton
-              {...triggerProps}
-              aria-label={user.email}
-              avatar={avatarProps}
-              size="sm"
-            />
-          )
-        }
-        items={[
-          {
-            key: 'user',
-            label: (
-              <SectionTitleWrapper>
-                <UserBadge user={user} avatarSize={32} />
-              </SectionTitleWrapper>
-            ),
-            textValue: t('User Summary'),
-            children: [
-              {
-                key: 'user-settings',
-                label: t('User Settings'),
-                to: '/settings/account/',
-              },
-              {
-                key: 'admin',
-                label: t('Admin'),
-                to: '/manage/',
-                hidden: !isActiveSuperuser(),
-              },
-              {
-                key: 'signout',
-                label: t('Sign Out'),
-                onAction: handleLogout,
-              },
-            ],
-          },
-        ]}
-      />
-    </SidebarItem>
+    <DropdownMenu
+      renderWrapAs={DropdownNoWrap}
+      position={isMobile ? 'bottom' : 'right-end'}
+      minMenuWidth={200}
+      trigger={triggerProps =>
+        isMobile ? (
+          <MobileUserButton
+            {...triggerProps}
+            aria-label={user.email}
+            icon={<UserAvatar user={user} size={16} />}
+            priority="transparent"
+            size="zero"
+          >
+            {t('User Settings')}
+          </MobileUserButton>
+        ) : (
+          <FullWidthAvatarButton
+            {...triggerProps}
+            aria-label={user.email}
+            avatar={avatarProps}
+            size="sm"
+          />
+        )
+      }
+      items={[
+        {
+          key: 'user',
+          label: (
+            <SectionTitleWrapper>
+              <UserBadge user={user} avatarSize={32} />
+            </SectionTitleWrapper>
+          ),
+          textValue: t('User Summary'),
+          children: [
+            {
+              key: 'user-settings',
+              label: t('User Settings'),
+              to: '/settings/account/',
+            },
+            {
+              key: 'admin',
+              label: t('Admin'),
+              to: '/manage/',
+              hidden: !isActiveSuperuser(),
+            },
+            {
+              key: 'signout',
+              label: t('Sign Out'),
+              onAction: handleLogout,
+            },
+          ],
+        },
+      ]}
+    />
   );
 }
+
+const FullWidthAvatarButton = styled(AvatarButton)`
+  min-width: unset;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+
+  /* Make the inner avatar container follow the button's border-radius. */
+  div {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+`;
 
 const MobileUserButton = styled(Button)`
   width: 100%;

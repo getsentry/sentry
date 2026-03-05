@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
@@ -225,6 +233,10 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
 export function StackedNavigationTourReminder({children}: {children: React.ReactNode}) {
   const {showTourReminder, setShowTourReminder} = useNavContext();
+
+  if (!showTourReminder) {
+    return <Fragment>{children}</Fragment>;
+  }
 
   return (
     <TourGuide

@@ -1,6 +1,6 @@
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconQuestion} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -122,7 +122,7 @@ export function PrimaryNavigationHelp() {
       ]}
       analyticsKey="help"
       label={t('Help')}
-      icon={<IconQuestion />}
+      icon={<IconEllipsis />}
     />
   );
 }

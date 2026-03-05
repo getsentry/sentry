@@ -99,8 +99,8 @@ function OnboardingItem({
                 backgroundColor={theme.colors.gray200}
                 progressEndcaps="round"
                 progressColor={theme.tokens.content.accent}
-                size={isMobile ? 14 : 26}
-                barWidth={isMobile ? 2 : 4}
+                size={isMobile ? 14 : 18}
+                barWidth={isMobile ? 2 : 2}
               />
             </ProgressRingWrapper>
           ),
@@ -116,7 +116,7 @@ function OnboardingItem({
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
-          <OnboardingSidebarContent onClose={() => OnboardingDrawerStore.close()} />
+          <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
         </PrimaryButtonOverlay>
       )}
     </GuideAnchor>
@@ -183,8 +183,8 @@ export function PrimaryNavigationOnboarding() {
 // because the progress ring is larger than the icons, but we want this
 // to be sized similarly to other nav buttons.
 const ProgressRingWrapper = styled('div')<{isMobile: boolean}>`
-  height: ${p => (p.isMobile ? '14px' : '16px')};
-  width: ${p => (p.isMobile ? '14px' : '16px')};
+  height: ${p => (p.isMobile ? '14px' : '12px')};
+  width: ${p => (p.isMobile ? '14px' : '12px')};
   position: relative;
 `;
 

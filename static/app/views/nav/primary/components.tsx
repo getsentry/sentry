@@ -1,4 +1,4 @@
-import {createContext, forwardRef, Fragment, type MouseEventHandler, use} from 'react';
+import {createContext, Fragment, use, type MouseEventHandler} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -83,7 +83,9 @@ export function SidebarItemDefaults({
   children: React.ReactNode;
   size?: ButtonProps['size'];
 }) {
-  return <SidebarItemDefaultsContext value={{size}}>{children}</SidebarItemDefaultsContext>;
+  return (
+    <SidebarItemDefaultsContext value={{size}}>{children}</SidebarItemDefaultsContext>
+  );
 }
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
@@ -91,12 +93,17 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   label: string;
   showLabel: boolean;
   disableTooltip?: boolean;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
-export const SidebarItem = forwardRef<HTMLLIElement, SidebarItemProps>(function SidebarItem(
-  {children, label, showLabel, disableTooltip, ...props},
-  ref
-) {
+export function SidebarItem({
+  children,
+  label,
+  showLabel,
+  disableTooltip,
+  ref,
+  ...props
+}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
@@ -120,8 +127,13 @@ export const SidebarItem = forwardRef<HTMLLIElement, SidebarItemProps>(function 
       </SidebarItemFlex>
     </IconDefaultsProvider>
   );
-});
+}
 
+// Eliminates the DropdownMenu wrapper div so the trigger button is a direct
+// child of its container (e.g. ButtonBar).
+function DropdownNoWrap({children}: {children?: React.ReactNode}) {
+  return <Fragment>{children}</Fragment>;
+}
 
 export function SidebarMenu({
   items,
@@ -145,20 +157,23 @@ export function SidebarMenu({
 
   return (
     <DropdownMenu
+      renderWrapAs={DropdownNoWrap}
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={({ref: anchorRef, ...triggerProps}) => {
         return (
-          <SidebarItem
-            label={label}
-            showLabel={showLabel}
-            disableTooltip={disableTooltip}
-            ref={anchorRef as React.Ref<HTMLLIElement>}
-          >
-            <TriggerWrap>
+          <TriggerWrap>
+            <Tooltip
+              title={label}
+              disabled={showLabel || disableTooltip}
+              position="right"
+              skipWrapper
+              delay={600}
+            >
               <NavButton
                 {...triggerProps}
+                ref={anchorRef}
                 aria-label={showLabel ? undefined : label}
                 onClick={event => {
                   if (organization) {
@@ -174,8 +189,8 @@ export function SidebarMenu({
                 {showLabel ? label : null}
                 {children}
               </NavButton>
-            </TriggerWrap>
-          </SidebarItem>
+            </Tooltip>
+          </TriggerWrap>
         );
       }}
       items={items}
@@ -271,15 +286,15 @@ export function SidebarButton({
   const {layout} = useNavContext();
   const {size: groupSize} = use(SidebarItemDefaultsContext);
   const showLabel = layout === NavLayout.MOBILE;
-  const {ref: anchorRef, ...restButtonProps} = buttonProps;
-  const resolvedButtonProps = {...restButtonProps, size: restButtonProps.size ?? groupSize};
+  const resolvedButtonProps = {...buttonProps, size: buttonProps.size ?? groupSize};
 
   return (
-    <SidebarItem label={label} showLabel={showLabel} className={className} ref={anchorRef as React.Ref<HTMLLIElement>}>
+    <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavButton
         {...resolvedButtonProps}
         analyticsParams={analyticsParams}
         isMobile={layout === NavLayout.MOBILE}
+        className={className}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
@@ -291,7 +306,7 @@ export function SidebarButton({
         {showLabel ? label : null}
         {children}
       </NavButton>
-    </SidebarItem>
+    </Tooltip>
   );
 }
 
@@ -332,7 +347,7 @@ const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   ${p =>
     p.hasMargin &&
     css`
-      margin: ${p => p.theme.space.xs} 0;
+      margin: ${p.theme.space.xs} 0;
     `}
 `;
 
@@ -546,13 +561,4 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   > li {
     width: 100%;
   }
-`;
-
-export const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  margin-top: auto;
-  margin-bottom: ${p => (p.isMobile ? p.theme.space.md : 0)};
 `;
