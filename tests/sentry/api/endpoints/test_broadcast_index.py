@@ -78,6 +78,52 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in [str(broadcast["id"]) for broadcast in response.data]
         assert str(broadcast2.id) in [str(broadcast["id"]) for broadcast in response.data]
 
+    def test_organization_fallback_when_no_active_broadcasts(self) -> None:
+        # When no active broadcasts exist, return the 3 most recent regardless of status
+        broadcast1 = Broadcast.objects.create(message="oldest", is_active=False)
+        broadcast2 = Broadcast.objects.create(message="middle", is_active=False)
+        broadcast3 = Broadcast.objects.create(message="recent", is_active=False)
+        broadcast4 = Broadcast.objects.create(message="newest", is_active=False)
+
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        returned_ids = [broadcast["id"] for broadcast in response.data]
+        # Most recent 3, broadcast1 (oldest) should be excluded
+        assert str(broadcast4.id) in returned_ids
+        assert str(broadcast3.id) in returned_ids
+        assert str(broadcast2.id) in returned_ids
+        assert str(broadcast1.id) not in returned_ids
+
+    def test_organization_fallback_has_seen_field(self) -> None:
+        # Fallback broadcasts include hasSeen for the current user
+        broadcast = Broadcast.objects.create(message="expired post", is_active=False)
+        BroadcastSeen.objects.create(broadcast=broadcast, user_id=self.user.id)
+
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["hasSeen"] is True
+
+    def test_organization_active_broadcasts_not_replaced_by_fallback(self) -> None:
+        # When active broadcasts exist, they are returned normally (no fallback)
+        active = Broadcast.objects.create(message="active post", is_active=True)
+        Broadcast.objects.create(message="inactive post", is_active=False)
+
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(active.id)
+
 
 @control_silo_test
 class BroadcastCreateTest(APITestCase):

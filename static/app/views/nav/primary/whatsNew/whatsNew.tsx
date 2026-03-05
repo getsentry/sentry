@@ -118,7 +118,7 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
 export function PrimaryNavigationWhatsNew() {
   const {data: broadcasts = []} = useFetchBroadcasts();
   const unseenPostIds = useMemo(
-    () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
+    () => broadcasts.filter(item => item.isActive && !item.hasSeen).map(item => item.id),
     [broadcasts]
   );
 

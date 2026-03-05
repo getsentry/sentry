@@ -84,6 +84,30 @@ describe('WhatsNew', () => {
     });
   });
 
+  it('does not show unread indicator for inactive fallback broadcasts', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/broadcasts/`,
+      body: [
+        BroadcastFixture({
+          id: '1',
+          title: 'Old Post',
+          hasSeen: false,
+          isActive: false,
+        }),
+      ],
+    });
+
+    render(<PrimaryNavigationWhatsNew />);
+
+    // The broadcast renders, but no unread indicator since it's inactive
+    expect(await screen.findByRole('button', {name: "What's New"})).toBeInTheDocument();
+    expect(screen.queryByTestId('whats-new-unread-indicator')).not.toBeInTheDocument();
+
+    // The content is still shown when opened
+    await userEvent.click(screen.getByRole('button', {name: "What's New"}));
+    expect(await screen.findByText('Old Post')).toBeInTheDocument();
+  });
+
   it('renders a broadcast item with media content correctly', async () => {
     const broadcast = BroadcastFixture({
       mediaUrl:

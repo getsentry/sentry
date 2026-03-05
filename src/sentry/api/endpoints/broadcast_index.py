@@ -114,6 +114,11 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
 
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
+            if not data:
+                # No active broadcasts — fall back to the 3 most recent so the
+                # menu never shows a blank empty state.
+                fallback = list(Broadcast.objects.order_by("-date_added")[:3])
+                return self.respond(self._serialize_objects(fallback, request))
             return self.respond(self._serialize_objects(data, request))
 
         sort_by = request.GET.get("sortBy")
