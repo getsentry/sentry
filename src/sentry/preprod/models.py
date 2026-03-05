@@ -798,10 +798,6 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
             parts.append(f"({self.build_number})")
         return " ".join(parts) if parts else "--"
 
-    @property
-    def version_string(self) -> str:
-        return self.format_version_string()
-
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactmobileappinfo"
