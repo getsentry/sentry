@@ -142,7 +142,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             )
             |
             # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?:\s?[aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)

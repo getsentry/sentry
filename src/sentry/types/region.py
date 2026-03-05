@@ -62,19 +62,18 @@ class RegionConfigurationError(Exception):
     """Indicate that a region was misconfigured or could not be initialized."""
 
 
-# TODO(cells): this class represents a cell (e.g. "us1", "de1"); rename to Cell
 @dataclass(frozen=True, eq=True)
-class Region:
-    """A region of the Sentry platform, hosted by a region silo."""
+class Cell:
+    """A cell of the Sentry platform, hosted by a region silo."""
 
     name: str
-    """The region's unique identifier."""
+    """The cell's unique identifier."""
 
     snowflake_id: int
-    """The region's unique numeric representation for composing "snowflake" IDs.
+    """The cell's unique numeric representation for composing "snowflake" IDs.
 
     Avoid using this in any context other than creating a new snowflake ID. Prefer
-    the name as the region's unique identifier. Snowflake IDs need to remain mutually
+    the name as the cell's unique identifier. Snowflake IDs need to remain mutually
     unique only within the same timestamp, so the meaning of a number may not be
     stable over time if we ever choose to reassign or reuse the values.
 
@@ -83,15 +82,15 @@ class Region:
     """
 
     address: str
-    """The address of the region's silo.
+    """The address of the cell's silo.
 
-    Represent a region's hostname or IP address on the non-public network. This address
+    Represent a cell's hostname or IP address on the non-public network. This address
     is used for RPC routing.
 
     (e.g., "https://de.internal.getsentry.net" or https://10.21.99.10), and addresses
     such as "http://localhost:8001" in a dev environment.
 
-    The customer facing address for a region is derived from a region's name
+    The customer facing address for a cell is derived from a cell's name
     and `system.region-api-url-template`
     """
 
@@ -99,7 +98,7 @@ class Region:
     category: RegionCategory
 
     visible: bool = True
-    """Whether the region is visible in API responses"""
+    """Whether the cell is visible in API responses"""
 
     def validate(self) -> None:
         from sentry.utils.snowflake import REGION_ID
@@ -122,6 +121,10 @@ class Region:
         return self.name == settings.SENTRY_MONOLITH_REGION
 
 
+# TODO(cells): Remove once getsentry import sites are updated
+Region = Cell
+
+
 class RegionResolutionError(Exception):
     """Indicate that a region's identity could not be resolved."""
 
@@ -135,7 +138,7 @@ class RegionContextError(Exception):
 
 
 class RegionDirectory:
-    """A set of regions in a Sentry environment.
+    """A set of cells in a Sentry environment.
 
     This is a singleton class. It is immutable in a production environment,
     but affords overrides by the subclass TestEnvRegionDirectory.
@@ -143,7 +146,7 @@ class RegionDirectory:
 
     def __init__(
         self,
-        cells: Collection[Region],
+        cells: Collection[Cell],
         localities: Collection[Locality],
     ) -> None:
         self._cells = frozenset(cells)
@@ -153,20 +156,20 @@ class RegionDirectory:
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
     @property
-    def regions(self) -> frozenset[Region]:
+    def regions(self) -> frozenset[Cell]:
         return self._cells
 
     @property
     def localities(self) -> frozenset[Locality]:
         return self._localities
 
-    def get_cell_by_name(self, region_name: str) -> Region | None:
+    def get_cell_by_name(self, region_name: str) -> Cell | None:
         return self._by_name.get(region_name)
 
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
         return self._localities_by_name.get(locality_name)
 
-    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Region]:
+    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
         return (r for r in self.regions if (category is None or r.category == category))
 
     def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
@@ -175,7 +178,7 @@ class RegionDirectory:
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
 
-    def get_cells_for_locality(self, locality_name: str) -> Iterable[Region]:
+    def get_cells_for_locality(self, locality_name: str) -> Iterable[Cell]:
         loc = self._localities_by_name.get(locality_name)
         if loc is None:
             return ()
@@ -205,9 +208,9 @@ class RegionDirectory:
             )
 
 
-def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Region]:
+def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Cell]:
     for config_value in region_config:
-        yield Region(
+        yield Cell(
             name=config_value["name"],
             snowflake_id=config_value["snowflake_id"],
             category=RegionCategory(config_value["category"]),
@@ -216,7 +219,7 @@ def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Region]:
         )
 
 
-def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable[Region]:
+def _generate_monolith_region_if_needed(regions: Collection[Cell]) -> Iterable[Cell]:
     """Check whether a default monolith region must be generated.
 
     Check the provided set of regions to see whether a region with the configured
@@ -228,7 +231,7 @@ def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable
             "`SENTRY_MONOLITH_REGION` must provide a default region name"
         )
     if not regions:
-        yield Region(
+        yield Cell(
             name=settings.SENTRY_MONOLITH_REGION,
             snowflake_id=0,
             address=options.get("system.url-prefix"),
@@ -314,7 +317,7 @@ def get_global_directory() -> RegionDirectory:
     return _global_regions
 
 
-def get_cell_by_name(name: str) -> Region:
+def get_cell_by_name(name: str) -> Cell:
     """Look up a cell by name."""
     global_regions = get_global_directory()
     region = global_regions.get_cell_by_name(name)
@@ -353,8 +356,8 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 
 
 @control_silo_function
-def get_region_for_organization(organization_id_or_slug: str) -> Region:
-    """Resolve an organization to the region where its data is stored."""
+def get_region_for_organization(organization_id_or_slug: str) -> Cell:
+    """Resolve an organization to the cell where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
 
     if organization_id_or_slug.isdecimal():
@@ -392,10 +395,10 @@ def get_locality_name_for_cell(cell_name: str) -> str:
     return locality.name
 
 
-def get_local_region() -> Region:
-    """Get the region in which this server instance is running.
+def get_local_region() -> Cell:
+    """Get the cell in which this server instance is running.
 
-    Return the monolith region if this server instance is in monolith mode.
+    Return the monolith cell if this server instance is in monolith mode.
     Otherwise, it must be a region silo; raise RegionContextError otherwise.
     """
 
@@ -475,11 +478,6 @@ def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
 
 def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
-
-
-def find_all_region_names() -> Iterable[str]:
-    """Deprecated. Use find_all_cell_names."""
-    return find_all_cell_names()
 
 
 def find_all_multitenant_region_names() -> list[str]:

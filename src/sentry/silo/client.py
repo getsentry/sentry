@@ -27,7 +27,7 @@ from sentry.silo.util import (
     clean_proxy_headers,
 )
 from sentry.types.region import (
-    Region,
+    Cell,
     RegionResolutionError,
     get_cell_by_name,
     get_global_directory,
@@ -103,7 +103,7 @@ class RegionSiloClient(BaseApiClient):
     logger = logging.getLogger("sentry.silo.client.region")
     silo_client_name = "region"
 
-    def __init__(self, region: Region, retry: bool = False) -> None:
+    def __init__(self, region: Cell, retry: bool = False) -> None:
         super().__init__()
         if SiloMode.get_current_mode() not in self.access_modes:
             access_mode_str = ", ".join(str(m) for m in self.access_modes)
@@ -112,7 +112,7 @@ class RegionSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-        if not isinstance(region, Region):
+        if not isinstance(region, Cell):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
 
         # Ensure the region is registered

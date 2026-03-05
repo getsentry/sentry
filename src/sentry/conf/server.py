@@ -781,8 +781,8 @@ if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
-# Fallback region name for monolith deployments
-# This region name is also used by the ApiGateway to proxy org-less region
+# Fallback cell name for monolith deployments
+# This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 

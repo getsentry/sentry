@@ -31,7 +31,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, find_regions_for_orgs, get_cell_by_name
+from sentry.types.region import Cell, find_regions_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 
@@ -116,7 +116,7 @@ class BaseRequestParser(ABC):
             response = self.response_handler(self.request)
             return response
 
-    def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
+    def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
         with metrics.timer(
             "integration_proxy.control.get_response_from_region_silo",
             tags={"destination_region": region.name},
@@ -138,7 +138,7 @@ class BaseRequestParser(ABC):
                 http_response = region_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    def get_responses_from_region_silos(self, regions: list[Region]) -> dict[str, RegionResult]:
+    def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
         """
         Used to handle the requests on a given list of regions (synchronously).
         Returns a dict of region name to response/exception.
@@ -165,7 +165,7 @@ class BaseRequestParser(ABC):
 
     def get_response_from_webhookpayload(
         self,
-        regions: list[Region],
+        regions: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
     ) -> HttpResponseBase:
@@ -364,7 +364,7 @@ class BaseRequestParser(ABC):
 
     def get_regions_from_organizations(
         self, organizations: list[RpcOrganizationMapping] | None = None
-    ) -> list[Region]:
+    ) -> list[Cell]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
         """

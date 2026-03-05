@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -107,6 +108,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
           fieldAliases: [t('Model'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              staticDashboardId: 17,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -130,6 +138,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              staticDashboardId: 17,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -150,6 +165,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_TOOL_NAME,
+              staticDashboardId: 18,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -181,7 +203,7 @@ const AGENTS_TRACES_TABLE = {
     y: 6,
     w: 6,
     h: 4,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
