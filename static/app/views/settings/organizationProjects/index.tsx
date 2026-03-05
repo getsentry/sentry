@@ -15,7 +15,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -135,7 +134,7 @@ function OrganizationProjects() {
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}
-          {projectList && projectList.length === 0 && (
+          {projectList?.length === 0 && (
             <EmptyMessage>{t('No projects found.')}</EmptyMessage>
           )}
         </PanelBody>
@@ -148,7 +147,7 @@ function OrganizationProjects() {
 export default OrganizationProjects;
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const GridPanelItem = styled(PanelItem)`
@@ -158,12 +157,12 @@ const GridPanelItem = styled(PanelItem)`
 `;
 
 const ProjectListItemWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   flex: 1;
 `;
 
 const ProjectStatsGraphWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   width: 25%;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;

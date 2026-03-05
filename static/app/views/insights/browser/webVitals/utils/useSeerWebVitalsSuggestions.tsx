@@ -3,7 +3,7 @@ import {
   type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {IssueType} from 'sentry/types/group';
-import {fetchDataQuery, useQueries, type UseQueryResult} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
@@ -25,12 +25,12 @@ export function useSeerWebVitalsSuggestions({
     enabled: enabled && hasSeerWebVitalsSuggestions,
   });
 
-  const autofixQueries: Array<UseQueryResult<AutofixResponse[], Error>> = useQueries({
+  const autofixQueries = useQueries({
     queries: (issues ?? []).map(issue => {
       const queryKey = makeAutofixQueryKey(organization.slug, issue.id);
       return {
         queryKey,
-        queryFn: fetchDataQuery,
+        queryFn: fetchDataQuery<AutofixResponse>,
         staleTime: Infinity,
         enabled: !isLoading && enabled && hasSeerWebVitalsSuggestions,
         retry: false,

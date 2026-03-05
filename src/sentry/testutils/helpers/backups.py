@@ -61,6 +61,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
@@ -106,6 +107,7 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -474,6 +476,7 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
+        SeerOrganizationSettings.objects.create(organization=org)
 
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
@@ -652,6 +655,25 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_NEW_COMMIT,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
+        )
+
+        CodeReviewEvent.objects.create(
+            organization=org,
+            repository=repo,
+            raw_event_type="pull_request",
+            raw_event_action="opened",
+            trigger_id=f"trigger-{slug}",
+            pr_number=1,
+            pr_title=f"Test PR for {slug}",
+            pr_author="test-author",
+            pr_url="https://github.com/getsentry/getsentry/pull/1",
+            pr_state="open",
+            trigger="on_new_commit",
+            trigger_user="test-user",
+            target_commit_sha="abc123",
+            status=CodeReviewEventStatus.REVIEW_COMPLETED,
+            seer_run_id=f"seer-run-{slug}",
+            comments_posted=2,
         )
 
         # Group*

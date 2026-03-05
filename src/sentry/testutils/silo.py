@@ -83,14 +83,14 @@ def monkey_patch_single_process_silo_mode_state():
 
 
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
-    from sentry.api.utils import generate_region_url
+    from sentry.api.utils import generate_locality_url
 
     single_tenants = frozenset(single_tenants)
     return tuple(
         Region(
             name=name,
             snowflake_id=index + 1,
-            address=generate_region_url(name),
+            address=generate_locality_url(name),
             category=(
                 RegionCategory.SINGLE_TENANT
                 if name in single_tenants

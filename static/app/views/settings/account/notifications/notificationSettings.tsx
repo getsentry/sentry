@@ -15,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
@@ -187,7 +186,7 @@ const FieldHelp = styled('div')`
 const FieldWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 

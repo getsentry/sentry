@@ -62,6 +62,7 @@ class ExplorerFilePatch(BaseModel):
 
     repo_name: str
     patch: FilePatch
+    diff: str = ""
 
     class Config:
         extra = "allow"

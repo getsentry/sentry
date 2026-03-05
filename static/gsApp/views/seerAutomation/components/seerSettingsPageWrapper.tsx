@@ -1,22 +1,13 @@
 import {useEffect} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-
-import SeerWizardSetupBanner from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
-import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   children: React.ReactNode;
@@ -25,7 +16,6 @@ interface Props {
 export default function SeerSettingsPageWrapper({children}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const canWrite = useCanWriteSettings();
 
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
@@ -52,39 +42,8 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Seer')} orgSlug={organization.slug} />
-      <SettingsPageHeader
-        title={t('Seer')}
-        subtitle={tct(
-          'Choose how Seer automatically triages and diagnoses incoming issues before you even notice them. Seer currently includes [rca:Root Cause Analysis], an agent that can root-cause issues and create pull requests, and [code_review:AI Code Review], an agent that will review your pull requests to detect issues before they happen. [read_the_docs:Learn what Seer can do from our docs]',
-          {
-            rca: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis" />
-            ),
-            code_review: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
-            ),
-            read_the_docs: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-            ),
-          }
-        )}
-      />
 
-      <Stack gap="lg">
-        <SeerWizardSetupBanner />
-
-        <SettingsPageTabs />
-
-        {canWrite ? null : (
-          <Alert data-test-id="org-permission-alert" variant="warning">
-            {t(
-              'These settings can only be edited by users with the organization owner or manager role.'
-            )}
-          </Alert>
-        )}
-
-        {children}
-      </Stack>
+      {children}
     </Feature>
   );
 }

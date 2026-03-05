@@ -17,7 +17,6 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -48,6 +47,7 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
+import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 interface MetricDetectorEvidenceData {
@@ -104,13 +104,13 @@ interface RelatedIssuesProps {
 }
 
 function calculateStartOfInterval({
-  eventDateCreated,
+  openPeriodStart,
   timeWindow,
 }: {
-  eventDateCreated: string;
+  openPeriodStart: string;
   timeWindow: number;
 }) {
-  const eventTimestamp = new Date(eventDateCreated).getTime();
+  const eventTimestamp = new Date(openPeriodStart).getTime();
   const startOfInterval = new Date(
     eventTimestamp -
       // Subtract the time window (which is in seconds)
@@ -193,23 +193,8 @@ function useZoomTimeRangeToOpenPeriod({
   }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
 }
 
-function ZoomToOpenPeriod({
-  eventId,
-  intervalSeconds,
-  openPeriodStart,
-  openPeriodEnd,
-}: {
-  eventId: string;
-  intervalSeconds: number | undefined;
-  openPeriodEnd: string;
-  openPeriodStart: string;
-}) {
-  useZoomTimeRangeToOpenPeriod({
-    eventId,
-    openPeriodStart,
-    openPeriodEnd,
-    intervalSeconds,
-  });
+function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>[0]) {
+  useZoomTimeRangeToOpenPeriod(props);
 
   return null;
 }
@@ -398,18 +383,20 @@ function TriggeredConditionDetails({
     detectionType,
   });
   const startDate = calculateStartOfInterval({
-    eventDateCreated,
+    openPeriodStart: openPeriod?.start ?? eventDateCreated,
     timeWindow: snubaQuery.timeWindow,
   }).toISOString();
 
   return (
     <Fragment>
-      <ZoomToOpenPeriod
-        eventId={eventId}
-        intervalSeconds={snubaQuery?.timeWindow}
-        openPeriodStart={startDate}
-        openPeriodEnd={endDate}
-      />
+      {!isOpenPeriodLoading && (
+        <ZoomToOpenPeriod
+          eventId={eventId}
+          intervalSeconds={snubaQuery?.timeWindow}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+        />
+      )}
       <InterimSection
         title="Triggered Condition"
         type="triggered_condition"
@@ -481,6 +468,15 @@ function TriggeredConditionDetails({
         />
       </InterimSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
+      {detectorDataset === DetectorDataset.SPANS && openPeriod && (
+        <AttributeComparisonSection
+          snubaQuery={snubaQuery}
+          openPeriodStart={startDate}
+          openPeriodEnd={endDate}
+          projectId={projectId}
+          isOpenPeriodLoading={isOpenPeriodLoading}
+        />
+      )}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
           <InterimSection title={t('Contributing Issues')} type="contributing_issues">
@@ -501,7 +497,7 @@ function TriggeredConditionDetails({
 }
 
 const GroupListWrapper = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 export function MetricDetectorTriggeredSection({

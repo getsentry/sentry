@@ -27,16 +27,18 @@ ACTION_TO_EVENTS: dict[AnalyticAction, type[AiAutofixPrEvent]] = {
 def handle_github_pr_webhook_for_autofix(
     org: Organization, action: str, pull_request: dict[str, Any], github_user: dict[str, Any]
 ) -> None:
+    seer_app_id = getattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID", None)
+    sentry_app_id = getattr(settings, "SENTRY_GITHUB_APP_USER_ID", None)
+
     allowed_user_ids = set()
-    if (
-        hasattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID")
-        and settings.SEER_AUTOFIX_GITHUB_APP_USER_ID
-    ):
-        allowed_user_ids.add(settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-    if hasattr(settings, "SENTRY_GITHUB_APP_USER_ID") and settings.SENTRY_GITHUB_APP_USER_ID:
-        allowed_user_ids.add(settings.SENTRY_GITHUB_APP_USER_ID)
+    if seer_app_id:
+        allowed_user_ids.add(seer_app_id)
+    if sentry_app_id:
+        allowed_user_ids.add(sentry_app_id)
     if github_user["id"] not in allowed_user_ids:
         return None
+
+    github_app = "seer" if github_user["id"] == seer_app_id else "sentry"
 
     if action not in ["opened", "closed"]:
         return None
@@ -55,6 +57,7 @@ def handle_github_pr_webhook_for_autofix(
                     project_id=autofix_state.request.project_id,
                     group_id=autofix_state.request.issue["id"],
                     run_id=autofix_state.run_id,
+                    github_app=github_app,
                 )
             )
         except Exception as e:

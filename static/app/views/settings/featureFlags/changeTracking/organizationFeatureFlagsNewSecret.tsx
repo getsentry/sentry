@@ -113,7 +113,6 @@ function OrganizationFeatureFlagsNewSecret() {
             <NewProviderForm
               onCreatedSecret={setNewSecret}
               setError={setError}
-              selectedProvider={selectedProvider}
               setSelectedProvider={setSelectedProvider}
               canSaveSecret={canSaveSecret}
               existingSecret={existingSecret}

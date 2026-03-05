@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
@@ -40,18 +42,32 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
             "dateClosed": None,
         }
 
+    @staticmethod
+    def _sort_triggers(incident: dict[str, Any]) -> dict[str, Any]:
+        """Sort triggers by label for order-independent comparison."""
+        incident = dict(incident)
+        incident["alertRule"] = dict(incident["alertRule"])
+        incident["alertRule"]["triggers"] = sorted(
+            incident["alertRule"]["triggers"], key=lambda t: t["label"]
+        )
+        return incident
+
     def test_simple(self) -> None:
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
-        assert serialized_incident == self.incident_expected
+        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
+            self.incident_expected
+        )
 
     def test_detailed(self) -> None:
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineDetailedIncidentSerializer()
         )
         self.incident_expected["discoverQuery"] = "(event.type:error) AND (level:error)"
-        assert serialized_incident == self.incident_expected
+        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
+            self.incident_expected
+        )
 
     def test_no_incident(self) -> None:
         """
@@ -100,7 +116,9 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
                 "identifier": str(fake_incident_id),
             }
         )
-        assert serialized_incident == self.incident_expected
+        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
+            self.incident_expected
+        )
 
     def test_with_activities(self) -> None:
         gopa = GroupOpenPeriodActivity.objects.create(

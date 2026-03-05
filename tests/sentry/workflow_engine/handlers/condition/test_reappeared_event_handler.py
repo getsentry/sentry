@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Any, Mapping
 
 import pytest
 from jsonschema import ValidationError
@@ -11,7 +12,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestReappearedEventCondition(ConditionTestCase):
     condition = Condition.REAPPEARED_EVENT
-    payload = {"id": ReappearedEventCondition.id}
+    payload: Mapping[str, Any] = {"id": ReappearedEventCondition.id}
 
     def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()

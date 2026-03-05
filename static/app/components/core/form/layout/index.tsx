@@ -35,6 +35,7 @@ function RowLayout(props: RowLayoutProps) {
       align="center"
       justify="between"
       padding={props.padding}
+      flexGrow={1}
     >
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
@@ -69,6 +70,7 @@ function StackLayout(props: StackLayoutProps) {
       direction="column"
       gap="md"
       padding={props.padding}
+      flexGrow={1}
     >
       <Flex gap="xs" align="center">
         <FieldMeta.Label

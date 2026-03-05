@@ -16,7 +16,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     enabledConsolePlatforms: ['playstation', 'xbox'],
     consoleSdkInviteQuota: 10,
     orgRole: 'admin',
-    features: ['github-console-sdk-self-invite'],
+    features: [],
   });
 
   beforeEach(() => {
@@ -87,7 +87,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     const orgWithoutConsoleAccess = OrganizationFixture({
       enabledConsolePlatforms: [],
       consoleSdkInviteQuota: 10,
-      features: ['github-console-sdk-self-invite'],
+      features: [],
     });
 
     OrganizationsStore.addOrReplace(orgWithoutConsoleAccess);
@@ -113,7 +113,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     const orgWithExhaustedQuota = OrganizationFixture({
       enabledConsolePlatforms: ['playstation'],
       consoleSdkInviteQuota: 2,
-      features: ['github-console-sdk-self-invite'],
+      features: [],
     });
 
     OrganizationsStore.addOrReplace(orgWithExhaustedQuota);
@@ -242,7 +242,7 @@ describe('ConsoleSDKInvitesSettings', () => {
         enabledConsolePlatforms: ['playstation'],
         consoleSdkInviteQuota: 10,
         orgRole: 'member',
-        features: ['github-console-sdk-self-invite'],
+        features: [],
       });
 
       OrganizationsStore.addOrReplace(memberOrg);
@@ -289,7 +289,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           enabledConsolePlatforms: ['playstation'],
           consoleSdkInviteQuota: 10,
           orgRole: role,
-          features: ['github-console-sdk-self-invite'],
+          features: [],
         });
 
         OrganizationsStore.addOrReplace(org);
@@ -325,7 +325,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           enabledConsolePlatforms: ['playstation'],
           consoleSdkInviteQuota: 10,
           orgRole: role,
-          features: ['github-console-sdk-self-invite'],
+          features: [],
         });
 
         OrganizationsStore.addOrReplace(org);

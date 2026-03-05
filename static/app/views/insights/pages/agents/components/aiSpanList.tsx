@@ -75,10 +75,10 @@ export function AISpanList({
   compressGaps?: boolean;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
+    const result = new Map<
       TransactionNode | EapSpanNode | AITraceSpanNode,
       AITraceSpanNode[]
-    > = new Map();
+    >();
     // Use a placeholder key for nodes without a transaction (e.g., conversation view)
     let orphanGroup: AITraceSpanNode | null = null;
 

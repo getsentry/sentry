@@ -117,7 +117,7 @@ export default function RepoTokenTable({response, sort}: Props) {
 
     const newQuery = {...queryWithoutPagination};
 
-    if (!sort || sort.field !== field) {
+    if (sort?.field !== field) {
       newQuery.sort = field;
     } else if (sort.direction === 'asc') {
       newQuery.sort = `-${field}`;

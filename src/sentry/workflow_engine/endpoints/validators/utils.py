@@ -34,8 +34,7 @@ def log_alerting_quota_hit(
 
 def toggle_detector(detector: Detector, enabled: bool) -> None:
     updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
-    detector.update(status=updated_detector_status)
-    detector.update(enabled=enabled)
+    detector.update(status=updated_detector_status, enabled=enabled)
 
 
 def validate_json_schema(value: Any, schema: Any) -> Any:

@@ -178,19 +178,17 @@ class SafeRolloutComparator:
 
         logger.info(
             "saferollout.mismatch",
-            extra=trim(
-                {
-                    "rollout_name": cls.ROLLOUT_NAME,
-                    "callsite": callsite,
-                    "source_of_truth": ("experimental" if use_experimental else "control"),
-                    "exact_match": exact_match,
-                    "reasonable_match": reasonable_match,
-                    "is_null_result": is_experimental_data_a_null_result,
-                    "debug_context": cls._default_serialize_for_log(debug_context),
-                    "control_data_raw": serialize(control_data),
-                    "experimental_data_raw": serialize(experimental_data),
-                }
-            ),
+            extra={
+                "rollout_name": cls.ROLLOUT_NAME,
+                "callsite": callsite,
+                "source_of_truth": ("experimental" if use_experimental else "control"),
+                "exact_match": exact_match,
+                "reasonable_match": reasonable_match,
+                "is_null_result": is_experimental_data_a_null_result,
+                "debug_context": trim(cls._default_serialize_for_log(debug_context)),
+                "control_data_raw": trim(serialize(control_data)),
+                "experimental_data_raw": trim(serialize(experimental_data)),
+            },
         )
 
     @classmethod

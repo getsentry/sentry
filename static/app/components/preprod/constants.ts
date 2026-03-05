@@ -8,6 +8,7 @@ export const MOBILE_BUILDS_ALLOWED_KEYS = [
   'build_configuration_name',
   'build_number',
   'build_version',
+  'distribution_error_code',
   'download_count',
   'download_size',
   'git_base_ref',

@@ -6,6 +6,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+
+type TestSpan = Pick<SpanResponse, DefaultDetailWidgetFields>;
 
 describe('DetailsWidgetVisualization', () => {
   beforeEach(() => {
@@ -50,12 +54,13 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   it('renders a span', () => {
-    const span = {
+    const span: TestSpan = {
       id: '123',
       ['span.op']: 'span_op',
       ['span.description']: 'span_description',
       ['span.group']: 'span_group',
       ['span.category']: 'span_category',
+      ['project.id']: 1,
     };
     render(<DetailsWidgetVisualization span={span} />);
     expect(
@@ -64,12 +69,13 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   it('renders a db span', async () => {
-    const span = {
+    const span: TestSpan = {
       id: '123',
       ['span.op']: 'db',
       ['span.description']: 'SELECT * FROM users',
       ['span.group']: 'span_group',
       ['span.category']: 'db',
+      ['project.id']: 1,
     };
     render(<DetailsWidgetVisualization span={span} />);
 
@@ -81,12 +87,13 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   it('renders an http domain status link', async () => {
-    const span = {
+    const span: TestSpan = {
       id: '123',
       ['span.op']: 'http',
       ['span.description']: 'GET /users',
       ['span.group']: 'span_group',
       ['span.category']: 'http',
+      ['project.id']: 1,
     };
     render(<DetailsWidgetVisualization span={span} />);
 

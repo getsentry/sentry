@@ -35,12 +35,13 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.query_utils import (
+    build_snuba_params_from_ids,
+    keyed_counts_subset_match,
+)
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -103,7 +104,11 @@ def query_groups_past_counts(groups: Iterable[Group]) -> list[GroupsCountRespons
             eap_results,
             "issues.escalating.query_groups_past_counts",
             is_experimental_data_a_null_result=len(eap_results) == 0,
-            reasonable_match_comparator=_reasonable_groups_past_counts_match,
+            reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
+                snuba_rows,
+                eap_rows,
+                key_fn=lambda row: (row["project_id"], row["group_id"], row["hourBucket"]),
+            ),
             debug_context={
                 "organization_ids": sorted({g.project.organization_id for g in groups_list}),
                 "project_ids": sorted({g.project_id for g in groups_list}),
@@ -169,33 +174,27 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
 
     for organization_id in sorted(groups_by_org.keys()):
         group_ids_by_project = groups_by_org[organization_id]
-
-        try:
-            organization = Organization.objects.get(id=organization_id)
-        except Organization.DoesNotExist:
-            continue
-
         project_ids = list(group_ids_by_project.keys())
-        all_group_ids = [gid for gids in group_ids_by_project.values() for gid in gids]
-        projects = list(Project.objects.filter(id__in=project_ids))
 
-        if not projects or not all_group_ids:
+        all_group_ids = [gid for gids in group_ids_by_project.values() for gid in gids]
+        if not all_group_ids:
             continue
 
         # Build query string for group_id filter
         if len(all_group_ids) == 1:
             query_string = f"group_id:{all_group_ids[0]}"
         else:
-            group_id_filter = " OR ".join([f"group_id:{gid}" for gid in all_group_ids])
-            query_string = f"({group_id_filter})"
+            query_string = f"group_id:[{', '.join(str(gid) for gid in all_group_ids)}]"
 
-        snuba_params = SnubaParams(
+        snuba_params = build_snuba_params_from_ids(
+            organization_id=organization_id,
+            project_ids=project_ids,
             start=start_date,
             end=end_date,
-            organization=organization,
-            projects=projects,
             granularity_secs=HOUR,  # 1 hour buckets
         )
+        if snuba_params is None:
+            continue
 
         try:
             timeseries_results = Occurrences.run_grouped_timeseries_query(
@@ -236,22 +235,6 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
     all_results.sort(key=lambda x: (x["project_id"], x["group_id"], x["hourBucket"]))
 
     return all_results
-
-
-def _reasonable_groups_past_counts_match(
-    snuba_results: list[GroupsCountResponse], eap_results: list[GroupsCountResponse]
-) -> bool:
-    snuba_by_key = {
-        (r["project_id"], r["group_id"], r["hourBucket"]): r["count()"] for r in snuba_results
-    }
-    eap_by_key = {
-        (r["project_id"], r["group_id"], r["hourBucket"]): r["count()"] for r in eap_results
-    }
-
-    if not set(eap_by_key).issubset(set(snuba_by_key)):
-        return False
-
-    return all(eap_count <= snuba_by_key[key] for key, eap_count in eap_by_key.items())
 
 
 def _process_groups(
@@ -403,10 +386,11 @@ def _extract_organization_and_project_and_group_ids(
     return group_ids_by_organization
 
 
-def get_group_hourly_count_snuba(group: Group) -> int:
-    """Return the number of events a group has had today in the last hour"""
+def get_group_hourly_count_snuba(group: Group) -> tuple[int, bool]:
+    """Return the number of events a group has had today in the last hour, and whether the cache was used."""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
+    used_cache = hourly_count is not None
 
     if hourly_count is None:
         now = datetime.now()
@@ -439,13 +423,14 @@ def get_group_hourly_count_snuba(group: Group) -> int:
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
 
-    return int(hourly_count)
+    return int(hourly_count), used_cache
 
 
-def get_group_hourly_count_eap(group: Group) -> int:
-    """Return the number of events a group has had today in the last hour"""
+def get_group_hourly_count_eap(group: Group) -> tuple[int, bool]:
+    """Return the number of events a group has had today in the last hour, and whether the cache was used."""
     key = f"hourly-group-count-eap:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
+    used_cache = hourly_count is not None
 
     if hourly_count is None:
         now = datetime.now()
@@ -460,23 +445,24 @@ def get_group_hourly_count_eap(group: Group) -> int:
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
 
-    return int(hourly_count)
+    return int(hourly_count), used_cache
 
 
 def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
-    snuba_count = get_group_hourly_count_snuba(group)
+    snuba_count, snuba_used_cache = get_group_hourly_count_snuba(group)
     group_hourly_count = snuba_count
 
     if EAPOccurrencesComparator.should_check_experiment("issues.escalating.is_escalating"):
-        eap_count = get_group_hourly_count_eap(group)
+        eap_count, eap_used_cache = get_group_hourly_count_eap(group)
+        either_used_cache = snuba_used_cache or eap_used_cache
         group_hourly_count = EAPOccurrencesComparator.check_and_choose(
             snuba_count,
             eap_count,
             "issues.escalating.is_escalating",
-            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            reasonable_match_comparator=lambda snuba, eap: either_used_cache or eap <= snuba,
             debug_context={
                 "organization_id": group.project.organization_id,
                 "project_id": group.project.id,

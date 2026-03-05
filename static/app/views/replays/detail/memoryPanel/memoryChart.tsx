@@ -18,7 +18,6 @@ import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
@@ -142,8 +141,8 @@ const MemoryChartSeries = memo(
         autoHeightResize: true,
         height: 'auto',
         grid: Grid({
-          left: space(1),
-          right: space(1),
+          left: theme.space.md,
+          right: theme.space.md,
         }),
         tooltip: computeChartTooltip(
           {

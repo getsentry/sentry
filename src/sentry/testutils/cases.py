@@ -6,7 +6,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
@@ -216,7 +216,7 @@ __all__ = (
     "MonitorIngestTestCase",
 )
 
-from ..types.region import get_region_by_name
+from ..types.region import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -464,7 +464,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                            region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
                         with (
                             SingleProcessSiloModeState.exit(),
                             SingleProcessSiloModeState.enter(mode, region),
@@ -1171,6 +1171,36 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+    def produce_and_store_eap_items(
+        self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> list[TraceItem]:
+        """
+        Calls produce_fn while intercepting the Kafka produce call at
+        producer_mock_path, then inserts the captured TraceItems into Snuba
+        via the synchronous HTTP endpoint so they're immediately queryable.
+
+        Use this instead of calling EAP producers directly in tests, since
+        SingletonProducer only flushes on process exit.
+        """
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+
+        payloads: list[bytes] = []
+
+        def capture(topic: Any, payload: Any) -> None:
+            payloads.append(payload.value)
+
+        with mock.patch(producer_mock_path, side_effect=capture):
+            produce_fn(*args, **kwargs)
+
+        trace_items = []
+        for raw in payloads:
+            item = TraceItem()
+            item.CopyFrom(codec.decode(raw))
+            trace_items.append(item)
+
+        self.store_eap_items(trace_items)
+        return trace_items
 
     def store_occurrences(self, occurrences: Sequence[TraceItem]):
         files = {

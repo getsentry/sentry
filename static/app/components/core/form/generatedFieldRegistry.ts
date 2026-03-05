@@ -114,38 +114,178 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
+  'project-ownership.autoAssignment': {
+    name: 'autoAssignment',
+    formId: 'project-ownership',
+    route: '/settings/:orgId/projects/:projectId/ownership/',
+    label: t('Prioritize Auto Assignment'),
+    hintText: t("When there's a conflict between suspect commit and ownership rules."),
+  },
+  'project-ownership.codeownersAutoSync': {
+    name: 'codeownersAutoSync',
+    formId: 'project-ownership',
+    route: '/settings/:orgId/projects/:projectId/ownership/',
+    label: t('Sync changes from CODEOWNERS'),
+    hintText: t(
+      'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
+    ),
+  },
+  'project-user-feedback.feedback:branding': {
+    name: 'feedback:branding',
+    formId: 'project-user-feedback',
+    route: '/settings/:orgId/projects/:projectId/user-feedback/',
+    label: t('Show Sentry Branding in Crash Report Modal'),
+    hintText: t(
+      'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
+    ),
+  },
+  'project-user-feedback.sentry:feedback_user_report_notifications': {
+    name: 'sentry:feedback_user_report_notifications',
+    formId: 'project-user-feedback',
+    route: '/settings/:orgId/projects/:projectId/user-feedback/',
+    label: t('Enable Crash Report Notifications'),
+  },
+  'project-user-feedback.sentry:feedback_ai_spam_detection': {
+    name: 'sentry:feedback_ai_spam_detection',
+    formId: 'project-user-feedback',
+    route: '/settings/:orgId/projects/:projectId/user-feedback/',
+    label: t('Enable Spam Detection'),
+  },
+  'project-toolbar.sentry:toolbar_allowed_origins': {
+    name: 'sentry:toolbar_allowed_origins',
+    formId: 'project-toolbar',
+    route: '/settings/:orgId/projects/:projectId/toolbar/',
+    label: t('Allowed Origins'),
+    hintText: '',
+  },
+  'project-replays.sentry:replay_rage_click_issues': {
+    name: 'sentry:replay_rage_click_issues',
+    formId: 'project-replays',
+    route: '/settings/:orgId/projects/:projectId/replays/',
+    label: t('Create Rage Click Issues'),
+    hintText: t('Toggles whether or not to create Session Replay Rage Click Issues'),
+  },
+  'project-replays.sentry:replay_hydration_error_issues': {
+    name: 'sentry:replay_hydration_error_issues',
+    formId: 'project-replays',
+    route: '/settings/:orgId/projects/:projectId/replays/',
+    label: t('Create Hydration Error Issues'),
+    hintText: '',
+  },
+  'organization-settings-form.replayAccessMembers': {
+    name: 'replayAccessMembers',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Replay Access Members'),
+    hintText: t('Select the members who will have access to replay data.'),
+  },
+  'organization-settings-form.defaultRole': {
+    name: 'defaultRole',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Default Role'),
+    hintText: t('The default role new members will receive'),
+  },
+  'organization-settings-form.openMembership': {
+    name: 'openMembership',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Open Team Membership'),
+    hintText: t('Allow organization members to freely join any team'),
+  },
+  'organization-settings-form.allowMemberInvite': {
+    name: 'allowMemberInvite',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Invite Others'),
+    hintText: t(
+      'Allow organization members to invite other members via email without needing org owner or manager approval.'
+    ),
+  },
+  'organization-settings-form.allowMemberProjectCreation': {
+    name: 'allowMemberProjectCreation',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Create Projects'),
+    hintText: t('Allow organization members to create and configure new projects.'),
+  },
+  'organization-settings-form.eventsMemberAdmin': {
+    name: 'eventsMemberAdmin',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Delete Events'),
+    hintText: t(
+      'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
+    ),
+  },
+  'organization-settings-form.alertsMemberWrite': {
+    name: 'alertsMemberWrite',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Create and Edit Alerts'),
+    hintText: t(
+      'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+    ),
+  },
+  'organization-settings-form.attachmentsRole': {
+    name: 'attachmentsRole',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Attachments Access'),
+    hintText: t(
+      'Role required to download event attachments, such as native crash reports or log files.'
+    ),
+  },
+  'organization-settings-form.debugFilesRole': {
+    name: 'debugFilesRole',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Debug Files Access'),
+    hintText: t(
+      'Role required to download debug information files, proguard mappings and source maps.'
+    ),
+  },
+  'organization-settings-form.hasGranularReplayPermissions': {
+    name: 'hasGranularReplayPermissions',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Restrict Replay Access'),
+    hintText: t(
+      'Allow granular access to replay data by selecting specific members of your organization.'
+    ),
+  },
   'organization-settings-form.slug': {
     name: 'slug',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Organization Slug'),
     hintText: t('A unique ID used to identify this organization'),
   },
   'organization-settings-form.name': {
     name: 'name',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Display Name'),
     hintText: t('A human-friendly name for the organization'),
   },
   'organization-settings-form.organizationId': {
     name: 'organizationId',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Organization ID'),
     hintText: t('The unique identifier for this organization. It cannot be modified.'),
   },
   'organization-settings-form.isEarlyAdopter': {
     name: 'isEarlyAdopter',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Early Adopter'),
     hintText: '',
   },
   'organization-settings-form.hideAiFeatures': {
     name: 'hideAiFeatures',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Show Generative AI Features'),
     hintText: '',
   },
@@ -251,5 +391,23 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/:orgId/teams/:teamId/settings/',
     label: t('Team ID'),
     hintText: t('The unique identifier for this team. It cannot be modified.'),
+  },
+  'new-provider-form.provider': {
+    name: 'provider',
+    formId: 'new-provider-form',
+    route: '/settings/feature-flags/change-tracking/new-provider/',
+    label: t('Provider'),
+    hintText: t(
+      'If you have already linked this provider, pasting a new secret will override the existing secret.'
+    ),
+  },
+  'new-provider-form.secret': {
+    name: 'secret',
+    formId: 'new-provider-form',
+    route: '/settings/feature-flags/change-tracking/new-provider/',
+    label: t('Secret'),
+    hintText: t(
+      'Paste the signing secret given by your provider when creating the webhook.'
+    ),
   },
 };

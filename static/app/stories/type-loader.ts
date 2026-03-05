@@ -99,23 +99,17 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
 
   const module = extractRequest(this._module);
 
-  Promise.all([
-    extractComponentProps(this._module, this.resourcePath),
-    extractModuleExports(program, sourceFile),
-  ])
-    .then(([moduleProps, moduleExports]) => {
-      const typeLoaderResult: TypeLoader.TypeLoaderResult = {
-        props: moduleProps,
-        exports: {
-          module,
-          exports: moduleExports,
-        },
-      };
-      return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
-    })
-    .catch(error => {
-      return callback(error);
-    });
+  const moduleProps = extractComponentProps(this._module, this.resourcePath);
+  const moduleExports = extractModuleExports(program, sourceFile);
+
+  const typeLoaderResult: TypeLoader.TypeLoaderResult = {
+    props: moduleProps,
+    exports: {
+      module,
+      exports: moduleExports,
+    },
+  };
+  return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
 }
 
 function noopTypeLoader(this: LoaderContext<any>, _source: string) {

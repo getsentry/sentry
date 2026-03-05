@@ -27,8 +27,7 @@ class CreateUserTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         assert "you@somewhereawesome.com" in rv.output
         assert User.objects.count() == 1
-        user = User.objects.all()[0]
-        assert user.email == "you@somewhereawesome.com"
+        user = User.objects.get(email="you@somewhereawesome.com")
         assert user.check_password("awesome")
         assert user.is_superuser
         assert user.is_staff
@@ -39,8 +38,7 @@ class CreateUserTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         assert "you@somewhereawesome.com" in rv.output
         assert User.objects.count() == 1
-        user = User.objects.all()[0]
-        assert user.email == "you@somewhereawesome.com"
+        user = User.objects.get(email="you@somewhereawesome.com")
         assert user.check_password("awesome")
         assert not user.is_superuser
         assert not user.is_staff
@@ -51,8 +49,7 @@ class CreateUserTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         assert "you@somewhereawesome.com" in rv.output
         assert User.objects.count() == 1
-        user = User.objects.all()[0]
-        assert user.email == "you@somewhereawesome.com"
+        user = User.objects.get(email="you@somewhereawesome.com")
         assert not user.password
         assert not user.is_superuser
         assert not user.is_staff
@@ -65,7 +62,7 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationMember.objects.count() == 1
-                member = OrganizationMember.objects.all()[0]
+                member = OrganizationMember.objects.order_by("id")[0]
             assert member.user_id is not None
             u = user_service.get_user(user_id=member.user_id)
             assert u
@@ -80,7 +77,7 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationMember.objects.count() == 1
-                member = OrganizationMember.objects.all()[0]
+                member = OrganizationMember.objects.order_by("id")[0]
             assert member.user_id is not None
             u = user_service.get_user(user_id=member.user_id)
             assert u

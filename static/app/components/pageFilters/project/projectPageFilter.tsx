@@ -3,10 +3,17 @@ import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
+import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import type {
+  MultipleSelectProps,
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+  SelectSection,
+} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -14,16 +21,9 @@ import {Text} from '@sentry/scraps/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import type {
-  HybridFilterProps,
-  HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
-import {
-  HybridFilter,
-  useStagedCompactSelect,
-} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -38,22 +38,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export interface ProjectPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<number>,
-    | 'search'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onReset'
-    | 'onToggle'
-    | 'menuBody'
-    | 'menuFooter'
-    | 'shouldCloseOnInteractOutside'
-    | 'sizeLimitMessage'
-    | 'stagedSelect'
-  >
+  Omit<MultipleSelectProps<number>, 'onChange'>
 > {
   /**
    * Called when the selection changes
@@ -97,9 +82,12 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
-  const hybridFilterRef = useRef<HybridFilterRef<number>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: number) => void) | undefined>(undefined);
 
   // Track optimistically bookmarked projects to prevent star from disappearing
   // during API call when user bookmarks and quickly moves focus
@@ -201,6 +189,8 @@ export function ProjectPageFilter({
     [mapURLValueToNormalValue]
   );
 
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+
   const handleChange = useCallback(
     async (newValue: number[]) => {
       if (isEqual(newValue, value)) {
@@ -213,7 +203,7 @@ export function ProjectPageFilter({
         count: newValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: true,
+        multi: newValue.length > 1,
       });
 
       // Wait for the menu to close before calling onChange
@@ -239,14 +229,14 @@ export function ProjectPageFilter({
   );
 
   const onToggle = useCallback(
-    (newValue: any) => {
+    (newValue: number[]) => {
       trackAnalytics('projectselector.toggle', {
-        action: newValue.length > value.length ? 'added' : 'removed',
+        action: newValue.length > stagedValue.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
         organization,
       });
     },
-    [value, routes, organization]
+    [stagedValue, routes, organization]
   );
 
   const onReplace = useCallback(() => {
@@ -256,13 +246,16 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const handleReset = useCallback(() => {
-    onReset?.();
-    trackAnalytics('projectselector.clear', {
-      path: getRouteStringFromRoutes(routes),
-      organization,
-    });
-  }, [onReset, routes, organization]);
+  const handleSectionToggle = useCallback(
+    (section: SelectSection<SelectKey>) => {
+      trackAnalytics('projectselector.multi_button_clicked', {
+        button_type: section.key === 'my-projects' ? 'my' : 'all',
+        path: getRouteStringFromRoutes(routes),
+        organization,
+      });
+    },
+    [routes, organization]
+  );
 
   const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -277,9 +270,7 @@ export function ProjectPageFilter({
         leadingItems: ({isSelected}) => (
           <MenuComponents.Checkbox
             checked={isSelected}
-            onChange={() =>
-              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-            }
+            onChange={() => toggleOptionRef.current?.(parseInt(project.id, 10))}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />
@@ -405,7 +396,6 @@ export function ProjectPageFilter({
     return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
   }, [options]);
 
-  const [stagedValue, setStagedValue] = useState<number[]>(value);
   const selectionLimitExceeded = useMemo(() => {
     const mappedValue = mapNormalValueToURLValue(stagedValue);
     return mappedValue.length > SELECTION_COUNT_LIMIT;
@@ -413,26 +403,76 @@ export function ProjectPageFilter({
 
   const stagedSelect = useStagedCompactSelect({
     value,
-    defaultValue,
     options,
     onChange: handleChange,
     onStagedValueChange: setStagedValue,
     onToggle,
     onReplace,
-    onReset: handleReset,
+    onSectionToggle: handleSectionToggle,
     multiple: true,
     disableCommit: selectionLimitExceeded,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
+  const {dispatch} = stagedSelect;
+
+  // Merge the hook's onOpenChange (resets shift-click anchor) with the local
+  // snapshot logic (freezes the bookmark sort order while the menu is open).
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+        dispatch({type: 'reset anchor'});
+      }
+    },
+    [dispatch, optimisticallyBookmarkedProjects]
+  );
+
+  const handleReset = useCallback(() => {
+    dispatch({type: 'remove staged'});
+    handleChange(defaultValue);
+    onReset?.();
+
+    trackAnalytics('projectselector.clear', {
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+  }, [dispatch, handleChange, defaultValue, onReset, routes, organization]);
+
+  const handleCancel = useCallback(() => {
+    trackAnalytics('projectselector.cancel', {
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+    dispatch({type: 'remove staged'});
+  }, [dispatch, routes, organization]);
+
+  const handleApply = useCallback(() => {
+    trackAnalytics('projectselector.apply', {
+      count: stagedValue.length,
+      multi: stagedValue.length > 1,
+      path: getRouteStringFromRoutes(routes),
+      organization,
+    });
+    dispatch({type: 'remove staged'});
+    handleChange(stagedSelect.value);
+  }, [dispatch, handleChange, routes, organization, stagedSelect.value, stagedValue]);
+
+  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const shouldShowReset = xor(stagedSelect.value, defaultValue).length > 0;
+
   const hasProjectWrite = organization.access.includes('project:write');
 
   return (
-    <HybridFilter
-      search
-      ref={hybridFilterRef}
+    <CompactSelect
+      grid
+      multiple
       {...selectProps}
-      stagedSelect={stagedSelect}
-      options={options}
+      {...stagedSelect.compactSelectProps}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
@@ -454,16 +494,12 @@ export function ProjectPageFilter({
         )
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
-      onOpenChange={() => {
-        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-      }}
+      onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
-        ) : null
+        shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
       }
       menuFooter={
-        selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
+        selectionLimitExceeded || hasProjectWrite || hasStagedChanges ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
               <MenuComponents.Alert variant="warning">
@@ -481,19 +517,17 @@ export function ProjectPageFilter({
                 <MenuComponents.CTALinkButton
                   icon={<IconAdd />}
                   to={makeProjectsPathname({path: '/new/', organization})}
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={handleApply}
                 >
                   {t('Create Project')}
                 </MenuComponents.CTALinkButton>
               ) : undefined}
-              {stagedSelect.hasStagedChanges ? (
+              {hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
-                  <MenuComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
-                  />
+                  <MenuComponents.CancelButton onClick={handleCancel} />
                   <MenuComponents.ApplyButton
-                    disabled={stagedSelect.disableCommit}
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                    disabled={selectionLimitExceeded}
+                    onClick={handleApply}
                   />
                 </Flex>
               ) : null}

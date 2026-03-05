@@ -4,13 +4,20 @@ from urllib.parse import urlparse, urlunparse
 
 import urllib3
 from django.conf import settings
-from objectstore_client import Client, MetricsBackend, Session, TimeToLive, Usecase
+from objectstore_client import (
+    Client,
+    MetricsBackend,
+    Session,
+    TimeToLive,
+    Usecase,
+    parse_accept_encoding,
+)
 from objectstore_client.metrics import Tags
 
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
-__all__ = ["get_attachments_session"]
+__all__ = ["get_attachments_session", "parse_accept_encoding"]
 
 
 class SentryMetricsBackend(MetricsBackend):

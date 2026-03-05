@@ -33,7 +33,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
   frame_types: Float32Array = new Float32Array();
   bounds: Float32Array = new Float32Array();
 
-  colorMap: Map<string | number, number[]> = new Map();
+  colorMap = new Map<string | number, number[]>();
 
   attributes: {
     a_bounds: number | null;
