@@ -58,7 +58,12 @@ interface ExplorerSeerDrawerProps {
 /**
  * Common breadcrumbs for the drawer header.
  */
-const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
+const drawerBreadcrumbs = (
+  group: Group,
+  event: Event,
+  project: Project,
+  orgSlug: string
+) => [
   {
     label: (
       <Flex align="center" gap="md">
@@ -66,8 +71,14 @@ const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
         <ShortId>{group.shortId}</ShortId>
       </Flex>
     ),
+    to: `/organizations/${orgSlug}/issues/${group.id}/`,
+    openInNewTab: true,
   },
-  {label: getShortEventId(event.id)},
+  {
+    label: getShortEventId(event.id),
+    to: `/organizations/${orgSlug}/issues/${group.id}/events/${event.id}/`,
+    openInNewTab: true,
+  },
   {label: t('Seer')},
 ];
 
@@ -225,8 +236,8 @@ export function ExplorerSeerDrawer({
   }, [artifacts, group, event, copy]);
 
   const breadcrumbs = useMemo(
-    () => drawerBreadcrumbs(group, event, project),
-    [group, event, project]
+    () => drawerBreadcrumbs(group, event, project, organization.slug),
+    [group, event, project, organization.slug]
   );
 
   const hasArtifacts =

@@ -45,6 +45,32 @@ interface SeerDrawerProps {
   project: Project;
 }
 
+function seerDrawerBreadcrumbs(
+  group: Group,
+  event: Event,
+  project: Project,
+  orgSlug: string
+) {
+  return [
+    {
+      label: (
+        <Flex align="center" gap="md">
+          <ProjectAvatar project={project} />
+          <ShortId>{group.shortId}</ShortId>
+        </Flex>
+      ),
+      to: `/organizations/${orgSlug}/issues/${group.id}/`,
+      openInNewTab: true,
+    },
+    {
+      label: getShortEventId(event.id),
+      to: `/organizations/${orgSlug}/issues/${group.id}/events/${event.id}/`,
+      openInNewTab: true,
+    },
+    {label: t('Seer')},
+  ];
+}
+
 const AiSetupConfiguration = HookOrDefault({
   hookName: 'component:ai-setup-configuration',
   defaultComponent: ({
@@ -96,18 +122,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>
           <NavigationCrumbs
-            crumbs={[
-              {
-                label: (
-                  <Flex align="center" gap="md">
-                    <ProjectAvatar project={project} />
-                    <ShortId>{group.shortId}</ShortId>
-                  </Flex>
-                ),
-              },
-              {label: getShortEventId(event.id)},
-              {label: t('Seer')},
-            ]}
+            crumbs={seerDrawerBreadcrumbs(group, event, project, organization.slug)}
           />
         </SeerDrawerHeader>
         <SeerDrawerBody>
@@ -147,18 +162,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         <SeerDrawerContainer className="seer-drawer-container">
           <SeerDrawerHeader>
             <NavigationCrumbs
-              crumbs={[
-                {
-                  label: (
-                    <Flex align="center" gap="md">
-                      <ProjectAvatar project={project} />
-                      <ShortId>{group.shortId}</ShortId>
-                    </Flex>
-                  ),
-                },
-                {label: getShortEventId(event.id)},
-                {label: t('Seer')},
-              ]}
+              crumbs={seerDrawerBreadcrumbs(group, event, project, organization.slug)}
             />
           </SeerDrawerHeader>
           <SeerDrawerBody>
@@ -176,18 +180,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>
           <NavigationCrumbs
-            crumbs={[
-              {
-                label: (
-                  <Flex align="center" gap="md">
-                    <ProjectAvatar project={project} />
-                    <ShortId>{group.shortId}</ShortId>
-                  </Flex>
-                ),
-              },
-              {label: getShortEventId(event.id)},
-              {label: t('Seer')},
-            ]}
+            crumbs={seerDrawerBreadcrumbs(group, event, project, organization.slug)}
           />
         </SeerDrawerHeader>
         <SeerDrawerBody>
@@ -363,18 +356,7 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
     <SeerDrawerContainer className="seer-drawer-container">
       <SeerDrawerHeader>
         <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <Flex align="center" gap="md">
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </Flex>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Seer')},
-          ]}
+          crumbs={seerDrawerBreadcrumbs(group, event, project, organization.slug)}
         />
         <FeedbackWrapper>
           <AutofixFeedback />

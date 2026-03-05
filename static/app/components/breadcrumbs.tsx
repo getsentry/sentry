@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconSlashForward} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export interface Crumb {
@@ -15,6 +17,11 @@ export interface Crumb {
    * Label of the crumb
    */
   label: NonNullable<React.ReactNode>;
+
+  /**
+   * If true, renders the link as an external link that opens in a new tab
+   */
+  openInNewTab?: boolean;
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
@@ -87,6 +94,7 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
           <BreadcrumbLink
             to={props.crumb.to}
             preservePageFilters={props.crumb.preservePageFilters}
+            openInNewTab={props.crumb.openInNewTab}
             data-test-id="breadcrumb-link"
             onClick={onBreadcrumbLinkClick}
             {...styleProps}
@@ -112,11 +120,12 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
 
 interface BreadcrumbLinkProps extends LinkProps {
   children?: React.ReactNode;
+  openInNewTab?: boolean;
   preservePageFilters?: boolean;
 }
 
 function BreadcrumbLink(props: BreadcrumbLinkProps) {
-  const {preservePageFilters, to, ...rest} = props;
+  const {preservePageFilters, openInNewTab, to, ...rest} = props;
   const location = useLocation();
 
   if (!to) {
@@ -128,6 +137,16 @@ function BreadcrumbLink(props: BreadcrumbLinkProps) {
       ? {pathname: to, query: extractSelectionParameters(location.query)}
       : {...to, query: {...extractSelectionParameters(location.query), ...to.query}}
     : to;
+
+  if (openInNewTab) {
+    const normalized = normalizeUrl(toWithQuery);
+    const toObject = locationDescriptorToTo(normalized);
+    const href =
+      typeof toObject === 'string'
+        ? toObject
+        : `${toObject.pathname ?? ''}${toObject.search ?? ''}${toObject.hash ?? ''}`;
+    return <ExternalLink href={href} {...rest} />;
+  }
 
   return <Link to={toWithQuery} {...rest} />;
 }
