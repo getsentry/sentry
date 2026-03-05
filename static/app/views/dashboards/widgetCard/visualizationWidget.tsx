@@ -460,7 +460,6 @@ function VisualizationWidgetContent({
             {footerTable}
           </Container>
         </Flex>
-        {confidenceFooter}
       </Flex>
     );
   }
