@@ -81,7 +81,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
-        if request.user.is_authenticated:
+        if request.method == "GET" and request.user.is_authenticated:
             membership = organization_service.check_membership_by_id(
                 organization_id=organization.id, user_id=request.user.id
             )

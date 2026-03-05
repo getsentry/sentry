@@ -71,6 +71,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert len(messages) == 1
         assert "is not a member of the" in str(messages[0])
 
+    def test_no_non_member_warning_on_post(self) -> None:
+        non_member = self.create_user("nonmember@example.com")
+        self.login_as(non_member)
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert "is not a member of the" not in resp.content.decode("utf-8")
+
     def test_renders_session_expire_message(self) -> None:
         self.client.cookies["session_expired"] = "1"
         resp = self.client.get(self.path)
