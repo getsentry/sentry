@@ -1,5 +1,14 @@
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.core.cache import cache
+
+if TYPE_CHECKING:
+    from taskbroker_client.app import TaskbrokerApp
+
+    from sentry.taskworker.app import TaskworkerApp
+
+    app: TaskbrokerApp | TaskworkerApp
 
 if settings.TASKWORKER_USE_LIBRARY:
     from taskbroker_client.app import TaskbrokerApp

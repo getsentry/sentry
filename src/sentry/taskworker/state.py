@@ -6,10 +6,10 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 
 if settings.TASKWORKER_USE_LIBRARY:
     from taskbroker_client.state import (
-        CurrentTaskState,  # type: ignore[assignment]
-        clear_current_task,  # type: ignore[assignment]
-        current_task,  # type: ignore[assignment]
-        set_current_task,  # type: ignore[assignment]
+        CurrentTaskState,
+        clear_current_task,
+        current_task,
+        set_current_task,
     )
 
     __all__ = ["CurrentTaskState", "clear_current_task", "current_task", "set_current_task"]
