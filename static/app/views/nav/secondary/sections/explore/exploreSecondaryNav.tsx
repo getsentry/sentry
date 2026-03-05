@@ -151,7 +151,7 @@ export function ExploreSecondaryNav() {
               analyticsItemName="explore_conversations"
               trailingItems={<FeatureBadge type="alpha" />}
             >
-              {t('LLM Conversations')}
+              {t('Conversations')}
             </SecondaryNav.Item>
           </Feature>
         </SecondaryNav.Section>
