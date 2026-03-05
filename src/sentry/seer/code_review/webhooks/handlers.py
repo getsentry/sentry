@@ -68,6 +68,9 @@ def handle_webhook_event(
         return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
+    if integration is None:
+        return
+
     tags = {}
     try:
         tags = get_tags(

@@ -6,7 +6,7 @@ from typing import Any
 
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.namespaces import seer_code_review_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def _parse_timestamp(value: str | None) -> datetime | None:
 
 @instrumented_task(
     name="sentry.seer.code_review.webhooks.on_completion.process_pr_review_status_update",
-    namespace=seer_tasks,
+    namespace=seer_code_review_tasks,
     retry=None,
 )
 def process_pr_review_status_update(*, organization_id: int, payload: dict[str, Any]) -> None:
