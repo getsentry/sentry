@@ -1,6 +1,7 @@
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
@@ -39,11 +40,13 @@ export function PrimaryButtonOverlay({
   const {layout} = useNavContext();
 
   return createPortal(
-    <PositionWrapper zIndex={theme.zIndex.orgAndUserMenu} {...overlayProps}>
-      <ScrollableOverlay isMobile={layout === NavLayout.MOBILE}>
-        {children}
-      </ScrollableOverlay>
-    </PositionWrapper>,
+    <FocusScope restoreFocus autoFocus>
+      <PositionWrapper zIndex={theme.zIndex.orgAndUserMenu} {...overlayProps}>
+        <ScrollableOverlay isMobile={layout === NavLayout.MOBILE}>
+          {children}
+        </ScrollableOverlay>
+      </PositionWrapper>
+    </FocusScope>,
     document.body
   );
 }
@@ -56,6 +59,6 @@ const ScrollableOverlay = styled(Overlay, {
   overscroll-behavior: none;
   min-height: 150px;
   max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
-  width: ${p => (p.isMobile ? `calc(100vw - ${space(4)})` : '400px')};
   overflow-y: auto;
+  width: ${p => (p.isMobile ? `calc(100vw - ${space(4)})` : '400px')};
 `;

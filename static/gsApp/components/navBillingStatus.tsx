@@ -436,7 +436,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     state: overlayState,
   } = usePrimaryButtonOverlay({});
   const {layout} = useNavContext();
-  const isMobile = layout === NavLayout.MOBILE;
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -535,7 +534,10 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           icon: <IconWarning />,
         }}
       >
-        <SidebarItemUnreadIndicator isMobile={isMobile} variant="warning" />
+        <SidebarItemUnreadIndicator
+          isMobile={layout === NavLayout.MOBILE}
+          variant="warning"
+        />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>

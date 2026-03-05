@@ -132,7 +132,7 @@ export function PrimaryNavigationWhatsNew() {
 
   return (
     <Fragment>
-      <WhatsNewButton
+      <SidebarButton
         analyticsKey="broadcasts"
         label={t("What's New")}
         buttonProps={{
@@ -146,7 +146,7 @@ export function PrimaryNavigationWhatsNew() {
             isMobile={layout === NavLayout.MOBILE}
           />
         )}
-      </WhatsNewButton>
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent unseenPostIds={unseenPostIds} />
@@ -155,8 +155,6 @@ export function PrimaryNavigationWhatsNew() {
     </Fragment>
   );
 }
-
-const WhatsNewButton = styled(SidebarButton)``;
 
 const Empty = styled('div')`
   display: flex;

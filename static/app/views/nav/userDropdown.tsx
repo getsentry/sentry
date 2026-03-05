@@ -12,7 +12,6 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
-import {DropdownNoWrap} from 'sentry/views/nav/primary/components';
 import {NavLayout} from 'sentry/views/nav/types';
 
 export function UserDropdown() {
@@ -42,7 +41,7 @@ export function UserDropdown() {
 
   return (
     <DropdownMenu
-      renderWrapAs={DropdownNoWrap}
+      renderWrapAs={({children}) => children}
       position={isMobile ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps =>
@@ -52,7 +51,7 @@ export function UserDropdown() {
             aria-label={user.email}
             icon={<UserAvatar user={user} size={16} />}
             priority="transparent"
-            size="zero"
+            size="xs"
           >
             {t('User Settings')}
           </MobileUserButton>

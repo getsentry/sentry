@@ -68,9 +68,10 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
       <Flex
         display="flex"
         // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
+        align="center"
         marginTop="auto"
         marginBottom={isMobile ? 'md' : 'lg'}
-        justify="start"
+        justify={isMobile ? 'start' : 'center'}
         width={isMobile ? '100%' : 'auto'}
       >
         {isMobile ? (
@@ -227,14 +228,13 @@ export function PrimaryNavigationItems() {
 
       <SidebarFooter>
         <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:seer-config-reminder" organization={organization} />
-        </ErrorBoundary>
-        <PrimaryNavigationHelp />
-        <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationWhatsNew />
+          <PrimaryNavigationOnboarding />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <Hook name="sidebar:try-business" organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:seer-config-reminder" organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <Hook name="sidebar:billing-status" organization={organization} />
@@ -243,8 +243,9 @@ export function PrimaryNavigationItems() {
           <PrimaryNavigationServiceIncidents />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationOnboarding />
+          <PrimaryNavigationWhatsNew />
         </ErrorBoundary>
+        <PrimaryNavigationHelp />
         <UserDropdown />
       </SidebarFooter>
     </Fragment>
@@ -252,9 +253,10 @@ export function PrimaryNavigationItems() {
 }
 
 const FooterButtonBar = styled(ButtonBar)`
+  // Force all buttons to the same size
   & > button {
-    width: 34px;
-    height: 34px;
+    width: ${p => p.theme.form.md.height};
+    height: ${p => p.theme.form.md.height};
   }
 `;
 

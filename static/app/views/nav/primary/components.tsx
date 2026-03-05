@@ -1,4 +1,4 @@
-import {createContext, Fragment, use, type MouseEventHandler} from 'react';
+import {createContext, Fragment, use, useContext, type MouseEventHandler} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -75,6 +75,9 @@ interface SidebarItemDefaultsValue {
 }
 
 const SidebarItemDefaultsContext = createContext<SidebarItemDefaultsValue>({});
+export function useSidebarItemDefaults() {
+  return useContext(SidebarItemDefaultsContext);
+}
 
 export function SidebarItemDefaults({
   size,
@@ -91,7 +94,6 @@ export function SidebarItemDefaults({
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
-  showLabel: boolean;
   disableTooltip?: boolean;
   ref?: React.Ref<HTMLLIElement>;
 }
@@ -99,7 +101,6 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 export function SidebarItem({
   children,
   label,
-  showLabel,
   disableTooltip,
   ref,
   ...props
@@ -107,32 +108,26 @@ export function SidebarItem({
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
-      <SidebarItemFlex
+      <Flex
         as="li"
         ref={ref}
         justify="center"
         align="center"
-        isMobile={showLabel}
+        width={layout === NavLayout.MOBILE ? '100%' : undefined}
         {...props}
       >
         <Tooltip
           title={label}
-          disabled={showLabel || disableTooltip}
+          disabled={layout === NavLayout.MOBILE || disableTooltip}
           position="right"
           skipWrapper
           delay={600}
         >
-          <SidebarItemTooltipAnchor>{children}</SidebarItemTooltipAnchor>
+          {children}
         </Tooltip>
-      </SidebarItemFlex>
+      </Flex>
     </IconDefaultsProvider>
   );
-}
-
-// Eliminates the DropdownMenu wrapper div so the trigger button is a direct
-// child of its container (e.g. ButtonBar).
-export function DropdownNoWrap({children}: {children?: React.ReactNode}) {
-  return <Fragment>{children}</Fragment>;
 }
 
 export function SidebarMenu({
@@ -144,24 +139,23 @@ export function SidebarMenu({
   onOpen,
   disableTooltip,
   icon,
-  size: sizeProp,
+  size,
   triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
-  const {size: groupSize} = use(SidebarItemDefaultsContext);
-  const size = sizeProp ?? groupSize;
+  const {size: defaultSize} = useSidebarItemDefaults();
 
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
     <DropdownMenu
-      renderWrapAs={DropdownNoWrap}
+      renderWrapAs={({children: _children}: {children: React.ReactNode}) => _children}
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
-      trigger={({ref: anchorRef, ...triggerProps}) => {
+      trigger={triggerProps => {
         return (
           <TriggerWrap>
             <Tooltip
@@ -173,7 +167,6 @@ export function SidebarMenu({
             >
               <NavButton
                 {...triggerProps}
-                ref={anchorRef}
                 aria-label={showLabel ? undefined : label}
                 onClick={event => {
                   if (organization) {
@@ -183,7 +176,7 @@ export function SidebarMenu({
                   onOpen?.(event);
                 }}
                 isMobile={layout === NavLayout.MOBILE}
-                size={size}
+                size={defaultSize ?? size}
                 icon={icon}
               >
                 {showLabel ? label : null}
@@ -208,7 +201,7 @@ function SidebarNavLink({
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const {layout, activePrimaryNavGroup} = useNavContext();
-  const {size} = use(SidebarItemDefaultsContext);
+  const {size} = useSidebarItemDefaults();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
@@ -259,7 +252,7 @@ export function SidebarLink({
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
-    <SidebarItem label={label} showLabel {...props}>
+    <SidebarItem label={label} {...props}>
       <SidebarNavLink
         to={to}
         activeTo={activeTo}
@@ -284,7 +277,7 @@ export function SidebarButton({
 }: SidebarButtonProps) {
   const organization = useOrganization();
   const {layout} = useNavContext();
-  const {size: groupSize} = use(SidebarItemDefaultsContext);
+  const {size: groupSize} = useSidebarItemDefaults();
   const showLabel = layout === NavLayout.MOBILE;
   const resolvedButtonProps = {...buttonProps, size: buttonProps.size ?? groupSize};
 
@@ -323,22 +316,6 @@ export function SeparatorItem({
     </SeparatorListItem>
   );
 }
-
-// Wraps the button inside the li so the tooltip (with skipWrapper) anchors to
-// the button width rather than the full-width li element.
-const SidebarItemTooltipAnchor = styled('div')``;
-
-const SidebarItemFlex = styled(Flex, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{isMobile: boolean}>`
-  ${p =>
-    p.isMobile &&
-    css`
-      > * {
-        width: 100%;
-      }
-    `}
-`;
 
 const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;

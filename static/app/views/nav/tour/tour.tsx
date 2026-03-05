@@ -235,7 +235,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
   const {showTourReminder, setShowTourReminder} = useNavContext();
 
   if (!showTourReminder) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   return (

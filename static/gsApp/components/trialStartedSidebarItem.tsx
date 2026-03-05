@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -28,6 +28,9 @@ type Props = {
 };
 
 function TrialStartedSidebarItem({subscription, organization, children}: Props) {
+  const [animationComplete, setAnimationComplete] = useState<boolean>(
+    !!hasJustStartedPlanTrial(subscription)
+  );
   const [trialRequested, setTrialRequested] = useState<boolean>(
     TrialRequestedStore.getTrialRequstedState()
   );
@@ -106,17 +109,29 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
     );
   };
 
-  if (hasJustStartedPlanTrial(subscription)) {
-    return <Fragment>{renderWithHovercard(renderTrialStartedHovercardBody())}</Fragment>;
+  const trialRequestedOrStarted = useMemo(() => {
+    return hasJustStartedPlanTrial(subscription) || trialRequested;
+  }, [subscription, trialRequested]);
+
+  useEffect(() => {
+    if (trialRequestedOrStarted && !animationComplete) {
+      const timer = setTimeout(() => setAnimationComplete(true), 1850);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [trialRequestedOrStarted, animationComplete]);
+
+  let wrappedChildren = children;
+
+  if (animationComplete) {
+    if (hasJustStartedPlanTrial(subscription)) {
+      wrappedChildren = renderWithHovercard(renderTrialStartedHovercardBody());
+    } else if (trialRequested) {
+      wrappedChildren = renderWithHovercard(renderTrialRequestedHovercardBody());
+    }
   }
 
-  if (trialRequested) {
-    return (
-      <Fragment>{renderWithHovercard(renderTrialRequestedHovercardBody())}</Fragment>
-    );
-  }
-
-  return <Fragment>{children}</Fragment>;
+  return <Fragment>{wrappedChildren}</Fragment>;
 }
 
 // We specifically set the z-index lower than the modal here, since it will be

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,7 +36,10 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
           icon: <IconFire />,
         }}
       >
-        <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} variant="danger" />
+        <SidebarItemUnreadIndicator
+          isMobile={layout === NavLayout.MOBILE}
+          variant="danger"
+        />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -52,7 +56,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
 export function PrimaryNavigationServiceIncidents() {
   const {data: incidents = []} = useServiceIncidents();
 
-  if (!incidents.length) {
+  if (!incidents?.length) {
     return null;
   }
 
