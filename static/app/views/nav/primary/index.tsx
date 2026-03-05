@@ -4,7 +4,7 @@ import {mergeProps} from '@react-aria/utils';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {ButtonBar} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -55,22 +55,30 @@ function SidebarBody({
   );
 }
 
-function FooterButtons({children}: {children: React.ReactNode}) {
-  const {layout} = useNavContext();
-  if (layout === NavLayout.MOBILE) {
-    return <Stack width="100%">{children}</Stack>;
-  }
-  return <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>;
-}
-
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
+
+  if (!children) {
+    return null;
+  }
+
   return (
     <SidebarItemDefaults size={isMobile ? 'xs' : 'sm'}>
-      <FooterButtonBarContainer isMobile={isMobile}>
-        <FooterButtons>{children}</FooterButtons>
-      </FooterButtonBarContainer>
+      <Flex
+        display="flex"
+        // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
+        marginTop="auto"
+        marginBottom={isMobile ? 'md' : 'lg'}
+        justify="start"
+        width={isMobile ? '100%' : 'auto'}
+      >
+        {isMobile ? (
+          <Stack width="100%">{children}</Stack>
+        ) : (
+          <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
+        )}
+      </Flex>
     </SidebarItemDefaults>
   );
 }
@@ -242,14 +250,6 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
-
-const FooterButtonBarContainer = styled('div')<{isMobile: boolean}>`
-  margin-top: auto;
-  margin-bottom: ${p => (p.isMobile ? p.theme.space.md : p.theme.space.lg)};
-  display: flex;
-  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
-  ${p => p.isMobile && 'width: 100%;'}
-`;
 
 const FooterButtonBar = styled(ButtonBar)`
   & > button {
