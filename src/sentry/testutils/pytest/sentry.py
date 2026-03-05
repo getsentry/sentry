@@ -76,13 +76,11 @@ def _configure_test_env_regions() -> None:
     # creation doesn't produce colliding IDs.
     region_snowflake_id = xdist.worker_num + 1 if xdist.worker_num is not None else 0
 
-    default_region = Region(
+    default_region = Cell(
         region_name,
         region_snowflake_id,
         settings.SENTRY_OPTIONS["system.url-prefix"],
         RegionCategory.MULTI_TENANT,
-    default_region = Cell(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
     )
 
     settings.SENTRY_REGION = region_name
