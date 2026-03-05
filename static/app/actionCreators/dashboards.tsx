@@ -170,9 +170,8 @@ export function updateDashboard(
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     dashboard;
-  const data = {
+  const data: Partial<DashboardDetails> = {
     title,
-    widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
     projects,
     environment,
     period,
@@ -181,6 +180,11 @@ export function updateDashboard(
     filters,
     utc,
   };
+  if (widgets) {
+    data.widgets = widgets
+      .map(widget => omit(widget, ['tempId']))
+      .map(_enforceWidgetLimit);
+  }
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/${dashboard.id}/`,

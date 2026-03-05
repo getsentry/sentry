@@ -7,6 +7,7 @@ import {
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const PATHS_TABLE: Widget = {
@@ -56,7 +57,7 @@ const PATHS_TABLE: Widget = {
     y: 7,
     w: 6,
     h: 2,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -102,7 +103,7 @@ const COMMANDS_TABLE: Widget = {
     y: 9,
     w: 6,
     h: 2,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -150,7 +151,7 @@ const JOBS_TABLE: Widget = {
     y: 11,
     w: 6,
     h: 2,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
