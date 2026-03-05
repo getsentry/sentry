@@ -114,7 +114,9 @@ function ApdexWidget({transactionName}: ApdexWidgetProps) {
           />
         </Widget.WidgetToolbar>
       }
-      Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
+      Visualization={
+        <TimeSeriesWidgetVisualization plottables={plottables} axisRange="dataMin" />
+      }
       height={200}
       borderless
     />
