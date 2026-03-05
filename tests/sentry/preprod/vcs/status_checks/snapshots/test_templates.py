@@ -93,7 +93,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "Comparing..."
+        assert subtitle == "Comparing snapshots..."
         assert "Processing..." in summary
         assert "com.example.app" in summary
 
@@ -107,7 +107,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "Comparing..."
+        assert subtitle == "Comparing snapshots..."
         assert "Processing..." in summary
 
     def test_comparison_in_pending_state_shows_comparing(self):
@@ -131,8 +131,8 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "Comparing..."
-        assert "Comparing..." in summary
+        assert subtitle == "Comparing snapshots..."
+        assert "Comparing" in summary
 
     def test_comparison_in_processing_state_shows_comparing(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
@@ -154,7 +154,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
             {},
         )
 
-        assert subtitle == "Comparing..."
+        assert subtitle == "Comparing snapshots..."
 
 
 @region_silo_test
@@ -187,7 +187,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "All images match"
+        assert subtitle == "No changes detected"
         assert "✅" in summary
         assert "0 changed" in summary
         assert "10 unchanged" in summary
@@ -243,7 +243,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "All images match"
+        assert subtitle == "No changes detected"
         for i in range(3):
             assert f"com.example.app{i}" in summary
 
@@ -470,9 +470,9 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
             {},
         )
 
-        assert subtitle == "Comparing..."
+        assert subtitle == "Comparing snapshots..."
         assert "✅" in summary
-        assert "Comparing..." in summary
+        assert "Comparing" in summary
 
     def test_mixed_changes_and_failures(self):
         # Comparison with changes
@@ -647,7 +647,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "All images match"
+        assert subtitle == "No changes detected"
 
         expected = (
             "| Name | Changed | Added | Removed | Unchanged |\n"
