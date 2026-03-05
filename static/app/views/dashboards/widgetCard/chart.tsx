@@ -28,8 +28,6 @@ import type {
   EChartLegendSelectChangeHandler,
   ECharts,
   ReactEchartsRef,
-  Series,
-  SeriesDataUnit,
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -62,7 +60,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -85,7 +82,6 @@ import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/setti
 import type {
   TabularColumn,
   TabularData,
-  TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
@@ -100,15 +96,10 @@ import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import {ConfidenceFooter as LogsConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
-import {ConfidenceFooter as MetricsConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
@@ -485,86 +476,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     }
   };
 
-  // Excluding Other uses a slightly altered regex to match the Other series name
-  // because the series names are formatted with widget IDs to avoid conflicts
-  // when deactivating them across widgets
-  const topEventsCountExcludingOther =
-    timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${OTHER};)|^${OTHER};`))
-        )
-          ? 1
-          : 0)
-      : undefined;
-
-  const isTopN =
-    defined(topEventsCountExcludingOther) && topEventsCountExcludingOther > 1;
-  const footerSeries = toFooterTimeSeries(series, dataScanned);
-  const samplingMeta = hasSeriesSamplingMetadata(footerSeries)
-    ? determineSeriesSampleCountAndIsSampled(footerSeries, isTopN)
-    : undefined;
-  const footerConfidence = confidence ?? combineConfidenceForSeries(footerSeries);
-  const footerSampleCount = defined(sampleCount)
-    ? sampleCount
-    : samplingMeta?.sampleCount;
-  const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta?.isSampled;
-  const footerDataScanned = dataScanned ?? samplingMeta?.dataScanned;
-  const hasUserQuery = widget.queries.some(
-    query => (query.conditions ?? '').trim().length > 0
-  );
-  const userQuery =
-    widget.queries.find(query => (query.conditions ?? '').trim().length > 0)
-      ?.conditions ?? '';
-  const footerChartInfo: ChartInfo = {
-    chartType: getExploreChartType(widget.displayType),
-    series: footerSeries,
-    timeseriesResult: {isPending: loading} as ChartInfo['timeseriesResult'],
-    yAxis: axisLabel,
-    confidence: footerConfidence,
-    dataScanned: footerDataScanned,
-    isSampled: footerIsSampled,
-    sampleCount: footerSampleCount,
-    topEvents: topEventsCountExcludingOther,
-  };
-
-  let confidenceFooter: React.ReactNode = null;
-  if (showConfidenceWarning) {
-    if (widget.widgetType === WidgetType.SPANS) {
-      confidenceFooter = (
-        <SpansConfidenceFooter
-          confidence={footerChartInfo.confidence}
-          dataScanned={footerChartInfo.dataScanned}
-          isSampled={footerChartInfo.isSampled}
-          isLoading={loading}
-          rawSpanCounts={rawCounts ?? undefined}
-          sampleCount={footerChartInfo.sampleCount}
-          topEvents={footerChartInfo.topEvents}
-          userQuery={userQuery}
-        />
-      );
-    } else if (widget.widgetType === WidgetType.LOGS && rawCounts) {
-      confidenceFooter = (
-        <LogsConfidenceFooter
-          chartInfo={footerChartInfo}
-          hasUserQuery={hasUserQuery}
-          isLoading={loading}
-          rawLogCounts={rawCounts}
-        />
-      );
-    } else if (widget.widgetType === WidgetType.TRACEMETRICS && rawCounts) {
-      confidenceFooter = (
-        <MetricsConfidenceFooter
-          chartInfo={footerChartInfo}
-          hasUserQuery={hasUserQuery}
-          isLoading={loading}
-          rawMetricCounts={rawCounts}
-        />
-      );
-    }
-  }
   return (
     <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
       {zoomRenderProps => {
@@ -632,7 +543,21 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                       })}
                     </RenderedChartContainer>
 
-                    {confidenceFooter}
+                    <WidgetCardConfidenceFooter
+                      confidence={confidence}
+                      dataScanned={dataScanned}
+                      isSampled={isSampled}
+                      other={OTHER}
+                      loading={loading}
+                      rawCounts={rawCounts}
+                      sampleCount={sampleCount}
+                      series={series}
+                      shouldColorOther={shouldColorOther}
+                      showConfidenceWarning={showConfidenceWarning}
+                      timeseriesResults={timeseriesResults}
+                      widget={widget}
+                      yAxis={axisLabel}
+                    />
                   </ChartWrapper>
                 </TransitionChart>
               );
@@ -935,60 +860,6 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
   );
 }
 
-function toFooterTimeSeries(
-  series: Array<Series & {fieldName?: string}>,
-  dataScanned?: 'full' | 'partial'
-): TimeSeries[] {
-  return series.map((seriesEntry, seriesIndex) => {
-    const values = seriesEntry.data.map((datum, pointIndex) => {
-      const samplingDatum = datum as SeriesDataUnit & {
-        confidence?: Confidence;
-        sampleCount?: number | null;
-        sampleRate?: number | null;
-      };
-
-      const numericTimestamp =
-        typeof samplingDatum.name === 'number'
-          ? samplingDatum.name
-          : new Date(samplingDatum.name).getTime();
-
-      return {
-        timestamp: Number.isFinite(numericTimestamp)
-          ? numericTimestamp
-          : seriesIndex * 1000 + pointIndex,
-        value: samplingDatum.value,
-        confidence: samplingDatum.confidence,
-        sampleCount: samplingDatum.sampleCount,
-        sampleRate: samplingDatum.sampleRate,
-      };
-    });
-
-    const interval =
-      values.length >= 2 ? Math.max(0, values[1]!.timestamp - values[0]!.timestamp) : 0;
-
-    return {
-      yAxis: seriesEntry.seriesName,
-      values,
-      meta: {
-        interval,
-        valueType: 'number',
-        valueUnit: null,
-        dataScanned,
-      },
-    };
-  });
-}
-
-function hasSeriesSamplingMetadata(series: TimeSeries[]): boolean {
-  return series.some(
-    seriesEntry =>
-      defined(seriesEntry.meta.dataScanned) ||
-      seriesEntry.values.some(
-        value => defined(value.sampleCount) || defined(value.sampleRate)
-      )
-  );
-}
-
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
   const stacked = widget.queries[0]?.columns.length! > 0;
 
@@ -1001,19 +872,6 @@ function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
     case 'line':
     default:
       return <LineChart {...chartProps} />;
-  }
-}
-
-function getExploreChartType(displayType: DisplayType): ChartType {
-  switch (displayType) {
-    case DisplayType.BAR:
-      return ChartType.BAR;
-    case DisplayType.AREA:
-    case DisplayType.TOP_N:
-      return ChartType.AREA;
-    case DisplayType.LINE:
-    default:
-      return ChartType.LINE;
   }
 }
 
