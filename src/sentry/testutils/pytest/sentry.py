@@ -19,7 +19,7 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
-from sentry.testutils.pytest import xdist
+from sentry.testutils.pytest import isolation
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -33,7 +33,7 @@ TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
 
-TEST_REDIS_DB = xdist.get_redis_db()
+TEST_REDIS_DB = isolation.get_redis_db()
 
 
 def _use_monolith_dbs() -> bool:
@@ -41,7 +41,7 @@ def _use_monolith_dbs() -> bool:
 
 
 def configure_split_db() -> None:
-    suffix = xdist.get_db_suffix()
+    suffix = isolation.get_db_suffix()
 
     already_configured = "control" in settings.DATABASES
     if already_configured or _use_monolith_dbs():
@@ -74,7 +74,7 @@ def _configure_test_env_regions() -> None:
 
     # Each parallel worker gets a unique snowflake_id so concurrent model
     # creation doesn't produce colliding IDs.
-    region_snowflake_id = xdist.worker_num + 1 if xdist.worker_num is not None else 0
+    region_snowflake_id = isolation.worker_num + 1 if isolation.worker_num is not None else 0
 
     default_region = Cell(
         region_name,
@@ -205,7 +205,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
 
-    if snuba_url := xdist.get_snuba_url():
+    if snuba_url := isolation.get_snuba_url():
         settings.SENTRY_SNUBA = snuba_url
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
