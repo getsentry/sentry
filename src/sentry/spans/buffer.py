@@ -623,8 +623,9 @@ class SpansBuffer:
             self.empty_flush_segment_calls += 1
         else:
             if self.empty_flush_segment_calls > 0:
-                # Only log empty flushes if the option is enabled
-                if options.get("spans.buffer.log-empty-flushes"):
+                # Only log empty flushes when debug traces are configured
+                debug_traces = options.get("spans.buffer.debug-traces")
+                if debug_traces:
                     try:
                         if self._debug_trace_logger is None:
                             self._debug_trace_logger = DebugTraceLogger(self.client)
