@@ -194,7 +194,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
         )
 
         assert len(result["successes"]) == 0
