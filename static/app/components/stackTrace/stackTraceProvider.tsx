@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 
+import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -112,11 +113,31 @@ function Root({
     ]
   );
 
+  const hasAnyExpandableFrames = useMemo(
+    () =>
+      rows.some(row => {
+        if (row.kind !== 'frame') {
+          return false;
+        }
+
+        const registers =
+          row.frameIndex === frames.length - 1 ? activeStacktrace.registers : {};
+
+        return frameHasExpandableDetails({
+          frame: row.frame,
+          registers,
+          platform,
+        });
+      }),
+    [rows, frames.length, activeStacktrace.registers, platform]
+  );
+
   const value = useMemo<StackTraceContextValue>(
     () => ({
       components,
       event,
       frameBadge,
+      hasAnyExpandableFrames,
       platform,
       project,
       stacktrace: activeStacktrace,
@@ -142,6 +163,7 @@ function Root({
       frameSourceMapDebuggerData,
       frames,
       getFrameLineCoverage,
+      hasAnyExpandableFrames,
       hideSourceMapDebugger,
       hiddenFrameToggleMap,
       lastFrameIndex,

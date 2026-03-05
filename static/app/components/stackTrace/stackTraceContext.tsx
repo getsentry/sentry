@@ -63,6 +63,8 @@ export interface StackTraceContextValue {
   event: Event;
   /** Active frame list for the selected (symbolicated/minified) stacktrace. */
   frames: Frame[];
+  /** True when any visible frame row has expandable details. */
+  hasAnyExpandableFrames: boolean;
   /** Hidden-system-frame expansion state keyed by frame index. */
   hiddenFrameToggleMap: Record<number, boolean>;
   /** True when the "Unminify Code" source map action must be hidden. */

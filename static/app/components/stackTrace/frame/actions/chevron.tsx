@@ -1,66 +1,38 @@
 import styled from '@emotion/styled';
 
-import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+
+const CHEVRON_SLOT_SIZE = 24;
 
 export function ChevronAction() {
-  const {isExpandable, isExpanded, frameContextId, toggleExpansion} =
-    useStackTraceFrameContext();
+  const {hasAnyExpandableFrames} = useStackTraceContext();
+  const {isExpandable, isExpanded} = useStackTraceFrameContext();
 
-  if (!isExpandable) {
+  if (!hasAnyExpandableFrames) {
     return null;
   }
 
   return (
-    <ChevronToggle
-      type="button"
-      aria-label={isExpanded ? t('Collapse frame') : t('Expand frame')}
-      aria-controls={frameContextId}
-      aria-expanded={isExpanded}
-      data-test-id="core-stacktrace-chevron-toggle"
-      onKeyDown={keyboardEvent => {
-        if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
-          keyboardEvent.preventDefault();
-        }
-      }}
-      onKeyUp={keyboardEvent => {
-        if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
-          keyboardEvent.preventDefault();
-          toggleExpansion();
-        }
-      }}
-      onClick={e => {
-        e.stopPropagation();
-        toggleExpansion();
-      }}
-    >
-      <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
-    </ChevronToggle>
+    <ChevronSlot data-test-id="core-stacktrace-chevron-slot" aria-hidden>
+      {isExpandable ? (
+        <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+      ) : null}
+    </ChevronSlot>
   );
 }
 
-const ChevronToggle = styled('button')`
+const ChevronSlot = styled('span')`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
-  border: 0;
-  border-radius: ${p => p.theme.radius.md};
-  background: transparent;
+  width: ${CHEVRON_SLOT_SIZE}px;
+  height: ${CHEVRON_SLOT_SIZE}px;
+  min-width: ${CHEVRON_SLOT_SIZE}px;
+  min-height: ${CHEVRON_SLOT_SIZE}px;
   color: inherit;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-  pointer-events: auto;
-
-  svg {
-    pointer-events: none;
-  }
 `;

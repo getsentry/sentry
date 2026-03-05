@@ -398,6 +398,48 @@ function makeCoverageStackTraceData(): StackTraceStoryData {
   };
 }
 
+function makeMixedExpandabilityStackTraceData(): StackTraceStoryData {
+  return {
+    event: makeEvent({
+      platform: 'python',
+      projectID: '1',
+      tags: [],
+      entries: [],
+      contexts: {},
+    }),
+    stacktrace: {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: {},
+      frames: [
+        makeFrame({
+          filename: 'app/expandable.py',
+          absPath: '/srv/app/expandable.py',
+          function: 'expandable_handler',
+          inApp: true,
+          lineNo: 23,
+          context: [
+            [21, 'def expandable_handler(payload):'],
+            [22, '    value = payload.get("value")'],
+            [23, '    raise RuntimeError(value)'],
+          ],
+          vars: {"'value'": "'boom'"},
+        }),
+        makeFrame({
+          filename: 'app/non_expandable.py',
+          absPath: '/srv/app/non_expandable.py',
+          function: 'non_expandable_handler',
+          inApp: true,
+          lineNo: null,
+          context: [],
+          vars: null,
+          package: null,
+        }),
+      ],
+    } as StacktraceWithFrames,
+  };
+}
+
 function makeFrameCoverageResolver(
   stacktrace: StacktraceWithFrames
 ): ({frameIndex}: {frameIndex: number}) => LineCoverage[] | undefined {
@@ -770,6 +812,22 @@ export default Storybook.story('StackTrace', story => {
           stacktrace={stacktrace}
           getFrameLineCoverage={makeFrameCoverageResolver(stacktrace)}
         >
+          <StackTraceProvider.Frames />
+        </StoryStackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('StackTraceProvider - Mixed Expandability Alignment', () => {
+    const {event, stacktrace} = makeMixedExpandabilityStackTraceData();
+
+    return (
+      <Fragment>
+        <p>
+          Renders one expandable frame and one non-expandable frame so trailing actions
+          stay aligned while still showing a chevron only on expandable rows.
+        </p>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Frames />
         </StoryStackTraceProvider>
       </Fragment>
