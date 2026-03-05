@@ -540,22 +540,22 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
-
-                    <WidgetCardConfidenceFooter
-                      confidence={confidence}
-                      dataScanned={dataScanned}
-                      isSampled={isSampled}
-                      other={OTHER}
-                      loading={loading}
-                      sampleCount={sampleCount}
-                      selection={selection}
-                      series={series}
-                      shouldColorOther={shouldColorOther}
-                      showConfidenceWarning={showConfidenceWarning}
-                      timeseriesResults={timeseriesResults}
-                      widget={widget}
-                      yAxis={axisLabel}
-                    />
+                    {showConfidenceWarning ? (
+                      <WidgetCardConfidenceFooter
+                        confidence={confidence}
+                        dataScanned={dataScanned}
+                        isSampled={isSampled}
+                        other={OTHER}
+                        loading={loading}
+                        sampleCount={sampleCount}
+                        selection={selection}
+                        series={series}
+                        shouldColorOther={shouldColorOther}
+                        timeseriesResults={timeseriesResults}
+                        widget={widget}
+                        yAxis={axisLabel}
+                      />
+                    ) : null}
                   </ChartWrapper>
                 </TransitionChart>
               );

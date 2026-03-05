@@ -55,33 +55,6 @@ describe('WidgetCardConfidenceFooter', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('does not render when confidence warning is disabled', () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {data: [{'count(span.duration)': 0}]},
-    });
-
-    render(
-      <WidgetCardConfidenceFooter
-        loading={false}
-        other="Other"
-        series={series}
-        showConfidenceWarning={false}
-        timeseriesResults={timeseriesResults}
-        widget={WidgetFixture({
-          displayType: DisplayType.LINE,
-          widgetType: WidgetType.SPANS,
-          queries: [WidgetQueryFixture()],
-        })}
-        yAxis="count()"
-      />
-    );
-
-    expect(
-      screen.queryByText(/Estimated for top 2 groups from/i)
-    ).not.toBeInTheDocument();
-  });
-
   it('renders spans footer with user query and top event metadata', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -98,7 +71,6 @@ describe('WidgetCardConfidenceFooter', () => {
       <WidgetCardConfidenceFooter
         loading={false}
         series={series}
-        showConfidenceWarning
         shouldColorOther={false}
         other="Other"
         timeseriesResults={timeseriesResults}
@@ -128,7 +100,6 @@ describe('WidgetCardConfidenceFooter', () => {
         loading={false}
         other="Other"
         series={series}
-        showConfidenceWarning
         timeseriesResults={timeseriesResults}
         widget={WidgetFixture({
           displayType: DisplayType.LINE,

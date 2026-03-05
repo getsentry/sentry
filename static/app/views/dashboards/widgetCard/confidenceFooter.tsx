@@ -27,7 +27,6 @@ type Props = {
   sampleCount?: number;
   selection?: PageFilters;
   shouldColorOther?: boolean;
-  showConfidenceWarning?: boolean;
 };
 
 export function WidgetCardConfidenceFooter({
@@ -40,7 +39,6 @@ export function WidgetCardConfidenceFooter({
   selection: selectionProp,
   series,
   shouldColorOther,
-  showConfidenceWarning,
   timeseriesResults,
   widget,
   yAxis,
@@ -48,10 +46,6 @@ export function WidgetCardConfidenceFooter({
   const {selection: pageFilterSelection} = usePageFilters();
   const selection = selectionProp ?? pageFilterSelection;
   const rawCounts = useWidgetRawCounts({selection, widget});
-
-  if (!showConfidenceWarning) {
-    return null;
-  }
 
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
