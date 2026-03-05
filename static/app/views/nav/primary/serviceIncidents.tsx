@@ -65,4 +65,3 @@ const IncidentItemWrapper = styled('div')`
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
-
