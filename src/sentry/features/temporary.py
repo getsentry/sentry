@@ -98,7 +98,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-prebuilt-insights-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new timeseries visualization for dashboard widgets
     manager.add("organizations:dashboards-widget-timeseries-visualization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Replaces insight modules with prebuilt dashboards
+    # Replaces insights ui with prebuilt dashboards
     manager.add("organizations:insights-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the details widget for dashboards
     manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
