@@ -26,6 +26,10 @@ export const ButtonBar = styled(
     z-index: 2;
   }
 
+  &[hidden] {
+    display: none;
+  }
+
   & > [role='presentation'],
   & > .dropdown,
   & > button,
