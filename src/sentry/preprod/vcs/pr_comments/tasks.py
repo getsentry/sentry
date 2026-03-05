@@ -54,7 +54,11 @@ def create_preprod_pr_comment_task(
         return
 
     commit_comparison = artifact.commit_comparison
-    if not commit_comparison.pr_number or not commit_comparison.head_repo_name:
+    if (
+        not commit_comparison.pr_number
+        or not commit_comparison.head_repo_name
+        or not commit_comparison.provider
+    ):
         logger.info(
             "preprod.pr_comments.create.no_pr_info",
             extra={
