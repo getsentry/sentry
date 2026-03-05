@@ -247,10 +247,19 @@ export function PrimaryNavigationItems() {
         </ErrorBoundary>
         <PrimaryNavigationHelp />
       </SidebarFooter>
-      <UserDropdown />
+      <UserDropdownContainer isMobile={layout === NavLayout.MOBILE}>
+        <UserDropdown />
+      </UserDropdownContainer>
     </Fragment>
   );
 }
+
+const UserDropdownContainer = styled('div')<{isMobile: boolean}>`
+  display: flex;
+  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
+  margin-bottom: ${p => p.theme.space.md};
+  ${p => p.isMobile && 'width: 100%;'}
+`;
 
 // Force all buttons to the same size
 const FooterButtonBar = styled(ButtonBar)`

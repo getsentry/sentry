@@ -99,14 +99,6 @@ export function UserDropdown() {
 
 const FullWidthAvatarButton = styled(AvatarButton)`
   min-width: unset;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-
-  /* Make the inner avatar container follow the button's border-radius. */
-  div {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-  }
 `;
 
 const MobileUserButton = styled(Button)`
