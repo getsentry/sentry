@@ -10,6 +10,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 
@@ -289,3 +290,76 @@ def test_flusher_processes_limit() -> None:
         finally:
             # shutdown flusher thread
             fac._flusher.join()
+
+
+# @pytest.mark.django_db
+@django_db_all
+@override_options(
+    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+)
+@pytest.mark.parametrize("kafka_slice_id", [None, 2])
+def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:
+    # Flush very aggressively to make test pass instantly
+    with (
+        mock.patch("time.sleep"),
+    ):
+        topic = Topic("test")
+        messages: list[tuple[int, KafkaPayload, int]] = []
+
+        def produce_to_pipe(project_id: int, payload: KafkaPayload, dropped: int) -> None:
+            raise Exception("Kafka exception")
+
+        fac = ProcessSpansStrategyFactory(
+            max_batch_size=1,
+            max_batch_time=10,
+            num_processes=1,
+            input_block_size=None,
+            output_block_size=None,
+            produce_to_pipe=produce_to_pipe,
+            kafka_slice_id=kafka_slice_id,
+        )
+
+        commits = []
+
+        def add_commit(offsets, force=False):
+            commits.append(offsets)
+
+        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+
+        try:
+            step.submit(
+                Message(
+                    BrokerValue(
+                        partition=Partition(topic, 0),
+                        offset=1,
+                        payload=KafkaPayload(
+                            None,
+                            orjson.dumps(
+                                {
+                                    "project_id": 12,
+                                    "span_id": "a" * 16,
+                                    "trace_id": "b" * 32,
+                                    "start_timestamp": 1699999999.0,
+                                    "end_timestamp": 1700000000.0,
+                                }
+                            ),
+                            [],
+                        ),
+                        timestamp=datetime.now(),
+                    )
+                )
+            )
+
+            step.poll()
+            fac._flusher.current_drift.value = 9000  # "advance" our "clock"
+
+            step.poll()
+            # Give flusher threads time to process after drift change
+            for _ in range(20):
+                step.poll()
+                real_sleep(0.1)
+        finally:
+            fac._flusher.terminate()
+            fac._flusher.join()
+
+    assert len(messages) == 0

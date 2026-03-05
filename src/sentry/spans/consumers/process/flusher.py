@@ -4,6 +4,7 @@ import multiprocessing.context
 import threading
 import time
 from collections.abc import Callable, Mapping
+from concurrent.futures import Future
 from functools import partial
 
 import orjson
@@ -279,7 +280,16 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             producer_futures = []
 
             if produce_to_pipe is not None:
-                produce = produce_to_pipe
+
+                def produce(project_id: int, payload: KafkaPayload, dropped: int) -> None:
+                    future: Future[None] = Future[None]()
+                    try:
+                        produce_to_pipe(project_id, payload, dropped)
+                        future.set_result(None)
+                    except Exception as e:
+                        future.set_exception(e)
+                    producer_futures.append((project_id, future, dropped))
+
                 producer_manager = None
             else:
                 logger.info("Flusher creating Kafka producer for shards %s", shard_tag)
@@ -367,6 +377,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         except Exception:
             sentry_sdk.capture_exception()
             raise
+        finally:
+            from django.db import connections
+
+            connections.close_all()
 
     def poll(self) -> None:
         self.next_step.poll()
