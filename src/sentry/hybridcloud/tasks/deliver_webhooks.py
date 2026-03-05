@@ -608,7 +608,6 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
                 "region",
                 {
                     "name": region.name,
-                    "id": region.category,
                     "address": region.address,
                 },
             )
