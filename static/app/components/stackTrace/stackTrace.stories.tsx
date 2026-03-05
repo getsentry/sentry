@@ -16,6 +16,7 @@ import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrac
 import * as Storybook from 'sentry/stories';
 import {
   EventOrGroupType,
+  LockType,
   type Event,
   type ExceptionValue,
   type Frame,
@@ -516,6 +517,53 @@ function makeChainedExceptionValues(): ExceptionValue[] {
   ];
 }
 
+function makeAnrIssueStackTraceData(): {
+  event: Event;
+  lockAddress: string;
+  values: ExceptionValue[];
+} {
+  const lockAddress = '0xdeadbeef';
+  const frame = makeFrame({
+    platform: 'java',
+    module: 'android.database.sqlite.SQLiteConnection',
+    function: 'nativeExecute',
+    filename: 'android/database/sqlite/SQLiteConnection.java',
+    inApp: false,
+    lineNo: 123,
+    lock: {
+      type: LockType.BLOCKED,
+      address: lockAddress,
+      class_name: 'SQLiteConnection',
+      package_name: 'android.database.sqlite',
+      thread_id: 1,
+    },
+  });
+
+  return {
+    event: makeEvent({
+      platform: 'java',
+      tags: [{key: 'mechanism', value: 'ANR'}],
+    }),
+    lockAddress,
+    values: [
+      {
+        type: 'ApplicationNotResponding',
+        value: 'Input dispatch timed out',
+        mechanism: {handled: false, type: 'ANR'},
+        stacktrace: {
+          framesOmitted: null,
+          hasSystemFrames: true,
+          registers: null,
+          frames: [frame],
+        },
+        module: 'android.app.ActivityThread',
+        threadId: 1,
+        rawStacktrace: null,
+      },
+    ],
+  };
+}
+
 type StoryStackTraceProviderProps = React.ComponentProps<typeof StackTraceProvider> &
   Pick<
     StackTraceViewStateProviderProps,
@@ -576,6 +624,11 @@ export default Storybook.story('StackTrace', story => {
   story('IssueStackTrace - Chained', () => {
     const values = makeChainedExceptionValues();
     return <IssueStackTrace event={makeEvent()} values={values} />;
+  });
+
+  story('IssueStackTrace - ANR Suspect Frame', () => {
+    const {event, values, lockAddress} = makeAnrIssueStackTraceData();
+    return <IssueStackTrace event={event} values={values} lockAddress={lockAddress} />;
   });
 
   story('StackTraceProvider - With Omitted Frames', () => {
