@@ -21,12 +21,12 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import useHasDashboardsPlatformizedWebVitals from 'sentry/views/insights/browser/webVitals/utils/useHasDashboardsPlatformizedWebVitals';
 import {PlatformizedWebVitalsOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedOverview';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -156,8 +156,8 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const hasDashboardsPlatformizedWebVitals = useHasDashboardsPlatformizedWebVitals();
-  if (hasDashboardsPlatformizedWebVitals) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedWebVitalsOverview />;
   }
 
