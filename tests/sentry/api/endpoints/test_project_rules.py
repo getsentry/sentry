@@ -1420,6 +1420,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert len(response.data["actions"]) == len(payload["actions"])
 
         workflow = Workflow.objects.get(id=get_object_id_from_fake_id(int(response.data["id"])))
+        assert workflow.environment is not None
         assert workflow.environment.name == payload["environment"]
         assert workflow.name == payload["name"]
         assert workflow.enabled is True
@@ -1446,11 +1447,11 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         wdcg = WorkflowDataConditionGroup.objects.get(workflow=workflow)
         dcgs = DataConditionGroup.objects.filter(id=wdcg.condition_group_id)
-        filters = DataCondition.objects.filter(condition_group__in=dcgs)
-        assert len(filters) == len(payload["filters"])
+        dc_filters = DataCondition.objects.filter(condition_group__in=dcgs)
+        assert len(dc_filters) == len(payload["filters"])
         # spot check
         tagged_event_filter = None
-        for f in filters:
+        for f in dc_filters:
             if f.type == Condition.TAGGED_EVENT.value:
                 tagged_event_filter = f
 
