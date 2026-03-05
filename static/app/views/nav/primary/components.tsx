@@ -156,6 +156,7 @@ export function SidebarMenu({
             >
               <NavButton
                 {...triggerProps}
+                isMobile={layout === NavLayout.MOBILE}
                 aria-label={showLabel ? undefined : label}
                 onClick={event => {
                   if (organization) {
@@ -164,7 +165,6 @@ export function SidebarMenu({
                   triggerProps.onClick?.(event);
                   onOpen?.(event);
                 }}
-                isMobile={layout === NavLayout.MOBILE}
                 size={defaultSize ?? size}
                 icon={icon}
               >
@@ -274,8 +274,8 @@ export function SidebarButton({
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavButton
         {...resolvedButtonProps}
-        analyticsParams={analyticsParams}
         isMobile={layout === NavLayout.MOBILE}
+        analyticsParams={analyticsParams}
         className={className}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -426,8 +426,16 @@ const NavLink = styled(Link, {
   }
 `;
 
-const StyledNavButton = styled(Button, {
-  shouldForwardProp: prop => prop !== 'isMobile',
+export const NavButton = styled((props: ButtonProps) => {
+  const {layout} = useNavContext();
+
+  return (
+    <Button
+      {...props}
+      size={layout === NavLayout.MOBILE ? 'zero' : props.size}
+      priority={layout === NavLayout.MOBILE ? 'transparent' : props.priority}
+    />
+  );
 })<{isMobile: boolean}>`
   display: flex;
   align-items: center;
@@ -465,21 +473,6 @@ const StyledNavButton = styled(Button, {
       }
     `}
 `;
-
-export type NavButtonProps = ButtonProps & {
-  isMobile: boolean;
-};
-
-export const NavButton = styled((props: NavButtonProps) => {
-  return (
-    <StyledNavButton
-      {...props}
-      aria-label={props['aria-label'] ?? ''}
-      size={props.isMobile ? 'zero' : props.size}
-      priority={props.isMobile ? 'transparent' : props.priority}
-    />
-  );
-})``;
 
 export const SidebarItemUnreadIndicator = styled('span')<{
   isMobile: boolean;
