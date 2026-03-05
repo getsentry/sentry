@@ -626,10 +626,28 @@ def poll_claude_code_agents(
 
         # Get or create client for this agent's integration
         integration_id = agent_state.integration_id
-        if integration_id is not None and integration_id in clients:
+        if integration_id is None:
+            logger.warning(
+                "coding_agent.claude_code.missing_integration_id",
+                extra={"agent_id": agent_id},
+            )
+            continue
+        if integration_id in clients:
             client = clients[integration_id]
         else:
-            integration = integration_service.get_integration(integration_id=integration_id)
+            org_integration = integration_service.get_organization_integration(
+                organization_id=org_id,
+                integration_id=integration_id,
+            )
+            if not org_integration:
+                logger.warning(
+                    "coding_agent.claude_code.integration_not_found",
+                    extra={"organization_id": org_id, "integration_id": integration_id},
+                )
+                continue
+            integration = integration_service.get_integration(
+                organization_integration_id=org_integration.id,
+            )
             if not integration:
                 logger.warning(
                     "coding_agent.claude_code.integration_not_found",
@@ -718,10 +736,17 @@ def poll_claude_code_agents(
                     )
                     new_status = CodingAgentStatus.FAILED
 
-            result = client.build_result_from_session(
-                agent_name=agent_state.name,
-                pr_url=pr_url,
-            )
+            try:
+                result = client.build_result_from_session(
+                    agent_name=agent_state.name,
+                    pr_url=pr_url,
+                )
+            except Exception:
+                logger.exception(
+                    "coding_agent.claude_code.build_result_error",
+                    extra={"agent_id": agent_id},
+                )
+                continue
 
         if new_status != agent_state.status:
             update_coding_agent_state(
