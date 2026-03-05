@@ -758,11 +758,17 @@ def poll_claude_code_agents(
                 new_status = CodingAgentStatus.FAILED
 
         if new_status != agent_state.status:
-            update_coding_agent_state(
-                agent_id=agent_id,
-                status=new_status,
-                result=result,
-            )
+            try:
+                update_coding_agent_state(
+                    agent_id=agent_id,
+                    status=new_status,
+                    result=result,
+                )
+            except Exception:
+                logger.exception(
+                    "coding_agent.claude_code.state_update_error",
+                    extra={"agent_id": agent_id},
+                )
 
         logger.info(
             "coding_agent.claude_code.poll_update",
