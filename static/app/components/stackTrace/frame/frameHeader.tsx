@@ -60,7 +60,6 @@ export function FrameHeader({actions}: FrameHeaderProps) {
   const showPackage = !!frame.package && !isDotnet(framePlatform);
   const framePathTooltip =
     frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
-  const packageTooltip = frame.package ?? undefined;
   const sourceMapInfoText = frame.mapUrl ?? frame.map;
   const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
   const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
@@ -83,10 +82,10 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       <FrameHeaderMain direction="column" align="start" flex="1" gap="2xs" minWidth={0}>
         <FrameTitle>
           {!isExpanded && leadsToApp ? (
-            <FrameLeadHint as="span" size="xs" variant="muted">
+            <Text as="span" size="xs" variant="muted" monospace italic>
               {getLeadHint({event, hasNextFrame: !!nextFrame})}
               {': '}
-            </FrameLeadHint>
+            </Text>
           ) : null}
           <Tooltip
             title={framePathTooltip}
@@ -118,36 +117,30 @@ export function FrameHeader({actions}: FrameHeaderProps) {
           ) : null}
           <FrameTitleMeta>
             {hasFrameFunction ? (
-              <FrameTitleHint as="span" size="sm" variant="muted">
-                {`${t('in')} `}
-              </FrameTitleHint>
+              <Text as="span" size="xs" variant="muted" monospace>
+                {t('in')}
+              </Text>
             ) : null}
             {hasFrameFunction ? (
               <FrameTitleFunction>{frameFunctionName}</FrameTitleFunction>
             ) : null}
             {frame.lineNo ? (
               <FrameLineMeta>
-                <FrameTitleHint as="span" size="sm" variant="muted">
-                  {`${t('at line')} `}
-                </FrameTitleHint>
-                <FrameTitleName>
+                <Text as="span" size="xs" variant="muted" monospace>
+                  {' '}
+                  {t('line')}{' '}
+                </Text>
+                <Text as="span" size="xs" monospace>
                   {frame.colNo ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
-                </FrameTitleName>
+                </Text>
               </FrameLineMeta>
             ) : null}
             {showPackage ? (
               <FrameLineMeta>
-                <FrameTitleHint as="span" size="sm" variant="muted">
-                  {`${t('within')} `}
-                </FrameTitleHint>
-                <Tooltip
-                  title={packageTooltip}
-                  disabled={!packageTooltip}
-                  maxWidth={750}
-                  skipWrapper
-                >
-                  <FrameTitleMetaValue>{frame.package}</FrameTitleMetaValue>
-                </Tooltip>
+                <Text as="span" size="xs" variant="muted" monospace>
+                  {t('within')}
+                </Text>
+                <FrameTitleMetaValue>{frame.package}</FrameTitleMetaValue>
               </FrameLineMeta>
             ) : null}
           </FrameTitleMeta>
@@ -253,7 +246,7 @@ const FrameTitle = styled('div')`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  column-gap: ${p => p.theme.space.xs};
+  column-gap: ${p => p.theme.space.sm};
   row-gap: 0;
   color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.font.family.mono};
@@ -263,36 +256,22 @@ const FrameTitle = styled('div')`
   min-width: 0;
   overflow: hidden;
   overflow-wrap: normal;
-  user-select: text;
 `;
 
 const FrameTitleMeta = styled('span')`
-  display: inline;
+  display: inline-flex;
+  align-items: baseline;
+  gap: ${p => p.theme.space.sm};
   max-width: 100%;
   min-width: 0;
-  margin-left: ${p => p.theme.space.xs};
+  margin-left: 0;
   white-space: nowrap;
 `;
 
-const FrameTitleHint = styled(Text)`
-  font-family: inherit;
-  line-height: inherit;
-`;
-
-const FrameLeadHint = styled(Text)`
-  font-family: inherit;
-  line-height: inherit;
-  font-style: italic;
-  opacity: 0.8;
-`;
-
-const FrameTitleName = styled('span')`
+const FrameTitleFunction = styled('span')`
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-`;
-
-const FrameTitleFunction = styled(FrameTitleName)`
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,15 +279,22 @@ const FrameTitleFunction = styled(FrameTitleName)`
 `;
 
 const FrameLineMeta = styled('span')`
-  display: inline;
-  margin-left: ${p => p.theme.space.xs};
+  display: inline-flex;
+  align-items: baseline;
+  gap: ${p => p.theme.space['2xs']};
+  line-height: inherit;
+  margin-left: 0;
   white-space: nowrap;
+
+  > * {
+    line-height: inherit;
+  }
 `;
 
-const FrameTitleFilename = styled(FrameTitleName)`
+const FrameTitleFilename = styled('span')`
   display: inline-block;
   vertical-align: baseline;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -323,8 +309,12 @@ const FrameTitleFilename = styled(FrameTitleName)`
   }
 `;
 
-const FrameTitleMetaValue = styled(FrameTitleName)`
+const FrameTitleMetaValue = styled('span')`
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
   display: inline-block;
+  vertical-align: baseline;
   min-width: 0;
   max-width: min(45vw, 420px);
   overflow: hidden;
