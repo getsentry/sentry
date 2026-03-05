@@ -76,7 +76,7 @@ interface SidebarItemDefaultsValue {
 
 export const SidebarItemDefaultsContext = createContext<SidebarItemDefaultsValue>({});
 
-export function useSidebarItemDefaults() {
+function useSidebarItemDefaults() {
   return useContext(SidebarItemDefaultsContext);
 }
 
@@ -87,13 +87,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   ref?: React.Ref<HTMLLIElement>;
 }
 
-export function SidebarItem({
-  children,
-  label,
-  disableTooltip,
-  ref,
-  ...props
-}: SidebarItemProps) {
+function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
@@ -426,7 +420,7 @@ const NavLink = styled(Link, {
   }
 `;
 
-export const NavButton = styled((props: ButtonProps) => {
+const NavButton = styled((props: ButtonProps) => {
   const {layout} = useNavContext();
 
   return (
