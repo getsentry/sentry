@@ -21,7 +21,6 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
@@ -931,9 +930,9 @@ const StyledBody = styled('div')`
 
 const StyledMain = styled('section')`
   grid-area: content;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(3)} ${space(4)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
   }
 `;

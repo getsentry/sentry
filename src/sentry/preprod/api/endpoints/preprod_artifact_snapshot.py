@@ -266,6 +266,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 added_count=len(categorized.added),
                 removed=categorized.removed,
                 removed_count=len(categorized.removed),
+                renamed=categorized.renamed,
+                renamed_count=len(categorized.renamed),
                 unchanged=categorized.unchanged,
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,

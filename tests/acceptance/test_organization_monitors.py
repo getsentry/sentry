@@ -25,6 +25,10 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
         self.project = self.create_project(
             organization=self.organization, teams=[self.team], name="Bengal"
         )
+        # Create a second project so the org has multiple projects; this prevents
+        # the page filter from auto-selecting the single project and rendering a
+        # platform icon that overlaps the form's project input field in Selenium.
+        self.create_project(organization=self.organization, teams=[self.team], name="Bengal 2")
         self.create_team_membership(self.team, user=self.user)
         self.login_as(self.user)
 

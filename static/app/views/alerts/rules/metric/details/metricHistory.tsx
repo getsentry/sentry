@@ -181,7 +181,7 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
   grid-template-columns: max-content 1fr repeat(2, max-content);
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   div:last-of-type {
@@ -207,5 +207,5 @@ const Cell = styled('div')`
   align-items: center;
   white-space: nowrap;
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;

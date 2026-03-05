@@ -66,7 +66,7 @@ import {
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -146,17 +146,21 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.SPANS,
-    enabled: organization.features.includes('visibility-explore-view'),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'string'
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'number'
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'boolean'
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

@@ -42,6 +42,7 @@ from .project_preprod_artifact_install_details import ProjectPreprodInstallDetai
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
+from .project_preprod_distribution import ProjectPreprodDistributionEndpoint
 from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
@@ -241,6 +242,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/recompare/$",
         PreprodSnapshotRecompareEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-snapshots-recompare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/distribution/$",
+        ProjectPreprodDistributionEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-distribution",
     ),
 ]
 

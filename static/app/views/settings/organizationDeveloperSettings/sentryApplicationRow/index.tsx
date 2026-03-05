@@ -7,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
@@ -114,5 +113,5 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
       ? props.theme.tokens.content.success
       : props.theme.colors.gray400};
   font-weight: light;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;
