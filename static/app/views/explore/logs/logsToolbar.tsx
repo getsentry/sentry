@@ -439,6 +439,7 @@ function ToolbarGroupBy() {
               onSearch={onSearch}
               onClose={onClose}
               loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+              fieldDefinitionType="log"
             />
           ))}
           <ToolbarFooter>
