@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -15,6 +16,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 type Props = {
   hasWebVitals: boolean;
@@ -27,8 +29,93 @@ export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
     <Stack gap="md">
       {hasWebVitals && <Widget Title={t('Web Vitals')} />}
+      <ApdexWidget transactionName={transactionName} />
       <FailureRateWidget transactionName={transactionName} />
     </Stack>
+  );
+}
+
+type ApdexWidgetProps = {
+  transactionName: string;
+};
+
+function ApdexWidget({transactionName}: ApdexWidgetProps) {
+  const organization = useOrganization();
+  const theme = useTheme();
+  const {selection} = usePageFilters();
+  const {transactionThreshold} = useTransactionSummaryContext();
+
+  const threshold = transactionThreshold ?? 300;
+  const apdexField = `apdex(span.duration, ${threshold})` as const;
+
+  const transactionSearch = new MutableSearch('');
+  transactionSearch.addFilterValue('transaction', transactionName);
+
+  const {
+    data: apdexSeriesData,
+    isPending: isApdexSeriesPending,
+    isError: isApdexSeriesError,
+  } = useFetchSpanTimeSeries(
+    {
+      query: transactionSearch.copy(),
+      yAxis: [apdexField],
+    },
+    REFERRER
+  );
+
+  const {
+    data: apdexValue,
+    isPending: isApdexValuePending,
+    isError: isApdexValueError,
+  } = useSpans(
+    {
+      search: transactionSearch.copy(),
+      fields: [apdexField],
+      pageFilters: selection,
+    },
+    REFERRER
+  );
+
+  const getApdexBadge = () => {
+    if (isApdexValuePending || isApdexValueError) {
+      return null;
+    }
+
+    return (
+      <Tag key="apdex-value">{formatFloat(apdexValue[0]?.[apdexField] ?? 0, 4)}</Tag>
+    );
+  };
+
+  if (isApdexSeriesPending || isApdexSeriesError) {
+    return (
+      <Widget
+        Title={t('Apdex')}
+        TitleBadges={getApdexBadge()}
+        Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
+  const plottables = apdexSeriesData.timeSeries.map(
+    ts => new Line(ts, {color: theme.chart.getColorPalette(1)[0]})
+  );
+
+  return (
+    <Widget
+      Title={<SideBarWidgetTitle>{t('Apdex')}</SideBarWidgetTitle>}
+      TitleBadges={getApdexBadge()}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription
+            title={t('Apdex')}
+            description={getTermHelp(organization, PerformanceTerm.APDEX)}
+          />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
+      height={200}
+      borderless
+    />
   );
 }
 
