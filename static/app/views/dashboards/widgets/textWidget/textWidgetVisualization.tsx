@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
 const EMPTY_PLACEHOLDER = '\u2014'; // em dash
@@ -12,9 +15,11 @@ interface TextWidgetProps {
 export function TextWidgetVisualization({description}: TextWidgetProps) {
   if (!description) {
     return (
-      <EmptyState>
-        <EmptyPlaceholder>{EMPTY_PLACEHOLDER}</EmptyPlaceholder>
-      </EmptyState>
+      <Flex align="center" justify="center" height="100%" minHeight="100px">
+        <Text variant="muted" size="2xl">
+          {EMPTY_PLACEHOLDER}
+        </Text>
+      </Flex>
     );
   }
 
@@ -34,17 +39,4 @@ const TextContainer = styled('div')`
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
-`;
-
-const EmptyState = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 100px;
-`;
-
-const EmptyPlaceholder = styled('span')`
-  color: ${p => p.theme.colors.gray400};
-  font-size: ${p => p.theme.font.size['4xl']};
 `;
