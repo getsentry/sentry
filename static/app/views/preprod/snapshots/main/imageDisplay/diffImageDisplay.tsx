@@ -128,7 +128,7 @@ export function DiffImageDisplay({
   );
 }
 
-interface ViewProps {
+interface SplitViewProps {
   baseImageUrl: string;
   diffMaskUrl: string | null;
   headImageUrl: string;
@@ -142,7 +142,7 @@ function SplitView({
   showOverlay,
   overlayColor,
   diffMaskUrl,
-}: ViewProps) {
+}: SplitViewProps) {
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
       <Flex direction="column" gap="sm">

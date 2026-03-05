@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -30,6 +31,7 @@ import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
+  const theme = useTheme();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -64,7 +66,10 @@ export default function SnapshotsPage() {
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [overlayColor, setOverlayColor] = useState('#00cc44');
+  const [overlayColor, setOverlayColor] = useState<string>(() => {
+    const palette = theme.chart.getColorPalette(10);
+    return palette.at(-1) ?? '#67C800';
+  });
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
   const {
