@@ -77,7 +77,7 @@ function RouteSource({searchOptions, query, children}: Props) {
         )
       : [];
 
-    const searchMap: NavigationItem[] = [
+    const searchMap = [
       mapFunc(getUserOrgNavigationConfiguration, context),
       mapFunc(projectSettingsNavigation, context),
       mapFunc(navigationFromHook, context),

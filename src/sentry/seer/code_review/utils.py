@@ -94,19 +94,6 @@ def get_seer_path_for_request(github_event: str, payload: Mapping[str, Any]) -> 
     return SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
 
 
-def payload_for_new_seer_endpoints(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """
-    Return payload with only external_owner_id and data for the new Seer endpoints.
-
-    The new endpoints expect SeerCodeReviewTaskRequestForPrReview or
-    SeerCodeReviewTaskRequestForPrClosed, which do not include request_type.
-    """
-    return {
-        "external_owner_id": payload["external_owner_id"],
-        "data": payload["data"],
-    }
-
-
 def make_seer_request(
     path: str,
     payload: Mapping[str, Any],

@@ -20,7 +20,6 @@ import {
 } from 'sentry/constants/releases';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -135,7 +134,7 @@ export default function FiltersBar({
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
-  const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
+  const prebuiltDashboardFilters = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
 
@@ -181,12 +180,46 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    return (
-      dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      []
+    const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    const initialFilters =
+      savedFilters.length > 0 ? savedFilters : prebuiltDashboardFilters;
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    if (!urlFilters) {
+      return initialFilters;
+    }
+
+    // Empty array means user explicitly cleared all filters — respect that
+    if (urlFilters.length === 0) {
+      return urlFilters;
+    }
+
+    const nonOverlapping = initialFilters.filter(
+      saved => !urlFilters.some(url => globalFilterKeysAreEqual(saved, url))
     );
+
+    return [...nonOverlapping, ...urlFilters];
   });
+
+  // Sync merged filters to the URL on mount so widgets see the same filters
+  // as the filter bar. Without this, the filter bar shows merged [saved + URL]
+  // filters but widgets only query with raw URL filters.
+  useEffect(() => {
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    // Only sync if URL has non-empty filters AND saved filters were merged in
+    if (
+      urlFilters &&
+      urlFilters.length > 0 &&
+      activeGlobalFilters.length > urlFilters.length
+    ) {
+      onDashboardFilterChange({
+        [DashboardFilterKeys.RELEASE]: selectedReleases,
+        [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
@@ -299,8 +332,7 @@ export default function FiltersBar({
         {!hasTemporaryFilters &&
           hasUnsavedChanges &&
           !isEditingDashboard &&
-          !isPreview &&
-          !isPrebuiltDashboard && (
+          !isPreview && (
             <Grid flow="column" align="center" gap="md">
               <Button
                 tooltipProps={{
@@ -322,7 +354,14 @@ export default function FiltersBar({
                 data-test-id="filter-bar-cancel"
                 onClick={() => {
                   onCancel?.();
-                  setActiveGlobalFilters(filters.globalFilter ?? []);
+                  // Reset local display state, falling back to prebuilt
+                  // defaults when no saved filters exist
+                  const displayFilters = filters.globalFilter?.length
+                    ? filters.globalFilter
+                    : prebuiltDashboardFilters;
+                  setActiveGlobalFilters(displayFilters);
+                  // Push saved filters (not display fallback) to avoid a
+                  // URL/DB mismatch that re-triggers hasUnsavedFilterChanges
                   onDashboardFilterChange(filters);
                 }}
               >
@@ -366,15 +405,15 @@ const parseReleaseSort = createParser({
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
   align-items: flex-start;
 `;
 
 const FiltersRow = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
   flex: 1;
 

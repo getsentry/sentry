@@ -7,7 +7,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -237,7 +236,7 @@ export default ThreadSelector;
 
 const ThreadName = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -257,11 +256,11 @@ const StyledGrid = styled(ThreadSelectorGrid)`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   cursor: pointer;
   user-select: none;
   border-radius: ${p => p.theme.radius.md};
@@ -279,6 +278,6 @@ const HeaderText = styled(Flex)`
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: ${space(0.5)};
-  padding: 0 ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.xs};
 `;

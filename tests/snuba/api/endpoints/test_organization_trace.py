@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -23,7 +24,9 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 logger = logging.getLogger(__name__)
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue as ProtoAttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeValue as ProtoAttributeValue,
+)
 
 from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
@@ -349,6 +352,32 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event["level"] == "error"
         assert error_event["issue_id"] == error.group_id
         assert error_event["start_timestamp"] == error_data["timestamp"]
+
+    def test_with_missing_group(self) -> None:
+        self.load_trace()
+        _, start = self.get_start_end_from_day_ago(123)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.root_event.data["contexts"]["trace"]["span_id"],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            with mock.patch("sentry.snuba.trace.Group.objects.get", side_effect=Group.DoesNotExist):
+                response = self.client_get(
+                    data={"timestamp": self.day_ago},
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        assert len(data[0]["errors"]) == 0
 
     def test_with_errors_data_with_overlapping_span_id(self) -> None:
         self.load_trace()

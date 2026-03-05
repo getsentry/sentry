@@ -16,7 +16,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -201,7 +200,7 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
 const ItemLayout = styled(PanelItem)`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;
 
 const SubText = styled('div')`
@@ -213,11 +212,11 @@ const SubText = styled('div')`
  * Allows the form to expand into the full width of the panel
  */
 const FormWrapper = styled('div')`
-  margin-left: -${space(4)};
-  margin-right: -${space(4)};
+  margin-left: -${p => p.theme.space['3xl']};
+  margin-right: -${p => p.theme.space['3xl']};
   & > div {
-    padding-left: ${space(4)};
-    padding-right: ${space(4)} !important;
+    padding-left: ${p => p.theme.space['3xl']};
+    padding-right: ${p => p.theme.space['3xl']} !important;
   }
 
   & > div > label {
@@ -226,6 +225,6 @@ const FormWrapper = styled('div')`
 `;
 
 const ContactDetailsWrapper = styled('div')`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.sm};
 `;

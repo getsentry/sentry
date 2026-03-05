@@ -14,7 +14,6 @@ import ConfirmDelete from 'sentry/components/confirmDelete';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
 
@@ -74,12 +73,12 @@ function Row({app, onRemove}: Props) {
 }
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
 const ApplicationName = styled(Link)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ClientId = styled('div')`

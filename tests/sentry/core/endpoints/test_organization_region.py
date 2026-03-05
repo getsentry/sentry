@@ -2,7 +2,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
-from sentry.types.region import Region, get_global_directory, get_region_by_name
+from sentry.types.region import Region, get_cell_by_name, get_global_directory
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
@@ -13,7 +13,7 @@ class OrganizationRegionTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.org_owner = self.create_user()
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
         self.org = self.create_organization(owner=self.org_owner, region=us_region)
         self.test_project = self.create_project(organization=self.org, name="test_project")
 
@@ -64,7 +64,7 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 403
 
     def test_org_auth_token_access_with_org_read(self) -> None:
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=["org:ci"]
         )
@@ -76,7 +76,7 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 200
 
     def test_org_auth_token_access_with_incorrect_scopes(self) -> None:
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=[]
         )
@@ -85,7 +85,7 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 403
 
     def test_org_auth_token_access_for_different_organization(self) -> None:
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
 
         other_user = self.create_user()
         org_auth_token_str = self.create_auth_token_for_org(
