@@ -47,7 +47,7 @@ def format_snapshot_status_check_messages(
             total_removed += comparison.images_removed
 
     if overall_status == StatusCheckStatus.IN_PROGRESS:
-        subtitle = str(_("Comparing..."))
+        subtitle = str(_("Comparing snapshots..."))
     elif errored_count > 0 and total_changed == 0 and total_added == 0 and total_removed == 0:
         subtitle = str(
             ngettext(
@@ -58,7 +58,7 @@ def format_snapshot_status_check_messages(
             % {"count": errored_count}
         )
     elif total_changed == 0 and total_added == 0 and total_removed == 0:
-        subtitle = str(_("All images match"))
+        subtitle = str(_("No changes detected"))
     else:
         parts = []
         if total_changed > 0:

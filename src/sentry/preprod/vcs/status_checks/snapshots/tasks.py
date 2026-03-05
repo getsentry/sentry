@@ -29,8 +29,6 @@ from sentry.taskworker.namespaces import preprod_tasks
 
 logger = logging.getLogger(__name__)
 
-SNAPSHOT_ENABLED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_enabled"
-
 # Action identifier for the "Approve" button on snapshot GitHub check runs.
 APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
@@ -88,18 +86,7 @@ def create_preprod_snapshot_status_check_task(
         )
         return
 
-    status_checks_enabled = preprod_artifact.project.get_option(
-        SNAPSHOT_ENABLED_OPTION_KEY, default=True
-    )
-    if not status_checks_enabled:
-        logger.info(
-            "preprod.snapshot_status_checks.create.disabled",
-            extra={
-                "artifact_id": preprod_artifact.id,
-                "project_id": preprod_artifact.project.id,
-            },
-        )
-        return
+    # TODO(EME-911) Wireup enabled options once gating/billing comes into play
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
@@ -173,9 +160,11 @@ def create_preprod_snapshot_status_check_task(
         base_artifact_map,
     )
 
-    include_approve_action = status == StatusCheckStatus.FAILURE and _has_snapshot_changes(
+    approve_action_identifier: str | None = None
+    if status == StatusCheckStatus.FAILURE and _has_snapshot_changes(
         all_artifacts, snapshot_metrics_map, comparisons_map
-    )
+    ):
+        approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     url_artifact = (
         preprod_artifact
@@ -197,7 +186,7 @@ def create_preprod_snapshot_status_check_task(
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
-            include_approve_action=include_approve_action,
+            approve_action_identifier=approve_action_identifier,
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -259,6 +248,7 @@ def _has_snapshot_changes(
         comparison = comparisons_map.get(metrics.id)
         if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
             continue
+
         if (
             comparison.images_changed > 0
             or comparison.images_added > 0

@@ -319,7 +319,7 @@ def create_preprod_status_check_task(
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
-            include_approve_action=bool(triggered_rules),
+            approve_action_identifier=APPROVE_SIZE_ACTION_IDENTIFIER if triggered_rules else None,
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -932,7 +932,7 @@ class _StatusCheckProvider(ABC):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
-        include_approve_action: bool = False,
+        approve_action_identifier: str | None = None,
     ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -952,7 +952,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
-        include_approve_action: bool = False,
+        approve_action_identifier: str | None = None,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
@@ -1029,12 +1029,12 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     "Omit completed_at entirely instead of setting it to None."
                 )
 
-            if include_approve_action:
+            if approve_action_identifier:
                 check_data["actions"] = [
                     {
                         "label": "Approve",
-                        "description": "Approve size changes for this PR",
-                        "identifier": APPROVE_SIZE_ACTION_IDENTIFIER,
+                        "description": "Approve changes for this PR",
+                        "identifier": approve_action_identifier,
                     }
                 ]
 

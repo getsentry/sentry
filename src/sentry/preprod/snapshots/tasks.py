@@ -507,6 +507,13 @@ def compare_snapshots(
             ]
         )
 
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_completion",
+            },
+        )
+
         logger.info(
             "Snapshot comparison complete",
             extra={
@@ -519,11 +526,6 @@ def compare_snapshots(
                 "renamed": len(renamed_pairs),
                 "errored": error_count,
             },
-        )
-
-        create_preprod_snapshot_status_check_task.delay(
-            preprod_artifact_id=head_artifact_id,
-            caller="compare_completion",
         )
 
     except BaseException:
@@ -545,15 +547,10 @@ def compare_snapshots(
                     extra={"comparison_id": comparison.id},
                 )
 
-        try:
-            create_preprod_snapshot_status_check_task.delay(
-                preprod_artifact_id=head_artifact_id,
-                caller="compare_failure",
-            )
-        except Exception:
-            logger.exception(
-                "Failed to trigger snapshot status check after comparison failure",
-                extra={"head_artifact_id": head_artifact_id},
-            )
-
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
         raise

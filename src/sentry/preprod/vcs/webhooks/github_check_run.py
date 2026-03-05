@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from django.db.models import F, Window
 from django.db.models.functions import RowNumber
@@ -125,6 +125,7 @@ def handle_preprod_check_run_event(
     github_user_info = {"github": {"id": sender.get("id"), "login": sender.get("login")}}
 
     # Determine feature type based on the action identifier
+    product_name: Literal["size", "snapshots"]
     if identifier == APPROVE_SIZE_ACTION_IDENTIFIER:
         feature_type = PreprodComparisonApproval.FeatureType.SIZE
         product_name = "size"
