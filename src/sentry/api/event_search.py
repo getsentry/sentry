@@ -1824,7 +1824,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node,  # has: lookahead
             SearchKey,  # SearchKey('has')
             Node,  # :
-            list[list[SearchKey]],
+            list[
+                list[SearchKey]
+            ],  # [[SearchKey(name='span.description')], [SearchKey(name='span.op')]]
         ],
     ) -> ParenExpression:
         (negation, _, _, _, search_key_lst) = children
@@ -1839,10 +1841,13 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         # Some datasets do not support the !has filter, but we allow
         # team_key_transaction because we control that field and special
         # case the way it's processed in search
+        only_team_key_transaction = (
+            len(search_keys) == 1 and search_keys[0].name == TEAM_KEY_TRANSACTION_ALIAS
+        )
         if (
             not self.config.allow_not_has_filter
             and is_negated(negation)
-            and TEAM_KEY_TRANSACTION_ALIAS not in [search_key.name for search_key in search_keys]
+            and not only_team_key_transaction
         ):
             raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
 
