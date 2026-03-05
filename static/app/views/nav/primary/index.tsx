@@ -93,6 +93,7 @@ function showPreventNav() {
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
+  const {layout} = useNavContext();
   const prefix = `organizations/${organization.slug}`;
   const ref = useRef<HTMLUListElement>(null);
 
