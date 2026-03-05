@@ -609,8 +609,9 @@ function buildComponentTree(
     for (const componentName of config.components) {
       const file = files.find(f => inferComponentName(f).toLowerCase() === componentName);
       if (file) {
+        const name = inferComponentName(file);
         folderNode.children[componentName] = new StoryTreeNode(
-          formatName(componentName),
+          formatName(name),
           'core',
           file
         );
@@ -648,8 +649,9 @@ function buildComponentTree(
               f => inferComponentName(f).toLowerCase() === componentName
             );
             if (file) {
+              const name = inferComponentName(file);
               subgroupNode.children[componentName] = new StoryTreeNode(
-                formatName(componentName),
+                formatName(name),
                 'core',
                 file
               );
