@@ -12,6 +12,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
   CodingAgentStatus,
+  getResultButtonLabel,
   type CodingAgentState,
   type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
@@ -183,9 +184,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                                 analyticsEventKey="autofix.coding_agent.open_pr"
                                 priority="primary"
                               >
-                                {pr_url?.includes('/tree/')
-                                  ? t('View Branch')
-                                  : t('View Pull Request')}
+                                {getResultButtonLabel(pr_url)}
                               </Button>
                             </ExternalLink>
                           ))}

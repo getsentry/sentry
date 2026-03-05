@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -64,6 +65,13 @@ export enum CodingAgentProvider {
   CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
   CLAUDE_CODE_AGENT = 'claude_code_agent',
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
+}
+
+export function getResultButtonLabel(url: string | null | undefined): string {
+  if (url?.includes('/tree/')) {
+    return t('View Branch');
+  }
+  return t('View Pull Request');
 }
 
 export interface CodingAgentState {

@@ -11,6 +11,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {getResultButtonLabel} from 'sentry/components/events/autofix/types';
 import type {
   ImpactAssessmentArtifact,
   ImpactItem,
@@ -884,9 +885,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
                       window.open(result.pr_url, '_blank', 'noopener,noreferrer');
                     }}
                   >
-                    {result.pr_url?.includes('/tree/')
-                      ? t('View Branch')
-                      : t('View Pull Request')}
+                    {getResultButtonLabel(result.pr_url)}
                   </Button>
                 ))}
             </Flex>
