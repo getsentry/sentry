@@ -99,16 +99,13 @@ def assert_webhook_payloads_for_mailbox(
             if destination_types[destination_type] == 0:
                 del destination_types[destination_type]
 
-        if message.destination_type == DestinationType.CODECOV:
-            assert message.region_name is None
-        else:
-            assert message.region_name is not None
-            try:
-                region_names_set.remove(message.region_name)
-            except KeyError:
-                raise Exception(
-                    f"Found ControlOutbox for '{message.region_name}', which was not in region_names: {str(region_names_set)}"
-                )
+        assert message.region_name is not None
+        try:
+            region_names_set.remove(message.region_name)
+        except KeyError:
+            raise Exception(
+                f"Found ControlOutbox for '{message.region_name}', which was not in region_names: {str(region_names_set)}"
+            )
     if len(region_names_set) != 0:
         raise Exception(f"WebhookPayload not found for some region_names: {str(region_names_set)}")
 
