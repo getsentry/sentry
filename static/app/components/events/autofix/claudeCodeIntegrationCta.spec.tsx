@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('ClaudeCodeIntegrationCta', () => {
@@ -154,7 +155,7 @@ describe('ClaudeCodeIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'claude_code_agent',
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
             integration_id: 456,
           },
         },
@@ -179,7 +180,7 @@ describe('ClaudeCodeIntegrationCta', () => {
               automated_run_stopping_point: 'root_cause',
               automation_handoff: {
                 handoff_point: 'root_cause',
-                target: 'claude_code_agent',
+                target: CodingAgentProvider.CLAUDE_CODE_AGENT,
                 integration_id: 456,
               },
             },
@@ -223,7 +224,7 @@ describe('ClaudeCodeIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'claude_code_agent',
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
             integration_id: 456,
           },
         },
@@ -276,7 +277,7 @@ describe('ClaudeCodeIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'claude_code_agent',
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
             integration_id: 456,
           },
         },
@@ -320,7 +321,7 @@ describe('ClaudeCodeIntegrationCta', () => {
               automated_run_stopping_point: 'root_cause',
               automation_handoff: {
                 handoff_point: 'root_cause',
-                target: 'claude_code_agent',
+                target: CodingAgentProvider.CLAUDE_CODE_AGENT,
                 integration_id: 456,
               },
             },
@@ -356,7 +357,7 @@ describe('ClaudeCodeIntegrationCta', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'claude_code_agent',
+              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
               integration_id: 456,
             },
           },
@@ -409,7 +410,7 @@ describe('ClaudeCodeIntegrationCta', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'claude_code_agent',
+              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
               integration_id: 456,
             },
           },

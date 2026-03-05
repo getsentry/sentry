@@ -12,7 +12,10 @@ import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorInteg
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  type ProjectSeerPreferences,
+} from 'sentry/components/events/autofix/types';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -116,7 +119,7 @@ function CodingAgentSettings({
   const selectedIntegrationId = preference?.automation_handoff?.integration_id;
   const target = preference?.automation_handoff?.target;
 
-  const isClaude = target === 'claude_code_agent';
+  const isClaude = target === CodingAgentProvider.CLAUDE_CODE_AGENT;
   const agentName = isClaude ? t('Claude') : t('Cursor Cloud Agent');
   const sectionTitle = isClaude ? t('Claude Agent Settings') : t('Cursor Agent Settings');
 
@@ -256,7 +259,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integration_id: parseInt(cursorIntegration.id, 10),
             auto_create_pr: false,
           },
@@ -277,7 +280,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'claude_code_agent',
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
             integration_id: parseInt(claudeIntegration.id, 10),
             auto_create_pr: false,
           },
@@ -455,7 +458,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: automationTuning,
           automated_run_stopping_point: preference?.automation_handoff
-            ? preference.automation_handoff.target === 'claude_code_agent'
+            ? preference.automation_handoff.target ===
+              CodingAgentProvider.CLAUDE_CODE_AGENT
               ? 'claude_handoff'
               : 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
@@ -480,7 +484,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         handleIntegrationChange={handleIntegrationChange}
         canWriteProject={canWriteProject}
         codingAgentIntegrations={
-          preference?.automation_handoff?.target === 'claude_code_agent'
+          preference?.automation_handoff?.target === CodingAgentProvider.CLAUDE_CODE_AGENT
             ? claudeIntegrations
             : cursorIntegrations
         }

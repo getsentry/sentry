@@ -1,9 +1,10 @@
 import {makeCodingAgentIntegrationCta} from 'sentry/components/events/autofix/codingAgentIntegrationCta';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 
 export const CursorIntegrationCta = makeCodingAgentIntegrationCta({
   provider: 'cursor',
   featureFlag: 'integrations-cursor',
-  target: 'cursor_background_agent',
+  target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
   pluginId: 'cursor',
   displayName: 'Cursor',
   headingName: 'Cursor Agent',

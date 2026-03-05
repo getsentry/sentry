@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import ProjectSeer from 'sentry/views/settings/projectSeer';
@@ -516,7 +517,7 @@ describe('ProjectSeer', () => {
             repositories: expect.any(Array),
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },
@@ -630,7 +631,7 @@ describe('ProjectSeer', () => {
             repositories: expect.any(Array),
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'claude_code_agent',
+              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
               integration_id: 456,
               auto_create_pr: false,
             },
@@ -725,7 +726,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: true,
             },
@@ -802,7 +803,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },
@@ -916,7 +917,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },
@@ -1006,7 +1007,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },
@@ -1127,7 +1128,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },
@@ -1206,7 +1207,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },

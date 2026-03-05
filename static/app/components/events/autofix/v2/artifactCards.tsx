@@ -11,7 +11,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {getResultButtonLabel} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  getResultButtonLabel,
+} from 'sentry/components/events/autofix/types';
 import type {
   ImpactAssessmentArtifact,
   ImpactItem,
@@ -808,11 +811,11 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
 
   const getProviderDisplayName = (provider: string) => {
     switch (provider) {
-      case 'cursor_background_agent':
+      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Cursor Cloud Agent');
-      case 'claude_code_agent':
+      case CodingAgentProvider.CLAUDE_CODE_AGENT:
         return t('Claude Agent');
-      case 'github_copilot_agent':
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
         return t('GitHub Copilot');
       default:
         return t('Coding Agent');
@@ -821,9 +824,9 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
 
   const getOpenButtonText = (provider: string) => {
     switch (provider) {
-      case 'cursor_background_agent':
+      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Open in Cursor');
-      case 'claude_code_agent':
+      case CodingAgentProvider.CLAUDE_CODE_AGENT:
         return t('Open in Claude');
       default:
         return t('Open Session');

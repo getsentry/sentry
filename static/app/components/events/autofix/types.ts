@@ -323,7 +323,7 @@ export interface SeerRepoDefinition {
 export interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   integration_id: number;
-  target: 'cursor_background_agent' | 'claude_code_agent' | 'github_copilot_agent';
+  target: CodingAgentProvider;
   auto_create_pr?: boolean;
 }
 
@@ -331,9 +331,9 @@ export const PROVIDER_TO_HANDOFF_TARGET: Record<
   string,
   SeerAutomationHandoffConfiguration['target']
 > = {
-  cursor: 'cursor_background_agent',
-  claude_code: 'claude_code_agent',
-  github_copilot: 'github_copilot_agent',
+  cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+  claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
+  github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
 };
 
 export interface ProjectSeerPreferences {
