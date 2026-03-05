@@ -892,10 +892,20 @@ class TestPollClaudeCodeAgents(TestCase):
             "environment_id": "env-b",
             "workspace_name": "ws-b",
         }
-        mock_integration_service.get_integration.side_effect = lambda integration_id: {
-            100: integration_a,
-            200: integration_b,
-        }[integration_id]
+        org_integration_a = MagicMock()
+        org_integration_a.id = 1001
+        org_integration_b = MagicMock()
+        org_integration_b.id = 1002
+        mock_integration_service.get_organization_integration.side_effect = (
+            lambda organization_id, integration_id: {
+                100: org_integration_a,
+                200: org_integration_b,
+            }[integration_id]
+        )
+        mock_integration_service.get_integration.side_effect = lambda organization_integration_id: {
+            1001: integration_a,
+            1002: integration_b,
+        }[organization_integration_id]
 
         clients = {}
 
