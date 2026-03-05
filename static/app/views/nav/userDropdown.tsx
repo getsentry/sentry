@@ -8,8 +8,10 @@ import {logout} from 'sentry/actionCreators/account';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
@@ -17,11 +19,16 @@ import {NavLayout} from 'sentry/views/nav/types';
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
+  const organization = useOrganization();
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
 
   function handleLogout() {
     logout(api);
+  }
+
+  function handleTriggerClick() {
+    trackAnalytics('navigation.primary_item_clicked', {item: 'account', organization});
   }
 
   const identifier = user.email || user.username || user.id || user.ip_address;
@@ -52,6 +59,10 @@ export function UserDropdown() {
             icon={<UserAvatar user={user} size={16} />}
             priority="transparent"
             size="xs"
+            onClick={e => {
+              handleTriggerClick();
+              triggerProps.onClick?.(e);
+            }}
           >
             {t('User Settings')}
           </MobileUserButton>
@@ -61,6 +72,10 @@ export function UserDropdown() {
             aria-label={user.email}
             avatar={avatarProps}
             size="sm"
+            onClick={e => {
+              handleTriggerClick();
+              triggerProps.onClick?.(e);
+            }}
           />
         )
       }

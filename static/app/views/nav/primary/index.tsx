@@ -256,7 +256,8 @@ export function PrimaryNavigationItems() {
 
 // Force all buttons to the same size
 const FooterButtonBar = styled(ButtonBar)`
-  & > button {
+  & > button,
+  & > span > button {
     width: ${p => p.theme.form.md.height};
     height: ${p => p.theme.form.md.height};
   }
