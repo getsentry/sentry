@@ -22,7 +22,6 @@ import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
@@ -309,7 +308,7 @@ const Header = styled('header')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, 1fr) auto auto;
-  column-gap: ${space(2)};
+  column-gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
@@ -354,9 +353,9 @@ const Subtext = styled('span')`
 const ActionBar = styled('div')<{isComplete: boolean}>`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-wrap: wrap;
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} 24px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   transition: background 0.3s ease-in-out;
@@ -388,7 +387,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
 const WorkflowActions = styled('div')`
   display: flex;
   justify-content: flex-end;
-  column-gap: ${space(2)};
+  column-gap: ${p => p.theme.space.xl};
   flex-wrap: wrap;
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     justify-content: flex-start;
@@ -398,7 +397,7 @@ const WorkflowActions = styled('div')`
 const Workflow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

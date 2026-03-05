@@ -84,7 +84,6 @@ describe('PreprodBuildsTable', () => {
       'href',
       getInstallBuildPath({
         organizationSlug: organization.slug,
-        projectId: '1',
         baseArtifactId: 'build-1',
       })
     );

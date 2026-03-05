@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -348,6 +347,6 @@ const ChartWrapper = styled('div')`
 const ChartList = styled('div')`
   position: relative;
   display: grid;
-  row-gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  row-gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;

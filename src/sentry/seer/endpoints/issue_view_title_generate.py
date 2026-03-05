@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -75,14 +74,6 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
                 {"detail": "AI features are disabled for this organization."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        if not features.has(
-            "organizations:issue-view-ai-title", organization=organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "Organization does not have access to this feature"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

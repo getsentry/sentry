@@ -19,7 +19,6 @@ import {
 interface SnapshotDevToolsProps {
   hasBaseArtifact: boolean;
   organizationSlug: string;
-  projectSlug: string;
   refetch: () => void;
   snapshotId: string;
   comparisonRunInfo?: SnapshotComparisonRunInfo | null;
@@ -27,7 +26,6 @@ interface SnapshotDevToolsProps {
 
 export function SnapshotDevTools({
   organizationSlug,
-  projectSlug,
   snapshotId,
   comparisonRunInfo,
   hasBaseArtifact,
@@ -67,7 +65,7 @@ export function SnapshotDevTools({
     setRecompareLoading(true);
     setRecompareError(null);
     clientRef.current.request(
-      `/projects/${organizationSlug}/${projectSlug}/preprodartifacts/snapshots/${snapshotId}/recompare/`,
+      `/organizations/${organizationSlug}/preprodartifacts/snapshots/${snapshotId}/recompare/`,
       {
         method: 'POST',
         success: () => {
@@ -80,7 +78,7 @@ export function SnapshotDevTools({
         },
       }
     );
-  }, [organizationSlug, projectSlug, snapshotId, refetch]);
+  }, [organizationSlug, snapshotId, refetch]);
 
   let stateLabel: string;
   if (comparisonState === ComparisonState.PROCESSING) {
