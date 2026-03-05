@@ -1,13 +1,19 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+from requests import HTTPError
+
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
     GithubCopilotTask,
 )
-from sentry.seer.autofix.coding_agent import _launch_agents_for_repos, poll_github_copilot_agents
+from sentry.seer.autofix.coding_agent import (
+    _launch_agents_for_repos,
+    poll_claude_code_agents,
+    poll_github_copilot_agents,
+)
 from sentry.seer.autofix.utils import (
     AutofixRequest,
     AutofixState,
@@ -685,3 +691,308 @@ class TestPollGithubCopilotAgents(TestCase):
 
         # Should not raise - invalid agent ID should be skipped
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+
+MOCK_CLIENT_CLASS_PATH = "sentry.seer.autofix.coding_agent.import_string"
+MOCK_INTEGRATION_SERVICE_PATH = "sentry.seer.autofix.coding_agent.integration_service"
+MOCK_UPDATE_STATE_PATH = "sentry.seer.autofix.coding_agent.update_coding_agent_state"
+MOCK_DJANGO_SETTINGS_PATH = "sentry.seer.autofix.coding_agent.django_settings"
+
+
+class TestPollClaudeCodeAgents(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.run_id = 12345
+        self.integration_id = 99
+
+        patcher = patch(MOCK_DJANGO_SETTINGS_PATH)
+        self.mock_settings = patcher.start()
+        self.mock_settings.CLAUDE_CODE_CLIENT_CLASS = "test.MockClaudeCodeClient"
+        self.addCleanup(patcher.stop)
+
+    def _create_autofix_state_with_agents(
+        self, agents: dict[str, CodingAgentState]
+    ) -> AutofixState:
+        return AutofixState(
+            run_id=self.run_id,
+            request=AutofixRequest(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                issue={"id": 1, "title": "Test Issue"},
+                repos=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        owner="getsentry",
+                        name="sentry",
+                        external_id="123456",
+                    )
+                ],
+            ),
+            updated_at=datetime.now(UTC),
+            status="COMPLETED",
+            steps=[],
+            coding_agents=agents,
+        )
+
+    def _create_claude_agent(
+        self, agent_id="claude-session-123", status=CodingAgentStatus.RUNNING
+    ) -> CodingAgentState:
+        return CodingAgentState(
+            id=agent_id,
+            status=status,
+            provider=CodingAgentProviderType.CLAUDE_CODE_AGENT,
+            name="getsentry/sentry: Claude Agent",
+            started_at=datetime.now(UTC),
+            integration_id=self.integration_id,
+        )
+
+    def _mock_integration(self, mock_integration_service):
+        mock_integration = MagicMock()
+        mock_integration.metadata = {
+            "api_key": "sk-ant-test",
+            "environment_id": "env-123",
+            "workspace_name": "test-workspace",
+        }
+        mock_integration_service.get_integration.return_value = mock_integration
+        return mock_integration
+
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_skips_when_no_coding_agents(self, mock_integration_service):
+        autofix_state = self._create_autofix_state_with_agents({})
+        poll_claude_code_agents(autofix_state=autofix_state)
+        mock_integration_service.get_integration.assert_not_called()
+
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_skips_non_claude_agents(self, mock_integration_service):
+        agents = {
+            "cursor-agent-123": CodingAgentState(
+                id="cursor-agent-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+                name="Cursor",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+        mock_integration_service.get_integration.assert_not_called()
+
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_skips_completed_agents(self, mock_integration_service):
+        agents = {
+            "claude-session-123": self._create_claude_agent(status=CodingAgentStatus.COMPLETED),
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+        mock_integration_service.get_integration.assert_not_called()
+
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_skips_failed_agents(self, mock_integration_service):
+        agents = {
+            "claude-session-123": self._create_claude_agent(status=CodingAgentStatus.FAILED),
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+        mock_integration_service.get_integration.assert_not_called()
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_polls_running_agent_and_updates_completed(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.get_session_status.return_value = MagicMock(status="idle", result=None)
+        mock_client.list_session_events.return_value = []
+        mock_client.extract_result_url_from_events.return_value = (
+            "https://github.com/getsentry/sentry/pull/999"
+        )
+        mock_client.build_result_from_session.return_value = MagicMock(
+            pr_url="https://github.com/getsentry/sentry/pull/999"
+        )
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_client.get_session_status.assert_called_once_with("claude-session-123")
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["agent_id"] == "claude-session-123"
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_marks_failed_when_no_pr_url(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.get_session_status.return_value = MagicMock(status="idle", result=None)
+        mock_client.list_session_events.return_value = []
+        mock_client.extract_result_url_from_events.return_value = None
+        mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.FAILED
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_marks_failed_when_stalled_tool_use(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.get_session_status.return_value = MagicMock(status="idle", result=None)
+        mock_client.list_session_events.return_value = [
+            {
+                "type": "agent",
+                "content": [{"type": "tool_use", "id": "tool-1"}],
+            },
+        ]
+        mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.FAILED
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_no_update_when_status_unchanged(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.get_session_status.return_value = MagicMock(status="running", result=None)
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_not_called()
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_continues_on_http_error(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.get_session_status.side_effect = HTTPError("Request Error")
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_not_called()
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_uses_correct_integration_per_agent(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        integration_a = MagicMock()
+        integration_a.metadata = {
+            "api_key": "sk-ant-aaa",
+            "environment_id": "env-a",
+            "workspace_name": "ws-a",
+        }
+        integration_b = MagicMock()
+        integration_b.metadata = {
+            "api_key": "sk-ant-bbb",
+            "environment_id": "env-b",
+            "workspace_name": "ws-b",
+        }
+        org_integration_a = MagicMock()
+        org_integration_a.id = 1001
+        org_integration_b = MagicMock()
+        org_integration_b.id = 1002
+        mock_integration_service.get_organization_integration.side_effect = (
+            lambda organization_id, integration_id: {
+                100: org_integration_a,
+                200: org_integration_b,
+            }[integration_id]
+        )
+        mock_integration_service.get_integration.side_effect = lambda organization_integration_id: {
+            1001: integration_a,
+            1002: integration_b,
+        }[organization_integration_id]
+
+        clients = {}
+
+        def make_client(**kwargs):
+            client = MagicMock()
+            client.get_session_status.return_value = MagicMock(status="running", result=None)
+            clients[kwargs["api_key"]] = client
+            return client
+
+        mock_import_string.return_value = make_client
+
+        agent_a = CodingAgentState(
+            id="session-a",
+            status=CodingAgentStatus.RUNNING,
+            provider=CodingAgentProviderType.CLAUDE_CODE_AGENT,
+            name="Agent A",
+            started_at=datetime.now(UTC),
+            integration_id=100,
+        )
+        agent_b = CodingAgentState(
+            id="session-b",
+            status=CodingAgentStatus.RUNNING,
+            provider=CodingAgentProviderType.CLAUDE_CODE_AGENT,
+            name="Agent B",
+            started_at=datetime.now(UTC),
+            integration_id=200,
+        )
+        autofix_state = self._create_autofix_state_with_agents(
+            {"session-a": agent_a, "session-b": agent_b}
+        )
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        assert mock_integration_service.get_integration.call_count == 2
+        assert len(clients) == 2
+        clients["sk-ant-aaa"].get_session_status.assert_called_once_with("session-a")
+        clients["sk-ant-bbb"].get_session_status.assert_called_once_with("session-b")
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_caches_client_for_same_integration(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.get_session_status.return_value = MagicMock(status="running", result=None)
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agent_a = self._create_claude_agent(agent_id="session-a")
+        agent_b = self._create_claude_agent(agent_id="session-b")
+        autofix_state = self._create_autofix_state_with_agents(
+            {"session-a": agent_a, "session-b": agent_b}
+        )
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_integration_service.get_integration.assert_called_once()
+        assert mock_client.get_session_status.call_count == 2
