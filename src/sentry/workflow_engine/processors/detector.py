@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import cache
 
 import sentry_sdk
 from django.db import router, transaction
@@ -23,6 +25,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -59,13 +62,38 @@ VALID_DEFAULT_DETECTOR_TYPES = [
 ]
 
 
+@cache
+def get_disabled_platforms_by_wfe_type() -> Mapping[str, frozenset[str]]:
+    """
+    Map WFE detector types to platforms where they should be disabled by default.
+    Derives from DEFAULT_DETECTOR_DISABLING_CONFIGS using the detection_enabled_key.
+    """
+    from sentry.issue_detection.detectors.disable_detectors import (
+        DEFAULT_DETECTOR_DISABLING_CONFIGS,
+    )
+
+    disabled_by_wfe_type: dict[str, frozenset[str]] = {}
+
+    for disable_config in DEFAULT_DETECTOR_DISABLING_CONFIGS:
+        detector_option_key = disable_config["detector_project_option"]
+        languages_to_disable = disable_config["languages_to_disable"]
+
+        # Find matching WFE detector via detection_enabled_key
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            if mapping.detection_enabled_key == detector_option_key:
+                disabled_by_wfe_type[mapping.wfe_detector_type] = frozenset(languages_to_disable)
+                break
+
+    return disabled_by_wfe_type
+
+
 class UnableToAcquireLockApiError(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "unable_to_acquire_lock"
     message = "Unable to acquire lock for issue alert migration."
 
 
-def _ensure_detector(project: Project, type: str) -> Detector:
+def _ensure_detector(project: Project, type: str, default_enabled: bool = True) -> Detector:
     """
     Ensure that a detector of a given type exists for a project.
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
@@ -112,6 +140,7 @@ def _ensure_detector(project: Project, type: str) -> Detector:
                         if slug == IssueStreamGroupType.slug
                         else group_type.description
                     ),
+                    "enabled": default_enabled,
                 },
             )
             return detector
@@ -239,10 +268,20 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
     if not features.has("projects:workflow-engine-performance-detectors", project):
         return {}
 
+    disabled_platforms_map = get_disabled_platforms_by_wfe_type()
+
     detectors = {}
     for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
         wfe_type = mapping.wfe_detector_type
-        detectors[wfe_type] = _ensure_detector(project, wfe_type)
+
+        # Determine initial enabled state based on platform and default settings
+        disabled_platforms = disabled_platforms_map.get(wfe_type, frozenset())
+        default_enabled = DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS[
+            mapping.detection_enabled_key
+        ]
+        enabled = (project.platform not in disabled_platforms) and default_enabled
+
+        detectors[wfe_type] = _ensure_detector(project, wfe_type, default_enabled=enabled)
 
     return detectors
 
