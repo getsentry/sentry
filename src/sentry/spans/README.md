@@ -49,7 +49,7 @@ event types are limited in terms of frequency.
   per trace. It is configured in [relay config](https://github.com/getsentry/ops/blob/a117ee546b130def3eb39ccdbf252229daafac1c/k8s/services/relay/_values.yaml#L61-L70).
 
 - This limit acts on a per-trace basis rather than a per-project basis as each trace
-  has to be processed by a single threaded in the spans buffer thus there is
+  has to be processed by a single thread in the spans buffer thus there is
   a strict limit and limited ability to scale this out.
 
 ### Maximum segment size
@@ -68,7 +68,7 @@ event types are limited in terms of frequency.
 
   - Every kafka topic has a maximum message size, so we cannot send arbitrarily
     large segments between buffer and segmented consumer. Large segments could be
-    offloaded in Object Store though.
+    offloaded in Object Store though or broken into smaller ones.
 
 - The maximum segment size is configured via the `spans.buffer.max-segment-bytes`
   option.
@@ -76,7 +76,7 @@ event types are limited in terms of frequency.
 - This limit is enforced in two places: while accumulating the segment in the
   buffer and when about to flush it to the segment consumer.
   - As we add spans to subsegments in Redis we prune sets that become too large.
-    This is done by dropping spans till they stay in the max size. This, obviously
+    This is done by dropping spans until they stay in the max size. This, obviously
     breaks the structure of the trace as the missing spans may be anywhere in
     the tree.
 
@@ -90,7 +90,8 @@ event types are limited in terms of frequency.
 
 - There are competing requirements between data freshness and data completeness.
   On one hand we want to flush segments as soon as possible to make them available
-  to the user. On the other hand, flushing too early yields incomplete traces.
+  to the user. On the other hand, flushing too early yields incomplete segments
+  as more spans may arrive after the segment is closed.
 
 - The spans buffer flushes a segment when one of these two conditions is reached:
   - A root span for the segment has been ingested and `spans.buffer.root-timeout`
