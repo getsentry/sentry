@@ -19,7 +19,7 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
         )
 
     def _put(self, data, secret=SHARED_SECRET_FOR_TESTS):
-        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/distribution/"
+        url = f"/api/0/organizations/{self.organization.slug}/preprodartifacts/{self.artifact.id}/distribution/"
         signature = generate_service_request_signature(url, data, [secret], "Launchpad")
         return self.client.put(
             url,
@@ -71,7 +71,7 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
     def test_requires_launchpad_rpc_authentication(self) -> None:
         self.login_as(self.user)
 
-        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/distribution/"
+        url = f"/api/0/organizations/{self.organization.slug}/preprodartifacts/{self.artifact.id}/distribution/"
         response = self.client.put(
             url,
             data=orjson.dumps({"error_code": 3, "error_message": "some error"}),
