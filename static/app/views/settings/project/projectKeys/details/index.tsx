@@ -5,10 +5,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
@@ -24,6 +24,7 @@ export default function ProjectKeyDetails() {
   const params = useParams<{keyId: string; projectId: string}>();
   const {keyId, projectId} = params;
   const api = useApi();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const theme = useTheme();
 
@@ -61,9 +62,7 @@ export default function ProjectKeyDetails() {
   }
 
   const handleRemove = () => {
-    browserHistory.push(
-      normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/keys/`)
-    );
+    navigate(normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/keys/`));
   };
 
   if (isError) {
