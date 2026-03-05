@@ -179,8 +179,7 @@ function Wireframe({
 
     let start: vec2 | null;
     let isDragging = false;
-    const selectedRect: Rect | null =
-      (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
+    const selectedRect = (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
     let hoveredRect: Rect | null = null;
     const currTransformationMatrix = mat3.clone(transformationMatrix);
     const lastMousePosition = vec2.create();

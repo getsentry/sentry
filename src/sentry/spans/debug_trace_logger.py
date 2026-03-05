@@ -29,6 +29,11 @@ class DebugTraceLogger:
     def _get_debug_traces(self) -> set[str]:
         return set(options.get("spans.buffer.debug-traces"))
 
+    def _should_log_trace(self, project_and_trace: str) -> bool:
+        """Check if a trace should be logged based on debug-traces option."""
+        _, _, trace_id = project_and_trace.partition(":")
+        return trace_id in self._get_debug_traces()
+
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
@@ -116,8 +121,68 @@ class DebugTraceLogger:
                 "root_span_in_segment": root_span_in_segment,
                 "num_spans": num_spans,
                 "shard_id": shard_id,
-                "flusher_now": now,
+                "flusher_timestamp": now,
                 "segment_deadline": deadline,
                 "ttl_remaining_seconds": ttl_remaining,
             },
+        )
+
+    def log_deadline_update(
+        self,
+        segment_key: SegmentKey,
+        project_and_trace: str,
+        old_deadline: int | None,
+        new_deadline: int,
+        message_timestamp: int,
+        has_root_span: bool,
+    ) -> None:
+        """
+        Log when a segment's deadline is set or updated.
+
+        Args:
+            segment_key: Redis key for the segment
+            project_and_trace: String like "123:trace-id"
+            old_deadline: Previous deadline timestamp (None if new segment)
+            new_deadline: New deadline timestamp being set
+            message_timestamp: Kafka message timestamp from current batch
+            has_root_span: Whether segment has root span (determines timeout)
+        """
+        _, _, trace_id = project_and_trace.partition(":")
+        if trace_id not in self._get_debug_traces():
+            return
+
+        segment_span_id = segment_key.split(b":")[-1].decode("ascii")
+
+        deadline_advanced_by = (new_deadline - old_deadline) if old_deadline is not None else None
+        is_new_segment = old_deadline is None
+
+        logger.info(
+            "spans.buffer.debug_deadline_update",
+            extra={
+                "project_and_trace": project_and_trace,
+                "segment_span_id": segment_span_id,
+                "is_new_segment": is_new_segment,
+                "has_root_span": has_root_span,
+                "old_deadline": old_deadline,
+                "new_deadline": new_deadline,
+                "deadline_advanced_by_seconds": deadline_advanced_by,
+                "message_timestamp": message_timestamp,
+                "old_ttl_remaining_seconds": (old_deadline - message_timestamp)
+                if old_deadline
+                else None,
+                "new_ttl_remaining_seconds": new_deadline - message_timestamp,
+            },
+        )
+
+    def log_empty_segments(self, empty_flush_count: int) -> None:
+        """
+        Log the number of consecutive empty flush_segments calls.
+
+        Args:
+            empty_flush_count: Number of consecutive calls to flush_segments
+                              that returned no segments
+        """
+        logger.info(
+            "spans.buffer.debug_empty_flushes",
+            extra={"empty_flush_count": empty_flush_count},
         )

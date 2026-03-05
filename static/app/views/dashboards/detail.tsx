@@ -34,7 +34,6 @@ import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -1172,6 +1171,9 @@ class DashboardDetail extends Component<Props, State> {
                                 filters:
                                   getDashboardFiltersFromURL(location) ??
                                   (modifiedDashboard ?? dashboard).filters,
+                                ...(defined(dashboard.prebuiltId) && {
+                                  widgets: undefined,
+                                }),
                               };
                               this.setState({isSavingDashboardFilters: true});
                               addLoadingMessage(t('Saving dashboard filters'));
@@ -1344,13 +1346,13 @@ class DashboardDetail extends Component<Props, State> {
 const StyledPageHeader = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${p => p.theme.space.xl};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${space(2)};
+    grid-column-gap: ${p => p.theme.space.xl};
     height: 40px;
   }
 `;

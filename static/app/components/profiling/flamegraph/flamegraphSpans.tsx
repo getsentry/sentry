@@ -101,7 +101,7 @@ export function FlamegraphSpans({
     return new SelectedFrameRenderer(spansCanvasRef);
   }, [spansCanvasRef]);
 
-  const hoveredNode: SpanChartNode | null = useMemo(() => {
+  const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !spansRenderer) {
       return null;
     }

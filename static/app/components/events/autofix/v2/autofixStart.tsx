@@ -20,7 +20,7 @@ export function ExplorerAutofixStart({
   isLoading,
 }: ExplorerAutofixStartProps) {
   return (
-    <Container padding="3xl">
+    <Container>
       <Flex direction="column" gap="2xl" align="start">
         <Text size="md" variant="muted" align="left">
           {t(

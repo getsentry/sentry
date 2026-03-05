@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
@@ -107,6 +108,7 @@ function StepRenderer({
   stepIndex: number;
   trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   const {type, title} = step;
   const api = useApi();
   const organization = useOrganization();
@@ -118,7 +120,7 @@ function StepRenderer({
       trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
@@ -313,8 +315,10 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <ContinuousProfilingBillingRequirementBanner project={project} />
+      <DescriptionWrapper>
+        {introduction}
+        <ContinuousProfilingBillingRequirementBanner project={project} />
+      </DescriptionWrapper>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
@@ -348,17 +352,17 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   z-index: 10;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const PulseSpacer = styled('div')`
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
 `;
 
 const PulsingIndicator = styled('div')`
@@ -367,7 +371,7 @@ const PulsingIndicator = styled('div')`
 `;
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -378,19 +382,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -402,7 +406,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -415,7 +419,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -453,7 +457,7 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
@@ -465,7 +469,7 @@ const DescriptionWrapper = styled('div')`
     color: ${p => p.theme.colors.pink500};
   }
 
-  :not(:last-child) {
+  :not(:last-child):has(*) {
     margin-bottom: ${CONTENT_SPACING};
   }
 

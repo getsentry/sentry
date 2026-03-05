@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -72,6 +71,6 @@ const DismissButton = styled(Button)`
 const AlertContent = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

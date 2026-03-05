@@ -24,7 +24,6 @@ import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
@@ -584,22 +583,22 @@ export function CreateProject() {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
 `;
 
 const FormFieldGroup = styled('div')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: end;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ProjectNameInputWrap = styled('div')`
@@ -619,7 +618,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 
 const TeamSelectInput = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;

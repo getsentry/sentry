@@ -21,12 +21,10 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -116,20 +114,18 @@ function OurlogsSectionContent({
             freeze={traceId ? {traceId} : undefined}
           >
             <LogsPageDataProvider disabled={!traceId}>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer
-                  group={group}
-                  event={event}
-                  project={project}
-                  embeddedOptions={
-                    expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
-                  }
-                  additionalData={{
-                    event,
-                    scrollToDisabled: !!expandedLogId,
-                  }}
-                />
-              </TraceItemAttributeProvider>
+              <OurlogsDrawer
+                group={group}
+                event={event}
+                project={project}
+                embeddedOptions={
+                  expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                }
+                additionalData={{
+                  event,
+                  scrollToDisabled: !!expandedLogId,
+                }}
+              />
             </LogsPageDataProvider>
           </LogsQueryParamsProvider>
         ),

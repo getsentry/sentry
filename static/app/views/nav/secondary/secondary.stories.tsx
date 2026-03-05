@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
@@ -82,7 +81,7 @@ export default Storybook.story('SecondaryNav', story => {
 });
 
 const Container = styled(NegativeSpaceContainer)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StyledSecondaryNav = styled(SecondaryNav)`

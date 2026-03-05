@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
@@ -15,7 +16,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   MetricCondition,
   MetricDetectorConfig,
@@ -166,6 +166,7 @@ export function MetricDetectorChart({
   extrapolationMode,
   detectorId,
 }: MetricDetectorChartProps) {
+  const theme = useTheme();
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
       dataset: getBackendDataset(detectorDataset),
@@ -348,10 +349,10 @@ export function MetricDetectorChart({
   // Prepare grid with anomaly marker adjustments
   const grid = useMemo(() => {
     const baseGrid = {
-      left: space(0.25),
-      right: space(0.25),
-      top: space(1.5),
-      bottom: space(1),
+      left: theme.space['2xs'],
+      right: theme.space['2xs'],
+      top: theme.space.lg,
+      bottom: theme.space.md,
     };
 
     // Apply anomaly marker grid adjustments if available
@@ -363,7 +364,7 @@ export function MetricDetectorChart({
     }
 
     return baseGrid;
-  }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid]);
+  }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid, theme.space]);
 
   return (
     <ChartContainer>
