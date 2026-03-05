@@ -61,17 +61,21 @@ function SidebarBody({
   );
 }
 
+function FooterButtons({children}: {children: React.ReactNode}) {
+  const {layout} = useNavContext();
+  if (layout === NavLayout.MOBILE) {
+    return <Stack>{children}</Stack>;
+  }
+  return <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>;
+}
+
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
   return (
     <SidebarItemDefaults size={isMobile ? 'xs' : 'sm'}>
       <FooterButtonBarContainer isMobile={isMobile}>
-        {isMobile ? (
-          <Stack>{children}</Stack>
-        ) : (
-          <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
-        )}
+        <FooterButtons>{children}</FooterButtons>
       </FooterButtonBarContainer>
     </SidebarItemDefaults>
   );
