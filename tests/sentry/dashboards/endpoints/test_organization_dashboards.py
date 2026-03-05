@@ -680,6 +680,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["Initial dashboard"]
 
+    def test_get_multiple_filters_owned_and_exclude_prebuilt(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Custom",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Custom",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 1 Prebuilt",
+            created_by_id=None,
+            organization=self.organization,
+            prebuilt_id=1,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned", "excludePrebuilt"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Custom"]
+
+    def test_get_multiple_filters_single_filter(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Dashboard",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Dashboard"]
+
+    def test_get_multiple_filters_favorites_and_owned(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        owned_fav = Dashboard.objects.create(
+            title="Owned and Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Owned Not Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        other_fav = Dashboard.objects.create(
+            title="Other Favorited",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=owned_fav
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=other_fav
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["onlyFavorites", "owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Owned and Favorited"]
+
     def test_get_owned_dashboards_can_pin_starred_at_top(self) -> None:
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
