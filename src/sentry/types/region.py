@@ -168,11 +168,11 @@ class RegionDirectory:
 
     def get_cells(self, category: RegionCategory | None = None) -> Iterable[Region]:
         if category is None:
-            return iter(self.regions)
+            return iter(self._cells)
 
         return (
             r
-            for r in self.regions
+            for r in self._cells
             if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
         )
 
