@@ -10,7 +10,6 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -99,7 +98,7 @@ const StyledSidebarSection = styled(SidebarSection)`
 
 const StyledLink = styled(Link)`
   display: block;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 export default ProjectTeamAccess;

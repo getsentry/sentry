@@ -29,6 +29,9 @@ const getRow = (row: any) => [
   <td key="joined" style={{textAlign: 'right'}}>
     {moment(row.dateJoined).fromNow()}
   </td>,
+  <td key="lastActive" style={{textAlign: 'right'}}>
+    {row.lastActive ? moment(row.lastActive).fromNow() : '—'}
+  </td>,
 ];
 
 export default function Users() {
@@ -51,6 +54,9 @@ export default function Users() {
           <th key="joined" style={{width: 200, textAlign: 'right'}}>
             Joined
           </th>,
+          <th key="lastActive" style={{width: 200, textAlign: 'right'}}>
+            Last Active
+          </th>,
         ]}
         columnsForRow={getRow}
         hasSearch
@@ -63,7 +69,10 @@ export default function Users() {
             ],
           },
         }}
-        sortOptions={[['date', 'Date Joined']]}
+        sortOptions={[
+          ['date', 'Date Joined'],
+          ['lastActive', 'Last Active'],
+        ]}
         defaultSort="date"
       />
     </div>

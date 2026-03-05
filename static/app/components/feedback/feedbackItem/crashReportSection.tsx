@@ -8,7 +8,6 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -65,6 +64,7 @@ const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   position: relative;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg}
+    ${p => p.theme.space.xl};
   overflow: auto;
 `;

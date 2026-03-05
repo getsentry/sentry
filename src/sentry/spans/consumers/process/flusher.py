@@ -179,6 +179,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if self.process_healthy_since[process_index].value != 0:
                 break
 
+            process = self.processes[process_index]
+            if not process.is_alive():
+                shards = self.process_to_shards_map[process_index]
+                exitcode = getattr(process, "exitcode", None)
+                raise RuntimeError(
+                    f"process {process_index} (shards {shards}) exited during startup (exitcode={exitcode})"
+                )
+
             if time.time() - start_time > max_unhealthy_seconds:
                 shards = self.process_to_shards_map[process_index]
                 raise RuntimeError(

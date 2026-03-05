@@ -15,7 +15,7 @@ from sentry.api.base import allow_cors_options
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.cache import default_cache
 from sentry.demo_mode.utils import is_demo_user
 from sentry.models.apitoken import ApiToken
@@ -27,6 +27,7 @@ from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
 from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
+from sentry.types.region import RegionResolutionError, get_locality_name_for_cell
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -268,9 +269,9 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
 def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser):
     try:
         token_str = generate_token(
-            mapping.slug, generate_region_url(region_name=mapping.region_name)
+            mapping.slug, generate_locality_url(get_locality_name_for_cell(mapping.region_name))
         )
-    except SystemUrlPrefixMissingException:
+    except (SystemUrlPrefixMissingException, RegionResolutionError):
         return None
 
     token_hashed = hash_token(token_str)

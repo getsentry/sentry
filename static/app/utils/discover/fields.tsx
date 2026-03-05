@@ -118,7 +118,7 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-export type Alignments = 'left' | 'right';
+type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 
@@ -1402,6 +1402,7 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(

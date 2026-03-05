@@ -496,7 +496,7 @@ const StyledKeyValueList = styled(KeyValueList)`
 const List = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const Item = styled(Panel)`
@@ -510,19 +510,19 @@ const ItemHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   line-height: 1;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ItemContent = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;

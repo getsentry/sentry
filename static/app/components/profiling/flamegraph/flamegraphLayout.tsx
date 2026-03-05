@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -311,7 +310,7 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
     ${p => p.theme.tokens.background.secondary} 80%,
     transparent 100%
   );
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
   z-index: 1;
   /* Visually align with the grid */
   transform: translateY(1px);

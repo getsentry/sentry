@@ -288,9 +288,6 @@ def process_profile_task(
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
-    if not features.has("organizations:profiling-sdks", organization):
-        return False
-
     try:
         event_type = determine_profile_type(profile)
     except UnknownProfileTypeException:
@@ -344,9 +341,7 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         )
         return True
 
-    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
-        event_type, sdk_name, sdk_version
-    ):
+    if is_sdk_deprecated(event_type, sdk_name, sdk_version):
         _track_outcome(
             profile=profile,
             project=project,

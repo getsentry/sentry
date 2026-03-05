@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
 interface WorkflowEngineDetailLayoutProps {
@@ -31,7 +30,7 @@ const StyledPage = styled(Layout.Page)`
 const StyledBody = styled(Layout.Body)`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;
 
 interface RequiredChildren {

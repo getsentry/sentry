@@ -15,7 +15,6 @@ import {
   TAGS_DOCS_LINK,
 } from 'sentry/components/events/eventTags/util';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -112,9 +111,10 @@ export function EventTagsDataSection({
 }
 
 const StyledEventDataSection = styled(InterimSection)`
-  padding: ${space(0.5)} ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl} ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(4)} ${space(1.5)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']}
+      ${p => p.theme.space.lg};
   }
 `;

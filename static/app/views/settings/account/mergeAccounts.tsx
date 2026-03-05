@@ -355,7 +355,7 @@ const UserPanelItem = styled(PanelItem)`
 `;
 
 const Name = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -369,18 +369,18 @@ const UserPanelHeader = styled(PanelHeader)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
 
 const ButtonSection = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledInput = styled(Input)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
   flex: 1;
 `;

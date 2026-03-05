@@ -246,7 +246,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     for (const span of spans) {
-      const spanNode: SpanNode = new SpanNode(null, span, null);
+      const spanNode = new SpanNode(null, span, null);
       spanNode.event = event;
 
       if (spanIdToNode.has(span.span_id)) {

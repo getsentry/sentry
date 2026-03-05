@@ -24,8 +24,8 @@ from sentry.types.region import (
     find_all_region_names,
     find_regions_for_sentry_app,
     find_regions_for_user,
+    get_cell_by_name,
     get_local_region,
-    get_region_by_name,
     get_region_for_organization,
     load_from_config,
     subdomain_is_region,
@@ -82,10 +82,10 @@ class RegionDirectoryTest(TestCase):
         assert directory.get_cell_by_name("nowhere") is None
 
         with self._in_global_state(directory):
-            assert get_region_by_name("eu") == self._EXPECTED_OUTPUTS[1]
+            assert get_cell_by_name("eu") == self._EXPECTED_OUTPUTS[1]
 
             with pytest.raises(RegionResolutionError):
-                get_region_by_name("nowhere")
+                get_cell_by_name("nowhere")
 
     def test_region_config_parsing_in_control(self) -> None:
         with (

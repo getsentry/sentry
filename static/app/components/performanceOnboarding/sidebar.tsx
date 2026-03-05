@@ -32,7 +32,6 @@ import OnboardingDrawerStore, {
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -99,7 +98,7 @@ function SidebarContent() {
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
 
-  const priorityProjectIds: Set<string> | null = useMemo(() => {
+  const priorityProjectIds = useMemo(() => {
     const decodedProjectIds = decodeProjectIds(location.query.project);
     return decodedProjectIds === null ? null : new Set(decodedProjectIds);
   }, [location.query.project]);
@@ -382,14 +381,14 @@ const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -404,8 +403,9 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin: 50px ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['3xl']};
 `;
 
 const Heading = styled('div')`
@@ -415,7 +415,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -426,7 +426,7 @@ const StyledIdBadge = styled(IdBadge)`
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (

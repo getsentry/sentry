@@ -21,6 +21,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
+    label_template = "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
 
     comparison_json_schema = {
         "type": "object",

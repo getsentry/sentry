@@ -94,7 +94,6 @@ function MetricsHeader() {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <FeedbackButton
-          size="xs"
           feedbackOptions={{
             messagePlaceholder: t('How can we make metrics work better for you?'),
             tags: {

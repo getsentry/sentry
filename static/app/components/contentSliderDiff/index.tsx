@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
@@ -126,11 +125,11 @@ const Header = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 
   & > *:first-child {
     color: ${p => p.theme.tokens.content.danger};
@@ -169,7 +168,7 @@ const DragIndicator = styled('div')`
   justify-content: center;
   user-select: none;
   z-index: 1;
-  padding: ${space(0.5)} ${space(0.25)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space['2xs']};
 `;
 
 const DragHandle = styled('div')`
@@ -225,7 +224,7 @@ const DragHandle = styled('div')`
 
 const Cover = styled('div')`
   border: ${BORDER_WIDTH}px solid;
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   height: 100%;
   overflow: hidden;
   position: absolute;
@@ -235,7 +234,7 @@ const Cover = styled('div')`
   border-color: ${p => p.theme.tokens.border.success.moderate};
   & + & {
     border: ${BORDER_WIDTH}px solid;
-    border-radius: ${space(0.5)} 0 0 ${space(0.5)};
+    border-radius: ${p => p.theme.space.xs} 0 0 ${p => p.theme.space.xs};
     border-color: ${p => p.theme.tokens.border.danger.moderate};
     border-right-width: 0;
   }
