@@ -3304,6 +3304,14 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable logging of consecutive empty flush_segments calls.
+# When disabled, spans.buffer.debug_empty_flushes events are not logged.
+register(
+    "spans.buffer.log-empty-flushes",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Segments consumer
 register(

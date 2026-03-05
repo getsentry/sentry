@@ -623,14 +623,15 @@ class SpansBuffer:
             self.empty_flush_segment_calls += 1
         else:
             if self.empty_flush_segment_calls > 0:
-                try:
-                    if self._debug_trace_logger is None:
-                        self._debug_trace_logger = DebugTraceLogger(self.client)
-                    self._debug_trace_logger.log_empty_segments(self.empty_flush_segment_calls)
-                except Exception:
-                    logger.exception("flush_segments: Failed to log empty flush count")
-                finally:
-                    self.empty_flush_segment_calls = 0
+                # Only log empty flushes if the option is enabled
+                if options.get("spans.buffer.log-empty-flushes"):
+                    try:
+                        if self._debug_trace_logger is None:
+                            self._debug_trace_logger = DebugTraceLogger(self.client)
+                        self._debug_trace_logger.log_empty_segments(self.empty_flush_segment_calls)
+                    except Exception:
+                        logger.exception("flush_segments: Failed to log empty flush count")
+                self.empty_flush_segment_calls = 0
 
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments
