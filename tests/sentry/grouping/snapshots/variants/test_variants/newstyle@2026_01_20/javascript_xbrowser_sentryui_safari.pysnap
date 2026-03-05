@@ -11,7 +11,7 @@ app:
         type*
           "NotFoundError"
         value (ignored because stacktrace takes precedence)
-          "GET /issues/<int>/events/latest/ <int>"
+          "GET /issues/<hex>/events/latest/ <int>"
         stacktrace*
           frame (marked in-app by the client but ignored low quality javascript frame)
             filename (ignored because filename suggests native code)
@@ -155,7 +155,7 @@ system:
         type*
           "NotFoundError"
         value (ignored because stacktrace takes precedence)
-          "GET /issues/<int>/events/latest/ <int>"
+          "GET /issues/<hex>/events/latest/ <int>"
         stacktrace*
           frame (ignored low quality javascript frame)
             filename (ignored because filename suggests native code)

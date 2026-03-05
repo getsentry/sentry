@@ -10,7 +10,6 @@ import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -131,8 +130,8 @@ function NavigationOverlayPortal({
 const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
   height: ${NAV_MOBILE_TOPBAR_HEIGHT}px;
   width: 100vw;
-  padding-left: ${space(1.5)};
-  padding-right: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.colors.gray200};
   background: ${p => p.theme.tokens.background.secondary};
   display: flex;

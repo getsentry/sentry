@@ -167,7 +167,7 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.region import Region, get_local_region, get_region_by_name
+from sentry.types.region import Region, get_cell_by_name, get_local_region
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
@@ -389,7 +389,7 @@ class Factories:
                 if isinstance(region, Region):
                     region_name = region.name
                 else:
-                    region_obj = get_region_by_name(region)  # Verify it exists
+                    region_obj = get_cell_by_name(region)  # Verify it exists
                     region_name = region_obj.name
 
                 ctx.enter_context(

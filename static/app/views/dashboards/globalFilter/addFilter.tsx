@@ -64,7 +64,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     }));
   }, []);
 
-  const filterKeys: Record<string, Tag> = selectedDataset
+  const filterKeys = selectedDataset
     ? Object.fromEntries(
         Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
           ([key, value]) =>

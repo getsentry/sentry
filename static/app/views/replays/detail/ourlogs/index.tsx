@@ -15,17 +15,13 @@ import {
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   LoadingRenderer,
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
@@ -62,9 +58,7 @@ export default function OurLogs() {
       }}
     >
       <LogsPageDataProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
-        </TraceItemAttributeProvider>
+        <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
       </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
@@ -76,9 +70,9 @@ interface OurLogsContentProps {
 }
 
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: booleanAttributes} = useTraceItemAttributes('boolean');
+  const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
+  const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();

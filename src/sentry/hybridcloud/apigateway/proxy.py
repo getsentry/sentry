@@ -28,7 +28,7 @@ from sentry.silo.util import (
 from sentry.types.region import (
     Region,
     RegionResolutionError,
-    get_region_by_name,
+    get_cell_by_name,
     get_region_for_organization,
 )
 from sentry.utils import metrics
@@ -107,12 +107,12 @@ def proxy_error_embed_request(
     if len(host_segments) - len(app_segments) < 3:
         # If we don't have a o123.ingest.{region}.{app_host} style domain
         # we forward to the monolith region
-        region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         return proxy_region_request(request, region, url_name)
     try:
         region_offset = len(app_segments) + 1
         region_segment = host_segments[region_offset * -1]
-        region = get_region_by_name(region_segment)
+        region = get_cell_by_name(region_segment)
     except Exception:
         return None
 

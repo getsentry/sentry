@@ -32,7 +32,7 @@ TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
-export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'requests-widget',
@@ -108,7 +108,7 @@ export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyO
   0
 );
 
-export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'jobs-chart',

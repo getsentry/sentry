@@ -10,7 +10,6 @@ import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards'
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Spinner from 'sentry/components/forms/spinner';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -199,7 +198,7 @@ export function LinkToDashboardModal({
 }
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledButtonBar = styled((props: GridProps) => (
@@ -207,7 +206,7 @@ const StyledButtonBar = styled((props: GridProps) => (
 ))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

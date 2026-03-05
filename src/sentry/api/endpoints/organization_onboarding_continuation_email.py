@@ -50,7 +50,7 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.VALUE_DISCOVERY
     permission_classes = (OnboardingContinuationPermission,)
 
     def post(self, request: Request, organization: Organization):

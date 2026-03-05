@@ -11,7 +11,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -387,7 +386,7 @@ const Description = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const WrappingText = styled('div')`

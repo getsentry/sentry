@@ -83,7 +83,7 @@ export function SpanDescription({
   const dbQueryText = findSpanAttributeValue(attributes, 'db.query.text');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
-  const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
+  const resolvedModule = resolveSpanModule(span.op, category);
 
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {

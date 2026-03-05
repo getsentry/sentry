@@ -37,6 +37,10 @@ from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
+# How long we cache both the existence of secondary grouphashes and grouphashes themselves. We use a
+# minute because experimentation showed that anything more than that didn't improve hit rates.
+GROUPHASH_CACHE_EXPIRY_SECONDS = 60
+
 if TYPE_CHECKING:
     from sentry.event_manager import Job
     from sentry.services.eventstore.models import Event
@@ -215,14 +219,12 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     """
     Check whether a given hash value has a corresponding `GroupHash` record in the database.
 
-    If `use_caching` is True, cache the boolean result. Cache retention is controlled by the
-    `grouping.ingest_grouphash_existence_cache_expiry` option.
+    If `use_caching` is True, cache the boolean result.
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
     ) as metrics_tags:
         cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
-        cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
         if use_caching:
             grouphash_exists = cache.get(cache_key)
@@ -241,7 +243,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             metrics_tags["grouphash_exists"] = grouphash_exists
             metrics_tags["cache_set"] = True
 
-            cache.set(cache_key, grouphash_exists, cache_expiry)
+            cache.set(cache_key, grouphash_exists, GROUPHASH_CACHE_EXPIRY_SECONDS)
 
         return grouphash_exists
 
@@ -254,14 +256,12 @@ def _get_or_create_single_grouphash(
 
     If `use_caching` is true, and the resulting grouphash has an assigned group, cache the
     `GroupHash` object. (Grouphashes without a group aren't cached because their data is about to
-    change when a group is assigned.) Cache retention is controlled by the
-    `grouping.ingest_grouphash_object_cache_expiry` option.
+    change when a group is assigned.)
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.get_or_create_grouphash"
     ) as metrics_tags:
         cache_key = get_grouphash_object_cache_key(hash_value, project.id)
-        cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
         if use_caching:
             grouphash = cache.get(cache_key)
@@ -279,7 +279,7 @@ def _get_or_create_single_grouphash(
         if use_caching and grouphash.group_id is not None:
             metrics_tags["cache_set"] = True
 
-            cache.set(cache_key, grouphash, cache_expiry)
+            cache.set(cache_key, grouphash, GROUPHASH_CACHE_EXPIRY_SECONDS)
 
         return (grouphash, created)
 

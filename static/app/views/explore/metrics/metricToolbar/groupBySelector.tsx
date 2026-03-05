@@ -86,7 +86,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     );
   }, [booleanTags]);
 
-  const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
+  const enabledOptions = useGroupByFields({
     groupBys,
     numberTags: visibleNumberTags ?? {},
     stringTags: visibleStringTags ?? {},

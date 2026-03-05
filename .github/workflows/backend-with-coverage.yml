@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0,30 * * * *'
 
+env:
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+
 jobs:
   # Skip generating coverage if already exists in GCS
   check-existing-coverage:
@@ -94,6 +97,13 @@ jobs:
         id: setup
         with:
           mode: backend-ci
+
+      - name: Download odiff binary
+        run: |
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
+          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
+          rm odiff-linux-x64
 
       - name: Run backend test with coverage (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make test-backend-ci-with-coverage

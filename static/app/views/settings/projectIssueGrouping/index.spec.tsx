@@ -60,9 +60,12 @@ describe('projectIssueGrouping', () => {
       outletContext: {project},
     });
 
-    // Verify the section is not visible for non-superuser
+    // Verify the section is visible for non-superuser
     expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
-    expect(screen.queryByText(/Derived Grouping Enhancements/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /Derived Grouping Enhancements/})
+    ).toBeDisabled();
 
     // Re-render for superuser
     jest.mocked(isActiveSuperuser).mockReturnValue(true);
