@@ -2,7 +2,6 @@ from typing import Protocol
 
 from django.conf import settings
 from sentry_sdk import capture_exception
-from taskbroker_client.router import TaskRouter as LibraryRouter
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -42,13 +41,3 @@ class DefaultRouter:
         if name in self._route_map:
             return Topic(self._route_map[name])
         return self._default_topic
-
-
-class SentryRouter(DefaultRouter, LibraryRouter):
-    """
-    Router that satisfies taskbroker_client's TaskRouter protocol while using
-    sentry's routing logic (settings, options, silo mode).
-    """
-
-    def route_namespace(self, name: str) -> str:  # type: ignore[override]
-        return super().route_namespace(name).value

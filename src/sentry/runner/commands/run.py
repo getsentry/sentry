@@ -145,7 +145,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     if settings.TASKWORKER_USE_LIBRARY:
         from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-        from sentry.taskworker.metrics import SentryMetricsBackend
+        from sentry.taskworker.adapters import SentryMetricsBackend
         from sentry.taskworker.runtime import app
         from sentry.utils.redis import redis_clusters
 
