@@ -371,6 +371,10 @@ function ManageDashboards() {
 
   const togglePrebuilt = () => {
     setShowPrebuiltLocal(!showPrebuilt);
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, cursor: undefined, [OWNED_CURSOR_KEY]: undefined},
+    });
   };
 
   function getQuery() {
