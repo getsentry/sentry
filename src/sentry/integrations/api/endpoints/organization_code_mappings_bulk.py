@@ -211,6 +211,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
 
         # Fire side effects once for the entire batch.
         if last_saved_config is not None:
+            last_saved_config._skip_post_save = False
             process_resource_change(last_saved_config)
 
         created_count = sum(1 for r in results if r["status"] == "created")
