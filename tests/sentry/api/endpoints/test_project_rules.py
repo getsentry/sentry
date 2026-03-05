@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -88,9 +89,9 @@ class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
             {
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                "workspace": str(self.slack_integration.id),
+                "workspace": self.slack_integration.id,
                 "channel": "#team-team-team",
-                "input_channel_id": self.channel_id,
+                "channel_id": self.channel_id,
             }
         ]
         # create single written workflow
@@ -1252,7 +1253,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     @responses.activate
-    def test_workflow_engine(self) -> None:
+    @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
+    def test_workflow_engine(self, mock_validate_slack_entity_id: mock.MagicMock) -> None:
         conditions = [
             {"id": ExistingHighPriorityIssueCondition.id},
             {"id": NewHighPriorityIssueCondition.id},
@@ -1385,12 +1387,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 },
                 self.notify_issue_owners_action[0],
                 self.notify_event_action[0],
-                # self.slack_actions[0], # TODO get this to work
+                self.slack_actions[0],
             ],
             "actionMatch": "any",
             "filterMatch": "all",
             "owner": "team:74234",
-            # "projects": [self.project], # project not supported in workflows
+            "projects": [self.project.slug],
         }
         responses.add(
             method=responses.POST,
