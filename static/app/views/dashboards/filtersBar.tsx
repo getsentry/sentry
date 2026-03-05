@@ -353,12 +353,16 @@ export default function FiltersBar({
               <Button
                 data-test-id="filter-bar-cancel"
                 onClick={() => {
-                  const fallbackFilters = filters.globalFilter?.length
+                  onCancel?.();
+                  // Reset local display state, falling back to prebuilt
+                  // defaults when no saved filters exist
+                  const displayFilters = filters.globalFilter?.length
                     ? filters.globalFilter
                     : prebuiltDashboardFilters;
-                  onCancel?.();
-                  setActiveGlobalFilters(fallbackFilters);
-                  onDashboardFilterChange({...filters, globalFilter: fallbackFilters});
+                  setActiveGlobalFilters(displayFilters);
+                  // Push saved filters (not display fallback) to avoid a
+                  // URL/DB mismatch that re-triggers hasUnsavedFilterChanges
+                  onDashboardFilterChange(filters);
                 }}
               >
                 {t('Cancel')}
