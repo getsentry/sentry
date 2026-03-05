@@ -104,7 +104,7 @@ export function FrameContext() {
                   size="sm"
                   variant="muted"
                   monospace
-                  data-test-id="core-stacktrace-frame-line-number"
+                  aria-label={`Line ${lineNumber}`}
                   isActive={lineNumber === frame.lineNo}
                   coverage={sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE}
                 >
@@ -148,7 +148,7 @@ export function FrameContext() {
         </Container>
       ) : null}
       {hasFrameRegisters ? (
-        <Container borderTop="primary" data-test-id="core-stacktrace-frame-registers">
+        <Container borderTop="primary">
           <FrameRegisters
             registers={expandedFrameRegisters}
             meta={meta?.registers}
@@ -157,7 +157,7 @@ export function FrameContext() {
         </Container>
       ) : null}
       {hasFrameAssembly ? (
-        <Container borderTop="primary" data-test-id="core-stacktrace-frame-assembly">
+        <Container borderTop="primary">
           <Assembly {...parseAssembly(frame.package ?? null)} />
         </Container>
       ) : null}

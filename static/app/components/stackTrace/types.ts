@@ -10,6 +10,8 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
+export type FrameBadge = (frame: Frame) => ReactNode;
+
 export type StackTraceView = 'app' | 'full' | 'raw';
 
 export type FrameRow = {
@@ -53,13 +55,12 @@ export interface StackTraceProviderProps {
   defaultIsMinified?: boolean;
   defaultIsNewestFirst?: boolean;
   defaultView?: StackTraceView;
+  frameBadge?: FrameBadge;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   getFrameLineCoverage?: FrameLineCoverageResolver;
   hideSourceMapDebugger?: boolean;
-  lockAddress?: string;
   maxDepth?: number;
   meta?: StackTraceMeta;
   minifiedStacktrace?: StacktraceType;
   platform?: PlatformKey;
-  threadId?: number;
 }

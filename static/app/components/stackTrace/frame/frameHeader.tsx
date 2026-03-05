@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,14 +7,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {
   getLeadHint,
   getPlatform,
   isDotnet,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
-import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {
   StackTraceFrameHoverContext,
   useStackTraceContext,
@@ -24,7 +22,6 @@ import {IconQuestion, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 import {ChevronAction} from './actions/chevron';
 import {HiddenFramesToggleAction} from './actions/hiddenFramesToggle';
@@ -32,19 +29,6 @@ import {SourceLinkAction} from './actions/sourceLink';
 import {SourceMapsDebuggerAction} from './actions/sourceMapsDebugger';
 
 const LONG_PATH_BREAK_THRESHOLD = 80;
-const STACKTRACE_INTERACTIVE_SELECTOR = '[data-stacktrace-interactive="true"]';
-
-function isInteractiveClickTarget(target: EventTarget | null): boolean {
-  if (target instanceof Element) {
-    return !!target.closest(STACKTRACE_INTERACTIVE_SELECTOR);
-  }
-
-  if (target instanceof Node) {
-    return !!target.parentElement?.closest(STACKTRACE_INTERACTIVE_SELECTOR);
-  }
-
-  return false;
-}
 
 function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
   const framePlatform = getPlatform(frame.platform, platform);
@@ -82,6 +66,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
   const {
     event,
     frame,
+    frameContextId,
     isExpandable,
     isExpanded,
     nextFrame,
@@ -89,7 +74,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
     timesRepeated,
     toggleExpansion,
   } = useStackTraceFrameContext();
-  const {lockAddress, threadId} = useStackTraceContext();
+  const {frameBadge} = useStackTraceContext();
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const frameDisplayPath = getFrameDisplayPath(frame, platform);
   const frameFunctionName = frame.function ?? frame.rawFunction;
@@ -104,28 +89,18 @@ export function FrameHeader({actions}: FrameHeaderProps) {
     frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
   const sourceMapInfoText = frame.mapUrl ?? frame.map;
   const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
-  const mechanism =
-    platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
-  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const anrCulprit = useMemo(
-    () =>
-      isANR
-        ? analyzeFrameForRootCause(frame, getThreadById(event, threadId), lockAddress)
-        : false,
-    [event, frame, isANR, lockAddress, threadId]
-  );
 
   return (
     <StackTraceFrameHoverContext.Provider value={{isHovering}}>
       <FrameHeaderContainer
         data-test-id="core-stacktrace-frame-title"
         isExpandable={isExpandable}
-        onClick={mouseEvent => {
-          if (!isExpandable || isInteractiveClickTarget(mouseEvent.target)) {
-            return;
+        aria-expanded={isExpandable ? isExpanded : undefined}
+        aria-controls={isExpandable ? frameContextId : undefined}
+        onClick={() => {
+          if (isExpandable) {
+            toggleExpansion();
           }
-
-          toggleExpansion();
         }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
@@ -140,7 +115,6 @@ export function FrameHeader({actions}: FrameHeaderProps) {
             ) : null}
             <Tooltip title={framePathTooltip} disabled={!framePathTooltip} maxWidth={750}>
               <FrameTitleFilename
-                data-test-id="filename"
                 data-truncate-left={shouldTruncateFilenameLeft}
                 truncateLeft={shouldTruncateFilenameLeft}
               >
@@ -158,26 +132,21 @@ export function FrameHeader({actions}: FrameHeaderProps) {
                 maxWidth={400}
               >
                 <SourceMapInfoTrigger
-                  data-test-id="core-stacktrace-source-map-info"
-                  data-stacktrace-interactive="true"
+                  aria-label={t('Source map info')}
+                  onClick={e => e.stopPropagation()}
                 >
                   <IconQuestion size="xs" />
                 </SourceMapInfoTrigger>
               </Tooltip>
             ) : null}
-            <FrameTitleMeta
-              data-test-id="core-stacktrace-frame-meta"
-              forceNewLine={shouldBreakFrameMetaLine}
-            >
+            <FrameTitleMeta forceNewLine={shouldBreakFrameMetaLine}>
               {hasFrameFunction ? (
                 <FrameTitleHint as="span" size="sm" variant="muted">
                   {`${t('in')} `}
                 </FrameTitleHint>
               ) : null}
               {hasFrameFunction ? (
-                <FrameTitleFunction data-test-id="function">
-                  {frameFunctionName}
-                </FrameTitleFunction>
+                <FrameTitleFunction>{frameFunctionName}</FrameTitleFunction>
               ) : null}
               {frame.lineNo ? (
                 <FrameLineMeta>
@@ -204,20 +173,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
         <FrameHeaderRight gap="xs" align="center">
           {frame.inApp ? null : <Tag variant="muted">{t('System')}</Tag>}
           <RepeatsIndicator timesRepeated={timesRepeated} />
-          {anrCulprit ? (
-            <Tag
-              variant="warning"
-              data-stacktrace-interactive="true"
-              onClick={mouseEvent => {
-                mouseEvent.stopPropagation();
-                document
-                  .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
-                  ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-              }}
-            >
-              {t('Suspect Frame')}
-            </Tag>
-          ) : null}
+          {frameBadge?.(frame)}
 
           <FrameHeaderTrailing
             data-test-id="core-stacktrace-frame-trailing"

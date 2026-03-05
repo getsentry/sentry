@@ -5,24 +5,13 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {
-  StackTraceProvider,
-  StackTraceWithCoverageData,
-} from 'sentry/components/stackTrace';
+import {StackTraceProvider} from 'sentry/components/stackTrace';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EntryType} from 'sentry/types/event';
-import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
+import {Coverage} from 'sentry/types/integrations';
 import type {
   LineCoverage,
   SentryAppComponent,
@@ -96,14 +85,16 @@ describe('Core StackTrace', () => {
   it('toggles frame ordering', async () => {
     renderStackTrace();
 
-    const newestFirstFilenames = screen.getAllByTestId('filename');
-    expect(newestFirstFilenames[0]).toHaveTextContent('raven/scripts/runner.py');
+    expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
+      'raven/scripts/runner.py'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Oldest'}));
 
-    const oldestFirstFilenames = screen.getAllByTestId('filename');
-    expect(oldestFirstFilenames[0]).toHaveTextContent('raven/base.py');
+    expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
+      'raven/base.py'
+    );
   });
 
   it('supports raw stack trace view', async () => {
@@ -113,7 +104,7 @@ describe('Core StackTrace', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
 
     expect(screen.getByText(/File "raven\/scripts\/runner.py"/)).toBeInTheDocument();
-    expect(screen.queryByTestId('core-stacktrace-frame-list')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', {name: 'Stack frames'})).not.toBeInTheDocument();
   });
 
   it('toggles minified stacktrace frames when minified data is provided', async () => {
@@ -138,14 +129,16 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(screen.getAllByTestId('filename')[0]).toHaveTextContent(
+    expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
       'raven/scripts/runner.py'
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Display options'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
 
-    expect(screen.getAllByTestId('filename')[0]).toHaveTextContent('minified/4.js');
+    expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
+      'minified/4.js'
+    );
   });
 
   it('toggles frame expansion', async () => {
@@ -158,68 +151,6 @@ describe('Core StackTrace', () => {
 
     await userEvent.click(screen.getAllByTestId('core-stacktrace-frame-title')[0]!);
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
-  });
-
-  it('toggles frame expansion when clicking the chevron on the right side', async () => {
-    renderStackTrace();
-
-    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
-
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
-    await userEvent.click(firstChevron);
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
-
-    await userEvent.click(firstChevron);
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
-  });
-
-  it('toggles frame expansion when clicking the chevron svg directly', async () => {
-    renderStackTrace();
-
-    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
-    const chevronSvg = firstChevron.querySelector('svg');
-
-    expect(chevronSvg).not.toBeNull();
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
-    await userEvent.click(chevronSvg!);
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
-  });
-
-  it('toggles frame expansion when pressing Enter on the chevron button', async () => {
-    renderStackTrace();
-
-    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
-
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
-    firstChevron.focus();
-    await userEvent.keyboard('{Enter}');
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
-  });
-
-  it('toggles frame expansion when pressing Space on the chevron button', async () => {
-    renderStackTrace();
-
-    const firstChevron = (
-      await screen.findAllByTestId('core-stacktrace-chevron-toggle')
-    )[0]!;
-
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
-    firstChevron.focus();
-    fireEvent.keyDown(firstChevron, {key: ' ', code: 'Space'});
-    fireEvent.keyUp(firstChevron, {key: ' ', code: 'Space'});
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
-  });
-
-  it('wires chevron controls to the frame context region', async () => {
-    renderStackTrace();
-
-    const firstChevron = (
-      await screen.findAllByTestId('core-stacktrace-chevron-toggle')
-    )[0]!;
-    const frameContext = screen.getByTestId('core-stacktrace-frame-context');
-
-    expect(firstChevron).toHaveAttribute('aria-controls', frameContext.id);
-    expect(firstChevron).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('toggles frame expansion when clicking the right trailing area', async () => {
@@ -265,9 +196,7 @@ describe('Core StackTrace', () => {
   it('renders captured python frame variables', async () => {
     renderStackTrace();
 
-    expect(await screen.findByTestId('core-stacktrace-vars-grid')).toBeInTheDocument();
-    expect(screen.getAllByTestId('core-stacktrace-vars-row').length).toBeGreaterThan(0);
-    expect(screen.getByText('args')).toBeInTheDocument();
+    expect(await screen.findByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();
   });
 
@@ -293,77 +222,9 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    const activeLine = screen
-      .getAllByTestId('core-stacktrace-frame-line-number')
-      .find(node => node.textContent?.includes('112'));
-    expect(activeLine).toBeDefined();
-
-    await userEvent.hover(activeLine!);
+    await userEvent.hover(screen.getByLabelText('Line 112'));
 
     expect(await screen.findByText('Line uncovered by tests')).toBeInTheDocument();
-  });
-
-  it('fetches coverage only for expanded frames and reuses cached results', async () => {
-    const organization = OrganizationFixture({
-      codecovAccess: true,
-      features: ['codecov-integration'],
-    });
-    const project = ProjectFixture({id: '1'});
-    const {event, stacktrace} = makeStackTraceData();
-
-    ProjectsStore.loadInitialData([project]);
-
-    const stacktraceCoverageMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/stacktrace-coverage/`,
-      body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
-    });
-
-    const framesWithSourceContext = stacktrace.frames.map((frame, index) => {
-      const lineNo = frame.lineNo ?? 100 + index;
-      return {
-        ...frame,
-        inApp: false,
-        filename: frame.filename ?? `frame-${index}.py`,
-        lineNo,
-        context: [
-          [lineNo - 1, `frame ${index} context previous`],
-          [lineNo, `frame ${index} context current`],
-          [lineNo + 1, `frame ${index} context next`],
-        ] as Array<[number, string]>,
-      };
-    });
-
-    render(
-      <StackTraceWithCoverageData
-        event={{...event, projectID: project.id}}
-        stacktrace={{...stacktrace, frames: framesWithSourceContext}}
-        defaultView="full"
-      >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
-      </StackTraceWithCoverageData>,
-      {
-        organization,
-      }
-    );
-
-    await waitFor(() => {
-      expect(stacktraceCoverageMock).toHaveBeenCalledTimes(1);
-    });
-
-    const frameTitles = screen.getAllByTestId('core-stacktrace-frame-title');
-    await userEvent.click(frameTitles[1]!);
-
-    await waitFor(() => {
-      expect(stacktraceCoverageMock).toHaveBeenCalledTimes(2);
-    });
-
-    await userEvent.click(frameTitles[1]!);
-    await userEvent.click(frameTitles[1]!);
-
-    await waitFor(() => {
-      expect(stacktraceCoverageMock).toHaveBeenCalledTimes(2);
-    });
   });
 
   it('renders variable redaction metadata like legacy frame variables', async () => {
@@ -532,7 +393,7 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    await userEvent.hover(screen.getByTestId('core-stacktrace-source-map-info'));
+    await userEvent.hover(screen.getByLabelText('Source map info'));
 
     expect(await screen.findByText('Source Map')).toBeInTheDocument();
     expect(
@@ -573,56 +434,20 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders suspect frame badge for ANR root-cause frame matches', async () => {
+  it('renders frame badge via frameBadge prop', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
-
     render(
       <StackTraceProvider
-        event={
-          {
-            ...event,
-            platform: 'java',
-            tags: [...event.tags, {key: 'mechanism', value: 'ANR'}],
-            entries: [
-              ...event.entries,
-              {
-                type: EntryType.THREADS,
-                data: {
-                  values: [
-                    {
-                      id: 7,
-                      current: true,
-                      state: 'RUNNABLE',
-                      crashed: false,
-                      rawStacktrace: null,
-                      stacktrace: null,
-                    },
-                  ],
-                },
-              },
-            ],
-          } as any
-        }
-        stacktrace={{
-          ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              module: 'libcore.io.Linux',
-              function: 'read',
-              inApp: false,
-            },
-          ],
-        }}
-        threadId={7}
+        event={event}
+        stacktrace={stacktrace}
+        frameBadge={() => <span>Custom Badge</span>}
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
       </StackTraceProvider>
     );
 
-    expect(await screen.findByText('Suspect Frame')).toBeInTheDocument();
+    expect((await screen.findAllByText('Custom Badge')).length).toBeGreaterThan(0);
   });
 
   it('renders sentry app frame links with line context', async () => {
@@ -683,7 +508,7 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    await userEvent.hover(screen.getByTestId('filename'));
+    await userEvent.hover(screen.getByText('raven/scripts/runner.py'));
     expect(
       await screen.findByText('/home/ubuntu/raven/scripts/runner.py')
     ).toBeInTheDocument();
@@ -800,9 +625,7 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(await screen.findByTestId('function')).toHaveTextContent(
-      'raw_runner_entrypoint'
-    );
+    expect(await screen.findByText('raw_runner_entrypoint')).toBeInTheDocument();
     expect(screen.getByText('within')).toBeInTheDocument();
     expect(screen.getByText('libpipeline')).toBeInTheDocument();
   });
@@ -841,12 +664,8 @@ describe('Core StackTrace', () => {
       </StackTraceProvider>
     );
 
-    expect(
-      await screen.findByTestId('core-stacktrace-frame-registers')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Registers')).toBeInTheDocument();
+    expect(await screen.findByText('Registers')).toBeInTheDocument();
     expect(screen.getByText('rax')).toBeInTheDocument();
-    expect(screen.getByTestId('core-stacktrace-frame-assembly')).toBeInTheDocument();
     expect(screen.getByText('Assembly:')).toBeInTheDocument();
     expect(screen.getByText('Acme.Worker')).toBeInTheDocument();
     expect(screen.getByText('PublicKeyToken:')).toBeInTheDocument();

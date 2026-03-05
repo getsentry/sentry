@@ -57,7 +57,7 @@ export function SourceLinkAction() {
       data-test-id="core-stacktrace-frame-actions-slot"
     >
       {showCodeMappingLink ? (
-        <span data-stacktrace-interactive="true">
+        <span onClick={e => e.stopPropagation()}>
           <StacktraceLink
             frame={frame}
             line={contextLine?.[1] ?? ''}
@@ -68,7 +68,7 @@ export function SourceLinkAction() {
       ) : null}
 
       {showSentryAppStacktraceLink ? (
-        <span data-stacktrace-interactive="true">
+        <span onClick={e => e.stopPropagation()}>
           <OpenInContextLine
             lineNo={frame.lineNo ?? null}
             filename={frame.filename!}

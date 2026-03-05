@@ -54,10 +54,10 @@ function Root({
   components: componentsProp,
   defaultIsMinified = false,
   event,
+  frameBadge,
   frameSourceMapDebuggerData,
   getFrameLineCoverage,
   hideSourceMapDebugger = false,
-  lockAddress,
   minifiedStacktrace,
   stacktrace,
   defaultView = 'app',
@@ -65,7 +65,6 @@ function Root({
   maxDepth,
   meta,
   platform: platformProp,
-  threadId,
 }: StackTraceProviderProps) {
   const sharedView = useContext(StackTraceSharedViewContext);
 
@@ -155,6 +154,7 @@ function Root({
     () => ({
       components,
       event,
+      frameBadge,
       platform,
       stacktrace: activeStacktrace,
       frameSourceMapDebuggerData,
@@ -173,7 +173,6 @@ function Root({
       expandedFrames,
       hiddenFrameToggleMap,
       lastFrameIndex: getLastFrameIndex(frames),
-      lockAddress,
       toggleFrameExpansion: (frameIndex: number) => {
         setExpandedFrames(prevState => {
           return {
@@ -188,12 +187,12 @@ function Root({
           [frameIndex]: !prevState[frameIndex],
         }));
       },
-      threadId,
     }),
     [
       components,
       event,
       expandedFrames,
+      frameBadge,
       frameSourceMapDebuggerData,
       frames,
       getFrameLineCoverage,
@@ -202,7 +201,6 @@ function Root({
       hiddenFrameToggleMap,
       isMinified,
       isNewestFirst,
-      lockAddress,
       meta,
       platform,
       rows,
@@ -210,7 +208,6 @@ function Root({
       setIsNewestFirst,
       setView,
       activeStacktrace,
-      threadId,
       view,
     ]
   );

@@ -52,7 +52,6 @@ export function SourceMapsDebuggerAction() {
     <Button
       size="zero"
       priority="default"
-      data-stacktrace-interactive="true"
       onClick={mouseEvent => {
         mouseEvent.stopPropagation();
         trackAnalytics(

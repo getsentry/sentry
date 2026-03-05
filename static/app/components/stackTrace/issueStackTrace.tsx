@@ -1,12 +1,15 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {tn} from 'sentry/locale';
-import type {Event, ExceptionValue} from 'sentry/types/event';
+import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import {t, tn} from 'sentry/locale';
+import type {Event, ExceptionValue, Frame} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -17,7 +20,7 @@ import {
 } from './stackTraceContext';
 import {StackTraceProvider} from './stackTraceProvider';
 import {CopyButton, DisplayOptions} from './toolbar';
-import type {StackTraceView} from './types';
+import type {FrameBadge, StackTraceView} from './types';
 
 interface SharedViewRootProps {
   children: React.ReactNode;
@@ -52,14 +55,49 @@ function SharedViewRoot({children, defaultIsNewestFirst = true}: SharedViewRootP
 interface IssueStackTraceProps {
   event: Event;
   values: ExceptionValue[];
+  lockAddress?: string;
   newestFirst?: boolean;
+  threadId?: number;
 }
 
 export function IssueStackTrace({
   event,
-  values,
+  lockAddress,
   newestFirst = true,
+  threadId,
+  values,
 }: IssueStackTraceProps) {
+  const mechanism =
+    event.platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
+  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+
+  const anrFrameBadge = useCallback<FrameBadge>(
+    (frame: Frame) => {
+      const culprit = analyzeFrameForRootCause(
+        frame,
+        getThreadById(event, threadId),
+        lockAddress
+      );
+      if (!culprit) return null;
+      return (
+        <Tag
+          variant="warning"
+          onClick={mouseEvent => {
+            mouseEvent.stopPropagation();
+            document
+              .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          }}
+        >
+          {t('Suspect Frame')}
+        </Tag>
+      );
+    },
+    [event, lockAddress, threadId]
+  );
+
+  const frameBadge = isANR ? anrFrameBadge : undefined;
+
   const withStacktrace = values.filter(exc => exc.stacktrace !== null);
 
   if (withStacktrace.length === 0) {
@@ -78,6 +116,7 @@ export function IssueStackTrace({
     return (
       <StackTraceProvider
         event={event}
+        frameBadge={frameBadge}
         stacktrace={exc.stacktrace!}
         defaultIsNewestFirst={newestFirst}
       >
@@ -142,7 +181,11 @@ export function IssueStackTrace({
                     module={exc.module}
                     mechanism={exc.mechanism}
                   />
-                  <StackTraceProvider event={event} stacktrace={exc.stacktrace!}>
+                  <StackTraceProvider
+                    event={event}
+                    frameBadge={frameBadge}
+                    stacktrace={exc.stacktrace!}
+                  >
                     <StackTraceProvider.Frames />
                   </StackTraceProvider>
                 </Flex>

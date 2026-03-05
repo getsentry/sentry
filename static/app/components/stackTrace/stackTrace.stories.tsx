@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import {
-  ExceptionHeader,
   IssueStackTrace,
   StackTrace,
   StackTraceProvider,
@@ -62,7 +61,7 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
     resolvedWith: [],
     contexts: {},
     ...overrides,
-  } as unknown as Event;
+  } as Event;
 }
 
 function makeFrame(overrides: Partial<Frame>): Frame {
@@ -883,43 +882,6 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
-  story('StackTrace - With ANR', () => {
-    const frames = [
-      makeFrame({
-        filename: 'com/example/App.java',
-        module: 'com.example.App',
-        function: 'main',
-        platform: 'java',
-        inApp: true,
-        lineNo: 42,
-      }),
-      makeFrame({
-        filename: 'java/lang/Object.java',
-        module: 'java.lang.Object',
-        function: 'wait',
-        platform: 'java',
-        inApp: false,
-        lineNo: 1,
-      }),
-    ];
-    const stacktrace: StacktraceWithFrames = {
-      framesOmitted: null,
-      hasSystemFrames: true,
-      registers: {},
-      frames,
-    };
-    const event = makeEvent({platform: 'java'});
-    return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="lockAddress" value="string" /> to display an
-          ANR lock address annotation below the blocked thread frame.
-        </p>
-        <StackTrace event={event} stacktrace={stacktrace} lockAddress="0x08040000" />
-      </Fragment>
-    );
-  });
-
   story('StackTrace - Empty', () => {
     const event = makeEvent({platform: 'python'});
     const stacktrace: StacktraceWithFrames = {
@@ -934,77 +896,6 @@ export default Storybook.story('StackTrace', story => {
           An empty frames array renders a placeholder indicating no frames are available.
         </p>
         <StackTrace event={event} stacktrace={stacktrace} />
-      </Fragment>
-    );
-  });
-
-  story('ExceptionHeader - Default', () => {
-    const {event, stacktrace} = makeStackTraceData();
-
-    return (
-      <Fragment>
-        <p>
-          <Storybook.JSXNode name="ExceptionHeader" /> renders the exception type heading,
-          value text, and mechanism pills above a stack trace. Compose it alongside{' '}
-          <Storybook.JSXNode name="StackTraceProvider.Frames" />.
-        </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
-          <ExceptionHeader
-            type="ValueError"
-            value="list index out of range"
-            mechanism={{handled: false, type: 'generic'}}
-          />
-          <StackTraceProvider.Frames />
-        </StackTraceProvider>
-      </Fragment>
-    );
-  });
-
-  story('ExceptionHeader - With Module Tooltip', () => {
-    const {event, stacktrace} = makeStackTraceData();
-
-    return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="module" value="string" /> to show a tooltip on
-          the heading indicating where the exception originated. Hover the heading to see
-          it.
-        </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
-          <ExceptionHeader
-            type="ImportError"
-            value="No module named 'requests'"
-            module="myapp.utils.http"
-            mechanism={{handled: false, type: 'generic'}}
-          />
-          <StackTraceProvider.Frames />
-        </StackTraceProvider>
-      </Fragment>
-    );
-  });
-
-  story('ExceptionHeader - Mechanism Only', () => {
-    const {event, stacktrace} = makeStackTraceData();
-
-    return (
-      <Fragment>
-        <p>
-          <Storybook.JSXProperty name="value" value={null} /> is optional — omit it to
-          render only the heading and mechanism pills.
-        </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
-          <ExceptionHeader
-            type="SIGSEGV"
-            mechanism={{
-              handled: false,
-              type: 'signalhandler',
-              meta: {
-                signal: {number: 11, name: 'SIGSEGV', code: 1, code_name: 'SEGV_MAPERR'},
-              },
-            }}
-          />
-          <StackTraceProvider.Frames />
-        </StackTraceProvider>
       </Fragment>
     );
   });

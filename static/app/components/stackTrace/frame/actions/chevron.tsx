@@ -19,7 +19,6 @@ export function ChevronAction() {
       aria-controls={frameContextId}
       aria-expanded={isExpanded}
       data-test-id="core-stacktrace-chevron-toggle"
-      data-stacktrace-interactive="true"
       onKeyDown={keyboardEvent => {
         if (keyboardEvent.key === ' ' || keyboardEvent.key === 'Spacebar') {
           keyboardEvent.preventDefault();
@@ -31,7 +30,10 @@ export function ChevronAction() {
           toggleExpansion();
         }
       }}
-      onClick={() => toggleExpansion()}
+      onClick={e => {
+        e.stopPropagation();
+        toggleExpansion();
+      }}
     >
       <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
     </ChevronToggle>

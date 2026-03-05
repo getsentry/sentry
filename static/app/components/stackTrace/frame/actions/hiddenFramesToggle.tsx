@@ -15,8 +15,10 @@ export function HiddenFramesToggleAction() {
     <Button
       size="zero"
       priority="transparent"
-      data-stacktrace-interactive="true"
-      onClick={() => toggleHiddenFrames()}
+      onClick={e => {
+        e.stopPropagation();
+        toggleHiddenFrames();
+      }}
     >
       {hiddenFramesExpanded
         ? t('Hide %s frames', hiddenFrameCount)

@@ -35,19 +35,10 @@ export function FrameVariablesGrid({data, meta, platform}: FrameVariablesGridPro
   const rows = Object.keys(data).reverse();
 
   return (
-    <Grid
-      data-test-id="core-stacktrace-vars-grid"
-      columns="max-content minmax(0, 1fr)"
-      gap="xs md"
-      align="start"
-    >
+    <Grid columns="max-content minmax(0, 1fr)" gap="xs md" align="start">
       {rows.map(rawKey => (
         <Fragment key={rawKey}>
-          <Container
-            data-test-id="core-stacktrace-vars-row"
-            padding="sm sm 0 sm"
-            whiteSpace="nowrap"
-          >
+          <Container padding="sm sm 0 sm" whiteSpace="nowrap">
             <Text as="div" size="sm" monospace bold density="comfortable">
               {formatVariableKey(rawKey)}
             </Text>

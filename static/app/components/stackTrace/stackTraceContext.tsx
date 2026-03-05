@@ -10,6 +10,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import type {
+  FrameBadge,
   FrameLineCoverageResolver,
   Row,
   StackTraceMeta,
@@ -33,6 +34,7 @@ export interface StackTraceContextValue {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   expandedFrames: Record<number, boolean>;
+  frameBadge: FrameBadge | undefined;
   frameSourceMapDebuggerData: FrameSourceMapDebuggerData[] | undefined;
   frames: Frame[];
   getFrameLineCoverage: FrameLineCoverageResolver | undefined;
@@ -42,7 +44,6 @@ export interface StackTraceContextValue {
   isMinified: boolean;
   isNewestFirst: boolean;
   lastFrameIndex: number;
-  lockAddress: string | undefined;
   meta: StackTraceMeta | undefined;
   platform: PlatformKey;
   rows: Row[];
@@ -50,7 +51,6 @@ export interface StackTraceContextValue {
   setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
   setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
   stacktrace: StacktraceType;
-  threadId: number | undefined;
   toggleFrameExpansion: (frameIndex: number) => void;
   toggleHiddenFrames: (frameIndex: number) => void;
   view: StackTraceView;
