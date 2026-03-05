@@ -14,7 +14,10 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
+from sentry.workflow_engine.handlers.detector.stateful import (
+    StatefulDetectorHandler,
+    get_redis_client,
+)
 from sentry.workflow_engine.models import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -56,19 +59,26 @@ def _resolve_detector(state: DetectorState) -> None:
     Atomically resolve a single triggered DetectorState and produce
     a StatusChangeMessage so the issue platform marks it resolved.
     """
+    now = timezone.now()
+
     rows = DetectorState.objects.filter(
         id=state.id,
         is_triggered=True,
+        date_updated__lt=now,
     ).update(
         is_triggered=False,
         state=DetectorPriorityLevel.OK,
-        date_updated=timezone.now(),
+        date_updated=now,
     )
 
     if not rows:
         return
 
     handler = state.detector.detector_handler
+    if not isinstance(handler, StatefulDetectorHandler):
+        logger.error("No handler for detector %s", state.detector.id)
+        return
+
     fingerprint = [
         *handler.build_issue_fingerprint(),
         handler.state_manager.build_key(None),
