@@ -138,15 +138,16 @@ class GitHubProvider:
         self.repository = repository
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
-        from sentry.scm.helpers import is_rate_limited_with_allocation_policy
+        # from sentry.scm.helpers import is_rate_limited_with_allocation_policy
 
-        return is_rate_limited_with_allocation_policy(
-            organization_id,
-            referrer,
-            provider="github",
-            window=3600,
-            allocation_policy=REFERRER_ALLOCATION,
-        )
+        # return is_rate_limited_with_allocation_policy(
+        #     organization_id,
+        #     referrer,
+        #     provider="github",
+        #     window=3600,
+        #     allocation_policy=REFERRER_ALLOCATION,
+        # )
+        return False  # Rate-limits temporarily disabled.
 
     @catch_provider_exception
     def get_issue_comments(
