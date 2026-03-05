@@ -82,7 +82,9 @@ function ApdexWidget({transactionName}: ApdexWidgetProps) {
     }
 
     return (
-      <Tag key="apdex-value">{formatFloat(apdexValue[0]?.[apdexField] ?? 0, 4)}</Tag>
+      <Tag key="apdex-value" variant="info">
+        {formatFloat(Number(apdexValue[0]?.[apdexField] ?? 0), 4)}
+      </Tag>
     );
   };
 

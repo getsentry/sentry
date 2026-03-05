@@ -383,6 +383,7 @@ export enum SpanFunction {
   COUNT_SCORES = 'count_scores',
   OPPORTUNITY_SCORE = 'opportunity_score',
   FAILURE_RATE = 'failure_rate',
+  APDEX = 'apdex',
 }
 
 export const COUNTER_AGGREGATES = [
@@ -421,7 +422,8 @@ type ConditionalAggregate =
   | SpanFunction.COUNT_OP
   | SpanFunction.FAILURE_RATE_IF
   | SpanFunction.TRACE_STATUS_RATE
-  | SpanFunction.TIME_SPENT_PERCENTAGE;
+  | SpanFunction.TIME_SPENT_PERCENTAGE
+  | SpanFunction.APDEX;
 
 export const SPAN_FUNCTIONS = [
   SpanFunction.EPM,
