@@ -105,6 +105,8 @@ const form = useScrapsForm({
 
 Define a Zod schema and pass it as `validators: {onDynamic: schema}`. Always provide helpful error messages.
 
+We use `onDynamic` instead of `onChange` or `onBlur` because its behavior adapts based on form state — our forms are configured to only validate on submit initially, then revalidate on every change after the first submission attempt. This avoids showing errors while the user is still filling out the form for the first time. See the [TanStack Form dynamic validation guide](https://tanstack.com/form/latest/docs/framework/react/guides/dynamic-validation) for details.
+
 ```jsx
 const schema = z.object({
   email: z.email('Please enter a valid email'),
