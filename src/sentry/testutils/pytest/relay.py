@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.testutils.pytest.sentry import TEST_REDIS_DB
+from sentry.testutils.pytest import xdist
 
 _log = logging.getLogger(__name__)
 
@@ -23,6 +23,8 @@ RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nigh
 
 
 def _relay_server_container_name() -> str:
+    if xdist.worker_id:
+        return f"sentry_test_relay_server_{xdist.worker_id}"
     return "sentry_test_relay_server"
 
 
@@ -66,9 +68,10 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
+    worker_num = xdist.worker_num or 0
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331 + worker_num * 100)
 
-    redis_db = TEST_REDIS_DB
+    redis_db = xdist.get_redis_db()
 
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
@@ -84,6 +87,8 @@ def relay_server_setup(live_server, tmpdir_factory):
         "KAFKA_HOST": "kafka",
         "REDIS_HOST": "redis",
         "REDIS_DB": redis_db,
+        "KAFKA_TOPIC_EVENTS": xdist.get_kafka_topic("ingest-events"),
+        "KAFKA_TOPIC_OUTCOMES": xdist.get_kafka_topic("outcomes"),
     }
 
     for source in sources:

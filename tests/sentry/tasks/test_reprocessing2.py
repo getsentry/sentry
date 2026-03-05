@@ -98,7 +98,6 @@ def test_basic(
     task_runner,
     default_project,
     change_groups,
-    reset_snuba,
     process_and_save,
     register_event_preprocessor,
     django_cache,
@@ -206,7 +205,6 @@ def test_basic(
 @pytest.mark.snuba
 def test_concurrent_events_go_into_new_group(
     default_project,
-    reset_snuba,
     register_event_preprocessor,
     process_and_save,
     default_user,
@@ -281,7 +279,6 @@ def test_concurrent_events_go_into_new_group(
 @pytest.mark.parametrize("max_events", [2, None])
 def test_max_events(
     default_project,
-    reset_snuba,
     register_event_preprocessor,
     process_and_save,
     remaining_events,
@@ -361,7 +358,6 @@ def test_max_events(
 @pytest.mark.snuba
 def test_attachments_and_userfeedback(
     default_project,
-    reset_snuba,
     register_event_preprocessor,
     process_and_save,
 ):
@@ -442,7 +438,6 @@ def test_attachments_and_userfeedback(
 def test_nodestore_missing(
     mock_logger,
     default_project,
-    reset_snuba,
     process_and_save,
     remaining_events,
     django_cache,
@@ -488,7 +483,6 @@ def test_nodestore_missing(
 @pytest.mark.snuba
 def test_apply_new_fingerprinting_rules(
     default_project,
-    reset_snuba,
     register_event_preprocessor,
     process_and_save,
 ):
@@ -562,7 +556,6 @@ def test_apply_new_fingerprinting_rules(
 @pytest.mark.snuba
 def test_apply_new_stack_trace_rules(
     default_project,
-    reset_snuba,
     register_event_preprocessor,
     process_and_save,
 ):

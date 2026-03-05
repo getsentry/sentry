@@ -35,7 +35,7 @@ pytestmark = [requires_symbolicator, requires_kafka]
 @thread_leak_allowlist(reason="kafka testutils", issue=97046)
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, reset_snuba):
+    def initialize(self, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
         with (

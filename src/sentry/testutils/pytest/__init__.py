@@ -2,6 +2,7 @@ import os
 
 pytest_plugins = [
     "sentry.testutils.skips",
+    "sentry.testutils.pytest.parallel",
     "sentry.testutils.pytest.sentry",
     "sentry.testutils.pytest.fixtures",
     "sentry.testutils.pytest.unittest",
