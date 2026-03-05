@@ -521,7 +521,8 @@ function useTrackView({
   project?: Project;
 }) {
   const location = useLocation();
-  const {alert_date, alert_rule_id, alert_type, ref_fallback, query} = location.query;
+  const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
+    location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -545,6 +546,8 @@ function useTrackView({
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
     has_seer_access: hasAutofixQuota,
+    notification_uuid:
+      typeof notification_uuid === 'string' ? notification_uuid : undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
