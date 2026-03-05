@@ -170,10 +170,17 @@ class RegionDirectory:
         return self._localities_by_name.get(locality_name)
 
     def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
-        return (r for r in self.regions if (category is None or r.category == category))
+        if category is None:
+            return iter(self._cells)
+
+        return (
+            r
+            for r in self._cells
+            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
+        )
 
     def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.regions if (category is None or r.category == category))
+        return (r.name for r in self.get_cells(category))
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
