@@ -56,6 +56,8 @@ def call_endpoint(client, relay, private_key):
             "spans": "base64",
             "transactions": "base64",
         },
+        "relay.eap-outcomes.rollout-rate": 1.0,
+        "relay.eap-span-outcomes.rollout-rate": 1.0,
     }
 )
 def test_global_config() -> None:
@@ -66,16 +68,6 @@ def test_global_config() -> None:
     # It is not allowed to specify `None` as default for an option.
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
-
-    # This option has `skip_serializing_if = "is_default"`
-    # So if it's 0.0, then it is removed in the normalized configs
-    if config["options"]["relay.eap-outcomes.rollout-rate"] == 0.0:
-        del config["options"]["relay.eap-outcomes.rollout-rate"]
-
-    # This option has `skip_serializing_if = "is_default"`
-    # So if it's 0.0, then it is removed in the normalized configs
-    if config["options"]["relay.eap-span-outcomes.rollout-rate"] == 0.0:
-        del config["options"]["relay.eap-span-outcomes.rollout-rate"]
 
     assert normalized == config
 
