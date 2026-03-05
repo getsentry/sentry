@@ -73,11 +73,25 @@ export function AssertionOpJsonPath({
   }));
 
   useEffect(() => {
+    let nextOp: UptimeJsonPathOp | null = null;
+
     // Non-numeric with < or > selected: force back to equals
     if (!isNumericValue && isNumericComparisonSelected) {
-      onChange({...normalizedOp, operator: {cmp: UptimeComparisonType.EQUALS}});
+      nextOp = {...normalizedOp, operator: {cmp: UptimeComparisonType.EQUALS}};
     }
-  }, [isNumericValue, isNumericComparisonSelected, onChange, normalizedOp]);
+
+    // Glob operand with < or > selected: force to literal (glob is invalid for numeric comparisons)
+    if (isNumericComparisonSelected && normalizedOp.operand.jsonpath_op === 'glob') {
+      nextOp = {
+        ...(nextOp ?? normalizedOp),
+        operand: {jsonpath_op: 'literal', value: operandValue},
+      };
+    }
+
+    if (nextOp) {
+      onChange(nextOp);
+    }
+  }, [isNumericValue, isNumericComparisonSelected, onChange, normalizedOp, operandValue]);
 
   const jsonPathInput = (
     <Container flexGrow={2}>
