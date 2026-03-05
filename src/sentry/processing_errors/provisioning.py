@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.core.cache import cache
 from django.db import router, transaction
 
 from sentry.locks import locks
@@ -9,6 +10,7 @@ from sentry.models.project import Project
 from sentry.processing_errors.grouptype import SourcemapCheckStatus, SourcemapConfigurationType
 from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -74,5 +76,8 @@ def ensure_sourcemap_detector(project: Project) -> Detector:
             is_triggered=False,
             state=DetectorPriorityLevel.OK,
         )
+
+        cache_key = get_detector_project_type_cache_key(project.id, slug)
+        cache.set(cache_key, detector, Detector.CACHE_TTL)
 
         return detector

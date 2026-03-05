@@ -53,9 +53,9 @@ class TestEnsureSourcemapDetector(TestCase):
     def test_uses_cache_on_second_call(self) -> None:
         ensure_sourcemap_detector(self.project)
 
-        with patch.object(Detector.objects, "filter", wraps=Detector.objects.filter) as mock_filter:
+        with patch.object(Detector.objects, "get", wraps=Detector.objects.get) as mock_get:
             ensure_sourcemap_detector(self.project)
-            mock_filter.assert_not_called()
+            mock_get.assert_not_called()
 
     def test_separate_detectors_per_project(self) -> None:
         other_project = self.create_project()
