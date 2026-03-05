@@ -246,8 +246,8 @@ export function PrimaryNavigationItems() {
           <PrimaryNavigationWhatsNew />
         </ErrorBoundary>
         <PrimaryNavigationHelp />
-        <UserDropdown />
       </SidebarFooter>
+      <UserDropdown />
     </Fragment>
   );
 }
