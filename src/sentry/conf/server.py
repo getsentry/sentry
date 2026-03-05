@@ -2204,9 +2204,12 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
+
+CLAUDE_CODE_CLIENT_CLASS: str | None = None
 
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
