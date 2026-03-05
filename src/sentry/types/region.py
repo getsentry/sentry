@@ -443,7 +443,7 @@ def find_regions_for_orgs(org_ids: Iterable[int]) -> set[str]:
     else:
         return set(
             OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
-                "region_name", flat=True
+                "cell_name", flat=True
             )
         )
 
