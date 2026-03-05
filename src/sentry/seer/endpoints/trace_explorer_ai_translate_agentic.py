@@ -82,7 +82,7 @@ def send_translate_agentic_request(
     if options:
         body["options"] = options
 
-    response = make_translate_agentic_request(body, viewer_context=viewer_context)
+    response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
