@@ -14,7 +14,6 @@ const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
 
 /**
  * A single dropdown that consolidates view, sort, and display toggles.
- * Works with both StackTraceProvider and StackTraceSharedViewProvider.
  */
 export function DisplayOptions() {
   const {

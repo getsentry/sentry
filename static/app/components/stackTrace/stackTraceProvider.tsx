@@ -1,5 +1,4 @@
 import {Fragment, useContext, useEffect, useId, useMemo, useState} from 'react';
-import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -41,7 +40,6 @@ import {
 import type {
   StackTraceContextValue,
   StackTraceFrameContextValue,
-  StackTraceSharedViewContextValue,
 } from './stackTraceContext';
 import {CopyButton, DisplayOptions, DownloadButton, Toolbar} from './toolbar';
 import type {FrameRow, StackTraceProviderProps, StackTraceView} from './types';
@@ -177,10 +175,12 @@ function Root({
       lastFrameIndex: getLastFrameIndex(frames),
       lockAddress,
       toggleFrameExpansion: (frameIndex: number) => {
-        setExpandedFrames(prevState => ({
-          ...prevState,
-          [frameIndex]: !prevState[frameIndex],
-        }));
+        setExpandedFrames(prevState => {
+          return {
+            ...prevState,
+            [frameIndex]: !prevState[frameIndex],
+          };
+        });
       },
       toggleHiddenFrames: (frameIndex: number) => {
         setHiddenFrameToggleMap(prevState => ({
@@ -333,7 +333,7 @@ function Frames() {
 
   return (
     <FramesPanel>
-      <FrameList data-test-id="core-stacktrace-frame-list">
+      <FrameList aria-label={t('Stack frames')}>
         {rows.map(row => {
           if (row.kind === 'omitted') {
             return (
@@ -409,56 +409,5 @@ export const StackTraceProvider = Object.assign(Root, {
   DownloadButton,
   Toolbar,
 });
-
-interface StackTraceSharedViewProviderProps {
-  children: ReactNode;
-  defaultIsMinified?: boolean;
-  defaultIsNewestFirst?: boolean;
-  defaultView?: StackTraceView;
-  hasMinifiedStacktrace?: boolean;
-}
-
-function SharedViewRoot({
-  children,
-  defaultIsMinified = false,
-  defaultIsNewestFirst = true,
-  defaultView = 'app',
-  hasMinifiedStacktrace = false,
-}: StackTraceSharedViewProviderProps) {
-  const [view, setView] = useState<StackTraceView>(defaultView);
-  const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
-  const [isMinified, setIsMinified] = useState(
-    () => hasMinifiedStacktrace && defaultIsMinified
-  );
-
-  const value = useMemo<StackTraceSharedViewContextValue>(
-    () => ({
-      hasMinifiedStacktrace,
-      isMinified,
-      isNewestFirst,
-      setIsMinified,
-      setIsNewestFirst,
-      setView,
-      view,
-    }),
-    [
-      hasMinifiedStacktrace,
-      isMinified,
-      isNewestFirst,
-      setIsMinified,
-      setIsNewestFirst,
-      setView,
-      view,
-    ]
-  );
-
-  return (
-    <StackTraceSharedViewContext.Provider value={value}>
-      {children}
-    </StackTraceSharedViewContext.Provider>
-  );
-}
-
-export const StackTraceSharedViewProvider = Object.assign(SharedViewRoot, {Toolbar});
 
 export {useStackTraceContext};

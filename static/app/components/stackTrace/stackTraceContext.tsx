@@ -112,9 +112,7 @@ export function useStackTraceViewState(): StackTraceSharedViewContextValue {
   const source = sharedView ?? ctx;
 
   if (!source) {
-    throw new Error(
-      'useStackTraceViewState must be used within StackTraceSharedViewProvider or StackTraceProvider'
-    );
+    throw new Error('useStackTraceViewState must be used within StackTraceProvider');
   }
 
   return {

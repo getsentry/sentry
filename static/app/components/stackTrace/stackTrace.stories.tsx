@@ -6,9 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import {
-  ChainedStackTrace,
-  CopyButton,
   ExceptionHeader,
+  IssueStackTrace,
   StackTrace,
   StackTraceProvider,
   useStackTraceContext,
@@ -27,8 +26,6 @@ import type {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -518,55 +515,30 @@ function makeChainedExceptionValues(): ExceptionValue[] {
   ];
 }
 
-export default Storybook.story('Core/StackTrace', story => {
-  story('StackTrace - Default', () => {
+export default Storybook.story('StackTrace', story => {
+  story('IssueStackTrace - Default', () => {
     const {event, stacktrace} = makeStackTraceData();
     return (
-      <StackTraceProvider event={event} stacktrace={stacktrace}>
-        <InterimSection
-          type={SectionKey.EXCEPTION}
-          title="ValueError"
-          actions={
-            <Flex align="center" gap="sm">
-              <StackTraceProvider.DisplayOptions />
-              <CopyButton />
-            </Flex>
-          }
-        >
-          <ExceptionHeader
-            type="ValueError"
-            value="list index out of range"
-            module="raven.base"
-            mechanism={{handled: false, type: 'generic'}}
-          />
-          <StackTraceProvider.Frames />
-        </InterimSection>
-      </StackTraceProvider>
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />
     );
   });
 
-  story('StackTraceProvider - Default', () => {
-    const {event, stacktrace} = makeStackTraceData();
-
-    return (
-      <Fragment>
-        <p>
-          <Storybook.JSXNode name="StackTraceProvider" /> is the low-level building block.
-          Compose toolbar controls and{' '}
-          <Storybook.JSXNode name="StackTraceProvider.Frames" /> to build custom layouts.{' '}
-          <Storybook.JSXNode name="StackTraceProvider.CopyButton" /> is opt-in — add it
-          alongside <Storybook.JSXNode name="StackTraceProvider.DisplayOptions" /> when
-          copy support is needed.
-        </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
-          <Flex justify="end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
-            <StackTraceProvider.DisplayOptions />
-            <CopyButton />
-          </Flex>
-          <StackTraceProvider.Frames />
-        </StackTraceProvider>
-      </Fragment>
-    );
+  story('IssueStackTrace - Chained', () => {
+    const values = makeChainedExceptionValues();
+    return <IssueStackTrace event={makeEvent()} values={values} />;
   });
 
   story('StackTraceProvider - With Omitted Frames', () => {
@@ -1033,43 +1005,6 @@ export default Storybook.story('Core/StackTrace', story => {
           />
           <StackTraceProvider.Frames />
         </StackTraceProvider>
-      </Fragment>
-    );
-  });
-
-  story('StackTrace - Chained (Anatomy)', () => (
-    <Fragment>
-      <p>
-        <Storybook.JSXNode name="ChainedStackTrace" /> renders one collapsible{' '}
-        <Storybook.JSXNode name="Disclosure" /> per exception. The most recent exception
-        (index 0 after reversing) starts expanded; all others start collapsed.
-      </p>
-      <Storybook.JSXNode name="ChainedStackTrace" props={{newestFirst: true}}>
-        <Storybook.JSXNode name="Disclosure" props={{defaultExpanded: true}}>
-          <Storybook.JSXNode name="Disclosure.Title" />
-          <Storybook.JSXNode name="Disclosure.Content">
-            <Storybook.JSXNode name="StackTrace" />
-          </Storybook.JSXNode>
-        </Storybook.JSXNode>
-        <Storybook.JSXNode name="Disclosure" props={{defaultExpanded: false}}>
-          <Storybook.JSXNode name="Disclosure.Title" />
-          <Storybook.JSXNode name="Disclosure.Content">
-            <Storybook.JSXNode name="StackTrace" />
-          </Storybook.JSXNode>
-        </Storybook.JSXNode>
-      </Storybook.JSXNode>
-    </Fragment>
-  ));
-
-  story('StackTrace - Chained', () => {
-    const values = makeChainedExceptionValues();
-    return (
-      <Fragment>
-        <p>
-          Three chained exceptions rendered newest-first (default). The most recent
-          exception is expanded; the two older ones are collapsed.
-        </p>
-        <ChainedStackTrace event={makeEvent()} values={values} />
       </Fragment>
     );
   });
