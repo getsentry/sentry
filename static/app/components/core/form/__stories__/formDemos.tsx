@@ -135,7 +135,7 @@ export function CompactDemo() {
 
 const conditionalSchema = z.object({
   plan: z.string(),
-  billingEmail: z.email('Please enter a valid email'),
+  billingEmail: z.string(),
 });
 
 export function ConditionalDemo() {
@@ -169,7 +169,12 @@ export function ConditionalDemo() {
         <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
           {showBilling =>
             showBilling ? (
-              <form.AppField name="billingEmail">
+              <form.AppField
+                name="billingEmail"
+                validators={{
+                  onDynamic: z.email(t('Please enter a valid email')),
+                }}
+              >
                 {field => (
                   <field.Layout.Row label={t('Billing Email')} required>
                     <field.Input
