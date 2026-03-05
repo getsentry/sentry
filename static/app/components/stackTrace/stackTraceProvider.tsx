@@ -16,7 +16,7 @@ import {
   getFrameCountMap,
   getLastFrameIndex,
   getRows,
-} from './rows/getRows';
+} from './getRows';
 import {
   StackTraceContext,
   useStackTraceContext,
