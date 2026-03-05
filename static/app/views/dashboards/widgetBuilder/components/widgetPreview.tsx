@@ -14,7 +14,6 @@ import {
   type DashboardFilters,
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -93,8 +92,6 @@ function WidgetPreview({
     setTableWidths(widths);
   }
 
-  const useTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
-
   return (
     <WidgetCard
       disableFullscreen
@@ -140,7 +137,6 @@ function WidgetPreview({
       onWidgetTableSort={handleWidgetTableSort}
       onWidgetTableResizeColumn={handleWidgetTableResizeColumn}
       disableTableActions
-      useTimeseriesVisualization={useTimeseriesVisualization}
     />
   );
 }
