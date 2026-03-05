@@ -102,6 +102,102 @@ PERFORMANCE_DETECTOR_CONFIG_MAPPINGS: dict[DetectorType, PerformanceDetectorConf
             "filtered_paths": "large_http_payload_filtered_paths",
         },
     ),
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.RENDER_BLOCKING_ASSET_SPAN,
+        wfe_detector_type="performance_render_blocking_asset_span",
+        detection_enabled_key="large_render_blocking_asset_detection_enabled",
+        option_keys={
+            "fcp_minimum_threshold": "render_blocking_fcp_min",
+            "fcp_maximum_threshold": "render_blocking_fcp_max",
+            "fcp_ratio_threshold": "render_blocking_fcp_ratio",
+            "minimum_size_bytes": "render_blocking_bytes_min",
+        },
+    ),
+    DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.N_PLUS_ONE_DB_QUERIES,
+        wfe_detector_type="performance_n_plus_one_db_queries",
+        detection_enabled_key="n_plus_one_db_queries_detection_enabled",
+        option_keys={
+            "count": "n_plus_one_db_count",
+            "duration_threshold": "n_plus_one_db_duration_threshold",
+        },
+    ),
+    DetectorType.CONSECUTIVE_DB_OP: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.CONSECUTIVE_DB_OP,
+        wfe_detector_type="performance_consecutive_db_queries",
+        detection_enabled_key="consecutive_db_queries_detection_enabled",
+        option_keys={
+            "min_time_saved": "consecutive_db_min_time_saved_threshold",
+        },
+    ),
+    DetectorType.FILE_IO_MAIN_THREAD: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.FILE_IO_MAIN_THREAD,
+        wfe_detector_type="performance_file_io_main_thread",
+        detection_enabled_key="file_io_on_main_thread_detection_enabled",
+        option_keys={
+            "duration_threshold": "file_io_on_main_thread_duration_threshold",
+        },
+    ),
+    DetectorType.DB_MAIN_THREAD: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.DB_MAIN_THREAD,
+        wfe_detector_type="performance_db_main_thread",
+        detection_enabled_key="db_on_main_thread_detection_enabled",
+        option_keys={
+            "duration_threshold": "db_on_main_thread_duration_threshold",
+        },
+    ),
+    DetectorType.N_PLUS_ONE_API_CALLS: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.N_PLUS_ONE_API_CALLS,
+        wfe_detector_type="performance_n_plus_one_api_calls",
+        detection_enabled_key="n_plus_one_api_calls_detection_enabled",
+        option_keys={
+            "total_duration": "n_plus_one_api_calls_total_duration_threshold",
+        },
+    ),
+    DetectorType.M_N_PLUS_ONE_DB: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.M_N_PLUS_ONE_DB,
+        wfe_detector_type="performance_m_n_plus_one_db_queries",
+        detection_enabled_key="n_plus_one_db_queries_detection_enabled",
+        option_keys={
+            "total_duration_threshold": "n_plus_one_db_duration_threshold",
+        },
+    ),
+    DetectorType.UNCOMPRESSED_ASSETS: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.UNCOMPRESSED_ASSETS,
+        wfe_detector_type="performance_uncompressed_assets",
+        detection_enabled_key="uncompressed_assets_detection_enabled",
+        option_keys={
+            "size_threshold_bytes": "uncompressed_asset_size_threshold",
+            "duration_threshold": "uncompressed_asset_duration_threshold",
+        },
+    ),
+    DetectorType.CONSECUTIVE_HTTP_OP: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.CONSECUTIVE_HTTP_OP,
+        wfe_detector_type="performance_consecutive_http",
+        detection_enabled_key="consecutive_http_spans_detection_enabled",
+        option_keys={
+            "span_duration_threshold": "consecutive_http_spans_span_duration_threshold",
+            "min_time_saved": "consecutive_http_spans_min_time_saved_threshold",
+            "consecutive_count_threshold": "consecutive_http_spans_count_threshold",
+            "max_duration_between_spans": "consecutive_http_spans_max_duration_between_spans",
+        },
+    ),
+    DetectorType.HTTP_OVERHEAD: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.HTTP_OVERHEAD,
+        wfe_detector_type="performance_http_overhead",
+        detection_enabled_key="http_overhead_detection_enabled",
+        option_keys={
+            "http_request_delay_threshold": "http_request_delay_threshold",
+        },
+    ),
+    DetectorType.SQL_INJECTION: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.SQL_INJECTION,
+        wfe_detector_type="query_injection_vulnerability",
+        detection_enabled_key="db_query_injection_detection_enabled",
+        option_keys={
+            "query_value_length_threshold": "sql_injection_query_value_length_threshold",
+        },
+    ),
     DetectorType.QUERY_INJECTION: PerformanceDetectorConfigMapping(
         settings_key=DetectorType.QUERY_INJECTION,
         wfe_detector_type="query_injection_vulnerability",
@@ -226,7 +322,7 @@ class SettingsMode(IntEnum):
 def get_merged_settings(
     project: Project | None = None,
     settings_mode: SettingsMode = SettingsMode.LEGACY,
-) -> dict[str | Any, Any]:
+) -> dict[str, Any]:
     """
     Get performance detection settings based on the specified mode.
 
@@ -297,7 +393,7 @@ def get_merged_settings(
         "web_vitals_count": options.get("performance.issues.web_vitals.count_threshold"),
     }
 
-    default_project_settings = (
+    default_project_settings: dict[str, Any] = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
             project=project,

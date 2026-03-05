@@ -15,6 +15,7 @@ from sentry.issue_detection.performance_detection import (
     _detect_performance_problems,
     detect_performance_problems,
     get_detection_settings,
+    get_merged_settings,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -809,4 +810,128 @@ class WFEDetectorConfigTest(TestCase):
             group_type = registry.get_by_slug(mapping.wfe_detector_type)
             assert group_type is not None, (
                 f"wfe_detector_type '{mapping.wfe_detector_type}' is not a registered GroupType slug"
+            )
+
+    def test_all_detector_types_are_mapped(self) -> None:
+        for detector_type in DetectorType:
+            assert detector_type in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS, (
+                f"DetectorType.{detector_type.name} is missing from PERFORMANCE_DETECTOR_CONFIG_MAPPINGS"
+            )
+
+    def test_option_keys_match_detection_settings(self) -> None:
+        """Verify option_keys and detection_enabled_key are accurate against actual settings."""
+        detection_settings = get_detection_settings()
+        merged_settings = get_merged_settings()
+
+        for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+            detector_settings = detection_settings[detector_type]
+
+            for field_name, option_key in mapping.option_keys.items():
+                # Every field name in option_keys must be a key in get_detection_settings
+                assert field_name in detector_settings, (
+                    f"option_keys field '{field_name}' for DetectorType.{detector_type.name} "
+                    f"not found in get_detection_settings()[{detector_type}]"
+                )
+
+                # Every option key value must be a key in get_merged_settings
+                assert option_key in merged_settings, (
+                    f"option_keys value '{option_key}' (for field '{field_name}') "
+                    f"in DetectorType.{detector_type.name} not found in get_merged_settings()"
+                )
+
+            # detection_enabled_key must be a key in get_merged_settings
+            assert mapping.detection_enabled_key in merged_settings, (
+                f"detection_enabled_key '{mapping.detection_enabled_key}' for "
+                f"DetectorType.{detector_type.name} not found in get_merged_settings()"
+            )
+
+    def test_no_unwhitelisted_shared_wfe_detector_types(self) -> None:
+        """Ensure shared wfe_detector_type values are explicitly allowlisted."""
+        allowed_shared: dict[str, set[DetectorType]] = {
+            "query_injection_vulnerability": {
+                DetectorType.SQL_INJECTION,
+                DetectorType.QUERY_INJECTION,
+            },
+        }
+
+        type_to_detectors: dict[str, set[DetectorType]] = {}
+        for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+            type_to_detectors.setdefault(mapping.wfe_detector_type, set()).add(detector_type)
+
+        for wfe_type, detectors in type_to_detectors.items():
+            if len(detectors) > 1:
+                assert wfe_type in allowed_shared, (
+                    f"wfe_detector_type '{wfe_type}' is shared by {detectors} "
+                    f"but not in the allowlist"
+                )
+                assert detectors == allowed_shared[wfe_type], (
+                    f"wfe_detector_type '{wfe_type}' shared by {detectors} "
+                    f"but allowlist has {allowed_shared[wfe_type]}"
+                )
+
+        for wfe_type in allowed_shared:
+            assert wfe_type in type_to_detectors and len(type_to_detectors[wfe_type]) > 1, (
+                f"allowlisted wfe_detector_type '{wfe_type}' is no longer shared — remove it from the allowlist"
+            )
+
+    def test_no_unwhitelisted_shared_detection_enabled_keys(self) -> None:
+        """Ensure shared detection_enabled_key values are explicitly allowlisted."""
+        allowed_shared: dict[str, set[DetectorType]] = {
+            "n_plus_one_db_queries_detection_enabled": {
+                DetectorType.N_PLUS_ONE_DB_QUERIES,
+                DetectorType.M_N_PLUS_ONE_DB,
+            },
+            "db_query_injection_detection_enabled": {
+                DetectorType.SQL_INJECTION,
+                DetectorType.QUERY_INJECTION,
+            },
+        }
+
+        key_to_detectors: dict[str, set[DetectorType]] = {}
+        for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+            key_to_detectors.setdefault(mapping.detection_enabled_key, set()).add(detector_type)
+
+        for key, detectors in key_to_detectors.items():
+            if len(detectors) > 1:
+                assert key in allowed_shared, (
+                    f"detection_enabled_key '{key}' is shared by {detectors} "
+                    f"but not in the allowlist"
+                )
+                assert detectors == allowed_shared[key], (
+                    f"detection_enabled_key '{key}' shared by {detectors} "
+                    f"but allowlist has {allowed_shared[key]}"
+                )
+
+        for key in allowed_shared:
+            assert key in key_to_detectors and len(key_to_detectors[key]) > 1, (
+                f"allowlisted detection_enabled_key '{key}' is no longer shared — remove it from the allowlist"
+            )
+
+    def test_no_unwhitelisted_shared_option_key_values(self) -> None:
+        """Ensure shared ProjectOption key values across mappings are explicitly allowlisted."""
+        allowed_shared: dict[str, set[DetectorType]] = {
+            "n_plus_one_db_duration_threshold": {
+                DetectorType.N_PLUS_ONE_DB_QUERIES,
+                DetectorType.M_N_PLUS_ONE_DB,
+            },
+        }
+
+        value_to_detectors: dict[str, set[DetectorType]] = {}
+        for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+            for option_key in mapping.option_keys.values():
+                value_to_detectors.setdefault(option_key, set()).add(detector_type)
+
+        for value, detectors in value_to_detectors.items():
+            if len(detectors) > 1:
+                assert value in allowed_shared, (
+                    f"option_keys value '{value}' is shared by {detectors} but not in the allowlist"
+                )
+                assert detectors == allowed_shared[value], (
+                    f"option_keys value '{value}' shared by {detectors} "
+                    f"but allowlist has {allowed_shared[value]}"
+                )
+
+        for value in allowed_shared:
+            assert value in value_to_detectors and len(value_to_detectors[value]) > 1, (
+                f"allowlisted option_keys value '{value}' is no longer shared — remove it from the allowlist"
             )
