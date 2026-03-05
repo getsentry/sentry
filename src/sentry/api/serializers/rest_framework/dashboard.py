@@ -1110,7 +1110,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.save()
 
         if is_text_widget:
-            # Text widgets don't have queries - delete all if someone tries to add them
+            # Text widgets don't have queries - delete all if the previous widget had queries
             DashboardWidgetQuery.objects.filter(widget=widget).delete()
         elif "queries" in data:
             self.update_widget_queries(widget, data["queries"])
