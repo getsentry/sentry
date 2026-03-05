@@ -454,25 +454,19 @@ function VisualizationWidgetContent({
             axisRange={widget.axisRange}
           />
         </Container>
+        <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
           </Container>
         </Flex>
-        {confidenceFooter}
       </Flex>
     );
   }
 
   return (
-    <Flex
-      direction="column"
-      height="100%"
-      paddingLeft={timeseriesContainerPadding.paddingLeft}
-      paddingRight={timeseriesContainerPadding.paddingRight}
-      paddingBottom={timeseriesContainerPadding.paddingBottom}
-    >
-      <Container flex={1}>
+    <Flex direction="column" height="100%">
+      <Container flex={1} {...timeseriesContainerPadding}>
         <TimeSeriesWidgetVisualization
           plottables={plottables}
           releases={releases}
@@ -480,7 +474,7 @@ function VisualizationWidgetContent({
           axisRange={widget.axisRange}
         />
       </Container>
-      {confidenceFooter}
+      <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
     </Flex>
   );
 }
