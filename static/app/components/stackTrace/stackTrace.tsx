@@ -1,13 +1,35 @@
+import {StackTraceViewStateProvider} from './stackTraceContext';
 import {StackTraceProvider} from './stackTraceProvider';
-import type {StackTraceProviderProps} from './types';
+import type {StackTraceProviderProps, StackTraceViewStateProviderProps} from './types';
 
-type StackTraceProps = Omit<StackTraceProviderProps, 'children'>;
+type StackTraceProps = Omit<StackTraceProviderProps, 'children'> &
+  Pick<
+    StackTraceViewStateProviderProps,
+    'defaultIsMinified' | 'defaultIsNewestFirst' | 'defaultView'
+  >;
 
-export function StackTrace({event, stacktrace, ...rootProps}: StackTraceProps) {
+export function StackTrace({
+  event,
+  stacktrace,
+  defaultIsMinified,
+  defaultIsNewestFirst,
+  defaultView,
+  ...providerProps
+}: StackTraceProps) {
+  const hasMinifiedStacktrace = !!providerProps.minifiedStacktrace;
+
   return (
-    <StackTraceProvider event={event} stacktrace={stacktrace} {...rootProps}>
-      <StackTraceProvider.Toolbar />
-      <StackTraceProvider.Frames />
-    </StackTraceProvider>
+    <StackTraceViewStateProvider
+      defaultView={defaultView}
+      defaultIsNewestFirst={defaultIsNewestFirst}
+      defaultIsMinified={defaultIsMinified}
+      hasMinifiedStacktrace={hasMinifiedStacktrace}
+      platform={providerProps.platform ?? event.platform}
+    >
+      <StackTraceProvider event={event} stacktrace={stacktrace} {...providerProps}>
+        <StackTraceProvider.Toolbar />
+        <StackTraceProvider.Frames />
+      </StackTraceProvider>
+    </StackTraceViewStateProvider>
   );
 }

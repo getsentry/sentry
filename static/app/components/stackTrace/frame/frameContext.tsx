@@ -17,6 +17,7 @@ import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariab
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
+  useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import {Coverage, type LineCoverage} from 'sentry/types/integrations';
@@ -41,8 +42,9 @@ function getLineCoverage(
 export function FrameContext() {
   const {event, frame, frameContextId, frameIndex, isExpanded, platform} =
     useStackTraceFrameContext();
-  const {frames, getFrameLineCoverage, isMinified, lastFrameIndex, meta, stacktrace} =
+  const {frames, getFrameLineCoverage, lastFrameIndex, meta, stacktrace} =
     useStackTraceContext();
+  const {isMinified} = useStackTraceViewState();
   const contextLines = isExpanded ? (frame.context ?? []) : [];
   const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({

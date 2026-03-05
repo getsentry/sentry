@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect, useId, useMemo, useState} from 'react';
+import {Fragment, useEffect, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -34,25 +34,24 @@ import {
 import {
   StackTraceContext,
   StackTraceFrameContext,
-  StackTraceSharedViewContext,
   useStackTraceContext,
+  useStackTraceViewState,
 } from './stackTraceContext';
 import type {
   StackTraceContextValue,
   StackTraceFrameContextValue,
 } from './stackTraceContext';
 import {CopyButton, DisplayOptions, DownloadButton, Toolbar} from './toolbar';
-import type {FrameRow, StackTraceProviderProps, StackTraceView} from './types';
+import type {FrameRow, StackTraceProviderProps} from './types';
 
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
   const framePlatform = stacktrace.frames?.find(frame => !!frame.platform)?.platform;
-  return framePlatform ?? event.platform ?? 'other';
+  return event.platform ?? framePlatform ?? 'other';
 }
 
 function Root({
   children,
   components: componentsProp,
-  defaultIsMinified = false,
   event,
   frameBadge,
   frameSourceMapDebuggerData,
@@ -60,13 +59,11 @@ function Root({
   hideSourceMapDebugger = false,
   minifiedStacktrace,
   stacktrace,
-  defaultView = 'app',
-  defaultIsNewestFirst = true,
   maxDepth,
   meta,
   platform: platformProp,
 }: StackTraceProviderProps) {
-  const sharedView = useContext(StackTraceSharedViewContext);
+  const {isMinified, isNewestFirst, view} = useStackTraceViewState();
 
   const storeComponents = useSentryAppComponentsStore({componentType: 'stacktrace-link'});
   const storeStacktraceLinkComponents = useMemo(
@@ -79,20 +76,6 @@ function Root({
     [storeComponents]
   );
 
-  const [localIsMinified, setLocalIsMinified] = useState(
-    () => !!minifiedStacktrace && defaultIsMinified
-  );
-  const [localView, setLocalView] = useState<StackTraceView>(defaultView);
-  const [localIsNewestFirst, setLocalIsNewestFirst] = useState(defaultIsNewestFirst);
-
-  const view = sharedView?.view ?? localView;
-  const setView = sharedView?.setView ?? setLocalView;
-  const isNewestFirst = sharedView?.isNewestFirst ?? localIsNewestFirst;
-  const setIsNewestFirst = sharedView?.setIsNewestFirst ?? setLocalIsNewestFirst;
-  const isMinified = sharedView?.isMinified ?? localIsMinified;
-  const setIsMinified = sharedView?.setIsMinified ?? setLocalIsMinified;
-  const hasMinifiedStacktrace = sharedView?.hasMinifiedStacktrace ?? !!minifiedStacktrace;
-
   const activeStacktrace =
     isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
   const frames = useMemo(() => activeStacktrace.frames ?? [], [activeStacktrace.frames]);
@@ -102,7 +85,7 @@ function Root({
   );
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
-    createInitialHiddenFrameToggleMap(frames, defaultView === 'full')
+    createInitialHiddenFrameToggleMap(frames, view === 'full')
   );
 
   const [expandedFrames, setExpandedFrames] = useState<Record<number, boolean>>(() => {
@@ -163,13 +146,6 @@ function Root({
       hideSourceMapDebugger,
       rows,
       meta,
-      view,
-      setView,
-      hasMinifiedStacktrace,
-      isMinified,
-      setIsMinified,
-      isNewestFirst,
-      setIsNewestFirst,
       expandedFrames,
       hiddenFrameToggleMap,
       lastFrameIndex: getLastFrameIndex(frames),
@@ -196,19 +172,12 @@ function Root({
       frameSourceMapDebuggerData,
       frames,
       getFrameLineCoverage,
-      hasMinifiedStacktrace,
       hideSourceMapDebugger,
       hiddenFrameToggleMap,
-      isMinified,
-      isNewestFirst,
       meta,
       platform,
       rows,
-      setIsMinified,
-      setIsNewestFirst,
-      setView,
       activeStacktrace,
-      view,
     ]
   );
 
@@ -308,7 +277,8 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 }
 
 function Frames() {
-  const {rows, stacktrace, event, view} = useStackTraceContext();
+  const {rows, stacktrace, event} = useStackTraceContext();
+  const {view} = useStackTraceViewState();
 
   if (view === 'raw') {
     return (

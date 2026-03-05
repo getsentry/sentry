@@ -1,6 +1,8 @@
+import {useContext} from 'react';
+
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {useOptionalStackTraceContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceContext} from 'sentry/components/stackTrace/stackTraceContext';
 
 interface CopyButtonProps {
   /** Override the default raw stack trace text that gets copied. */
@@ -14,13 +16,16 @@ interface CopyButtonProps {
  * Returns null when used outside a StackTraceProvider and no getCopyText is provided.
  */
 export function CopyButton({getCopyText}: CopyButtonProps) {
-  const ctx = useOptionalStackTraceContext();
+  const stackTraceContext = useContext(StackTraceContext);
+  const contextCopyText =
+    stackTraceContext &&
+    (() =>
+      rawStacktraceContent({
+        data: stackTraceContext.stacktrace,
+        platform: stackTraceContext.event.platform,
+      }));
 
-  const defaultGetText = ctx
-    ? () => rawStacktraceContent({data: ctx.stacktrace, platform: ctx.event.platform})
-    : undefined;
-
-  const getText = getCopyText ?? defaultGetText;
+  const getText = getCopyText ?? contextCopyText;
   if (!getText) {
     return null;
   }

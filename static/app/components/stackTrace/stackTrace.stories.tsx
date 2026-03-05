@@ -9,8 +9,10 @@ import {
   IssueStackTrace,
   StackTrace,
   StackTraceProvider,
+  StackTraceViewStateProvider,
   useStackTraceContext,
 } from 'sentry/components/stackTrace';
+import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import * as Storybook from 'sentry/stories';
 import {
   EventOrGroupType,
@@ -514,6 +516,42 @@ function makeChainedExceptionValues(): ExceptionValue[] {
   ];
 }
 
+type StoryStackTraceProviderProps = React.ComponentProps<typeof StackTraceProvider> &
+  Pick<
+    StackTraceViewStateProviderProps,
+    'defaultIsMinified' | 'defaultIsNewestFirst' | 'defaultView'
+  >;
+
+function StoryStackTraceProvider({
+  children,
+  event,
+  defaultIsMinified,
+  defaultIsNewestFirst,
+  defaultView,
+  minifiedStacktrace,
+  platform,
+  ...providerProps
+}: StoryStackTraceProviderProps) {
+  return (
+    <StackTraceViewStateProvider
+      defaultView={defaultView}
+      defaultIsNewestFirst={defaultIsNewestFirst}
+      defaultIsMinified={defaultIsMinified}
+      hasMinifiedStacktrace={!!minifiedStacktrace}
+      platform={platform ?? event.platform}
+    >
+      <StackTraceProvider
+        event={event}
+        minifiedStacktrace={minifiedStacktrace}
+        platform={platform}
+        {...providerProps}
+      >
+        {children}
+      </StackTraceProvider>
+    </StackTraceViewStateProvider>
+  );
+}
+
 export default Storybook.story('StackTrace', story => {
   story('IssueStackTrace - Default', () => {
     const {event, stacktrace} = makeStackTraceData();
@@ -549,7 +587,7 @@ export default Storybook.story('StackTrace', story => {
           When <Storybook.JSXProperty name="framesOmitted" value={[1, 3]} /> is set, a
           placeholder row appears in place of the omitted frame range.
         </p>
-        <StackTraceProvider
+        <StoryStackTraceProvider
           event={event}
           stacktrace={{
             ...stacktrace,
@@ -557,7 +595,7 @@ export default Storybook.story('StackTrace', story => {
           }}
         >
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -571,13 +609,13 @@ export default Storybook.story('StackTrace', story => {
           Pass <Storybook.JSXProperty name="components" value={Array} /> to inject Sentry
           App stacktrace-link components, which appear as source links on each frame.
         </p>
-        <StackTraceProvider
+        <StoryStackTraceProvider
           event={event}
           stacktrace={stacktrace}
           components={makeStacktraceLinkComponents()}
         >
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -591,9 +629,9 @@ export default Storybook.story('StackTrace', story => {
           Identical frames (same module, function, and address) are detected as recursive
           and collapsed into a single row with a repeat count badge.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -607,9 +645,9 @@ export default Storybook.story('StackTrace', story => {
           Very long file paths are truncated with an ellipsis on the left side, preserving
           the most specific (rightmost) segments.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -622,9 +660,9 @@ export default Storybook.story('StackTrace', story => {
         <p>
           Both the file path and function name are long here, testing two-column overflow.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -640,9 +678,9 @@ export default Storybook.story('StackTrace', story => {
           symbol is shown. A <Storybook.JSXProperty name="package" value="string" /> path
           appears as a secondary label.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -657,9 +695,9 @@ export default Storybook.story('StackTrace', story => {
           <Storybook.JSXProperty name="registers" value={Object} />, CPU register values
           are shown below the last frame.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -673,13 +711,13 @@ export default Storybook.story('StackTrace', story => {
           Pass <Storybook.JSXProperty name="getFrameLineCoverage" value={Function} /> to
           annotate context lines with covered / partial / not-covered indicators.
         </p>
-        <StackTraceProvider
+        <StoryStackTraceProvider
           event={event}
           stacktrace={stacktrace}
           getFrameLineCoverage={makeFrameCoverageResolver(stacktrace)}
         >
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -721,10 +759,10 @@ export default Storybook.story('StackTrace', story => {
           <Storybook.JSXNode name="StackTraceProvider.Frame" /> to render individual
           frames with complete control over layout.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceProvider.Toolbar />
           <ComposedContent />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -802,9 +840,9 @@ export default Storybook.story('StackTrace', story => {
           <Storybook.JSXNode name="Chevron" />, and the rest use a fully custom{' '}
           <Storybook.JSXNode name="Frame.Actions" /> container.
         </p>
-        <StackTraceProvider event={event} stacktrace={stacktrace}>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <ComposedActionsContent />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -820,7 +858,7 @@ export default Storybook.story('StackTrace', story => {
           platform is native (e.g. cocoa, objc, swift) and the view is set to Raw Stack
           Trace. Switch to Raw Stack Trace via the display options to see it.
         </p>
-        <StackTraceProvider
+        <StoryStackTraceProvider
           event={event}
           stacktrace={stacktrace}
           platform="cocoa"
@@ -831,7 +869,7 @@ export default Storybook.story('StackTrace', story => {
             <StackTraceProvider.DisplayOptions />
           </Flex>
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });
@@ -843,9 +881,9 @@ export default Storybook.story('StackTrace', story => {
       <Flex align="center" justify="center">
         <WideHovercard
           body={
-            <StackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
+            <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
               <StackTraceProvider.Frames />
-            </StackTraceProvider>
+            </StoryStackTraceProvider>
           }
         >
           Hovercard Trigger
@@ -855,13 +893,14 @@ export default Storybook.story('StackTrace', story => {
   });
 
   story('StackTraceProvider - Minified Toggle', () => {
-    const {event, stacktrace} = makeStackTraceData();
+    const {stacktrace} = makeStackTraceData();
+    const nodeEvent = makeEvent({platform: 'node'});
     const minifiedStacktrace: StacktraceWithFrames = {
       ...stacktrace,
       frames: stacktrace.frames.map(frame => ({
         ...frame,
         filename: frame.filename
-          ? frame.filename.replace('.py', '.min.py')
+          ? frame.filename.replace('.py', '.min.js')
           : frame.filename,
         function: frame.function ? `_${frame.function}` : frame.function,
       })),
@@ -869,21 +908,20 @@ export default Storybook.story('StackTrace', story => {
     return (
       <Fragment>
         <p>
-          Pass <Storybook.JSXProperty name="minifiedStacktrace" value={Object} /> to
-          unlock the <strong>Minified</strong> option in the Display Options (
-          <code>···</code>) dropdown. The stack trace below starts in the minified view —
-          open Display Options and deselect <em>Minified</em> to switch back to the
-          symbolicated frames.
+          Provide <Storybook.JSXProperty name="minifiedStacktrace" value={Object} /> to
+          enable the minified toggle in the Display Options (<code>···</code>) dropdown.
+          The label reads <em>Minified</em> for JS/Node and <em>Unsymbolicated</em>{' '}
+          elsewhere.
         </p>
-        <StackTraceProvider
-          event={event}
+        <StoryStackTraceProvider
+          event={nodeEvent}
           stacktrace={stacktrace}
           minifiedStacktrace={minifiedStacktrace}
           defaultIsMinified
         >
           <StackTraceProvider.Toolbar />
           <StackTraceProvider.Frames />
-        </StackTraceProvider>
+        </StoryStackTraceProvider>
       </Fragment>
     );
   });

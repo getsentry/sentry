@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
@@ -9,7 +10,13 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {StackTraceProvider} from 'sentry/components/stackTrace';
+import {
+  DisplayOptions,
+  IssueStackTrace,
+  StackTraceProvider,
+  StackTraceViewStateProvider,
+} from 'sentry/components/stackTrace';
+import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Coverage} from 'sentry/types/integrations';
 import type {
@@ -48,14 +55,50 @@ function makeStackTraceData(): {
   };
 }
 
+type TestStackTraceProviderProps = ComponentProps<typeof StackTraceProvider> &
+  Pick<
+    StackTraceViewStateProviderProps,
+    'defaultIsMinified' | 'defaultIsNewestFirst' | 'defaultView'
+  >;
+
+function TestStackTraceProvider({
+  event,
+  children,
+  defaultIsMinified,
+  defaultIsNewestFirst,
+  defaultView,
+  minifiedStacktrace,
+  platform,
+  ...providerProps
+}: TestStackTraceProviderProps) {
+  return (
+    <StackTraceViewStateProvider
+      defaultView={defaultView}
+      defaultIsNewestFirst={defaultIsNewestFirst}
+      defaultIsMinified={defaultIsMinified}
+      hasMinifiedStacktrace={!!minifiedStacktrace}
+      platform={platform ?? event.platform}
+    >
+      <StackTraceProvider
+        event={event}
+        minifiedStacktrace={minifiedStacktrace}
+        platform={platform}
+        {...providerProps}
+      >
+        {children}
+      </StackTraceProvider>
+    </StackTraceViewStateProvider>
+  );
+}
+
 function renderStackTrace() {
   const {event, stacktrace} = makeStackTraceData();
 
   render(
-    <StackTraceProvider event={event} stacktrace={stacktrace}>
+    <TestStackTraceProvider event={event} stacktrace={stacktrace}>
       <StackTraceProvider.Toolbar />
       <StackTraceProvider.Frames />
-    </StackTraceProvider>
+    </TestStackTraceProvider>
   );
 }
 
@@ -107,6 +150,42 @@ describe('Core StackTrace', () => {
     expect(screen.queryByRole('list', {name: 'Stack frames'})).not.toBeInTheDocument();
   });
 
+  it('shares display options across chained issue exceptions', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RootError',
+            value: 'root cause',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'NestedError',
+            value: 'nested cause',
+            module: 'raven.scripts.runner',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(8);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Full Stack Trace'}));
+
+    expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(10);
+  });
+
   it('toggles minified stacktrace frames when minified data is provided', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const minifiedStacktrace = {
@@ -119,14 +198,14 @@ describe('Core StackTrace', () => {
     };
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={stacktrace}
         minifiedStacktrace={minifiedStacktrace}
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
@@ -138,6 +217,12 @@ describe('Core StackTrace', () => {
 
     expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
       'minified/4.js'
+    );
+  });
+
+  it('throws when DisplayOptions renders without stack trace view state', () => {
+    expect(() => render(<DisplayOptions />)).toThrow(
+      'useStackTraceViewState must be used within StackTraceViewStateProvider'
     );
   });
 
@@ -204,7 +289,7 @@ describe('Core StackTrace', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={stacktrace}
         getFrameLineCoverage={({frameIndex}): LineCoverage[] | undefined =>
@@ -219,7 +304,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     await userEvent.hover(screen.getByLabelText('Line 112'));
@@ -251,7 +336,7 @@ describe('Core StackTrace', () => {
     });
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -290,7 +375,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>,
+      </TestStackTraceProvider>,
       {
         organization,
         initialRouterConfig,
@@ -321,7 +406,7 @@ describe('Core StackTrace', () => {
     const singleNonAppFrame = {...stacktrace.frames[0]!, inApp: false};
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -330,7 +415,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     await userEvent.click(screen.getByTestId('core-stacktrace-frame-title'));
@@ -354,10 +439,10 @@ describe('Core StackTrace', () => {
     });
 
     render(
-      <StackTraceProvider event={event} stacktrace={stacktrace}>
+      <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>,
+      </TestStackTraceProvider>,
       {organization}
     );
 
@@ -374,7 +459,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -390,7 +475,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     await userEvent.hover(screen.getByLabelText('Source map info'));
@@ -406,7 +491,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -426,7 +511,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(
@@ -437,14 +522,14 @@ describe('Core StackTrace', () => {
   it('renders frame badge via frameBadge prop', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={stacktrace}
         frameBadge={() => <span>Custom Badge</span>}
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect((await screen.findAllByText('Custom Badge')).length).toBeGreaterThan(0);
@@ -471,10 +556,14 @@ describe('Core StackTrace', () => {
     ];
 
     render(
-      <StackTraceProvider event={event} stacktrace={stacktrace} components={components}>
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={stacktrace}
+        components={components}
+      >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(await screen.findByRole('link', {name: 'Source Lens'})).toHaveAttribute(
@@ -496,7 +585,7 @@ describe('Core StackTrace', () => {
     };
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -505,7 +594,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     await userEvent.hover(screen.getByText('raven/scripts/runner.py'));
@@ -542,10 +631,10 @@ describe('Core StackTrace', () => {
     });
 
     render(
-      <StackTraceProvider event={event} stacktrace={stacktrace}>
+      <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>,
+      </TestStackTraceProvider>,
       {organization}
     );
 
@@ -578,7 +667,7 @@ describe('Core StackTrace', () => {
     };
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -587,7 +676,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(1);
@@ -605,7 +694,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -622,7 +711,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(await screen.findByText('raw_runner_entrypoint')).toBeInTheDocument();
@@ -635,7 +724,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={{
           ...event,
           platform: 'csharp',
@@ -661,7 +750,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(await screen.findByText('Registers')).toBeInTheDocument();
@@ -677,7 +766,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
     render(
-      <StackTraceProvider
+      <TestStackTraceProvider
         event={event}
         stacktrace={{
           ...stacktrace,
@@ -694,7 +783,7 @@ describe('Core StackTrace', () => {
       >
         <StackTraceProvider.Toolbar />
         <StackTraceProvider.Frames />
-      </StackTraceProvider>
+      </TestStackTraceProvider>
     );
 
     expect(

@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useMemo, useState} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event, Frame} from 'sentry/types/event';
@@ -15,79 +15,115 @@ import type {
   Row,
   StackTraceMeta,
   StackTraceView,
+  StackTraceViewState,
+  StackTraceViewStateProviderProps,
 } from './types';
 
-export interface StackTraceSharedViewContextValue {
-  hasMinifiedStacktrace: boolean;
-  isMinified: boolean;
-  isNewestFirst: boolean;
-  setIsMinified: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
-  setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
-  view: StackTraceView;
+export const StackTraceViewStateContext = createContext<StackTraceViewState | null>(null);
+
+export function StackTraceViewStateProvider({
+  children,
+  defaultIsMinified = false,
+  defaultIsNewestFirst = true,
+  defaultView = 'app',
+  hasMinifiedStacktrace = false,
+  platform,
+}: StackTraceViewStateProviderProps) {
+  const [view, setView] = useState<StackTraceView>(defaultView);
+  const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
+  const [isMinified, setIsMinified] = useState(
+    hasMinifiedStacktrace && defaultIsMinified
+  );
+
+  const value = useMemo<StackTraceViewState>(
+    () => ({
+      hasMinifiedStacktrace,
+      isMinified,
+      isNewestFirst,
+      platform,
+      setIsMinified,
+      setIsNewestFirst,
+      setView,
+      view,
+    }),
+    [hasMinifiedStacktrace, isMinified, isNewestFirst, platform, view]
+  );
+
+  return (
+    <StackTraceViewStateContext.Provider value={value}>
+      {children}
+    </StackTraceViewStateContext.Provider>
+  );
 }
 
-export const StackTraceSharedViewContext =
-  createContext<StackTraceSharedViewContextValue | null>(null);
-
 export interface StackTraceContextValue {
+  /** Sentry App stacktrace-link integrations shown in frame actions. */
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
+  /** Event payload for project/platform metadata and integrations. */
   event: Event;
+  /** Expanded/collapsed state keyed by frame index. */
   expandedFrames: Record<number, boolean>;
-  frameBadge: FrameBadge | undefined;
-  frameSourceMapDebuggerData: FrameSourceMapDebuggerData[] | undefined;
+  /** Active frame list for the selected (symbolicated/minified) stacktrace. */
   frames: Frame[];
-  getFrameLineCoverage: FrameLineCoverageResolver | undefined;
-  hasMinifiedStacktrace: boolean;
+  /** Hidden-system-frame expansion state keyed by frame index. */
   hiddenFrameToggleMap: Record<number, boolean>;
+  /** True when the "Unminify Code" source map action must be hidden. */
   hideSourceMapDebugger: boolean;
-  isMinified: boolean;
-  isNewestFirst: boolean;
+  /** Last in-app frame index, or the final frame index when none are in-app. */
   lastFrameIndex: number;
-  meta: StackTraceMeta | undefined;
+  /** Rendering platform for frame utils; always resolved before context creation. */
   platform: PlatformKey;
+  /** Materialized rows (frames + omitted markers) for rendering. */
   rows: Row[];
-  setIsMinified: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
-  setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
+  /** Currently active stacktrace (symbolicated or minified). */
   stacktrace: StacktraceType;
+  /** Toggles source/context expansion for a frame row. */
   toggleFrameExpansion: (frameIndex: number) => void;
+  /** Toggles hidden system frames adjacent to a visible row. */
   toggleHiddenFrames: (frameIndex: number) => void;
-  view: StackTraceView;
+  /** Optional row badge renderer, used by IssueStackTrace ANR suspect-frame markers. */
+  frameBadge?: FrameBadge;
+  /** Optional per-frame source map debugger resolution data. */
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
+  /** Optional resolver for per-line test coverage in frame source context. */
+  getFrameLineCoverage?: FrameLineCoverageResolver;
+  /** Optional redaction metadata used by variable/register renderers. */
+  meta?: StackTraceMeta;
 }
 
 export interface StackTraceFrameContextValue {
+  /** Event payload for links, integrations, and analytics in frame actions. */
   event: Event;
+  /** Current frame row data. Always defined for StackTrace.Frame descendants. */
   frame: Frame;
+  /** Stable DOM id for aria-controls links between header and context. */
   frameContextId: string;
+  /** Absolute frame index within stacktrace.frames. */
   frameIndex: number;
-  hiddenFrameCount: number | undefined;
+  /** Expanded/collapsed state for hidden system frames near this row. */
   hiddenFramesExpanded: boolean;
+  /** Whether this row has expandable source/register/context details. */
   isExpandable: boolean;
+  /** Whether source/register/context details are currently expanded. */
   isExpanded: boolean;
-  nextFrame: Frame | undefined;
+  /** Effective platform used for frame render/utility logic. */
   platform: PlatformKey;
+  /** Number of repeated frames collapsed into this row. */
   timesRepeated: number;
+  /** Toggle handler for source/register/context expansion. */
   toggleExpansion: () => void;
+  /** Toggle handler for revealing or hiding collapsed system frames. */
   toggleHiddenFrames: () => void;
-}
-
-/**
- * Isolated hover context for the frame header. Kept separate from
- * StackTraceFrameContext so that hover state changes only re-render
- * the lightweight action components that actually need it, not every
- * frame context consumer.
- */
-export interface StackTraceFrameHoverContextValue {
-  isHovering: boolean;
+  /** Count of collapsed system frames hidden behind this row, when present. */
+  hiddenFrameCount?: number;
+  /** Next frame in call order, when one exists. */
+  nextFrame?: Frame;
 }
 
 export const StackTraceContext = createContext<StackTraceContextValue | null>(null);
 export const StackTraceFrameContext = createContext<StackTraceFrameContextValue | null>(
   null
 );
-export const StackTraceFrameHoverContext =
-  createContext<StackTraceFrameHoverContextValue>({isHovering: false});
 
 export function useStackTraceContext() {
   const context = useContext(StackTraceContext);
@@ -97,33 +133,14 @@ export function useStackTraceContext() {
   return context;
 }
 
-export function useOptionalStackTraceContext() {
-  return useContext(StackTraceContext);
-}
-
-/**
- * Reads the shared view-state fields from whichever context is available —
- * StackTraceSharedViewContext takes priority, then StackTraceContext.
- * Throws if neither is present, since toolbar components always live inside one of them.
- */
-export function useStackTraceViewState(): StackTraceSharedViewContextValue {
-  const sharedView = useContext(StackTraceSharedViewContext);
-  const ctx = useContext(StackTraceContext);
-  const source = sharedView ?? ctx;
-
-  if (!source) {
-    throw new Error('useStackTraceViewState must be used within StackTraceProvider');
+export function useStackTraceViewState(): StackTraceViewState {
+  const context = useContext(StackTraceViewStateContext);
+  if (!context) {
+    throw new Error(
+      'useStackTraceViewState must be used within StackTraceViewStateProvider'
+    );
   }
-
-  return {
-    view: source.view,
-    setView: source.setView,
-    hasMinifiedStacktrace: source.hasMinifiedStacktrace,
-    isMinified: source.isMinified,
-    setIsMinified: source.setIsMinified,
-    isNewestFirst: source.isNewestFirst,
-    setIsNewestFirst: source.setIsNewestFirst,
-  };
+  return context;
 }
 
 export function useStackTraceFrameContext() {
@@ -132,8 +149,4 @@ export function useStackTraceFrameContext() {
     throw new Error('StackTrace.Frame components must be used within StackTrace.Frame');
   }
   return context;
-}
-
-export function useStackTraceFrameHoverContext() {
-  return useContext(StackTraceFrameHoverContext);
 }

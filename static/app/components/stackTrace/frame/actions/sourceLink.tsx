@@ -8,7 +8,6 @@ import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktra
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
-  useStackTraceFrameHoverContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -17,9 +16,12 @@ import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from './utils';
 const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(160px, 18vw, 220px)';
 const HOVER_ACTIONS_SLOT_HEIGHT = 24;
 
-export function SourceLinkAction() {
+interface SourceLinkActionProps {
+  isHovering?: boolean;
+}
+
+export function SourceLinkAction({isHovering = false}: SourceLinkActionProps) {
   const {frame, event, isExpanded, frameIndex} = useStackTraceFrameContext();
-  const {isHovering} = useStackTraceFrameHoverContext();
   const {components, frameSourceMapDebuggerData, hideSourceMapDebugger} =
     useStackTraceContext();
   const {projects} = useProjects();

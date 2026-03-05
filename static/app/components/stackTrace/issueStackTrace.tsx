@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -14,43 +14,10 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {ExceptionHeader} from './exceptionHeader';
-import {
-  StackTraceSharedViewContext,
-  type StackTraceSharedViewContextValue,
-} from './stackTraceContext';
+import {StackTraceViewStateProvider} from './stackTraceContext';
 import {StackTraceProvider} from './stackTraceProvider';
 import {CopyButton, DisplayOptions} from './toolbar';
-import type {FrameBadge, StackTraceView} from './types';
-
-interface SharedViewRootProps {
-  children: React.ReactNode;
-  defaultIsNewestFirst?: boolean;
-}
-
-function SharedViewRoot({children, defaultIsNewestFirst = true}: SharedViewRootProps) {
-  const [view, setView] = useState<StackTraceView>('app');
-  const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
-  const [isMinified, setIsMinified] = useState(false);
-
-  const value = useMemo<StackTraceSharedViewContextValue>(
-    () => ({
-      hasMinifiedStacktrace: false,
-      isMinified,
-      isNewestFirst,
-      setIsMinified,
-      setIsNewestFirst,
-      setView,
-      view,
-    }),
-    [isMinified, isNewestFirst, view]
-  );
-
-  return (
-    <StackTraceSharedViewContext.Provider value={value}>
-      {children}
-    </StackTraceSharedViewContext.Provider>
-  );
-}
+import type {FrameBadge} from './types';
 
 interface IssueStackTraceProps {
   event: Event;
@@ -69,7 +36,11 @@ export function IssueStackTrace({
 }: IssueStackTraceProps) {
   const mechanism =
     event.platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
-  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+
+  const orderedWithStacktrace = useMemo(() => {
+    const withStacktrace = values.filter(exc => exc.stacktrace !== null);
+    return newestFirst ? withStacktrace.toReversed() : withStacktrace;
+  }, [newestFirst, values]);
 
   const anrFrameBadge = useCallback<FrameBadge>(
     (frame: Frame) => {
@@ -78,7 +49,10 @@ export function IssueStackTrace({
         getThreadById(event, threadId),
         lockAddress
       );
-      if (!culprit) return null;
+      if (!culprit) {
+        return null;
+      }
+
       return (
         <Tag
           variant="warning"
@@ -96,76 +70,84 @@ export function IssueStackTrace({
     [event, lockAddress, threadId]
   );
 
+  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const frameBadge = isANR ? anrFrameBadge : undefined;
 
-  const withStacktrace = values.filter(exc => exc.stacktrace !== null);
-
-  if (withStacktrace.length === 0) {
+  if (orderedWithStacktrace.length === 0) {
     return null;
   }
 
-  const actions = (
-    <Flex align="center" gap="sm">
-      <DisplayOptions />
-      <CopyButton />
-    </Flex>
-  );
-
-  if (withStacktrace.length === 1) {
-    const exc = withStacktrace[0]!;
+  if (orderedWithStacktrace.length === 1) {
+    const actions = (
+      <Flex align="center" gap="sm">
+        <DisplayOptions />
+        <CopyButton />
+      </Flex>
+    );
+    const exc = orderedWithStacktrace[0]!;
     return (
-      <StackTraceProvider
-        event={event}
-        frameBadge={frameBadge}
-        stacktrace={exc.stacktrace!}
+      <StackTraceViewStateProvider
         defaultIsNewestFirst={newestFirst}
+        platform={event.platform}
       >
-        <InterimSection type={SectionKey.EXCEPTION} title="Stack Trace" actions={actions}>
-          <ExceptionHeader
-            type={exc.type}
-            value={exc.value}
-            module={exc.module}
-            mechanism={exc.mechanism}
-          />
-          <StackTraceProvider.Frames />
-        </InterimSection>
-      </StackTraceProvider>
+        <StackTraceProvider
+          event={event}
+          frameBadge={frameBadge}
+          stacktrace={exc.stacktrace!}
+        >
+          <InterimSection
+            type={SectionKey.EXCEPTION}
+            title="Stack Trace"
+            actions={actions}
+          >
+            <ExceptionHeader
+              type={exc.type}
+              value={exc.value}
+              module={exc.module}
+              mechanism={exc.mechanism}
+            />
+            <StackTraceProvider.Frames />
+          </InterimSection>
+        </StackTraceProvider>
+      </StackTraceViewStateProvider>
     );
   }
 
-  const ordered = newestFirst ? [...withStacktrace].reverse() : withStacktrace;
-
-  const chainedActions = (
-    <Flex align="center" gap="sm">
-      <DisplayOptions />
-      <CopyButton
-        getCopyText={() =>
-          ordered
-            .map(exc =>
-              rawStacktraceContent({data: exc.stacktrace!, platform: event.platform})
-            )
-            .join('\n\n')
-        }
-      />
-    </Flex>
-  );
-
   return (
-    <SharedViewRoot defaultIsNewestFirst={newestFirst}>
+    <StackTraceViewStateProvider
+      defaultIsNewestFirst={newestFirst}
+      platform={event.platform}
+    >
       <InterimSection
         type={SectionKey.EXCEPTION}
         title="Stack Trace"
-        actions={chainedActions}
+        actions={
+          <Flex align="center" gap="sm">
+            <DisplayOptions />
+            <CopyButton
+              getCopyText={() =>
+                orderedWithStacktrace
+                  .map(exc =>
+                    rawStacktraceContent({
+                      data: exc.stacktrace!,
+                      platform: event.platform,
+                    })
+                  )
+                  .join('\n\n')
+              }
+            />
+          </Flex>
+        }
       >
         <Text variant="muted">
           {tn(
             'There is %s chained exception in this event.',
             'There are %s chained exceptions in this event.',
-            ordered.length
+            orderedWithStacktrace.length
           )}
         </Text>
         <Flex direction="column" gap="sm">
-          {ordered.map((exc, idx) => (
+          {orderedWithStacktrace.map((exc, idx) => (
             <Disclosure
               key={exc.mechanism?.exception_id ?? idx}
               defaultExpanded={idx === 0}
@@ -194,6 +176,6 @@ export function IssueStackTrace({
           ))}
         </Flex>
       </InterimSection>
-    </SharedViewRoot>
+    </StackTraceViewStateProvider>
   );
 }

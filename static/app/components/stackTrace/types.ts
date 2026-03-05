@@ -14,14 +14,34 @@ export type FrameBadge = (frame: Frame) => ReactNode;
 
 export type StackTraceView = 'app' | 'full' | 'raw';
 
+export interface StackTraceViewState {
+  hasMinifiedStacktrace: boolean;
+  isMinified: boolean;
+  isNewestFirst: boolean;
+  setIsMinified: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
+  setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
+  view: StackTraceView;
+  platform?: PlatformKey;
+}
+
+export interface StackTraceViewStateProviderProps {
+  children: ReactNode;
+  defaultIsMinified?: boolean;
+  defaultIsNewestFirst?: boolean;
+  defaultView?: StackTraceView;
+  hasMinifiedStacktrace?: boolean;
+  platform?: PlatformKey;
+}
+
 export type FrameRow = {
   frame: Frame;
   frameIndex: number;
-  hiddenFrameCount: number | undefined;
   isSubFrame: boolean;
   kind: 'frame';
-  nextFrame: Frame | undefined;
   timesRepeated: number;
+  hiddenFrameCount?: number;
+  nextFrame?: Frame;
 };
 
 export type OmittedFramesRow = {
@@ -53,12 +73,6 @@ export interface StackTraceProviderProps {
   stacktrace: StacktraceType;
   /** Sentry App integrations that provide "open in X" stacktrace links. */
   components?: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
-  /** Show the minified stacktrace by default when minifiedStacktrace is provided. */
-  defaultIsMinified?: boolean;
-  /** Show newest frame first. */
-  defaultIsNewestFirst?: boolean;
-  /** Initial view mode. 'app' hides system frames, 'full' shows all, 'raw' shows raw text. */
-  defaultView?: StackTraceView;
   /** Render a badge next to a frame row — used to surface ANR suspect frames. */
   frameBadge?: FrameBadge;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */

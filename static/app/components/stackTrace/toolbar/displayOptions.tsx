@@ -24,7 +24,15 @@ export function DisplayOptions() {
     setIsMinified,
     isNewestFirst,
     setIsNewestFirst,
+    platform,
   } = useStackTraceViewState();
+
+  const isJavaScriptPlatform =
+    platform?.startsWith('javascript') || platform?.startsWith('node');
+  const minifiedLabel = isJavaScriptPlatform ? t('Minified') : t('Unsymbolicated');
+  const minifiedUnavailableTooltip = isJavaScriptPlatform
+    ? t('Minified version not available')
+    : t('Unsymbolicated version not available');
 
   const currentViewVal =
     view === 'raw'
@@ -98,12 +106,10 @@ export function DisplayOptions() {
           label: t('Display'),
           options: [
             {
-              label: t('Minified'),
+              label: minifiedLabel,
               value: 'minified',
               disabled: !hasMinifiedStacktrace,
-              tooltip: hasMinifiedStacktrace
-                ? undefined
-                : t('Minified version not available'),
+              tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
             },
           ],
         },

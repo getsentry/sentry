@@ -26,7 +26,7 @@ interface ToolbarProps {
  */
 export function Toolbar({projectSlug}: ToolbarProps) {
   return (
-    <Flex justify="flex-end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
+    <Flex justify="end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
       {projectSlug && <DownloadButton projectSlug={projectSlug} />}
       <DisplayOptions />
     </Flex>

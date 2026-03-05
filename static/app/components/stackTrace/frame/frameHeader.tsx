@@ -14,7 +14,6 @@ import {
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {
-  StackTraceFrameHoverContext,
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
@@ -40,11 +39,11 @@ function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
   return frame.filename ?? frame.module ?? '';
 }
 
-function DefaultActions() {
+function DefaultActions({isHovering}: {isHovering: boolean}) {
   const {frame} = useStackTraceFrameContext();
   return (
     <Fragment>
-      <SourceLinkAction />
+      <SourceLinkAction isHovering={isHovering} />
       <SourceMapsDebuggerAction />
       <HiddenFramesToggleAction />
       {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
@@ -91,100 +90,98 @@ export function FrameHeader({actions}: FrameHeaderProps) {
   const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
 
   return (
-    <StackTraceFrameHoverContext.Provider value={{isHovering}}>
-      <FrameHeaderContainer
-        data-test-id="core-stacktrace-frame-title"
-        isExpandable={isExpandable}
-        aria-expanded={isExpandable ? isExpanded : undefined}
-        aria-controls={isExpandable ? frameContextId : undefined}
-        onClick={() => {
-          if (isExpandable) {
-            toggleExpansion();
-          }
-        }}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
-        <FrameHeaderMain direction="column" align="start" flex="1" gap="2xs" minWidth={0}>
-          <FrameTitle>
-            {!isExpanded && leadsToApp ? (
-              <FrameLeadHint as="span" size="xs" variant="muted">
-                {getLeadHint({event, hasNextFrame: !!nextFrame})}
-                {': '}
-              </FrameLeadHint>
-            ) : null}
-            <Tooltip title={framePathTooltip} disabled={!framePathTooltip} maxWidth={750}>
-              <FrameTitleFilename
-                data-truncate-left={shouldTruncateFilenameLeft}
-                truncateLeft={shouldTruncateFilenameLeft}
+    <FrameHeaderContainer
+      data-test-id="core-stacktrace-frame-title"
+      isExpandable={isExpandable}
+      aria-expanded={isExpandable ? isExpanded : undefined}
+      aria-controls={isExpandable ? frameContextId : undefined}
+      onClick={() => {
+        if (isExpandable) {
+          toggleExpansion();
+        }
+      }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
+      <FrameHeaderMain direction="column" align="start" flex="1" gap="2xs" minWidth={0}>
+        <FrameTitle>
+          {!isExpanded && leadsToApp ? (
+            <FrameLeadHint as="span" size="xs" variant="muted">
+              {getLeadHint({event, hasNextFrame: !!nextFrame})}
+              {': '}
+            </FrameLeadHint>
+          ) : null}
+          <Tooltip title={framePathTooltip} disabled={!framePathTooltip} maxWidth={750}>
+            <FrameTitleFilename
+              data-truncate-left={shouldTruncateFilenameLeft}
+              truncateLeft={shouldTruncateFilenameLeft}
+            >
+              <span>{frameDisplayPath}</span>
+            </FrameTitleFilename>
+          </Tooltip>
+          {shouldShowSourceMapInfo ? (
+            <Tooltip
+              title={
+                <SourceMapTooltipContent>
+                  <strong>{t('Source Map')}</strong>
+                  <span>{sourceMapInfoText}</span>
+                </SourceMapTooltipContent>
+              }
+              maxWidth={400}
+            >
+              <SourceMapInfoTrigger
+                aria-label={t('Source map info')}
+                onClick={e => e.stopPropagation()}
               >
-                <span>{frameDisplayPath}</span>
-              </FrameTitleFilename>
+                <IconQuestion size="xs" />
+              </SourceMapInfoTrigger>
             </Tooltip>
-            {shouldShowSourceMapInfo ? (
-              <Tooltip
-                title={
-                  <SourceMapTooltipContent>
-                    <strong>{t('Source Map')}</strong>
-                    <span>{sourceMapInfoText}</span>
-                  </SourceMapTooltipContent>
-                }
-                maxWidth={400}
-              >
-                <SourceMapInfoTrigger
-                  aria-label={t('Source map info')}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <IconQuestion size="xs" />
-                </SourceMapInfoTrigger>
-              </Tooltip>
+          ) : null}
+          <FrameTitleMeta forceNewLine={shouldBreakFrameMetaLine}>
+            {hasFrameFunction ? (
+              <FrameTitleHint as="span" size="sm" variant="muted">
+                {`${t('in')} `}
+              </FrameTitleHint>
             ) : null}
-            <FrameTitleMeta forceNewLine={shouldBreakFrameMetaLine}>
-              {hasFrameFunction ? (
+            {hasFrameFunction ? (
+              <FrameTitleFunction>{frameFunctionName}</FrameTitleFunction>
+            ) : null}
+            {frame.lineNo ? (
+              <FrameLineMeta>
                 <FrameTitleHint as="span" size="sm" variant="muted">
-                  {`${t('in')} `}
+                  {`${t('at line')} `}
                 </FrameTitleHint>
-              ) : null}
-              {hasFrameFunction ? (
-                <FrameTitleFunction>{frameFunctionName}</FrameTitleFunction>
-              ) : null}
-              {frame.lineNo ? (
-                <FrameLineMeta>
-                  <FrameTitleHint as="span" size="sm" variant="muted">
-                    {`${t('at line')} `}
-                  </FrameTitleHint>
-                  <FrameTitleName>
-                    {frame.colNo ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
-                  </FrameTitleName>
-                </FrameLineMeta>
-              ) : null}
-              {showPackage ? (
-                <FrameLineMeta>
-                  <FrameTitleHint as="span" size="sm" variant="muted">
-                    {`${t('within')} `}
-                  </FrameTitleHint>
-                  <FrameTitleName>{trimPackage(frame.package!)}</FrameTitleName>
-                </FrameLineMeta>
-              ) : null}
-            </FrameTitleMeta>
-          </FrameTitle>
-        </FrameHeaderMain>
+                <FrameTitleName>
+                  {frame.colNo ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
+                </FrameTitleName>
+              </FrameLineMeta>
+            ) : null}
+            {showPackage ? (
+              <FrameLineMeta>
+                <FrameTitleHint as="span" size="sm" variant="muted">
+                  {`${t('within')} `}
+                </FrameTitleHint>
+                <FrameTitleName>{trimPackage(frame.package!)}</FrameTitleName>
+              </FrameLineMeta>
+            ) : null}
+          </FrameTitleMeta>
+        </FrameTitle>
+      </FrameHeaderMain>
 
-        <FrameHeaderRight gap="xs" align="center">
-          {frame.inApp ? null : <Tag variant="muted">{t('System')}</Tag>}
-          <RepeatsIndicator timesRepeated={timesRepeated} />
-          {frameBadge?.(frame)}
+      <FrameHeaderRight gap="xs" align="center">
+        {frame.inApp ? null : <Tag variant="muted">{t('System')}</Tag>}
+        <RepeatsIndicator timesRepeated={timesRepeated} />
+        {frameBadge?.(frame)}
 
-          <FrameHeaderTrailing
-            data-test-id="core-stacktrace-frame-trailing"
-            gap="xs"
-            align="center"
-          >
-            {actions ?? <DefaultActions />}
-          </FrameHeaderTrailing>
-        </FrameHeaderRight>
-      </FrameHeaderContainer>
-    </StackTraceFrameHoverContext.Provider>
+        <FrameHeaderTrailing
+          data-test-id="core-stacktrace-frame-trailing"
+          gap="xs"
+          align="center"
+        >
+          {actions ?? <DefaultActions isHovering={isHovering} />}
+        </FrameHeaderTrailing>
+      </FrameHeaderRight>
+    </FrameHeaderContainer>
   );
 }
 

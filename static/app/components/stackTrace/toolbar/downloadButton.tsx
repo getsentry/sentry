@@ -1,7 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 
 import {
-  useOptionalStackTraceContext,
+  useStackTraceContext,
   useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
@@ -19,7 +19,7 @@ interface DownloadButtonProps {
  */
 export function DownloadButton({projectSlug}: DownloadButtonProps) {
   const {view, isMinified} = useStackTraceViewState();
-  const ctx = useOptionalStackTraceContext();
+  const ctx = useStackTraceContext();
   const platform = ctx?.platform;
   const organization = useOrganization();
   const api = useApi();
