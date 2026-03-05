@@ -116,7 +116,6 @@ describe('WidgetCardConfidenceFooter', () => {
         loading={false}
         other="Other"
         series={series}
-        showConfidenceWarning
         timeseriesResults={timeseriesResults}
         widget={WidgetFixture({
           displayType: DisplayType.LINE,
