@@ -1,6 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
+import {copyDsnFieldBlock} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {getInstallSnippet} from './utils';
 
 export const onboarding: OnboardingConfig = {
+  hideInstructionsCopy: true,
   install: (params: DocsParams) => [
     {
       title: t('Automatic Configuration (Recommended)'),
@@ -51,10 +52,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'custom',
-          content: <CopyDsnField params={params} />,
-        },
+        copyDsnFieldBlock(params),
       ],
     },
     getAISetupStep({skillPath: 'sentry-nextjs-sdk'}),

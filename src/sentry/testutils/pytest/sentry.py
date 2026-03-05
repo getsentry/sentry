@@ -23,7 +23,7 @@ from sentry.testutils.pytest import xdist
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -81,6 +81,8 @@ def _configure_test_env_regions() -> None:
         region_snowflake_id,
         settings.SENTRY_OPTIONS["system.url-prefix"],
         RegionCategory.MULTI_TENANT,
+    default_region = Cell(
+        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
     )
 
     settings.SENTRY_REGION = region_name
