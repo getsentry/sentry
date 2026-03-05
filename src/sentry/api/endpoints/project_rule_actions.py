@@ -96,7 +96,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         This method will lookup the corresponding workflow for a given rule then invoke the notification action.
         """
         action_exceptions = []
-        actions = rule.data.get("actions", [])
+        actions_data = rule.data.get("actions", [])
 
         workflow = Workflow(
             id=TEST_NOTIFICATION_ID,
@@ -109,7 +109,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             group=test_event.group,
         )
 
-        for action_blob in actions:
+        for action_blob in actions_data:
             try:
                 notification_actions_data = translate_rule_data_actions_to_notification_actions(
                     [action_blob], skip_failures=False
