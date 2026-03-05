@@ -130,7 +130,7 @@ describe('AssertionOpJsonPath', () => {
     expect(screen.getByRole('button', {name: 'Reorder assertion'})).toBeInTheDocument();
   });
 
-  it('hides < and > comparisons for non-numeric operand values', async () => {
+  it('shows < and > comparisons as disabled for non-numeric operand values', async () => {
     await renderOp(
       makeJsonPathOp({
         operand: {jsonpath_op: 'literal', value: 'ok'},
@@ -140,11 +140,19 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    expect(screen.queryByRole('option', {name: 'less than'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'greater than'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'less than'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'greater than'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'less than'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'greater than'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
-  it('allows < and > comparisons for numeric operand values and hides string type selector', async () => {
+  it('enables < and > comparisons for numeric operand values', async () => {
     function Stateful() {
       const [state, setState] = useState<UptimeJsonPathOp>({
         ...makeJsonPathOp({
@@ -176,9 +184,60 @@ describe('AssertionOpJsonPath', () => {
 
     expect(screen.getByRole('option', {name: 'less than'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'greater than'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'less than'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'greater than'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
 
-    expect(screen.queryByRole('option', {name: 'Glob Pattern'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Literal'})).not.toBeInTheDocument();
+  it('shows string operand types as disabled when < or > comparison is selected', async () => {
+    await renderOp(
+      makeJsonPathOp({
+        operator: {cmp: UptimeComparisonType.LESS_THAN},
+        operand: {jsonpath_op: 'literal', value: '123'},
+      })
+    );
+
+    const comparisonButton = screen.getByTestId('json-path-operators-trigger');
+    await userEvent.click(comparisonButton);
+
+    expect(screen.getByRole('option', {name: 'Glob Pattern'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Literal'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Glob Pattern'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Literal'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('shows string operand types as enabled when = or ≠ comparison is selected', async () => {
+    await renderOp(
+      makeJsonPathOp({
+        operator: defaultOperator,
+        operand: {jsonpath_op: 'literal', value: 'ok'},
+      })
+    );
+
+    const comparisonButton = screen.getByTestId('json-path-operators-trigger');
+    await userEvent.click(comparisonButton);
+
+    expect(screen.getByRole('option', {name: 'Glob Pattern'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Literal'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Glob Pattern'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Literal'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('resets operator from < or > to equals when the operand is not numeric', async () => {
