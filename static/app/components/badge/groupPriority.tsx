@@ -255,7 +255,7 @@ const DropdownButton = styled(Button)`
   border-radius: 20px;
   box-shadow: none;
 
-  > span > div {
+  > span > span > div {
     border-radius: 20px;
   }
 `;
