@@ -1,5 +1,4 @@
-import type React from 'react';
-import {createContext, useContext, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -41,11 +40,15 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-const TraceItemAttributeContext = createContext<
-  TypedTraceItemAttributesResult | undefined
->(undefined);
+type TraceItemAttributeType = 'number' | 'string' | 'boolean';
 
-type TraceItemAttributeConfig = {
+type TraceItemAttributeResult = {
+  attributes: TagCollection;
+  isLoading: boolean;
+  secondaryAliases: TagCollection;
+};
+
+export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
@@ -53,32 +56,7 @@ type TraceItemAttributeConfig = {
   search?: string;
 };
 
-type TraceItemAttributeProviderProps = {
-  children: React.ReactNode;
-} & TraceItemAttributeConfig;
-
-export function TraceItemAttributeProvider({
-  children,
-  traceItemType,
-  enabled,
-  projects,
-  search,
-  query,
-}: TraceItemAttributeProviderProps) {
-  const typedAttributesResult = useTraceItemAttributeConfig({
-    traceItemType,
-    enabled,
-    projects,
-    search,
-    query,
-  });
-
-  return (
-    <TraceItemAttributeContext value={typedAttributesResult}>
-      {children}
-    </TraceItemAttributeContext>
-  );
-}
+type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 
 function useTraceItemAttributeConfig({
   traceItemType,
@@ -86,7 +64,7 @@ function useTraceItemAttributeConfig({
   projects,
   search,
   query,
-}: TraceItemAttributeConfig) {
+}: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
   const organization = useOrganization();
   const hasBooleanFilters = organization.features.includes(
     'search-query-builder-explicit-boolean-filters'
@@ -206,7 +184,7 @@ function useTraceItemAttributeConfig({
 
 function processTraceItemAttributes(
   typedAttributesResult: TypedTraceItemAttributesResult,
-  type?: 'number' | 'string' | 'boolean',
+  type?: TraceItemAttributeType,
   hiddenKeys?: string[]
 ) {
   if (type === 'boolean') {
@@ -243,27 +221,71 @@ function processTraceItemAttributes(
 }
 
 export function useTraceItemAttributes(
-  type?: 'number' | 'string' | 'boolean',
+  config: TraceItemAttributeConfig,
+  type?: TraceItemAttributeType,
   hiddenKeys?: string[]
-) {
-  const typedAttributesResult = useContext(TraceItemAttributeContext);
-
-  if (typedAttributesResult === undefined) {
-    throw new Error(
-      'useTraceItemAttributes must be used within a TraceItemAttributeProvider'
-    );
-  }
-
+): TraceItemAttributeResult {
+  const typedAttributesResult = useTraceItemAttributeConfig(config);
   return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
 }
 
-export function useTraceItemAttributesWithConfig(
-  config: TraceItemAttributeConfig,
-  type?: 'number' | 'string' | 'boolean',
+export function useTraceItemDatasetAttributes(
+  traceItemType: TraceItemDataset,
+  {enabled, ...rest}: TraceItemAttributeOptions = {},
+  type?: TraceItemAttributeType,
   hiddenKeys?: string[]
-) {
-  const typedAttributesResult = useTraceItemAttributeConfig(config);
-  return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
+): TraceItemAttributeResult {
+  return useTraceItemAttributes(
+    {
+      traceItemType,
+      enabled: enabled ?? true,
+      ...rest,
+    },
+    type,
+    hiddenKeys
+  );
+}
+
+export function useSpanItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(TraceItemDataset.SPANS, options, type, hiddenKeys);
+}
+
+export function useLogItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(TraceItemDataset.LOGS, options, type, hiddenKeys);
+}
+
+export function useTraceMetricItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.TRACEMETRICS,
+    options,
+    type,
+    hiddenKeys
+  );
+}
+
+export function usePreprodItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.PREPROD,
+    options,
+    type,
+    hiddenKeys
+  );
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

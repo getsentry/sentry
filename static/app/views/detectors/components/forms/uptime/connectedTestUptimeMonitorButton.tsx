@@ -1,10 +1,9 @@
-import {useCallback, useContext} from 'react';
+import {useContext} from 'react';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import FormContext from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils';
-import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
 import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
@@ -35,21 +34,5 @@ export function ConnectedTestUptimeMonitorButton({
     };
   };
 
-  const handleValidationError = useCallback(
-    (responseJson: any) => {
-      if (form) {
-        const mapped = mapAssertionFormErrors(responseJson);
-        form.handleErrorResponse({responseJSON: mapped});
-      }
-    },
-    [form]
-  );
-
-  return (
-    <TestUptimeMonitorButton
-      getFormData={getFormData}
-      onValidationError={form ? handleValidationError : undefined}
-      size={size}
-    />
-  );
+  return <TestUptimeMonitorButton getFormData={getFormData} size={size} />;
 }

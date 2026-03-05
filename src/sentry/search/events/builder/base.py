@@ -894,7 +894,8 @@ class BaseQueryBuilder:
                 ):
                     if bare_orderby in self.orderby_converter:
                         validated.append(self.orderby_converter[bare_orderby](direction))
-                    validated.append(OrderBy(selected_column, direction))
+                    else:
+                        validated.append(OrderBy(selected_column, direction))
                     break
 
         if len(validated) == len(orderby_columns):

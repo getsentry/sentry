@@ -35,6 +35,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     slug = models.SlugField(unique=True, null=False)
     organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
     user_id = BoundedBigIntegerField(db_index=True, null=True)
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),

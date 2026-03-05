@@ -6,7 +6,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
@@ -50,7 +50,10 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckStatus,
     CheckStatusReason,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    TRACE_ITEM_TYPE_OCCURRENCE,
+    TraceItemType,
+)
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -62,7 +65,9 @@ from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
-from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.providers.saml2.activedirectory.apps import (
+    ACTIVE_DIRECTORY_PROVIDER_NAME,
+)
 from sentry.auth.staff import COOKIE_DOMAIN as STAFF_COOKIE_DOMAIN
 from sentry.auth.staff import COOKIE_NAME as STAFF_COOKIE_NAME
 from sentry.auth.staff import COOKIE_PATH as STAFF_COOKIE_PATH
@@ -77,6 +82,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
+from sentry.eventstream.item_helpers import _build_occurrence_attributes
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -108,8 +114,12 @@ from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.new_migrations.monkey.state import SentryProjectState
-from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
-from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.models.notificationsettingoption import (
+    NotificationSettingOption,
+)
+from sentry.notifications.models.notificationsettingprovider import (
+    NotificationSettingProvider,
+)
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -206,7 +216,7 @@ __all__ = (
     "MonitorIngestTestCase",
 )
 
-from ..types.region import get_region_by_name
+from ..types.region import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -454,7 +464,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                            region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
                         with (
                             SingleProcessSiloModeState.exit(),
                             SingleProcessSiloModeState.enter(mode, region),
@@ -1161,6 +1171,81 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+    def produce_and_store_eap_items(
+        self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> list[TraceItem]:
+        """
+        Calls produce_fn while intercepting the Kafka produce call at
+        producer_mock_path, then inserts the captured TraceItems into Snuba
+        via the synchronous HTTP endpoint so they're immediately queryable.
+
+        Use this instead of calling EAP producers directly in tests, since
+        SingletonProducer only flushes on process exit.
+        """
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+
+        payloads: list[bytes] = []
+
+        def capture(topic: Any, payload: Any) -> None:
+            payloads.append(payload.value)
+
+        with mock.patch(producer_mock_path, side_effect=capture):
+            produce_fn(*args, **kwargs)
+
+        trace_items = []
+        for raw in payloads:
+            item = TraceItem()
+            item.CopyFrom(codec.decode(raw))
+            trace_items.append(item)
+
+        self.store_eap_items(trace_items)
+        return trace_items
+
+    def store_occurrences(self, occurrences: Sequence[TraceItem]):
+        files = {
+            f"occurrence_{i}": occurrence.SerializeToString()
+            for i, occurrence in enumerate(occurrences)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_events_to_snuba_and_eap(
+        self,
+        fingerprint: str,
+        count: int = 1,
+        timestamp: float | None = None,
+        trace_id: str | None = None,
+        message: str | None = None,
+        project_id: int | None = None,
+        extra_event_data: dict[str, Any] | None = None,
+    ) -> list[Event]:
+        """
+        Store occurrences in both legacy Snuba and EAP via the production dual-write path.
+        """
+        events: list[Event] = []
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            for _ in range(count):
+                data: dict[str, Any] = {
+                    "message": message or f"error in {fingerprint}",
+                    "fingerprint": [fingerprint],
+                    "event_id": uuid4().hex,
+                    "contexts": {"trace": {"trace_id": trace_id or uuid4().hex}},
+                }
+                if timestamp is not None:
+                    data["timestamp"] = timestamp
+                if extra_event_data:
+                    data.update(extra_event_data)
+                event = self.store_event(
+                    data=data,
+                    project_id=project_id or self.project.id,
+                    assert_no_errors=False,
+                )
+                events.append(event)
+        return events
 
     def store_trace_metrics(self, trace_metrics):
         files = {
@@ -2597,7 +2682,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["selectedAggregate"] == widget_data_source.selected_aggregate
 
     def get_widgets(self, dashboard_id):
-        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
+        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order", "id")
 
     def assert_serialized_widget(self, data, expected_widget):
         if "id" in data:
@@ -3166,19 +3251,22 @@ class UptimeTestCaseMixin:
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
+        guid: str | None = None,
         status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
         uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
+        if guid is None:
+            guid = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
         optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
-            "guid": uuid.uuid4().hex,
+            "guid": guid,
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {
@@ -3481,6 +3569,68 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
+    def create_eap_occurrence(
+        self,
+        *,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        group_id: int | None = None,
+        event_id: str | None = None,
+        trace_id: str | None = None,
+        timestamp: datetime | None = None,
+        level: str = "error",
+        environment: str | None = None,
+        title: str = "some error",
+        transaction: str | None = None,
+        occurrence_type: str = "error",
+        tags: dict[str, str] | None = None,
+        attributes: dict[str, Any] | None = None,
+        retention_days: int = 90,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+        if event_id is None:
+            event_id = uuid4().hex
+        if trace_id is None:
+            trace_id = uuid4().hex
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        data: dict[str, Any] = {
+            "level": level,
+            "title": title,
+            "type": occurrence_type,
+        }
+        if group_id is not None:
+            data["group_id"] = group_id
+        if environment is not None:
+            data["environment"] = environment
+        if transaction is not None:
+            data["transaction"] = transaction
+        if attributes:
+            data.update(attributes)
+
+        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TRACE_ITEM_TYPE_OCCURRENCE,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=hex_to_item_id(event_id),
+            received=timestamp_proto,
+            retention_days=retention_days,
             attributes=attributes_proto,
         )
 

@@ -8,6 +8,7 @@ class RuleArtifactType(StrEnum):
     MAIN_ARTIFACT = "main_artifact"
     WATCH_ARTIFACT = "watch_artifact"
     ANDROID_DYNAMIC_FEATURE_ARTIFACT = "android_dynamic_feature_artifact"
+    APP_CLIP_ARTIFACT = "app_clip_artifact"
     ALL_ARTIFACTS = "all_artifacts"
 
     @classmethod
@@ -85,3 +86,4 @@ class TriggeredRule:
     platform: str | None
     metrics_artifact_type: int | None = None
     identifier: str | None = None
+    build_configuration_name: str | None = None

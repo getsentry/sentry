@@ -8,6 +8,7 @@ class AiAutofixPrEvent(analytics.Event):
     group_id: int
     run_id: int
     integration: str
+    github_app: str
 
 
 @analytics.eventclass("ai.autofix.pr.closed")

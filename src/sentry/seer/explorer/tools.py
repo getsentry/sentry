@@ -183,7 +183,10 @@ def execute_table_query(
             path=f"/organizations/{organization.slug}/events/",
             params=params,
         )
-        return {"data": resp.data["data"]}
+        return {
+            "data": resp.data["data"],
+            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
+        }
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
@@ -352,7 +355,10 @@ def execute_trace_table_query(
             path=f"/organizations/{organization.slug}/traces/",
             params=params,
         )
-        return {"data": resp.data["data"]}
+        return {
+            "data": resp.data["data"],
+            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
+        }
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:

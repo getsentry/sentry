@@ -24,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
-import PasswordForm from 'sentry/views/settings/account/passwordForm';
+import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

@@ -1,16 +1,42 @@
 import hashlib
 import hmac
 import logging
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
+from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 
+
+class SeerViewerContext(TypedDict, total=False):
+    organization_id: int
+    # TODO(jeremy.stanley): user_id is int | None as a temporary state while
+    # consolidating viewer context across call sites. Some pass request.user.id
+    # (which can be None for anonymous users), others omit the key entirely.
+    # Once all call sites are wired up, tighten this to int and ensure callers
+    # only set user_id when an authenticated user is present.
+    user_id: int | None
+
+
 logger = logging.getLogger(__name__)
+
+
+seer_summarization_default_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
+)
+
+seer_autofix_default_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
+
+seer_anomaly_detection_default_connection_pool = connection_from_url(
+    settings.SEER_ANOMALY_DETECTION_URL,
+)
 
 
 @sentry_sdk.tracing.trace
@@ -22,6 +48,7 @@ def make_signed_seer_api_request(
     retries: int | None | Retry = None,
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     host = connection_pool.host
     if connection_pool.port:
@@ -31,6 +58,25 @@ def make_signed_seer_api_request(
     parsed = urlparse(url)
 
     auth_headers = sign_with_seer_secret(body)
+
+    headers: dict[str, str] = {
+        "content-type": "application/json;charset=utf-8",
+        **auth_headers,
+    }
+
+    if viewer_context:
+        if settings.SEER_API_SHARED_SECRET:
+            try:
+                context_bytes = orjson.dumps(viewer_context)
+                context_signature = sign_viewer_context(context_bytes)
+                headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
+                headers["X-Viewer-Context-Signature"] = context_signature
+            except Exception:
+                logger.exception("Failed to serialize viewer context for call to Seer.")
+        else:
+            logger.warning(
+                "settings.SEER_API_SHARED_SECRET is not set. Unable to sign viewer context for call to Seer."
+            )
 
     options: dict[str, Any] = {}
     if timeout:
@@ -47,9 +93,341 @@ def make_signed_seer_api_request(
             method,
             parsed.path,
             body=body,
-            headers={"content-type": "application/json;charset=utf-8", **auth_headers},
+            headers=headers,
             **options,
         )
+
+
+class OrgProjectKnowledgeProjectData(TypedDict):
+    project_id: int
+    slug: str
+    sdk_name: str
+    error_count: int
+    transaction_count: int
+    instrumentation: list[str]
+    top_transactions: list[str]
+    top_span_operations: list[tuple[str, str]]
+
+
+class OrgProjectKnowledgeIndexRequest(TypedDict):
+    org_id: int
+    projects: list[OrgProjectKnowledgeProjectData]
+
+
+class RemoveRepositoryRequest(TypedDict):
+    organization_id: int
+    repo_provider: str
+    repo_external_id: str
+
+
+class ExplorerIndexProject(TypedDict):
+    org_id: int
+    project_id: int
+
+
+class ExplorerIndexRequest(TypedDict):
+    projects: list[ExplorerIndexProject]
+
+
+class LlmGenerateRequest(TypedDict):
+    provider: str
+    model: str
+    referrer: str
+    prompt: str
+    system_prompt: str
+    temperature: float
+    max_tokens: int
+    response_schema: NotRequired[dict[str, Any]]
+
+
+def make_org_project_knowledge_index_request(
+    body: OrgProjectKnowledgeIndexRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_remove_repository_request(
+    body: RemoveRepositoryRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/remove-repository",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
+
+
+def make_explorer_index_request(
+    body: ExplorerIndexRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_seer_models_request(
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/models",
+        body=b"",
+        timeout=timeout,
+        method="GET",
+        viewer_context=viewer_context,
+    )
+
+
+def make_llm_generate_request(
+    body: LlmGenerateRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/llm/generate",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+class SummarizeTraceRequest(TypedDict):
+    trace_id: str
+    only_transaction: bool
+    trace: dict[str, Any]
+
+
+class SummarizeIssueRequest(TypedDict):
+    group_id: int
+    issue: dict[str, Any]
+    trace_tree: NotRequired[dict[str, Any] | None]
+    organization_slug: str
+    organization_id: int
+    project_id: int
+
+
+class SupergroupsEmbeddingRequest(TypedDict):
+    organization_id: int
+    group_id: int
+    artifact_data: dict[str, Any]
+
+
+class ServiceMapUpdateRequest(TypedDict):
+    organization_id: int
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+
+
+class UnitTestGenerationRequest(TypedDict):
+    repo: dict[str, Any]
+    pr_id: int
+
+
+class SearchAgentStateRequest(TypedDict):
+    run_id: int
+    organization_id: int
+
+
+class TranslateQueryRequest(TypedDict):
+    org_id: int
+    org_slug: str
+    project_ids: list[int]
+    natural_language_query: str
+
+
+class SearchAgentStartRequest(TypedDict):
+    org_id: int
+    org_slug: str
+    project_ids: list[int]
+    natural_language_query: str
+    strategy: str
+    user_email: NotRequired[str]
+    timezone: NotRequired[str]
+    options: NotRequired[dict[str, Any]]
+
+
+class TranslateAgenticRequest(TypedDict):
+    org_id: int
+    org_slug: str
+    project_ids: list[int]
+    natural_language_query: str
+    strategy: str
+    options: NotRequired[dict[str, Any]]
+
+
+class CreateCacheRequest(TypedDict):
+    org_id: int
+    project_ids: list[int]
+
+
+class CompareDistributionsRequest(TypedDict):
+    baseline: list[dict[str, Any]]
+    outliers: list[dict[str, Any]]
+    total_baseline: int
+    total_outliers: int
+    config: dict[str, Any]
+    meta: dict[str, Any]
+
+
+def make_summarize_trace_request(
+    body: SummarizeTraceRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        "/v1/automation/summarize/trace",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_summarize_issue_request(
+    body: SummarizeIssueRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        "/v1/automation/summarize/issue",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_supergroups_embedding_request(
+    body: SupergroupsEmbeddingRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_service_map_update_request(
+    body: ServiceMapUpdateRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/explorer/service-map/update",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_unit_test_generation_request(
+    body: UnitTestGenerationRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/codegen/unit-tests",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_search_agent_state_request(
+    body: SearchAgentStateRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/state",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_translate_query_request(
+    body: TranslateQueryRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/translate",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
+
+
+def make_search_agent_start_request(
+    body: SearchAgentStartRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/start",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_translate_agentic_request(
+    body: TranslateAgenticRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/translate-agentic",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
+
+
+def make_create_cache_request(
+    body: CreateCacheRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/create-cache",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
+
+
+def make_compare_distributions_request(
+    body: CompareDistributionsRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_anomaly_detection_default_connection_pool,
+        "/v1/workflows/compare/cohort",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
 
 
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:
@@ -67,3 +445,12 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
             "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
     return auth_headers
+
+
+def sign_viewer_context(context_bytes: bytes) -> str:
+    """Sign the viewer context payload with the shared secret."""
+    return hmac.new(
+        settings.SEER_API_SHARED_SECRET.encode("utf-8"),
+        context_bytes,
+        hashlib.sha256,
+    ).hexdigest()

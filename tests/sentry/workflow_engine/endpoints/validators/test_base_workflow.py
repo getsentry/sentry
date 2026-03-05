@@ -271,7 +271,7 @@ class TestWorkflowValidatorCreate(TestCase):
 
     def test_create__exceeds_workflow_limit(self) -> None:
         REGULAR_LIMIT = 2
-        with self.settings(MAX_WORKFLOWS_PER_ORG=REGULAR_LIMIT):
+        with self.options({"workflow_engine.max_workflows_per_org": REGULAR_LIMIT}):
             # Create first workflow - should succeed
             validator = WorkflowValidator(data=self.valid_data, context=self.context)
             validator.is_valid(raise_exception=True)
@@ -298,11 +298,23 @@ class TestWorkflowValidatorCreate(TestCase):
                 )
             ]
 
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.log_alerting_quota_hit")
+    def test_create__exceeds_workflow_limit_calls_log(self, mock_log: mock.MagicMock) -> None:
+        with self.options({"workflow_engine.max_workflows_per_org": 0}):
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+            validator.is_valid(raise_exception=True)
+            with pytest.raises(ValidationError):
+                validator.create(validator.validated_data)
+        mock_log.assert_called_once()
+
     def test_create__exceeds_more_workflow_limit(self) -> None:
         REGULAR_LIMIT = 2
         MORE_LIMIT = 4
-        with self.settings(
-            MAX_WORKFLOWS_PER_ORG=REGULAR_LIMIT, MAX_MORE_WORKFLOWS_PER_ORG=MORE_LIMIT
+        with self.options(
+            {
+                "workflow_engine.max_workflows_per_org": REGULAR_LIMIT,
+                "workflow_engine.max_more_workflows_per_org": MORE_LIMIT,
+            }
         ):
             # First verify regular limit is enforced without the feature flag
             # Create first REGULAR_LIMIT workflows - should succeed

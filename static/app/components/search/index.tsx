@@ -14,6 +14,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import ApiSource from './sources/apiSource';
 import CommandSource from './sources/commandSource';
+import DsnLookupSource from './sources/dsnLookupSource';
 import FormSource from './sources/formSource';
 import OrganizationsSource from './sources/organizationsSource';
 import RouteSource from './sources/routeSource';
@@ -208,6 +209,7 @@ function Search({
                     RouteSource,
                     OrganizationsSource,
                     CommandSource,
+                    DsnLookupSource,
                   ]
                 }
               >

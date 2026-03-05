@@ -16,13 +16,13 @@ import {
   AssertionSuggestionCardPlaceholder,
 } from 'sentry/views/alerts/rules/uptime/assertionSuggestionCard';
 import type {
-  AssertionSuggestion,
-  AssertionSuggestionsResponse,
   PreviewCheckPayload,
+  UptimeAssertionSuggestion,
+  UptimeAssertionSuggestionsResponse,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface AssertionSuggestionsDrawerContentProps {
-  onApply: (suggestion: AssertionSuggestion) => void;
+  onApply: (suggestion: UptimeAssertionSuggestion) => void;
   payload: PreviewCheckPayload;
 }
 
@@ -40,21 +40,22 @@ export function AssertionSuggestionsDrawerContent({
 }: AssertionSuggestionsDrawerContentProps) {
   const organization = useOrganization();
 
-  const {data, isPending, isError, refetch} = useApiQuery<AssertionSuggestionsResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/uptime-assertion-suggestions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isPending, isError, refetch} =
+    useApiQuery<UptimeAssertionSuggestionsResponse>(
+      [
+        getApiUrl('/organizations/$organizationIdOrSlug/uptime-assertion-suggestions/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'POST',
+          data: {...payload},
+        },
+      ],
       {
-        method: 'POST',
-        data: {...payload},
-      },
-    ],
-    {
-      staleTime: 5 * 60 * 1000,
-      retry: false,
-    }
-  );
+        staleTime: 5 * 60 * 1000,
+        retry: false,
+      }
+    );
 
   const suggestions = data?.suggestions ?? null;
   const isLoading = isPending;

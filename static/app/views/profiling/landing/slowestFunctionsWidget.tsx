@@ -384,8 +384,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           };
         });
       })
-      .reverse()
-      .slice(0, 10);
+      .reverse();
   }, [func, stats, organization, project, frame]);
 
   return (
@@ -436,6 +435,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           }}
           items={examples}
           menuTitle={t('Example Profiles')}
+          maxMenuHeight={300}
         />
       </AccordionItem>
       {isExpanded && (

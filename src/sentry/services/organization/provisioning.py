@@ -21,10 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 
 
-class OrganizationSlugCollisionException(Exception):
-    pass
-
-
 class OrganizationProvisioningException(Exception):
     pass
 

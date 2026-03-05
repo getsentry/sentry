@@ -1,5 +1,6 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -33,7 +34,6 @@ import {
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
@@ -84,6 +84,7 @@ interface GroupActionsProps {
 }
 
 export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+  const theme = useTheme();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -107,8 +108,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     ? isVersionInfoSemver(eventReleaseVersion)
     : projHasSemverRelease;
 
-  const hasSemverReleaseFeature =
-    organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
+  const hasSemverReleaseFeature = hasSemverRelease;
 
   const isResolved = group.status === 'resolved';
   const isAutoResolved =
@@ -341,7 +341,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             <Footer>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
-                style={{marginLeft: space(1)}}
+                style={{marginLeft: theme.space.md}}
                 priority="primary"
                 onClick={onDiscard}
                 disabled={!hasFeature}
@@ -685,7 +685,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
 const ResolvedWrapper = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   align-items: center;
   color: ${p => p.theme.colors.green500};
   font-weight: bold;

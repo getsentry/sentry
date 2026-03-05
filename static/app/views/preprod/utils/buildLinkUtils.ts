@@ -2,7 +2,6 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 
 interface BuildLinkParams {
   organizationSlug: string;
-  projectId: string;
   baseArtifactId?: string;
 }
 
@@ -10,13 +9,13 @@ export function getBaseBuildPath(
   params: BuildLinkParams,
   viewType?: 'size' | 'install'
 ): string | undefined {
-  const {organizationSlug, projectId, baseArtifactId} = params;
+  const {organizationSlug, baseArtifactId} = params;
 
   if (!baseArtifactId) {
     return undefined;
   }
 
-  return `/organizations/${organizationSlug}/preprod/${viewType}/${baseArtifactId}/?project=${projectId}`;
+  return `/organizations/${organizationSlug}/preprod/${viewType}/${baseArtifactId}/`;
 }
 
 export function getSizeBuildPath(params: BuildLinkParams): string | undefined {
@@ -30,39 +29,33 @@ export function getInstallBuildPath(params: BuildLinkParams): string | undefined
 export function getCompareBuildPath(params: {
   headArtifactId: string;
   organizationSlug: string;
-  projectId: string;
   baseArtifactId?: string;
 }): string {
-  const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
+  const {organizationSlug, headArtifactId, baseArtifactId} = params;
 
   if (baseArtifactId) {
-    return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
+    return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/${baseArtifactId}/`;
   }
 
-  return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/?project=${projectId}`;
+  return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/`;
 }
 
-export function getListBuildPath(params: {
-  organizationSlug: string;
-  projectId: string;
-}): string {
-  const {organizationSlug, projectId} = params;
-  return `/organizations/${organizationSlug}/preprod/?project=${projectId}`;
+export function getListBuildPath(params: {organizationSlug: string}): string {
+  const {organizationSlug} = params;
+  return `/organizations/${organizationSlug}/preprod/`;
 }
 
 export function getCompareApiUrl(params: {
   baseArtifactId: string;
   headArtifactId: string;
   organizationSlug: string;
-  projectId: string;
 }) {
-  const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
+  const {organizationSlug, headArtifactId, baseArtifactId} = params;
   return getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
+    '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
     {
       path: {
         organizationIdOrSlug: organizationSlug,
-        projectIdOrSlug: projectId,
         headArtifactId,
         baseArtifactId,
       },

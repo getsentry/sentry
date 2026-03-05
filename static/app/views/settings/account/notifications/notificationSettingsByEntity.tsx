@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -15,7 +16,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -23,7 +23,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
 import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
-import {NOTIFICATION_SETTING_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS} from './fields';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
 type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';
@@ -49,6 +49,7 @@ function NotificationSettingsByEntity({
   notificationType,
   organizations,
 }: NotificationSettingsByEntityProps) {
+  const theme = useTheme();
   const router = useRouter();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
@@ -140,7 +141,7 @@ function NotificationSettingsByEntity({
 
       return (
         <Item key={entity.id}>
-          <div style={{marginLeft: space(2)}}>
+          <div style={{marginLeft: theme.space.xl}}>
             <IdBadge
               {...idBadgeProps}
               avatarSize={20}
@@ -309,7 +310,7 @@ const MinHeight = styled('div')`
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   & > form:last-child {
     flex-grow: 1;
   }
@@ -323,10 +324,10 @@ const StyledPanelBody = styled(PanelBody)`
 
 const Item = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   grid-template-columns: 2.5fr 1fr min-content;
   align-items: center;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const ControlItem = styled(Item)`
@@ -334,5 +335,5 @@ const ControlItem = styled(Item)`
 `;
 
 const RemoveButtonWrapper = styled('div')`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;

@@ -1,33 +1,30 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import xor from 'lodash/xor';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {
-  HybridFilter,
-  HybridFilterComponents,
-  useStagedCompactSelect,
-  type HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 const TEST_SUITES = 'testSuites';
 const MAX_SUITE_UI_LENGTH = 50;
-const MAX_RECORD_LENGTH = 40;
 
 export function TestSuiteDropdown() {
-  const [dropdownSearch, setDropdownSearch] = useState<string>('');
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const {data: testSuites} = useTestSuites();
-  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
 
   const handleChange = useCallback(
     (newTestSuites: string[]) => {
@@ -38,7 +35,6 @@ export function TestSuiteDropdown() {
       });
 
       setUrlSearchParams(urlSearchParams);
-      setDropdownSearch('');
     },
     [urlSearchParams, setUrlSearchParams]
   );
@@ -47,41 +43,25 @@ export function TestSuiteDropdown() {
     const selectedNames = urlSearchParams.getAll(TEST_SUITES);
     const selectedSet = new Set(selectedNames.map(name => name.toLowerCase()));
 
-    const filtered = testSuites.filter(suite => {
-      const matchesSearch =
-        !dropdownSearch || suite.toLowerCase().includes(dropdownSearch.toLowerCase());
-      return matchesSearch || selectedSet.has(suite.toLowerCase());
-    });
-
-    const mapped = filtered.map(suite => ({
+    const mapped = testSuites.map(suite => ({
       label: suite,
       value: suite,
       isSelected: selectedSet.has(suite.toLowerCase()),
       leadingItems: ({isSelected}: {isSelected: boolean}) => (
         <Checkbox
-          size="sm"
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption(suite)}
+          onChange={() => toggleOptionRef.current?.(suite)}
           aria-label={t('Select %s', suite)}
           tabIndex={-1}
         />
       ),
     }));
 
-    const sorted = sortBy(mapped, [option => !option.isSelected]);
-
-    return sorted.slice(0, MAX_RECORD_LENGTH);
-  }, [testSuites, dropdownSearch, urlSearchParams]);
-
-  const handleOnSearch = (value: string) => {
-    setDropdownSearch(value);
-  };
+    return sortBy(mapped, [option => !option.isSelected]);
+  }, [testSuites, urlSearchParams]);
 
   function getEmptyMessage() {
     if (!options.length) {
-      if (dropdownSearch?.length) {
-        return t('No test suites found. Please enter a different search term.');
-      }
       return t('No test suites found');
     }
     return undefined;
@@ -97,36 +77,48 @@ export function TestSuiteDropdown() {
 
   const stagedSelect = useStagedCompactSelect({
     value,
-    defaultValue: [],
     options,
     onChange: handleChange,
     multiple: true,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
+  const {dispatch} = stagedSelect;
+  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const shouldShowReset = stagedSelect.value.length > 0;
+
   return (
-    <HybridFilter
-      ref={hybridFilterRef}
-      stagedSelect={stagedSelect}
-      searchable
-      options={options}
-      onSearch={handleOnSearch}
+    <CompactSelect
+      grid
+      multiple
+      {...stagedSelect.compactSelectProps}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
+        shouldShowReset ? (
+          <MenuComponents.ResetButton
+            onClick={() => {
+              dispatch({type: 'remove staged'});
+              handleChange([]);
+            }}
           />
         ) : null
       }
       menuFooter={
-        stagedSelect.hasStagedChanges ? (
+        hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
-              onClick={() => stagedSelect.removeStagedChanges()}
+            <MenuComponents.CancelButton
+              onClick={() => dispatch({type: 'remove staged'})}
             />
-            <HybridFilterComponents.ApplyButton
-              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            <MenuComponents.ApplyButton
+              onClick={() => {
+                dispatch({type: 'remove staged'});
+                handleChange(stagedSelect.value);
+              }}
             />
           </Flex>
         ) : null
@@ -173,9 +165,9 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  margin-left: ${space(0.5)};
+  margin-top: -${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

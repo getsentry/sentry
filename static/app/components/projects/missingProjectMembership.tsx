@@ -132,7 +132,7 @@ export default function MissingProjectMembership({
               justify="center"
             >
               <StyledCompactSelect
-                searchable
+                search
                 value={selectedTeam || undefined}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps}>

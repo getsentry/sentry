@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 interface MenuProps extends React.DetailedHTMLProps<
   React.HTMLAttributes<HTMLDivElement>,
@@ -26,7 +25,7 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   width: auto;
   min-width: 164px;
   overflow: auto;
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 export {Menu as ProfilingContextMenu};
@@ -36,7 +35,7 @@ const MenuContentContainer = styled('div')`
   display: flex;
   align-items: center;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
   background: ${p =>
@@ -119,7 +118,7 @@ const MenuButton = styled('button')`
   display: flex;
   flex: 1;
   align-items: center;
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
   background: ${p =>
@@ -136,7 +135,7 @@ const MenuButton = styled('button')`
   }
 
   svg {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
@@ -145,8 +144,8 @@ const MenuLeadingItem = styled('div')`
   align-items: center;
   height: 1.4em;
   width: 1em;
-  gap: ${space(1)};
-  padding: ${space(1)} 0;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} 0;
   position: relative;
 `;
 
@@ -154,10 +153,10 @@ const MenuContent = styled('div')`
   position: relative;
   width: 100%;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: space-between;
-  padding: ${space(0.5)} 0;
-  margin-left: ${space(0.5)};
+  padding: ${p => p.theme.space.xs} 0;
+  margin-left: ${p => p.theme.space.xs};
   text-transform: capitalize;
 
   margin-bottom: 0;
@@ -172,7 +171,7 @@ const Input = styled('input')`
   opacity: 0;
   cursor: pointer;
   height: 0;
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space.md};
 
   & + svg {
     position: absolute;
@@ -210,7 +209,7 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
   cursor: pointer;
   color: ${p => p.theme.tokens.content.primary};
   background: transparent;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
 
   &:focus {
     outline: none;
@@ -224,7 +223,7 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
 export {MenuItem as ProfilingContextMenuItem};
 
 const MenuContentOuterContainer = styled('div')`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
   display: flex;
 
   > span {
@@ -240,7 +239,7 @@ const MenuContentOuterContainer = styled('div')`
 
 const MenuGroup = styled('div')`
   padding-top: 0;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
   &:last-of-type {
     padding-bottom: 0;
@@ -267,7 +266,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
   margin-bottom: 0;
   cursor: default;
   font-size: 75%;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;
 
 export {MenuHeading as ProfilingContextMenuHeading};

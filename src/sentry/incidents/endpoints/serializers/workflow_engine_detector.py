@@ -57,7 +57,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             sentry_app_ids = [
                 int(action.config.get("target_identifier"))
                 for action in actions
-                if action.config.get("sentry_app_identifier") is not None
+                if action.type == Action.Type.SENTRY_APP.value
             ]
             install_contexts = app_service.get_component_contexts(
                 filter={"app_ids": sentry_app_ids, "organization_id": organization_id},

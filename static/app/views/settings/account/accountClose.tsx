@@ -1,10 +1,9 @@
-import {useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {useEffect, useRef, useState} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -20,6 +19,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -58,6 +58,7 @@ function AccountClose() {
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
   const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 
   // Load organizations from all regions.
   useEffect(() => {
@@ -73,13 +74,11 @@ function AccountClose() {
     });
   }, [api]);
 
-  let leaveRedirectTimeout: number | undefined = undefined;
   useEffect(() => {
-    // setup unmount callback
     return () => {
-      window.clearTimeout(leaveRedirectTimeout);
+      window.clearTimeout(leaveRedirectTimeout.current);
     };
-  }, [leaveRedirectTimeout]);
+  }, []);
 
   const handleChange = (
     organization: OrganizationSummary,
@@ -101,27 +100,33 @@ function AccountClose() {
     setOrgsToRemove(slugSet);
   };
 
-  const handleRemoveAccount = async () => {
-    addLoadingMessage('Closing account\u2026');
-
-    try {
-      await api.requestPromise('/users/me/', {
+  const {mutate: removeAccount} = useMutation({
+    mutationFn: (orgs: string[]) =>
+      fetchMutation({
         method: 'DELETE',
-        data: {organizations: Array.from(orgsToRemove)},
-      });
-
+        url: '/users/me/',
+        data: {organizations: orgs},
+      }),
+    onMutate: () => {
+      addLoadingMessage('Closing account\u2026');
+    },
+    onSuccess: () => {
       requestAnimationFrame(() => {
         openModal(GoodbyeModalContent, {
           onClose: leaveRedirect,
         });
       });
-
       // Redirect after 10 seconds
-      window.clearTimeout(leaveRedirectTimeout);
-      leaveRedirectTimeout = window.setTimeout(leaveRedirect, 10000);
-    } catch {
+      window.clearTimeout(leaveRedirectTimeout.current);
+      leaveRedirectTimeout.current = window.setTimeout(leaveRedirect, 10000);
+    },
+    onError: () => {
       addErrorMessage('Error closing account');
-    }
+    },
+  });
+
+  const handleRemoveAccount = () => {
+    removeAccount(Array.from(orgsToRemove));
   };
 
   const HookedCustomConfirmAccountClose = HookOrDefault({
@@ -140,56 +145,52 @@ function AccountClose() {
 
       <TextBlock>
         {t(
-          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted.'
+          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
         )}
+        <strong>{t('Closing your account is permanent and cannot be undone')}!</strong>
       </TextBlock>
-
-      <Alert.Container>
-        <Alert variant="danger">
-          {t('Closing your account is permanent and cannot be undone')}!
-        </Alert>
-      </Alert.Container>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
           <PanelAlert variant="warning">
-            {t('Organizations with checked boxes will be deleted!')}
-            <br />
             {t(
-              'Ownership will remain with other organization owners if an organization is not deleted.'
-            )}
-            <br />
-            {t(
-              "Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted."
+              `Organizations with checked boxes will be deleted. Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted. If an organization is not deleted, its ownership will persist among other organization owners.`
             )}
           </PanelAlert>
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <Flex as="label" align="center">
-                <Checkbox
-                  css={css`
-                    margin-right: 6px;
-                  `}
-                  name="organizations"
+              <Grid
+                as="label"
+                align="center"
+                gap="lg"
+                columns="1fr auto"
+                width="100%"
+                htmlFor={`delete-organization-${organization.slug}`}
+              >
+                <Text size="sm" bold ellipsis>
+                  {organization.slug}
+                </Text>
+                <Switch
+                  size="sm"
+                  id={`delete-organization-${organization.slug}`}
                   checked={orgsToRemove.has(organization.slug)}
-                  disabled={singleOwner}
                   value={organization.slug}
                   onChange={evt => handleChange(organization, singleOwner, evt)}
-                  size="sm"
-                  role="checkbox"
+                  disabled={singleOwner}
                 />
-                {organization.slug}
-              </Flex>
+              </Grid>
             </PanelItem>
           ))}
         </PanelBody>
       </Panel>
-      <HookedCustomConfirmAccountClose
-        handleRemoveAccount={handleRemoveAccount}
-        organizationSlugs={Array.from(orgsToRemove)}
-      />
+      <Flex justify="end">
+        <HookedCustomConfirmAccountClose
+          handleRemoveAccount={handleRemoveAccount}
+          organizationSlugs={Array.from(orgsToRemove)}
+        />
+      </Flex>
     </div>
   );
 }

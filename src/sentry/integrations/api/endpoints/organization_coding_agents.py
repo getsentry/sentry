@@ -77,9 +77,6 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Get all available coding agent integrations for the organization."""
-        if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return Response({"detail": "Feature not available"}, status=404)
-
         integrations = integration_service.get_integrations(
             organization_id=organization.id,
             providers=get_coding_agent_providers(),
@@ -159,7 +156,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         failures = results["failures"]
 
         response_data: LaunchResponse = {
-            "success": True,
+            "success": len(successes) > 0,
             "launched_count": len(successes),
             "failed_count": len(failures),
         }

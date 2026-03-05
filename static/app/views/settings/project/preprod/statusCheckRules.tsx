@@ -13,6 +13,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,6 +21,7 @@ import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {StatusCheckRuleItem} from './statusCheckRuleItem';
+import {DEFAULT_ARTIFACT_TYPE} from './types';
 import {useStatusCheckRules} from './useStatusCheckRules';
 
 export function StatusCheckRules() {
@@ -45,6 +47,10 @@ export function StatusCheckRules() {
   const handleAddRule = () => {
     const newRule = createEmptyRule();
     addRule(newRule);
+    trackAnalytics('preprod.settings.status_check_rule_created', {
+      organization,
+      project_slug: project.slug,
+    });
     setNewRuleId(newRule.id);
     updateExpandedInUrl([...expandedRuleIds, newRule.id]);
   };
@@ -117,11 +123,23 @@ export function StatusCheckRules() {
                         }
                         onSave={updated => {
                           updateRule(rule.id, updated);
+                          trackAnalytics('preprod.settings.status_check_rule_updated', {
+                            organization,
+                            project_slug: project.slug,
+                            metric: updated.metric,
+                            measurement: updated.measurement,
+                            artifact_type: updated.artifactType ?? DEFAULT_ARTIFACT_TYPE,
+                            value: updated.value,
+                          });
                           if (rule.id === newRuleId) {
                             setNewRuleId(null);
                           }
                         }}
                         onDelete={() => {
+                          trackAnalytics('preprod.settings.status_check_rule_deleted', {
+                            organization,
+                            project_slug: project.slug,
+                          });
                           deleteRule(rule.id);
                           if (rule.id === newRuleId) {
                             setNewRuleId(null);

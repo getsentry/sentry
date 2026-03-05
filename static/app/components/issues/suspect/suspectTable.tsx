@@ -5,7 +5,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import SuspectFlags from 'sentry/components/issues/suspect/suspectFlags';
 import useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 
 interface Props {
@@ -54,7 +53,7 @@ const GradientBox = styled('div')`
   );
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   height: max-content;
   display: flex;
   flex-direction: column;

@@ -9,6 +9,7 @@ import {
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricVisualize,
   useMetricVisualizes,
@@ -42,9 +43,8 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
 
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
-  const hasMultiSelect = useOrganization().features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const organization = useOrganization();
+  const hasMultiSelect = canUseMetricsMultiAggregateUI(organization);
 
   if (hasMultiSelect) {
     return (

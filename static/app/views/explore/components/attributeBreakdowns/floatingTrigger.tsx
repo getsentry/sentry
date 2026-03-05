@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import type {SelectionCallbackParams} from 'sentry/components/charts/useChartXRangeSelection';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -20,11 +21,14 @@ type Props = {
 
 export function FloatingTrigger({chartIndex, params, setTab}: Props) {
   const router = useRouter();
+  const organization = useOrganization();
   const {setChartSelection} = useChartSelection();
   const {selectionState, setSelectionState, clearSelection} = params;
 
   const handleZoomIn = useCallback(() => {
     if (!selectionState) return;
+
+    trackAnalytics('explore.floating_trigger.zoom_in', {organization});
 
     const coordRange = selectionState.selection.range;
     let startTimestamp = coordRange[0];
@@ -51,10 +55,14 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
     );
 
     clearSelection();
-  }, [clearSelection, selectionState, router]);
+  }, [clearSelection, selectionState, router, organization]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
     if (!selectionState) return;
+
+    trackAnalytics('explore.floating_trigger.compare_attribute_breakdowns', {
+      organization,
+    });
 
     setSelectionState({
       ...selectionState,
@@ -65,7 +73,14 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
       chartIndex,
     });
     setTab(Tab.ATTRIBUTE_BREAKDOWNS);
-  }, [selectionState, setSelectionState, chartIndex, setChartSelection, setTab]);
+  }, [
+    selectionState,
+    setSelectionState,
+    chartIndex,
+    setChartSelection,
+    setTab,
+    organization,
+  ]);
 
   return (
     <List>
@@ -73,7 +88,14 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
       <ListItem onClick={handleFindAttributeBreakdowns}>
         {t('Compare Attribute Breakdowns')}
       </ListItem>
-      <ListItem onClick={() => clearSelection()}>{t('Clear Selection')}</ListItem>
+      <ListItem
+        onClick={() => {
+          trackAnalytics('explore.floating_trigger.clear_selection', {organization});
+          clearSelection();
+        }}
+      >
+        {t('Clear Selection')}
+      </ListItem>
     </List>
   );
 }
@@ -94,7 +116,7 @@ const List = styled('ul')`
 
 const ListItem = styled('li')`
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   &:hover {

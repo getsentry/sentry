@@ -9,13 +9,14 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
+import type {Group} from 'sentry/types/group';
 import IssueList from 'sentry/views/issueList/overview';
 
 jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => ({
   __esModule: true,
-  default: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
-  LoadingStreamGroup: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
+  default: jest.fn(({group}: {group: Group}) => <div data-test-id={group.id} />),
+  LoadingStreamGroup: jest.fn(() => <div data-test-id="loading-group" />),
 }));
 
 jest.mock('js-cookie', () => ({

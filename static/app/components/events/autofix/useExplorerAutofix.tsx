@@ -2,7 +2,9 @@ import {useCallback, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
 import {
   needsGitHubAuth,
   type CodingAgentIntegration,
@@ -473,8 +475,17 @@ export function useExplorerAutofix(
           const permissionFailures = response.failures.filter(
             f => f.failure_type === 'github_app_permissions'
           );
+          const copilotLicenseFailures = response.failures.filter(
+            f => f.failure_type === 'github_copilot_not_licensed'
+          );
+          const cursorGithubAccessFailures = response.failures.filter(
+            f => f.failure_type === 'cursor_github_access'
+          );
           const otherFailures = response.failures.filter(
-            f => f.failure_type !== 'github_app_permissions'
+            f =>
+              f.failure_type !== 'github_app_permissions' &&
+              f.failure_type !== 'github_copilot_not_licensed' &&
+              f.failure_type !== 'cursor_github_access'
           );
 
           if (permissionFailures.length > 0) {
@@ -488,6 +499,14 @@ export function useExplorerAutofix(
                 installationUrl={installationUrl}
               />
             ));
+          }
+
+          if (copilotLicenseFailures.length > 0) {
+            openModal(deps => <AutofixGithubCopilotPurchaseModal {...deps} />);
+          }
+
+          if (cursorGithubAccessFailures.length > 0) {
+            openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
           }
 
           otherFailures.forEach(failure => {

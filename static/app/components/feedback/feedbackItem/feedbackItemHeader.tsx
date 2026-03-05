@@ -11,7 +11,6 @@ import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackVie
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -93,8 +92,8 @@ export default function FeedbackItemHeader({
 const VerticalSpacing = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 

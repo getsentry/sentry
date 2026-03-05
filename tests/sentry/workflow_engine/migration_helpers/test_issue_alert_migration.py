@@ -225,7 +225,7 @@ class IssueAlertMigratorTest(TestCase):
     def test_run(self) -> None:
         self.assert_issue_alert_migrated(self.issue_alert)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -250,7 +250,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -266,7 +266,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -280,7 +280,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -298,7 +298,7 @@ class IssueAlertMigratorTest(TestCase):
 
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -316,7 +316,7 @@ class IssueAlertMigratorTest(TestCase):
 
         self.assert_issue_alert_migrated(issue_alert, is_enabled=True)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -635,23 +635,24 @@ class TestEnsureDefaultDetectors(TestCase):
 
     def test_ensure_default_detector(self) -> None:
         project = self.create_project()
-        error_detector, issue_stream_detector = ensure_default_detectors(project)
+        detectors = ensure_default_detectors(project)
 
+        error_detector = detectors[ErrorGroupType.slug]
         assert error_detector.name == ERROR_DETECTOR_NAME
         assert error_detector.project_id == project.id
         assert error_detector.type == ErrorGroupType.slug
+
+        issue_stream_detector = detectors[IssueStreamGroupType.slug]
         assert issue_stream_detector.name == ISSUE_STREAM_DETECTOR_NAME
         assert issue_stream_detector.project_id == project.id
         assert issue_stream_detector.type == IssueStreamGroupType.slug
 
     def test_ensure_default_detector__already_exists(self) -> None:
         project = self.create_project()
-        detectors = Detector.objects.filter(project=project)
+        existing = Detector.objects.filter(project=project)
         with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
             default_detectors = ensure_default_detectors(project)
-            assert {default_detectors[0].id, default_detectors[1].id} == {
-                detectors.id for detectors in detectors
-            }
+            assert {d.id for d in default_detectors.values()} == {d.id for d in existing}
             # No lock if it already exists.
             mock_lock.assert_not_called()
 

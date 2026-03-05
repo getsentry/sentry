@@ -99,7 +99,7 @@ function GroupUserFeedback() {
 }
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
@@ -121,8 +121,8 @@ const FilterMessage = styled('div')`
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 

@@ -19,7 +19,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.notifications.models.notificationaction import ActionService, ActionTarget
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
@@ -41,11 +41,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.typings.notification_action import (
-    OnCallDataBlob,
-    SentryAppDataBlob,
-    SentryAppIdentifier,
-)
+from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
 
 logger = logging.getLogger(__name__)
 
@@ -155,14 +151,11 @@ def get_target_identifier(
 def build_action_config(
     target_display: str | None, target_identifier: str | None, target_type: int
 ) -> dict[str, str | int | None]:
-    base_config = {
+    return {
         "target_display": target_display,
         "target_identifier": target_identifier,
         "target_type": target_type,
     }
-    if target_type == ActionTarget.SENTRY_APP.value:
-        base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
-    return base_config
 
 
 def get_detector_trigger(

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -130,6 +129,6 @@ export function ConnectAutomationsDrawer({
 const DrawerContent = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(3)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
 `;

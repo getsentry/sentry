@@ -20,17 +20,11 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       fields: [
         SpanFields.SPAN_OP,
         SpanFields.SPAN_DESCRIPTION,
-        `sum(${SpanFields.MOBILE_SLOW_FRAMES})`,
-        `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
       ],
       aggregates: [
-        `sum(${SpanFields.MOBILE_SLOW_FRAMES})`,
-        `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
@@ -39,17 +33,11 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       fieldAliases: [
         'Operation',
         'Span Description',
-        'Slow Frames',
-        'Frozen Frames',
-        'Total Frames',
         'Slow Frame %',
         'Frozen Frame %',
         'Delay',
       ],
       fieldMeta: [
-        null,
-        null,
-        null,
         null,
         null,
         {valueType: 'percentage', valueUnit: null},
@@ -76,6 +64,15 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
   widgets: [SPAN_OPERATIONS_TABLE],
   filters: {
     globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'os.name',
+          name: 'os.name',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
       {
         dataset: WidgetType.SPANS,
         tag: {

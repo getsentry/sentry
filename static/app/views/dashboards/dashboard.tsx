@@ -18,8 +18,6 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
@@ -33,7 +31,6 @@ import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/ut
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -93,6 +90,7 @@ type Props = {
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -117,6 +115,7 @@ function Dashboard({
   onNewWidgetScrollComplete,
   onSetNewWidget,
   useTimeseriesVisualization,
+  widgetInterval,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -189,7 +188,6 @@ function Dashboard({
       }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
-      GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -376,7 +374,7 @@ function Dashboard({
   }, []);
 
   const addWidgetLayout = useMemo(() => {
-    let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
+    let position = BOTTOM_MOBILE_VIEW_POSITION;
     if (!isMobile) {
       const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
@@ -444,6 +442,7 @@ function Dashboard({
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
               useTimeseriesVisualization={useTimeseriesVisualization}
+              widgetInterval={widgetInterval}
             />
           </div>
         ))}
@@ -467,7 +466,7 @@ const AddWidgetWrapper = styled('div')`
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
-  margin: -${space(2)};
+  margin: -${p => p.theme.space.xl};
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.tokens.background.transparent.accent.muted};
@@ -478,8 +477,8 @@ const GridLayout = styled(WidthProvider(Responsive))`
 const ResizeHandle = styled(Button)`
   position: absolute;
   z-index: 2;
-  bottom: ${space(0.5)};
-  right: ${space(0.5)};
+  bottom: ${p => p.theme.space.xs};
+  right: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   cursor: nwse-resize;
 

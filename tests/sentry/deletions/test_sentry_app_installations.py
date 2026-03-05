@@ -21,7 +21,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @control_silo_test
@@ -124,7 +123,6 @@ class TestSentryAppInstallationDeletionTask(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.install.sentry_app_id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -134,7 +132,6 @@ class TestSentryAppInstallationDeletionTask(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": "1234567890",
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

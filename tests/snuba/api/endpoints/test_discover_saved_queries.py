@@ -49,7 +49,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
-        assert response.data[0]["projects"] == self.project_ids
+        assert sorted(response.data[0]["projects"]) == sorted(self.project_ids)
         assert response.data[0]["fields"] == ["test"]
         assert response.data[0]["conditions"] == []
         assert response.data[0]["limit"] == 10

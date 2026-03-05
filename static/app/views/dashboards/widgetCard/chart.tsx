@@ -71,8 +71,10 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
@@ -90,6 +92,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -250,6 +253,18 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <TableWrapper>
+        <AgentsTracesTableWidgetVisualization
+          limit={widget.limit}
+          tableWidths={widget.tableWidths}
+          frameless
+        />
+      </TableWrapper>
     );
   }
 
@@ -517,6 +532,17 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                               ...(series?.length > 0
                                 ? (modifiedReleaseSeriesResults ?? [])
                                 : []),
+                              ...(defined(widget.thresholds?.max_values.max1) ||
+                              defined(widget.thresholds?.max_values.max2)
+                                ? new ThresholdsPlottable({
+                                    thresholds: {
+                                      ...widget.thresholds,
+                                      preferredPolarity:
+                                        widget.thresholds?.preferredPolarity ?? '-',
+                                    },
+                                    dataType: outputType,
+                                  }).toSeries({theme})
+                                : []),
                             ],
                             onLegendSelectChanged: handleLegendSelectChange,
                             onChartReady: handleChartReady,
@@ -753,7 +779,20 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+  // When multiple aggregates exist, only plot the selected one (radio selection).
+  // This mirrors Big Number behavior — all aggregates are queried, but only
+  // one is rendered at a time.
+  const selectedIndex = getSelectedAggregateIndex(
+    query.selectedAggregate,
+    query.aggregates.length
+  );
+  const selectedAggregate = query.aggregates[selectedIndex];
+  // Filter query to only the selected aggregate.
+  const filteredQuery = selectedAggregate
+    ? {...query, aggregates: [selectedAggregate]}
+    : query;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
     meta: {
       fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
@@ -879,7 +918,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 ))`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -940,18 +979,18 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const RenderedChartContainer = styled('div')`

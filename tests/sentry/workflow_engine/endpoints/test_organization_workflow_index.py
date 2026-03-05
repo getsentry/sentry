@@ -23,11 +23,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.typings.notification_action import (
-    ActionTarget,
-    ActionType,
-    SentryAppIdentifier,
-)
+from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
     MockActionValidatorTranslator,
@@ -711,7 +707,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -748,7 +743,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -792,7 +786,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },

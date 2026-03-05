@@ -5,9 +5,7 @@ import secrets
 import string
 from typing import Any
 
-import orjson
 import sentry_sdk
-from django.conf import settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
@@ -17,11 +15,11 @@ from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -29,13 +27,14 @@ from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentState,
     CodingAgentStatus,
+    StoreCodingAgentStatesRequest,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
+    make_store_coding_agent_states_request,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -83,21 +82,11 @@ def store_coding_agent_states_to_seer(
     """Store multiple coding agent states via Seer batch API."""
     if not coding_agent_states:
         return
-    path = "/v1/automation/autofix/coding-agent/state/set"
-    body = orjson.dumps(
-        {
-            "run_id": run_id,
-            "coding_agent_states": [state.dict() for state in coding_agent_states],
-        }
+    body = StoreCodingAgentStatesRequest(
+        run_id=run_id,
+        coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-
-    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
-    response = make_signed_seer_api_request(
-        connection_pool,
-        path,
-        body=body,
-        timeout=30,
-    )
+    response = make_store_coding_agent_states_request(body, timeout=30)
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
@@ -329,17 +318,29 @@ def _launch_agents_for_repos(
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
                 if e.code == 403 and client is not None:
-                    failure_type = "github_app_permissions"
-                    error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
-                    if repo and repo.integration_id:
-                        try:
-                            sentry_integration = integration_service.get_integration(
-                                integration_id=int(repo.integration_id)
-                            )
-                            if sentry_integration:
-                                github_installation_id = sentry_integration.external_id
-                        except Exception:
-                            sentry_sdk.capture_exception(level="warning")
+                    if e.text and "not licensed" in e.text.lower():
+                        failure_type = "github_copilot_not_licensed"
+                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                    else:
+                        failure_type = "github_app_permissions"
+                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                        if repo and repo.integration_id:
+                            try:
+                                sentry_integration = integration_service.get_integration(
+                                    integration_id=int(repo.integration_id)
+                                )
+                                if sentry_integration:
+                                    github_installation_id = sentry_integration.external_id
+                            except Exception:
+                                sentry_sdk.capture_exception(level="warning")
+                elif (
+                    isinstance(installation, CursorAgentIntegration)
+                    and e.code == 400
+                    and e.text
+                    and "Failed to verify existence of branch" in e.text
+                ):
+                    failure_type = "cursor_github_access"
+                    error_message = "Cursor does not have GitHub access to this repository. Please install the Cursor GitHub App to grant access."
                 elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:
@@ -405,7 +406,7 @@ def launch_coding_agents_for_run(
 
     Raises:
         NotFound: If organization, integration, autofix state, or repos are not found
-        PermissionDenied: If feature is not enabled for the organization
+        PermissionDenied: If GitHub Copilot is not enabled for the organization
         ValidationError: If integration is invalid
         APIException: If there's an error launching agents
     """
@@ -413,9 +414,6 @@ def launch_coding_agents_for_run(
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         raise NotFound("Organization not found")
-
-    if not features.has("organizations:seer-coding-agent-integrations", organization):
-        raise PermissionDenied("Feature not available")
 
     integration = None
     installation: CodingAgentIntegration | None = None

@@ -9,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -179,15 +178,15 @@ const TemplateContainer = styled('div')<{lastWidget: boolean}>`
 const TemplateCard = styled('div')<{selected: boolean}>`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xl};
   border: none;
   background-color: ${p =>
     p.selected
       ? p.theme.tokens.background.transparent.accent.muted
       : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
+  margin: ${p => (p.selected ? p.theme.space.xl : p.theme.space.xs)} 0px;
 
   cursor: pointer;
 
@@ -205,7 +204,7 @@ const TemplateCard = styled('div')<{selected: boolean}>`
 const WidgetTitle = styled('h3')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const WidgetDescription = styled('p')`
@@ -218,7 +217,7 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   min-width: 40px;
   height: 40px;
   border-radius: ${p => p.theme.radius.md};
