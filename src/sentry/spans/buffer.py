@@ -151,6 +151,7 @@ class SpansBuffer:
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
+        self.empty_flush_segment_calls = 0
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -307,7 +308,31 @@ class SpansBuffer:
                     offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[segment_key] = now + offset
+
+                new_deadline = now + offset
+                zadd_items[segment_key] = new_deadline
+
+                # Debug logging
+                try:
+                    old_deadline = None
+                    if self._debug_trace_logger is None:
+                        self._debug_trace_logger = DebugTraceLogger(self.client)
+                    if self._debug_trace_logger._should_log_trace(project_and_trace):
+                        old_deadline_score = self.client.zscore(queue_key, segment_key)
+                        old_deadline = (
+                            int(old_deadline_score) if old_deadline_score is not None else None
+                        )
+
+                    self._debug_trace_logger.log_deadline_update(
+                        segment_key=segment_key,
+                        project_and_trace=project_and_trace,
+                        old_deadline=old_deadline,
+                        new_deadline=new_deadline,
+                        message_timestamp=now,
+                        has_root_span=has_root_span,
+                    )
+                except Exception:
+                    logger.exception("process_spans: Failed to log deadline update")
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
@@ -575,6 +600,19 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
+
+        if not return_segments:
+            self.empty_flush_segment_calls += 1
+        else:
+            if self.empty_flush_segment_calls > 0:
+                try:
+                    if self._debug_trace_logger is None:
+                        self._debug_trace_logger = DebugTraceLogger(self.client)
+                    self._debug_trace_logger.log_empty_segments(self.empty_flush_segment_calls)
+                except Exception:
+                    logger.exception("flush_segments: Failed to log empty flush count")
+                finally:
+                    self.empty_flush_segment_calls = 0
 
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments

@@ -130,6 +130,27 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
     ),
   },
+  'project-user-feedback.feedback:branding': {
+    name: 'feedback:branding',
+    formId: 'project-user-feedback',
+    route: '/settings/:orgId/projects/:projectId/user-feedback/',
+    label: t('Show Sentry Branding in Crash Report Modal'),
+    hintText: t(
+      'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
+    ),
+  },
+  'project-user-feedback.sentry:feedback_user_report_notifications': {
+    name: 'sentry:feedback_user_report_notifications',
+    formId: 'project-user-feedback',
+    route: '/settings/:orgId/projects/:projectId/user-feedback/',
+    label: t('Enable Crash Report Notifications'),
+  },
+  'project-user-feedback.sentry:feedback_ai_spam_detection': {
+    name: 'sentry:feedback_ai_spam_detection',
+    formId: 'project-user-feedback',
+    route: '/settings/:orgId/projects/:projectId/user-feedback/',
+    label: t('Enable Spam Detection'),
+  },
   'project-toolbar.sentry:toolbar_allowed_origins': {
     name: 'sentry:toolbar_allowed_origins',
     formId: 'project-toolbar',

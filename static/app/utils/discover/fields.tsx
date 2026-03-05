@@ -105,12 +105,7 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [
-        AggregationKeyWithAlias,
-        string,
-        AggregationRefinement,
-        AggregationRefinement,
-      ];
+      function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
       alias?: string;
     };
@@ -1125,8 +1120,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
       function: [
         results.name as AggregationKey,
         results.arguments[0] ?? '',
-        results.arguments[1] as AggregationRefinement,
-        results.arguments[2] as AggregationRefinement,
+        ...results.arguments.slice(1),
       ],
       alias,
     };
@@ -1402,6 +1396,7 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(

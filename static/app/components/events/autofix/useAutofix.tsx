@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
 import {
@@ -409,10 +410,14 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         const copilotLicenseFailures = data.failures.filter(
           f => f.failure_type === 'github_copilot_not_licensed'
         );
+        const cursorGithubAccessFailures = data.failures.filter(
+          f => f.failure_type === 'cursor_github_access'
+        );
         const otherFailures = data.failures.filter(
           f =>
             f.failure_type !== 'github_app_permissions' &&
-            f.failure_type !== 'github_copilot_not_licensed'
+            f.failure_type !== 'github_copilot_not_licensed' &&
+            f.failure_type !== 'cursor_github_access'
         );
 
         if (permissionFailures.length > 0) {
@@ -430,6 +435,10 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
 
         if (copilotLicenseFailures.length > 0) {
           openModal(deps => <AutofixGithubCopilotPurchaseModal {...deps} />);
+        }
+
+        if (cursorGithubAccessFailures.length > 0) {
+          openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
         }
 
         otherFailures.forEach(failure => {

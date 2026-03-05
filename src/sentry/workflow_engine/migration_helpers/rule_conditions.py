@@ -336,6 +336,7 @@ def translate_to_rule_condition_filters(
 ) -> ConditionAndFilters:
     translator = data_condition_to_rule_condition_mapping.get(Condition(data_condition.type))
     if not translator:
-        raise ValueError(f"Unsupported condition: {data_condition.type}")
+        # return nothing rather than crash when we encounter a condition from a single written workflow that we can't represent in the old UI
+        return {}, []
 
     return translator(data_condition, is_filter)

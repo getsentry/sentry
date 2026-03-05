@@ -23,10 +23,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -98,58 +95,34 @@ export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
 export function LogsToolbar() {
   return (
     <Container data-test-id="logs-toolbar">
-      <LogsToolbarVisualizeWrapper />
-      <LogsToolbarGroupByWrapper />
+      <ToolbarVisualize />
+      <ToolbarGroupBy />
     </Container>
   );
 }
 
-function LogsToolbarVisualizeWrapper() {
+function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      search={debouncedSearch}
-      traceItemType={TraceItemDataset.LOGS}
-    >
-      <ToolbarVisualize onSearch={setSearch} onClose={() => setSearch(undefined)} />
-    </TraceItemAttributeProvider>
-  );
-}
 
-function LogsToolbarGroupByWrapper() {
-  const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      search={debouncedSearch}
-      traceItemType={TraceItemDataset.LOGS}
-    >
-      <ToolbarGroupBy onSearch={setSearch} onClose={() => setSearch(undefined)} />
-    </TraceItemAttributeProvider>
-  );
-}
-
-interface LogsToolbarProps {
-  onClose: () => void;
-  onSearch: (search: string) => void;
-}
-
-function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'string',
     HiddenLogSearchFields
   );
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'number',
     HiddenLogSearchFields
   );
-  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useTraceItemAttributes(
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'boolean',
     HiddenLogSearchFields
   );
+
+  const onSearch = setSearch;
+  const onClose = useCallback(() => setSearch(undefined), []);
 
   const sortedNumberKeys = useMemo(() => {
     const keys = Object.keys(numberTags);
@@ -363,19 +336,28 @@ function VisualizeDropdown({
   );
 }
 
-function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
+function ToolbarGroupBy() {
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const debouncedSearch = useDebouncedValue(search, 200);
+
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'number',
     HiddenLogSearchFields
   );
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'string',
     HiddenLogSearchFields
   );
-  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useTraceItemAttributes(
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'boolean',
     HiddenLogSearchFields
   );
+
+  const onSearch = setSearch;
+  const onClose = useCallback(() => setSearch(undefined), []);
 
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();

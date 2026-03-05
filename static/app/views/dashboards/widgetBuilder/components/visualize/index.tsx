@@ -59,12 +59,13 @@ import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hook
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 
 export const NONE = 'none';
@@ -284,9 +285,25 @@ function Visualize({error, setError}: VisualizeProps) {
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricSearchFields;
   }
-  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'number',
+    hiddenKeys
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'string',
+    hiddenKeys
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'boolean',
+    hiddenKeys
+  );
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -1057,7 +1074,12 @@ function Visualize({error, setError}: VisualizeProps) {
             onClick={() => {
               dispatch({
                 type: updateAction,
-                payload: [...(fields ?? []), cloneDeep(defaultField)],
+                payload: [
+                  ...(fields ?? []),
+                  state.dataset === WidgetType.TRACEMETRICS && fields?.length
+                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    : cloneDeep(defaultField),
+                ],
               });
 
               trackAnalytics('dashboards_views.widget_builder.change', {

@@ -280,6 +280,7 @@ export default function WizardField({
               <EAPField
                 aggregate={aggregate}
                 eventTypes={eventTypes ?? []}
+                project={project}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}
