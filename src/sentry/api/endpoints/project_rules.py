@@ -707,9 +707,8 @@ def format_request_data(
         "config": {"frequency": data.get("frequency")},
     }
 
-    triggers = {"logicType": data.get("actionMatch", "any-short"), "conditions": []}
+    triggers = {"logicType": "any-short", "conditions": []}
     fake_dcg = DataConditionGroup()
-    # TODO do I need to always change 'any' to 'any-short'?
     for condition in data.get("conditions"):
         translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
         translated_conditions.pop("condition_group")
@@ -735,7 +734,7 @@ def format_request_data(
         "actions": translated_actions,
     }
     workflow_payload["actionFilters"] = [action_filters]
-    workflow_payload["actionFilters"][0]["logicType"] = data.get("filterMatch")
+    workflow_payload["actionFilters"][0]["logicType"] = data.get("filterMatch", "any-short")
 
     return workflow_payload
 

@@ -18,7 +18,26 @@ from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channe
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import (
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+)
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
+from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
@@ -1232,39 +1251,152 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert not clean_rule.data.get("comparisonInterval")
 
     @with_feature("organizations:workflow-engine-rule-serializers")
+    @responses.activate
     def test_workflow_engine(self) -> None:
+        conditions = [
+            {"id": ExistingHighPriorityIssueCondition.id},
+            {"id": NewHighPriorityIssueCondition.id},
+            {"id": FirstSeenEventCondition.id},
+            {"id": LevelCondition.id, "match": "eq", "level": "50"},
+            {
+                "id": EventAttributeCondition.id,
+                "attribute": "message",
+                "match": "eq",
+                "value": "test",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+        ]
+        filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": "is",
+                "key": "environment",
+                "value": "",  # initializing RuleBase requires "value" key
+            },
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": "older",
+                "value": 10,
+                "time": "hour",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            },
+            {
+                "id": IssueCategoryFilter.id,
+                "value": "1",
+                "include": "true",
+            },
+            {
+                "id": IssueOccurrencesFilter.id,
+                "value": "10",
+            },
+            {
+                "id": IssueTypeFilter.id,
+                "value": "error",
+            },
+            {
+                "id": LatestAdoptedReleaseFilter.id,
+                "oldest_or_newest": "oldest",
+                "older_or_newer": "newer",
+                "environment": self.environment.name + "fake",
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+            {
+                "id": LevelFilter.id,
+                "match": "eq",
+                "level": "50",
+            },
+            {
+                "id": EventAttributeFilter.id,
+                "attribute": "message",
+                "match": "ns",
+                "value": "",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Unassigned",
+                "targetIdentifier": "",
+            },
+        ]
         payload = {
             "name": "Owner Alert",
             "frequency": 1440,
             "environment": None,
             "status": "active",
             "snooze": False,
-            "conditions": [
-                {
-                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                }
-            ],
-            "filters": [
-                {
-                    "targetType": "Unassigned",
-                    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
-                    "targetIdentifier": "",
-                }
-            ],
+            "conditions": conditions,
+            "filters": filters,
             "actions": [
                 {
                     "targetType": "Member",
                     "fallthroughType": "ActiveMembers",
                     "id": "sentry.mail.actions.NotifyEmailAction",
                     "targetIdentifier": self.user.id,
-                }
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                    "settings": self.sentry_app_settings_payload,
+                    "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                    "hasSchemaFormConfig": True,
+                    "uuid": str(uuid4()),
+                },
+                self.notify_issue_owners_action[0],
+                self.notify_event_action[0],
+                # self.slack_actions[0], # TODO get this to work
             ],
-            "actionMatch": "any-short",  # was any originally, can we support that?
-            "filterMatch": "any-short",  # was all originally
+            "actionMatch": "any",
+            "filterMatch": "all",
             "owner": "team:74234",
-            # "createdBy": {"id": 24601, "name": "Jean Valjean", "email": "jean@example.com"},
             # "projects": [self.project], # project not supported in workflows
         }
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=status.HTTP_202_ACCEPTED,
+        )
         self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
