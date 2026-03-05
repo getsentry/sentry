@@ -65,6 +65,7 @@ class ExplorerChatRequest(TypedDict):
     category_value: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
+    max_iterations: NotRequired[int]
 
 
 class ExplorerRunsRequest(TypedDict):
