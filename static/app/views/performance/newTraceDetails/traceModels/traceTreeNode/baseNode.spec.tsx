@@ -409,6 +409,32 @@ describe('BaseNode', () => {
       expect(nodeWithOccurrences.hasIssues).toBe(true);
     });
 
+    it('should not add hidden occurrence types via addOccurrence', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
+
+      node.addOccurrence(
+        makeEAPOccurrence({
+          issue_id: 1,
+          event_id: 'normal-occurrence',
+          issue_type: 1000, // Not a hidden type
+        })
+      );
+      expect(node.occurrences.size).toBe(1);
+
+      node.addOccurrence(
+        makeEAPOccurrence({
+          issue_id: 2,
+          event_id: 'hidden-occurrence',
+          issue_type: 3501, // Currently a hidden type
+        })
+      );
+      expect(node.occurrences.size).toBe(1);
+
+      const occurrenceIds = Array.from(node.occurrences).map(o => o.issue_id);
+      expect(occurrenceIds).toEqual([1]);
+    });
+
     it('should return correct maxIssueSeverity based on error levels', () => {
       const extra = createMockExtra();
 
