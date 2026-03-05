@@ -256,7 +256,7 @@ class TestCreatePerformanceDetectors(TestCase):
         },
     )
     @mock.patch(
-        "sentry.workflow_engine.processors.detector.get_disabled_platforms_by_wfe_type",
+        "sentry.workflow_engine.processors.detector.get_disabled_platforms_by_detector_type",
         return_value={
             "performance_slow_db_query": frozenset({"ruby", "php"}),
         },
