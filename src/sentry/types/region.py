@@ -122,7 +122,7 @@ class Cell:
 
 
 # TODO(cells): Remove once getsentry import sites are updated
-# Region = Cell
+Region = Cell
 
 
 class RegionResolutionError(Exception):
