@@ -97,6 +97,7 @@ export type KnownSentryApiUrls =
   | '/integration-features/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/assemble-generic/'
+  | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/distribution/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size/$identifier/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/update/'
