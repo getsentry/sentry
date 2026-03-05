@@ -56,7 +56,7 @@ const PATHS_TABLE: Widget = {
     y: 7,
     w: 6,
     h: 3,
-    minH: 3,
+    minH: 2,
   },
 };
 
@@ -102,7 +102,7 @@ const COMMANDS_TABLE: Widget = {
     y: 10,
     w: 6,
     h: 3,
-    minH: 3,
+    minH: 2,
   },
 };
 
@@ -150,7 +150,7 @@ const JOBS_TABLE: Widget = {
     y: 13,
     w: 6,
     h: 3,
-    minH: 3,
+    minH: 2,
   },
 };
 
