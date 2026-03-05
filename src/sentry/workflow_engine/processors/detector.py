@@ -63,7 +63,7 @@ VALID_DEFAULT_DETECTOR_TYPES = [
 
 
 @cache
-def get_disabled_platforms_by_wfe_type() -> Mapping[str, frozenset[str]]:
+def get_disabled_platforms_by_detector_type() -> Mapping[str, frozenset[str]]:
     """
     Map WFE detector types to platforms where they should be disabled by default.
     Derives from DEFAULT_DETECTOR_DISABLING_CONFIGS using the detection_enabled_key.
@@ -72,7 +72,7 @@ def get_disabled_platforms_by_wfe_type() -> Mapping[str, frozenset[str]]:
         DEFAULT_DETECTOR_DISABLING_CONFIGS,
     )
 
-    disabled_by_wfe_type: dict[str, frozenset[str]] = {}
+    disabled_by_detector_type: dict[str, frozenset[str]] = {}
 
     for disable_config in DEFAULT_DETECTOR_DISABLING_CONFIGS:
         detector_option_key = disable_config["detector_project_option"]
@@ -81,10 +81,12 @@ def get_disabled_platforms_by_wfe_type() -> Mapping[str, frozenset[str]]:
         # Find matching WFE detector via detection_enabled_key
         for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
             if mapping.detection_enabled_key == detector_option_key:
-                disabled_by_wfe_type[mapping.wfe_detector_type] = frozenset(languages_to_disable)
+                disabled_by_detector_type[mapping.wfe_detector_type] = frozenset(
+                    languages_to_disable
+                )
                 break
 
-    return disabled_by_wfe_type
+    return disabled_by_detector_type
 
 
 class UnableToAcquireLockApiError(SentryAPIException):
@@ -268,20 +270,20 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
     if not features.has("projects:workflow-engine-performance-detectors", project):
         return {}
 
-    disabled_platforms_map = get_disabled_platforms_by_wfe_type()
+    disabled_platforms_map = get_disabled_platforms_by_detector_type()
 
     detectors = {}
     for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
-        wfe_type = mapping.wfe_detector_type
+        detector_type = mapping.wfe_detector_type
 
         # Determine initial enabled state based on platform and default settings
-        disabled_platforms = disabled_platforms_map.get(wfe_type, frozenset())
+        disabled_platforms = disabled_platforms_map.get(detector_type, frozenset())
         default_enabled = DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS[
             mapping.detection_enabled_key
         ]
         enabled = (project.platform not in disabled_platforms) and default_enabled
 
-        detectors[wfe_type] = _ensure_detector(project, wfe_type, default_enabled=enabled)
+        detectors[detector_type] = _ensure_detector(project, detector_type, default_enabled=enabled)
 
     return detectors
 
