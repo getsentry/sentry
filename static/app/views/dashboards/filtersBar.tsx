@@ -353,9 +353,12 @@ export default function FiltersBar({
               <Button
                 data-test-id="filter-bar-cancel"
                 onClick={() => {
+                  const fallbackFilters = filters.globalFilter?.length
+                    ? filters.globalFilter
+                    : prebuiltDashboardFilters;
                   onCancel?.();
-                  setActiveGlobalFilters(filters.globalFilter ?? []);
-                  onDashboardFilterChange(filters);
+                  setActiveGlobalFilters(fallbackFilters);
+                  onDashboardFilterChange({...filters, globalFilter: fallbackFilters});
                 }}
               >
                 {t('Cancel')}
