@@ -18,9 +18,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -45,6 +45,7 @@ const DEFAULT_SCHEDULE_CONFIG = {
 
 export default function MonitorCreateForm() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -72,7 +73,7 @@ export default function MonitorCreateForm() {
         environment: selection.environments,
       },
     };
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
         query: endpointOptions.query,
