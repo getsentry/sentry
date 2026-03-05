@@ -30,6 +30,10 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     # Indicates if Sentry created this mapping
     automatically_generated = models.BooleanField(default=False, db_default=False)
 
+    # Transient flag: when True, the post_save signal skips side effects.
+    # Used by the bulk endpoint to fire side effects once per batch.
+    _skip_post_save: bool = False
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
@@ -45,7 +49,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
 
 def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
-    if getattr(instance, "_skip_post_save", False):
+    if instance._skip_post_save:
         return
 
     from sentry.models.group import Group
