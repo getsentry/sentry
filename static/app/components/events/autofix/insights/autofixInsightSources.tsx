@@ -18,7 +18,6 @@ import {
   IconStack,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -201,15 +200,15 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
 }
 
 const SourcesContainer = styled('div')`
-  margin-top: -${space(1)};
-  padding-bottom: ${space(1)};
+  margin-top: -${p => p.theme.space.md};
+  padding-bottom: ${p => p.theme.space.md};
   width: 100%;
 `;
 
 export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p =>
     p.isHighlighted ? p.theme.colors.white : p.theme.tokens.content.secondary};
@@ -219,9 +218,9 @@ export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
 
 const ThoughtsOverlay = styled('div')`
   position: fixed;
-  bottom: ${space(2)};
+  bottom: ${p => p.theme.space.xl};
   left: 50%;
-  right: ${space(2)};
+  right: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -232,29 +231,29 @@ const ThoughtsOverlay = styled('div')`
   max-height: calc(100vh - 18rem);
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    left: ${space(2)};
+    left: ${p => p.theme.space.xl};
   }
 `;
 
 const OverlayHeader = styled('div')`
-  padding: ${space(2)} ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   overflow-y: auto;
 `;
 
 const OverlayFooter = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.sans};
 `;
 
@@ -265,7 +264,7 @@ const OverlayTitle = styled('div')`
 `;
 
 const InsightTitle = styled('div')`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.font.family.sans};
 `;
