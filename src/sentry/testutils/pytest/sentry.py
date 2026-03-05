@@ -430,16 +430,39 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, select tests based on selective file filter and group strategy.
+    """After collection, select tests based on selective filter and group strategy.
 
     When SELECTED_TESTS_FILE is set, only tests from files listed in that file are kept.
     This enables selective testing while maintaining proper conftest loading order by
     invoking pytest with the tests/ directory instead of specific file paths.
+
+    When _SENTRY_PARALLEL_NODEIDS is set (by the parallel runner), only tests
+    whose node IDs are listed in the file are kept.
     """
 
     keep, discard = [], []
 
-    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    # Filter by exact node IDs for parallel workers.
+    parallel_nodeids_file = os.environ.get("_SENTRY_PARALLEL_NODEIDS")
+    if parallel_nodeids_file:
+        nodeids_path = Path(parallel_nodeids_file)
+        if nodeids_path.exists():
+            with nodeids_path.open() as f:
+                selected_nodeids = {line.strip() for line in f if line.strip()}
+
+            if selected_nodeids:
+                for item in items:
+                    if item.nodeid in selected_nodeids:
+                        keep.append(item)
+                    else:
+                        discard.append(item)
+
+                items[:] = keep
+                if discard:
+                    config.hook.pytest_deselected(items=discard)
+                keep, discard = [], []
+
+    # Filter by selected test files if SELECTED_TESTS_FILE is set.
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
     if selected_tests_file:
         selected_path = Path(selected_tests_file)
@@ -449,8 +472,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
             if selected_files:
                 for item in items:
-                    test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    if item.nodeid.split("::")[0] in selected_files:
                         keep.append(item)
                     else:
                         discard.append(item)

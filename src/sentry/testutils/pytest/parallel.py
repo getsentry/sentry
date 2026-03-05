@@ -9,7 +9,7 @@ Each worker gets isolated databases, Redis, and Kafka via the xdist module.
 
 No execnet, no dynamic load balancing, no master-worker IPC beyond temp files.
 Workers are plain ``pytest`` processes with ``SENTRY_TEST_WORKER_ID`` and
-``SELECTED_TESTS_FILE`` set.
+``_SENTRY_PARALLEL_NODEIDS`` set.
 """
 
 from __future__ import annotations
@@ -106,29 +106,32 @@ class _CoordinatorPlugin:
 
     @staticmethod
     def _partition(items: list[pytest.Item], n: int) -> list[list[pytest.Item]]:
-        """Split items into *n* groups, keeping files together.
+        """Split items into *n* groups by round-robining files.
 
-        Assigns whole files to the least-loaded bucket by count,
-        largest files first, for reasonable balance.
+        Preserves the original collection order: files are assigned to
+        workers in the order they appear, cycling through workers. Tests
+        within each file keep their original ordering.
         """
         by_file: dict[str, list[pytest.Item]] = {}
+        file_order: list[str] = []
         for item in items:
-            by_file.setdefault(item.nodeid.split("::")[0], []).append(item)
+            key = item.nodeid.split("::")[0]
+            if key not in by_file:
+                by_file[key] = []
+                file_order.append(key)
+            by_file[key].append(item)
 
         buckets: list[list[pytest.Item]] = [[] for _ in range(n)]
-        counts = [0] * n
-        for file_items in sorted(by_file.values(), key=len, reverse=True):
-            idx = counts.index(min(counts))
-            buckets[idx].extend(file_items)
-            counts[idx] += len(file_items)
+        for i, key in enumerate(file_order):
+            buckets[i % n].extend(by_file[key])
         return buckets
 
     def _write_test_lists(self, groups: list[list[pytest.Item]]) -> list[Path]:
         paths = []
         for i, items in enumerate(groups):
-            files = sorted({item.nodeid.split("::")[0] for item in items})
+            nodeids = [item.nodeid for item in items]
             p = self._work_dir / f"w{i}_tests.txt"
-            p.write_text("\n".join(files) + "\n")
+            p.write_text("\n".join(nodeids) + "\n")
             paths.append(p)
         return paths
 
@@ -160,7 +163,7 @@ class _CoordinatorPlugin:
             result_path.touch()
             env = os.environ.copy()
             env["SENTRY_TEST_WORKER_ID"] = str(i)
-            env["SELECTED_TESTS_FILE"] = str(test_file)
+            env["_SENTRY_PARALLEL_NODEIDS"] = str(test_file)
             env["_SENTRY_PARALLEL_WORKER"] = "1"
             env["_SENTRY_PARALLEL_RESULTS"] = str(result_path)
             # Ensure the reporter plugin is importable.
