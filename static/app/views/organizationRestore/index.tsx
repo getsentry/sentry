@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Navigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,7 +14,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -55,8 +55,7 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
     );
   }
   if (data.status.id === 'active') {
-    browserHistory.replace(normalizeUrl(`/organizations/${orgSlug}/issues/`));
-    return null;
+    return <Navigate replace to={normalizeUrl(`/organizations/${orgSlug}/issues/`)} />;
   }
   if (data.status.id === 'pending_deletion') {
     return <RestoreForm organization={data} endpoint={endpoint} />;
