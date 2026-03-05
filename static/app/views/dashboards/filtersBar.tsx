@@ -350,18 +350,16 @@ export default function FiltersBar({
               >
                 {t('Save')}
               </Button>
-              {!isPrebuiltDashboard && (
-                <Button
-                  data-test-id="filter-bar-cancel"
-                  onClick={() => {
-                    onCancel?.();
-                    setActiveGlobalFilters(filters.globalFilter ?? []);
-                    onDashboardFilterChange(filters);
-                  }}
-                >
-                  {t('Cancel')}
-                </Button>
-              )}
+              <Button
+                data-test-id="filter-bar-cancel"
+                onClick={() => {
+                  onCancel?.();
+                  setActiveGlobalFilters(filters.globalFilter ?? []);
+                  onDashboardFilterChange(filters);
+                }}
+              >
+                {t('Cancel')}
+              </Button>
             </Grid>
           )}
         <ToggleOnDemand />

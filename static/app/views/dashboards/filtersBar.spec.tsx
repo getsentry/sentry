@@ -200,7 +200,7 @@ describe('FiltersBar', () => {
     expect(onDashboardFilterChange).not.toHaveBeenCalled();
   });
 
-  it('should render save button but not cancel on prebuilt dashboard with unsaved changes', async () => {
+  it('should render save and cancel buttons on prebuilt dashboard with unsaved changes', async () => {
     const newLocation = LocationFixture({
       query: {
         [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
@@ -220,7 +220,7 @@ describe('FiltersBar', () => {
       screen.getByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 });
 
