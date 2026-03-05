@@ -1474,7 +1474,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             )
             assert response.status_code == 200, response.data
 
-    def test_text_widget_requires_title(self) -> None:  # dkjhskjd
+    def test_text_widget_requires_title(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):
             data = {
                 "displayType": "text",
