@@ -5,9 +5,16 @@ import {mergeProps} from '@react-aria/utils';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container} from '@sentry/scraps/layout';
 
+// eslint-disable-next-line no-restricted-imports
+import PrimaryNavSeerConfigReminder from 'getsentry/components/primaryNavSeerConfigReminder';
+// eslint-disable-next-line no-restricted-imports
+import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
+// eslint-disable-next-line no-restricted-imports
+import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
+
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Hook from 'sentry/components/hook';
+
 import {
   IconCompass,
   IconDashboard,
@@ -23,6 +30,7 @@ import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
   SidebarFooterWrapper,
+  SidebarItemDefaults,
   SidebarLink,
   SidebarList,
 } from 'sentry/views/nav/primary/components';
@@ -58,12 +66,14 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
     <SidebarFooterWrapper isMobile={layout === NavLayout.MOBILE}>
-      <SidebarList
-        isMobile={layout === NavLayout.MOBILE}
-        compact={layout === NavLayout.SIDEBAR}
-      >
-        {children}
-      </SidebarList>
+      <SidebarItemDefaults size={layout === NavLayout.MOBILE ? 'xs' : 'sm'}>
+        <SidebarList
+          isMobile={layout === NavLayout.MOBILE}
+          compact={layout === NavLayout.SIDEBAR}
+        >
+          {children}
+        </SidebarList>
+      </SidebarItemDefaults>
     </SidebarFooterWrapper>
   );
 }
@@ -212,25 +222,24 @@ export function PrimaryNavigationItems() {
 
       <SidebarFooter>
         <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:seer-config-reminder" organization={organization} />
-        </ErrorBoundary>
-        <PrimaryNavigationHelp />
-        <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:try-business" organization={organization} />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:billing-status" organization={organization} />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationServiceIncidents />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationOnboarding />
         </ErrorBoundary>
-        <SeparatorItem hasMargin />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavSeerConfigReminder organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <TryBusinessSidebarItem organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationQuotaExceeded organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationServiceIncidents />
+        </ErrorBoundary>
+        <PrimaryNavigationHelp />
         <UserDropdown />
       </SidebarFooter>
     </Fragment>

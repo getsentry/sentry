@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
 import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {Button} from '@sentry/scraps/button';
 
 import {logout} from 'sentry/actionCreators/account';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
@@ -43,14 +45,26 @@ export function UserDropdown() {
       <DropdownMenu
         position={isMobile ? 'bottom' : 'right-end'}
         minMenuWidth={200}
-        trigger={triggerProps => (
-          <AvatarButton
-            {...triggerProps}
-            aria-label={user.email}
-            avatar={avatarProps}
-            size={isMobile ? 'xs' : 'sm'}
-          />
-        )}
+        trigger={triggerProps =>
+          isMobile ? (
+            <MobileUserButton
+              {...triggerProps}
+              aria-label={user.email}
+              icon={<UserAvatar user={user} size={16} />}
+              priority="transparent"
+              size="zero"
+            >
+              {t('User Settings')}
+            </MobileUserButton>
+          ) : (
+            <AvatarButton
+              {...triggerProps}
+              aria-label={user.email}
+              avatar={avatarProps}
+              size="sm"
+            />
+          )
+        }
         items={[
           {
             key: 'user',
@@ -84,6 +98,12 @@ export function UserDropdown() {
     </SidebarItem>
   );
 }
+
+const MobileUserButton = styled(Button)`
+  width: 100%;
+  justify-content: flex-start;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
+`;
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;

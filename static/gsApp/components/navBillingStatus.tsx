@@ -15,7 +15,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useNavContext} from 'sentry/views/nav/context';
-import {SidebarButton} from 'sentry/views/nav/primary/components';
+import {SidebarButton, SidebarItemUnreadIndicator} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
@@ -433,6 +433,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     state: overlayState,
   } = usePrimaryButtonOverlay({});
   const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -481,14 +482,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     subscription?.onDemandPeriodStart,
   ]);
 
-  const shouldShow =
-    exceededCategories.length > 0 &&
-    subscription &&
-    subscription.canSelfServe &&
-    !subscription.hasOverageNotificationsDisabled;
-  if (!shouldShow || isLoading || isError) {
-    return null;
-  }
 
   const onDismiss = ({
     categories,
@@ -528,10 +521,11 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
         label={t('Billing Status')}
         buttonProps={{
           ...overlayTriggerProps,
-          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
           icon: <IconWarning />,
         }}
-      />
+      >
+        <SidebarItemUnreadIndicator isMobile={isMobile} variant="warning" />
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent

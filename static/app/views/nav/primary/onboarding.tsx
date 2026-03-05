@@ -7,7 +7,6 @@ import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/conte
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
@@ -91,9 +90,7 @@ function OnboardingItem({
                 `}
                 text={
                   doneTasks.length === allTasks.length ? (
-                    <IconDefaultsProvider>
-                      <IconCheckmark />
-                    </IconDefaultsProvider>
+                    <IconCheckmark size="xs" />
                   ) : (
                     doneTasks.length
                   )
@@ -170,10 +167,6 @@ export function PrimaryNavigationOnboarding() {
     setQuickStartCompleted,
     allTasksCompleted,
   ]);
-
-  if (skipQuickStart) {
-    return null;
-  }
 
   return (
     <OnboardingItem

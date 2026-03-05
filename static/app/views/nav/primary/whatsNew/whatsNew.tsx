@@ -137,7 +137,6 @@ export function PrimaryNavigationWhatsNew() {
         label={t("What's New")}
         buttonProps={{
           ...overlayTriggerProps,
-          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
           icon: <IconBroadcast />,
         }}
       >
@@ -157,14 +156,7 @@ export function PrimaryNavigationWhatsNew() {
   );
 }
 
-const WhatsNewButton = styled(SidebarButton)`
-  display: none;
-
-  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
-  @media (min-height: 724px) {
-    display: flex;
-  }
-`;
+const WhatsNewButton = styled(SidebarButton)``;
 
 const Empty = styled('div')`
   display: flex;
