@@ -1,13 +1,5 @@
-import {Fragment, memo, useEffect, useId, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useEffect, useMemo, useState} from 'react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-
-import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -19,14 +11,6 @@ import useProjects from 'sentry/utils/useProjects';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
 import {
-  ChevronAction,
-  HiddenFramesToggleAction,
-  SourceLinkAction,
-  SourceMapsDebuggerAction,
-} from './frame/actions';
-import {FrameContext} from './frame/frameContext';
-import {FrameHeader} from './frame/frameHeader';
-import {
   createInitialHiddenFrameToggleMap,
   getFrameCountMap,
   getLastFrameIndex,
@@ -34,16 +18,13 @@ import {
 } from './rows/getRows';
 import {
   StackTraceContext,
-  StackTraceFrameContext,
   useStackTraceContext,
   useStackTraceViewState,
 } from './stackTraceContext';
-import type {
-  StackTraceContextValue,
-  StackTraceFrameContextValue,
-} from './stackTraceContext';
+import type {StackTraceContextValue} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
 import {CopyButton, DisplayOptions, DownloadButton, Toolbar} from './toolbar';
-import type {FrameRow, StackTraceProviderProps} from './types';
+import type {StackTraceProviderProps} from './types';
 
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
   const framePlatform = stacktrace.frames?.find(frame => !!frame.platform)?.platform;
@@ -177,189 +158,8 @@ function Root({
   );
 }
 
-interface StackTraceFrameProps {
-  row: FrameRow;
-  children?: React.ReactNode;
-}
-
-const FrameRoot = memo(function FrameRoot({row, children}: StackTraceFrameProps) {
-  const {
-    event,
-    frames,
-    lastFrameIndex,
-    platform,
-    stacktrace,
-    hiddenFrameToggleMap,
-    toggleHiddenFrames,
-  } = useStackTraceContext();
-
-  const registers = row.frameIndex === frames.length - 1 ? stacktrace.registers : {};
-  const [isExpanded, setIsExpanded] = useState(() => row.frameIndex === lastFrameIndex);
-
-  const isFrameExpandable = frameHasExpandableDetails({
-    frame: row.frame,
-    registers,
-    platform,
-  });
-
-  const frameContextId = useId();
-
-  const value = useMemo<StackTraceFrameContextValue>(
-    () => ({
-      event,
-      frame: row.frame,
-      frameContextId,
-      frameIndex: row.frameIndex,
-      hiddenFrameCount: row.hiddenFrameCount,
-      hiddenFramesExpanded: !!hiddenFrameToggleMap[row.frameIndex],
-      isExpandable: isFrameExpandable,
-      isExpanded,
-      nextFrame: row.nextFrame,
-      platform,
-      timesRepeated: row.timesRepeated,
-      toggleExpansion: () => {
-        setIsExpanded(prevState => !prevState);
-      },
-      toggleHiddenFrames: () => {
-        toggleHiddenFrames(row.frameIndex);
-      },
-    }),
-    [
-      event,
-      frameContextId,
-      hiddenFrameToggleMap,
-      isExpanded,
-      isFrameExpandable,
-      platform,
-      row.frame,
-      row.frameIndex,
-      row.hiddenFrameCount,
-      row.nextFrame,
-      row.timesRepeated,
-      toggleHiddenFrames,
-    ]
-  );
-
-  return (
-    <StackTraceFrameContext.Provider value={value}>
-      <FrameRowContainer data-test-id="core-stacktrace-frame-row">
-        {children ?? (
-          <Fragment>
-            <FrameHeader />
-            <FrameContext />
-          </Fragment>
-        )}
-      </FrameRowContainer>
-    </StackTraceFrameContext.Provider>
-  );
-});
-
-function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
-  const [start, end] = omittedFrames;
-  return (
-    <OmittedRow>
-      <Text size="xs" variant="muted">
-        {t('Frames %d to %d were omitted and not available.', start, end)}
-      </Text>
-    </OmittedRow>
-  );
-}
-
-function Frames() {
-  const {rows, stacktrace, event} = useStackTraceContext();
-  const {view} = useStackTraceViewState();
-
-  if (view === 'raw') {
-    return (
-      <Panel>
-        <RawStackTraceText>
-          {rawStacktraceContent({data: stacktrace, platform: event.platform})}
-        </RawStackTraceText>
-      </Panel>
-    );
-  }
-
-  if (rows.length === 0) {
-    return (
-      <Container border="primary" radius="md" padding="md">
-        <Text variant="muted">{t('No stack trace available')}</Text>
-      </Container>
-    );
-  }
-
-  return (
-    <FramesPanel>
-      <FrameList aria-label={t('Stack frames')}>
-        {rows.map(row => {
-          if (row.kind === 'omitted') {
-            return (
-              <OmittedFramesBanner key={row.rowKey} omittedFrames={row.omittedFrames} />
-            );
-          }
-
-          return <FrameRoot key={row.frameIndex} row={row} />;
-        })}
-      </FrameList>
-    </FramesPanel>
-  );
-}
-
-const FramesPanel = styled(Panel)`
-  overflow: hidden;
-`;
-
-const FrameList = styled('div')`
-  margin: 0;
-  padding: 0;
-`;
-
-const FrameRowContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding-left: 0;
-
-  &:first-of-type {
-    border-top: 0;
-  }
-`;
-
-const OmittedRow = styled(Container)`
-  border-left: 2px solid ${p => p.theme.colors.red400};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.colors.red100};
-  padding: ${p => `${p.theme.space.sm} ${p.theme.space.md}`};
-`;
-
-const RawStackTraceText = styled('pre')`
-  margin: 0;
-  padding: ${p => p.theme.space.md};
-  overflow: auto;
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-function FrameActionsContainer({children}: {children: React.ReactNode}) {
-  return (
-    <Flex gap="xs" align="center">
-      {children}
-    </Flex>
-  );
-}
-
-const FrameActions = Object.assign(FrameActionsContainer, {
-  Chevron: ChevronAction,
-  HiddenFramesToggle: HiddenFramesToggleAction,
-  SourceLink: SourceLinkAction,
-  SourceMapsDebugger: SourceMapsDebuggerAction,
-});
-
-const Frame = Object.assign(FrameRoot, {
-  Context: FrameContext,
-  Header: FrameHeader,
-  Actions: FrameActions,
-});
-
 export const StackTraceProvider = Object.assign(Root, {
-  Frames,
-  Frame,
+  Frames: StackTraceFrames,
   DisplayOptions,
   CopyButton,
   DownloadButton,

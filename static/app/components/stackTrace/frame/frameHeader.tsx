@@ -1,5 +1,4 @@
-import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -11,7 +10,6 @@ import {
   getLeadHint,
   getPlatform,
   isDotnet,
-  trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {
   useStackTraceContext,
@@ -21,13 +19,6 @@ import {IconQuestion, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
-
-import {ChevronAction} from './actions/chevron';
-import {HiddenFramesToggleAction} from './actions/hiddenFramesToggle';
-import {SourceLinkAction} from './actions/sourceLink';
-import {SourceMapsDebuggerAction} from './actions/sourceMapsDebugger';
-
-const LONG_PATH_BREAK_THRESHOLD = 80;
 
 function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
   const framePlatform = getPlatform(frame.platform, platform);
@@ -39,25 +30,12 @@ function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
   return frame.filename ?? frame.module ?? '';
 }
 
-function DefaultActions({isHovering}: {isHovering: boolean}) {
-  const {frame} = useStackTraceFrameContext();
-  return (
-    <Fragment>
-      <SourceLinkAction isHovering={isHovering} />
-      <SourceMapsDebuggerAction />
-      <HiddenFramesToggleAction />
-      {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-      <ChevronAction />
-    </Fragment>
-  );
-}
-
 interface FrameHeaderProps {
   /**
-   * Custom trailing actions. When provided, replaces the default
-   * SourceLink + SourceMapsDebugger + HiddenFramesToggle + InApp tag + Chevron set.
+   * Custom trailing actions for this frame. Pass a ReactNode, or a render
+   * function that receives `isHovering`.
    */
-  actions?: React.ReactNode;
+  actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
 }
 
 export function FrameHeader({actions}: FrameHeaderProps) {
@@ -80,14 +58,12 @@ export function FrameHeader({actions}: FrameHeaderProps) {
   const hasFrameFunction = !!frameFunctionName;
   const framePlatform = getPlatform(frame.platform, platform);
   const showPackage = !!frame.package && !isDotnet(framePlatform);
-  const shouldTruncateFilenameLeft = frameDisplayPath.length >= LONG_PATH_BREAK_THRESHOLD;
-  const shouldBreakFrameMetaLine =
-    frameDisplayPath.length >= LONG_PATH_BREAK_THRESHOLD &&
-    (hasFrameFunction || frame.lineNo !== undefined || showPackage);
   const framePathTooltip =
     frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
+  const packageTooltip = frame.package ?? undefined;
   const sourceMapInfoText = frame.mapUrl ?? frame.map;
   const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
+  const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
 
   return (
     <FrameHeaderContainer
@@ -96,7 +72,8 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       aria-expanded={isExpandable ? isExpanded : undefined}
       aria-controls={isExpandable ? frameContextId : undefined}
       onClick={() => {
-        if (isExpandable) {
+        const selectedText = window.getSelection()?.toString();
+        if (isExpandable && !selectedText) {
           toggleExpansion();
         }
       }}
@@ -111,11 +88,13 @@ export function FrameHeader({actions}: FrameHeaderProps) {
               {': '}
             </FrameLeadHint>
           ) : null}
-          <Tooltip title={framePathTooltip} disabled={!framePathTooltip} maxWidth={750}>
-            <FrameTitleFilename
-              data-truncate-left={shouldTruncateFilenameLeft}
-              truncateLeft={shouldTruncateFilenameLeft}
-            >
+          <Tooltip
+            title={framePathTooltip}
+            disabled={!framePathTooltip}
+            maxWidth={750}
+            skipWrapper
+          >
+            <FrameTitleFilename>
               <span>{frameDisplayPath}</span>
             </FrameTitleFilename>
           </Tooltip>
@@ -137,7 +116,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
               </SourceMapInfoTrigger>
             </Tooltip>
           ) : null}
-          <FrameTitleMeta forceNewLine={shouldBreakFrameMetaLine}>
+          <FrameTitleMeta>
             {hasFrameFunction ? (
               <FrameTitleHint as="span" size="sm" variant="muted">
                 {`${t('in')} `}
@@ -161,7 +140,14 @@ export function FrameHeader({actions}: FrameHeaderProps) {
                 <FrameTitleHint as="span" size="sm" variant="muted">
                   {`${t('within')} `}
                 </FrameTitleHint>
-                <FrameTitleName>{trimPackage(frame.package!)}</FrameTitleName>
+                <Tooltip
+                  title={packageTooltip}
+                  disabled={!packageTooltip}
+                  maxWidth={750}
+                  skipWrapper
+                >
+                  <FrameTitleMetaValue>{frame.package}</FrameTitleMetaValue>
+                </Tooltip>
               </FrameLineMeta>
             ) : null}
           </FrameTitleMeta>
@@ -178,7 +164,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
           gap="xs"
           align="center"
         >
-          {actions ?? <DefaultActions isHovering={isHovering} />}
+          {resolvedActions}
         </FrameHeaderTrailing>
       </FrameHeaderRight>
     </FrameHeaderContainer>
@@ -250,13 +236,13 @@ const FrameHeaderTrailing = styled(Flex)`
   }
 `;
 
-const RepeatedFrames = styled(Flex)`
+const RepeatedFrames = styled('span')`
   display: inline-flex;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const RepeatedContent = styled(Flex)`
+const RepeatedContent = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
@@ -264,32 +250,28 @@ const RepeatedContent = styled(Flex)`
 `;
 
 const FrameTitle = styled('div')`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: ${p => p.theme.space.xs};
+  row-gap: 0;
   color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
-  line-height: 1.45;
+  line-height: 1.3;
   width: 100%;
   min-width: 0;
   overflow: hidden;
   overflow-wrap: normal;
+  user-select: text;
 `;
 
-const FrameTitleMeta = styled('span')<{forceNewLine: boolean}>`
-  display: inline-flex;
-  align-items: baseline;
+const FrameTitleMeta = styled('span')`
+  display: inline;
   max-width: 100%;
   min-width: 0;
   margin-left: ${p => p.theme.space.xs};
   white-space: nowrap;
-
-  ${p =>
-    p.forceNewLine &&
-    css`
-      display: flex;
-      width: 100%;
-      margin-left: 0;
-      margin-top: -1px;
-    `}
 `;
 
 const FrameTitleHint = styled(Text)`
@@ -304,7 +286,7 @@ const FrameLeadHint = styled(Text)`
   opacity: 0.8;
 `;
 
-const FrameTitleName = styled('code')`
+const FrameTitleName = styled('span')`
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -318,33 +300,36 @@ const FrameTitleFunction = styled(FrameTitleName)`
 `;
 
 const FrameLineMeta = styled('span')`
-  display: inline-flex;
-  align-items: baseline;
-  flex-shrink: 0;
+  display: inline;
   margin-left: ${p => p.theme.space.xs};
   white-space: nowrap;
 `;
 
-const FrameTitleFilename = styled(FrameTitleName)<{truncateLeft: boolean}>`
+const FrameTitleFilename = styled(FrameTitleName)`
   display: inline-block;
+  vertical-align: baseline;
+  flex: 1 1 auto;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
 
   > span {
     direction: ltr;
     unicode-bidi: isolate;
   }
+`;
 
-  ${p =>
-    p.truncateLeft &&
-    css`
-      display: block;
-      width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      direction: rtl;
-      text-align: left;
-    `}
+const FrameTitleMetaValue = styled(FrameTitleName)`
+  display: inline-block;
+  min-width: 0;
+  max-width: min(45vw, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const SourceMapTooltipContent = styled('div')`
