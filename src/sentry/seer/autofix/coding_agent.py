@@ -746,7 +746,7 @@ def poll_claude_code_agents(
                     "coding_agent.claude_code.build_result_error",
                     extra={"agent_id": agent_id},
                 )
-                continue
+                new_status = CodingAgentStatus.FAILED
 
         if new_status != agent_state.status:
             update_coding_agent_state(
