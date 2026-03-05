@@ -17,6 +17,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigura
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
     namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
+    retry=Retry(times=5, delay=60 * 5),
 )
 def create_preprod_pr_comment_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any

@@ -285,6 +285,52 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_retry_after_create_failure_creates_again(self, mock_format, mock_get_client):
+        """When create_comment fails, no comment_id is stored, so the retry
+        calls create_comment again rather than update_comment."""
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "body"
+
+        artifact = self._create_artifact()
+
+        # First call: create_comment fails
+        mock_client.create_comment.side_effect = ApiError("server error", code=500)
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            with pytest.raises(ApiError):
+                create_preprod_pr_comment_task(artifact.id)
+
+        # No comment_id should be stored
+        assert artifact.commit_comparison is not None
+        artifact.commit_comparison.refresh_from_db()
+        build_dist = artifact.commit_comparison.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is False
+        assert "comment_id" not in build_dist
+
+        # Second call (retry): should call create_comment again
+        mock_client.reset_mock()
+        mock_client.create_comment.side_effect = None
+        mock_client.create_comment.return_value = {"id": 77777}
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            data={"body": "body"},
+        )
+        mock_client.update_comment.assert_not_called()
+
+        # Now the comment_id should be stored
+        artifact.commit_comparison.refresh_from_db()
+        build_dist = artifact.commit_comparison.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is True
+        assert build_dist["comment_id"] == "77777"
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_github_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_reads_fresh_extras_via_select_for_update(self, mock_format, mock_get_client):
         """select_for_update gives a fresh DB read, so a comment_id written
         by a concurrent task between artifact load and row lock is found."""
