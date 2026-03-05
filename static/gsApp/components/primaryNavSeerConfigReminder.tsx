@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

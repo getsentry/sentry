@@ -1,12 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 
 import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
