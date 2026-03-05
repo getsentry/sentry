@@ -294,10 +294,31 @@ export function useFlatStoryList(): StoryTreeNode[] {
             continue;
           }
 
+          const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
+          const allConfigured = [
+            ...config.components,
+            ...(config.subgroups?.flatMap(sg => sg.components) ?? []),
+          ];
+          const added = new Set<string>();
+
+          // Add configured components in config order
+          for (const componentName of allConfigured) {
+            const file = subcategoryFiles.find(
+              f => inferComponentName(f).toLowerCase() === componentName
+            );
+            if (file) {
+              const name = inferComponentName(file);
+              result.push(new StoryTreeNode(formatName(name), 'core', file));
+              added.add(file);
+            }
+          }
+
+          // Add remaining files not in config (sorted)
           for (const file of subcategoryFiles.sort()) {
-            const name = inferComponentName(file);
-            const node = new StoryTreeNode(formatName(name), 'core', file);
-            result.push(node);
+            if (!added.has(file)) {
+              const name = inferComponentName(file);
+              result.push(new StoryTreeNode(formatName(name), 'core', file));
+            }
           }
         }
       }
@@ -621,13 +642,18 @@ function buildComponentTree(
             subcategory,
             subgroupFiles[0]
           );
-          for (const file of subgroupFiles.sort()) {
-            const name = inferComponentName(file);
-            subgroupNode.children[name] = new StoryTreeNode(
-              formatName(name),
-              'core',
-              file
+          // Add subgroup components in config order (not alphabetically)
+          for (const componentName of subgroup.components) {
+            const file = subgroupFiles.find(
+              f => inferComponentName(f).toLowerCase() === componentName
             );
+            if (file) {
+              subgroupNode.children[componentName] = new StoryTreeNode(
+                formatName(componentName),
+                'core',
+                file
+              );
+            }
           }
           folderNode.children[`_subgroup_${subgroup.label}`] = subgroupNode;
         }
