@@ -1,7 +1,6 @@
 import logging
 
 from django.db import router, transaction
-from django.db.models.signals import post_save
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -24,6 +23,7 @@ from sentry.integrations.api.endpoints.organization_code_mappings import (
 from sentry.integrations.models.repository_project_path_config import (
     RepositoryProjectPathConfig,
     process_resource_change,
+    suppress_post_save_signal,
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -150,13 +150,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
         has_errors = False
         last_saved_config = None
 
-        # Suppress per-save signals during the loop to avoid redundant
-        # cache clears and celery task dispatches for every mapping.
-        post_save.disconnect(
-            sender=RepositoryProjectPathConfig,
-            dispatch_uid="repository_project_path_config_post_save",
-        )
-        try:
+        with suppress_post_save_signal():
             for mapping in mappings:
                 try:
                     with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
@@ -199,13 +193,6 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
                             "detail": "Failed to save mapping.",
                         }
                     )
-        finally:
-            post_save.connect(
-                lambda instance, **kwargs: process_resource_change(instance, **kwargs),
-                sender=RepositoryProjectPathConfig,
-                weak=False,
-                dispatch_uid="repository_project_path_config_post_save",
-            )
 
         # Fire side effects once for the entire batch.
         if last_saved_config is not None:
