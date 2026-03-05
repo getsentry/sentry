@@ -12,14 +12,12 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
@@ -33,7 +31,7 @@ type Props = {
 };
 
 function ProjectQuickLinks({organization, project}: Props) {
-  const domainView: DomainView | undefined = project
+  const domainView = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
 
@@ -138,10 +136,10 @@ function QuickLinkComponent({
 const QuickLink = styled(QuickLinkComponent)<{
   disabled?: boolean;
 }>`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: auto 1fr;
 
   ${p =>

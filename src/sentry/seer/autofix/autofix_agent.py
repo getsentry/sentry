@@ -152,6 +152,27 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
     return step_to_action_type[step][is_completed]
 
 
+def get_autofix_explorer_client(
+    group: Group,
+    intelligence_level: Literal["low", "medium", "high"] = "low",
+    enable_coding: bool = False,
+) -> SeerExplorerClient:
+    from sentry.seer.autofix.on_completion_hook import (
+        AutofixOnCompletionHook,  # nested to avoid circular import
+    )
+
+    return SeerExplorerClient(
+        organization=group.organization,
+        project=group.project,
+        user=None,  # No user personalization for autofix
+        category_key="autofix",
+        category_value=str(group.id),
+        intelligence_level=intelligence_level,
+        on_completion_hook=AutofixOnCompletionHook,
+        enable_coding=enable_coding,
+    )
+
+
 def trigger_autofix_explorer(
     group: Group,
     step: AutofixStep,
@@ -171,19 +192,11 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
-    from sentry.seer.autofix.on_completion_hook import (
-        AutofixOnCompletionHook,  # nested to avoid circular import
-    )
 
     config = STEP_CONFIGS[step]
-    client = SeerExplorerClient(
-        organization=group.organization,
-        project=group.project,
-        user=None,  # No user personalization for autofix
-        category_key="autofix",
-        category_value=str(group.id),
+    client = get_autofix_explorer_client(
+        group,
         intelligence_level=intelligence_level,
-        on_completion_hook=AutofixOnCompletionHook,
         enable_coding=config.enable_coding,
     )
 

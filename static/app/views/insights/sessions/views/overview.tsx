@@ -6,7 +6,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
@@ -155,8 +154,8 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const FilterWrapper = styled('div')`
-  margin: ${space(2)} 0;
-  gap: ${space(1)};
+  margin: ${p => p.theme.space.xl} 0;
+  gap: ${p => p.theme.space.md};
   display: grid;
   grid-template-columns: auto 1fr;
   @media (max-width: ${p => p.theme.breakpoints.md}) {

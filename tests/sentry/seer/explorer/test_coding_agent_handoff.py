@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.seer.explorer.coding_agent_handoff import _resolve_client, launch_coding_agents
 from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
@@ -168,6 +169,40 @@ class TestLaunchCodingAgents(TestCase):
         failure = result["failures"][0]
         assert failure["failure_type"] == "github_copilot_not_licensed"
         assert "Copilot license" in failure["error_message"]
+
+    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    def test_verify_branch_error_returns_cursor_github_access_failure_type(
+        self, mock_validate, mock_store
+    ):
+        """Test that a 400 ApiError with 'Failed to verify existence of branch' returns cursor_github_access failure_type.
+
+        When Cursor returns a 400 with this error, the Cursor GitHub App hasn't been
+        granted access to the target repository. We should show the Cursor GitHub
+        access modal instead of a generic error.
+        """
+        mock_integration = MagicMock()
+        mock_installation = MagicMock(spec=CursorAgentIntegration)
+        mock_installation.launch.side_effect = ApiError(
+            text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
+            code=400,
+        )
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=["owner/repo"],
+        )
+
+        assert len(result["successes"]) == 0
+        assert len(result["failures"]) == 1
+        failure = result["failures"][0]
+        assert failure["failure_type"] == "cursor_github_access"
+        assert "Cursor does not have GitHub access" in failure["error_message"]
+        assert "install the Cursor GitHub App" in failure["error_message"]
 
 
 MOCK_HANDOFF_PATH = "sentry.seer.explorer.coding_agent_handoff"

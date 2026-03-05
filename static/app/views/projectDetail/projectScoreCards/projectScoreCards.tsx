@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
@@ -61,7 +60,7 @@ function ProjectScoreCards({
         query={query}
       />
 
-      {isPlatformANRCompatible(project?.platform, project?.features) ? (
+      {isPlatformANRCompatible(project?.platform) ? (
         <ProjectAnrScoreCard
           organization={organization}
           selection={selection}
@@ -85,13 +84,13 @@ function ProjectScoreCards({
 
 const CardWrapper = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-template-columns: 1fr;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: grid;
-    grid-column-gap: ${space(2)};
+    grid-column-gap: ${p => p.theme.space.xl};
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

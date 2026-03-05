@@ -144,7 +144,7 @@ export function getWidgetExploreUrl(
 }
 
 export function getChartType(displayType: DisplayType) {
-  let chartType: ChartType = ChartType.LINE;
+  let chartType = ChartType.LINE;
   switch (displayType) {
     case DisplayType.BAR:
       chartType = ChartType.BAR;
@@ -219,7 +219,7 @@ function _getWidgetExploreUrl(
   ];
 
   const chartType = getChartType(widget.displayType);
-  let exploreMode: Mode | undefined = preferMode;
+  let exploreMode = preferMode;
   if (!defined(exploreMode)) {
     switch (widget.displayType) {
       case DisplayType.BAR:
@@ -270,7 +270,7 @@ function _getWidgetExploreUrl(
     groupBy = [''];
   }
 
-  const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
+  const yAxisFields = locationQueryParams.yAxes.flatMap(getAggregateArguments);
   const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';

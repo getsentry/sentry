@@ -247,6 +247,7 @@ sentry_sdk.init(
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
+    send_default_pii=True,
 )`,
         },
         {

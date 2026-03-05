@@ -14,7 +14,6 @@ import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegra
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -363,8 +362,8 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(1)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   height: ${toolbarHeight};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

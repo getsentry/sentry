@@ -1297,6 +1297,47 @@ class JiraIntegrationTest(APITestCase):
             == "hello world, goodnight, moon"
         )
 
+    def test_error_fields_from_json_issue_not_found(self) -> None:
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        # Matches the exact Jira error message with trailing period
+        msg_with_period = "Issue does not exist or you do not have permission to see it."
+        result = installation.error_fields_from_json(
+            {"errorMessages": [msg_with_period], "errors": {}}
+        )
+        assert result == {"Issue": [msg_with_period]}
+
+        # Also matches without trailing period
+        msg_no_period = "Issue does not exist or you do not have permission to see it"
+        result = installation.error_fields_from_json(
+            {"errorMessages": [msg_no_period], "errors": {}}
+        )
+        assert result == {"Issue": [msg_no_period]}
+
+        # Also matches with different casing
+        msg_lowercase = "issue does not exist or you do not have permission to see it."
+        result = installation.error_fields_from_json(
+            {"errorMessages": [msg_lowercase], "errors": {}}
+        )
+        assert result == {"Issue": [msg_lowercase]}
+
+    def test_raise_error_with_issue_not_found_json(self) -> None:
+        from sentry.shared_integrations.exceptions import ApiError
+
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        msg = "Issue does not exist or you do not have permission to see it."
+        exc = ApiError(json.dumps({"errorMessages": [msg], "errors": {}}), code=404)
+
+        with pytest.raises(IntegrationFormError) as exc_info:
+            installation.raise_error(exc)
+
+        assert exc_info.value.field_errors == {"Issue": [msg]}
+
 
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property

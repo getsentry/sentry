@@ -22,7 +22,6 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCode, IconFix, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -359,15 +358,15 @@ const InsightCardButton = styled(motion.div)`
 const InsightGrid = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   position: relative;
 
   &:before {
     content: '';
     position: absolute;
-    left: ${space(3)};
-    top: ${space(4)};
-    bottom: ${space(2)};
+    left: ${p => p.theme.space['2xl']};
+    top: ${p => p.theme.space['3xl']};
+    bottom: ${p => p.theme.space.xl};
     width: 1px;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
@@ -378,9 +377,9 @@ const InsightGrid = styled('div')`
 const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs} 0 ${p => p.theme.space.md};
   justify-content: space-between;
 `;
 
@@ -400,7 +399,8 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(0.5)} ${space(1)} ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.md};
   text-align: left;
   flex: 1;
 

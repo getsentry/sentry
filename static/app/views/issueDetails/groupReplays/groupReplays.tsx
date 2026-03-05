@@ -331,7 +331,7 @@ function ReplayOverlay({
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
   background-color: ${p => p.theme.tokens.background.primary};
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 
   ${p =>
     p.hasStreamlinedUI &&
@@ -343,8 +343,8 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.lg};
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 

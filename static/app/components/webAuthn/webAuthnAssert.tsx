@@ -12,7 +12,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {ChallengeData} from 'sentry/types/auth';
 
 import {handleSign} from './handlers';
@@ -214,10 +213,10 @@ function UnsupportedError() {
 const Container = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
-  padding: ${space(3)} 0;
-  margin-bottom: ${space(2)};
+  padding: ${p => p.theme.space['2xl']} 0;
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const DeviceAnimation = styled('div')<{activated: boolean}>`

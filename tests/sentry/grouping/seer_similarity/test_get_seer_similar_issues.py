@@ -117,6 +117,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "training_mode": False,
                 "hybrid_fingerprint": False,
             },
+            viewer_context={"organization_id": self.project.organization_id},
         )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -165,6 +166,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "training_mode": False,
             }
 
+            viewer_ctx = {"organization_id": self.project.organization_id}
             assert mock_get_similarity_data.call_count == 2
             assert mock_get_similarity_data.mock_calls == [
                 # Initial call to Seer
@@ -181,6 +183,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "training_mode": False,
                         "hybrid_fingerprint": False,
                     },
+                    viewer_context=viewer_ctx,
                 ),
                 # Second call to store the event's data since the match that came back from Seer
                 # wasn't usable
@@ -196,6 +199,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "model_version": "v1",
                         "training_mode": False,
                     },
+                    viewer_context=viewer_ctx,
                 ),
             ]
 

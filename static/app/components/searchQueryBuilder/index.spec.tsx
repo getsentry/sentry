@@ -897,48 +897,27 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic ops', () => {
-      describe('flag disabled', () => {
-        it('can remove logic ops by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+      it('can remove logic selector by clicking the delete button', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+        expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Remove logic operator: OR'})
+        );
 
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
+        expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
       });
 
-      describe('flag enabled', () => {
-        it('can remove logic selector by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
+      it('can select a different logic operator', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Remove logic operator: OR'})
-          );
+        expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit logic operator: OR'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: 'AND'}));
 
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
-
-        it('can select a different logic operator', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
-
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Edit logic operator: OR'})
-          );
-          await userEvent.click(screen.getByRole('option', {name: 'AND'}));
-
-          expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
-        });
+        expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
       });
     });
 
@@ -3347,6 +3326,91 @@ describe('SearchQueryBuilder', () => {
         // Should have the same value
         expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
         expect(mockOnChange).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('currency', () => {
+      const currencyFilterKeys: TagCollection = {
+        cost: {
+          key: 'cost',
+          name: 'cost',
+        },
+      };
+
+      const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
+        valueType: FieldValueType.CURRENCY,
+        kind: FieldKind.FIELD,
+      });
+
+      const currencyProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: currencyFilterKeys,
+        filterKeySections: [],
+        fieldDefinitionGetter,
+      };
+
+      it('new currency filters start with greater than operator and default value', async () => {
+        render(<SearchQueryBuilder {...currencyProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'cost'}));
+
+        // Should start with the > operator and a value of 100
+        expect(await screen.findByRole('row', {name: 'cost:>100'})).toBeInTheDocument();
+      });
+
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>42" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('42');
+      });
+
+      it('currency filters have the correct operator options', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: cost'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<='})).toBeInTheDocument();
+      });
+
+      it('currency filters can change operator', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: cost'})
+        );
+
+        await userEvent.click(await screen.findByRole('option', {name: '<='}));
+
+        expect(await screen.findByRole('row', {name: 'cost:<=100'})).toBeInTheDocument();
+      });
+
+      it('currency filters do not allow invalid values', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'cost:>100'})).toBeInTheDocument();
+
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7k{Enter}');
+
+        // Should accept "7k" as a valid value
+        expect(await screen.findByRole('row', {name: 'cost:>7k'})).toBeInTheDocument();
       });
     });
 

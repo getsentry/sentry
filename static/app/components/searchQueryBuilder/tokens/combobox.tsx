@@ -37,7 +37,6 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -192,7 +191,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const hiddenOptions: Set<SelectKey> = useMemo(() => {
+  const hiddenOptions = useMemo(() => {
     const {hidden} = getHiddenOptions(
       items,
       shouldFilterResults ? filterValue : '',
@@ -679,6 +678,6 @@ const ListBoxOverlay = styled(Overlay)`
 const DescriptionOverlay = styled(Overlay)`
   min-width: 200px;
   max-width: 400px;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   line-height: 1.2;
 `;
