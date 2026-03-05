@@ -19,6 +19,7 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
+from sentry.testutils.pytest import xdist
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -32,7 +33,7 @@ TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
 
-TEST_REDIS_DB = 9
+TEST_REDIS_DB = xdist.get_redis_db()
 
 
 def _use_monolith_dbs() -> bool:
@@ -40,21 +41,21 @@ def _use_monolith_dbs() -> bool:
 
 
 def configure_split_db() -> None:
+    suffix = xdist.get_db_suffix()
+
     already_configured = "control" in settings.DATABASES
     if already_configured or _use_monolith_dbs():
+        if suffix:
+            settings.DATABASES["default"]["NAME"] += suffix
         return
 
-    # Add connections for the region & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
-    settings.DATABASES["control"]["NAME"] = "control"
+    settings.DATABASES["control"]["NAME"] = f"control{suffix}"
 
-    # Use the region database in the default connection as region
-    # silo database is the 'default' elsewhere in application logic.
-    settings.DATABASES["default"]["NAME"] = "region"
+    settings.DATABASES["default"]["NAME"] = f"region{suffix}"
 
-    # Add a connection for the secondary db
     settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
-    settings.DATABASES["secondary"]["NAME"] = "secondary"
+    settings.DATABASES["secondary"]["NAME"] = f"secondary{suffix}"
 
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
@@ -71,8 +72,15 @@ def _configure_test_env_regions() -> None:
     # depends on region attributes, use `override_regions` in your test case.
     region_name = "testregion" + "".join(random.choices(string.digits, k=6))
 
+    # Each parallel worker gets a unique snowflake_id so concurrent model
+    # creation doesn't produce colliding IDs.
+    region_snowflake_id = xdist.worker_num + 1 if xdist.worker_num is not None else 0
+
     default_region = Region(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -196,6 +204,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
+
+    if snuba_url := xdist.get_snuba_url():
+        settings.SENTRY_SNUBA = snuba_url
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
@@ -494,8 +505,3 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
-
-
-def pytest_xdist_setupnodes() -> None:
-    # prevent out-of-order django initialization
-    os.environ.pop("DJANGO_SETTINGS_MODULE", None)

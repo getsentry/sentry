@@ -166,7 +166,6 @@ dev = [
     "pytest-rerunfailures>=15.0",
     "pytest-sentry>=0.3.0",
     "pytest-workaround-12888>=1.0.0",
-    "pytest-xdist>=3.0.2",
     "responses>=0.23.1",
     "ruff>=0.14.0",
     "selenium>=4.16.0",
@@ -299,7 +298,6 @@ filterwarnings = [
     # informed and can evaluate.
     "default:ATTRIBUTE_NAMES\\..* is deprecated.*:DeprecationWarning",
 ]
-looponfailroots = ["src", "tests"]
 
 [tool.mypy]
 python_version = "3.13"
