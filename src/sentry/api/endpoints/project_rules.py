@@ -729,7 +729,10 @@ def format_request_data(
         data.get("actions", []), False
     )
     for action in translated_actions:
-        target_type = action.get("config", {}).get("target_type")
+        target_type = None
+        action_config = action.get("config", {})
+        if action_config is not None:
+            target_type = action_config.get("target_type")
         if target_type is not None:
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
 
