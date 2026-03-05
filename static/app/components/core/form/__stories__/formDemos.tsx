@@ -262,7 +262,7 @@ export function BasicAutoSaveDemo() {
       <AutoSaveField
         name="displayName"
         schema={basicSchema}
-        initialValue={t('Jane Doe')}
+        initialValue="Jane Doe"
         mutationOptions={basicMutationOptions}
       >
         {field => (
@@ -303,7 +303,7 @@ export function FullAutoSaveDemo() {
       <AutoSaveField
         name="name"
         schema={fullSchema}
-        initialValue={t('Jane Doe')}
+        initialValue="Jane Doe"
         mutationOptions={fullMutationOptions}
       >
         {field => (
@@ -355,7 +355,7 @@ export function FullAutoSaveDemo() {
       <AutoSaveField
         name="priority"
         schema={fullSchema}
-        initialValue={t('medium')}
+        initialValue="medium"
         mutationOptions={fullMutationOptions}
       >
         {field => (
