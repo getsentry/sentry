@@ -167,7 +167,14 @@ function DetectorSectionContent({
     <div>
       <SidebarSectionTitle>{title}</SidebarSectionTitle>
       {description && <DetectorDescription>{description}</DetectorDescription>}
-      <LinkButton aria-label={ctaText} to={to} style={{width: '100%'}} size="sm">
+      <LinkButton
+        aria-label={ctaText}
+        to={to}
+        style={{width: '100%'}}
+        size="sm"
+        analyticsEventKey="issue_details.detector_details_link_clicked"
+        analyticsEventName="Issue Details: Detector Details Link Clicked"
+      >
         {ctaText}
       </LinkButton>
     </div>
