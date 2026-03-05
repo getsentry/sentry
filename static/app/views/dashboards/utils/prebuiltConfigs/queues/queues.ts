@@ -4,6 +4,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -70,7 +71,7 @@ const DESTINATION_TABLE: Widget = {
     y: 3,
     w: 6,
     h: 6,
-    minH: 6,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
