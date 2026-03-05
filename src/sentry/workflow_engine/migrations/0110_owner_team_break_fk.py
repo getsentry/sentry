@@ -72,10 +72,6 @@ class Migration(CheckedMigration):
                 ),
             ],
             state_operations=[
-                migrations.RemoveConstraint(
-                    model_name="workflow",
-                    name="workflow_engine_workflow_owner_constraints",
-                ),
                 migrations.RemoveField(
                     model_name="workflow",
                     name="owner_team",
@@ -85,17 +81,6 @@ class Migration(CheckedMigration):
                     name="owner_team_id",
                     field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
                         blank=True, db_index=True, null=True
-                    ),
-                ),
-                migrations.AddConstraint(
-                    model_name="workflow",
-                    constraint=models.CheckConstraint(
-                        condition=(
-                            models.Q(owner_user_id__isnull=True, owner_team_id__isnull=False)
-                            | models.Q(owner_user_id__isnull=False, owner_team_id__isnull=True)
-                            | models.Q(owner_user_id__isnull=True, owner_team_id__isnull=True)
-                        ),
-                        name="workflow_engine_workflow_owner_constraints",
                     ),
                 ),
             ],
