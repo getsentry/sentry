@@ -82,7 +82,7 @@ def _query_by_label(
     label: str,
     now: datetime,
     extra_columns: list[Column] | None = None,
-    item_type: int = _DEMO_ITEM_TYPE,
+    item_type: TraceItemType.ValueType = _DEMO_ITEM_TYPE,
 ) -> list[dict]:
     """
     Query EAP for items matching the given demo_label attribute.
@@ -322,8 +322,7 @@ class EAPDataContractValidationGapTest(TestCase, SnubaTestCase):
         A TraceItem where the producer never sets item_id defaults to empty
         bytes (proto3's default for bytes fields). The codec encodes it
         without error, but Snuba's read_item_id calls split_at(16) on the
-        empty vec and panics — a latent crash bug in the same class as the
-        INC-2060 received panic.
+        empty vec and panics.
         """
         now = datetime.now(dt_timezone.utc)
         ts = Timestamp(seconds=int(now.timestamp()))
@@ -432,7 +431,7 @@ class EAPDataContractValidationGapTest(TestCase, SnubaTestCase):
         assert len(rows) == 1
         assert rows[0]["demo_label"].val_str == label
 
-    @pytest.mark.skip(reason="Should be succeeding with fix from INC-2060")
+    @pytest.mark.skip(reason="Should be succeeding after fix from INC-2060")
     def test_missing_received(self):
         """
         A TraceItem where the producer never sets received (a Timestamp message
