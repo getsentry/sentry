@@ -106,10 +106,10 @@ def build_notification_actions_from_rule_data_actions(
     notification_actions_data = translate_rule_data_actions_to_notification_actions(
         actions, skip_failures=not is_dry_run
     )
-    actions = [Action(**action_data) for action_data in notification_actions_data]
+    notification_actions = [Action(**action_data) for action_data in notification_actions_data]
 
     # Create the actions if not a dry run
     if not is_dry_run:
-        for action in actions:
+        for action in notification_actions:
             action.save()
-    return actions
+    return notification_actions

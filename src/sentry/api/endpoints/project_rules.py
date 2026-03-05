@@ -708,8 +708,11 @@ def format_request_data(
         "config": {"frequency": data.get("frequency")},
     }
 
-    triggers = {"logicType": "any-short", "conditions": []}
+    triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
+    translated_conditions: dict[str, Any] = {}
+    translated_filters: dict[str, Any] = {}
     fake_dcg = DataConditionGroup()
+
     for condition in data.get("conditions", []):
         translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
         translated_conditions.pop("condition_group")
@@ -730,12 +733,11 @@ def format_request_data(
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
 
     action_filters = {
-        "logicType": data.get("filterMatch"),
+        "logicType": data.get("filterMatch", "any-short"),
         "conditions": [translated_filters],
         "actions": translated_actions,
     }
     workflow_payload["actionFilters"] = [action_filters]
-    workflow_payload["actionFilters"][0]["logicType"] = data.get("filterMatch", "any-short")
 
     return workflow_payload
 
@@ -844,6 +846,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 # Ensure default detectors exist for the project before linking
                 default_detectors = ensure_default_detectors(project)
                 issue_stream_detector = default_detectors.get(IssueStreamGroupType.slug)
+                if issue_stream_detector is None:
+                    raise serializers.ValidationError(
+                        "Could not find issue stream detector for project"
+                    )
                 bulk_validator = BulkWorkflowDetectorsValidator(
                     data={
                         "workflow_id": workflow.id,
