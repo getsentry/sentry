@@ -6,12 +6,14 @@ describe('useScrollLock', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     container = document.createElement('div');
     container.style.overflow = 'auto';
     document.body.appendChild(container);
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     document.body.removeChild(container);
   });
 
@@ -197,6 +199,7 @@ describe('useScrollLock', () => {
     expect(document.body).toHaveStyle({right: ''});
     expect(document.body).toHaveStyle({width: ''});
     expect(document.body).toHaveStyle({paddingRight: ''});
+    jest.runAllTimers();
     expect(scrollToSpy).toHaveBeenCalledWith(scrollX, scrollY);
 
     Object.defineProperty(window, 'innerWidth', {
