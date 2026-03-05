@@ -45,6 +45,9 @@ describe('WidgetCardConfidenceFooter', () => {
     {seriesName: 'series-a'},
     {seriesName: 'series-b'},
   ] as unknown as GenericWidgetQueriesResult['timeseriesResults'];
+  const singleTimeseriesResults = [
+    {seriesName: 'series-a'},
+  ] as unknown as GenericWidgetQueriesResult['timeseriesResults'];
 
   beforeEach(() => {
     PageFiltersStore.init();
@@ -115,13 +118,14 @@ describe('WidgetCardConfidenceFooter', () => {
       <WidgetCardConfidenceFooter
         loading={false}
         other="Other"
-        series={series}
-        timeseriesResults={timeseriesResults}
+        series={[series[0]!]}
+        timeseriesResults={singleTimeseriesResults}
         widget={WidgetFixture({
           displayType: DisplayType.LINE,
           widgetType: WidgetType.TRACEMETRICS,
           queries: [
             WidgetQueryFixture({
+              conditions: 'transaction:checkout',
               aggregates: ['avg(value,duration,d,-)'],
               fields: ['avg(value,duration,d,-)'],
               columns: [],
@@ -135,6 +139,47 @@ describe('WidgetCardConfidenceFooter', () => {
     const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
     expect(footer).toHaveTextContent('500 data points');
+  });
+
+  it('renders logs footer with raw counts from API', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(message)': 120}]},
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'ourlogs'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(message)': 500}]},
+      match: [
+        MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'ourlogs'}),
+      ],
+    });
+
+    render(
+      <WidgetCardConfidenceFooter
+        loading={false}
+        other="Other"
+        series={[series[0]!]}
+        timeseriesResults={singleTimeseriesResults}
+        widget={WidgetFixture({
+          displayType: DisplayType.LINE,
+          widgetType: WidgetType.LOGS,
+          queries: [
+            WidgetQueryFixture({
+              conditions: 'level:error',
+              aggregates: ['count(message)'],
+              fields: ['count(message)'],
+              columns: [],
+            }),
+          ],
+        })}
+        yAxis="count(message)"
+      />
+    );
+
+    const footer = await screen.findByText(/Estimated from/i);
+    expect(footer).toHaveTextContent('10 matches');
+    expect(footer).toHaveTextContent('500 logs');
   });
 
   it('does not render footer for unsupported widget types', () => {

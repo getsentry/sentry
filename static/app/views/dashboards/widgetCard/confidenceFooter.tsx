@@ -7,6 +7,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {ConfidenceFooter as LogsConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {ConfidenceFooter as MetricsConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -112,6 +113,17 @@ export function WidgetCardConfidenceFooter({
         hasUserQuery={hasUserQuery}
         isLoading={loading}
         rawMetricCounts={rawCounts}
+      />
+    );
+  }
+
+  if (widget.widgetType === WidgetType.LOGS && rawCounts) {
+    return (
+      <LogsConfidenceFooter
+        chartInfo={footerChartInfo}
+        hasUserQuery={hasUserQuery}
+        isLoading={loading}
+        rawLogCounts={rawCounts}
       />
     );
   }
