@@ -1,30 +1,7 @@
-from collections.abc import Generator
-from contextlib import contextmanager
-from contextvars import ContextVar
-
 from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
 from sentry.backup.scopes import RelocationScope
-
-_suppress_post_save = ContextVar("suppress_rppc_post_save", default=False)
-
-
-@contextmanager
-def suppress_post_save_signal() -> Generator[None]:
-    """Thread-safe suppression of RepositoryProjectPathConfig post_save signal.
-
-    Used by the bulk code mappings endpoint to avoid redundant side effects
-    (cache clears, celery tasks) per mapping. The caller is responsible for
-    invoking process_resource_change() once after the batch completes.
-    """
-    token = _suppress_post_save.set(True)
-    try:
-        yield
-    finally:
-        _suppress_post_save.reset(token)
-
-
 from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModelExisting,
@@ -68,7 +45,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
 
 def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
-    if _suppress_post_save.get():
+    if getattr(instance, "_skip_post_save", False):
         return
 
     from sentry.models.group import Group
@@ -112,5 +89,4 @@ post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=RepositoryProjectPathConfig,
     weak=False,
-    dispatch_uid="repository_project_path_config_post_save",
 )
