@@ -8,6 +8,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Hook from 'sentry/components/hook';
 import {
   IconCompass,
   IconDashboard,
@@ -34,13 +35,6 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-
-// eslint-disable-next-line boundaries/element-types
-import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
-// eslint-disable-next-line boundaries/element-types
-import PrimaryNavSeerConfigReminder from 'getsentry/components/primaryNavSeerConfigReminder';
-// eslint-disable-next-line boundaries/element-types
-import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 
 function SidebarBody({
   children,
@@ -225,24 +219,24 @@ export function PrimaryNavigationItems() {
 
       <SidebarFooter>
         <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationOnboarding />
+          <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        </ErrorBoundary>
+        <PrimaryNavigationHelp />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationWhatsNew />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <TryBusinessSidebarItem organization={organization} />
+          <Hook name="sidebar:try-business" organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <PrimaryNavSeerConfigReminder organization={organization} />
-        </ErrorBoundary>
-        <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationQuotaExceeded organization={organization} />
+          <Hook name="sidebar:billing-status" organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationServiceIncidents />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <PrimaryNavigationWhatsNew />
+          <PrimaryNavigationOnboarding />
         </ErrorBoundary>
-        <PrimaryNavigationHelp />
         <UserDropdown />
       </SidebarFooter>
     </Fragment>
