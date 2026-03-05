@@ -493,8 +493,8 @@ const Title = styled('h3')`
 
 const Subtitle = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-bottom: ${space(1.5)};
-  padding-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.lg};
+  padding-bottom: ${p => p.theme.space.xs};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -510,7 +510,7 @@ const FooterInfo = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
@@ -545,12 +545,12 @@ const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
@@ -611,5 +611,5 @@ const ContextType = styled('p')`
   grid-column: span 2;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: capitalize;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;

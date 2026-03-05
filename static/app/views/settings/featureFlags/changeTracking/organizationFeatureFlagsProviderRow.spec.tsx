@@ -9,7 +9,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
 describe('OrganizationFeatureFlagsProviderRow', () => {
@@ -17,7 +16,7 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
 
   const removeSecret = jest.fn();
 
-  const secret: Secret = SecretFixture();
+  const secret = SecretFixture();
 
   const defaultProps = {
     organization,

@@ -284,7 +284,7 @@ function ClippedBox(props: ClippedBoxProps) {
 
       // If resize observer is not supported, query for rect and call onResize
       // with an entry that mimics the ResizeObserverEntry.
-      const rect: DOMRectReadOnly = contentRef.current.getBoundingClientRect();
+      const rect = contentRef.current.getBoundingClientRect();
       const entry: ResizeObserverEntry = {
         target: contentRef.current,
         contentRect: rect,

@@ -112,7 +112,7 @@ function DeprecatedLine({
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
-  const leadsToApp: boolean = !data.inApp && (nextFrame?.inApp || !nextFrame);
+  const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
 
   const isExpandable = useMemo((): boolean => {
     return !!(

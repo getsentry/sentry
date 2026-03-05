@@ -9,7 +9,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -132,7 +131,7 @@ const StyledShortId = styled(ShortId)`
 
 const ShortIdCopyable = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: center;
 
   button[aria-haspopup] {

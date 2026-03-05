@@ -5,7 +5,6 @@ import type {LocationDescriptor} from 'history';
 import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Item = {
   target: LocationDescriptor;
@@ -75,7 +74,7 @@ const ButtonContainer = styled('div')`
     padding: 0;
     cursor: pointer;
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 

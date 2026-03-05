@@ -86,7 +86,7 @@ export function useSpanProfileDetails(
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const nodes: CallTreeNode[] = useMemo(() => {
+  const nodes = useMemo(() => {
     if (profile === null || !event) {
       return [];
     }
@@ -323,7 +323,7 @@ function getTopNodes(
 ): CallTreeNode[] {
   let duration = profile.startedAt;
 
-  const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);
+  const callTree = new CallTreeNode(ProfilingFrame.Root, null);
 
   for (let i = 0; i < profile.samples.length; i++) {
     const sample = profile.samples[i]!;

@@ -15,6 +15,7 @@ from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
@@ -332,6 +333,14 @@ def _launch_agents_for_repos(
                                     github_installation_id = sentry_integration.external_id
                             except Exception:
                                 sentry_sdk.capture_exception(level="warning")
+                elif (
+                    isinstance(installation, CursorAgentIntegration)
+                    and e.code == 400
+                    and e.text
+                    and "Failed to verify existence of branch" in e.text
+                ):
+                    failure_type = "cursor_github_access"
+                    error_message = "Cursor does not have GitHub access to this repository. Please install the Cursor GitHub App to grant access."
                 elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:

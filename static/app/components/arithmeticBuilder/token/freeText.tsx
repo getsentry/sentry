@@ -36,7 +36,6 @@ import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import type {AggregateParameter} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -137,7 +136,7 @@ function InternalInput({
       if (defined(focusToken)) {
         if (focusToken.kind === TokenKind.FUNCTION) {
           const definition = getFieldDefinition(focusToken.func);
-          const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+          const parameterDefinitions = definition?.parameters ?? [];
           if (parameterDefinitions.length > 0) {
             // if they selected a function with arguments, move focus into the function argument
             return nextTokenKeyOfKind(state, token, TokenKind.FUNCTION);
@@ -156,7 +155,7 @@ function InternalInput({
   const getFunctionDefault = useCallback(
     (func: string): string => {
       const definition = getFieldDefinition(func);
-      const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+      const parameterDefinitions = definition?.parameters ?? [];
       const parameters: string[] = parameterDefinitions.map(
         parameterDefinition => parameterDefinition.defaultValue ?? ''
       );
@@ -165,7 +164,7 @@ function InternalInput({
     [getFieldDefinition]
   );
 
-  const items: Array<SelectSectionWithKey<string>> = useSuggestionItems({
+  const items = useSuggestionItems({
     nextAllowedTokenKinds,
     allowedFunctions: aggregations,
     filterValue,

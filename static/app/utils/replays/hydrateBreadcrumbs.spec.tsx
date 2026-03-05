@@ -4,7 +4,6 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
@@ -64,7 +63,7 @@ describe('replayInitBreadcrumb', () => {
   it('should return a RecordingFrame', () => {
     const replayRecord = ReplayRecordFixture();
 
-    const frame: BreadcrumbFrame = replayInitBreadcrumb(replayRecord);
+    const frame = replayInitBreadcrumb(replayRecord);
     expect(frame).toStrictEqual({
       category: 'replay.init',
       message: 'http://localhost:3000/',

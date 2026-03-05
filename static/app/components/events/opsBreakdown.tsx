@@ -4,10 +4,7 @@ import isFinite from 'lodash/isFinite';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
-import type {
-  RawSpanType,
-  TraceContextType,
-} from 'sentry/components/events/interfaces/spans/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -62,7 +59,7 @@ export function generateStats(
     return [];
   }
 
-  const traceContext: TraceContextType | undefined = transactionEvent?.contexts?.trace;
+  const traceContext = transactionEvent?.contexts?.trace;
 
   if (!traceContext) {
     return [];
@@ -74,7 +71,7 @@ export function generateStats(
     }
   );
 
-  let spans: RawSpanType[] = spanEntry?.data ?? [];
+  let spans = spanEntry?.data ?? [];
 
   const rootSpan = {
     op: traceContext.op,
@@ -255,7 +252,7 @@ function OpsBreakdown({
 
     const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
     const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-    const opsColor: string = pickBarColor(operationName, theme);
+    const opsColor = pickBarColor(operationName, theme);
 
     return (
       <OpsLine key={operationName}>

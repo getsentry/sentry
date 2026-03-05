@@ -17,7 +17,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer, RuleSerializerResponse
+from sentry.api.serializers.models.rule import (
+    RuleSerializer,
+    RuleSerializerResponse,
+    WorkflowEngineRuleSerializer,
+)
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -25,6 +29,7 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
@@ -34,6 +39,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
+from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -714,22 +720,30 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        queryset = Rule.objects.filter(
-            project=project,
-            status=ObjectStatus.ACTIVE,
-        ).select_related("project")
-        # Mark that we're using legacy Rule models
-        report_used_legacy_models()
-
         expand = request.GET.getlist("expand", ["lastTriggered"])
+
+        queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
+        serializer: WorkflowEngineRuleSerializer | RuleSerializer
+        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            queryset = Workflow.objects.filter(
+                detectorworkflow__detector__project=project,
+                status=ObjectStatus.ACTIVE,
+            ).distinct()
+            serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
+        else:
+            queryset = Rule.objects.filter(
+                project=project,
+                status=ObjectStatus.ACTIVE,
+            ).select_related("project")
+            # Mark that we're using legacy Rule models
+            report_used_legacy_models()
+            serializer = RuleSerializer(expand=expand, project_slug=project.slug)
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(
-                x, request.user, RuleSerializer(expand=expand, project_slug=project.slug)
-            ),
+            on_results=lambda x: serialize(x, request.user, serializer),
         )
 
     @extend_schema(

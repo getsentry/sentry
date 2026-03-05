@@ -13,6 +13,7 @@ jobs:
     env:
       WARDEN_ANTHROPIC_API_KEY: ${{ secrets.WARDEN_ANTHROPIC_API_KEY }}
       WARDEN_MODEL: ${{ secrets.WARDEN_MODEL }}
+      WARDEN_SENTRY_DSN: ${{ secrets.WARDEN_SENTRY_DSN }}
     steps:
       - uses: actions/checkout@v4
 

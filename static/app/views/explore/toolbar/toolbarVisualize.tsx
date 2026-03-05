@@ -25,8 +25,7 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
@@ -170,37 +169,19 @@ function ToolbarVisualizeItem({
 }: VisualizeDropdownProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      traceItemType={TraceItemDataset.SPANS}
-      search={debouncedSearch}
-    >
-      <VisualizeDropdown
-        canDelete={canDelete}
-        onDelete={onDelete}
-        onReplace={onReplace}
-        visualize={visualize}
-        label={label}
-        onSearch={setSearch}
-        onClose={() => setSearch(undefined)}
-      />
-    </TraceItemAttributeProvider>
-  );
-}
 
-function VisualizeDropdown({
-  canDelete,
-  onDelete,
-  onReplace,
-  visualize,
-  label,
-  onSearch,
-  onClose,
-}: VisualizeDropdownProps & {onClose: () => void; onSearch: (search: string) => void}) {
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
-  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
+    'string'
+  );
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
+    'number'
+  );
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
+    'boolean'
+  );
 
   const aggregateOptions = useMemo(
     () =>
@@ -216,7 +197,7 @@ function VisualizeDropdown({
 
   const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
 
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+  const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
@@ -265,8 +246,8 @@ function VisualizeDropdown({
       parsedFunction={parsedFunction}
       label={label}
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-      onSearch={onSearch}
-      onClose={onClose}
+      onSearch={setSearch}
+      onClose={() => setSearch(undefined)}
     />
   );
 }

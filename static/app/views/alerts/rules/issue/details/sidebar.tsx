@@ -8,7 +8,6 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Actor} from 'sentry/types/core';
 import type {Member, Team} from 'sentry/types/organization';
@@ -166,12 +165,12 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   h4 {
     margin-top: 0;
@@ -179,15 +178,15 @@ const StatusContainer = styled('div')`
 `;
 
 const ConditionsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Step = styled('div')`
   position: relative;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 
   :first-child {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -203,13 +202,13 @@ const StepContent = styled('div')`
     position: absolute;
     height: 100%;
     top: 28px;
-    left: ${space(0.75)};
+    left: ${p => p.theme.space.sm};
     border-right: 1px ${p => p.theme.colors.gray200} dashed;
   }
 `;
 
 const StepLead = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
@@ -217,13 +216,13 @@ const StepLead = styled('div')`
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs} 0;
 `;
 
 const Badge = styled('span')`
   display: inline-block;
   background-color: ${p => p.theme.tokens.background.accent.vibrant};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.colors.white};
   text-transform: uppercase;
@@ -236,11 +235,11 @@ const Badge = styled('span')`
 const ConditionsBadge = styled('span')`
   display: block;
   background-color: ${p => p.theme.tokens.background.secondary};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   width: fit-content;
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

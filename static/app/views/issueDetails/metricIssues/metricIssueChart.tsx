@@ -1,3 +1,4 @@
+import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -9,6 +10,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
@@ -91,6 +93,13 @@ function MetricIssueChartContent({
     groupId: group.id,
     eventId: event?.id,
   });
+  const dateTimeParams = normalizeDateTimeParams(selection.datetime);
+  const intervalSeconds = detector.dataSources[0]?.queryObj?.snubaQuery?.timeWindow;
+  const {dateTimeParams: cappedDateTimeParams, isRangeLimited} =
+    limitDateTimeParamsToMaxPoints({
+      ...dateTimeParams,
+      intervalSeconds,
+    });
 
   const {
     chartProps,
@@ -102,7 +111,7 @@ function MetricIssueChartContent({
     highlightedOpenPeriodId: openPeriod?.id,
     height: CHART_HEIGHT,
     enabled: !isOpenPeriodPending,
-    ...normalizeDateTimeParams(selection.datetime),
+    ...cappedDateTimeParams,
   });
 
   if (isOpenPeriodPending || isLoading) {
@@ -121,7 +130,16 @@ function MetricIssueChartContent({
 
   return (
     <MetricChartSection>
-      <AreaChart {...chartProps} />
+      <Flex direction="column" paddingTop="md">
+        {isRangeLimited ? (
+          <Alert variant="warning">
+            {t(
+              'The selected time range contains too many data points. Narrow the range to view all data.'
+            )}
+          </Alert>
+        ) : null}
+        <AreaChart {...chartProps} />
+      </Flex>
     </MetricChartSection>
   );
 }

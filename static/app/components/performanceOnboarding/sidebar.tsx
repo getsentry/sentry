@@ -98,7 +98,7 @@ function SidebarContent() {
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
 
-  const priorityProjectIds: Set<string> | null = useMemo(() => {
+  const priorityProjectIds = useMemo(() => {
     const decodedProjectIds = decodeProjectIds(location.query.project);
     return decodedProjectIds === null ? null : new Set(decodedProjectIds);
   }, [location.query.project]);

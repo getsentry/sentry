@@ -151,7 +151,7 @@ type AttributeProps = {
 };
 
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
-  let paymentStatus: InvoiceStatus = InvoiceStatus.CLOSED;
+  let paymentStatus = InvoiceStatus.CLOSED;
 
   if (invoice.isPaid) {
     paymentStatus = InvoiceStatus.PAID;

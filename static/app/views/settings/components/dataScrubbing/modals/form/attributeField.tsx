@@ -78,7 +78,7 @@ export default function AttributeField({
     setSuggestedAttributeValues,
   ]);
 
-  const suggestions: AttributeSuggestion[] = useMemo(() => {
+  const suggestions = useMemo(() => {
     if (!suggestedAttributeValues) {
       return [];
     }

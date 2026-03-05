@@ -31,7 +31,6 @@ import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/ut
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -375,7 +374,7 @@ function Dashboard({
   }, []);
 
   const addWidgetLayout = useMemo(() => {
-    let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
+    let position = BOTTOM_MOBILE_VIEW_POSITION;
     if (!isMobile) {
       const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);

@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
-import {space} from 'sentry/styles/space';
-
 type RadioPanelGroupProps<C extends string> = {
   /**
    * An array of [id, name]
@@ -57,7 +55,7 @@ export default RadioPanelGroup;
 
 const Container = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: row;
   grid-auto-rows: max-content;
   grid-auto-columns: auto;
