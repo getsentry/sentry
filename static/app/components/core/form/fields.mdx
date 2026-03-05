@@ -13,7 +13,7 @@ import {BaseFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
-All field components are accessed via the `field` render prop inside `form.AppField`. They follow a consistent pattern: pass `value` and `onChange` from the field state, and wrap in a layout component.
+All field components are accessed via the `field` render prop inside `form.AppField`. They follow a consistent pattern: pass `value` and `onChange` from the field state, and wrap in a layout component. They are built on top of the form primitives [Input](./input.mdx), [Select](./select.mdx), [Slider](./slider.mdx), [Switch](./switch.mdx) etc.
 
 ```jsx
 <form.AppField name="fieldName">
