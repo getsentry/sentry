@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -1039,13 +1040,8 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    @override_options(
-        {"hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes": ["github:123"]}
-    )
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_excluded_mailbox_does_not_record(
-        self, mock_metrics: MagicMock
-    ) -> None:
+    def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1055,42 +1051,11 @@ class DeliveryTimeMetricsTest(TestCase):
         webhook = self.create_webhook_payload(
             mailbox_name="github:123",
             region_name="us",
-        )
-        drain_mailbox(webhook.id)
-
-        delivery_time_ms_calls = [
-            c
-            for c in mock_metrics.distribution.call_args_list
-            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
-        ]
-        assert len(delivery_time_ms_calls) == 0
-
-        incr_calls = [
-            c
-            for c in mock_metrics.incr.call_args_list
-            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
-        ]
-        assert len(incr_calls) == 1
-        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
-
-    @responses.activate
-    @override_regions(region_config)
-    @override_options(
-        {"hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes": ["other:mailbox"]}
-    )
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_non_excluded_mailbox_still_records(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
-            region_name="us",
+            provider="github",
+            request_headers=orjson.dumps(
+                {"X-GitHub-Event": "pull_request", "Content-Type": "application/json"}
+            ).decode(),
+            request_body=orjson.dumps({"action": "opened", "repository": {}}).decode(),
         )
         drain_mailbox(webhook.id)
 
@@ -1100,7 +1065,70 @@ class DeliveryTimeMetricsTest(TestCase):
             if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
         ]
         assert len(delivery_time_ms_calls) == 1
-        assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "us"
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert tags.get("github_event_type") == "pull_request"
+        assert tags.get("github_action") == "opened"
+
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider="github",
+            request_headers=orjson.dumps(
+                {"X-GitHub-Event": "push", "Content-Type": "application/json"}
+            ).decode(),
+            request_body=orjson.dumps({"repository": {}}).decode(),
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert tags.get("github_event_type") == "push"
+        assert "github_action" not in tags
+
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_non_github_no_github_tags(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            region_name="us",
+            provider="stripe",
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert "github_event_type" not in tags
+        assert "github_action" not in tags
 
 
 @control_silo_test
