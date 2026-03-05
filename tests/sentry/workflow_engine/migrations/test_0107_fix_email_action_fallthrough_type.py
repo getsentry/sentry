@@ -117,9 +117,10 @@ class FixEmailActionFallthroughTypeTest(TestMigrations):
             for action in self.rule1.data["actions"]
             if action.get("id") == EMAIL_ACTION_REGISTRY_ID
         ]
-        expected_actions = translate_rule_data_actions_to_notification_actions(
+        expected_actions_data = translate_rule_data_actions_to_notification_actions(
             rule_email_actions, skip_failures=True
         )
+        expected_actions = [Action(**action_data) for action_data in expected_actions_data]
 
         assert len(email_actions) == len(expected_actions) == 2
 

@@ -51,7 +51,8 @@ from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
 from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
-from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models import DataConditionGroup, Workflow
+from sentry.workflow_engine.processors.detector import ensure_default_detectors
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
@@ -709,19 +710,19 @@ def format_request_data(
 
     triggers = {"logicType": "any-short", "conditions": []}
     fake_dcg = DataConditionGroup()
-    for condition in data.get("conditions"):
+    for condition in data.get("conditions", []):
         translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
         translated_conditions.pop("condition_group")
         triggers["conditions"].append(translated_conditions)
 
     workflow_payload["triggers"] = triggers
 
-    for filter_data in data.get("filters"):
-        translated_filters = asdict(translate_to_data_condition_data(condition, fake_dcg))
+    for filter_data in data.get("filters", []):
+        translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
         translated_filters.pop("condition_group")
 
     translated_actions = translate_rule_data_actions_to_notification_actions(
-        data.get("actions"), False
+        data.get("actions", []), False
     )
     for action in translated_actions:
         target_type = action.get("config", {}).get("target_type")
@@ -840,20 +841,18 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
             with transaction.atomic(router.db_for_write(Workflow)):
                 workflow = validator.create(validator.validated_data)
-                # XXX: fetch issue stream detector (or leave unconnected?)
-                issue_stream_detector = Detector.objects.filter(
-                    project=project, type=IssueStreamGroupType.slug
-                ).first()
-                if issue_stream_detector:
-                    bulk_validator = BulkWorkflowDetectorsValidator(
-                        data={
-                            "workflow_id": workflow.id,
-                            "detector_ids": [issue_stream_detector.id],
-                        },
-                        context={"organization": project.organization, "request": request},
-                    )
-                    bulk_validator.is_valid(raise_exception=True)
-                    bulk_validator.save()
+                # Ensure default detectors exist for the project before linking
+                default_detectors = ensure_default_detectors(project)
+                issue_stream_detector = default_detectors.get(IssueStreamGroupType.slug)
+                bulk_validator = BulkWorkflowDetectorsValidator(
+                    data={
+                        "workflow_id": workflow.id,
+                        "detector_ids": [issue_stream_detector.id],
+                    },
+                    context={"organization": project.organization, "request": request},
+                )
+                bulk_validator.is_valid(raise_exception=True)
+                bulk_validator.save()
 
             return Response(
                 serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
