@@ -210,7 +210,7 @@ export default function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SeerButton
+      <SidebarButton
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
@@ -224,7 +224,7 @@ export default function PrimaryNavSeerConfigReminder() {
           data-test-id="seer-config-reminder-indicator"
           isMobile={layout === NavLayout.MOBILE}
         />
-      </SeerButton>
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
@@ -247,5 +247,3 @@ export default function PrimaryNavSeerConfigReminder() {
     </Fragment>
   );
 }
-
-const SeerButton = styled(SidebarButton)``;

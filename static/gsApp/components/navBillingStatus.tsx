@@ -417,12 +417,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     );
   };
 
-  const {
-    isLoading: _isLoading,
-    isError: _isError,
-    isPromptDismissed,
-    snoozePrompt,
-  } = usePrompts({
+  const {isPromptDismissed, snoozePrompt} = usePrompts({
     features: promptsToCheck,
     organization,
     daysToSnooze:
