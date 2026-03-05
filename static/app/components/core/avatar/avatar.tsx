@@ -59,7 +59,7 @@ export function Avatar({
   // Destructure avatar-specific props to prevent spreading onto DOM
   const {type, identifier, name, title, round, suggested, ...restProps} = avatarProps;
 
-  const avatarDef = useAvatar({
+  const avatarDefinition = useAvatar({
     identifier,
     name,
     imageDefinition:
@@ -83,18 +83,15 @@ export function Avatar({
         title={title}
         {...restProps}
       >
-        {avatarDef.type === 'image' ? (
+        {avatarDefinition.type === 'image' ? (
           <ImageAvatar
-            src={avatarDef.src}
-            ref={avatarDef.ref}
-            alt={name}
+            configuration={avatarDefinition.configuration}
             round={round}
             suggested={suggested}
           />
         ) : (
           <LetterAvatar
-            initials={avatarDef.initials}
-            avatarColor={avatarDef.avatarColor}
+            configuration={avatarDefinition.configuration}
             round={round}
             suggested={suggested}
           />

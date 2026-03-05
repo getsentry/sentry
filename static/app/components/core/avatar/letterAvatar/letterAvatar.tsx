@@ -6,23 +6,17 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentStyles';
 
-interface LetterAvatarProps
+export interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>, BaseAvatarStyleProps {
-  /**
-   * Resolved color for the avatar background and text.
-   * Compute this via useAvatar() or getColor() from useAvatar.tsx.
-   * Named avatarColor to avoid conflict with HTMLAttributes<SVGSVGElement>["color"].
-   */
-  avatarColor: {background: string; content: string};
-  /**
-   * Initials to display inside the avatar.
-   * Compute this via useAvatar() or getInitials() from useAvatar.tsx.
-   */
-  initials: string;
+  configuration: {
+    background: string & {__avatar: boolean};
+    content: string & {__avatar: boolean};
+    initials: string & {__avatar: boolean};
+  };
   ref?: React.Ref<SVGSVGElement>;
 }
 
-export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProps) {
+export function LetterAvatar({configuration, ...props}: LetterAvatarProps) {
   const theme = useTheme();
   return (
     <LetterAvatarComponent viewBox="0 0 120 120" {...props}>
@@ -31,7 +25,9 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
         y="0"
         width="120"
         height="120"
-        fill={props.suggested ? theme.tokens.background.primary : avatarColor.background}
+        fill={
+          props.suggested ? theme.tokens.background.primary : configuration.background
+        }
       />
       <text
         x="50%"
@@ -40,9 +36,9 @@ export function LetterAvatar({initials, avatarColor, ...props}: LetterAvatarProp
         fontWeight="bold"
         style={{dominantBaseline: 'central'}}
         textAnchor="middle"
-        fill={props.suggested ? theme.tokens.content.secondary : avatarColor.content}
+        fill={props.suggested ? theme.tokens.content.secondary : configuration.content}
       >
-        {initials}
+        {configuration.initials}
       </text>
     </LetterAvatarComponent>
   );

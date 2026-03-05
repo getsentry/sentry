@@ -26,16 +26,9 @@ export function AvatarButton({avatar, size, ...props}: AvatarButtonProps) {
     <StyledAvatarButton size={size ?? 'md'} {...props}>
       <AvatarContainer size={size ?? 'md'}>
         {avatarDefinition.type === 'image' ? (
-          <StyledImageAvatar
-            src={avatarDefinition.src}
-            ref={avatarDefinition.ref}
-            alt={avatar.name}
-          />
+          <StyledImageAvatar configuration={avatarDefinition.configuration} />
         ) : (
-          <StyledLetterAvatar
-            initials={avatarDefinition.initials}
-            avatarColor={avatarDefinition.avatarColor}
-          />
+          <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         )}
       </AvatarContainer>
     </StyledAvatarButton>
