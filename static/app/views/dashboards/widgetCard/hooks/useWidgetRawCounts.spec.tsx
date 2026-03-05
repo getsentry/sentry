@@ -12,6 +12,67 @@ describe('useWidgetRawCounts', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('derives the trace metrics count aggregate from the widget metric', async () => {
+    const selection = PageFiltersFixture({
+      projects: [2],
+      environments: ['prod'],
+      datetime: {
+        start: '2025-01-01T00:00:00',
+        end: '2025-01-02T00:00:00',
+        period: null,
+        utc: null,
+      },
+    });
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: ['avg(value,duration,d,-)'],
+          fields: ['avg(value,duration,d,-)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value,duration,d,-)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          field: ['count(value,duration,d,-)'],
+          project: [2],
+          environment: ['prod'],
+        }),
+      ],
+    });
+
+    const highAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value,duration,d,-)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'HIGHEST_ACCURACY',
+          dataset: 'tracemetrics',
+          field: ['count(value,duration,d,-)'],
+          project: [2],
+          environment: ['prod'],
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(highAccuracyRequest).toHaveBeenCalled());
+  });
+
   it('does not fetch raw counts for non-timeseries display types', async () => {
     const selection = PageFiltersFixture();
     const widget = WidgetFixture({
