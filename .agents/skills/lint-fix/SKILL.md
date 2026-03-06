@@ -10,7 +10,20 @@ Fix violations of rule `$0` on files matching `$1`.
 - `$0` — Rule name (e.g., `use-semantic-token`, `no-core-import`)
 - `$1` — File or glob pattern (e.g., `static/app/components/`, `static/app/views/alerts/`)
 
-## Step 1: Assess Scale
+## Step 1: Understand the Rule
+
+Before fixing violations, know what the fix looks like. Load [references/fix-patterns.md](references/fix-patterns.md) for per-rule fix details:
+
+| Rule                         | Has autofix? | Fix reference                                                                                     |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------- |
+| `no-core-import`             | Yes          | [fix-patterns.md](references/fix-patterns.md) §no-core-import                                     |
+| `no-token-import`            | No           | [fix-patterns.md](references/fix-patterns.md) §no-token-import                                    |
+| `use-semantic-token`         | No           | [fix-patterns.md](references/fix-patterns.md) + [token-taxonomy.md](references/token-taxonomy.md) |
+| `restrict-jsx-slot-children` | No           | [fix-patterns.md](references/fix-patterns.md) §restrict-jsx-slot-children                         |
+
+For `use-semantic-token` violations, you MUST load [references/token-taxonomy.md](references/token-taxonomy.md) to know which token category to use for each CSS property.
+
+## Step 2: Assess Scale
 
 Count violations before choosing a strategy:
 
@@ -20,7 +33,9 @@ pnpm exec eslint --rule '@sentry/scraps/$0: error' "$1" 2>&1 | tail -5
 
 The last line shows the count (e.g., "42 problems (42 errors, 0 warnings)").
 
-## Step 2: Choose Strategy
+**Tip**: Running eslint on all of `static/app/` can take 2+ minutes. Narrow scope to a subdirectory first.
+
+## Step 3: Choose Strategy
 
 ### Auto-fixable rule (any scale)
 

@@ -5,23 +5,51 @@ description: Create a new ESLint rule with tests for eslintPluginScraps. Use whe
 
 Create a new ESLint rule named `$ARGUMENTS` in the eslintPluginScraps plugin.
 
-## Files to Create
+## Step 1: Choose Your Archetype
+
+Read [references/rule-archetypes.md](references/rule-archetypes.md) and pick the archetype that matches your rule's intent:
+
+| You want to...                              | Archetype              | Reference to load                                                |
+| ------------------------------------------- | ---------------------- | ---------------------------------------------------------------- |
+| Rewrite import paths                        | Import rewrite         | Inline — simple pattern                                          |
+| Validate token/value usage per CSS property | Property validation    | [style-collector-guide.md](references/style-collector-guide.md)  |
+| Restrict JSX elements in specific props     | JSX structural         | [rule-archetypes.md](references/rule-archetypes.md) §Archetype 3 |
+| Detect patterns in static CSS text          | Template text analysis | [rule-archetypes.md](references/rule-archetypes.md) §Archetype 4 |
+
+Read the relevant reference before writing code. The archetypes document which AST visitors to use, which shared utilities apply, and which patterns are NOT appropriate for each approach.
+
+## Step 2: Check Shared Utilities
+
+Before writing AST traversal logic, check `static/eslint/eslintPluginScraps/src/ast/` for reusable code:
+
+| Utility                 | Location                                 | Use for                                                             |
+| ----------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| `createStyleCollector`  | `src/ast/extractor/index.ts`             | Collecting CSS-in-JS _dynamic value_ declarations (NOT static text) |
+| `shouldAnalyze`         | `src/ast/extractor/index.ts`             | Fast pre-scan to skip files without Emotion usage                   |
+| `normalizePropertyName` | `src/ast/utils/normalizePropertyName.ts` | Normalizing CSS property names                                      |
+| `decomposeValue`        | `src/ast/extractor/value-decomposer.ts`  | Breaking complex expressions into all possible values               |
+| Theme tracker           | `src/ast/extractor/theme.ts`             | Tracking `useTheme()` and callback theme bindings                   |
+| `getStyledInfo`         | `src/ast/utils/styled.ts` (if exists)    | Detecting styled calls and extracting component/element name        |
+
+If another rule already solves a similar problem, extract shared logic into `src/ast/utils/` and reuse it.
+
+## Step 3: Create Files
 
 1. **Rule**: `static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.ts`
 2. **Test**: `static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts`
 
-## Rule Template
+### Rule Template
 
 ```typescript
 import {ESLintUtils} from '@typescript-eslint/utils';
 
 export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
-    type: 'problem', // 'problem' for correctness, 'suggestion' for style
+    type: 'problem',
     docs: {
       description: '[Rule description]',
     },
-    fixable: 'code', // include by default — see Autofix Guidance
+    fixable: 'code', // include if rule has autofix — see Autofix Guidance
     schema: [],
     messages: {
       forbidden: 'Error message shown to user',
@@ -29,13 +57,15 @@ export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs({
   },
   create(context) {
     return {
-      // AST visitor methods
+      // AST visitor methods — see your chosen archetype
     };
   },
 });
 ```
 
-## Test Template
+If your rule needs configurable options, load [references/schema-patterns.md](references/schema-patterns.md).
+
+### Test Template
 
 ```typescript
 import {RuleTester} from '@typescript-eslint/rule-tester';
@@ -81,9 +111,9 @@ CI=true pnpm test "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts
 
 ### Do NOT autofix when
 
-- The transformation alters control flow or runtime behavior
 - Multiple valid fixes exist and the right choice requires human judgment
 - The fix requires type information not available from the AST alone
+- The transformation alters control flow or runtime behavior
 - The change spans multiple files
 
 ### Fixer API
@@ -105,9 +135,7 @@ context.report({
 
 When a rule is fixable, every invalid test case MUST include `output` showing the expected code after the fix.
 
-## Registration Checklist
-
-After rule and tests are written and passing, register the rule:
+## Step 4: Register the Rule
 
 ### 1. Rule Index
 
@@ -138,22 +166,17 @@ Add to `eslint.config.ts` inside the `name: 'plugin/@sentry/scraps'` block:
 CI=true pnpm test "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
 ```
 
-## Shared AST Utilities
+## Extending an Existing Rule
 
-Before writing AST traversal logic, check `static/eslint/eslintPluginScraps/src/ast/` for reusable utilities:
+If modifying an existing rule rather than creating a new one:
 
-| Utility                 | Location                                 | Use for                                                             |
-| ----------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
-| `createStyleCollector`  | `src/ast/extractor/index.ts`             | Collecting CSS-in-JS style declarations across all Emotion patterns |
-| `shouldAnalyze`         | `src/ast/extractor/index.ts`             | Fast pre-scan to skip files without Emotion usage                   |
-| `normalizePropertyName` | `src/ast/utils/normalizePropertyName.ts` | Normalizing CSS property names                                      |
-| `decomposeValue`        | `src/ast/extractor/value-decomposer.ts`  | Breaking complex expressions into all possible values               |
-| Theme tracker           | `src/ast/extractor/theme.ts`             | Tracking `useTheme()` and callback theme bindings                   |
-
-If another rule already detects the same pattern, extract the shared logic into `src/ast/utils/` and reuse it.
+1. Read the existing rule and its config files to understand the architecture
+2. For **config-driven rules** (like `use-semantic-token`): changes often only require editing the config file (e.g., `src/config/tokenRules.ts`), not the rule logic
+3. Watch for reverse-mapping side effects — adding a new category can change which category is _suggested_ for shared properties (last writer wins in `buildPropertyToRule`)
+4. Update existing tests for any changed behavior, then add new test cases
 
 ## Naming Convention
 
-- **Rule name** (kebab-case): `my-rule-name` — use verb-noun pattern (e.g., `no-token-import`, `use-semantic-token`, `restrict-jsx-slot-children`)
+- **Rule name** (kebab-case): `my-rule-name` — verb-noun pattern (e.g., `no-token-import`, `use-semantic-token`)
 - **Export name** (camelCase): `myRuleName`
 - **File name**: matches rule name exactly (`my-rule-name.ts`, `my-rule-name.spec.ts`)
