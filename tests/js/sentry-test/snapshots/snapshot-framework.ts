@@ -1,6 +1,6 @@
 import type {ReactElement} from 'react';
 
-import {takeSnapshot, type SnapshotOptions} from './snapshot';
+import {closeBrowser, takeSnapshot, type SnapshotOptions} from './snapshot';
 
 function snapshotTest(
   name: string,
@@ -15,6 +15,10 @@ function snapshotTest(
     await takeSnapshot(name, renderFn, options, testFilePath);
   });
 }
+
+afterAll(async () => {
+  await closeBrowser();
+});
 
 test.snapshot = snapshotTest;
 

@@ -92,11 +92,24 @@ let _browserPromise: Promise<Browser> | null = null;
 
 function getBrowser(): Promise<Browser> {
   if (!_browserPromise) {
-    _browserPromise = chromium.launch({
-      args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
-    });
+    _browserPromise = chromium
+      .launch({
+        args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
+      })
+      .catch(err => {
+        _browserPromise = null;
+        throw err;
+      });
   }
   return _browserPromise;
+}
+
+export async function closeBrowser(): Promise<void> {
+  if (_browserPromise) {
+    const browser = await _browserPromise;
+    _browserPromise = null;
+    await browser.close();
+  }
 }
 
 export async function takeSnapshot(
