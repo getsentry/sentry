@@ -24,6 +24,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
+    Condition,
     DataCondition,
     DataConditionGroup,
     Workflow,
@@ -623,14 +624,41 @@ class WorkflowEngineRuleSerializer(Serializer):
 
                 serialized_actions.append(action_data)
 
-            if len(errors):
-                result[workflow]["errors"] = errors
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
             )
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
+
+            # Check for unsupported conditions
+            UNSUPPORTED_CONDITIONS = [
+                Condition.EVENT_CREATED_BY_DETECTOR.value,
+                Condition.EVENT_SEEN_COUNT.value,
+                Condition.ISSUE_OPEN_DURATION.value,
+                Condition.ISSUE_PRIORITY_EQUALS.value,
+                Condition.ISSUE_PRIORITY_DEESCALATING.value,
+                Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL.value,
+                Condition.ISSUE_RESOLUTION_CHANGE.value,
+                Condition.ISSUE_RESOLVED_TRIGGER.value,
+            ]
+            trigger_conditions = (
+                list(workflow.when_condition_group.conditions.all())
+                if workflow.when_condition_group
+                else []
+            )
+            filter_conditions = list(workflow_dcg.condition_group.conditions.all())
+
+            for condition in trigger_conditions:
+                if condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append(f"Condition not supported: {condition.type}")
+
+            for f in filter_conditions:
+                if condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append(f"Filter not supported: {f.type}")
+
+            if len(errors):
+                result[workflow]["errors"] = errors
 
             if workflow.id in last_triggered_lookup:
                 result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
