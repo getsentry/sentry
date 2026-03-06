@@ -4012,7 +4012,7 @@ class ReplayEAPTestCase(BaseTestCase):
         **attributes,
     ):
         """Create single EAP replay breadcrumb TraceItem."""
-        from datetime import datetime, timezone
+        from datetime import datetime
         from uuid import uuid4
 
         from google.protobuf.timestamp_pb2 import Timestamp
@@ -4022,7 +4022,7 @@ class ReplayEAPTestCase(BaseTestCase):
         if organization is None:
             organization = self.organization
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
         if trace_id is None:
             trace_id = replay_id
 
@@ -4140,19 +4140,12 @@ class UptimeResultEAPTestCase(BaseTestCase):
         status_reason_description=None,
         span_id=None,
     ):
-        from datetime import datetime, timedelta, timezone
-        from uuid import uuid4
-
-        from google.protobuf.timestamp_pb2 import Timestamp
-        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-        from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
-
         if organization is None:
             organization = self.organization
         if project is None:
             project = self.project
         if scheduled_check_time is None:
-            scheduled_check_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+            scheduled_check_time = datetime.now(UTC) - timedelta(minutes=1)
         if trace_id is None:
             trace_id = uuid4().hex
         if guid is None:
@@ -4274,19 +4267,12 @@ class ProcessingErrorTestCase(BaseTestCase):
         sdk_name=None,
         sdk_version=None,
     ):
-        from datetime import datetime, timedelta, timezone
-        from uuid import uuid4
-
-        from google.protobuf.timestamp_pb2 import Timestamp
-        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-        from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
-
         if organization is None:
             organization = self.organization
         if project is None:
             project = self.project
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
+            timestamp = datetime.now(UTC) - timedelta(minutes=1)
         if trace_id is None:
             trace_id = uuid4().hex
         if event_id is None:
@@ -4332,9 +4318,6 @@ class ProcessingErrorTestCase(BaseTestCase):
 
     def store_processing_errors(self, processing_errors):
         """Store processing errors in the EAP dataset."""
-        import requests
-        from django.conf import settings
-
         files = {
             f"processing_error_{i}": item.SerializeToString()
             for i, item in enumerate(processing_errors)

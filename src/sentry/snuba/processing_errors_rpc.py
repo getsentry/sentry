@@ -46,6 +46,7 @@ class ProcessingErrors(rpc_dataset_common.RPCBase):
                 sampling_mode=sampling_mode,
                 resolver=search_resolver or cls.get_resolver(params, config),
                 page_token=page_token,
+                additional_queries=additional_queries,
             ),
             params.debug,
         )
