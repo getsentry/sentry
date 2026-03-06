@@ -196,7 +196,7 @@ function generateBlankQuery(): WidgetQuery {
 function WidgetViewerModal(props: Props) {
   const {
     organization,
-    widget,
+    widget: originalWidget,
     selection,
     Footer,
     Body,
@@ -217,6 +217,7 @@ function WidgetViewerModal(props: Props) {
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
   const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
+  const widget = cloneDeep(originalWidget);
   widget.queries =
     widget.displayType === DisplayType.TEXT ? [generateBlankQuery()] : widget.queries;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
@@ -286,7 +287,7 @@ function WidgetViewerModal(props: Props) {
     limit: isTableWidget ? undefined : widget.limit,
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
-  const orderby = widget.queries[0]!.orderby;
+  const {orderby} = widget.queries[0]!;
   const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
@@ -383,14 +384,11 @@ function WidgetViewerModal(props: Props) {
     }
   }
 
-  const eventView =
-    widget.displayType === DisplayType.TEXT
-      ? eventViewFromWidget(
-          tableWidget.title,
-          {aggregates, columns, orderby, conditions: '', name: ''},
-          modalSelection
-        )
-      : eventViewFromWidget(tableWidget.title, tableWidget.queries[0]!, modalSelection);
+  const eventView = eventViewFromWidget(
+    tableWidget.title,
+    tableWidget.queries[0]!,
+    modalSelection
+  );
 
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
     t(
