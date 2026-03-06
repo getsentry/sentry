@@ -383,6 +383,7 @@ function CellAction({
             trigger={triggerProps => (
               <ActionMenuTriggerV2
                 {...triggerProps}
+                role="button"
                 aria-label={t('Actions')}
                 onClickCapture={e => {
                   // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
