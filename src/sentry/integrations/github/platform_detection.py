@@ -906,7 +906,6 @@ for _fw in FRAMEWORKS:
 # detection) but are not selectable in the frontend project creation picker.
 _NON_SELECTABLE_PLATFORMS = frozenset(
     {
-        "perl",  # no Perl onboarding doc in Sentry
         "php-wordpress",  # WordPress uses the base PHP SDK
         "swift",  # picker uses apple-ios / apple-macos instead
     }
