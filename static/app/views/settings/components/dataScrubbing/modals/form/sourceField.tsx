@@ -352,7 +352,7 @@ class SourceField extends Component<Props, State> {
     event.persist();
 
     const {key} = event;
-    const {activeSuggestion, suggestions} = this.state;
+    const {activeSuggestion, suggestions, showSuggestions} = this.state;
 
     if (key === 'Backspace' || key === ' ') {
       this.toggleSuggestions(true);
@@ -360,8 +360,10 @@ class SourceField extends Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      event.preventDefault();
-      this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
+      if (showSuggestions && suggestions.length > 0) {
+        event.preventDefault();
+        this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
+      }
       return;
     }
 

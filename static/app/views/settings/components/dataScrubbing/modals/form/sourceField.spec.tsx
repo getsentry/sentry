@@ -237,6 +237,65 @@ describe('Source', () => {
     expect(handleOnChange).toHaveBeenNthCalledWith(3, 'foo &&');
   });
 
+  it('pressing Enter does not crash when suggestions are not visible', async () => {
+    const handleOnChange = jest.fn();
+
+    render(
+      <SourceField
+        fieldProps={defaultFieldProps}
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={handleOnChange}
+        value="$string"
+      />
+    );
+
+    const input = screen.getByRole('textbox', {name: 'Source'});
+
+    // Focus the input to show suggestions, then select one to close the dropdown
+    await userEvent.click(input);
+    await userEvent.keyboard('{Enter}');
+
+    // Suggestions dropdown should now be hidden after selecting
+    expect(screen.queryByTestId('source-suggestions')).not.toBeInTheDocument();
+
+    // Pressing Enter again with suggestions hidden should not crash
+    await userEvent.keyboard('{Enter}');
+  });
+
+  it('pressing Enter allows form submission when suggestions are not visible', async () => {
+    Element.prototype.scrollIntoView = jest.fn();
+    const handleSubmit = jest.fn(e => e.preventDefault());
+
+    render(
+      <form onSubmit={handleSubmit}>
+        <SourceField
+          fieldProps={defaultFieldProps}
+          isRegExMatchesSelected={false}
+          suggestions={valueSuggestions}
+          onChange={jest.fn()}
+          value="foo "
+        />
+        <button type="submit">Submit</button>
+      </form>
+    );
+
+    const input = screen.getByRole('textbox', {name: 'Source'});
+
+    // Open suggestions and select one via Enter — this should NOT submit the form
+    await userEvent.click(input);
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(handleSubmit).not.toHaveBeenCalled();
+
+    // Suggestions should now be hidden
+    expect(screen.queryByTestId('source-suggestions')).not.toBeInTheDocument();
+
+    // Press Enter again with suggestions hidden — this SHOULD submit the form
+    await userEvent.click(input);
+    await userEvent.keyboard('{Enter}');
+    expect(handleSubmit).toHaveBeenCalledTimes(1);
+  });
+
   it('pressing Enter to select a suggestion does not submit the parent form', async () => {
     const handleOnChange = jest.fn();
     const handleSubmit = jest.fn();
