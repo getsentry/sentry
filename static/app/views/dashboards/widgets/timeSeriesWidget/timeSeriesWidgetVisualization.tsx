@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -29,6 +29,7 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
+import {getUserTimezone} from 'sentry/utils/dates';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,6 +50,7 @@ import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
+import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
@@ -444,6 +446,28 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';
 
+  // ECharts can only snap axis ticks to browser-local or UTC boundaries. When
+  // the user's configured timezone differs from the browser timezone, ticks
+  // land at non-round times. Compute custom tick positions aligned to the
+  // user's timezone and pass them via ECharts' `customValues` option on both
+  // `axisTick` (tick mark positions) and `axisLabel` (label positions) — these
+  // are independent in ECharts and must both be set. The label formatter
+  // (`formatXAxisTimestamp`) then cascades through format levels based on what
+  // round boundary each tick falls on, producing mixed-granularity labels.
+  const startMilliseconds = earliestTimeStamp
+    ? new Date(earliestTimeStamp).getTime()
+    : undefined;
+  const endMilliseconds = latestTimeStamp
+    ? new Date(latestTimeStamp).getTime()
+    : undefined;
+  const timezone = utc ? 'UTC' : getUserTimezone();
+  const customTicks = useMemo(() => {
+    if (startMilliseconds === undefined || endMilliseconds === undefined) {
+      return undefined;
+    }
+    return generateTimezoneAlignedTicks(startMilliseconds, endMilliseconds, 10, timezone);
+  }, [startMilliseconds, endMilliseconds, timezone]);
+
   const xAxis = showXAxis
     ? {
         animation: false,
@@ -451,8 +475,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            return formatXAxisTimestamp(value, timezone);
           },
+          ...(customTicks ? {customValues: customTicks} : {}),
+        },
+        axisTick: {
+          ...(customTicks ? {customValues: customTicks} : {}),
         },
         splitNumber: 5,
         ...releaseBubbleXAxis,

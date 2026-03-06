@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import ConfigStore from 'sentry/stores/configStore';
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -21,6 +22,7 @@ import type {
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {makeRandomWalkTimeSeries} from './__stories__/makeRandomWalkTimeSeries';
 import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
 import {sampleCrashFreeRateTimeSeries} from './fixtures/sampleCrashFreeRateTimeSeries';
@@ -482,6 +484,75 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
             showXAxis="never"
           />
         </SmallWidget>
+      </Fragment>
+    );
+  });
+
+  story('X-Axis Ticks', () => {
+    // Simulate a Sentry timezone that differs from the browser timezone.
+    // This is the scenario that causes misaligned ticks without our fix:
+    // the browser might be in e.g. America/Los_Angeles, but the user's
+    // Sentry account is configured to Asia/Kolkata (UTC+5:30).
+    const simulatedTimezone = 'Asia/Kolkata';
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    useEffect(() => {
+      const previousUser = ConfigStore.get('user');
+      ConfigStore.set('user', {
+        ...previousUser,
+        options: {
+          ...previousUser?.options,
+          timezone: simulatedTimezone,
+        },
+      });
+
+      return () => {
+        ConfigStore.set('user', previousUser);
+      };
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> places X axis ticks
+          at round boundaries in the user's configured timezone, regardless of the
+          browser's local timezone. For example, if a user's Sentry account is set to{' '}
+          <code>Asia/Kolkata</code> (UTC+5:30) but their browser is in{' '}
+          <code>America/Los_Angeles</code>, ticks will still land at round hours like
+          12:00 AM, 6:00 AM, etc. in IST — not at odd offsets like 6:30 PM.
+        </p>
+
+        <p>
+          This works in two parts. First, <code>generateTimezoneAlignedTicks</code> picks
+          an interval from the same table ECharts uses (1h, 6h, 1d, etc.), snaps to the
+          nearest round boundary in the user's timezone, and walks forward to produce tick
+          positions. Then, <code>formatXAxisTimestamp</code> formats each tick by
+          inspecting what round boundary it falls on — a tick at midnight Jan 1 gets
+          "2025", midnight on any other day gets "Feb 3rd", and a tick on a round hour
+          gets "2:00 PM". This stateless cascading produces mixed-granularity labels
+          (e.g., "2025 | Feb | Mar") without needing ECharts' built-in multi-level tick
+          hierarchy.
+        </p>
+
+        <p>
+          <strong>Simulated timezone mismatch:</strong> Browser is{' '}
+          <code>{browserTimezone}</code>, user timezone is overridden to{' '}
+          <code>{simulatedTimezone}</code> (UTC+5:30). All tick labels below should show
+          round times.
+        </p>
+
+        <Storybook.Grid columns={3}>
+          {X_AXIS_TICK_TEST_CASES.map(({label, startMs, endMs}) => (
+            <div key={label}>
+              <strong>{label}</strong>
+              <div style={{position: 'relative', height: 200}}>
+                <TimeSeriesWidgetVisualization
+                  plottables={[new Line(makeRandomWalkTimeSeries(startMs, endMs))]}
+                />
+              </div>
+            </div>
+          ))}
+        </Storybook.Grid>
       </Fragment>
     );
   });
@@ -1220,3 +1291,86 @@ const NULL_META: TimeSeriesMeta = {
   valueUnit: null,
   interval: 0,
 };
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+// Base timestamp: Jan 15, 2025 00:00 UTC
+const TICK_STORY_BASE = Date.UTC(2025, 0, 15, 0, 0, 0);
+
+const X_AXIS_TICK_TEST_CASES: Array<{endMs: number; label: string; startMs: number}> = [
+  // Standard ranges
+  {label: '30 seconds', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 30 * 1000},
+  {label: '5 minutes', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 5 * MINUTE},
+  {label: '15 minutes', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 15 * MINUTE},
+  {label: '1 hour', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + HOUR},
+  {label: '6 hours', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 6 * HOUR},
+  {label: '12 hours', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 12 * HOUR},
+  {label: '24 hours', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + DAY},
+  {label: '3 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 3 * DAY},
+  {label: '7 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 7 * DAY},
+  {label: '14 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 14 * DAY},
+  {label: '30 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 30 * DAY},
+  {label: '90 days', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 90 * DAY},
+  {label: '6 months', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 182 * DAY},
+  {label: '1 year', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 365 * DAY},
+  {label: '3 years', startMs: TICK_STORY_BASE, endMs: TICK_STORY_BASE + 3 * 365 * DAY},
+
+  // DST edge cases (America/New_York: spring forward March 9 2025, fall back Nov 2 2025)
+  {
+    label: 'DST spring forward (hours)',
+    startMs: Date.UTC(2025, 2, 9, 4, 0, 0),
+    endMs: Date.UTC(2025, 2, 9, 12, 0, 0),
+  },
+  {
+    label: 'DST spring forward (days)',
+    startMs: Date.UTC(2025, 2, 1, 5, 0, 0),
+    endMs: Date.UTC(2025, 2, 15, 4, 0, 0),
+  },
+  {
+    label: 'DST fall back (hours)',
+    startMs: Date.UTC(2025, 10, 2, 2, 0, 0),
+    endMs: Date.UTC(2025, 10, 2, 12, 0, 0),
+  },
+  {
+    label: 'DST fall back (days)',
+    startMs: Date.UTC(2025, 9, 25, 4, 0, 0),
+    endMs: Date.UTC(2025, 10, 10, 5, 0, 0),
+  },
+
+  // Boundary rollover — shows how the cascading formatter produces
+  // mixed-granularity labels at day, month, and year transitions
+  {
+    label: 'Day boundary (hours across midnight)',
+    startMs: Date.UTC(2025, 0, 15, 18, 0, 0),
+    endMs: Date.UTC(2025, 0, 16, 6, 0, 0),
+  },
+  {
+    label: 'Month boundary (days across month end)',
+    startMs: Date.UTC(2025, 0, 25, 18, 30, 0),
+    endMs: Date.UTC(2025, 1, 5, 18, 30, 0),
+  },
+  {
+    label: 'Year boundary (days across New Year)',
+    startMs: Date.UTC(2024, 11, 25, 18, 30, 0),
+    endMs: Date.UTC(2025, 0, 5, 18, 30, 0),
+  },
+  {
+    label: 'Year boundary (months across New Year)',
+    startMs: Date.UTC(2024, 9, 1, 18, 30, 0),
+    endMs: Date.UTC(2025, 2, 1, 18, 30, 0),
+  },
+
+  // Unusual ranges
+  {
+    label: 'Non-aligned start (14:37 UTC, 6h)',
+    startMs: Date.UTC(2025, 0, 15, 14, 37, 22),
+    endMs: Date.UTC(2025, 0, 15, 20, 37, 22),
+  },
+  {
+    label: 'Cross-year boundary',
+    startMs: Date.UTC(2024, 11, 20, 0, 0, 0),
+    endMs: Date.UTC(2025, 0, 10, 0, 0, 0),
+  },
+];
