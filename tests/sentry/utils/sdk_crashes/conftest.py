@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 from collections.abc import Callable, Collection
 from types import ModuleType
+from typing import TYPE_CHECKING
 
 import pytest
 
-from sentry.models.project import Project
-from sentry.services.eventstore.models import Event
 from sentry.utils.sdk_crashes.path_replacer import FixedPathReplacer
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     SDKFrameConfig,
     SdkName,
 )
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.services.eventstore.models import Event
 
 
 @pytest.fixture
