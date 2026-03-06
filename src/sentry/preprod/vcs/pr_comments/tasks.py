@@ -69,6 +69,13 @@ def create_preprod_pr_comment_task(
         )
         return
 
+    if not artifact.project.get_option("sentry:preprod_distribution_pr_comments_enabled", True):
+        logger.info(
+            "preprod.pr_comments.create.project_disabled",
+            extra={"artifact_id": artifact.id, "project_id": artifact.project.id},
+        )
+        return
+
     organization = artifact.project.organization
     if not features.has("organizations:preprod-build-distribution-pr-comments", organization):
         logger.info(

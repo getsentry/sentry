@@ -192,6 +192,13 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         with self.feature("organizations:preprod-build-distribution-pr-comments"):
             create_preprod_pr_comment_task(artifact.id)
 
+    def test_skips_when_project_option_disabled(self):
+        self.project.update_option("sentry:preprod_distribution_pr_comments_enabled", False)
+        artifact = self._create_artifact()
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
     def test_skips_when_feature_flag_disabled(self):
         artifact = self._create_artifact()
 
