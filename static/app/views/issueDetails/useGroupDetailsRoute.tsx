@@ -11,7 +11,7 @@ function getCurrentTab({
   params,
 }: {
   params: Record<string, string | undefined>;
-  routes: Array<PlainRoute>;
+  routes: PlainRoute[];
 }) {
   const currentRoute = routes[routes.length - 1];
 
@@ -35,7 +35,7 @@ function getCurrentRouteInfo({
   groupId: string;
   organization: Organization;
   params: Record<string, string | undefined>;
-  routes: Array<PlainRoute>;
+  routes: PlainRoute[];
 }): {
   baseUrl: string;
   currentTab: Tab;
