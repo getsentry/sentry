@@ -68,7 +68,7 @@ class TestWorkerIdentityResolution:
         data = _run_snippet(_PRINT_IDENTITY)
         assert data["worker_id"] is not None
         assert isinstance(data["worker_num"], int)
-        assert 0 <= data["worker_num"] < 15
+        assert 0 <= data["worker_num"] < 7
         # worker_id == str(worker_num) for auto-allocated slots
         assert data["worker_id"] == str(data["worker_num"])
 
@@ -118,6 +118,17 @@ class TestWorkerIdentityResolution:
 class TestHelperFunctions:
     """Test the per-resource helper functions via subprocess with controlled env vars."""
 
+    def test_get_db_suffix_slot_0(self):
+        """Slot 0 has no suffix (backward-compatible with historical default)."""
+        data = _run_snippet(
+            """
+            from sentry.testutils.pytest import isolation
+            print(json.dumps({"v": isolation.get_db_suffix()}))
+            """,
+            env_override={"SENTRY_TEST_WORKER_ID": "0"},
+        )
+        assert data["v"] == ""
+
     def test_get_db_suffix_with_worker(self):
         data = _run_snippet(
             """
@@ -146,7 +157,7 @@ class TestHelperFunctions:
             """,
             env_override={"SENTRY_TEST_WORKER_ID": "2"},
         )
-        assert data["v"] == 3  # 1 + 2
+        assert data["v"] == 11  # 9 + 2
 
     def test_get_redis_db_serial(self):
         data = _run_snippet(
@@ -156,11 +167,11 @@ class TestHelperFunctions:
             """,
             env_override={"SENTRY_PYTEST_SERIAL": "1"},
         )
-        assert data["v"] == 1
+        assert data["v"] == 9
 
     def test_get_redis_db_within_bounds(self):
-        """All valid worker_num values produce Redis DBs 1-15."""
-        for slot in range(15):
+        """All valid worker_num values produce Redis DBs 9-15."""
+        for slot in range(7):
             data = _run_snippet(
                 """
                 from sentry.testutils.pytest import isolation
@@ -168,9 +179,10 @@ class TestHelperFunctions:
                 """,
                 env_override={"SENTRY_TEST_WORKER_ID": str(slot)},
             )
-            assert 1 <= data["v"] <= 15
+            assert 9 <= data["v"] <= 15
 
-    def test_get_kafka_topic_with_worker(self):
+    def test_get_kafka_topic_slot_0(self):
+        """Slot 0 returns the base name (no suffix) for backward compat."""
         data = _run_snippet(
             """
             from sentry.testutils.pytest import isolation
@@ -178,7 +190,17 @@ class TestHelperFunctions:
             """,
             env_override={"SENTRY_TEST_WORKER_ID": "0"},
         )
-        assert data["v"] == "ingest-events-0"
+        assert data["v"] == "ingest-events"
+
+    def test_get_kafka_topic_with_worker(self):
+        data = _run_snippet(
+            """
+            from sentry.testutils.pytest import isolation
+            print(json.dumps({"v": isolation.get_kafka_topic("ingest-events")}))
+            """,
+            env_override={"SENTRY_TEST_WORKER_ID": "1"},
+        )
+        assert data["v"] == "ingest-events-1"
 
     def test_get_kafka_topic_serial(self):
         data = _run_snippet(
@@ -210,7 +232,7 @@ class TestHelperFunctions:
         )
         assert data["v"] is None
 
-    @pytest.mark.parametrize("slot", range(15))
+    @pytest.mark.parametrize("slot", range(7))
     def test_redis_db_within_bounds(self, slot):
-        """All slot values produce Redis DBs 1-15."""
-        assert 1 <= 1 + slot <= 15
+        """All slot values produce Redis DBs 9-15."""
+        assert 9 <= 9 + slot <= 15

@@ -189,6 +189,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
 class PostUpdateLogGroupAttributesChangedTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
