@@ -1,6 +1,3 @@
-import {type ReactNode} from 'react';
-import styled from '@emotion/styled';
-
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,38 +12,19 @@ interface TextWidgetProps {
 export function TextWidgetVisualization({text}: TextWidgetProps) {
   if (!text) {
     return (
-      <EmptyStateContainer>
+      <Flex align="start" justify="start" height="100%" minHeight="100px" padding="xl">
         <Text variant="muted" size="2xl">
           {EMPTY_PLACEHOLDER}
         </Text>
-      </EmptyStateContainer>
+      </Flex>
     );
   }
 
   return (
-    <TextContainer>
-      <MarkedText text={text} />
-    </TextContainer>
+    <Container padding="xl" overflowY="auto" height="100%" whiteSpace="normal">
+      <Text wordBreak="break-word">
+        <MarkedText text={text} />
+      </Text>
+    </Container>
   );
 }
-
-function EmptyStateContainer({children}: {children: ReactNode}) {
-  return (
-    <Flex align="center" justify="center" height="100%" minHeight="100px">
-      {children}
-    </Flex>
-  );
-}
-
-function TextContainer({children}: {children: ReactNode}) {
-  return (
-    <StyledContainer padding="xl" overflowY="auto" height="100%" whiteSpace="pre-wrap">
-      {children}
-    </StyledContainer>
-  );
-}
-
-const StyledContainer = styled(Container)`
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-`;
