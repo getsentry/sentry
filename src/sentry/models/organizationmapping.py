@@ -13,6 +13,7 @@ from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
 
@@ -22,8 +23,10 @@ if TYPE_CHECKING:
 
 # TODO(cells): remove once all callers have been migrated to cell_name
 class OrganizationMappingManager(BaseManager["OrganizationMapping"]):
-    def get_queryset(self) -> models.QuerySet[OrganizationMapping]:
-        return super().get_queryset().annotate(region_name=F("cell_name"))
+    def get_queryset(self) -> BaseQuerySet[OrganizationMapping]:
+        # annotate(region_name=...) makes mypy think we're redefining the region_name property
+        # on the model class, but the annotation only exists on queryset results at runtime.
+        return super().get_queryset().annotate(region_name=F("cell_name"))  # type: ignore[no-redef]
 
 
 @control_silo_model
