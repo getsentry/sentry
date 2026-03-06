@@ -1206,17 +1206,6 @@ class SnubaTestCase(BaseTestCase):
         self.store_eap_items(trace_items)
         return trace_items
 
-    def store_occurrences(self, occurrences: Sequence[TraceItem]):
-        files = {
-            f"occurrence_{i}": occurrence.SerializeToString()
-            for i, occurrence in enumerate(occurrences)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_events_to_snuba_and_eap(
         self,
         fingerprint: str,

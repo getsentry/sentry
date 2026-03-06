@@ -64,7 +64,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
                     for minute in range(count)
                 ],
             )
-        self.store_occurrences([occurrence for occurrence, group in occurrence_and_groups])
+        self.store_eap_items([occurrence for occurrence, group in occurrence_and_groups])
 
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
