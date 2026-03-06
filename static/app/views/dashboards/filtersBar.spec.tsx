@@ -29,7 +29,7 @@ describe('FiltersBar', () => {
     mockNetworkRequests();
 
     organization = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit', 'dashboards-global-filters'],
+      features: ['dashboards-basic', 'dashboards-edit'],
     });
   });
 
