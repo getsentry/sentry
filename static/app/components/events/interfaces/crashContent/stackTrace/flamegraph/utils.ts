@@ -127,9 +127,10 @@ export function treeToSampledProfileData(roots: StacktraceTreeNode[]): {
     const inclusiveCount = node.frame.sampleCount ?? 0;
 
     if (node.children.length === 0) {
-      // Leaf node - emit a sample with its weight
-      samples.push(pathWithNode);
-      weights.push(inclusiveCount);
+      if (inclusiveCount > 0) {
+        samples.push(pathWithNode);
+        weights.push(inclusiveCount);
+      }
     } else {
       // Self weight = inclusive count minus children's inclusive counts
       const childrenCount = node.children.reduce(
