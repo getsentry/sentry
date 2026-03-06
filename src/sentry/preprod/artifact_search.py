@@ -34,6 +34,8 @@ search_config = SearchConfig.create_from(
         "platform_name",
     },
     # Keys that support numeric comparisons
+    # NOTE: Numeric keys do NOT support wildcard operators (e.g., Contains, StartsWith, EndsWith).
+    # Use comparison operators instead: git_pr_number:>500, git_pr_number:<=1000, etc.
     numeric_keys={
         "build_number",
         "download_count",

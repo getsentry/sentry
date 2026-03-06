@@ -1433,6 +1433,14 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         (negation, search_key, _sep, wildcard_op, operator, search_value) = children
         operator_s = get_operator_value(operator)
 
+        # Check if wildcard operator is used on a numeric field, which is not supported
+        if has_wildcard_op(wildcard_op) and self.is_numeric_key(search_key.name):
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Wildcard operators are not supported on numeric fields. "
+                f"Use comparison operators instead (e.g. >{search_key.name}:500, "
+                f"{search_key.name}:>=1000)."
+            )
+
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
         if not search_value.raw_value and not node.children[5].text:
