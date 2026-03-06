@@ -89,6 +89,7 @@ export function SeerAutomationDefault() {
                   options={SEER_THRESHOLD_OPTIONS.map(option => ({
                     value: option.value,
                     label: option.label,
+                    details: option.details,
                   }))}
                   disabled={!canWrite}
                 />
