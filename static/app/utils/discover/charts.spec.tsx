@@ -9,7 +9,7 @@ import {
   tooltipFormatter,
   tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType, SizeUnit} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 import {categorizeDuration} from './categorizeDuration';
@@ -58,6 +58,47 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
     ).toBe('50 MB');
     expect(tooltipFormatterUsingAggregateOutputType(1000, 'size', SizeUnit.BYTE)).toBe(
       '1 KB'
+    );
+  });
+
+  it('converts duration values from the provided unit to display correctly', () => {
+    // 5 days reported as value=5 with unit=day should display as "5.00d"
+    expect(
+      tooltipFormatterUsingAggregateOutputType(5, 'duration', DurationUnit.DAY)
+    ).toBe('5.00d');
+
+    // 2 hours reported as value=2 with unit=hour should display as "2.00hr"
+    expect(
+      tooltipFormatterUsingAggregateOutputType(2, 'duration', DurationUnit.HOUR)
+    ).toBe('2.00hr');
+
+    // 30 seconds reported as value=30 with unit=second should display as "30.00s"
+    expect(
+      tooltipFormatterUsingAggregateOutputType(30, 'duration', DurationUnit.SECOND)
+    ).toBe('30.00s');
+
+    // 500 milliseconds reported as value=500 with unit=millisecond (default) should display as "500.00ms"
+    expect(
+      tooltipFormatterUsingAggregateOutputType(500, 'duration', DurationUnit.MILLISECOND)
+    ).toBe('500.00ms');
+  });
+
+  it('defaults to milliseconds when no duration unit is provided', () => {
+    // Without a unit, 500 should be treated as 500ms
+    expect(tooltipFormatterUsingAggregateOutputType(500, 'duration')).toBe('500.00ms');
+    // 86400000ms = 1 day
+    expect(tooltipFormatterUsingAggregateOutputType(86400000, 'duration')).toBe('1.00d');
+  });
+
+  it('converts size values from the provided unit', () => {
+    // 5 kibibytes reported as value=5 with unit=kibibyte
+    expect(tooltipFormatterUsingAggregateOutputType(5, 'size', SizeUnit.KIBIBYTE)).toBe(
+      '5.0 KiB'
+    );
+
+    // 2 megabytes reported as value=2 with unit=megabyte (base 10)
+    expect(tooltipFormatterUsingAggregateOutputType(2, 'size', SizeUnit.MEGABYTE)).toBe(
+      '2 MB'
     );
   });
 });
@@ -154,6 +195,62 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
         SizeUnit.BYTE
       )
     ).toBe('1 KB');
+  });
+
+  it('converts duration values using the data unit passed via sizeUnit', () => {
+    // value=5 with unit=day → 5 * 86400000ms = 432000000ms → "5d"
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        5,
+        'duration',
+        true,
+        undefined,
+        undefined,
+        0,
+        DurationUnit.DAY
+      )
+    ).toBe('5d');
+
+    // value=2 with unit=hour → 2 * 3600000ms = 7200000ms → "2hr"
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        2,
+        'duration',
+        true,
+        undefined,
+        undefined,
+        0,
+        DurationUnit.HOUR
+      )
+    ).toBe('2hr');
+
+    // value=90 with unit=second → 90 * 1000ms = 90000ms → "2min" (auto-categorized)
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        90,
+        'duration',
+        true,
+        undefined,
+        undefined,
+        0,
+        DurationUnit.SECOND
+      )
+    ).toBe('2min');
+  });
+
+  it('converts size values using the data unit passed via sizeUnit', () => {
+    // value=5 with unit=kibibyte → 5 * 1024 = 5120 bytes → "5 KiB"
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        5,
+        'size',
+        false,
+        undefined,
+        undefined,
+        0,
+        SizeUnit.KIBIBYTE
+      )
+    ).toBe('5 KiB');
   });
 });
 
@@ -332,5 +429,23 @@ describe('getDurationUnit()', () => {
     const series = generateSeries([0, 0, 0]);
     const durationUnit = getDurationUnit(series);
     expect(durationUnit).toBe(MILLISECOND);
+  });
+
+  it('should convert values using dataUnit before categorizing', () => {
+    // Values [1, 2, 3, 4, 5] in days → range = 4 days = 345600000ms
+    // /5 = 69120000ms (~19.2hr) → categorizes tick interval as HOUR
+    const series = generateSeries([1, 2, 3, 4, 5]);
+    expect(getDurationUnit(series, undefined, DurationUnit.DAY)).toBe(HOUR);
+    // Without the unit, same values [1..5] are treated as ms → MILLISECOND
+    expect(getDurationUnit(series)).toBe(MILLISECOND);
+  });
+
+  it('should categorize correctly for hour-scale data with dataUnit', () => {
+    // Values [1, 2, 3, 4] in hours → range = 3hr = 10800000ms
+    // /5 = 2160000ms (~36min) → categorizes tick interval as MINUTE
+    const series = generateSeries([1, 2, 3, 4]);
+    expect(getDurationUnit(series, undefined, DurationUnit.HOUR)).toBe(MINUTE);
+    // Without the unit, same values [1..4] are treated as ms → MILLISECOND
+    expect(getDurationUnit(series)).toBe(MILLISECOND);
   });
 });
