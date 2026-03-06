@@ -722,6 +722,32 @@ describe('ProjectPageFilter', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('deselecting My Projects does not select All Projects in the URL', async () => {
+    // Start with default empty URL = "My Projects" state
+    const {router} = render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    // Open the menu; "My Projects" should be checked
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).toBeChecked();
+
+    // Deselect "My Projects"
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+    expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).not.toBeChecked();
+
+    // Apply the (empty) selection
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    // URL must NOT become project=-1 (All Projects); the user did not select All Projects
+    await waitFor(() => {
+      expect(router.location.query.project).not.toBe('-1');
+    });
+  });
+
   describe('superuser access', () => {
     it('shows All Projects option for superusers in orgs without open-membership', async () => {
       // Org without open-membership and current user is not owner/manager

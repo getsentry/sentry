@@ -433,7 +433,9 @@ export function ProjectPageFilter({
     updateProjects(
       toURLSelection({
         projects,
-        value: resolvedValue,
+        // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
+        // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
+        value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
         showNonMemberProjects,
       }),
       router,
@@ -720,7 +722,7 @@ function toURLSelection({
   showNonMemberProjects: boolean;
   value: number[];
 }): number[] {
-  if (value.includes(ALL_ACCESS_PROJECTS) || !value.length) {
+  if (value.includes(ALL_ACCESS_PROJECTS)) {
     return [ALL_ACCESS_PROJECTS];
   }
 
