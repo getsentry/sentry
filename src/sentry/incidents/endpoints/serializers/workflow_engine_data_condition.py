@@ -129,6 +129,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 if obj.type == Condition.GREATER
                 else AlertRuleThresholdType.BELOW.value
             )
+            # For static/metric rules, calculate resolve threshold from the resolve condition
             resolve_threshold = translate_data_condition_type(
                 detector.config.get("comparison_delta"),
                 obj.type,

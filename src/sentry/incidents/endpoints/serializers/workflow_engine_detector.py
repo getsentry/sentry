@@ -18,13 +18,10 @@ from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineIncidentSerializer,
 )
 from sentry.incidents.models.alert_rule import (
-    AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleStatus,
     AlertRuleThresholdType,
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -268,16 +265,12 @@ class WorkflowEngineDetectorSerializer(Serializer):
         )
 
         # add trigger and action data
-        serialized_data_conditions: list[dict[str, Any]] = []
-        for trigger in detector_trigger_data_conditions:
-            serialized_data_conditions.extend(
-                serialize(
-                    [trigger],
-                    user,
-                    WorkflowEngineDataConditionSerializer(),
-                    **kwargs,
-                )
-            )
+        serialized_data_conditions = serialize(
+            list(detector_trigger_data_conditions),
+            user,
+            WorkflowEngineDataConditionSerializer(),
+            **kwargs,
+        )
         self.add_triggers_and_actions(
             result,
             detectors,
@@ -309,27 +302,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.add_created_by(result, list(detectors.values()))
         self.add_owner(result, list(detectors.values()))
 
-        # add originalAlertRuleId from snapshot activities
-        alert_rule_ids = list(
-            AlertRuleDetector.objects.filter(detector_id__in=detector_ids).values_list(
-                "alert_rule_id", flat=True
-            )
-        )
-        if "original_alert_rule" in self.expand and alert_rule_ids:
-            snapshot_activities = AlertRuleActivity.objects.filter(
-                alert_rule_id__in=alert_rule_ids,
-                type=AlertRuleActivityType.SNAPSHOT.value,
-            )
-            alert_rule_id_to_detector = {
-                ard.alert_rule_id: detectors[ard.detector_id]
-                for ard in AlertRuleDetector.objects.filter(detector_id__in=detector_ids)
-            }
-            for activity in snapshot_activities:
-                matched_detector = alert_rule_id_to_detector.get(activity.alert_rule_id)
-                if matched_detector:
-                    result[matched_detector]["originalAlertRuleId"] = (
-                        activity.previous_alert_rule_id
-                    )
+        # Note: originalAlertRuleId comes from AlertRuleActivity snapshots, which were not
+        # migrated to the workflow engine. This field will always be None for detectors.
 
         if "latestIncident" in self.expand:
             # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
@@ -389,29 +363,20 @@ class WorkflowEngineDetectorSerializer(Serializer):
             )
             result[detector]["snuba_query_id"] = snuba_query.id
 
-        # add event types from SnubaQueryEventType
-        event_types_by_snuba_query: defaultdict[int, list[str]] = defaultdict(list)
-        for event_type in SnubaQueryEventType.objects.filter(snuba_query_id__in=snuba_query_ids):
-            event_types_by_snuba_query[event_type.snuba_query_id].append(
-                SnubaQueryEventType.EventType(event_type.type).name.lower()
-            )
-        for detector in detectors.values():
-            sq_id: int | None = result[detector].get("snuba_query_id")
-            result[detector]["event_types"] = sorted(
-                event_types_by_snuba_query[sq_id] if sq_id is not None else []
-            )
-
-        # add snooze status
-        snooze_rules = RuleSnooze.objects.filter(
-            alert_rule_id__in=alert_rule_ids,
-        )
-        snoozed_alert_rule_ids = set(snooze_rules.values_list("alert_rule_id", flat=True))
-        alert_rule_id_to_detector = {
-            ard.alert_rule_id: detectors[ard.detector_id]
-            for ard in AlertRuleDetector.objects.filter(detector_id__in=detector_ids)
-        }
-        for ar_id, detector in alert_rule_id_to_detector.items():
-            result[detector]["snooze"] = ar_id in snoozed_alert_rule_ids
+        # Only query for event types if they will be included in the output
+        if "eventTypes" in self.expand:
+            event_types_by_snuba_query: defaultdict[int, list[str]] = defaultdict(list)
+            for event_type in SnubaQueryEventType.objects.filter(
+                snuba_query_id__in=snuba_query_ids
+            ):
+                event_types_by_snuba_query[event_type.snuba_query_id].append(
+                    SnubaQueryEventType.EventType(event_type.type).name.lower()
+                )
+            for detector in detectors.values():
+                sq_id: int | None = result[detector].get("snuba_query_id")
+                result[detector]["event_types"] = sorted(
+                    event_types_by_snuba_query[sq_id] if sq_id is not None else []
+                )
 
         return result
 
@@ -466,12 +431,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "detectionType": obj.config.get("detection_type"),
         }
 
-        snooze = attrs.get("snooze", False)
-        if snooze:
-            data["snooze"] = True
-        else:
-            data["snooze"] = False
-
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 
@@ -479,6 +438,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
         if extrapolation_mode is not None:
             data["extrapolationMode"] = extrapolation_mode
 
-        data["eventTypes"] = attrs.get("event_types", [])
+        # Only include eventTypes when explicitly requested (e.g., in detail views)
+        # to match DetailedAlertRuleSerializer behavior
+        if "eventTypes" in self.expand:
+            data["eventTypes"] = attrs.get("event_types", [])
 
         return data
