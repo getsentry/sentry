@@ -14,11 +14,14 @@ File locks guarantee exclusive Redis DB access and stable DB names (so
 ``--reuse-db`` works).  Locks are released automatically when the process
 exits, even on crash.
 
-ClickHouse / Snuba note: tables are NOT truncated between tests.  Isolation
-relies on PostgreSQL sequence uniqueness — each test gets fresh project IDs
-that never collide, so ClickHouse rows from other tests are invisible.  Any
-test that queries ClickHouse without filtering by project_id will see
-cross-worker data.
+ClickHouse / Snuba note: tables are dropped and recreated once per session
+(by the ``reset_snuba`` fixture or the parallel coordinator).  Within a
+session, isolation relies on unique snowflake IDs — each test gets fresh
+org / project IDs that never collide, so ClickHouse rows from other tests
+are invisible.  The Redis ``flushdb`` in test teardown preserves
+``snowflakeid:*`` keys so that ``@freeze_time`` tests don't regenerate
+the same IDs.  Tests that query ClickHouse without org/project filtering
+(e.g. cross-org discovery queries) must scope assertions to their own IDs.
 """
 
 from __future__ import annotations

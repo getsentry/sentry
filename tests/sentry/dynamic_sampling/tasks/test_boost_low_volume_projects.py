@@ -871,8 +871,15 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
             with patch(
                 "sentry.dynamic_sampling.tasks.boost_low_volume_projects._process_orgs_for_boost"
             ) as mock_process:
-                with self.tasks():
-                    boost_low_volume_projects()
+                # Mock GetActiveOrgs to avoid ClickHouse insert visibility
+                # timing issues.  Return only the segment-only org so the
+                # task can partition it by measure.
+                with patch(
+                    "sentry.dynamic_sampling.tasks.boost_low_volume_projects.GetActiveOrgs",
+                    return_value=iter([[org.id]]),
+                ):
+                    with self.tasks():
+                        boost_low_volume_projects()
 
                 calls_by_measure: dict[SamplingMeasure, list[int]] = {}
                 for call in mock_process.call_args_list:

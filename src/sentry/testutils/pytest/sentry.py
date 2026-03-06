@@ -386,8 +386,27 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    # Flush Redis but preserve snowflake ID counters.  flushdb() resets the
+    # counters and under @freeze_time the timestamp component is constant,
+    # so regenerated (timestamp, sequence) pairs collide with earlier tests
+    # — causing ClickHouse data bleed.
+    cluster = clusters.get("default")
+    for host_id in range(len(cluster.hosts)):
+        conn = cluster.get_local_client(host_id)
+        saved: dict[bytes, tuple[bytes, int]] = {}
+        cursor: int | bytes = 0
+        while True:
+            cursor, keys = conn.scan(cursor, match="snowflakeid:*", count=100)
+            for k in keys:
+                val = conn.get(k)
+                ttl = conn.ttl(k)
+                if val is not None:
+                    saved[k] = (val, max(ttl, 300))
+            if cursor == 0:
+                break
+        conn.flushdb()
+        for k, (val, ttl) in saved.items():
+            conn.set(k, val, ex=ttl)
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption

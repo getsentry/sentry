@@ -92,6 +92,11 @@ class _CoordinatorPlugin:
             tw.line(f"  worker {i}: {len(grp)} tests ({files} files)")
         tw.line("")
 
+        # Drop stale ClickHouse data from previous runs once, before any
+        # worker starts.  Within a run, isolation relies on unique
+        # project_id / org_id values from PostgreSQL sequences.
+        self._reset_clickhouse()
+
         self._total = len(session.items)
         items_by_nodeid: dict[str, pytest.Item] = {it.nodeid: it for it in session.items}
 
@@ -104,6 +109,32 @@ class _CoordinatorPlugin:
         return True
 
     # -- internals ------------------------------------------------------------
+
+    @staticmethod
+    def _reset_clickhouse() -> None:
+        """Drop and recreate all ClickHouse tables via Snuba's test endpoints."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        import requests
+        from django.conf import settings
+
+        snuba = settings.SENTRY_SNUBA
+        endpoints = [
+            "/tests/events_analytics_platform/drop",
+            "/tests/spans/drop",
+            "/tests/events/drop",
+            "/tests/functions/drop",
+            "/tests/groupedmessage/drop",
+            "/tests/transactions/drop",
+            "/tests/metrics/drop",
+            "/tests/generic_metrics/drop",
+            "/tests/search_issues/drop",
+            "/tests/group_attributes/drop",
+        ]
+        results = list(
+            ThreadPoolExecutor(len(endpoints)).map(lambda ep: requests.post(snuba + ep), endpoints)
+        )
+        assert all(r.status_code == 200 for r in results)
 
     @staticmethod
     def _partition(items: list[pytest.Item], n: int) -> list[list[pytest.Item]]:
