@@ -4315,20 +4315,3 @@ class ProcessingErrorTestCase(BaseTestCase):
             retention_days=90,
             attributes=attributes_proto,
         )
-
-    def store_processing_errors(self, processing_errors):
-        """Store processing errors in the EAP dataset."""
-        files = {
-            f"processing_error_{i}": item.SerializeToString()
-            for i, item in enumerate(processing_errors)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for item in processing_errors:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            item.item_id = item.item_id[::-1]

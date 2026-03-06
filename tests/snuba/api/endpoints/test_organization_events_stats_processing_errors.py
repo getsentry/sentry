@@ -42,7 +42,7 @@ class OrganizationEventsStatsProcessingErrorsEndpointTest(OrganizationEventsEndp
                     for minute in range(count)
                 ],
             )
-        self.store_processing_errors(items)
+        self.store_eap_items(items)
 
         response = self._do_request(
             data={
@@ -101,7 +101,7 @@ class OrganizationEventsStatsProcessingErrorsEndpointTest(OrganizationEventsEndp
                 timestamp=self.start + timedelta(hours=1),
             )
         )
-        self.store_processing_errors(items)
+        self.store_eap_items(items)
 
         response = self._do_request(
             data={
@@ -148,7 +148,7 @@ class OrganizationEventsStatsProcessingErrorsEndpointTest(OrganizationEventsEndp
                 timestamp=self.start + timedelta(hours=2),
             ),
         ]
-        self.store_processing_errors(items)
+        self.store_eap_items(items)
 
         response = self._do_request(
             data={
