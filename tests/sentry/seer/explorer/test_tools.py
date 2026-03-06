@@ -790,7 +790,6 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
         self.features = {
-            "organizations:performance-trace-explorer": True,
             "organizations:visibility-explore-view": True,
         }
 

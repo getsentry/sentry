@@ -132,7 +132,11 @@ export function DO_NOT_USE_getButtonStyles(
       zIndex: 1,
       position: 'relative',
 
+      display: 'inherit',
+      alignItems: 'inherit',
+      justifyContent: 'inherit',
       flex: '1',
+      gap: 'inherit',
       overflow: 'hidden',
 
       whiteSpace: 'nowrap',

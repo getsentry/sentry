@@ -41,7 +41,7 @@ def send_translate_request(
         project_ids=project_ids,
         natural_language_query=natural_language_query,
     )
-    response = make_translate_query_request(body, viewer_context=viewer_context)
+    response = make_translate_query_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()

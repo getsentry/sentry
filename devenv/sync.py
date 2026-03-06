@@ -186,6 +186,7 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
+    IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
 
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"
@@ -309,7 +310,11 @@ def main(context: dict[str, str]) -> int:
         ):
             print("⚠️  agent skills failed to install (non-fatal)")
 
-    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
+    if not IN_GIT_WORKTREE:
+        fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
+        fs.ensure_symlink(
+            "../../config/hooks/post-checkout", f"{reporoot}/.git/hooks/post-checkout"
+        )
 
     sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
 

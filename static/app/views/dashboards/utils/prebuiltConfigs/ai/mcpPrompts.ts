@@ -86,15 +86,15 @@ const PROMPTS_TABLE = {
       fields: [
         SpanFields.MCP_PROMPT_NAME,
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -102,8 +102,8 @@ const PROMPTS_TABLE = {
       fieldAliases: [
         t('Prompt Name'),
         t('Requests'),
-        t('Errors'),
         t('Error Rate'),
+        t('Errors'),
         t('Avg'),
         t('P95'),
       ],

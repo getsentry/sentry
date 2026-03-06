@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
+import {copyDsnFieldBlock} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -67,10 +67,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'custom',
-          content: <CopyDsnField params={params} />,
-        },
+        copyDsnFieldBlock(params),
       ],
     },
   ],
