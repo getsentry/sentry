@@ -3,12 +3,10 @@ import type React from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
-import color from 'color';
 import * as qs from 'query-string';
 import type {Tagged} from 'type-fest';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Theme} from 'sentry/utils/theme';
 
 import type {ImageAvatarProps} from './imageAvatar/imageAvatar';
 import type {LetterAvatarProps} from './letterAvatar/letterAvatar';
@@ -58,8 +56,11 @@ export function useAvatar(options: {
     type: 'letter',
     configuration: {
       initials: getInitials(options.name),
-      background: getColor(options.identifier, theme).background,
-      content: getColor(options.identifier, theme).content,
+      background: theme.swatch.get(options.identifier).background as Tagged<
+        string,
+        '__avatar'
+      >,
+      content: theme.swatch.get(options.identifier).content as Tagged<string, '__avatar'>,
     },
   };
 }
@@ -178,40 +179,4 @@ function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
     initials += Array.from(words[words.length - 1]!)[0]!;
   }
   return initials.toUpperCase() as Tagged<string, '__avatar'>;
-}
-
-/**
- * Generates a numeric hash from a string identifier for consistent color selection
- */
-function hashIdentifier(identifier: string): number {
-  const str = String(identifier);
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash += str.charCodeAt(i);
-  }
-  return hash;
-}
-
-function getColor(
-  identifier: string | undefined,
-  theme: Theme
-): {background: Tagged<string, '__avatar'>; content: Tagged<string, '__avatar'>} {
-  const colors = makeLetterAvatarColors(theme);
-  if (identifier === undefined) {
-    return colors[0]!;
-  }
-  const id = hashIdentifier(identifier);
-  return colors[id % colors.length]!;
-}
-
-function makeLetterAvatarColors(theme: Theme) {
-  return theme.chart.getColorPalette(9).map(c => ({
-    background: c,
-    content: color(c).isDark()
-      ? theme.tokens.content.onVibrant.light
-      : theme.tokens.content.onVibrant.dark,
-  })) as Array<{
-    background: Tagged<string, '__avatar'>;
-    content: Tagged<string, '__avatar'>;
-  }>;
 }
