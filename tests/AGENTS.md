@@ -17,10 +17,12 @@ Notice that we prefix `tests/` to the path and prefix `test_` to the module name
 
 Each `pytest` process auto-isolates via file-lock slots (`src/sentry/testutils/pytest/isolation.py`): separate PostgreSQL databases, Redis DBs, and Kafka topics. No configuration needed.
 
-- `pytest -n4` — distribute tests across 4 workers.
+- `pytest -n4` — distribute tests across 4 workers. The coordinator collects once, then workers receive nodeids directly (no redundant collection).
 - `SENTRY_PYTEST_SERIAL=1` — disables isolation (old single-process behaviour).
 - Max 15 parallel slots (Redis DBs 1–15). `--reuse-db` works (stable DB suffixes).
 - **ClickHouse** is NOT per-worker isolated. Isolation relies on unique `project_id`s from PostgreSQL sequences. Tests that query ClickHouse without filtering by `project_id` will see cross-worker data.
+
+Key files: `isolation.py` (slot allocation), `parallel.py` (coordinator), `parallel_worker.py` (worker shim).
 
 ## Testing Best Practices
 
