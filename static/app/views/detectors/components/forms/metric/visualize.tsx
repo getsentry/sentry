@@ -242,17 +242,17 @@ function GenericVisualize() {
     dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS;
   const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    {projectIds: [Number(projectId)]},
+    {projects: [projectId]},
     'number'
   );
   const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    {projectIds: [Number(projectId)]},
+    {projects: [projectId]},
     'string'
   );
   const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    {projectIds: [Number(projectId)]},
+    {projects: [projectId]},
     'boolean'
   );
   const formContext = useContext(FormContext);

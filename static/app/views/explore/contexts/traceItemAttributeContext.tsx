@@ -51,19 +51,23 @@ type TraceItemAttributeResult = {
 export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
-  projectIds?: Array<string | number>;
-  projects?: Project[];
+  projects?: Project[] | Array<string | number>;
   query?: string;
   search?: string;
 };
 
 type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 
+function isProjectArray(
+  projects: Project[] | Array<string | number>
+): projects is Project[] {
+  return projects.length > 0 && typeof projects[0] === 'object';
+}
+
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
-  projectIds,
-  projects,
+  projects: rawProjects,
   search,
   query,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
@@ -71,6 +75,10 @@ function useTraceItemAttributeConfig({
   const hasBooleanFilters = organization.features.includes(
     'search-query-builder-explicit-boolean-filters'
   );
+
+  const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
+  const projectIds =
+    rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({

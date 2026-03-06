@@ -17,11 +17,11 @@ export function TraceSearchBar({
   const traceDataset = isLogs ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceDataset, {projectIds}, 'number');
+    useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceDataset, {projectIds}, 'string');
+    useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'string');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceDataset, {projectIds}, 'boolean');
+    useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'boolean');
 
   return (
     <TraceItemSearchQueryBuilder
