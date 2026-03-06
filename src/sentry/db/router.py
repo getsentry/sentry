@@ -85,6 +85,8 @@ class SiloRouter:
         "sentry_projectavatar": SiloMode.REGION,
         "sentry_scheduledjob": SiloMode.CONTROL,
         "sentry_teamavatar": SiloMode.REGION,
+        "sentry_projecttemplate": SiloMode.REGION,
+        "sentry_projecttemplateoption": SiloMode.REGION,
         "uptime_projectuptimesubscription": SiloMode.REGION,
         "workflow_engine_actiongroupstatus": SiloMode.REGION,
         "workflow_engine_workflowaction": SiloMode.REGION,
