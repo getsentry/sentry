@@ -9,9 +9,9 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.resolvers import (
+    ByCellName,
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByCellName,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue

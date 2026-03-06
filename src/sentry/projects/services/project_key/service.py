@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByCellName
+from sentry.hybridcloud.rpc.resolvers import ByCellName, ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.projects.services.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.silo.base import SiloMode

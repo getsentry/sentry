@@ -11,10 +11,10 @@ from django.dispatch import Signal
 
 from sentry.hybridcloud.rpc import OptionValue, silo_mode_delegation
 from sentry.hybridcloud.rpc.resolvers import (
+    ByCellName,
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
-    ByCellName,
     RequireSingleOrganization,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
