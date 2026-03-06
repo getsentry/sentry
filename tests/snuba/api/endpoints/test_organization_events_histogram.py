@@ -904,38 +904,34 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         # Use a dedicated project so outlier detection isn't affected by
         # events stored by other tests (ClickHouse data persists across tests).
         project = self.create_project(organization=self.organization)
-        specs = [
-            (0, 0, [("foo", 4)]),
-            (4000, 4001, [("foo", 1)]),
-        ]
-        start = before_now(minutes=5)
-        for spec in [HistogramSpec(*s) for s in specs]:
-            for suffix_key, count in spec.fields:
-                for i in range(count):
-                    data = deepcopy(self.data)
-                    value = random.random() * (spec.end - spec.start) + spec.start
-                    data["timestamp"] = start.isoformat()
-                    data["start_timestamp"] = (start - timedelta(seconds=i)).isoformat()
-                    data["transaction"] = f"/measurement/{suffix_key}/value/{value}"
-                    data["measurements"] = {suffix_key: {"value": value}}
-                    data["breakdowns"] = {"span_ops": {f"ops.{suffix_key}": {"value": value}}}
-                    self.store_event(data, project.id)
-
-        for array_column in ARRAY_COLUMNS:
-            alias = get_array_column_alias(array_column)
-            query = {
-                "project": [project.id],
-                "field": [f"{alias}.foo"],
-                "numBuckets": 5,
-                "dataFilter": "exclude_outliers",
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, f"failing for {array_column}"
-            expected = [
-                (0, 1, [(f"{alias}.foo", 4)]),
+        saved_project = self.project
+        self.project = project
+        try:
+            specs = [
+                (0, 0, [("foo", 4)]),
+                (4000, 4001, [("foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
+            self.populate_events(specs)
+
+            for array_column in ARRAY_COLUMNS:
+                alias = get_array_column_alias(array_column)
+                query = {
+                    "project": [project.id],
+                    "field": [f"{alias}.foo"],
+                    "numBuckets": 5,
+                    "dataFilter": "exclude_outliers",
+                }
+
+                response = self.do_request(query)
+                assert response.status_code == 200, f"failing for {array_column}"
+                expected = [
+                    (0, 1, [(f"{alias}.foo", 4)]),
+                ]
+                assert response.data == self.as_response_data(expected), (
+                    f"failing for {array_column}"
+                )
+        finally:
+            self.project = saved_project
 
     def test_histogram_missing_measurement_data(self) -> None:
         # make sure there is at least one transaction

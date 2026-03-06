@@ -57,9 +57,17 @@ else:
 
 @pytest.fixture(autouse=True)
 def unclosed_files() -> Generator[None]:
-    fds = _open_files()
+    from sentry.testutils.pytest.isolation import _slot_lock_path
+
+    def _filtered() -> frozenset[str]:
+        fds = _open_files()
+        if _slot_lock_path:
+            fds -= {_slot_lock_path}
+        return fds
+
+    fds = _filtered()
     yield
-    assert _open_files() == fds
+    assert _filtered() == fds
 
 
 @pytest.fixture(autouse=True)

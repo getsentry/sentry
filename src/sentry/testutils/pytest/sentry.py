@@ -393,20 +393,42 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     cluster = clusters.get("default")
     for host_id in range(len(cluster.hosts)):
         conn = cluster.get_local_client(host_id)
-        saved: dict[bytes, tuple[bytes, int]] = {}
+
+        # Collect all snowflake keys via SCAN.
+        all_keys: list[bytes] = []
         cursor: int | bytes = 0
         while True:
-            cursor, keys = conn.scan(cursor, match="snowflakeid:*", count=100)
-            for k in keys:
-                val = conn.get(k)
-                ttl = conn.ttl(k)
-                if val is not None:
-                    saved[k] = (val, max(ttl, 300))
+            cursor, keys = conn.scan(cursor, match="snowflakeid:*", count=500)
+            all_keys.extend(keys)
             if cursor == 0:
                 break
+
+        if not all_keys:
+            conn.flushdb()
+            continue
+
+        # Batch-read values and TTLs in a single pipeline round trip.
+        pipe = conn.pipeline(transaction=False)
+        for k in all_keys:
+            pipe.get(k)
+            pipe.ttl(k)
+        results = pipe.execute()
+
+        saved: list[tuple[bytes, bytes, int]] = []
+        for i, k in enumerate(all_keys):
+            val = results[i * 2]
+            ttl = results[i * 2 + 1]
+            if val is not None:
+                saved.append((k, val, max(ttl, 300)))
+
         conn.flushdb()
-        for k, (val, ttl) in saved.items():
-            conn.set(k, val, ex=ttl)
+
+        # Batch-restore in a single pipeline round trip.
+        if saved:
+            pipe = conn.pipeline(transaction=False)
+            for k, val, ttl in saved:
+                pipe.set(k, val, ex=ttl)
+            pipe.execute()
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption

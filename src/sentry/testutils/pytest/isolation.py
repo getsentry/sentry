@@ -39,11 +39,12 @@ _SLOT_DIR = Path(tempfile.gettempdir()) / "sentry_test_slots"
 
 # Hold the lock fd at module level so GC doesn't close it (releasing the lock).
 _slot_lock_fd: object | None = None
+_slot_lock_path: str | None = None
 
 
 def _acquire_slot() -> int:
     """Claim an exclusive slot via file lock.  Returns 0–(_MAX_SLOTS-1)."""
-    global _slot_lock_fd
+    global _slot_lock_fd, _slot_lock_path
     _SLOT_DIR.mkdir(exist_ok=True)
     for slot in range(_MAX_SLOTS):
         lock_path = _SLOT_DIR / f"slot_{slot}.lock"
@@ -51,6 +52,7 @@ def _acquire_slot() -> int:
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             _slot_lock_fd = fd
+            _slot_lock_path = str(lock_path)
             atexit.register(fd.close)
             return slot
         except OSError:
