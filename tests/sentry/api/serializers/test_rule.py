@@ -279,7 +279,7 @@ class WorkflowRuleSerializerTest(TestCase):
 
     def test_fetch_workflow_owner__team(self) -> None:
         team = self.create_team()
-        workflow = self.create_workflow(owner_team=team)
+        workflow = self.create_workflow(owner_team_id=team.id)
         assert WorkflowEngineRuleSerializer()._fetch_workflow_owner(workflow) == f"team:{team.id}"
 
     def test_fetch_workflow_owner__none(self) -> None:

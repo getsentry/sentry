@@ -9,6 +9,7 @@ from enum import IntEnum
 from typing import Any
 
 import sentry_sdk
+from django.db import router, transaction
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
@@ -471,6 +472,144 @@ def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, 
         }
 
     return wfe_configs
+
+
+def _get_wfe_detectors_by_type(project: Project) -> dict[str, Detector]:
+    """Fetch all performance WFE detectors for a project, keyed by detector type."""
+    return {
+        d.type: d
+        for d in Detector.objects.filter(project=project, type__in=PERFORMANCE_WFE_DETECTOR_TYPES)
+    }
+
+
+def sync_project_options_to_wfe_detectors(
+    project: Project, settings_data: dict[str, Any]
+) -> dict[DetectorType, bool]:
+    """
+    Sync ProjectOption settings to WFE Detector configs.
+
+    For each detector type with WFE mapping, updates an existing Detector with:
+    - Detector.enabled from detection_enabled setting
+    - Detector.config from mapped config fields
+
+    Returns dict of DetectorType -> bool indicating which detectors were updated.
+    """
+    updated: dict[DetectorType, bool] = {}
+    existing_detectors = _get_wfe_detectors_by_type(project)
+
+    for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+        detector = existing_detectors.get(mapping.wfe_detector_type)
+        if not detector:
+            continue
+
+        # Extract config fields (option_keys maps: wfe_field -> project_option_key)
+        new_config: dict[str, Any] = {}
+        for wfe_field, project_option_key in mapping.option_keys.items():
+            if project_option_key in settings_data:
+                new_config[wfe_field] = settings_data[project_option_key]
+
+        new_enabled: bool | None = None
+        if mapping.detection_enabled_key in settings_data:
+            new_enabled = settings_data[mapping.detection_enabled_key]
+
+        if new_enabled is None and not new_config:
+            continue
+
+        if new_enabled is not None and detector.enabled != new_enabled:
+            detector.toggle(new_enabled)
+            updated[detector_type] = True
+
+        if new_config:
+            merged_config = {**detector.config, **new_config}
+            if detector.config != merged_config:
+                detector.config = merged_config
+                detector.save(update_fields=["config"])
+                updated[detector_type] = True
+
+    return updated
+
+
+def reset_wfe_detector_configs(project: Project) -> dict[DetectorType, bool]:
+    """
+    Reset WFE Detector configs to defaults by clearing config on enabled detectors.
+
+    Used when DELETE is called on performance settings. For enabled detectors, clears
+    custom config values (falls back to system defaults). For disabled detectors,
+    leaves config unchanged (assumes already in sync with ProjectOption).
+
+    Returns dict of DetectorType -> bool indicating which detectors were updated.
+    """
+    updated: dict[DetectorType, bool] = {}
+    existing_detectors = _get_wfe_detectors_by_type(project)
+
+    for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+        detector = existing_detectors.get(mapping.wfe_detector_type)
+        if not detector:
+            continue
+
+        # Clear config on enabled detectors (reset to defaults)
+        if detector.enabled and detector.config:
+            detector.config = {}
+            detector.save(update_fields=["config"])
+            updated[detector_type] = True
+
+    return updated
+
+
+SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
+
+
+@transaction.atomic(using=router.db_for_write(Detector))
+def update_performance_settings(
+    project: Project,
+    settings: dict[str, Any],
+    sync_detectors: bool = False,
+) -> dict[DetectorType, bool]:
+    """
+    Write performance issue settings to ProjectOption and optionally sync to WFE Detectors.
+
+    Args:
+        project: The project to update settings for
+        settings: The full settings dict to store
+        sync_detectors: Whether to sync settings to WFE Detectors
+
+    Returns:
+        Dict of DetectorType -> bool indicating which detectors were updated
+        (empty if sync_detectors is False)
+    """
+    # TODO: Fix potential cache inconsistency here. See ISWF-2156.
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, settings)
+
+    if sync_detectors:
+        return sync_project_options_to_wfe_detectors(project, settings)
+
+    return {}
+
+
+@transaction.atomic(using=router.db_for_write(Detector))
+def reset_performance_settings(
+    project: Project,
+    unchanged_options: dict[str, Any],
+    sync_detectors: bool = False,
+) -> dict[DetectorType, bool]:
+    """
+    Atomically reset ProjectOption and optionally reset WFE Detector configs.
+
+    Args:
+        project: The project to reset settings for
+        unchanged_options: Settings that should be preserved (not reset)
+        sync_detectors: Whether to reset WFE Detector configs
+
+    Returns:
+        Dict of DetectorType -> bool indicating which detectors were updated
+        (empty if sync_detectors is False)
+    """
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
+
+    if sync_detectors:
+        return reset_wfe_detector_configs(project)
+
+    return {}
 
 
 # Gets the thresholds to perform performance detection.

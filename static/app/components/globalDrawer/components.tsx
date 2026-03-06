@@ -157,6 +157,7 @@ export function DrawerHeader({
 const HeaderBar = styled('div')`
   margin: 0 ${p => p.theme.space.xl};
   margin-left: ${p => p.theme.space.md};
+  align-self: stretch;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 

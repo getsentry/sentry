@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
-import {useTimeseriesVisualizationEnabled} from 'sentry/views/dashboards/utils/useTimeseriesVisualizationEnabled';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
@@ -33,8 +32,6 @@ export default function ViewEditDashboard() {
       updateDashboardVisit(api, orgSlug, dashboardId);
     }
   }, [api, orgSlug, dashboardId]);
-
-  const useTimeseriesVisualization = useTimeseriesVisualizationEnabled();
 
   // Get optimistic dashboard from location.state if available (e.g., after adding a widget)
   const optimisticDashboard = (location.state as {dashboard?: DashboardDetails} | null)
@@ -54,7 +51,6 @@ export default function ViewEditDashboard() {
                 dashboard={dashboard}
                 dashboards={dashboards}
                 onDashboardUpdate={onDashboardUpdate}
-                useTimeseriesVisualization={useTimeseriesVisualization}
               />
             </ErrorBoundary>
           ) : (

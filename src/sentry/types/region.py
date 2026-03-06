@@ -156,7 +156,7 @@ class RegionDirectory:
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
     @property
-    def regions(self) -> frozenset[Cell]:
+    def cells(self) -> frozenset[Cell]:
         return self._cells
 
     @property
@@ -170,10 +170,17 @@ class RegionDirectory:
         return self._localities_by_name.get(locality_name)
 
     def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
-        return (r for r in self.regions if (category is None or r.category == category))
+        if category is None:
+            return iter(self._cells)
+
+        return (
+            r
+            for r in self._cells
+            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
+        )
 
     def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.regions if (category is None or r.category == category))
+        return (r.name for r in self.get_cells(category))
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -185,7 +192,7 @@ class RegionDirectory:
         return (r for name in loc.cells if (r := self._by_name.get(name)) is not None)
 
     def validate_all(self) -> None:
-        for region in self.regions:
+        for region in self.cells:
             region.validate()
 
         # Ensure that a cell cannot be registered to more than one locality
@@ -356,7 +363,7 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 
 
 @control_silo_function
-def get_region_for_organization(organization_id_or_slug: str) -> Cell:
+def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     """Resolve an organization to the cell where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
 
@@ -373,6 +380,10 @@ def get_region_for_organization(organization_id_or_slug: str) -> Cell:
         )
 
     return get_cell_by_name(name=mapping.region_name)
+
+
+# TOOD(cells): Remove alias once getsentry import sites are updated
+get_region_for_organization = get_cell_for_organization
 
 
 def get_local_locality() -> Locality:

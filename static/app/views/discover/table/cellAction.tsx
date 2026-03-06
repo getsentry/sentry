@@ -20,7 +20,6 @@ import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {TableColumn} from './types';
 
@@ -344,29 +343,19 @@ function CellAction({
   usePortalOnDropdown,
   ...props
 }: Props) {
-  const organization = useOrganization();
   const {children, column} = props;
   // The menu is activated by clicking the value, which doesn't work if the value is rendered as a link
   // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
   const [target, setTarget] = useState<string>();
 
-  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
-  let filteredActions = allowActions;
-  if (!useCellActionsV2 && filteredActions) {
-    // New dropdown menu options should not be allowed if the feature flag is not on
-    filteredActions = filteredActions.filter(
-      action =>
-        action !== Actions.OPEN_EXTERNAL_LINK && action !== Actions.OPEN_INTERNAL_LINK
-    );
-  }
   const cellActions = makeCellActions({
     ...props,
-    allowActions: filteredActions,
+    allowActions,
     to: target,
   });
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
+  if (triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
@@ -394,6 +383,7 @@ function CellAction({
             trigger={triggerProps => (
               <ActionMenuTriggerV2
                 {...triggerProps}
+                role="button"
                 aria-label={t('Actions')}
                 onClickCapture={e => {
                   // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
