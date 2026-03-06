@@ -375,7 +375,7 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
             f"Organization {organization_id_or_slug} has no associated mapping."
         )
 
-    return get_cell_by_name(name=mapping.region_name)
+    return get_cell_by_name(name=mapping.cell_name)
 
 
 # TOOD(cells): Remove alias once getsentry import sites are updated

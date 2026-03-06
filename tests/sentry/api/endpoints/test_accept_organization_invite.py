@@ -149,7 +149,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def test_multi_region_organizationmember_id(self) -> None:
         org_region_name = OrganizationMapping.objects.get(
             organization_id=self.organization.id
-        ).region_name
+        ).cell_name
         regions = [
             Cell("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
             Cell(org_region_name, 2, "http://moo", RegionCategory.MULTI_TENANT),
