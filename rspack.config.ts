@@ -274,6 +274,12 @@ const appConfig: Configuration = {
      * for use on Django-powered pages.
      */
     sentry: 'less/sentry.less',
+
+    /**
+     * Django template-only styles.
+     * This keeps template-specific styles out of the SPA bundle.
+     */
+    sentryDjango: 'less/django/index.less',
   },
   context: staticPrefix,
   experiments: {
