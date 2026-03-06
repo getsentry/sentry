@@ -2566,7 +2566,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   git_pr_number: {
     desc: t('The pull request number associated with a build'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.INTEGER,
   },
 };
 

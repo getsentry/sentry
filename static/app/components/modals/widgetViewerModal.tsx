@@ -629,7 +629,10 @@ function WidgetViewerModal(props: Props) {
               }}
               noPadding
               widgetLegendState={widgetLegendState}
-              showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS
+              }
               widgetInterval={widgetInterval}
             />
           </Container>

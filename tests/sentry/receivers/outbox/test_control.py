@@ -10,10 +10,10 @@ from sentry.receivers.outbox.control import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.identity import Identity
 
-_TEST_REGION = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+_TEST_REGION = Cell("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
 
 @control_silo_test(regions=[_TEST_REGION])

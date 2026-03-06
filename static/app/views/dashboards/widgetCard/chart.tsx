@@ -96,9 +96,9 @@ import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
@@ -122,6 +122,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
+    dataScanned?: 'full' | 'partial';
     disableZoom?: boolean;
     isMobile?: boolean;
     isSampled?: boolean | null;
@@ -155,6 +156,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     timeseriesResultsTypes,
     shouldResize,
     confidence,
+    dataScanned,
     showConfidenceWarning,
     sampleCount,
     isSampled,
@@ -473,20 +475,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     }
   };
 
-  // Excluding Other uses a slightly altered regex to match the Other series name
-  // because the series names are formatted with widget IDs to avoid conflicts
-  // when deactivating them across widgets
-  const topEventsCountExcludingOther =
-    timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${OTHER};)|^${OTHER};`))
-        )
-          ? 1
-          : 0)
-      : undefined;
   return (
     <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
       {zoomRenderProps => {
@@ -553,15 +541,22 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
-
-                    {showConfidenceWarning && confidence && (
-                      <ConfidenceFooter
+                    {showConfidenceWarning ? (
+                      <WidgetCardConfidenceFooter
                         confidence={confidence}
-                        sampleCount={sampleCount}
-                        topEvents={topEventsCountExcludingOther}
+                        dataScanned={dataScanned}
                         isSampled={isSampled}
+                        other={OTHER}
+                        loading={loading}
+                        sampleCount={sampleCount}
+                        selection={selection}
+                        series={series}
+                        shouldColorOther={shouldColorOther}
+                        timeseriesResults={timeseriesResults}
+                        widget={widget}
+                        yAxis={axisLabel}
                       />
-                    )}
+                    ) : null}
                   </ChartWrapper>
                 </TransitionChart>
               );

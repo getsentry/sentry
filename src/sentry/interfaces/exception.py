@@ -127,7 +127,7 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         for key in (
             "type",
             "synthetic",
@@ -143,7 +143,7 @@ class Mechanism(Interface):
         ):
             data.setdefault(key, None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_json(self):
         return prune_empty_keys(
@@ -236,14 +236,14 @@ class SingleException(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         if get_path(data, "stacktrace", "frames", filter=True):
-            stacktrace = Stacktrace.to_python(data["stacktrace"], **kwargs)
+            stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
             stacktrace = None
 
         if get_path(data, "raw_stacktrace", "frames", filter=True):
-            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], **kwargs)
+            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"])
         else:
             raw_stacktrace = None
 
@@ -254,7 +254,7 @@ class SingleException(Interface):
         raw_type = data.get("raw_type")
 
         if data.get("mechanism"):
-            mechanism = Mechanism.to_python(data["mechanism"], **kwargs)
+            mechanism = Mechanism.to_python(data["mechanism"])
         else:
             mechanism = None
 
@@ -271,7 +271,7 @@ class SingleException(Interface):
             "raw_type": raw_type,
         }
 
-        return super().to_python(new_data, **kwargs)
+        return super().to_python(new_data)
 
     def to_json(self):
         mechanism = (
@@ -418,18 +418,16 @@ class Exception(Interface):
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         values = []
         for i, v in enumerate(get_path(data, "values", default=[])):
             if not v:
                 # Cannot skip over None-values, need to preserve offsets
                 values.append(v)
             else:
-                values.append(SingleException.to_python(v, **kwargs))
+                values.append(SingleException.to_python(v))
 
-        return super().to_python(
-            {"values": values, "exc_omitted": data.get("exc_omitted")}, **kwargs
-        )
+        return super().to_python({"values": values, "exc_omitted": data.get("exc_omitted")})
 
     # TODO(ja): Fix all following methods when to_python is refactored. All
     # methods below might throw if None exceptions are in ``values``.

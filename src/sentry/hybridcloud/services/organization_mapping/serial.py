@@ -6,12 +6,12 @@ from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
-from sentry.types.region import Region
+from sentry.types.region import Cell
 
 
 def update_organization_mapping_from_instance(
     organization: Organization,
-    region: Region,
+    region: Cell,
     customer_id: CustomerId | tuple[str | None] | None = None,
 ) -> RpcOrganizationMappingUpdate:
     return RpcOrganizationMappingUpdate(
