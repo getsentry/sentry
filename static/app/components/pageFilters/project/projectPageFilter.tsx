@@ -211,16 +211,20 @@ export function ProjectPageFilter({
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      updateProjects(mapNormalValueToURLValue(newValue), {
-        location,
-        push: (path: any) => navigate(path),
-        replace: (path: any) => navigate(path, {replace: true}),
-      } as any, {
-        save: true,
-        resetParams: resetParamsOnChange,
-        environments: [], // Clear environments when switching projects
-        storageNamespace,
-      });
+      updateProjects(
+        mapNormalValueToURLValue(newValue),
+        {
+          location,
+          push: (path: any) => navigate(path),
+          replace: (path: any) => navigate(path, {replace: true}),
+        } as any,
+        {
+          save: true,
+          resetParams: resetParamsOnChange,
+          environments: [], // Clear environments when switching projects
+          storageNamespace,
+        }
+      );
     },
     [
       value,
