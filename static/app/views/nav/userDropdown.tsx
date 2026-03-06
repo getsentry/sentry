@@ -20,7 +20,7 @@ import {NavLayout} from 'sentry/views/nav/types';
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
   const portalContainerRef = useRef<HTMLElement | null>(null);
