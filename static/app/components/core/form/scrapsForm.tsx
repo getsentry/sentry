@@ -69,14 +69,15 @@ const {useAppForm} = createFormHook({
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
   return (
-    <form.Subscribe selector={state => state.isSubmitting || state.isDefaultValue}>
-      {isDisabled => (
+    <form.Subscribe selector={state => state.isSubmitting}>
+      {isSubmitting => (
         <Button
           {...props}
           priority="primary"
           type="submit"
           form={form.formId}
-          disabled={isDisabled || props.disabled}
+          busy={isSubmitting}
+          disabled={isSubmitting || props.disabled}
         />
       )}
     </form.Subscribe>
