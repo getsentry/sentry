@@ -418,10 +418,10 @@ function TriggeredConditionDetails({
         actions={
           <Flex gap="xs">
             <FeedbackButton
-              aria-label={t('Give feedback on this metric issue page')}
+              aria-label={t('Give feedback on metric issues')}
               size="xs"
               feedbackOptions={{
-                messagePlaceholder: t('Tell us what you think about the metric issues.'),
+                messagePlaceholder: t('Tell us what you think about this metric issue.'),
                 tags: {
                   ['feedback.source']: 'metric_issue_details',
                   ['feedback.owner']: 'aci',
