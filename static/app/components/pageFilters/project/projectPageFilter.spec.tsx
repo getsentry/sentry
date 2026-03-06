@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
@@ -15,7 +14,6 @@ import {
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -749,15 +747,18 @@ describe('ProjectPageFilter', () => {
   });
 
   describe('closed-membership org defaults', () => {
-    it('shows My Projects (not All Projects) as the default in closed orgs', async () => {
-      // Org without open-membership, user is a regular member (showNonMemberProjects = false)
-      const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
-      OrganizationStore.onUpdate(closedOrg, {replace: true});
+    let closedOrg: ReturnType<typeof OrganizationFixture>;
 
+    beforeEach(() => {
+      // Org without open-membership; user is a regular member
+      closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+      OrganizationStore.onUpdate(closedOrg, {replace: true});
+    });
+
+    it('shows My Projects (not All Projects) as the default in closed orgs', async () => {
       render(<ProjectPageFilter />, {
         organization: closedOrg,
         initialRouterConfig: {
-          // Empty URL = default "My Projects" state
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
       });
@@ -769,9 +770,6 @@ describe('ProjectPageFilter', () => {
     });
 
     it('correctly round-trips My Projects selection in closed orgs', async () => {
-      const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
-      OrganizationStore.onUpdate(closedOrg, {replace: true});
-
       const {router} = render(<ProjectPageFilter />, {
         organization: closedOrg,
         initialRouterConfig: {
@@ -791,19 +789,9 @@ describe('ProjectPageFilter', () => {
         expect(router.location.query.project).toBeUndefined();
       });
     });
-  });
 
-  describe('superuser access', () => {
-    it('shows All Projects option for superusers in orgs without open-membership', async () => {
-      // Org without open-membership and current user is not owner/manager
-      const closedOrg = OrganizationFixture({
-        features: [],
-        orgRole: 'member',
-      });
-      OrganizationStore.onUpdate(closedOrg, {replace: true});
-      ConfigStore.set('user', UserFixture({isSuperuser: true}));
-
-      render(<ProjectPageFilter />, {
+    it('selecting All Projects in a closed org writes project=-1 to the URL', async () => {
+      const {router} = render(<ProjectPageFilter />, {
         organization: closedOrg,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
@@ -811,11 +799,39 @@ describe('ProjectPageFilter', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Projects'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
-      // Superuser should see the "All Projects" option
-      expect(
-        screen.getByRole('checkbox', {name: 'Select All Projects'})
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(router.location.query.project).toBe('-1');
+      });
+    });
+
+    it('resetting in a closed org navigates to My Projects (no project param)', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      const {router} = render(<ProjectPageFilter />, {
+        organization: closedOrg,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {project: '1'},
+          },
+        },
+      });
+
+      // Open menu and click Reset
+      await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+
+      // Reset should land on My Projects (compact [] URL = no project param)
+      await waitFor(() => {
+        expect(router.location.query.project).toBeUndefined();
+      });
     });
   });
 
