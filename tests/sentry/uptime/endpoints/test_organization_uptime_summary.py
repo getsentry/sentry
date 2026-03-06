@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sentry.testutils.cases import APITestCase, UptimeResultEAPTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.types import IncidentStatus
 
@@ -291,7 +291,9 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
 
 
 @freeze_time(MOCK_DATETIME)
-class OrganizationUptimeSummaryEAPTest(OrganizationUptimeSummaryBaseTest, UptimeResultEAPTestCase):
+class OrganizationUptimeSummaryEAPTest(
+    OrganizationUptimeSummaryBaseTest, SnubaTestCase, UptimeResultEAPTestCase
+):
     __test__ = True
 
     def store_uptime_data(
@@ -314,7 +316,7 @@ class OrganizationUptimeSummaryEAPTest(OrganizationUptimeSummaryBaseTest, Uptime
             kwargs["check_duration_us"] = check_duration_us
 
         uptime_result = self.create_eap_uptime_result(**kwargs)
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result], reverse_ids=True)
 
     def test_average_duration_available(self) -> None:
         """Test that average duration is available and correctly calculated for EAP uptime results."""

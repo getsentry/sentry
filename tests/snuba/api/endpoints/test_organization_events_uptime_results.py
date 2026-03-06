@@ -31,7 +31,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=self.nine_mins_ago,
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {
@@ -81,7 +81,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=self.nine_mins_ago,
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {
@@ -125,7 +125,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=self.nine_mins_ago,
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {
@@ -190,7 +190,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=self.nine_mins_ago,
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {
@@ -249,7 +249,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=self.nine_mins_ago,
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {
@@ -302,7 +302,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=self.nine_mins_ago,
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {
@@ -347,7 +347,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 scheduled_check_time=base_time + timedelta(microseconds=2),
             ),
         ]
-        self.store_uptime_results(results)
+        self.store_eap_items(results, reverse_ids=True)
 
         response = self.do_request(
             {

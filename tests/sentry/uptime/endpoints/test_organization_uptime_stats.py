@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import APITestCase, UptimeResultEAPTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
@@ -149,7 +149,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
 
 @freeze_time(MOCK_DATETIME)
 class OrganizationUptimeStatsEndpointWithEAPTests(
-    OrganizationUptimeStatsBaseTest, UptimeResultEAPTestCase
+    OrganizationUptimeStatsBaseTest, SnubaTestCase, UptimeResultEAPTestCase
 ):
     __test__ = True
 
@@ -168,7 +168,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             incident_status=incident_status,
             scheduled_check_time=scheduled_check_time,
         )
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result], reverse_ids=True)
 
     def test_detector_ids_with_eap(self) -> None:
         """Test that the endpoint works with uptimeDetectorId parameters for EAP."""
@@ -191,7 +191,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
                 request_url="https://detector-eap-test.com",
                 **scenario,
             )
-            self.store_uptime_results([uptime_result])
+            self.store_eap_items([uptime_result], reverse_ids=True)
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -266,7 +266,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             )
             for scheduled_time, check_status, incident_status in test_scenarios
         ]
-        self.store_uptime_results(uptime_results)
+        self.store_eap_items(uptime_results, reverse_ids=True)
 
         start_time = base_time
         end_time = base_time + timedelta(minutes=8)
