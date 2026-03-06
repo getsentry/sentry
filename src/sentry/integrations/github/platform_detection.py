@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.yaml import safe_load
 
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
@@ -981,45 +982,18 @@ def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifes
             return _parse_gemfile(content)
         elif manifest_file == "go.mod":
             return _parse_go_mod(content)
-    except (json.JSONDecodeError, TypeError):
+    except Exception:
         pass
     return None
 
 
 def _parse_pubspec_yaml(content: str) -> _PackageManifest:
-    """Parse a pubspec.yaml file into dependency sets using line-based parsing.
-
-    Extracts package names from the dependencies: and dev_dependencies:
-    top-level sections. Direct dependencies are identified as lines indented
-    by exactly 2 spaces that contain a colon.
-    """
-    deps: set[str] = set()
-    dev_deps: set[str] = set()
-    section_re = re.compile(r"^(\w[\w_]*):")
-    dep_re = re.compile(r"^  (\w[\w_-]*):")
-
-    current_section: str | None = None
-    for line in content.splitlines():
-        section_match = section_re.match(line)
-        if section_match:
-            key = section_match.group(1)
-            if key == "dependencies":
-                current_section = "deps"
-            elif key == "dev_dependencies":
-                current_section = "dev_deps"
-            else:
-                current_section = None
-            continue
-
-        if current_section:
-            dep_match = dep_re.match(line)
-            if dep_match:
-                name = dep_match.group(1)
-                if current_section == "deps":
-                    deps.add(name)
-                else:
-                    dev_deps.add(name)
-
+    """Parse a pubspec.yaml file into dependency sets using PyYAML."""
+    data = safe_load(content)
+    if not isinstance(data, dict):
+        return _PackageManifest(dependencies=set(), dev_dependencies=set())
+    deps = set((data.get("dependencies") or {}).keys())
+    dev_deps = set((data.get("dev_dependencies") or {}).keys())
     return _PackageManifest(dependencies=deps, dev_dependencies=dev_deps)
 
 
