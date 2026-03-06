@@ -41,7 +41,7 @@ TEST_REPOS: list[tuple[str, str]] = [
     ("artsy/force", "javascript-react"),
     ("gothinkster/vue-realworld-example-app", "javascript-vue"),
     ("gothinkster/angular-realworld-example-app", "javascript-angular"),
-    ("open-source-labs/SvelteStorm", "javascript-svelte"),
+    ("PuruVJ/macos-web", "javascript-svelte"),
     ("solidjs/solid-realworld", "javascript-solid"),
     ("gothinkster/ember-realworld", "javascript-ember"),
     ("grafana/grafana", "javascript-react-router"),
@@ -49,25 +49,25 @@ TEST_REPOS: list[tuple[str, str]] = [
     ("artsy/eigen", "react-native"),
     ("webtorrent/webtorrent-desktop", "electron"),
     ("ionic-team/capacitor-testapp", "capacitor"),
-    ("ionic-team/ionic-react-conference-app", "ionic"),
+    ("ionicthemes/ionic-forms-and-validations", "ionic"),
     ("openfoodfacts/openfoodfacts-cordova-app", "cordova"),
     # === Node.js server frameworks ===
     ("agenda/agendash", "node-express"),
-    ("labelzoom/labelzoom-cf-api-proxy", "node-hono"),
+    ("coldter/hono-node-starter", "node-hono"),
     ("chrisveness/koa-sample-web-app-api-mysql", "node-koa"),
     ("lujakob/nestjs-realworld-example-app", "node-nestjs"),
-    ("delvedor/fastify-example", "node-fastify"),
+    ("Tony133/fastify-api-boilerplate-jwt", "node-fastify"),
     ("karma-runner/karma", "node-connect"),
     ("devinivy/hapipal-realworld-example-app", "node-hapi"),
     # === Node.js serverless/edge ===
     ("madhurajayashanka/AWS-Serverless-CRUD-NodeJS", "node-awslambda"),
     ("chatwoot/google-cloud-functions-demo", "node-gcpfunctions"),
     ("x-t/serverless-gdrive-twitter", "node-azurefunctions"),
-    ("zhengkyl/qrframe", "node-cloudflare-pages"),
-    ("eidam/cf-workers-status-page", "node-cloudflare-workers"),
+    ("json-ld/json-ld.org", "node-cloudflare-pages"),
+    ("truestamp/ulid-generator", "node-cloudflare-workers"),
     # === Node.js / JS runtimes ===
-    ("conventional-changelog/commitlint", "node"),
-    ("jellydn/elysia-demo-app", "bun"),
+    ("puppeteer/puppeteer", "node"),
+    ("cdbrw/bun-elysia-drizzle-base", "bun"),
     ("ryo-ma/github-profile-trophy", "deno"),
     # === Python web frameworks ===
     ("getsentry/sentry", "python-django"),
@@ -78,7 +78,7 @@ TEST_REPOS: list[tuple[str, str]] = [
     ("alysivji/falcon-batteries-included", "python-falcon"),
     ("teamniteo/pyramid-realworld-example-app", "python-pyramid"),
     ("rayluo/python-webapp-quart", "python-quart"),
-    ("jaggerwang/sanic-in-practice", "python-sanic"),
+    ("cubeapm/sample_app_python_sanic", "python-sanic"),
     ("nateraw/starlette-app", "python-starlette"),
     ("Hipo/hipochat", "python-tornado"),
     # python-tryton: no public repo found with trytond in requirements/pyproject/Pipfile
@@ -87,8 +87,7 @@ TEST_REPOS: list[tuple[str, str]] = [
     ("gyukebox/realworld-serverless-python", "python-awslambda"),
     ("CthtufsPetProjects/google-cloud-function-gen2-template", "python-gcpfunctions"),
     # === Python ASGI/WSGI/task queues ===
-    ("guyo13/falcon-app-boilerplate", "python-asgi"),
-    ("Scalingo/sample-python-celery", "python-celery"),
+    ("mossadnik/celery-example-local-filesystem", "python-celery"),
     ("microsoft/azure-python-redis-queue-processor", "python-rq"),
     # === Ruby ===
     ("chatwoot/chatwoot", "ruby-rails"),
@@ -98,9 +97,9 @@ TEST_REPOS: list[tuple[str, str]] = [
     ("wallabag/wallabag", "php-symfony"),
     # === Java ===
     ("macrozheng/mall", "java-spring-boot"),
-    ("spring-petclinic/spring-framework-petclinic", "java-spring"),
-    ("conductor-oss/conductor", "java-log4j2"),
-    ("apolloconfig/apollo", "java-logback"),
+    ("rstoyanchev/spring-websocket-portfolio", "java-spring"),
+    ("stevensouza/automon", "java-log4j2"),
+    ("apache/curator", "java-logback"),
     # === Go ===
     ("cli/cli", "go"),
     ("usememos/memos", "go-echo"),
@@ -121,12 +120,12 @@ TEST_REPOS: list[tuple[str, str]] = [
     # === Mobile / Desktop / Gaming ===
     ("gskinnerTeam/flutter-wonderous-app", "flutter"),
     ("Finb/Bark", "apple-ios"),
-    ("sindresorhus/Gifski", "apple-macos"),
+    ("apple/containerization", "apple-macos"),
     ("Qv2ray/Qv2ray", "native-qt"),
     ("Unity-Technologies/FPSSample", "unity"),
     ("tomlooman/ActionRoguelike", "unreal"),
     ("lampe-games/godot-open-rts", "godot"),
-    ("D-clock/AndroidDaemonService", "android"),
+    ("termux/termux-app", "android"),
     # === Base language platforms ===
     ("yt-dlp/yt-dlp", "python"),
     ("prettier/prettier", "javascript"),
@@ -139,6 +138,7 @@ TEST_REPOS: list[tuple[str, str]] = [
     ("Sycnex/Windows10Debloater", "powershell"),
     ("sass/dart-sass", "dart"),
     # === Synthetic fixtures (no real repo available) ===
+    ("synthetic/python-asgi", "python-asgi"),
     ("synthetic/python-tryton", "python-tryton"),
     ("synthetic/python-wsgi", "python-wsgi"),
     ("synthetic/dotnet-console", "dotnet"),
