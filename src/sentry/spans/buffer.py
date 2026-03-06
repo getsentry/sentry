@@ -749,11 +749,9 @@ class SpansBuffer:
             queue_removals: dict[bytes, list[SegmentKey]] = {}
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    p.delete(
-                        b"span-buf:hrs:" + segment_key,
-                        b"span-buf:ic:" + segment_key,
-                        b"span-buf:ibc:" + segment_key,
-                    )
+                    p.delete(b"span-buf:hrs:" + segment_key)
+                    p.delete(b"span-buf:ic:" + segment_key)
+                    p.delete(b"span-buf:ibc:" + segment_key)
                     p.unlink(segment_key)
                     queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
 
