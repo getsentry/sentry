@@ -44,7 +44,6 @@ interface SidebarItemDropdownProps {
   disableTooltip?: boolean;
   icon?: React.ReactNode;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
-  size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
@@ -103,6 +102,11 @@ function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarIt
   );
 }
 
+// Stable module-level component to avoid remounts when used as `renderWrapAs`
+function PassthroughWrapper({children}: {children: React.ReactNode}) {
+  return children;
+}
+
 export function SidebarMenu({
   items,
   children,
@@ -131,7 +135,7 @@ export function SidebarMenu({
       usePortal
       portalContainerRef={portalContainerRef}
       style={{zIndex: theme.zIndex.sidebarDropdownMenu}}
-      renderWrapAs={({children: _children}: {children: React.ReactNode}) => _children}
+      renderWrapAs={PassthroughWrapper}
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}

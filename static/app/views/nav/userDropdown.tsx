@@ -18,6 +18,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
+// Stable module-level component to avoid remounts when used as `renderWrapAs`
+function PassthroughWrapper({children}: {children: React.ReactNode}) {
+  return children;
+}
+
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
@@ -59,7 +64,7 @@ export function UserDropdown() {
       usePortal
       portalContainerRef={portalContainerRef}
       style={{zIndex: theme.zIndex.sidebarDropdownMenu}}
-      renderWrapAs={({children}) => children}
+      renderWrapAs={PassthroughWrapper}
       position={isMobile ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps =>
