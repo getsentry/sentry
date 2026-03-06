@@ -363,7 +363,7 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 
 
 @control_silo_function
-def get_region_for_organization(organization_id_or_slug: str) -> Cell:
+def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     """Resolve an organization to the cell where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
 
@@ -380,6 +380,10 @@ def get_region_for_organization(organization_id_or_slug: str) -> Cell:
         )
 
     return get_cell_by_name(name=mapping.region_name)
+
+
+# TOOD(cells): Remove alias once getsentry import sites are updated
+get_region_for_organization = get_cell_for_organization
 
 
 def get_local_locality() -> Locality:
