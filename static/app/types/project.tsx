@@ -83,6 +83,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;
+  preprodDistributionPrCommentsEnabled?: boolean;
   preprodSizeEnabledByCustomer?: boolean;
   preprodSizeEnabledQuery?: string | null;
   preprodSizeStatusChecksEnabled?: boolean;
