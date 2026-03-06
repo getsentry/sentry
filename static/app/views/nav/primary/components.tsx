@@ -482,7 +482,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{
   ${p =>
     p.isMobile &&
     css`
-      top: 2px;
+      top: -${p.theme.space.xs};
       right: auto;
       left: 11px;
     `}
