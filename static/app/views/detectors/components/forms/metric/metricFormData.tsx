@@ -430,7 +430,7 @@ function processDetectorConditions(
 
   // Determine resolution strategy: automatic if OK threshold matches warning or critical
   const resolutionValue = okCondition?.comparison ?? undefined;
-  const computedResolutionStrategy: 'default' | 'custom' =
+  const computedResolutionStrategy =
     defined(resolutionValue) &&
     ![highCondition?.comparison, mediumCondition?.comparison].includes(resolutionValue)
       ? 'custom'

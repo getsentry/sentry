@@ -120,7 +120,7 @@ from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
@@ -1979,6 +1979,7 @@ def make_severity_score_request(
     body: SeverityScoreRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     payload: SeverityScoreRequest = {**body}
     if options.get("processing.severity-backlog-test.timeout"):
@@ -1990,6 +1991,7 @@ def make_severity_score_request(
         "/v0/issues/severity-score",
         body=orjson.dumps(payload),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -2210,7 +2212,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                response = make_severity_score_request(payload, timeout=timeout)
+                viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
+                response = make_severity_score_request(
+                    payload, timeout=timeout, viewer_context=viewer_context
+                )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError:

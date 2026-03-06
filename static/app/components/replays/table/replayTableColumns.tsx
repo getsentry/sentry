@@ -25,7 +25,6 @@ import {IconFire} from 'sentry/icons/iconFire';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -600,15 +599,15 @@ const CheckboxHeaderContainer = styled(Flex)`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
-  margin: 0 -${space(1)} 0 -${space(0.5)};
+  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickCapture = styled('div')`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
-  padding: ${space(2)};
-  margin: -${space(2)};
+  padding: ${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.xl};
 `;
 
 const CheckboxCellContainer = styled('div')`
@@ -617,10 +616,10 @@ const CheckboxCellContainer = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
-  padding: ${space(0.5)} 0 0 0;
-  margin: 0 -${space(1)} 0 -${space(0.5)};
+  padding: ${p => p.theme.space.xs} 0 0 0;
+  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickTarget = styled('label')`
@@ -647,7 +646,7 @@ const SpanOperationBreakdown = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.colors.gray800};
   font-size: ${p => p.theme.font.size.md};
   text-align: right;

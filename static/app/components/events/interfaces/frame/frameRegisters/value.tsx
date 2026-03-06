@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Meta} from 'sentry/types/group';
 
 type Props = {
@@ -55,11 +54,11 @@ export function FrameRegisterValue({meta, value}: Props) {
 
 const InlinePre = styled('pre')`
   margin: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   display: inline-grid;
   line-height: 1rem;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   text-align: left;
   font-size: ${p => p.theme.font.size.sm};
 `;

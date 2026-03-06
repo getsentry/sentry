@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import * as Storybook from 'sentry/stories';
+import {Section} from 'sentry/stories/layout';
 import {fzf} from 'sentry/utils/search/fzf';
 
 interface APIReferenceProps {
@@ -21,7 +21,7 @@ export function APIReference(props: APIReferenceProps) {
   const nodes = usePropTree(props.componentProps?.props ?? {}, query);
 
   return (
-    <Storybook.Section>
+    <Section>
       {props.componentProps?.description && <p>{props.componentProps.description}</p>}
       <Container marginBottom="md">
         <InputGroup>
@@ -87,7 +87,7 @@ export function APIReference(props: APIReferenceProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Storybook.Section>
+    </Section>
   );
 }
 

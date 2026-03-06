@@ -47,9 +47,11 @@ export const sessionReplay: OnboardingConfig = {
               )}"),`,
             },
             {
-              label: 'CocoaPods',
+              label: 'CocoaPods (Deprecated)',
               language: 'ruby',
-              code: `pod update`,
+              code: `# CocoaPods is deprecated and will not receive updates after June 2026.
+# Migrate to SPM or use xcframeworks instead.
+pod update`,
             },
             {
               label: 'Carthage',

@@ -19,6 +19,7 @@ class CategorizedComparison(BaseModel):
     added: list[SnapshotImageResponse] = []
     removed: list[SnapshotImageResponse] = []
     unchanged: list[SnapshotImageResponse] = []
+    renamed: list[SnapshotImageResponse] = []
     errored: list[SnapshotDiffPair] = []
 
 
@@ -77,6 +78,10 @@ def categorize_comparison_images(
                 result.added.append(head_img)
         elif img.status == "removed":
             result.removed.append(base_img or _base_image_from_comparison(name, img))
+        elif img.status == "renamed":
+            if head_img:
+                head_img.previous_image_file_name = img.previous_image_file_name
+                result.renamed.append(head_img)
         elif img.status == "unchanged":
             if head_img:
                 result.unchanged.append(head_img)

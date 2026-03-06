@@ -1,4 +1,5 @@
 import pytest
+import responses
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -9,12 +10,29 @@ from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRul
 from sentry.integrations.models import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import (
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+    EventUniqueUserFrequencyConditionWithConditions,
+)
+from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
+from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -29,6 +47,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 
 ValidationError = serializers.ValidationError
@@ -113,16 +132,22 @@ class WorkflowRuleSerializerTest(TestCase):
 
     def assert_equal_serializers(self, issue_alert):
         RuleFireHistory.objects.create(project=self.project, rule=issue_alert, group=self.group)
-        serialized_rule = serialize(issue_alert)
+        serialized_rule = serialize(
+            issue_alert, self.user, RuleSerializer(prepare_component_fields=True)
+        )
 
-        workflow = IssueAlertMigrator(issue_alert).run()
+        arw = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
+        workflow = arw.workflow
+
         WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
             event_id="fc6d8c0c43fc4630ad850ee518f1b9d0",
         )
 
-        serialized_workflow_rule = serialize(workflow, self.user, WorkflowEngineRuleSerializer())
+        serialized_workflow_rule = serialize(
+            workflow, self.user, WorkflowEngineRuleSerializer(prepare_component_fields=True)
+        )
 
         # Pop and compare lists of dicts
         rule_conditions = serialized_rule.pop("conditions")
@@ -294,9 +319,17 @@ class WorkflowRuleSerializerTest(TestCase):
 
     def test_rule_serializer(self) -> None:
         # default issue alert rule has legacy plugins and webhook actions
-        self.issue_alert.update(owner_user_id=self.user.id)
-        self.issue_alert.refresh_from_db()
-        self.assert_equal_serializers(self.issue_alert)
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=self.conditions,
+            action_match="any",
+            filter_match="any",
+            frequency=5,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+            owner_user_id=self.user.id,
+        )
+        self.assert_equal_serializers(issue_alert)
 
     def test_special_condition(self) -> None:
         condition = {
@@ -342,6 +375,170 @@ class WorkflowRuleSerializerTest(TestCase):
             include_workflow_id=False,
         )
 
+        self.assert_equal_serializers(issue_alert)
+
+    def test_every_filter(self) -> None:
+        filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": "is",
+                "key": "environment",
+                "value": "",  # initializing RuleBase requires "value" key
+            },
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": "older",
+                "value": 10,
+                "time": "hour",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            },
+            {
+                "id": IssueCategoryFilter.id,
+                "value": "1",
+                "include": "true",
+            },
+            {
+                "id": IssueOccurrencesFilter.id,
+                "value": "10",
+            },
+            {
+                "id": IssueTypeFilter.id,
+                "value": "error",
+            },
+            {
+                "id": LatestAdoptedReleaseFilter.id,
+                "oldest_or_newest": "oldest",
+                "older_or_newer": "newer",
+                "environment": self.environment.name + "fake",
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+            {
+                "id": LevelFilter.id,
+                "match": "eq",
+                "level": "50",
+            },
+            {
+                "attribute": "message",
+                "match": "ns",
+                "id": EventAttributeFilter.id,
+                "value": "",
+            },
+        ]
+        # self.conditions contains the remaining filters
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=filters + self.conditions,
+            action_match="all",
+            filter_match="all",
+            frequency=30,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+
+        self.assert_equal_serializers(issue_alert)
+
+    def test_no_conditions_multiple_filters(self) -> None:
+        filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": "eq",
+                "key": "LOGGER",
+                "value": "sentry.example",
+            },
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": "older",
+                "value": 10,
+                "time": "hour",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+        ]
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=filters,
+            action_match="all",
+            filter_match="all",
+            frequency=30,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+
+        self.assert_equal_serializers(issue_alert)
+
+    def test_every_condition(self) -> None:
+        conditions = [
+            {"id": ExistingHighPriorityIssueCondition.id},
+            {"id": NewHighPriorityIssueCondition.id},
+            {"id": FirstSeenEventCondition.id},
+            {"id": LevelCondition.id, "match": "eq", "level": "50"},
+            {
+                "id": EventAttributeCondition.id,
+                "attribute": "message",
+                "match": "eq",
+                "value": "test",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+        ]
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=conditions + self.conditions,
+            action_match="all",
+            filter_match="all",
+            frequency=30,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
         self.assert_equal_serializers(issue_alert)
 
     def test_email_action_simple(self) -> None:
@@ -633,7 +830,18 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         self.assert_equal_serializers(rule)
 
+    @responses.activate
     def test_sentry_app_render_label(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+
         schema = {"elements": [self.create_alert_rule_action_schema()]}
         sentry_app = self.create_sentry_app(
             organization=self.organization,
@@ -644,14 +852,20 @@ class WorkflowRuleSerializerTest(TestCase):
         installation = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
         )
-
-        action_data = {
-            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-            "sentryAppInstallationUuid": installation.uuid,
-        }
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
         rule = self.create_project_rule(
             project=self.project,
-            action_data=[action_data],
+            action_data=actions,
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,
@@ -684,7 +898,17 @@ class WorkflowRuleSerializerTest(TestCase):
         with pytest.raises(ValidationError):
             self.assert_equal_serializers(rule)
 
+    @responses.activate
     def test_sentry_app_render_label_no_installation(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
         schema = {"elements": [self.create_alert_rule_action_schema()]}
         sentry_app = self.create_sentry_app(
             organization=self.organization,
@@ -696,19 +920,107 @@ class WorkflowRuleSerializerTest(TestCase):
             slug=sentry_app.slug, organization=self.organization
         )
 
-        action_data = {
-            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-            "sentryAppInstallationUuid": installation.uuid,
-        }
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
         with assume_test_silo_mode(SiloMode.CONTROL):
             installation.delete()
 
         rule = self.create_project_rule(
             project=self.project,
-            action_data=[action_data],
+            action_data=actions,
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
         # actions part of response are both []
         self.assert_equal_serializers(rule)
+
+    @responses.activate
+    def test_disabled_action_included_when_component_fails(self) -> None:
+        """
+        Test that disabled actions are included in the response when component
+        preparation fails (e.g., external API returns error).
+
+        This test verifies that both RuleSerializer and WorkflowEngineRuleSerializer
+        handle disabled actions consistently - they should both include the action
+        with disabled=True when the component fails to load.
+        """
+        # Mock the external API to return an error, causing prepare_ui_component to fail
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json={"error": "Service unavailable"},
+            status=500,
+        )
+
+        schema = {"elements": [self.create_alert_rule_action_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=actions,
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+
+        # Serialize with RuleSerializer
+        serialized_rule = serialize(rule, self.user, RuleSerializer(prepare_component_fields=True))
+
+        # RuleSerializer should include the disabled action
+        assert len(serialized_rule["actions"]) == 1
+        assert serialized_rule["actions"][0]["disabled"] is True
+        assert "errors" in serialized_rule
+        assert (
+            serialized_rule["errors"][0]["detail"]
+            == "Could not fetch details from Test Application"
+        )
+
+        # Now serialize the workflow version
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = arw.workflow
+
+        serialized_workflow = serialize(
+            workflow, self.user, WorkflowEngineRuleSerializer(prepare_component_fields=True)
+        )
+
+        # WorkflowEngineRuleSerializer should also include the disabled action
+        assert len(serialized_workflow["actions"]) == 1, (
+            "WorkflowEngineRuleSerializer should include disabled actions, "
+            f"but got {len(serialized_workflow['actions'])} actions"
+        )
+        assert serialized_workflow["actions"][0]["disabled"] is True
+        assert "errors" in serialized_workflow
+        assert (
+            serialized_workflow["errors"][0]["detail"]
+            == "Could not fetch details from Test Application"
+        )

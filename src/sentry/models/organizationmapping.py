@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
-from django.db.models.functions import Now
+from django.db.models.functions import Now, TruncSecond
 from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
 
@@ -55,11 +56,18 @@ class OrganizationMapping(Model):
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)
 
-    date_updated = models.DateTimeField(db_default=Now(), auto_now=True, db_index=True)
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmapping"
+        indexes = [
+            IndexWithPostgresNameLimits(
+                TruncSecond("date_updated"),
+                "id",
+                name="sentry_orgmapping_date_updated_id_idx",
+            )
+        ]
 
     __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
 

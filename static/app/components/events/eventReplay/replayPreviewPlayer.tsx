@@ -20,7 +20,6 @@ import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableCo
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
@@ -203,19 +202,19 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
 `;
 
 const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};
   height: unset;
   overflow: unset;
 
   :fullscreen {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
 
     ${PlayerBreadcrumbContainer} {
       display: grid;
       grid-template-columns: ${p => (p.isSidebarOpen ? '1fr 25%' : '1fr')};
       height: 100%;
-      gap: ${space(1)};
+      gap: ${p => p.theme.space.md};
     }
   }
 `;
@@ -223,7 +222,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 const PlayerContextContainer = styled(FluidHeight)`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StaticPanel = styled(FluidHeight)`
@@ -235,11 +234,11 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const ContainedLinkButton = styled(LinkButton)`

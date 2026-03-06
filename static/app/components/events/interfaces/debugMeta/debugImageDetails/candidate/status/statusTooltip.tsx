@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getStatusTooltipDescription} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/utils';
-import {space} from 'sentry/styles/space';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 
 import Status from '.';
@@ -45,5 +44,5 @@ const Title = styled('div')`
 
 const Label = styled('div')`
   display: inline-block;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;

@@ -125,7 +125,7 @@ function AllocationForm({
     return rootAllocation ? rootAllocation.costPerItem : 0;
   }, [rootAllocation]);
 
-  const allocationSpend: number = useMemo(() => {
+  const allocationSpend = useMemo(() => {
     return Number(((allocationVolume * costPerItem) / 100).toFixed(2));
   }, [allocationVolume, costPerItem]);
 

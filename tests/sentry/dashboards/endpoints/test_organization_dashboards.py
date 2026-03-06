@@ -19,6 +19,7 @@ from sentry.models.dashboard import (
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
 from sentry.models.organizationmember import OrganizationMember
@@ -1145,6 +1146,102 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
 
+    def test_post_widget_layout_rejects_width_exceeding_grid_columns(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 12, "h": 2, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_widget_layout_rejects_x_plus_w_exceeding_grid_columns(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 4, "y": 0, "w": 4, "h": 2, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_widget_layout_rejects_negative_x(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": -1, "y": 0, "w": 2, "h": 2, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_widget_layout_rejects_zero_height(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 2, "h": 0, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
     def test_post_dashboard_with_filters(self) -> None:
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -2086,3 +2183,89 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
                 assert response.status_code == 200
                 assert len(response.data) == total_count - prebuilt_dashboards_count
+
+    def test_post_with_text_widget(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Dashboard from Post",
+                "widgets": [
+                    {
+                        "displayType": "line",
+                        "interval": "5m",
+                        "title": "Chart",
+                        "queries": [
+                            {
+                                "name": "Transactions",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "event.type:transaction",
+                            }
+                        ],
+                    },
+                    {
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "This is a text widget description",
+                    },
+                ],
+            }
+            response = self.do_request("post", self.url, data=data)
+            assert response.status_code == 201, response.data
+            dashboard = Dashboard.objects.get(
+                organization=self.organization, title="Dashboard from Post"
+            )
+            assert dashboard.created_by_id == self.user.id
+
+            widgets = self.get_widgets(dashboard.id)
+            assert len(widgets) == 2
+
+            text_widget = widgets[1]
+            assert text_widget.title == "Text Widget"
+            assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
+            assert text_widget.description == "This is a text widget description"
+            assert text_widget.widget_type is None
+
+            assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
+
+    def test_post_with_text_widget_without_feature_flag(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "This is a text widget description",
+                }
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert "widgets" in response.data, response.data
+        assert "Text widgets are not enabled" in response.data["widgets"][0]["displayType"][0]
+
+    def test_post_with_text_widget_ignores_queries(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Dashboard from Post",
+                "widgets": [
+                    {
+                        "title": "Text Widget with Queries",
+                        "displayType": "text",
+                        "description": "This should ignore queries",
+                        "queries": [
+                            {
+                                "name": "errors",
+                                "conditions": "event.type:error",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                            }
+                        ],
+                    },
+                ],
+            }
+            response = self.do_request("post", self.url, data=data)
+            assert response.status_code == 400, response.data
+            assert "widgets" in response.data, response.data
+            assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"

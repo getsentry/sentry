@@ -9,7 +9,6 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import type FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -237,10 +236,10 @@ function PlanList({
 }
 
 const StyledFormSection = styled('div')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 
   & > h4 {
-    margin: ${space(2)} 0;
+    margin: ${p => p.theme.space.xl} 0;
   }
 `;
 
@@ -251,7 +250,7 @@ const PlanLabel = styled('label')`
   align-items: flex-start;
 
   & > div {
-    margin-right: ${space(3)};
+    margin-right: ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -267,13 +266,13 @@ const SelectFieldWrapper = styled('div')`
 const CurrentValueText = styled('div')`
   color: #666;
   font-size: 0.9em;
-  margin-top: -${space(1)};
-  margin-bottom: ${space(1.5)};
+  margin-top: -${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.lg};
   font-style: italic;
 `;
 
 const AuditFields = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 export default PlanList;

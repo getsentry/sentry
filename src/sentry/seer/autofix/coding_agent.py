@@ -5,23 +5,25 @@ import secrets
 import string
 from typing import Any
 
-import orjson
 import sentry_sdk
-from django.conf import settings
-from requests import HTTPError
+from django.conf import settings as django_settings
+from requests import HTTPError, RequestException
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.integrations.claude_code.integration import (
+    ClaudeCodeIntegrationMetadata,
+)
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -29,14 +31,16 @@ from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentState,
     CodingAgentStatus,
+    StoreCodingAgentStatesRequest,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
+    make_store_coding_agent_states_request,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.imports import import_string
 
 logger = logging.getLogger(__name__)
 
@@ -83,21 +87,11 @@ def store_coding_agent_states_to_seer(
     """Store multiple coding agent states via Seer batch API."""
     if not coding_agent_states:
         return
-    path = "/v1/automation/autofix/coding-agent/state/set"
-    body = orjson.dumps(
-        {
-            "run_id": run_id,
-            "coding_agent_states": [state.dict() for state in coding_agent_states],
-        }
+    body = StoreCodingAgentStatesRequest(
+        run_id=run_id,
+        coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-
-    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
-    response = make_signed_seer_api_request(
-        connection_pool,
-        path,
-        body=body,
-        timeout=30,
-    )
+    response = make_store_coding_agent_states_request(body, timeout=30)
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
@@ -314,7 +308,7 @@ def _launch_agents_for_repos(
                 coding_agent_state = installation.launch(launch_request)
             else:
                 raise ValidationError("Either client or installation must be provided")
-        except (HTTPError, ApiError) as e:
+        except (HTTPError, ApiError, ValueError) as e:
             logger.exception(
                 "coding_agent.repo_launch_error",
                 extra={
@@ -344,10 +338,24 @@ def _launch_agents_for_repos(
                                     github_installation_id = sentry_integration.external_id
                             except Exception:
                                 sentry_sdk.capture_exception(level="warning")
+                elif (
+                    isinstance(installation, CursorAgentIntegration)
+                    and e.code == 400
+                    and e.text
+                    and "Failed to verify existence of branch" in e.text
+                ):
+                    failure_type = "cursor_github_access"
+                    error_message = "Cursor does not have GitHub access to this repository. Please install the Cursor GitHub App to grant access."
                 elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:
                     error_message = f"Failed to make request to coding agent{url_part}. {e.code} Error: {e.text}"
+            elif isinstance(e, HTTPError) and e.response is not None:
+                status_code = e.response.status_code
+                if status_code == 401:
+                    error_message = "Authentication failed. Please check that your API credentials are correct and have access to the required API endpoints."
+                else:
+                    error_message = f"Failed to launch coding agent: {status_code} Error: {e}"
 
             failure: dict = {
                 "repo_name": repo_name,
@@ -585,3 +593,213 @@ def poll_github_copilot_agents(
                 "coding_agent.github_copilot.poll_error",
                 extra={"agent_id": agent_id, "owner": owner, "repo": repo, "task_id": task_id},
             )
+
+
+def poll_claude_code_agents(
+    autofix_state: AutofixState | None = None,
+    organization_id: int | None = None,
+    coding_agents: dict[str, Any] | None = None,
+) -> None:
+    """
+    Poll Claude Code Agent sessions for status updates.
+
+    Mirrors the pattern of poll_github_copilot_agents but uses the
+    Claude Code API to check session status.
+
+    Args:
+        autofix_state: Full autofix state (used to get coding_agents and organization_id).
+        organization_id: Organization ID to look up the Claude Code integration.
+        coding_agents: Dict of coding agent states (alternative to autofix_state).
+    """
+    agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
+    if not agents:
+        return
+
+    org_id = organization_id or (autofix_state.request.organization_id if autofix_state else None)
+    if not org_id:
+        logger.warning("coding_agent.claude_code.no_organization_id")
+        return
+
+    clients: dict[int, Any] = {}
+
+    if not django_settings.CLAUDE_CODE_CLIENT_CLASS:
+        logger.warning("coding_agent.claude_code.no_client_class_configured")
+        return
+
+    for agent_id, agent_state in agents.items():
+        poll_claude_agent(clients, agent_id, org_id, agent_state)
+
+
+def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) -> None:
+    if agent_state.provider != CodingAgentProviderType.CLAUDE_CODE_AGENT:
+        return
+
+    if agent_state.status not in (CodingAgentStatus.RUNNING, CodingAgentStatus.PENDING):
+        return
+
+    client = get_claude_code_client(clients, agent_id, org_id, agent_state.integration_id)
+    if not client:
+        return
+
+    claude_status, new_status = get_claude_session_status(client, agent_id)
+    if new_status is None:
+        return
+
+    # If session went idle, check if the last tool call received a result.
+    # A missing tool result means the agent stalled (e.g., permission blocked).
+    if new_status == CodingAgentStatus.COMPLETED:
+        new_status = check_for_tool_failure(client, agent_id)
+
+    result = None
+    if new_status in (CodingAgentStatus.COMPLETED, CodingAgentStatus.FAILED):
+        result, new_status = build_result_from_session(
+            client, agent_id, agent_state.name, new_status
+        )
+
+    if new_status != agent_state.status:
+        try:
+            update_coding_agent_state(
+                agent_id=agent_id,
+                status=new_status,
+                result=result,
+            )
+        except Exception:
+            logger.exception(
+                "coding_agent.claude_code.state_update_error",
+                extra={"agent_id": agent_id},
+            )
+
+    logger.info(
+        "coding_agent.claude_code.poll_update",
+        extra={
+            "agent_id": agent_id,
+            "claude_status": claude_status,
+            "new_status": new_status.value,
+            "pr_url": result.pr_url if result else None,
+        },
+    )
+
+
+def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:
+    # Get or create client for this agent's integration
+    if integration_id is None:
+        logger.warning(
+            "coding_agent.claude_code.missing_integration_id",
+            extra={"agent_id": agent_id},
+        )
+        return None
+    if integration_id in clients:
+        client = clients[integration_id]
+    else:
+        org_integration = integration_service.get_organization_integration(
+            organization_id=org_id,
+            integration_id=integration_id,
+        )
+        if not org_integration:
+            logger.warning(
+                "coding_agent.claude_code.integration_not_found",
+                extra={"organization_id": org_id, "integration_id": integration_id},
+            )
+            return None
+        integration = integration_service.get_integration(
+            organization_integration_id=org_integration.id,
+        )
+        if not integration:
+            logger.warning(
+                "coding_agent.claude_code.integration_not_found",
+                extra={"organization_id": org_id, "integration_id": integration_id},
+            )
+            return None
+        metadata = ClaudeCodeIntegrationMetadata.parse_obj(integration.metadata or {})
+
+        if not django_settings.CLAUDE_CODE_CLIENT_CLASS:
+            return None
+        client_class = import_string(django_settings.CLAUDE_CODE_CLIENT_CLASS)
+        client = client_class(
+            api_key=metadata.api_key,
+            environment_id=metadata.environment_id,
+            workspace_name=metadata.workspace_name,
+        )
+        clients[integration_id] = client
+    return client
+
+
+def check_for_tool_failure(client, agent_id) -> CodingAgentStatus:
+    events = client.list_session_events(agent_id)
+    last_tool_use = None
+    has_tool_result = False
+    for event in events:
+        event_type = event.get("type")
+        if event_type == "agent":
+            for block in event.get("content", []):
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    last_tool_use = block.get("id")
+                    has_tool_result = False
+        elif event_type == "tool_result":
+            if event.get("tool_use_id") == last_tool_use:
+                has_tool_result = True
+
+    if last_tool_use and not has_tool_result:
+        logger.warning(
+            "coding_agent.claude_code.idle_missing_tool_result",
+            extra={
+                "agent_id": agent_id,
+                "last_tool_use_id": last_tool_use,
+            },
+        )
+        return CodingAgentStatus.FAILED
+
+    return CodingAgentStatus.COMPLETED
+
+
+def get_claude_session_status(client, agent_id) -> tuple[str | None, CodingAgentStatus | None]:
+    try:
+        session_status = client.get_session_status(agent_id)
+    except RequestException:
+        return (None, None)
+
+    claude_status = session_status.status
+    new_status = CodingAgentStatus.from_claude_code_status(claude_status)
+
+    logger.info(
+        "coding_agent.claude_code.session_status_details",
+        extra={
+            "agent_id": agent_id,
+            "claude_status": claude_status,
+            "session_result": session_status.result,
+            "raw_status_response": str(session_status),
+        },
+    )
+    return claude_status, new_status
+
+
+def build_result_from_session(
+    client, agent_id, agent_name, new_status: CodingAgentStatus
+) -> tuple[Any | None, CodingAgentStatus]:
+    result = None
+    pr_url = None
+    if new_status == CodingAgentStatus.COMPLETED:
+        try:
+            pr_url = client.extract_result_url_from_events(agent_id)
+        except Exception:
+            pass
+        if not pr_url:
+            logger.warning(
+                "coding_agent.claude_code.no_result_url_in_response",
+                extra={"agent_id": agent_id},
+            )
+            new_status = CodingAgentStatus.FAILED
+
+    try:
+        result = client.build_result_from_session(
+            agent_name=agent_name,
+            pr_url=pr_url,
+        )
+    except Exception:
+        logger.exception(
+            "coding_agent.claude_code.build_result_error",
+            extra={"agent_id": agent_id},
+        )
+        new_status = CodingAgentStatus.FAILED
+
+    return result, new_status

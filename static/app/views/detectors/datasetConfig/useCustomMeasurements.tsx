@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import type {Query} from 'history';
 
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -13,9 +12,7 @@ type MeasurementsMetaResponse = Record<string, {functions: string[]; unit: strin
 
 export function useCustomMeasurements(selection?: PageFilters) {
   const organization = useOrganization();
-  const query: Query = selection?.datetime
-    ? normalizeDateTimeParams(selection.datetime)
-    : {};
+  const query = selection?.datetime ? normalizeDateTimeParams(selection.datetime) : {};
 
   if (selection?.projects) {
     query.project = selection.projects.map(String);

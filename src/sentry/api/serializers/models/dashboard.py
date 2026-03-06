@@ -98,7 +98,7 @@ class DashboardWidgetResponse(TypedDict):
     dashboardId: str
     queries: list[DashboardWidgetQueryResponse]
     limit: int | None
-    widgetType: str
+    widgetType: str | None
     layout: dict[str, int] | None
     axisRange: str | None
     datasetSource: str | None
@@ -299,10 +299,14 @@ class DashboardWidgetSerializer(Serializer):
         return urls
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
-        widget_type = (
-            DashboardWidgetTypes.get_type_name(obj.widget_type)
-            or DashboardWidgetTypes.TYPE_NAMES[0]
-        )
+        # Text widgets don't have a widget_type
+        if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
+            widget_type = None
+        else:
+            widget_type = (
+                DashboardWidgetTypes.get_type_name(obj.widget_type)
+                or DashboardWidgetTypes.TYPE_NAMES[0]
+            )
 
         if (
             obj.widget_type == DashboardWidgetTypes.DISCOVER
@@ -339,7 +343,7 @@ class DashboardWidgetSerializer(Serializer):
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
             "limit": obj.limit,
-            # Default to discover type if null
+            # Default to discover type if null and not a text widget
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "axisRange": obj.detail.get("axis_range") if obj.detail else None,
