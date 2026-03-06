@@ -2,8 +2,6 @@ import type {Theme} from '@emotion/react';
 
 import type {DateTimeProps} from 'sentry/components/dateTime';
 
-export type TimeWindow = '1h' | '24h' | '7d' | '30d';
-
 interface MarkerIntervals {
   /**
    * The smallest number of minutes a marker mmay represent
