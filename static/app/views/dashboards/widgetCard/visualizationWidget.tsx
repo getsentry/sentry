@@ -432,7 +432,6 @@ function VisualizationWidgetContent({
       confidence={confidence}
       dataScanned={dataScanned}
       isSampled={isSampled}
-      other="Other"
       loading={loading}
       sampleCount={sampleCount}
       series={timeseriesResults}
