@@ -66,7 +66,6 @@ export default function EmptyState({
             initialStep={decodeInteger(location.query.guidedStep)}
             onStepChange={step => {
               navigate({
-                pathname: location.pathname,
                 query: {
                   ...location.query,
                   guidedStep: step,
