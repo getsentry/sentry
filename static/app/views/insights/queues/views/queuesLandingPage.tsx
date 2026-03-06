@@ -21,12 +21,12 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import QueuesLandingLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget';
 import QueuesLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   isAValidSort,
   QueuesTable,
 } from 'sentry/views/insights/queues/components/tables/queuesTable';
-import {useHasPlatformizedQueues} from 'sentry/views/insights/queues/utils/useHasPlatformizedQueues';
 import {PlatformizedQueuesOverview} from 'sentry/views/insights/queues/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -109,12 +109,12 @@ function QueuesLandingPage() {
 }
 
 function PageWithProviders() {
-  const hasPlatformizedQueues = useHasPlatformizedQueues();
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
 
-  if (hasPlatformizedQueues) {
+  if (hasPlatformizedInsights) {
     return <PlatformizedQueuesOverview />;
   }
 
