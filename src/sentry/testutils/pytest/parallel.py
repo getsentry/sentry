@@ -97,6 +97,9 @@ class _CoordinatorPlugin:
         active = [(i, test_files[i]) for i, grp in enumerate(groups) if grp]
         workers = self._spawn(active)
         self._monitor_and_report(workers, items_by_nodeid, session)
+
+        # Tell pytest how many tests failed so it sets exit code 1.
+        session.testsfailed = self._failed
         return True
 
     # -- internals ------------------------------------------------------------
@@ -365,14 +368,22 @@ class _CoordinatorPlugin:
         for t in threads:
             t.join(timeout=5)
 
-        # Print captured stdout from workers that crashed.
+        # Print captured stdout from workers that crashed or failed.
+        any_worker_failed = False
         for i, (idx, proc, _) in enumerate(workers):
             proc.wait()
+            if proc.returncode != 0:
+                any_worker_failed = True
             if proc.returncode not in (0, 1) and worker_output[i]:
                 tw.line("")
                 tw.sep("-", f"worker {idx} crashed (exit {proc.returncode})")
                 for out_line in worker_output[i]:
                     tw.line(out_line)
+
+        # Ensure at least 1 failure is recorded if any worker exited non-zero
+        # but we missed the report (e.g. crash before JSONL was written).
+        if any_worker_failed and self._failed == 0:
+            self._failed = 1
 
         # Feed collected reports into the terminal reporter's stats so the
         # summary line is correct, then re-register it for summary output.
