@@ -21,7 +21,6 @@ import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -39,6 +38,7 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -134,6 +134,7 @@ export default function EventsTable({
   referrer,
   renderTableHeader,
 }: Props) {
+  const navigate = useNavigate();
   const api = useApi({persistInFlight: true});
   const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
@@ -170,7 +171,7 @@ export default function EventsTable({
             newEnvs = newEnvs.filter(env => env !== value);
           }
 
-          browserHistory.push({
+          navigate({
             pathname: location.pathname,
             query: {
               ...location.query,
@@ -181,7 +182,7 @@ export default function EventsTable({
           return;
         }
 
-        browserHistory.push({
+        navigate({
           pathname: location.pathname,
           query: {
             ...location.query,
@@ -191,7 +192,7 @@ export default function EventsTable({
         });
       };
     },
-    [organization, eventView, excludedTags, applyEnvironmentFilter, location]
+    [organization, eventView, excludedTags, applyEnvironmentFilter, location, navigate]
   );
 
   const renderBodyCell = useCallback(
