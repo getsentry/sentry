@@ -457,7 +457,20 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             ]
         )
 
-        with self.tasks():
+        # ClickHouse is shared across test workers, so stale org_ids from other
+        # tests may appear. Mock the discovery query to return only this test's
+        # orgs, preventing IntegrityErrors from stale org references.
+        scoped_results = {
+            self.organization.id: [self.project1.id, self.project2.id],
+            self.org2.id: [self.org2_project.id],
+        }
+        with (
+            self.tasks(),
+            mock.patch(
+                "sentry.release_health.tasks.release_monitor.fetch_projects_with_recent_sessions",
+                return_value=scoped_results,
+            ),
+        ):
             monitor_release_adoption()
 
         assert ReleaseProjectEnvironment.objects.filter(

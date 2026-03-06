@@ -36,7 +36,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
-        region = Region("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
         with override_settings(SILO_MODE=SiloMode.REGION), override_regions([region], region):
             snowflake_id = generate_snowflake_id("test_redis_key")
             expected_value = (16 << 48) + (
@@ -47,7 +47,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_sequence(self) -> None:
-        region = Region("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
         with override_settings(SILO_MODE=SiloMode.REGION), override_regions([region], region):
             # next id in the same timestamp, should be 1 greater than last id up to 16 timestamps
             # the 17th will be at the previous timestamp

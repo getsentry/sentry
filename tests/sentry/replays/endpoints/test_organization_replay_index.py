@@ -171,7 +171,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id))
 
         with self.feature(self.features):
-            for query in ["", "?field=id&field=has_viewed"]:
+            project_filter = f"?project={project.id}"
+            for query in [project_filter, project_filter + "&field=id&field=has_viewed"]:
                 response = self.client.get(self.url + query)
                 assert response.status_code == 200
 
