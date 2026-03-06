@@ -17,7 +17,6 @@ import {
   ZoomableArea,
   ZoomableImage,
   ZoomContainer,
-  ZoomContent,
   ZoomControls,
   zoomTransformStyle,
 } from './zoomControls';
@@ -160,9 +159,14 @@ function SplitView({
         <Heading as="h4">{t('Base')}</Heading>
         <ZoomableArea>
           <ZoomContainer ref={zoom1.containerRef}>
-            <ZoomContent style={zoomTransformStyle(zoom1.transform)}>
+            <Flex
+              justify="center"
+              align="center"
+              paddingTop="xl"
+              style={zoomTransformStyle(zoom1.transform)}
+            >
               <ZoomableImage src={baseImageUrl} alt={t('Base')} />
-            </ZoomContent>
+            </Flex>
           </ZoomContainer>
         </ZoomableArea>
       </Flex>
@@ -171,14 +175,19 @@ function SplitView({
         <Heading as="h4">{t('Current Branch')}</Heading>
         <ZoomableArea>
           <ZoomContainer ref={zoom2.containerRef}>
-            <ZoomContent style={zoomTransformStyle(zoom2.transform)}>
+            <Flex
+              justify="center"
+              align="center"
+              paddingTop="xl"
+              style={zoomTransformStyle(zoom2.transform)}
+            >
               <ImageWrapper>
                 <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
                 {showOverlay && diffMaskUrl && (
                   <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
                 )}
               </ImageWrapper>
-            </ZoomContent>
+            </Flex>
           </ZoomContainer>
           <ZoomControls
             onZoomIn={zoom2.zoomIn}

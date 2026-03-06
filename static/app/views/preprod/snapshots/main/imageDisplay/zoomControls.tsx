@@ -36,7 +36,10 @@ export function ZoomControls({onZoomIn, onZoomOut, onReset}: ZoomControlsProps) 
 }
 
 export function zoomTransformStyle(t: ZoomTransform): React.CSSProperties {
-  return {transform: `translate(${t.x}px, ${t.y}px) scale(${t.k})`};
+  return {
+    transformOrigin: '0 0',
+    transform: `translate(${t.x}px, ${t.y}px) scale(${t.k})`,
+  };
 }
 
 export function ZoomableArea({children}: {children: React.ReactNode}) {
@@ -64,14 +67,6 @@ export const ZoomContainer = styled('div')`
   &:active {
     cursor: grabbing;
   }
-`;
-
-export const ZoomContent = styled('div')`
-  transform-origin: 0 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: ${p => p.theme.space.xl};
 `;
 
 export const ZoomableImage = styled(Image)`

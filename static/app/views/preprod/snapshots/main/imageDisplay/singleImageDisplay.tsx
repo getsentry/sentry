@@ -5,7 +5,6 @@ import {
   ZoomableArea,
   ZoomableImage,
   ZoomContainer,
-  ZoomContent,
   ZoomControls,
   zoomTransformStyle,
 } from './zoomControls';
@@ -22,9 +21,14 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
     <Flex align="center" justify="center" flex="1" minHeight="0" padding="3xl">
       <ZoomableArea>
         <ZoomContainer ref={containerRef}>
-          <ZoomContent style={zoomTransformStyle(transform)}>
+          <Flex
+            justify="center"
+            align="center"
+            paddingTop="xl"
+            style={zoomTransformStyle(transform)}
+          >
             <ZoomableImage src={imageUrl} alt={alt} />
-          </ZoomContent>
+          </Flex>
         </ZoomContainer>
         <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
       </ZoomableArea>
