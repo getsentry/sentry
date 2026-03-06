@@ -9,7 +9,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils import json
 
 
@@ -35,7 +35,7 @@ class SetRemoteAddrFromForwardedForTestCase(TestCase):
         assert request.META["REMOTE_ADDR"] == "2001:4860:4860::8888"
 
 
-test_region = Region(
+test_region = Cell(
     "us",
     1,
     "https://test",

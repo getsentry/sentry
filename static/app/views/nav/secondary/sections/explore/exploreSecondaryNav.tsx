@@ -76,10 +76,7 @@ export function ExploreSecondaryNav() {
       <SecondaryNav.Body>
         <SecondaryNav.Section id="explore-main">
           <Feature features={['performance-view']}>
-            <Feature
-              features={['performance-trace-explorer', 'visibility-explore-view']}
-              requireAll={false}
-            >
+            <Feature features={['visibility-explore-view']}>
               <SecondaryNav.Item
                 to={`${baseUrl}/traces/`}
                 analyticsItemName="explore_traces"

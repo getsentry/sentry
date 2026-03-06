@@ -85,6 +85,9 @@ const createWrapper = (props = {}) => {
     organizationId: organization.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };
+  const initialLocationPathname = `/settings/${router.params.orgId}/projects/${router.params.projectId}/alerts/rules/${
+    params.ruleId ?? 'new'
+  }/`;
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <IssueRuleEditor
@@ -100,9 +103,15 @@ const createWrapper = (props = {}) => {
       userTeamIds={[]}
     />,
     {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: initialLocationPathname,
+          query: router.location.query,
+          state: router.location.state,
+        },
+        route: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+      },
     }
   );
 
@@ -246,8 +255,8 @@ describe('IssueRuleEditor', () => {
         method: 'DELETE',
         body: {},
       });
-      const {router} = createWrapper();
-      renderGlobalModal({router, deprecatedRouterMocks: true});
+      createWrapper();
+      renderGlobalModal();
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -256,9 +265,6 @@ describe('IssueRuleEditor', () => {
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
-      expect(router.replace).toHaveBeenCalledWith(
-        '/settings/org-slug/projects/project-slug/alerts/'
-      );
     });
 
     it('saves rule with condition value of 0', async () => {

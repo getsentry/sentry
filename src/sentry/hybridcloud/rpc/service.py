@@ -32,7 +32,7 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Region, RegionMappingNotFound
+from sentry.types.region import Cell, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
@@ -127,7 +127,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
 
 @dataclass(frozen=True)
 class _RegionResolutionResult:
-    region: Region | None
+    region: Cell | None
     is_early_halt: bool = False
 
     def __post_init__(self) -> None:
@@ -482,7 +482,7 @@ _RPC_CONTENT_CHARSET = "utf-8"
 
 
 def dispatch_remote_call(
-    region: Region | None,
+    region: Cell | None,
     service_name: str,
     method_name: str,
     serial_arguments: ArgumentDict,
@@ -494,7 +494,7 @@ def dispatch_remote_call(
 
 @dataclass(frozen=True)
 class _RemoteSiloCall:
-    region: Region | None
+    region: Cell | None
     service_name: str
     method_name: str
     serial_arguments: ArgumentDict

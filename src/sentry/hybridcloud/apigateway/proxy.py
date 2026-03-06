@@ -26,7 +26,7 @@ from sentry.silo.util import (
     clean_proxy_headers,
 )
 from sentry.types.region import (
-    Region,
+    Cell,
     RegionResolutionError,
     get_cell_by_name,
     get_region_for_organization,
@@ -120,7 +120,7 @@ def proxy_error_embed_request(
 
 
 def proxy_region_request(
-    request: HttpRequest, region: Region, url_name: str
+    request: HttpRequest, region: Cell, url_name: str
 ) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)

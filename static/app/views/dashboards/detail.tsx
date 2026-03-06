@@ -1171,6 +1171,9 @@ class DashboardDetail extends Component<Props, State> {
                                 filters:
                                   getDashboardFiltersFromURL(location) ??
                                   (modifiedDashboard ?? dashboard).filters,
+                                ...(defined(dashboard.prebuiltId) && {
+                                  widgets: undefined,
+                                }),
                               };
                               this.setState({isSavingDashboardFilters: true});
                               addLoadingMessage(t('Saving dashboard filters'));
