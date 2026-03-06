@@ -149,7 +149,7 @@ export function SidebarMenu({
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
-      style={{zIndex: theme.zIndex.orgAndUserMenu}}
+      style={{zIndex: theme.zIndex.sidebarDropdownMenu}}
       renderWrapAs={({children: _children}: {children: React.ReactNode}) => _children}
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}

@@ -41,7 +41,7 @@ export function PrimaryButtonOverlay({
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.orgAndUserMenu} {...overlayProps}>
+      <PositionWrapper zIndex={theme.zIndex.sidebarDropdownMenu} {...overlayProps}>
         <ScrollableOverlay isMobile={layout === NavLayout.MOBILE}>
           {children}
         </ScrollableOverlay>

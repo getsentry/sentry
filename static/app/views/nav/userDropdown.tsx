@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -24,6 +25,7 @@ export function UserDropdown() {
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
   const portalContainerRef = useRef<HTMLElement | null>(null);
+  const theme = useTheme();
 
   useEffect(() => {
     portalContainerRef.current = document.body;
@@ -56,6 +58,7 @@ export function UserDropdown() {
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
+      style={{zIndex: theme.zIndex.sidebarDropdownMenu}}
       renderWrapAs={({children}) => children}
       position={isMobile ? 'bottom' : 'right-end'}
       minMenuWidth={200}
