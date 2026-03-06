@@ -10,7 +10,11 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
-  describe('without downsampled-date-page-filter', () => {
+  describe('without subscription effective retentions', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('returns 90/90 for transactions', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
@@ -37,7 +41,8 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/90 for spans without flag', () => {
+    it('returns 30/90 for spans', () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [DataCategory.SPANS],
@@ -46,26 +51,6 @@ describe('useMaxPickableDays', () => {
 
       expect(result.current).toEqual({
         maxPickableDays: 30,
-        maxUpgradableDays: 90,
-        upsellFooter: expect.any(Object),
-      });
-    });
-
-    it('returns 90/90 for spans with flag', () => {
-      const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.SPANS],
-          }),
-        {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-range-high'],
-          }),
-        }
-      );
-
-      expect(result.current).toEqual({
-        maxPickableDays: 90,
         maxUpgradableDays: 90,
         upsellFooter: expect.any(Object),
       });
@@ -99,7 +84,8 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/90 for many without flag', () => {
+    it('returns 30/90 for many', () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [
@@ -119,7 +105,7 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 90/90 for profiles', () => {
+    it('returns 30/30 for profiles', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [
@@ -132,16 +118,15 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
-        maxPickableDays: 90,
-        maxUpgradableDays: 90,
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+        defaultPeriod: '24h',
       });
     });
   });
 
-  describe('with downsampled-date-page-filter', () => {
-    const organization = OrganizationFixture({
-      features: ['downsampled-date-page-filter'],
-    });
+  describe('with subscription effective retentions', () => {
+    const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({
       organization,
