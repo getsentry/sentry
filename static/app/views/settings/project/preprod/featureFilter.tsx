@@ -44,6 +44,7 @@ interface FeatureFilterProps {
   queryWriteKey: string;
   successMessage: string;
   title: string;
+  children?: React.ReactNode;
   display?: PreprodBuildsDisplay;
 }
 
@@ -56,6 +57,7 @@ export function FeatureFilter({
   enabledWriteKey,
   docsUrl,
   display,
+  children,
 }: FeatureFilterProps) {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
@@ -178,6 +180,7 @@ export function FeatureFilter({
             </Text>
           </Container>
         )}
+        {children}
       </PanelBody>
     </Panel>
   );

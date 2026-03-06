@@ -194,3 +194,6 @@ register(key="sentry:preprod_distribution_enabled_by_customer", default=True)
 
 # Structured search filter to determine which preprod builds get build distribution.
 register(key="sentry:preprod_distribution_enabled_query", default="")
+
+# Boolean to enable/disable build distribution PR comments for this project.
+register(key="sentry:preprod_distribution_pr_comments_enabled", default=True)

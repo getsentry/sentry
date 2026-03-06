@@ -12,6 +12,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {FeatureFilter} from './featureFilter';
+import {PrCommentsToggle} from './prCommentsToggle';
 import {StatusCheckRules} from './statusCheckRules';
 
 const SIZE_ENABLED_READ_KEY = 'sentry:preprod_size_enabled_by_customer';
@@ -63,7 +64,9 @@ export default function PreprodSettings() {
             successMessage={t('Build distribution settings updated')}
             docsUrl="https://docs.sentry.io/product/build-distribution/"
             display={PreprodBuildsDisplay.DISTRIBUTION}
-          />
+          >
+            <PrCommentsToggle />
+          </FeatureFilter>
         </Stack>
       </Feature>
     </Fragment>
