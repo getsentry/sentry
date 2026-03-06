@@ -240,10 +240,6 @@ function makeCellActions({
     addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
   }
 
-  if (isUrl(value)) {
-    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-  }
-
   if (allowActions) {
     addMenuItem(Actions.OPEN_ROW_IN_EXPLORE, t('View span samples'));
   }
@@ -291,6 +287,10 @@ function makeCellActions({
       }),
       t('Edit threshold')
     );
+  }
+
+  if (isUrl(value)) {
+    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
   }
 
   if (actions.length === 0) {
