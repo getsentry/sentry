@@ -7,6 +7,8 @@ import psutil
 import pytest
 import pytest_rerunfailures
 
+# Disable rerunfailures' xdist integration — it expects xdist's master-worker
+# IPC (sock_port) which doesn't exist with our built-in parallel runner.
 pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False  # type: ignore[attr-defined]
 import responses
 import sentry_sdk
