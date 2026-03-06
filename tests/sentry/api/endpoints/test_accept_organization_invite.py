@@ -161,7 +161,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                     slug="abcslug",
                     name="The Thing",
                     idempotency_key="",
-                    region_name="some-region",
+                    cell_name="some-region",
                 )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()
