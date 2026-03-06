@@ -13,7 +13,7 @@ overrides:
 
 patchedDependencies:
   '@tanstack/pacer-devtools':
-    hash: 2c562e811116d2711dad592f61a341e3deb218cf750bcad45c0a387bfd9c7d8e
+    hash: 08200cc2860be2dd35678c5bfb9028e80da60273e3f2bae47481bc7f78b10a75
     path: patches/@tanstack__pacer-devtools.patch
 
 importers:
@@ -12850,7 +12850,7 @@ snapshots:
       - react
       - vue
 
-  '@tanstack/pacer-devtools@1.1.2(patch_hash=2c562e811116d2711dad592f61a341e3deb218cf750bcad45c0a387bfd9c7d8e)(@tanstack/pacer@0.16.0)(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)':
+  '@tanstack/pacer-devtools@1.1.2(patch_hash=08200cc2860be2dd35678c5bfb9028e80da60273e3f2bae47481bc7f78b10a75)(@tanstack/pacer@0.16.0)(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)':
     dependencies:
       '@tanstack/devtools-ui': 0.4.4(csstype@3.2.3)(solid-js@1.9.11)
       '@tanstack/devtools-utils': 0.2.4(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
@@ -12922,7 +12922,7 @@ snapshots:
   '@tanstack/react-pacer-devtools@0.5.2(@tanstack/pacer@0.16.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)':
     dependencies:
       '@tanstack/devtools-utils': 0.2.4(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
-      '@tanstack/pacer-devtools': 1.1.2(patch_hash=2c562e811116d2711dad592f61a341e3deb218cf750bcad45c0a387bfd9c7d8e)(@tanstack/pacer@0.16.0)(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)
+      '@tanstack/pacer-devtools': 1.1.2(patch_hash=08200cc2860be2dd35678c5bfb9028e80da60273e3f2bae47481bc7f78b10a75)(@tanstack/pacer@0.16.0)(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)
       '@types/react': 19.2.1
       '@types/react-dom': 19.2.1(@types/react@19.2.1)
       react: 19.2.3
