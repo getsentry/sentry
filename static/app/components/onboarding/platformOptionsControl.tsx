@@ -8,7 +8,8 @@ import type {
   PlatformOption,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import useRouter from 'sentry/utils/useRouter';
+import useLocation from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**
  * Hook that returns the currently selected platform option values from the URL
@@ -17,8 +18,8 @@ import useRouter from 'sentry/utils/useRouter';
 export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOptions>(
   platformOptions?: PlatformOptions
 ): SelectedPlatformOptions<PlatformOptions> {
-  const router = useRouter();
-  const {query} = router.location;
+  const location = useLocation();
+  const {query} = location;
 
   return useMemo(() => {
     if (!platformOptions) {
@@ -80,18 +81,22 @@ export function PlatformOptionsControl({
   platformOptions,
   onChange,
 }: PlatformOptionsControlProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
     onChange?.({[key]: value});
-    router.replace({
-      ...router.location,
-      query: {
-        ...router.location.query,
-        [key]: value,
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          [key]: value,
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   return (
