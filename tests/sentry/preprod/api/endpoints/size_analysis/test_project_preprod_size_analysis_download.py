@@ -15,7 +15,7 @@ from sentry.testutils.cases import APITestCase
     }
 )
 class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-project-preprod-artifact-size-analysis-download"
+    endpoint = "sentry-api-0-organization-preprod-artifact-size-analysis-download"
 
     def setUp(self):
         super().setUp()
@@ -31,7 +31,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
 
     def test_no_size_metrics_returns_404(self):
         """When no size metrics exist, should return 404"""
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 404
         assert response.data["detail"] == "Size analysis results not available for this artifact"
 
@@ -43,7 +43,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 200
         assert response.data["state"] == "pending"
         assert response.data["message"] == "Size analysis is still processing"
@@ -56,7 +56,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
         )
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 200
         assert response.data["state"] == "processing"
         assert response.data["message"] == "Size analysis is still processing"
@@ -72,7 +72,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             analysis_file_id=None,
         )
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 422
         assert response.data["state"] == "failed"
         assert response.data["error_code"] == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
@@ -87,7 +87,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             analysis_file_id=None,
         )
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 500
         assert response.data["detail"] == "Size analysis completed but results are unavailable"
 
@@ -102,7 +102,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             analysis_file_id=deleted_file_id,
         )
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 404
         assert response.data["detail"] == "Analysis file not found"
 
@@ -119,7 +119,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             analysis_file_id=analysis_file.id,
         )
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
         # Read the response content to ensure file is consumed and closed
@@ -137,6 +137,6 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         self.artifact.date_added = timezone.now() - timedelta(days=60)
         self.artifact.save()
 
-        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        response = self.get_response(self.organization.slug, self.artifact.id)
         assert response.status_code == 404
         assert response.data["detail"] == "This build's size data has expired."

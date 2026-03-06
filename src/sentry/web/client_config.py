@@ -377,9 +377,11 @@ class _ClientConfig:
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
+        monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
+
         def region_display_order(region: Locality) -> tuple[bool, bool, str]:
             return (
-                region.name != settings.SENTRY_MONOLITH_REGION,  # default region comes first
+                region.name != monolith_locality,  # default locality comes first
                 region.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
                 region.name,  # then sort alphabetically
             )

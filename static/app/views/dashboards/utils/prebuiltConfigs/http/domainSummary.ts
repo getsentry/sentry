@@ -15,6 +15,7 @@ import {
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -300,7 +301,7 @@ const TRANSACTIONS_TABLE: Widget = {
   layout: {
     x: 0,
     y: 4,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     h: 5,
     w: 6,
   },

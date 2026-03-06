@@ -11,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -158,7 +158,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
     def _fetch_pr_general_comments(
         self,
         organization_id: int,
-        client: GitHubApiClient,
+        client: GitHubBaseClient,
         repo_name: str,
         pr_number: str,
     ) -> list[dict[str, Any]]:
@@ -185,7 +185,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
     def _fetch_pr_review_comments(
         self,
         organization_id: int,
-        client: GitHubApiClient,
+        client: GitHubBaseClient,
         repo_name: str,
         pr_number: str,
     ) -> list[dict[str, Any]]:
