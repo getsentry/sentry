@@ -121,10 +121,6 @@ class Cell:
         return self.name == settings.SENTRY_MONOLITH_REGION
 
 
-# TODO(cells): Remove once getsentry import sites are updated
-Region = Cell
-
-
 class RegionResolutionError(Exception):
     """Indicate that a region's identity could not be resolved."""
 
