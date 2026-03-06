@@ -80,9 +80,14 @@ def process_pr_review_status_update(*, organization_id: int, payload: dict[str, 
     }
 
     if status is not None:
-        update_fields["status"] = SEER_STATUS_MAP.get(
-            status, CodeReviewEventStatus.REVIEW_COMPLETED
-        )
+        mapped_status = SEER_STATUS_MAP.get(status)
+        if mapped_status is not None:
+            update_fields["status"] = mapped_status
+        else:
+            logger.warning(
+                "seer.code_review.webhook.unknown_status",
+                extra={"status": status, "trigger_id": trigger_id},
+            )
 
     review_started_at = _parse_timestamp(started_at)
     if review_started_at:
