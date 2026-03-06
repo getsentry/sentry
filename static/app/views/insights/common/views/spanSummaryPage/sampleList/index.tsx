@@ -13,9 +13,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {decodeSubregions} from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
@@ -82,7 +82,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
     },
   });
 
-  const router = useRouter();
+  const navigate = useNavigate();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
@@ -101,13 +101,16 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        spanSearchQuery: newSpanSearchQuery,
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          spanSearchQuery: newSpanSearchQuery,
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   // set additional query filters from the span search bar and the `query` param
@@ -146,7 +149,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   const handleClickSample = useCallback(
     (span: SpanSample) => {
-      router.push(
+      navigate(
         generateLinkToEventInTraceView({
           targetId: span['transaction.span_id'],
           spanId: span.span_id,
@@ -157,7 +160,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
         })
       );
     },
-    [organization, location, router]
+    [organization, location, navigate]
   );
 
   const handleMouseOverSample = useCallback(
