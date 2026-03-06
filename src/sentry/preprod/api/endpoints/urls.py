@@ -248,6 +248,11 @@ preprod_organization_urlpatterns = [
         ProjectPreprodDistributionEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-artifact-distribution",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/download/$",
+        ProjectPreprodArtifactDownloadEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-download",
+    ),
 ]
 
 preprod_internal_urlpatterns = [

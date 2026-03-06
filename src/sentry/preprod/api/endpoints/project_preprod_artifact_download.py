@@ -10,9 +10,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import UserAuthTokenAuthentication
-from sentry.api.base import internal_region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEventPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -21,11 +21,11 @@ from sentry.preprod.models import PreprodArtifact
 from sentry.replays.lib.http import MalformedRangeHeader, UnsatisfiableRange, parse_range_header
 
 
-class LaunchpadServiceOrStaffPermission(StaffPermission):
+class LaunchpadServiceOrOrgPermission(OrganizationEventPermission):
     """
     Permission that allows access for either:
     1. Valid LaunchpadRpcSignatureAuthentication (service-to-service), OR
-    2. Active staff users
+    2. Standard organization event permissions (org members with appropriate scopes)
     """
 
     def has_permission(self, request: Request, view: object) -> bool:
@@ -39,7 +39,7 @@ class LaunchpadServiceOrStaffPermission(StaffPermission):
         return super().has_permission(request, view)
 
 
-@internal_region_silo_endpoint
+@region_silo_endpoint
 class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -51,7 +51,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         SessionAuthentication,
         UserAuthTokenAuthentication,
     )
-    permission_classes = (LaunchpadServiceOrStaffPermission,)
+    permission_classes = (LaunchpadServiceOrOrgPermission,)
 
     def _get_file_object(self, head_artifact: PreprodArtifact) -> File:
         if head_artifact.file_id is None:
