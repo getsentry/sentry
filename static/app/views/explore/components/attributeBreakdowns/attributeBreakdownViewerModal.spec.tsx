@@ -113,9 +113,9 @@ describe('AttributeBreakdownViewerModal', () => {
       expect(screen.getByRole('columnheader', {name: 'Percentage'})).toBeInTheDocument();
 
       // Table should have attribute values
-      expect(screen.getByText('Chrome')).toBeInTheDocument();
-      expect(screen.getByText('Firefox')).toBeInTheDocument();
-      expect(screen.getByText('Safari')).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Chrome'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Firefox'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Safari'})).toBeInTheDocument();
     });
 
     it('calculates percentage correctly', () => {
@@ -278,9 +278,9 @@ describe('AttributeBreakdownViewerModal', () => {
       );
 
       // Table should have attribute values
-      expect(screen.getByText('Chrome')).toBeInTheDocument();
-      expect(screen.getByText('Firefox')).toBeInTheDocument();
-      expect(screen.getByText('Safari')).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Chrome'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Firefox'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Safari'})).toBeInTheDocument();
     });
 
     it('handles zero cohort totals without crashing', () => {
