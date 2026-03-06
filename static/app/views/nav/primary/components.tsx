@@ -436,17 +436,19 @@ const NavLink = styled(Link, {
   }
 `;
 
-const NavButton = styled((props: ButtonProps) => {
-  const {layout} = useNavContext();
+const NavButton = styled(
+  ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
+    const {layout} = useNavContext();
 
-  return (
-    <Button
-      {...props}
-      size={layout === NavLayout.MOBILE ? 'zero' : props.size}
-      priority={layout === NavLayout.MOBILE ? 'transparent' : props.priority}
-    />
-  );
-})<{isMobile: boolean}>`
+    return (
+      <Button
+        {...props}
+        size={layout === NavLayout.MOBILE ? 'zero' : props.size}
+        priority={layout === NavLayout.MOBILE ? 'transparent' : props.priority}
+      />
+    );
+  }
+)<{isMobile: boolean}>`
   display: flex;
   align-items: center;
 

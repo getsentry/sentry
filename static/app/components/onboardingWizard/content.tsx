@@ -391,7 +391,7 @@ interface TaskGroupProps {
    */
   group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
-  isLast: boolean;
+  showSeparator: boolean;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -402,7 +402,7 @@ function TaskGroup({
   title,
   tasks,
   expanded,
-  isLast,
+  showSeparator,
   hidePanel,
   toggleable = true,
   group,
@@ -488,7 +488,7 @@ function TaskGroup({
         }
       />
       {isExpanded ? <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} /> : null}
-      {isLast ? null : <Separator orientation="horizontal" />}
+      {showSeparator && <Separator orientation="horizontal" />}
     </Stack>
   );
 }
@@ -523,7 +523,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
         }
         toggleable={sortedBeyondBasicsTasks.length > 0}
         group="getting_started"
-        isLast={sortedBeyondBasicsTasks.length === 0}
+        showSeparator={sortedBeyondBasicsTasks.length > 0}
       />
       {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
@@ -536,7 +536,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
             groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
           group="beyond_basics"
-          isLast={allTasks.length !== doneTasks.length}
+          showSeparator={allTasks.length === doneTasks.length}
         />
       )}
       {allTasks.length === doneTasks.length && (
