@@ -20,7 +20,7 @@ Each `pytest` process auto-isolates via file-lock slots (`src/sentry/testutils/p
 - `pytest -n4` — distribute tests across 4 workers. The coordinator collects once, then workers receive nodeids directly (no redundant collection).
 - `SENTRY_PYTEST_SERIAL=1` — disables isolation (old single-process behaviour).
 - Max 15 parallel slots (Redis DBs 1–15, DB 0 reserved). `--reuse-db` works (stable DB suffixes).
-- **ClickHouse** is NOT per-worker isolated. Isolation relies on unique `project_id`s from PostgreSQL sequences. Tests that query ClickHouse without filtering by `project_id` will see cross-worker data.
+- **ClickHouse** is shared across workers. Tables are dropped/recreated once per session. Isolation relies on unique snowflake IDs — each test gets fresh org/project IDs. Tests that query ClickHouse without org/project filtering (e.g. cross-org discovery) must scope assertions to their own IDs.
 
 Key files: `isolation.py` (slot allocation), `parallel.py` (coordinator), `parallel_worker.py` (worker shim).
 

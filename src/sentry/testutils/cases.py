@@ -1044,7 +1044,7 @@ class SnubaTestCase(BaseTestCase):
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba, call_snuba):
+    def initialize(self, call_snuba):
         self.call_snuba = call_snuba
 
     def create_project(self, **kwargs) -> Project:
@@ -2204,7 +2204,6 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-@pytest.mark.usefixtures("reset_snuba")
 class ProfilesSnubaTestCase(
     TestCase,
     BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
@@ -2380,7 +2379,6 @@ class ReplaysSnubaTestCase(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-@pytest.mark.usefixtures("reset_snuba")
 class UptimeCheckSnubaTestCase(TestCase):
     def store_uptime_check(self, uptime_check):
         response = requests.post(
@@ -3039,7 +3037,6 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         )
 
 
-@pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     def build_and_store_session(
         self,
@@ -3984,7 +3981,6 @@ class ReplayBreadcrumbType(Enum):
 
 @pytest.mark.snuba
 @requires_snuba
-@pytest.mark.usefixtures("reset_snuba")
 class ReplayEAPTestCase(BaseTestCase):
     def create_eap_replay_breadcrumb(
         self,
