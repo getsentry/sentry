@@ -25,6 +25,7 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
     get_log_attributes_for_trace,
@@ -1422,6 +1423,229 @@ class TestGetIssueAndEventDetailsV2(
             assert serialized["name"] == original.name
             assert serialized["value"] == original.value
             assert serialized["important"] == original.important
+
+
+class TestGetEventDetails(
+    APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin, SpanTestCase
+):
+    """Tests for get_event_details — fetching event data by event_id or recommended event by issue_id."""
+
+    def _make_error_event(self, timestamp=None, trace_id=None):
+        data = load_data("python", timestamp=timestamp or before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        if trace_id:
+            data.setdefault("contexts", {})["trace"] = {
+                "trace_id": trace_id,
+                "span_id": "1" + uuid.uuid4().hex[:15],
+            }
+        return self.store_event(data=data, project_id=self.project.id)
+
+    def _assert_event_response_shape(
+        self, result, expected_event_id: str | None, expected_trace_id: str | None = None
+    ):
+        assert result is not None
+        assert result["project_id"] == self.project.id
+        assert result["project_slug"] == self.project.slug
+        assert "event_id" in result
+        assert "event_trace_id" in result
+        assert result["event_id"] == expected_event_id
+        assert result["event_trace_id"] == expected_trace_id
+
+        event_dict = result["event"]
+        assert isinstance(event_dict, dict)
+        _SentryEventData.parse_obj(event_dict)
+        assert result["event_id"] == event_dict["id"]
+
+    # --- both params / neither param ---
+
+    def test_raises_if_both_event_id_and_issue_id(self):
+        with pytest.raises(BadRequest):
+            get_event_details(
+                organization_id=self.organization.id,
+                event_id=uuid.uuid4().hex,
+                issue_id="123",
+            )
+
+    def test_raises_if_neither_event_id_nor_issue_id(self):
+        with pytest.raises(BadRequest):
+            get_event_details(organization_id=self.organization.id)
+
+    # --- fetch by event_id ---
+
+    def test_by_event_id_single_project(self):
+        """Fetching by event_id with project_slug hits the single-project code path."""
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+
+    def test_by_event_id_multi_project(self):
+        """Fetching by event_id without project_slug hits the multi-project code path."""
+        self.create_project(organization=self.organization)  # second project → multi-project path
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+        )
+
+        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+
+    def test_by_event_id_not_found_returns_none(self):
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=uuid.uuid4().hex,
+            project_slug=self.project.slug,
+        )
+        assert result is None
+
+    def test_by_event_id_invalid_uuid_raises(self):
+        with pytest.raises(ValueError):
+            get_event_details(
+                organization_id=self.organization.id,
+                event_id="not-a-uuid",
+                project_slug=self.project.slug,
+            )
+
+    def test_by_event_id_wrong_project_returns_none(self):
+        """Event in a different project should not be visible when project_slug is specified."""
+        other_project = self.create_project(organization=self.organization)
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=other_project.id)
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,  # wrong project
+        )
+        assert result is None
+
+    def test_by_event_id_occurrence(self):
+        """Occurrence data is included when fetching an issue-platform event by event_id."""
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+        )
+
+        self._assert_event_response_shape(result, expected_event_id=occurrence.event_id)
+        assert result is not None
+        occ = result["event"]["occurrence"]
+        assert occ is not None
+        assert occ["id"] == occurrence.id
+
+    # --- fetch by issue_id (recommended event) ---
+
+    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    def test_by_issue_id_numeric(self, mock_recommended):
+        """Fetching by numeric issue_id calls _get_recommended_event with the correct group and org."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        mock_recommended.return_value = event.for_group(group)
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        args = mock_recommended.call_args.args
+        assert args[0].id == group.id
+        assert args[1].id == self.organization.id
+        assert args[2] is None  # no start
+        assert args[3] is None  # no end
+        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+
+    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    def test_by_issue_id_qualified_short_id(self, mock_recommended):
+        """Qualified short ID (e.g. PROJECT-1) resolves to the correct group before calling _get_recommended_event."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        mock_recommended.return_value = event.for_group(group)
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+        )
+
+        args = mock_recommended.call_args.args
+        assert args[0].id == group.id
+        assert args[1].id == self.organization.id
+        assert args[2] is None  # no start
+        assert args[3] is None  # no end
+        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+
+    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    def test_by_issue_id_with_time_range(self, mock_recommended):
+        """start/end strings are parsed into datetimes and forwarded to _get_recommended_event."""
+        event = self._make_error_event(timestamp=before_now(days=5))
+        group = event.group
+        assert isinstance(group, Group)
+        mock_recommended.return_value = event.for_group(group)
+
+        start = before_now(days=7).isoformat()
+        end = before_now(days=4).isoformat()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=start,
+            end=end,
+        )
+
+        assert result is not None
+        assert result["event_id"] == event.event_id
+        args = mock_recommended.call_args.args
+        assert args[0].id == group.id
+        assert args[1].id == self.organization.id
+        assert args[2] == parse_iso_timestamp(start)
+        assert args[3] == parse_iso_timestamp(end)
+
+    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    def test_by_issue_id_no_events_returns_none(self, mock_recommended):
+        """Returns None when _get_recommended_event returns None."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        mock_recommended.return_value = None
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        args = mock_recommended.call_args.args
+        assert args[0].id == group.id
+        assert args[1].id == self.organization.id
+        assert result is None
+
+    def test_no_projects_returns_none(self):
+        """Returns None when the given project_slug doesn't exist."""
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug="nonexistent-project",
+        )
+
+        assert result is None
 
 
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
