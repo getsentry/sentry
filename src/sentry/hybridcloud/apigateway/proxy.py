@@ -132,7 +132,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> Strea
     query_params = request.GET
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
-    metric_tags = {"cell": cell.name, "url_name": url_name}
+    metric_tags = {"region": cell.name, "url_name": url_name}
 
     # XXX: See sentry.testutils.pytest.sentry for more information
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
