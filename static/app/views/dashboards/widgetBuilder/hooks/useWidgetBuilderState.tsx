@@ -1217,6 +1217,9 @@ function useWidgetBuilderState(): {
  * Returns the default display type if the value is not a valid display type
  */
 function deserializeDisplayType(value: string): DisplayType {
+  if (value === DisplayType.TOP_N) {
+    return DisplayType.AREA;
+  }
   if (Object.values(DisplayType).includes(value as DisplayType)) {
     return value as DisplayType;
   }

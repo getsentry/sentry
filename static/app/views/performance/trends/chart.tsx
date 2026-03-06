@@ -9,7 +9,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
@@ -20,6 +19,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
 import type {ViewProps} from 'sentry/views/performance/types';
@@ -98,6 +98,7 @@ export function Chart({
   applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
+  const navigate = useNavigate();
   const theme = useTheme();
 
   const handleLegendSelectChanged = (legendChange: any) => {
@@ -115,7 +116,7 @@ export function Chart({
       ...location,
       query,
     };
-    browserHistory.push(to);
+    navigate(to);
   };
 
   const derivedTrendChangeType = organization.features.includes('performance-new-trends')

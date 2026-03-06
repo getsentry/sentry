@@ -60,7 +60,7 @@ def produce_preprod_size_metric_to_eap(
     item_id_str = f"size_metric_{size_metric.id}"
     item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     attributes: dict[str, Any] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
@@ -159,7 +159,7 @@ def produce_preprod_build_distribution_to_eap(
     item_id_str = f"build_distribution_{artifact.id}"
     item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     attributes: dict[str, Any] = {
         "preprod_artifact_id": artifact.id,
         "sub_item_type": "build_distribution",

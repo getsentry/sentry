@@ -19,6 +19,7 @@ from sentry.models.dashboard import (
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
 from sentry.models.organizationmember import OrganizationMember
@@ -678,6 +679,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
         assert values == ["Initial dashboard"]
+
+    def test_get_multiple_filters_owned_and_exclude_prebuilt(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Custom",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Custom",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 1 Prebuilt",
+            created_by_id=None,
+            organization=self.organization,
+            prebuilt_id=1,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned", "excludePrebuilt"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Custom"]
+
+    def test_get_multiple_filters_single_filter(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Dashboard",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Dashboard"]
+
+    def test_get_multiple_filters_favorites_and_owned(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        owned_fav = Dashboard.objects.create(
+            title="Owned and Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Owned Not Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        other_fav = Dashboard.objects.create(
+            title="Other Favorited",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=owned_fav
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=other_fav
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["onlyFavorites", "owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Owned and Favorited"]
 
     def test_get_owned_dashboards_can_pin_starred_at_top(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -2182,3 +2268,89 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
                 assert response.status_code == 200
                 assert len(response.data) == total_count - prebuilt_dashboards_count
+
+    def test_post_with_text_widget(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Dashboard from Post",
+                "widgets": [
+                    {
+                        "displayType": "line",
+                        "interval": "5m",
+                        "title": "Chart",
+                        "queries": [
+                            {
+                                "name": "Transactions",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "event.type:transaction",
+                            }
+                        ],
+                    },
+                    {
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "This is a text widget description",
+                    },
+                ],
+            }
+            response = self.do_request("post", self.url, data=data)
+            assert response.status_code == 201, response.data
+            dashboard = Dashboard.objects.get(
+                organization=self.organization, title="Dashboard from Post"
+            )
+            assert dashboard.created_by_id == self.user.id
+
+            widgets = self.get_widgets(dashboard.id)
+            assert len(widgets) == 2
+
+            text_widget = widgets[1]
+            assert text_widget.title == "Text Widget"
+            assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
+            assert text_widget.description == "This is a text widget description"
+            assert text_widget.widget_type is None
+
+            assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
+
+    def test_post_with_text_widget_without_feature_flag(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "This is a text widget description",
+                }
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert "widgets" in response.data, response.data
+        assert "Text widgets are not enabled" in response.data["widgets"][0]["displayType"][0]
+
+    def test_post_with_text_widget_ignores_queries(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Dashboard from Post",
+                "widgets": [
+                    {
+                        "title": "Text Widget with Queries",
+                        "displayType": "text",
+                        "description": "This should ignore queries",
+                        "queries": [
+                            {
+                                "name": "errors",
+                                "conditions": "event.type:error",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                            }
+                        ],
+                    },
+                ],
+            }
+            response = self.do_request("post", self.url, data=data)
+            assert response.status_code == 400, response.data
+            assert "widgets" in response.data, response.data
+            assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"

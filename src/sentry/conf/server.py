@@ -781,8 +781,8 @@ if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
-# Fallback region name for monolith deployments
-# This region name is also used by the ApiGateway to proxy org-less region
+# Fallback cell name for monolith deployments
+# This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
@@ -893,7 +893,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
+    "sentry.preprod.vcs.status_checks.snapshots.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
@@ -2204,9 +2206,12 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
+
+CLAUDE_CODE_CLIENT_CLASS: str | None = None
 
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,

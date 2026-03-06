@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
@@ -181,10 +181,12 @@ export default function FiltersBar({
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
     const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    const initialFilters =
+      savedFilters.length > 0 ? savedFilters : prebuiltDashboardFilters;
     const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
 
     if (!urlFilters) {
-      return savedFilters;
+      return initialFilters;
     }
 
     // Empty array means user explicitly cleared all filters — respect that
@@ -192,11 +194,11 @@ export default function FiltersBar({
       return urlFilters;
     }
 
-    const nonOverlappingSaved = savedFilters.filter(
+    const nonOverlapping = initialFilters.filter(
       saved => !urlFilters.some(url => globalFilterKeysAreEqual(saved, url))
     );
 
-    return [...nonOverlappingSaved, ...urlFilters];
+    return [...nonOverlapping, ...urlFilters];
   });
 
   // Sync merged filters to the URL on mount so widgets see the same filters
@@ -281,57 +283,52 @@ export default function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {organization.features.includes('dashboards-global-filters') && (
-          <Fragment>
-            {activeGlobalFilters.map(filter => (
-              <GenericFilterSelector
-                disableRemoveFilter={
-                  isPrebuiltDashboard &&
-                  prebuiltDashboardFilters.some(
-                    prebuiltFilter =>
-                      prebuiltFilter.tag.key === filter.tag.key &&
-                      prebuiltFilter.dataset === filter.dataset
-                  )
-                }
-                key={filter.tag.key + filter.value}
-                globalFilter={filter}
-                searchBarData={getSearchBarData(filter.dataset)}
-                onUpdateFilter={updatedFilter => {
-                  updateGlobalFilters(
-                    activeGlobalFilters.map(f =>
-                      globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                    )
-                  );
-                }}
-                onRemoveFilter={removedFilter => {
-                  updateGlobalFilters(
-                    activeGlobalFilters.filter(
-                      f => !globalFilterKeysAreEqual(f, removedFilter)
-                    )
-                  );
-                  trackAnalytics('dashboards2.global_filter.remove', {
-                    organization,
-                  });
-                }}
-              />
-            ))}
-            <AddFilter
-              globalFilters={activeGlobalFilters}
-              getSearchBarData={getSearchBarData}
-              onAddFilter={newFilter => {
-                updateGlobalFilters([...activeGlobalFilters, newFilter]);
-                trackAnalytics('dashboards2.global_filter.add', {
-                  organization,
-                });
-              }}
-            />
-          </Fragment>
-        )}
+        {activeGlobalFilters.map(filter => (
+          <GenericFilterSelector
+            disableRemoveFilter={
+              isPrebuiltDashboard &&
+              prebuiltDashboardFilters.some(
+                prebuiltFilter =>
+                  prebuiltFilter.tag.key === filter.tag.key &&
+                  prebuiltFilter.dataset === filter.dataset
+              )
+            }
+            key={filter.tag.key + filter.value}
+            globalFilter={filter}
+            searchBarData={getSearchBarData(filter.dataset)}
+            onUpdateFilter={updatedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.map(f =>
+                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                )
+              );
+            }}
+            onRemoveFilter={removedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.filter(
+                  f => !globalFilterKeysAreEqual(f, removedFilter)
+                )
+              );
+              trackAnalytics('dashboards2.global_filter.remove', {
+                organization,
+              });
+            }}
+          />
+        ))}
+        <AddFilter
+          globalFilters={activeGlobalFilters}
+          getSearchBarData={getSearchBarData}
+          onAddFilter={newFilter => {
+            updateGlobalFilters([...activeGlobalFilters, newFilter]);
+            trackAnalytics('dashboards2.global_filter.add', {
+              organization,
+            });
+          }}
+        />
         {!hasTemporaryFilters &&
           hasUnsavedChanges &&
           !isEditingDashboard &&
-          !isPreview &&
-          !isPrebuiltDashboard && (
+          !isPreview && (
             <Grid flow="column" align="center" gap="md">
               <Button
                 tooltipProps={{
@@ -353,7 +350,14 @@ export default function FiltersBar({
                 data-test-id="filter-bar-cancel"
                 onClick={() => {
                   onCancel?.();
-                  setActiveGlobalFilters(filters.globalFilter ?? []);
+                  // Reset local display state, falling back to prebuilt
+                  // defaults when no saved filters exist
+                  const displayFilters = filters.globalFilter?.length
+                    ? filters.globalFilter
+                    : prebuiltDashboardFilters;
+                  setActiveGlobalFilters(displayFilters);
+                  // Push saved filters (not display fallback) to avoid a
+                  // URL/DB mismatch that re-triggers hasUnsavedFilterChanges
                   onDashboardFilterChange(filters);
                 }}
               >

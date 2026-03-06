@@ -54,7 +54,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
-    from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
 
@@ -438,12 +437,6 @@ class Project(Model):
         from sentry.models.options.project_option import ProjectOption
 
         return ProjectOption.objects
-
-    @property
-    def template_manager(self) -> ProjectTemplateOptionManager:
-        from sentry.models.options.project_template_option import ProjectTemplateOption
-
-        return ProjectTemplateOption.objects
 
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None

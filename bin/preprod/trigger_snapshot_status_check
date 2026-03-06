@@ -1,0 +1,339 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+from datetime import timedelta
+
+logger = logging.getLogger(__name__)
+
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodComparisonApproval,
+)
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.vcs.status_checks.snapshots.tasks import (
+    create_preprod_snapshot_status_check_task,
+)
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+PROJECT_SLUG = "internal"
+REPO_NAME = "EmergeTools/hackernews"
+COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
+
+# Snapshot build configurations
+BUILD_1 = {
+    "app_id": "com.emerge.hackernews.android",
+    "artifact_type": PreprodArtifact.ArtifactType.AAB,
+    "app_name": "HackerNews Android",
+    "build_version": "1.0.3",
+    "build_number": 42,
+    "state": "compared_with_changes",
+    "create_base": True,
+    # Snapshot comparison results
+    "images_changed": 0,
+    "images_added": 0,
+    "images_removed": 0,
+    "images_unchanged": 24,
+    "image_count": 24,
+}
+
+# Set to None to disable BUILD_2
+BUILD_2 = None
+
+# Available states:
+# - "no_metrics":              Artifact has no snapshot metrics yet (processing)
+# - "metrics_no_comparison":   Artifact has metrics but no comparison yet
+# - "comparison_pending":      Comparison created but still pending
+# - "comparison_processing":   Comparison in progress
+# - "comparison_failed":       Comparison failed
+# - "compared_no_changes":     Comparison complete, all images match
+# - "compared_with_changes":   Comparison complete, some images differ
+
+# USAGE EXAMPLES:
+#
+# 1. All images match (SUCCESS):
+#    BUILD_1 = {..., "state": "compared_no_changes"}
+#    BUILD_2 = {..., "state": "compared_no_changes"}
+#
+# 2. Images changed (FAILURE with Approve button):
+#    BUILD_1 = {..., "state": "compared_with_changes", "images_changed": 3}
+#
+# 3. Still comparing (IN_PROGRESS):
+#    BUILD_1 = {..., "state": "comparison_processing"}
+#
+# 4. Mixed states:
+#    BUILD_1 = {..., "state": "compared_with_changes"}
+#    BUILD_2 = {..., "state": "comparison_pending"}
+#
+# 5. Comparison failure:
+#    BUILD_1 = {..., "state": "comparison_failed"}
+
+
+BASE_COMMIT_SHA = "a1b2c3d4e5f6789012345678901234567890abcd"
+
+
+def cleanup_existing_data(project, commit_comparison):
+    """Remove existing test artifacts for idempotent reruns."""
+    logger.info("\n🧹 Cleaning up existing artifacts for commit %s...", COMMIT_SHA[:8])
+
+    base_commit_comparisons = CommitComparison.objects.filter(
+        head_sha=BASE_COMMIT_SHA,
+        organization_id=project.organization_id,
+    )
+
+    all_commit_comparisons = [commit_comparison] + list(base_commit_comparisons)
+    existing_artifacts = PreprodArtifact.objects.filter(
+        commit_comparison__in=all_commit_comparisons,
+        project__organization_id=project.organization_id,
+    )
+
+    if existing_artifacts.exists():
+        artifact_ids = list(existing_artifacts.values_list("id", flat=True))
+        metrics = PreprodSnapshotMetrics.objects.filter(preprod_artifact_id__in=artifact_ids)
+        metrics_ids = list(metrics.values_list("id", flat=True))
+
+        comparison_count = PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics_id__in=metrics_ids
+        ).delete()[0]
+        metrics_count = metrics.delete()[0]
+        approval_count = PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=artifact_ids
+        ).delete()[0]
+        artifact_count = existing_artifacts.delete()[0]
+
+        if base_commit_comparisons.exists():
+            base_count = base_commit_comparisons.delete()[0]
+            logger.info(
+                "  ✓ Deleted %s artifacts, %s metrics, %s comparisons, %s approvals, %s base commits",
+                artifact_count,
+                metrics_count,
+                comparison_count,
+                approval_count,
+                base_count,
+            )
+        else:
+            logger.info(
+                "  ✓ Deleted %s artifacts, %s metrics, %s comparisons, %s approvals",
+                artifact_count,
+                metrics_count,
+                comparison_count,
+                approval_count,
+            )
+    else:
+        logger.info("  ✓ No existing artifacts found (clean slate)")
+
+
+def create_artifact_and_metrics(project, build_config, commit_comparison):
+    """Create a preprod artifact with snapshot metrics."""
+    state = build_config["state"]
+
+    artifact = PreprodArtifact.objects.create(
+        project=project,
+        artifact_type=build_config["artifact_type"],
+        app_id=build_config["app_id"],
+        commit_comparison=commit_comparison,
+        state=PreprodArtifact.ArtifactState.PROCESSED,
+    )
+    PreprodArtifactMobileAppInfo.objects.create(
+        preprod_artifact=artifact,
+        app_name=build_config["app_name"],
+        build_version=build_config["build_version"],
+        build_number=build_config["build_number"],
+    )
+
+    # Backdate to simulate processing time
+    artifact.date_added = artifact.date_added - timedelta(minutes=5)
+    artifact.save(update_fields=["date_added"])
+
+    logger.info("  ✓ Created artifact: %s (ID: %s)", build_config["app_id"], artifact.id)
+
+    if state == "no_metrics":
+        logger.info("  ⏳ No metrics created (simulating upload in progress)")
+        return artifact, None
+
+    metrics = PreprodSnapshotMetrics.objects.create(
+        preprod_artifact=artifact,
+        image_count=build_config.get("image_count", 10),
+    )
+    logger.info("  ✓ Created snapshot metrics: %s (%s images)", metrics.id, metrics.image_count)
+
+    return artifact, metrics
+
+
+def create_base_data(project, build_config, head_commit_comparison):
+    """Create base artifact and metrics for comparison."""
+    base_commit_comparison, _ = CommitComparison.objects.get_or_create(
+        head_repo_name=head_commit_comparison.head_repo_name,
+        head_sha=BASE_COMMIT_SHA,
+        provider=head_commit_comparison.provider,
+        organization_id=head_commit_comparison.organization_id,
+    )
+
+    if not head_commit_comparison.base_sha:
+        head_commit_comparison.base_sha = BASE_COMMIT_SHA
+        head_commit_comparison.save(update_fields=["base_sha"])
+
+    base_artifact = PreprodArtifact.objects.create(
+        project=project,
+        artifact_type=build_config["artifact_type"],
+        app_id=build_config["app_id"],
+        commit_comparison=base_commit_comparison,
+        state=PreprodArtifact.ArtifactState.PROCESSED,
+    )
+    PreprodArtifactMobileAppInfo.objects.create(
+        preprod_artifact=base_artifact,
+        app_name=build_config["app_name"],
+        build_version=build_config["build_version"],
+        build_number=build_config["build_number"] - 1,
+    )
+
+    base_metrics = PreprodSnapshotMetrics.objects.create(
+        preprod_artifact=base_artifact,
+        image_count=build_config.get("image_count", 10),
+    )
+
+    logger.info(
+        "  ✓ Created base artifact: %s (ID: %s) with metrics",
+        build_config["app_id"],
+        base_artifact.id,
+    )
+
+    return base_metrics
+
+
+def create_comparison(build_config, head_metrics, base_metrics):
+    """Create a snapshot comparison based on the configured state."""
+    state = build_config["state"]
+
+    state_map = {
+        "comparison_pending": PreprodSnapshotComparison.State.PENDING,
+        "comparison_processing": PreprodSnapshotComparison.State.PROCESSING,
+        "comparison_failed": PreprodSnapshotComparison.State.FAILED,
+        "compared_no_changes": PreprodSnapshotComparison.State.SUCCESS,
+        "compared_with_changes": PreprodSnapshotComparison.State.SUCCESS,
+    }
+
+    comparison_state = state_map.get(state)
+    if comparison_state is None:
+        return None
+
+    comparison = PreprodSnapshotComparison.objects.create(
+        head_snapshot_metrics=head_metrics,
+        base_snapshot_metrics=base_metrics,
+        state=comparison_state,
+        images_changed=build_config.get("images_changed", 0),
+        images_added=build_config.get("images_added", 0),
+        images_removed=build_config.get("images_removed", 0),
+        images_unchanged=build_config.get("images_unchanged", 0),
+    )
+
+    status_label = {
+        PreprodSnapshotComparison.State.PENDING: "⏳ Pending",
+        PreprodSnapshotComparison.State.PROCESSING: "⏳ Processing",
+        PreprodSnapshotComparison.State.FAILED: "❌ Failed",
+        PreprodSnapshotComparison.State.SUCCESS: "✅ Success",
+    }[comparison_state]
+
+    logger.info("  ✓ Created comparison: %s", status_label)
+    if comparison_state == PreprodSnapshotComparison.State.SUCCESS:
+        logger.info(
+            "    Changed: %s, Added: %s, Removed: %s, Unchanged: %s",
+            comparison.images_changed,
+            comparison.images_added,
+            comparison.images_removed,
+            comparison.images_unchanged,
+        )
+
+    return comparison
+
+
+def main():
+    try:
+        project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
+        logger.info("Found project: %s (ID: %s)", project.name, project.id)
+
+        commit_comparison, created = CommitComparison.objects.get_or_create(
+            head_repo_name=REPO_NAME,
+            head_sha=COMMIT_SHA,
+            provider="github",
+            organization_id=project.organization.id,
+        )
+        logger.info(
+            "%s commit comparison: %s", "Created" if created else "Found", commit_comparison.id
+        )
+
+        cleanup_existing_data(project, commit_comparison)
+
+        build_configs = [BUILD_1]
+        if BUILD_2 is not None:
+            build_configs.append(BUILD_2)
+
+        logger.info("\n🧪 Running snapshot status check test with %s build(s):", len(build_configs))
+        for i, config in enumerate(build_configs, 1):
+            logger.info(
+                "  📱 BUILD_%s: %s (state: %s, base: %s)",
+                i,
+                config["app_id"],
+                config["state"],
+                config.get("create_base", False),
+            )
+
+        created_artifacts = []
+
+        for build_config in build_configs:
+            logger.info("\n📦 Setting up %s...", build_config["app_id"])
+
+            artifact, head_metrics = create_artifact_and_metrics(
+                project, build_config, commit_comparison
+            )
+            created_artifacts.append(artifact)
+
+            if (
+                head_metrics
+                and build_config.get("create_base")
+                and build_config["state"]
+                not in (
+                    "no_metrics",
+                    "metrics_no_comparison",
+                )
+            ):
+                base_metrics = create_base_data(project, build_config, commit_comparison)
+                create_comparison(build_config, head_metrics, base_metrics)
+
+        logger.info(
+            "\n🚀 Calling create_preprod_snapshot_status_check_task with artifact %s...",
+            created_artifacts[0].id,
+        )
+        result = create_preprod_snapshot_status_check_task(
+            preprod_artifact_id=created_artifacts[0].id
+        )
+        logger.info("Task result: %s", result)
+        logger.info("✅ Snapshot status check function called successfully!")
+
+        logger.info("\n🔍 Check your GitHub status check at:")
+        logger.info("   https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
+
+        logger.info("\n🔧 Debug: Created %s artifacts:", len(created_artifacts))
+        for artifact in created_artifacts:
+            logger.info("  - %s: ID %s", artifact.app_id, artifact.id)
+
+    except Project.DoesNotExist:
+        logger.exception("❌ Project not found: %s/%s", ORG_SLUG, PROJECT_SLUG)
+        sys.exit(1)
+    except Exception:
+        logger.exception("❌ Error running snapshot status check")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

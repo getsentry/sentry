@@ -9,7 +9,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
@@ -45,7 +45,7 @@ const EVENT = 'event';
 const SPANS = 'spans';
 
 export function ScreenLoadSpansContent() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation<Query>();
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
 
@@ -59,10 +59,13 @@ export function ScreenLoadSpansContent() {
     moduleName: ModuleName.SCREEN_LOAD,
     requiredParams: ['transaction', 'spanGroup'],
     onClose: () => {
-      router.replace({
-        pathname: router.location.pathname,
-        query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          query: omit(location.query, 'spanGroup', 'transactionMethod'),
+        },
+        {replace: true}
+      );
     },
   });
 
