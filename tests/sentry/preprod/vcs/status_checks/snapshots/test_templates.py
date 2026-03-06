@@ -7,6 +7,8 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
+    format_first_snapshot_status_check_messages,
+    format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
 )
 from sentry.testutils.cases import TestCase
@@ -653,5 +655,156 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 1 | 2 | 3 | 1 | 4 | ⏳ Needs approval |"
+        )
+        assert summary == expected
+
+
+@region_silo_test
+class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
+    def test_first_upload_single_artifact(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=24
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        title, subtitle, summary = format_first_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "24 snapshots uploaded"
+        assert "My App" in summary
+        assert "24" in summary
+        assert "✅ Uploaded" in summary
+        assert "first snapshot upload" in summary
+
+    def test_first_upload_multiple_artifacts(self):
+        artifacts = []
+        snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
+
+        for i in range(3):
+            artifact, metrics = self._create_artifact_with_metrics(
+                app_id=f"com.example.app{i}",
+                build_number=i + 1,
+                image_count=10,
+            )
+            artifacts.append(artifact)
+            snapshot_metrics_map[artifact.id] = metrics
+
+        title, subtitle, summary = format_first_snapshot_status_check_messages(
+            artifacts, snapshot_metrics_map
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "30 snapshots uploaded"
+        for i in range(3):
+            assert f"com.example.app{i}" in summary
+        assert "first snapshot upload" in summary
+
+    def test_first_upload_artifact_without_metrics(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        title, subtitle, summary = format_first_snapshot_status_check_messages([artifact], {})
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "0 snapshots uploaded"
+        assert "⏳ Processing" in summary
+        assert "com.example.app" in summary
+        assert "first snapshot upload" in summary
+
+    def test_first_upload_empty_artifacts_raises(self):
+        with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
+            format_first_snapshot_status_check_messages([], {})
+
+    def test_first_upload_summary_table_format(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=15
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        _, _, summary = format_first_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{artifact.id}"
+
+        expected = (
+            "| Name | Snapshots | Status |\n"
+            "| :--- | :---: | :---: |\n"
+            f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
+            "\n\n> This looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
+        )
+        assert summary == expected
+
+
+@region_silo_test
+class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
+    def test_missing_base_single_artifact(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=24
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "No base snapshots found"
+        assert "My App" in summary
+        assert "24" in summary
+        assert "✅ Uploaded" in summary
+        assert "No base snapshots found to compare against" in summary
+
+    def test_missing_base_multiple_artifacts(self):
+        artifacts = []
+        snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
+
+        for i in range(3):
+            artifact, metrics = self._create_artifact_with_metrics(
+                app_id=f"com.example.app{i}",
+                build_number=i + 1,
+                image_count=10,
+            )
+            artifacts.append(artifact)
+            snapshot_metrics_map[artifact.id] = metrics
+
+        title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
+            artifacts, snapshot_metrics_map
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "No base snapshots found"
+        for i in range(3):
+            assert f"com.example.app{i}" in summary
+        assert "No base snapshots found to compare against" in summary
+
+    def test_missing_base_empty_artifacts_raises(self):
+        with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
+            format_missing_base_snapshot_status_check_messages([], {})
+
+    def test_missing_base_summary_table_format(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=15
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        _, _, summary = format_missing_base_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{artifact.id}"
+
+        expected = (
+            "| Name | Snapshots | Status |\n"
+            "| :--- | :---: | :---: |\n"
+            f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
+            "\n\n> No base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
         )
         assert summary == expected
