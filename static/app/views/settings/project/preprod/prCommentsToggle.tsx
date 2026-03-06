@@ -20,7 +20,7 @@ export function PrCommentsToggle() {
 
   return (
     <Panel>
-      <PanelHeader>{t('Pull Request Comments')}</PanelHeader>
+      <PanelHeader>{t('Build Distribution - Pull Request Comments')}</PanelHeader>
       <PanelBody>
         <Flex align="center" justify="between" padding="xl">
           <Stack gap="xs">
