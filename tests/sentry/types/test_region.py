@@ -119,16 +119,16 @@ class RegionDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            mapping.update(region_name="az")
+            mapping.update(cell_name="az")
             with pytest.raises(RegionResolutionError):
                 # Cell does not exist
                 get_cell_for_organization(self.organization.slug)
 
-            mapping.update(region_name=self._EXPECTED_OUTPUTS[0].name)
+            mapping.update(cell_name=self._EXPECTED_OUTPUTS[0].name)
             cell = get_cell_for_organization(self.organization.slug)
             assert cell == self._EXPECTED_OUTPUTS[0]
 
-            mapping.update(region_name=self._EXPECTED_OUTPUTS[1].name)
+            mapping.update(cell_name=self._EXPECTED_OUTPUTS[1].name)
             cell = get_cell_for_organization(self.organization.slug)
             assert cell == self._EXPECTED_OUTPUTS[1]
 
