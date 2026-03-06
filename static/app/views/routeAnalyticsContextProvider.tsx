@@ -42,7 +42,8 @@ export default function RouteAnalyticsContextProvider({children}: Props) {
     params: useParams(),
     routes: useRoutes(),
     location: useLocation(),
-  };
+    router: undefined,
+  } as Parameters<NonNullable<typeof useRouteActivatedHook>>[0];
 
   const {
     setDisableRouteAnalytics,
