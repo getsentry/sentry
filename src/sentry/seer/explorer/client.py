@@ -304,7 +304,7 @@ class SeerExplorerClient:
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        ):  # Set to True at the start of the run and persist in Seer explorer run state
             chat_body["is_context_engine_enabled"] = True
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
