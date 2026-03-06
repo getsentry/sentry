@@ -204,8 +204,15 @@ export default function SnapshotsPage() {
           </Layout.HeaderActions>
         </Layout.Header>
 
-        <Flex direction="row" height="100%" width="100%" overflow="hidden">
-          <Flex flexShrink={0} overflow="hidden" style={{width: sidebarWidth}}>
+        <Flex
+          direction="row"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          overflow="hidden"
+          style={{maxHeight: 'calc(100vh - 160px)'}}
+        >
+          <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent
               items={filteredItems}
               currentItemName={currentItemName}

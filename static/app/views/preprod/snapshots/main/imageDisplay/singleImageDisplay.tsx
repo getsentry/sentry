@@ -19,7 +19,7 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
   const {containerRef, transform, zoomIn, zoomOut, resetZoom} = useD3Zoom();
 
   return (
-    <Flex align="center" justify="center" height="100%" padding="3xl">
+    <Flex align="center" justify="center" flex="1" minHeight="0" padding="3xl">
       <ZoomableArea>
         <ZoomContainer ref={containerRef}>
           <ZoomContent style={zoomTransformStyle(transform)}>
