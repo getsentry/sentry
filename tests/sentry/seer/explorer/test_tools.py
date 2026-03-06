@@ -20,6 +20,7 @@ from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
+    _get_issue_event_timeseries,
     _get_recommended_event,
     execute_table_query,
     execute_timeseries_query,
@@ -1630,6 +1631,60 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert len(result["user_activity"]) == 1
         assert result["user_activity"][0]["type"] == "note"
 
+    # --- assignee ---
+
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_assigned_user_included(self, mock_tags, mock_ts):
+        """Issue metadata includes assignedTo when a user is assigned."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "user"
+        assert md.assignedTo.id == str(self.user.id)
+        assert md.assignedTo.email == self.user.email
+        assert md.assignedTo.name == self.user.get_display_name()
+
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_assigned_team_included(self, mock_tags, mock_ts):
+        """Issue metadata includes assignedTo when a team is assigned."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "team"
+        assert md.assignedTo.id == str(self.team.id)
+        assert md.assignedTo.name == self.team.slug
+        assert md.assignedTo.email is None
+
     # --- project scoping ---
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
@@ -1878,9 +1933,11 @@ class TestGetEventDetails(
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Unit tests for the util that derives a response from an event and group."""
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_tags_exception(self, mock_get_tags):
+    def test_get_ie_response_tags_exception(self, mock_get_tags, mock_ts):
         mock_get_tags.side_effect = Exception("Test exception")
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         """Test other fields are returned with null tags_overview when tag util fails."""
         # Create a valid group.
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -1901,12 +1958,15 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
         assert isinstance(result.get("issue"), dict)
         _IssueMetadata.parse_obj(result.get("issue", {}))
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_response_with_assigned_user(
         self,
         mock_get_tags,
+        mock_ts,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -1928,9 +1988,11 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
         assert md.assignedTo.email == self.user.email
         assert md.assignedTo.name == self.user.get_display_name()
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_with_assigned_team(self, mock_get_tags):
+    def test_get_ie_response_with_assigned_team(self, mock_get_tags, mock_ts):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -1953,18 +2015,14 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
         assert md.assignedTo.name == self.team.slug
         assert md.assignedTo.email is None
 
-    @patch("sentry.seer.explorer.tools.client")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_timeseries_no_start_end(
-        self,
-        mock_get_tags,
-        mock_api_client,
-    ):
-        """Test timeseries response for different resolutions and group first_seen dates"""
-        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
+class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
+    """Tests for _get_issue_event_timeseries — resolution selection and API call params."""
+
+    @patch("sentry.seer.explorer.tools.client")
+    def test_no_start_end_uses_group_date_range(self, mock_api_client):
+        """Selects resolution based on group lifespan and passes correct start/end to the API."""
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
-            # Fresh mock with passthrough to real client - allows testing call args
             mock_api_client.get = Mock(side_effect=client.get)
 
             delta = parse_stats_period(stats_period)
@@ -1979,7 +2037,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             event = self.store_event(data=data, project_id=self.project.id)
 
-            # Second event that just occurred
+            # Second event that just occurred.
             last_seen = datetime.now(UTC)
             data = load_data("python", timestamp=last_seen)
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
@@ -1990,11 +2048,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
             group.update(first_seen=first_seen, last_seen=last_seen)
             group.save()
 
-            result = get_issue_and_event_response(
-                event=event,
-                group=group,
-                organization=self.organization,
-            )
+            result = _get_issue_event_timeseries(group=group, organization=self.organization)
 
             # Assert expected date params were passed to the API.
             stats_request_count = 0
@@ -2013,27 +2067,20 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
 
             assert stats_request_count == 1
 
-            # Validate final results.
+            # Validate return value: (data, stats_period, interval).
             assert result is not None
-            _validate_event_timeseries(result["event_timeseries"])
-            assert result["timeseries_stats_period"] == stats_period
-            assert result["timeseries_interval"] == interval
+            timeseries_data, returned_period, returned_interval = result
+            _validate_event_timeseries(timeseries_data)
+            assert returned_period == stats_period
+            assert returned_interval == interval
 
             # Ensure next iteration makes a fresh group.
             group.delete()
 
     @patch("sentry.seer.explorer.tools.client")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_timeseries_with_start_end(
-        self,
-        mock_get_tags,
-        mock_api_client,
-    ):
-        """Test timeseries response for different resolutions and explicit time ranges"""
-        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
-
+    def test_with_start_end_uses_explicit_range(self, mock_api_client):
+        """Selects resolution based on explicit start/end and passes correct params to the API."""
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
-            # Fresh mock with passthrough to real client - allows testing call args
             mock_api_client.get = Mock(side_effect=client.get)
 
             delta = parse_stats_period(stats_period)
@@ -2057,12 +2104,8 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
             group = event.group
             assert isinstance(group, Group)
 
-            result = get_issue_and_event_response(
-                event=event,
-                group=group,
-                organization=self.organization,
-                start=start,
-                end=end,
+            result = _get_issue_event_timeseries(
+                group=group, organization=self.organization, start=start, end=end
             )
 
             # Assert expected date params were passed to the API.
@@ -2080,11 +2123,12 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
 
             assert stats_request_count == 1
 
-            # Validate final results.
+            # Validate return value: (data, stats_period, interval).
             assert result is not None
-            _validate_event_timeseries(result["event_timeseries"])
-            assert result["timeseries_stats_period"] == stats_period
-            assert result["timeseries_interval"] == interval
+            timeseries_data, returned_period, returned_interval = result
+            _validate_event_timeseries(timeseries_data)
+            assert returned_period == stats_period
+            assert returned_interval == interval
 
             # Ensure next iteration makes a fresh group.
             group.delete()
