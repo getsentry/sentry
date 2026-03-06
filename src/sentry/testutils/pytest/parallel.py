@@ -324,6 +324,7 @@ class _CoordinatorPlugin:
 
         # Poll result files, print our output, and collect reports for pytest.
         reports: list[pytest.TestReport] = []
+        reports_by_nodeid: dict[str, pytest.TestReport] = {}
         alive = {i for i, _, _ in workers}
         offsets: dict[int, int] = {i: 0 for i, _, _ in workers}
 
@@ -339,7 +340,15 @@ class _CoordinatorPlugin:
                         self._print_result(idx, ev, tw)
                         item = items_by_nodeid.get(ev["n"])
                         if item is not None:
-                            reports.append(self._make_report(ev, item))
+                            report = self._make_report(ev, item)
+                            # For reruns, replace the previous report for the same
+                            # nodeid so only the final outcome is in the summary.
+                            if ev["n"] in reports_by_nodeid:
+                                old = reports_by_nodeid[ev["n"]]
+                                reports[reports.index(old)] = report
+                            else:
+                                reports.append(report)
+                            reports_by_nodeid[ev["n"]] = report
                     offsets[idx] = f.tell()
             except FileNotFoundError:
                 pass
