@@ -15,7 +15,14 @@ import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constant
 
 const seerDefaultsSchema = z.object({
   defaultSeerScannerAutomation: z.boolean(),
-  defaultAutofixAutomationTuning: z.string(),
+  defaultAutofixAutomationTuning: z.enum([
+    'off',
+    'super_low',
+    'low',
+    'medium',
+    'high',
+    'always',
+  ]),
   enableSeerEnhancedAlerts: z.boolean(),
   enableSeerCoding: z.boolean(),
 });
@@ -26,7 +33,7 @@ export function SeerAutomationDefault() {
   const scannerEnabled = organization.defaultSeerScannerAutomation ?? false;
 
   const orgMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<z.infer<typeof seerDefaultsSchema>>) =>
+    mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({
         url: `/organizations/${organization.slug}/`,
         method: 'PUT',
