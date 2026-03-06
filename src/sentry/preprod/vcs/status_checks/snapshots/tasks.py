@@ -15,9 +15,9 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.tasks import (
     GITHUB_STATUS_CHECK_STATUS_MAPPING,
-    _get_status_check_client,
-    _get_status_check_provider,
-    _update_posted_status_check,
+    get_status_check_client,
+    get_status_check_provider,
+    update_posted_status_check,
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_snapshot_status_check_messages,
@@ -90,11 +90,11 @@ def create_preprod_snapshot_status_check_task(
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
-    client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
+    client, repository = get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
         return
 
-    provider = _get_status_check_provider(
+    provider = get_status_check_provider(
         client,
         commit_comparison.provider,
         preprod_artifact.project.organization_id,
@@ -156,14 +156,11 @@ def create_preprod_snapshot_status_check_task(
         snapshot_metrics_map,
         comparisons_map,
         status,
-        preprod_artifact.project,
         base_artifact_map,
     )
 
     approve_action_identifier: str | None = None
-    if status == StatusCheckStatus.FAILURE and _has_snapshot_changes(
-        all_artifacts, snapshot_metrics_map, comparisons_map
-    ):
+    if _has_snapshot_changes(all_artifacts, snapshot_metrics_map, comparisons_map):
         approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     url_artifact = (
@@ -201,9 +198,7 @@ def create_preprod_snapshot_status_check_task(
             "preprod.snapshot_status_checks.create.failed",
             extra=extra,
         )
-        _update_posted_status_check(
-            preprod_artifact, check_type="snapshots", success=False, error=e
-        )
+        update_posted_status_check(preprod_artifact, check_type="snapshots", success=False, error=e)
         raise
 
     if check_id is None:
@@ -216,10 +211,10 @@ def create_preprod_snapshot_status_check_task(
                 "error_type": "null_check_id",
             },
         )
-        _update_posted_status_check(preprod_artifact, check_type="snapshots", success=False)
+        update_posted_status_check(preprod_artifact, check_type="snapshots", success=False)
         return
 
-    _update_posted_status_check(
+    update_posted_status_check(
         preprod_artifact, check_type="snapshots", success=True, check_id=check_id
     )
 
@@ -270,37 +265,27 @@ def _compute_snapshot_status(
     - FAILURE if any comparison failed, or if any has changes and not approved
     - SUCCESS if all comparisons succeeded with no changes, or all approved
     """
-    has_in_progress = False
-    has_failure = False
-
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
-        if not metrics:
-            has_in_progress = True
-            continue
+        comparison = metrics and comparisons_map.get(metrics.id)
 
-        comparison = comparisons_map.get(metrics.id)
         if not comparison:
-            has_in_progress = True
-            continue
+            return StatusCheckStatus.IN_PROGRESS
 
-        if comparison.state in (
-            PreprodSnapshotComparison.State.PENDING,
-            PreprodSnapshotComparison.State.PROCESSING,
-        ):
-            has_in_progress = True
-        elif comparison.state == PreprodSnapshotComparison.State.FAILED:
-            has_failure = True
-        elif comparison.state == PreprodSnapshotComparison.State.SUCCESS:
-            if (
-                comparison.images_changed > 0
-                or comparison.images_added > 0
-                or comparison.images_removed > 0
-            ) and artifact.id not in approvals_map:
-                has_failure = True
+        match comparison.state:
+            case (
+                PreprodSnapshotComparison.State.PENDING | PreprodSnapshotComparison.State.PROCESSING
+            ):
+                return StatusCheckStatus.IN_PROGRESS
+            case PreprodSnapshotComparison.State.FAILED:
+                return StatusCheckStatus.FAILURE
+            case PreprodSnapshotComparison.State.SUCCESS:
+                if (
+                    comparison.images_changed > 0
+                    or comparison.images_added > 0
+                    or comparison.images_removed > 0
+                    or comparison.images_renamed > 0
+                ) and artifact.id not in approvals_map:
+                    return StatusCheckStatus.FAILURE
 
-    if has_in_progress:
-        return StatusCheckStatus.IN_PROGRESS
-    if has_failure:
-        return StatusCheckStatus.FAILURE
     return StatusCheckStatus.SUCCESS

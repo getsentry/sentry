@@ -55,6 +55,7 @@ class SnapshotStatusCheckTestBase(TestCase):
         images_changed: int = 0,
         images_added: int = 0,
         images_removed: int = 0,
+        images_renamed: int = 0,
         images_unchanged: int = 10,
     ) -> PreprodSnapshotComparison:
         return PreprodSnapshotComparison.objects.create(
@@ -64,6 +65,7 @@ class SnapshotStatusCheckTestBase(TestCase):
             images_changed=images_changed,
             images_added=images_added,
             images_removed=images_removed,
+            images_renamed=images_renamed,
             images_unchanged=images_unchanged,
         )
 
@@ -72,9 +74,7 @@ class SnapshotStatusCheckTestBase(TestCase):
 class SnapshotEmptyArtifactsTest(SnapshotStatusCheckTestBase):
     def test_empty_artifacts_raises_error(self):
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
-            format_snapshot_status_check_messages(
-                [], {}, {}, StatusCheckStatus.SUCCESS, self.project, {}
-            )
+            format_snapshot_status_check_messages([], {}, {}, StatusCheckStatus.SUCCESS, {})
 
 
 @region_silo_test
@@ -89,12 +89,12 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         title, subtitle, summary = format_snapshot_status_check_messages(
-            [artifact], {}, {}, StatusCheckStatus.IN_PROGRESS, self.project, {}
+            [artifact], {}, {}, StatusCheckStatus.IN_PROGRESS, {}
         )
 
         assert title == "Snapshot Testing"
         assert subtitle == "Comparing snapshots..."
-        assert "Processing..." in summary
+        assert "Processing" in summary
         assert "com.example.app" in summary
 
     def test_artifact_with_metrics_but_no_comparison_shows_processing(self):
@@ -103,12 +103,12 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {artifact.id: metrics}
 
         title, subtitle, summary = format_snapshot_status_check_messages(
-            [artifact], snapshot_metrics_map, {}, StatusCheckStatus.IN_PROGRESS, self.project, {}
+            [artifact], snapshot_metrics_map, {}, StatusCheckStatus.IN_PROGRESS, {}
         )
 
         assert title == "Snapshot Testing"
         assert subtitle == "Comparing snapshots..."
-        assert "Processing..." in summary
+        assert "Processing" in summary
 
     def test_comparison_in_pending_state_shows_comparing(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
@@ -126,7 +126,6 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.IN_PROGRESS,
-            self.project,
             {},
         )
 
@@ -145,12 +144,11 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {head_artifact.id: head_metrics}
         comparisons_map = {head_metrics.id: comparison}
 
-        title, subtitle, summary = format_snapshot_status_check_messages(
+        _, subtitle, _ = format_snapshot_status_check_messages(
             [head_artifact],
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.IN_PROGRESS,
-            self.project,
             {},
         )
 
@@ -182,18 +180,15 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
         assert title == "Snapshot Testing"
         assert subtitle == "No changes detected"
-        assert "✅" in summary
-        assert "0 changed" in summary
-        assert "10 unchanged" in summary
+        assert "✅ Unchanged" in summary
         assert "My App" in summary
 
-    def test_app_id_used_when_no_app_name(self):
+    def test_app_id_shown_in_name_cell(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.noname"
         )
@@ -209,11 +204,10 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
-        assert "com.example.noname" in summary
+        assert "`com.example.noname`" in summary
 
     def test_multiple_artifacts_all_match(self):
         artifacts = []
@@ -238,7 +232,6 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
@@ -271,17 +264,14 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 images changed"
-        assert "❌" in summary
-        assert "3 changed" in summary
-        assert "7 unchanged" in summary
+        assert subtitle == "3 modified, 7 unchanged"
+        assert "⏳ Needs approval" in summary
 
-    def test_single_image_changed_uses_singular(self):
+    def test_single_image_changed(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -300,11 +290,10 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
-        assert subtitle == "1 image changed"
+        assert subtitle == "1 modified, 9 unchanged"
 
     def test_images_added_and_removed(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -322,18 +311,39 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {head_artifact.id: head_metrics}
         comparisons_map = {head_metrics.id: comparison}
 
-        _, subtitle, summary = format_snapshot_status_check_messages(
+        _, subtitle, _ = format_snapshot_status_check_messages(
             [head_artifact],
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
-        assert subtitle == "2 added, 1 removed"
-        assert "2 added" in summary
-        assert "1 removed" in summary
+        assert subtitle == "2 added, 1 removed, 8 unchanged"
+
+    def test_images_renamed(self):
+        head_artifact, head_metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_renamed=4,
+            images_unchanged=6,
+        )
+
+        snapshot_metrics_map = {head_artifact.id: head_metrics}
+        comparisons_map = {head_metrics.id: comparison}
+
+        _, subtitle, _ = format_snapshot_status_check_messages(
+            [head_artifact],
+            snapshot_metrics_map,
+            comparisons_map,
+            StatusCheckStatus.FAILURE,
+            {},
+        )
+
+        assert subtitle == "4 renamed, 6 unchanged"
 
     def test_all_change_types_combined(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -345,6 +355,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             images_changed=3,
             images_added=1,
             images_removed=2,
+            images_renamed=1,
             images_unchanged=5,
         )
 
@@ -356,21 +367,16 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
-        assert subtitle == "3 images changed, 1 added, 2 removed"
-        assert "❌" in summary
-        assert "3 changed" in summary
-        assert "1 added" in summary
-        assert "2 removed" in summary
-        assert "5 unchanged" in summary
+        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 5 unchanged"
+        assert "⏳ Needs approval" in summary
 
 
 @region_silo_test
 class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
-    def test_failed_comparison_shows_failure(self):
+    def test_failed_comparison_returns_error_message(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -388,46 +394,55 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "1 comparison failed"
-        assert "Failed" in summary
+        assert subtitle == "We had trouble comparing snapshots, our team is investigating."
+        assert summary == ""
 
-    def test_multiple_failed_comparisons(self):
-        artifacts = []
-        snapshot_metrics_map = {}
-        comparisons_map = {}
+    def test_failed_comparison_early_returns_ignoring_other_artifacts(self):
+        # First artifact has a failed comparison
+        head1, head1_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.failed", build_number=1
+        )
+        base1, base1_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.base1", build_number=10
+        )
+        comparison1 = self._create_comparison(
+            head1_metrics, base1_metrics, state=PreprodSnapshotComparison.State.FAILED
+        )
 
-        for i in range(2):
-            head_artifact, head_metrics = self._create_artifact_with_metrics(
-                app_id=f"com.example.app{i}", build_number=i + 1
-            )
-            base_artifact, base_metrics = self._create_artifact_with_metrics(
-                app_id=f"com.example.base{i}", build_number=i + 10
-            )
-            comparison = self._create_comparison(
-                head_metrics,
-                base_metrics,
-                state=PreprodSnapshotComparison.State.FAILED,
-            )
+        # Second artifact has changes
+        head2, head2_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.changed", build_number=2
+        )
+        base2, base2_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.base2", build_number=11
+        )
+        comparison2 = self._create_comparison(
+            head2_metrics, base2_metrics, images_changed=5, images_unchanged=5
+        )
 
-            artifacts.append(head_artifact)
-            snapshot_metrics_map[head_artifact.id] = head_metrics
-            comparisons_map[head_metrics.id] = comparison
+        snapshot_metrics_map = {
+            head1.id: head1_metrics,
+            head2.id: head2_metrics,
+        }
+        comparisons_map = {
+            head1_metrics.id: comparison1,
+            head2_metrics.id: comparison2,
+        }
 
-        _, subtitle, _ = format_snapshot_status_check_messages(
-            artifacts,
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head1, head2],
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
-        assert subtitle == "2 comparisons failed"
+        assert subtitle == "We had trouble comparing snapshots, our team is investigating."
+        assert summary == ""
 
 
 @region_silo_test
@@ -466,59 +481,12 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.IN_PROGRESS,
-            self.project,
             {},
         )
 
         assert subtitle == "Comparing snapshots..."
-        assert "✅" in summary
+        assert "✅ Unchanged" in summary
         assert "Comparing" in summary
-
-    def test_mixed_changes_and_failures(self):
-        # Comparison with changes
-        head1, head1_metrics = self._create_artifact_with_metrics(
-            app_id="com.example.changed", build_number=1
-        )
-        base1, base1_metrics = self._create_artifact_with_metrics(
-            app_id="com.example.base1", build_number=10
-        )
-        comparison1 = self._create_comparison(
-            head1_metrics, base1_metrics, images_changed=2, images_unchanged=8
-        )
-
-        # Failed comparison
-        head2, head2_metrics = self._create_artifact_with_metrics(
-            app_id="com.example.failed", build_number=2
-        )
-        base2, base2_metrics = self._create_artifact_with_metrics(
-            app_id="com.example.base2", build_number=11
-        )
-        comparison2 = self._create_comparison(
-            head2_metrics, base2_metrics, state=PreprodSnapshotComparison.State.FAILED
-        )
-
-        snapshot_metrics_map = {
-            head1.id: head1_metrics,
-            head2.id: head2_metrics,
-        }
-        comparisons_map = {
-            head1_metrics.id: comparison1,
-            head2_metrics.id: comparison2,
-        }
-
-        _, subtitle, summary = format_snapshot_status_check_messages(
-            [head1, head2],
-            snapshot_metrics_map,
-            comparisons_map,
-            StatusCheckStatus.FAILURE,
-            self.project,
-            {},
-        )
-
-        # Has changes so subtitle should show changes, not failure count
-        assert subtitle == "2 images changed"
-        assert "❌" in summary
-        assert "Failed" in summary
 
 
 @region_silo_test
@@ -536,14 +504,13 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
-        assert "| Name | Changed | Added | Removed | Unchanged |" in summary
-        assert "|------|---------|-------|---------|-----------|\n" in summary
+        assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in summary
+        assert "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |" in summary
 
-    def test_summary_contains_settings_link(self):
+    def test_summary_has_no_settings_link(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
         comparison = self._create_comparison(head_metrics, base_metrics)
@@ -556,12 +523,11 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
-        assert f"[Configure test_project snapshot settings]({settings_url})" in summary
+        assert "Configure" not in summary
+        assert "settings" not in summary
 
     def test_summary_uses_comparison_url_when_base_artifact_exists(self):
         head_commit_comparison = CommitComparison.objects.create(
@@ -589,11 +555,9 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             base_artifact_map,
         )
 
-        # Should use comparison URL when base artifact exists
         expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/compare/{head_artifact.id}/{base_artifact.id}"
         assert expected_url in summary
 
@@ -610,7 +574,6 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
@@ -628,6 +591,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             images_changed=0,
             images_added=0,
             images_removed=0,
+            images_renamed=0,
             images_unchanged=15,
         )
 
@@ -635,14 +599,12 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         comparisons_map = {head_metrics.id: comparison}
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
 
         title, subtitle, summary = format_snapshot_status_check_messages(
             [head_artifact],
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
-            self.project,
             {},
         )
 
@@ -650,10 +612,9 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "No changes detected"
 
         expected = (
-            "| Name | Changed | Added | Removed | Unchanged |\n"
-            "|------|---------|-------|---------|-----------|\n"
-            f"| [My App]({artifact_url}) | ✅ 0 changed | 0 added | 0 removed | 15 unchanged |\n\n"
-            f"[Configure test_project snapshot settings]({settings_url})"
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+            f"| [My App]({artifact_url})<br>`com.example.app` | 0 | 0 | 0 | 0 | 15 | ✅ Unchanged |"
         )
         assert summary == expected
 
@@ -668,6 +629,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             images_changed=3,
             images_added=1,
             images_removed=2,
+            images_renamed=1,
             images_unchanged=4,
         )
 
@@ -675,24 +637,21 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         comparisons_map = {head_metrics.id: comparison}
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
 
         title, subtitle, summary = format_snapshot_status_check_messages(
             [head_artifact],
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
-            self.project,
             {},
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 images changed, 1 added, 2 removed"
+        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         expected = (
-            "| Name | Changed | Added | Removed | Unchanged |\n"
-            "|------|---------|-------|---------|-----------|\n"
-            f"| [My App]({artifact_url}) | ❌ 3 changed | 1 added | 2 removed | 4 unchanged |\n\n"
-            f"[Configure test_project snapshot settings]({settings_url})"
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+            f"| [My App]({artifact_url})<br>`com.example.app` | 1 | 2 | 3 | 1 | 4 | ⏳ Needs approval |"
         )
         assert summary == expected

@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 #################
 # Configuration #
 #################
-ORG_SLUG = "sentry"
+ORG_SLUG = "sentry-dev-ryan"
 REPO_NAME = "EmergeTools/hackernews"
-PR_NUMBER = "100"
+PR_NUMBER = "716"
 
 
 def main():
