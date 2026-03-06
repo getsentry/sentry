@@ -15,6 +15,7 @@ No execnet, no dynamic load balancing, no master-worker IPC beyond temp files.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -400,3 +401,6 @@ class _CoordinatorPlugin:
             for report in reports:
                 term_reporter.stats.setdefault(report.outcome, []).append(report)
             session.config.pluginmanager.register(term_reporter, "terminalreporter")
+
+        # Clean up temp dir (nodeid lists, JSONL result files).
+        shutil.rmtree(self._work_dir, ignore_errors=True)
