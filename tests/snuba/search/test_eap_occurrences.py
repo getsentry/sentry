@@ -61,7 +61,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             title="test error",
             level="error",
         )
-        self.store_occurrences([trace_item])
+        self.store_eap_items([trace_item])
 
         result = self._query_occurrences(query_string=f"group_id:{group.id}")
         assert len(result["data"]) == 1
@@ -79,7 +79,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             group_id=group_generic.id,
             occurrence_type="generic",
         )
-        self.store_occurrences([error_occurrence, generic_occurrence])
+        self.store_eap_items([error_occurrence, generic_occurrence])
 
         # OccurrenceCategory.ERROR filters for type != "generic"
         error_result = self._query_occurrences(
@@ -107,7 +107,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             environment="production",
             transaction="/api/users",
         )
-        self.store_occurrences([trace_item])
+        self.store_eap_items([trace_item])
 
         result = self._query_occurrences(
             query_string=f"group_id:{group.id}",
@@ -129,7 +129,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             group_id=group.id,
             tags={"browser": "chrome", "os": "linux"},
         )
-        self.store_occurrences([trace_item])
+        self.store_eap_items([trace_item])
 
         matching = self._query_occurrences(query_string="browser:chrome")
         assert len(matching["data"]) == 1
@@ -142,7 +142,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         group = self.create_group(project=self.project)
 
         occurrences = [self.create_eap_occurrence(group_id=group.id) for _ in range(5)]
-        self.store_occurrences(occurrences)
+        self.store_eap_items(occurrences)
 
         result = self._query_occurrences(query_string=f"group_id:{group.id}")
         assert len(result["data"]) == 1
@@ -179,7 +179,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
     def test_counts_all_occurrences(self) -> None:
         group = self.create_group(project=self.project)
         occurrences = [self.create_eap_occurrence(group_id=group.id) for _ in range(3)]
-        self.store_occurrences(occurrences)
+        self.store_eap_items(occurrences)
 
         result = count_occurrences(
             organization=self.organization,
@@ -193,7 +193,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
     def test_filters_by_group_id(self) -> None:
         group_1 = self.create_group(project=self.project)
         group_2 = self.create_group(project=self.project)
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(group_id=group_1.id),
                 self.create_eap_occurrence(group_id=group_2.id),
@@ -223,7 +223,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
     def test_filters_by_occurrence_category(self) -> None:
         group = self.create_group(project=self.project)
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(group_id=group.id, occurrence_type="error"),
                 self.create_eap_occurrence(group_id=group.id, occurrence_type="error"),
@@ -257,7 +257,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         group = self.create_group(project=self.project)
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(group_id=group.id, trace_id=trace_id_1),
                 self.create_eap_occurrence(group_id=group.id, trace_id=trace_id_1),
@@ -280,7 +280,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
     def test_counts_grouped_by_trace_ids_with_occurrence_category(self) -> None:
         group = self.create_group(project=self.project)
         trace_id = uuid4().hex
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(
                     group_id=group.id, trace_id=trace_id, occurrence_type="error"
@@ -333,7 +333,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         trace_id = uuid4().hex
         group_1 = self.create_group(project=self.project)
         group_2 = self.create_group(project=self.project)
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(group_id=group_1.id, trace_id=trace_id),
                 self.create_eap_occurrence(group_id=group_2.id, trace_id=trace_id),
@@ -359,7 +359,7 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         trace_id_2 = uuid4().hex
         group_1 = self.create_group(project=self.project)
         group_2 = self.create_group(project=self.project)
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(group_id=group_1.id, trace_id=trace_id_1),
                 self.create_eap_occurrence(group_id=group_1.id, trace_id=trace_id_2),
