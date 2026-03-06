@@ -51,7 +51,7 @@ export function makeSwatch(palette: CategoricalPalette, onVibrant: OnVibrant) {
      * The same input always produces the same color pair.
      */
     get(input: string): {background: string; content: string} {
-      const index = hashIdentifier(input) % swatchColors.length;
+      const index = hashIdentifier(input ?? '') % swatchColors.length;
       return swatchColors[index]!;
     },
 
