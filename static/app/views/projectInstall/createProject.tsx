@@ -441,18 +441,13 @@ export function CreateProject() {
         return;
       }
 
-      updateFormData('platform', {
-        ...omit(value, 'id'),
-        key: value.id,
-      });
-
-      const newName = hasUserModifiedProjectName.current
-        ? formData.projectName
-        : value.id;
-
-      updateFormData('projectName', newName);
+      setFormData(prev => ({
+        ...prev,
+        platform: {...omit(value, 'id'), key: value.id},
+        projectName: hasUserModifiedProjectName.current ? prev.projectName : value.id,
+      }));
     },
-    [updateFormData, formData.projectName, organization]
+    [updateFormData, organization]
   );
 
   const platform = formData.platform?.key;
