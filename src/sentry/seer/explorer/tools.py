@@ -1095,6 +1095,7 @@ def get_issue_details(
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
+    group: Group
     if issue_id.isdigit():
         project_ids = list(
             Project.objects.filter(
@@ -1106,10 +1107,10 @@ def get_issue_details(
         if not project_ids:
             return None
 
-        group: Group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
+        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
     else:
         # Note short IDs are already scoped to a project so no need for project filtering.
-        group: Group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+        group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
