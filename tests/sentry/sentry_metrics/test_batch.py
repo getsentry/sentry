@@ -282,7 +282,7 @@ def test_extract_strings_with_multiple_use_case_ids() -> None:
     }
 
     distribution_payload = {
-        "name": "d:escalating_issues/duration@second",
+        "name": "d:profiles/duration@second",
         "tags": {
             "environment": "production",
             "session.status": "healthy",
@@ -296,7 +296,7 @@ def test_extract_strings_with_multiple_use_case_ids() -> None:
     }
 
     set_payload = {
-        "name": "s:escalating_issues/error@none",
+        "name": "s:profiles/error@none",
         "tags": {
             "environment": "production",
             "session.status": "errored",
@@ -312,8 +312,8 @@ def test_extract_strings_with_multiple_use_case_ids() -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, [("namespace", b"spans")]),
-            (distribution_payload, [("namespace", b"escalating_issues")]),
-            (set_payload, [("namespace", b"escalating_issues")]),
+            (distribution_payload, [("namespace", b"profiles")]),
+            (set_payload, [("namespace", b"profiles")]),
         ]
     )
     batch = IndexerBatch(
@@ -335,14 +335,14 @@ def test_extract_strings_with_multiple_use_case_ids() -> None:
                 "init",
             }
         },
-        UseCaseID.ESCALATING_ISSUES: {
+        UseCaseID.PROFILES: {
             1: {
-                "d:escalating_issues/duration@second",
+                "d:profiles/duration@second",
                 "environment",
                 "production",
                 "session.status",
                 "healthy",
-                "s:escalating_issues/error@none",
+                "s:profiles/error@none",
                 "environment",
                 "production",
                 "session.status",
@@ -353,7 +353,7 @@ def test_extract_strings_with_multiple_use_case_ids() -> None:
 
 
 @pytest.mark.django_db
-@override_options({"sentry-metrics.indexer.disabled-namespaces": ["escalating_issues"]})
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["profiles"]})
 def test_extract_strings_with_single_use_case_ids_blocked() -> None:
     """
     Verify that the extract string method will work normally when a single use case ID is blocked
@@ -373,7 +373,7 @@ def test_extract_strings_with_single_use_case_ids_blocked() -> None:
     }
 
     distribution_payload = {
-        "name": "d:escalating_issues/duration@second",
+        "name": "d:profiles/duration@second",
         "tags": {
             "environment": "production",
             "session.status": "healthy",
@@ -387,7 +387,7 @@ def test_extract_strings_with_single_use_case_ids_blocked() -> None:
     }
 
     set_payload = {
-        "name": "s:escalating_issues/error@none",
+        "name": "s:profiles/error@none",
         "tags": {
             "environment": "production",
             "session.status": "errored",
@@ -403,8 +403,8 @@ def test_extract_strings_with_single_use_case_ids_blocked() -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, [("namespace", b"spans")]),
-            (distribution_payload, [("namespace", b"escalating_issues")]),
-            (set_payload, [("namespace", b"escalating_issues")]),
+            (distribution_payload, [("namespace", b"profiles")]),
+            (set_payload, [("namespace", b"profiles")]),
         ]
     )
     batch = IndexerBatch(
@@ -431,7 +431,7 @@ def test_extract_strings_with_single_use_case_ids_blocked() -> None:
 
 
 @pytest.mark.django_db
-@override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "profiles"]})
 def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
     """
     Verify that the extract string method will work normally when multiple use case IDs are blocked
@@ -463,7 +463,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
         "project_id": 3,
     }
     custom_uc_set_payload = {
-        "name": "s:escalating_issues/error@none",
+        "name": "s:profiles/error@none",
         "tags": {
             "environment": "production",
             "session.status": "errored",
@@ -480,7 +480,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
         [
             (custom_uc_counter_payload, [("namespace", b"spans")]),
             (perf_distribution_payload, [("namespace", b"transactions")]),
-            (custom_uc_set_payload, [("namespace", b"escalating_issues")]),
+            (custom_uc_set_payload, [("namespace", b"profiles")]),
         ]
     )
     batch = IndexerBatch(
@@ -539,7 +539,7 @@ def test_extract_strings_with_invalid_mri() -> None:
     }
 
     distribution_payload = {
-        "name": "d:escalating_issues/duration@second",
+        "name": "d:profiles/duration@second",
         "tags": {
             "environment": "production",
             "session.status": "healthy",
@@ -553,7 +553,7 @@ def test_extract_strings_with_invalid_mri() -> None:
     }
 
     set_payload = {
-        "name": "s:escalating_issues/error@none",
+        "name": "s:profiles/error@none",
         "tags": {
             "environment": "production",
             "session.status": "errored",
@@ -570,8 +570,8 @@ def test_extract_strings_with_invalid_mri() -> None:
         [
             (bad_counter_payload, [("namespace", b"")]),
             (counter_payload, [("namespace", b"spans")]),
-            (distribution_payload, [("namespace", b"escalating_issues")]),
-            (set_payload, [("namespace", b"escalating_issues")]),
+            (distribution_payload, [("namespace", b"profiles")]),
+            (set_payload, [("namespace", b"profiles")]),
         ]
     )
     batch = IndexerBatch(
@@ -593,14 +593,14 @@ def test_extract_strings_with_invalid_mri() -> None:
                 "init",
             }
         },
-        UseCaseID.ESCALATING_ISSUES: {
+        UseCaseID.PROFILES: {
             1: {
-                "d:escalating_issues/duration@second",
+                "d:profiles/duration@second",
                 "environment",
                 "production",
                 "session.status",
                 "healthy",
-                "s:escalating_issues/error@none",
+                "s:profiles/error@none",
                 "environment",
                 "production",
                 "session.status",
