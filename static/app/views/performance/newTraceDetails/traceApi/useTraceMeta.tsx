@@ -51,7 +51,7 @@ async function fetchSingleTraceMetaNew(
   replayTrace: ReplayTrace,
   queryParams: any
 ) {
-  const url: string =
+  const url =
     type === 'eap'
       ? `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`
       : `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`;

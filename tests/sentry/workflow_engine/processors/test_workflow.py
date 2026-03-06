@@ -348,9 +348,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
             },
         )
 
-    @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
+    def test_no_environment(self, mock_logger: MagicMock) -> None:
         Environment.objects.all().delete()
         cache.clear()
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
@@ -358,11 +357,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert not result.data.triggered_workflows
         assert result.msg == "Environment for event not found"
 
-        mock_incr.assert_any_call(
-            "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
-        )
-        mock_logger.exception.assert_called_once_with(
-            "Missing environment for event",
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.environment_not_found",
             extra={"event_id": self.event.event_id},
         )
 
@@ -427,7 +423,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
         assert WorkflowFireHistory.objects.count() == 3
-        assert mock_trigger_action.call_count == 3
+        assert mock_trigger_action.call_count == 1
 
     def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()

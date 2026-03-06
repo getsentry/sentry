@@ -2,9 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -12,7 +11,6 @@ import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSel
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const ALL_BRANCHES = 'All Branches';
 
@@ -89,28 +87,6 @@ export function BranchSelector() {
     };
   }, [handleOnSearch]);
 
-  const branchResetButton = useCallback(
-    ({closeOverlay}: any) => {
-      if (!branch || branch === ALL_BRANCHES) {
-        return null;
-      }
-
-      return (
-        <ResetButton
-          onClick={() => {
-            handleChange({value: ALL_BRANCHES});
-            closeOverlay();
-          }}
-          size="zero"
-          priority="transparent"
-        >
-          {t('Reset to all branches')}
-        </ResetButton>
-      );
-    },
-    [branch, handleChange]
-  );
-
   function getEmptyMessage() {
     if (isFetching) {
       return t('Getting branches...');
@@ -140,7 +116,19 @@ export function BranchSelector() {
       value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
-      menuHeaderTrailingItems={branchResetButton}
+      menuHeaderTrailingItems={() => {
+        if (!branch || branch === ALL_BRANCHES) {
+          return null;
+        }
+
+        return (
+          <MenuComponents.ResetButton
+            onClick={() => {
+              handleChange({value: ALL_BRANCHES});
+            }}
+          />
+        );
+      }}
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
       closeOnSelect
@@ -181,12 +169,4 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const ResetButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.5)} -${space(0.5)};
 `;

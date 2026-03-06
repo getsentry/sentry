@@ -19,7 +19,6 @@ import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/li
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -275,5 +274,5 @@ const TimelineFadeIn = styled('div')`
 const PlatformLinkButton = styled(LinkButton)`
   width: 80px;
   height: 80px;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;

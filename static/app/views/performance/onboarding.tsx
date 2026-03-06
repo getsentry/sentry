@@ -10,7 +10,7 @@ import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -29,8 +29,8 @@ import FeatureTourModal, {
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -64,7 +64,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -155,6 +154,7 @@ function SampleButton({
   api,
 }: SampleButtonProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   return (
     <Button
       data-test-id="create-sample-transaction-btn"
@@ -171,7 +171,7 @@ function SampleButton({
           const eventData = await api.requestPromise(url, {method: 'POST'});
           const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
 
-          browserHistory.push(
+          navigate(
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
@@ -418,8 +418,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
-  const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
   const tracesQuery = useTraces({
     enabled: received,
@@ -469,10 +469,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
     organization,
     doesNotSupportPerformance,
   ]);
-
-  if (!showNewUi) {
-    return <LegacyOnboarding organization={organization} project={project} />;
-  }
 
   const performanceDocs = docs?.performanceOnboarding;
 
@@ -587,11 +583,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton steps={steps} source="performance_onboarding" />
-        </Container>
-      </CopySetupInstructionsGate>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
@@ -607,7 +598,20 @@ export function Onboarding({organization, project}: OnboardingProps) {
         {steps.map((step, index) => {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
-            <GuidedSteps.Step key={title} stepKey={title} title={title}>
+            <GuidedSteps.Step
+              key={title}
+              stepKey={title}
+              title={title}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_onboarding"
+                  />
+                ) : undefined
+              }
+            >
               <StepIndexProvider index={index}>
                 <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
               </StepIndexProvider>

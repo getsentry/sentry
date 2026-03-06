@@ -2,7 +2,9 @@ import {useState} from 'react';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {useDragNDropColumns} from './useDragNDropColumns';
+import {isUUID} from 'sentry/utils/string/isUUID';
+
+import {useDragNDropColumns, type Column} from './useDragNDropColumns';
 
 describe('useDragNDropColumns', () => {
   const initialColumns = ['span.op', 'span_id', 'timestamp'];
@@ -84,5 +86,71 @@ describe('useDragNDropColumns', () => {
     );
 
     expect(columns).toEqual(['span_id', 'timestamp', 'span.op']);
+  });
+
+  it('should generate unique UUIDs for editable columns', () => {
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let editableColumns!: Array<Column<string>>;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({editableColumns} = useDragNDropColumns({columns, setColumns}));
+      return null;
+    }
+
+    render(<TestPage />);
+
+    expect(editableColumns).toHaveLength(initialColumns.length);
+    expect(editableColumns.map(column => column.column)).toEqual(initialColumns);
+    expect(editableColumns.every(column => isUUID(column.uniqueId))).toBe(true);
+    expect(new Set(editableColumns.map(column => column.uniqueId)).size).toBe(
+      editableColumns.length
+    );
+  });
+
+  it('should generate unique UUIDs when column values are duplicated', () => {
+    const duplicateColumns = ['span.op', 'span.op', 'span.op'];
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let editableColumns!: Array<Column<string>>;
+
+    function TestPage() {
+      [columns, setColumns] = useState(duplicateColumns);
+      ({editableColumns} = useDragNDropColumns({columns, setColumns}));
+      return null;
+    }
+
+    render(<TestPage />);
+
+    expect(editableColumns.map(column => column.column)).toEqual(duplicateColumns);
+    expect(new Set(editableColumns.map(column => column.uniqueId)).size).toBe(
+      duplicateColumns.length
+    );
+  });
+
+  it('should preserve unique IDs when updating a column value', () => {
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let editableColumns!: Array<Column<string>>;
+    let updateColumnAtIndex: (i: number, column: string) => void;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({editableColumns, updateColumnAtIndex} = useDragNDropColumns({
+        columns,
+        setColumns,
+      }));
+      return null;
+    }
+
+    render(<TestPage />);
+
+    const uniqueIdsBefore = editableColumns.map(column => column.uniqueId);
+
+    act(() => updateColumnAtIndex(1, 'span.description'));
+
+    const uniqueIdsAfter = editableColumns.map(column => column.uniqueId);
+    expect(uniqueIdsAfter).toEqual(uniqueIdsBefore);
   });
 });

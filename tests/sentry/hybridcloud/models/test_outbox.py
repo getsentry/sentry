@@ -28,7 +28,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Region, RegionCategory, get_local_region
+from sentry.types.region import Cell, RegionCategory, get_local_region
 from sentry.users.models.user import User
 
 
@@ -52,7 +52,7 @@ def setup_clear_fixture_outbox_messages() -> None:
 
 @control_silo_test
 class ControlOutboxTest(TestCase):
-    region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+    region = Cell("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
     def test_skip_shards(self) -> None:

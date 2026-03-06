@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils.http import absolute_uri
 
 pytestmark = [requires_snuba]
@@ -25,8 +25,8 @@ pytestmark = [requires_snuba]
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"
 CLICK_TO_FINISH = b"Click to Finish Installation"
 
-us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 region_config = (us, de)
 
 

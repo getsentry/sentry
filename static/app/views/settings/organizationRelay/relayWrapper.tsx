@@ -1,22 +1,23 @@
 import {useCallback, useState} from 'react';
 import omit from 'lodash/omit';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -29,6 +30,10 @@ import EmptyState from './emptyState';
 import List from './list';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
+
+const relaySchema = z.object({
+  ingestThroughTrustedRelaysOnly: z.boolean(),
+});
 
 export function RelayWrapper() {
   const organization = useOrganization();
@@ -74,55 +79,52 @@ export function RelayWrapper() {
         }
       />
       <OrganizationPermissionAlert />
-      <Form
-        saveOnBlur
-        initialData={organization}
-        apiMethod="PUT"
-        apiEndpoint={`/organizations/${organization.slug}/`}
-      >
-        <JsonForm
-          disabled={disabled}
-          forms={[
-            {
-              title: t('Data Authenticity'),
-              fields: [
-                {
-                  name: 'ingestThroughTrustedRelaysOnly',
-                  type: 'boolean',
-                  label: t('Ingest Through Trusted Relays Only'),
-                  help: t(
-                    'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
-                  ),
-                  'aria-label': t(
-                    'Enable to require events to be ingested only through trusted relays'
-                  ),
-                  confirm: {
-                    isDangerous: true,
-                    true: t(
-                      'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
-                    ),
+      {organization.features.includes('ingest-through-trusted-relays-only') && (
+        <FieldGroup title={t('Data Authenticity')}>
+          <AutoSaveField
+            name="ingestThroughTrustedRelaysOnly"
+            schema={relaySchema}
+            initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
+            confirm={value =>
+              value
+                ? t(
+                    'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
+                  )
+                : undefined
+            }
+            mutationOptions={{
+              mutationFn: data =>
+                fetchMutation<Organization>({
+                  url: `/organizations/${organization.slug}/`,
+                  method: 'PUT',
+                  data: {
+                    ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
+                      ? 'enabled'
+                      : 'disabled',
                   },
-                  visible: organization.features.includes(
-                    'ingest-through-trusted-relays-only'
-                  ),
-                  getData: (data: Record<string, any>) => {
-                    // Transform boolean to enabled/disabled string for API
-                    const value = data.ingestThroughTrustedRelaysOnly;
-                    return {
-                      ingestThroughTrustedRelaysOnly:
-                        typeof value === 'boolean'
-                          ? value
-                            ? 'enabled'
-                            : 'disabled'
-                          : value,
-                    };
-                  },
-                },
-              ],
-            },
-          ]}
-        />
-      </Form>
+                }),
+              onSuccess: updatedOrg => {
+                OrganizationStore.onUpdate(updatedOrg);
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Ingest Through Trusted Relays Only')}
+                hintText={t(
+                  'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+        </FieldGroup>
+      )}
       <TextBlock>
         {tct(
           'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',

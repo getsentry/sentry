@@ -1,7 +1,16 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
+import {z} from 'zod';
 
+import {Button} from '@sentry/scraps/button';
+import {
+  defaultFormOptions,
+  FormSearch,
+  setFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addLoadingMessage,
@@ -12,18 +21,12 @@ import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -31,17 +34,16 @@ import {
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
-type CreateSecretQueryVariables = {
-  provider: string;
-  secret: string;
-};
+const schema = z.object({
+  provider: z.string().min(1, t('Provider is required')),
+  secret: z.string().min(1, t('Secret is required')).max(100),
+});
 
-type CreateSecretResponse = string;
+type CreateSecretData = z.infer<typeof schema>;
 
 interface Props {
   canSaveSecret: boolean;
   onCreatedSecret: (secret: string) => void;
-  selectedProvider: string;
   setError: (error: string | null) => void;
   setSelectedProvider: (provider: string) => void;
   existingSecret?: Secret;
@@ -50,17 +52,11 @@ interface Props {
 export default function NewProviderForm({
   onCreatedSecret,
   setSelectedProvider,
-  selectedProvider,
-  setError: setError,
+  setError,
   canSaveSecret,
   existingSecret,
 }: Props) {
-  const initialData = {
-    provider: '',
-    secret: '',
-  };
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -70,25 +66,18 @@ export default function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
-  const {mutate: submitSecret, isPending} = useMutation<
-    CreateSecretResponse,
-    RequestError,
-    CreateSecretQueryVariables
-  >({
+  const mutation = useMutation<string, RequestError, CreateSecretData>({
     mutationFn: ({provider, secret}) => {
       addLoadingMessage();
-      return api.requestPromise(
-        `/organizations/${organization.slug}/flags/signing-secrets/`,
-        {
-          method: 'POST',
-          data: {
-            provider: provider.toLowerCase(),
-            secret,
-          },
-        }
-      );
+      return fetchMutation({
+        url: `/organizations/${organization.slug}/flags/signing-secrets/`,
+        method: 'POST',
+        data: {
+          provider: provider.toLowerCase(),
+          secret,
+        },
+      });
     },
-
     onSuccess: (_response, {secret, provider}) => {
       addSuccessMessage(t('Added provider and secret.'));
       onCreatedSecret(secret);
@@ -100,11 +89,9 @@ export default function NewProviderForm({
     onError: error => {
       clearIndicators();
       const responseJSON = error.responseJSON;
-
       const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
 
       if (!hasFieldSpecificErrors) {
-        // Only show banner if there are no field-specific errors
         const message =
           typeof responseJSON === 'string'
             ? responseJSON
@@ -115,64 +102,116 @@ export default function NewProviderForm({
     },
   });
 
-  return (
-    <Form
-      initialData={initialData}
-      onSubmit={(data, onFormSubmitSuccess, onFormSubmitError) => {
-        submitSecret(
-          {
-            provider: data.provider,
-            secret: data.secret,
-          },
-          {
-            onSuccess: () => {
-              onFormSubmitSuccess({});
-            },
-            onError: error => {
-              // Only call onSubmitError for field-specific errors
-              // General errors are already handled in the mutation's onError
-              if (error.responseJSON?.secret || error.responseJSON?.provider) {
-                onFormSubmitError(error);
-              }
-            },
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {provider: '', secret: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value, formApi}) => {
+      return mutation.mutateAsync(value).catch((error: RequestError) => {
+        const responseJSON = error.responseJSON;
+        if (responseJSON?.secret || responseJSON?.provider) {
+          const extractMessage = (val: unknown): string => {
+            if (Array.isArray(val)) {
+              return typeof val[0] === 'string' ? val[0] : JSON.stringify(val[0]);
+            }
+            return typeof val === 'string' ? val : JSON.stringify(val);
+          };
+          const errors: Record<string, {message: string}> = {};
+          if (responseJSON.secret) {
+            errors.secret = {message: extractMessage(responseJSON.secret)};
           }
-        );
-      }}
-      onCancel={handleGoBack}
-      submitLabel={existingSecret ? t('Update Provider') : t('Add Provider')}
-      requireChanges
-      submitDisabled={!selectedProvider || !canSaveSecret || isPending}
-    >
-      <SelectField
-        required
-        label={t('Provider')}
-        onChange={value => {
-          setSelectedProvider(value);
-        }}
-        value={selectedProvider}
-        placeholder={t('Select a provider')}
-        name="provider"
-        options={Object.values(WebhookProviderEnum).map(provider => ({
-          value: provider,
-          label: provider,
-        }))}
-        help={t(
-          'If you have already linked this provider, pasting a new secret will override the existing secret.'
-        )}
-      />
-      <StyledFieldGroup
-        label={t('Webhook URL')}
-        help={
-          Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(selectedProvider)
+          if (responseJSON.provider) {
+            errors.provider = {message: extractMessage(responseJSON.provider)};
+          }
+          setFieldErrors(formApi, errors);
+        }
+      });
+    },
+  });
+
+  return (
+    <FormSearch route="/settings/feature-flags/change-tracking/new-provider/">
+      <form.AppForm form={form}>
+        <form.AppField name="provider">
+          {field => (
+            <div>
+              <field.Layout.Row
+                padding="xl"
+                label={t('Provider')}
+                hintText={t(
+                  'If you have already linked this provider, pasting a new secret will override the existing secret.'
+                )}
+                required
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={value => {
+                    field.handleChange(value);
+                    setSelectedProvider(value);
+                  }}
+                  placeholder={t('Select a provider')}
+                  options={Object.values(WebhookProviderEnum).map(p => ({
+                    value: p,
+                    label: p,
+                  }))}
+                />
+              </field.Layout.Row>
+              <WebhookUrlField
+                provider={field.state.value}
+                organizationSlug={organization.slug}
+              />
+            </div>
+          )}
+        </form.AppField>
+        <form.AppField name="secret">
+          {field => (
+            <field.Layout.Row
+              padding="xl"
+              label={t('Secret')}
+              hintText={t(
+                'Paste the signing secret given by your provider when creating the webhook.'
+              )}
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                maxLength={100}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <Flex justify="end" gap="md" padding="xl">
+          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+          <form.SubmitButton disabled={!canSaveSecret}>
+            {existingSecret ? t('Update Provider') : t('Add Provider')}
+          </form.SubmitButton>
+        </Flex>
+      </form.AppForm>
+    </FormSearch>
+  );
+}
+
+function WebhookUrlField({
+  provider,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  provider: string;
+}) {
+  return (
+    <Flex direction="row" gap="sm" align="center" justify="between" padding="xl">
+      <Stack width="50%" gap="xs">
+        <Text>{t('Webhook URL')}</Text>
+        <Text size="sm" variant="muted">
+          {Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
             ? tct(
                 "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
                 {
                   link: (
                     <ExternalLink
                       href={
-                        PROVIDER_TO_SETUP_WEBHOOK_URL[
-                          selectedProvider as WebhookProviderEnum
-                        ]
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
                       }
                     />
                   ),
@@ -180,31 +219,16 @@ export default function NewProviderForm({
               )
             : t(
                 "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
-              )
-        }
-        inline
-        flexibleControlStateSize
-      >
-        <TextCopyInput aria-label={t('Webhook URL')} disabled={!selectedProvider.length}>
-          {selectedProvider.length
-            ? `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
+              )}
+        </Text>
+      </Stack>
+      <Container flexGrow={1}>
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
+          {provider.length
+            ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
             : ''}
         </TextCopyInput>
-      </StyledFieldGroup>
-      <TextField
-        name="secret"
-        label={t('Secret')}
-        maxLength={100}
-        minLength={1}
-        required
-        help={t(
-          'Paste the signing secret given by your provider when creating the webhook.'
-        )}
-      />
-    </Form>
+      </Container>
+    </Flex>
   );
 }
-
-const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${space(2)};
-`;

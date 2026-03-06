@@ -5,7 +5,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -122,7 +121,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
 const Heading = styled('span')`
   font-weight: 400;
   font-size: ${p => p.theme.font.size.xl};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const SubText = styled(TextBlock)`
@@ -133,7 +132,7 @@ const SubText = styled(TextBlock)`
 const TextWrapper = styled('div')`
   display: grid;
   grid-auto-rows: auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 export default withSubscription(OrgStatsBanner, {noLoader: true});

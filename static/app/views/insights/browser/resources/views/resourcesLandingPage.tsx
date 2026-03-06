@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -14,12 +13,14 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {PlatformizedAssetsOverview} from 'sentry/views/insights/browser/resources/views/platformizedOverview';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -76,6 +77,12 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+
+  if (hasPlatformizedInsights) {
+    return <PlatformizedAssetsOverview />;
+  }
+
   return (
     <ModulePageProviders
       moduleName="resource"
@@ -88,7 +95,7 @@ function PageWithProviders() {
 }
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default PageWithProviders;

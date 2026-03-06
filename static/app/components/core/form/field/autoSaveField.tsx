@@ -121,7 +121,7 @@ interface AutoSaveFieldProps<
   mutationOptions: UseMutationOptions<
     any, // it doesn't matter here what the mutation returns
     Error,
-    Record<TFieldName, z.infer<TSchema>[TFieldName]>
+    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>
   >;
 
   /**
@@ -156,14 +156,8 @@ interface AutoSaveFieldProps<
 export function AutoSaveField<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->({
-  name,
-  schema,
-  initialValue,
-  mutationOptions,
-  confirm,
-  children,
-}: AutoSaveFieldProps<TSchema, TFieldName>) {
+>(props: AutoSaveFieldProps<TSchema, TFieldName>) {
+  const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals
@@ -237,11 +231,9 @@ export function AutoSaveField<
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form as never}>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
-        <form.FormWrapper>
-          <form.AppField name={name}>{field => children(field as never)}</form.AppField>
-        </form.FormWrapper>
+        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
       </AutoSaveContextProvider>
     </form.AppForm>
   );

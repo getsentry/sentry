@@ -173,14 +173,19 @@ function PendingChanges({organization, subscription}: Props) {
           pendingReserved !== RESERVED_BUDGET_QUOTA &&
           pendingReserved !== 0
         ) {
+          const formattedQuantity = formatReservedWithUnits(
+            pendingReserved ?? null,
+            category
+          );
+          const displayName = getPlanCategoryName({
+            plan: pendingChanges.planDetails,
+            category,
+            capitalize: false,
+          });
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
-              displayName: getPlanCategoryName({
-                plan: pendingChanges.planDetails,
-                category,
-                capitalize: false,
-              }),
-              quantity: formatReservedWithUnits(pendingReserved ?? null, category),
+              displayName,
+              quantity: formattedQuantity,
             })
           );
         }

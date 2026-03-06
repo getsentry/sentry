@@ -101,8 +101,8 @@ export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[])
     };
   }
 
-  const uniqueLabels: Set<string> = new Set();
-  const labelToPositionMap: Map<string, number> = new Map();
+  const uniqueLabels = new Set<string>();
+  const labelToPositionMap = new Map<string, number>();
   const labelVisibility: boolean[] = new Array(intervals.length).fill(false);
 
   // Collect unique labels and their positions

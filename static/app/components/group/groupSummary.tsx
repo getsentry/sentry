@@ -18,7 +18,6 @@ import {
   IconSpan,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -460,9 +459,9 @@ const InsightCard = styled('div')`
 const CardTitle = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const CardTitleText = styled('p')`

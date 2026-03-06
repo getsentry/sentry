@@ -12,7 +12,6 @@ import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import ReleaseDropdownFilter from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import Version from 'sentry/components/version';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -145,7 +144,7 @@ const ValueContainer = styled('div')`
     font-size: ${p => p.theme.font.size.md};
   }
   display: flex;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
   justify-content: flex-end;
 `;
 
@@ -160,7 +159,7 @@ const StyledTooltip = styled(Tooltip)`
 const StyledVersionContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 
   .invisible-button {
     visibility: hidden;

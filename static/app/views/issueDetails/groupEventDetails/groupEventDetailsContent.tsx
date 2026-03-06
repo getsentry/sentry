@@ -20,7 +20,7 @@ import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
+import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
@@ -63,7 +63,6 @@ import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -519,14 +518,14 @@ function EntryErrorBoundary({
 }
 
 const NotFoundMessage = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const StyledDataSection = styled(DataSection)`
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(4)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   }
 
   &:empty {

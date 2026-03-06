@@ -24,7 +24,6 @@ import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/to
 import {computeNextAllowedTokenKinds} from 'sentry/components/arithmeticBuilder/validator';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 interface TokenGridProps {
@@ -185,10 +184,10 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 }
 
 const TokenGridWrapper = styled('div')`
-  padding: ${space(0.75)};
+  padding: ${p => p.theme.space.sm};
   display: flex;
   align-items: stretch;
-  row-gap: ${space(0.5)};
+  row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
 
   &:focus {

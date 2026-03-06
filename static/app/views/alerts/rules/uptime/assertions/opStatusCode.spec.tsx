@@ -3,9 +3,9 @@ import {useState} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  ComparisonType,
-  OpType,
-  type StatusCodeOp,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionsDndContext} from './dragDrop';
@@ -15,9 +15,9 @@ describe('AssertionOpStatusCode', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const op = OpType.STATUS_CODE_CHECK;
+  const op = UptimeOpType.STATUS_CODE_CHECK;
 
-  const renderOp = async (value: StatusCodeOp) => {
+  const renderOp = async (value: UptimeStatusCodeOp) => {
     const result = render(
       <AssertionOpStatusCode
         value={value}
@@ -35,7 +35,7 @@ describe('AssertionOpStatusCode', () => {
     onChangeSpy,
     onRemoveSpy,
   }: {
-    initialValue: StatusCodeOp;
+    initialValue: UptimeStatusCodeOp;
     onChangeSpy: jest.Mock;
     onRemoveSpy: jest.Mock;
   }) {
@@ -52,7 +52,7 @@ describe('AssertionOpStatusCode', () => {
     );
   }
 
-  const renderStatefulOp = async (initialValue: StatusCodeOp) => {
+  const renderStatefulOp = async (initialValue: UptimeStatusCodeOp) => {
     const result = render(
       <StatefulWrapper
         initialValue={initialValue}
@@ -74,7 +74,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -86,7 +86,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
     expect(getComparison('=')).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.NOT_EQUAL},
+      operator: {cmp: UptimeComparisonType.NOT_EQUAL},
       value: 200,
     });
     expect(getComparison('\u2260')).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.LESS_THAN},
+      operator: {cmp: UptimeComparisonType.LESS_THAN},
       value: 200,
     });
     expect(getComparison('<')).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.GREATER_THAN},
+      operator: {cmp: UptimeComparisonType.GREATER_THAN},
       value: 200,
     });
     expect(getComparison('>')).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('AssertionOpStatusCode', () => {
     await renderStatefulOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -137,7 +137,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 404,
     });
   });
@@ -146,7 +146,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -159,7 +159,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.LESS_THAN},
+      operator: {cmp: UptimeComparisonType.LESS_THAN},
       value: 200,
     });
   });
@@ -168,7 +168,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -181,7 +181,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -198,7 +198,7 @@ describe('AssertionOpStatusCode', () => {
     await renderStatefulOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -210,7 +210,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 5,
     });
 
@@ -219,7 +219,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 504,
     });
   });
@@ -228,7 +228,7 @@ describe('AssertionOpStatusCode', () => {
     await renderStatefulOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -243,7 +243,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 100,
     });
   });
@@ -252,7 +252,7 @@ describe('AssertionOpStatusCode', () => {
     await renderStatefulOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -264,7 +264,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 599,
     });
   });
@@ -273,7 +273,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -288,7 +288,7 @@ describe('AssertionOpStatusCode', () => {
     await renderStatefulOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 50,
     });
 
@@ -299,7 +299,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 100,
     });
   });
@@ -308,7 +308,7 @@ describe('AssertionOpStatusCode', () => {
     await renderStatefulOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -321,7 +321,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
   });
@@ -330,7 +330,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -363,7 +363,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.EQUALS},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -377,7 +377,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: ComparisonType.GREATER_THAN},
+      operator: {cmp: UptimeComparisonType.GREATER_THAN},
       value: 200, // Original value preserved
     });
   });
@@ -389,7 +389,7 @@ describe('AssertionOpStatusCode', () => {
           value={{
             id: 'test-id-1',
             op,
-            operator: {cmp: ComparisonType.EQUALS},
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           }}
           onChange={mockOnChange}

@@ -24,8 +24,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -35,7 +34,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {
   getAggregateAlias,
   isAggregateField,
@@ -94,7 +93,6 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import WidgetCardChart from 'sentry/views/dashboards/widgetCard/chart';
 import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
@@ -105,6 +103,7 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
@@ -125,17 +124,11 @@ export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
-  confidence?: Confidence;
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
-  pageLinks?: string;
-  sampleCount?: number;
-  seriesData?: Series[];
-  seriesResultsType?: Record<string, AggregationOutputType>;
-  tableData?: TableDataWithTitle[];
-  totalIssuesCount?: string;
+  widgetInterval?: string;
 }
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
@@ -164,7 +157,6 @@ const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-const MemoizedWidgetCardChart = memo(WidgetCardChart, shouldWidgetCardChartMemo);
 
 async function fetchDiscoverTotal(
   api: Client,
@@ -199,17 +191,11 @@ function WidgetViewerModal(props: Props) {
     Header,
     closeModal,
     onEdit,
-    seriesData,
-    tableData,
-    totalIssuesCount,
-    pageLinks: defaultPageLinks,
-    seriesResultsType,
     dashboardFilters,
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
-    confidence,
-    sampleCount,
+    widgetInterval,
   } = props;
   const theme = useTheme();
   const location = useLocation();
@@ -233,8 +219,6 @@ function WidgetViewerModal(props: Props) {
         : selection,
     [start, end, selection]
   );
-
-  const [chartUnmodified, setChartUnmodified] = useState<boolean>(true);
 
   const [modalSelection, setModalSelection] = useState<PageFilters>(locationPageFilter);
 
@@ -282,6 +266,10 @@ function WidgetViewerModal(props: Props) {
   const tableWidget = {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
     displayType: DisplayType.TABLE,
+    // Strip `limit` for Table widgets to avoid stale values from previous display types
+    // (e.g., a widget that was previously a chart with limit 3). The viewer's own
+    // FULL_TABLE_ITEM_LIMIT / HALF_TABLE_ITEM_LIMIT will be used instead.
+    limit: isTableWidget ? undefined : widget.limit,
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
   const {orderby} = widget.queries[0]!;
@@ -462,7 +450,6 @@ function WidgetViewerModal(props: Props) {
       tableWidget,
       dashboardFilters,
       modalSelection,
-      setChartUnmodified,
       widths,
       location,
       organization,
@@ -492,7 +479,6 @@ function WidgetViewerModal(props: Props) {
       tableWidget,
       dashboardFilters,
       modalSelection,
-      setChartUnmodified,
       widths,
       location,
       organization,
@@ -534,75 +520,66 @@ function WidgetViewerModal(props: Props) {
   };
 
   function renderWidgetViewerTable() {
+    if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+      return (
+        <AgentsTracesTableWidgetVisualization
+          limit={FULL_TABLE_ITEM_LIMIT}
+          tableWidths={widget.tableWidths}
+        />
+      );
+    }
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderIssuesTable({
-            tableResults: tableData,
-            loading: false,
-            errorMessage: undefined,
-            pageLinks: defaultPageLinks,
-            totalCount: totalIssuesCount,
-          });
-        }
         return (
           <IssueWidgetQueries
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
             dashboardFilters={dashboardFilters}
+            widgetInterval={widgetInterval}
           >
             {renderIssuesTable}
           </IssueWidgetQueries>
         );
       case WidgetType.RELEASE:
-        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          });
-        }
         return (
           <ReleaseWidgetQueries
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
             dashboardFilters={dashboardFilters}
+            widgetInterval={widgetInterval}
           >
             {renderTable}
           </ReleaseWidgetQueries>
         );
       case WidgetType.DISCOVER:
       default:
-        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          });
-        }
         return (
           <WidgetQueries
             widget={tableWidget}
             selection={modalSelection}
             limit={
-              widget.displayType === DisplayType.TABLE
+              widget.displayType === DisplayType.TABLE ||
+              widget.displayType === DisplayType.CATEGORICAL_BAR
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
             dashboardFilters={dashboardFilters}
+            widgetInterval={widgetInterval}
           >
             {({tableResults, loading, pageLinks}) => {
               return renderTable({tableResults, loading, pageLinks});
@@ -622,11 +599,15 @@ function WidgetViewerModal(props: Props) {
     dashboardCreator
   );
 
+  const shouldRenderChartVisualization =
+    widget.displayType !== DisplayType.TABLE &&
+    widget.displayType !== DisplayType.AGENTS_TRACES_TABLE;
+
   function renderWidgetViewer() {
     return (
       <Fragment>
         {hasSessionDuration && SESSION_DURATION_ALERT}
-        {widget.displayType !== DisplayType.TABLE && (
+        {shouldRenderChartVisualization && (
           <Container
             height={
               widget.displayType === DisplayType.BIG_NUMBER
@@ -634,46 +615,27 @@ function WidgetViewerModal(props: Props) {
                 : HALF_CONTAINER_HEIGHT
             }
           >
-            {(!!seriesData || !!tableData) && chartUnmodified ? (
-              <MemoizedWidgetCardChart
-                timeseriesResults={seriesData}
-                timeseriesResultsTypes={seriesResultsType}
-                tableResults={tableData}
-                errorMessage={undefined}
-                loading={false}
-                widget={widget}
-                selection={selection}
-                onZoom={(_evt, chart) => {
-                  onZoom(_evt, chart);
-                  setChartUnmodified(false);
-                }}
-                onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{
-                  selected: widgetLegendState.getWidgetSelectionState(widget),
-                }}
-                noPadding
-                widgetLegendState={widgetLegendState}
-                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
-                confidence={confidence}
-                sampleCount={sampleCount}
-              />
-            ) : (
-              <MemoizedWidgetCardChartContainer
-                api={api}
-                selection={modalSelection}
-                dashboardFilters={dashboardFilters}
-                // Top N charts rely on the orderby of the table
-                widget={primaryWidget}
-                onZoom={onZoom}
-                onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{
-                  selected: widgetLegendState.getWidgetSelectionState(widget),
-                }}
-                noPadding
-                widgetLegendState={widgetLegendState}
-                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
-              />
-            )}
+            <MemoizedWidgetCardChartContainer
+              api={api}
+              selection={modalSelection}
+              dashboardFilters={dashboardFilters}
+              // Top N charts rely on the orderby of the table
+              widget={primaryWidget}
+              tableItemLimit={widget.limit}
+              onZoom={onZoom}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={{
+                selected: widgetLegendState.getWidgetSelectionState(widget),
+              }}
+              noPadding
+              widgetLegendState={widgetLegendState}
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
+              }
+              widgetInterval={widgetInterval}
+            />
           </Container>
         )}
         {widget.queries.length > 1 && (
@@ -985,7 +947,6 @@ interface ViewerTableV2Props {
   organization: Organization;
   projects: Project[];
   selectedQueryIndex: number;
-  setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   theme: Theme;
   widget: Widget;
@@ -1001,7 +962,6 @@ function ViewerTableV2({
   pageLinks,
   fields,
   widths,
-  setChartUnmodified,
   tableWidget,
   location,
   organization,
@@ -1067,14 +1027,6 @@ function ViewerTableV2({
   const data = convertTableDataToTabularData(tableResults?.[0]);
 
   function onChangeSort(newSort: Sort) {
-    if (
-      [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-      defined(widget.limit) ||
-      tableWidget.widgetType === WidgetType.ISSUE
-    ) {
-      setChartUnmodified(false);
-    }
-
     trackAnalytics('dashboards_views.widget_viewer.sort', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
@@ -1200,10 +1152,6 @@ function ViewerTableV2({
                 },
                 {replace: true, preventScrollReset: true}
               );
-
-              if (widget.displayType === DisplayType.TABLE) {
-                setChartUnmodified(false);
-              }
 
               trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,

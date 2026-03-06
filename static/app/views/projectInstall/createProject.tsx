@@ -24,7 +24,6 @@ import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
@@ -68,6 +67,7 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
   alertRule?: Partial<AlertRuleOptions>;
   notificationRule?: IssueAlertRule;
   team?: string;
+  wasNameManuallyModified?: boolean;
 };
 
 function getMissingValues({
@@ -192,6 +192,23 @@ export function CreateProject() {
 
   const [formData, setFormData] = useState<FormData>(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
+  const hasUserModifiedProjectName = useRef(false);
+
+  // Sync the ref when autoFill data becomes available.
+  // useRef only initializes once, but the component may first mount without
+  // query params (e.g. browser back fires a POP before router.replace adds them),
+  // so autoFill can transition from false → true after the initial render.
+  // When that happens we also need to populate the projectName since useState
+  // would have initialized with the non-autoFill (empty) value.
+  useEffect(() => {
+    if (autoFill && createdProject?.name) {
+      hasUserModifiedProjectName.current = createdProject.wasNameManuallyModified ?? true;
+      setFormData(prev => ({
+        ...prev,
+        projectName: createdProject.name ?? prev.projectName,
+      }));
+    }
+  }, [autoFill, createdProject?.name, createdProject?.wasNameManuallyModified]);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -245,6 +262,9 @@ export function CreateProject() {
 
   useEffect(() => {
     (Object.keys(initialData) as Array<keyof typeof initialData>).forEach(key => {
+      if (key === 'projectName' && hasUserModifiedProjectName.current) {
+        return;
+      }
       updateFormData(key, initialData[key]);
     });
   }, [initialData, updateFormData]);
@@ -306,6 +326,7 @@ export function CreateProject() {
           platform: selectedPlatform,
           alertRule,
           notificationRule,
+          wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
         navigate(
@@ -437,18 +458,13 @@ export function CreateProject() {
         return;
       }
 
-      updateFormData('platform', {
-        ...omit(value, 'id'),
-        key: value.id,
-      });
-
-      const userModifiedName =
-        !!formData.projectName && formData.projectName !== formData.platform?.key;
-      const newName = userModifiedName ? formData.projectName : value.id;
-
-      updateFormData('projectName', newName);
+      setFormData(prev => ({
+        ...prev,
+        platform: {...omit(value, 'id'), key: value.id},
+        projectName: hasUserModifiedProjectName.current ? prev.projectName : value.id,
+      }));
     },
-    [updateFormData, formData.projectName, formData.platform?.key, organization]
+    [updateFormData, organization]
   );
 
   const platform = formData.platform?.key;
@@ -520,7 +536,13 @@ export function CreateProject() {
                   placeholder={t('project-slug')}
                   autoComplete="off"
                   value={formData.projectName}
-                  onChange={e => updateFormData('projectName', slugify(e.target.value))}
+                  onChange={e => {
+                    const slugified = slugify(e.target.value);
+                    // Track whether the user has intentionally set a custom name.
+                    // Reset if they clear the field so platform selection can fill it in again.
+                    hasUserModifiedProjectName.current = slugified !== '';
+                    updateFormData('projectName', slugified);
+                  }}
                 />
               </ProjectNameInputWrap>
             </div>
@@ -584,22 +606,22 @@ export function CreateProject() {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
 `;
 
 const FormFieldGroup = styled('div')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: end;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ProjectNameInputWrap = styled('div')`
@@ -619,7 +641,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 
 const TeamSelectInput = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;

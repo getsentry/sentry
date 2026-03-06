@@ -92,21 +92,15 @@ export function MessageToolCalls({
   });
 
   return (
-    <Footer direction="row" align="center" gap="xs" wrap="wrap" padding="xs sm">
-      <Text size="xs" style={{opacity: 0.7}}>
-        {t('Tools called:')}
-      </Text>
+    <Flex direction="row" align="center" gap="xs" wrap="wrap" padding="md">
       <CollapsibleTagList items={items} failedCount={failedCount} />
-    </Footer>
+    </Flex>
   );
 }
 
-const Footer = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
 const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
   cursor: pointer;
+  padding: 0 ${p => p.theme.space.xs};
   &:hover {
     opacity: 0.8;
   }

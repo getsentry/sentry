@@ -18,6 +18,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.newsletter.dummy import DummyNewsletter
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -27,8 +28,10 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import json
+from sentry.web.frontend.auth_login import AuthLoginView
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -77,6 +80,17 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         ]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
+    @mock.patch.object(
+        AuthLoginView,
+        "rate_limits",
+        RateLimitConfig(
+            limit_overrides={
+                "GET": {
+                    RateLimitCategory.IP: RateLimit(limit=20, window=60),
+                }
+            }
+        ),
+    )
     def test_login_ratelimited_ip_gets(self) -> None:
         url = reverse("sentry-login")
 
@@ -525,37 +539,36 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.redirect_chain == []
         assert "Please enter a correct username and password" in resp.content.decode()
 
-    @override_options(
-        {
-            "demo-mode.enabled": True,
-            "demo-mode.users": [1],
-            "demo-mode.orgs": [1],
-        }
-    )
     def test_login_demo_mode_with_org(self) -> None:
         demo_user = self.create_user(
             is_staff=False,
-            id=1,
             email="readonly@example.com",
             password="foo",
         )
-        demo_org = self.create_organization(owner=demo_user, id=1)
+        demo_org = self.create_organization(owner=demo_user)
 
-        self.client.get(self.path)
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_org.id],
+            }
+        ):
+            self.client.get(self.path)
 
-        resp = self.client.post(
-            self.path,
-            # login with any password
-            {"username": demo_user.username, "password": "bar", "op": "login"},
-            follow=True,
-        )
+            resp = self.client.post(
+                self.path,
+                # login with any password
+                {"username": demo_user.username, "password": "bar", "op": "login"},
+                follow=True,
+            )
 
-        assert resp.status_code == 200
-        # successful login redirects to demo orgs issue stream
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{demo_org.slug}/issues/", 302),
-        ]
+            assert resp.status_code == 200
+            # successful login redirects to demo orgs issue stream
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                (f"/organizations/{demo_org.slug}/issues/", 302),
+            ]
 
 
 @pytest.mark.skipif(

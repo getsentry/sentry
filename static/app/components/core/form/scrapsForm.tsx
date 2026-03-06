@@ -3,10 +3,12 @@ import {
   createFormHook,
   formOptions,
   revalidateLogic,
+  type AnyFormApi,
   type DeepKeys,
 } from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
@@ -14,6 +16,7 @@ import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
+import {RadioField} from './field/radioField';
 import {RangeField} from './field/rangeField';
 import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
@@ -36,9 +39,11 @@ export const defaultFormOptions = formOptions({
 });
 
 const fieldComponents = {
+  Base: BaseField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
+  Radio: RadioField,
   Range: RangeField,
   Select: SelectField,
   SelectAsync: SelectAsyncField,
@@ -55,7 +60,7 @@ const {useAppForm} = createFormHook({
   formComponents: {
     FieldGroup,
     SubmitButton,
-    FormWrapper,
+    AppForm,
   },
   fieldContext,
   formContext,
@@ -64,16 +69,25 @@ const {useAppForm} = createFormHook({
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
   return (
-    <form.Subscribe selector={state => state.isSubmitting}>
-      {isSubmitting => (
+    <form.Subscribe selector={state => state.isSubmitting || state.isDefaultValue}>
+      {isDisabled => (
         <Button
           {...props}
           priority="primary"
           type="submit"
-          disabled={isSubmitting || props.disabled}
+          form={form.formId}
+          disabled={isDisabled || props.disabled}
         />
       )}
     </form.Subscribe>
+  );
+}
+
+function AppForm({children, form}: {children: React.ReactNode; form: AnyFormApi}) {
+  return (
+    <formContext.Provider value={form}>
+      <FormWrapper>{children}</FormWrapper>
+    </formContext.Provider>
   );
 }
 
@@ -82,7 +96,9 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      data-test-id={form.formId}
       id={form.formId}
+      style={{width: '100%', flexGrow: 1}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();

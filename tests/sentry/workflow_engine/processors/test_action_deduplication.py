@@ -588,7 +588,7 @@ class TestActionDeduplication(TestCase):
         assert result_ids[0] == single_action.id
 
     def test_deduplicate_actions_same_actions_different_workflows(self) -> None:
-        """Test that identical actions from different workflows are NOT deduplicated."""
+        """Test that identical actions from different workflows are deduplicated."""
         # Create two identical Slack actions
         slack_action_1 = self.create_action(
             type=Action.Type.SLACK,
@@ -611,6 +611,8 @@ class TestActionDeduplication(TestCase):
         )
 
         # Annotate with different workflow IDs
+        # We don't use this, but it is expected to be present,
+        # so this mostly confirms we don't use it for deduplication.
         actions_queryset = Action.objects.filter(
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(
@@ -623,8 +625,6 @@ class TestActionDeduplication(TestCase):
 
         result = get_unique_active_actions(actions_queryset, self.group)
 
-        # Both actions should remain since they're from different workflows
+        # Only one action should remain; we don't take workflow into account for deduplication
         result_ids = list(result.values_list("id", flat=True))
-        assert len(result_ids) == 2
-        assert slack_action_1.id in result_ids
-        assert slack_action_2.id in result_ids
+        assert len(result_ids) == 1

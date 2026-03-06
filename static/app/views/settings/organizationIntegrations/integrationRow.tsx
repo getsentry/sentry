@@ -10,7 +10,6 @@ import {Link} from '@sentry/scraps/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
   PluginWithProjectList,
@@ -155,7 +154,7 @@ function IntegrationRow(props: Props) {
 }
 
 const PluginDeprecationAlertWrapper = styled('div')`
-  padding: 0px ${space(3)} 0px 68px;
+  padding: 0px ${p => p.theme.space['2xl']} 0px 68px;
 `;
 
 const PanelRow = styled(PanelItem)`
@@ -183,7 +182,7 @@ const StyledLink = styled(Link)`
   &:before {
     content: '|';
     color: ${p => p.theme.tokens.content.secondary};
-    margin-right: ${space(0.75)};
+    margin-right: ${p => p.theme.space.sm};
   }
 `;
 
@@ -201,12 +200,12 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
       ? p.theme.tokens.content.success
       : p.theme.tokens.content.secondary};
   font-weight: light;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
   text-transform: capitalize;
   &:before {
     content: '|';
     color: ${p => p.theme.tokens.content.secondary};
-    margin-right: ${space(0.75)};
+    margin-right: ${p => p.theme.space.sm};
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;

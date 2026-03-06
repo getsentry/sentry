@@ -14,19 +14,21 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {StatusCheckRuleItem} from './statusCheckRuleItem';
+import {DEFAULT_ARTIFACT_TYPE} from './types';
 import {useStatusCheckRules} from './useStatusCheckRules';
 
 export function StatusCheckRules() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
+  const navigate = useNavigate();
   const {data: repositories, isPending: isLoadingRepos} = useRepositories({
     orgSlug: organization.slug,
   });
@@ -56,15 +58,18 @@ export function StatusCheckRules() {
 
   const updateExpandedInUrl = useCallback(
     (expandedIds: string[]) => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          expanded: expandedIds,
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            expanded: expandedIds,
+          },
         },
-      });
+        {replace: true}
+      );
     },
-    [location.pathname, location.query]
+    [location.pathname, location.query, navigate]
   );
 
   const handleToggleExpanded = useCallback(
@@ -127,7 +132,7 @@ export function StatusCheckRules() {
                             project_slug: project.slug,
                             metric: updated.metric,
                             measurement: updated.measurement,
-                            artifact_type: updated.artifactType ?? 'all_artifacts',
+                            artifact_type: updated.artifactType ?? DEFAULT_ARTIFACT_TYPE,
                             value: updated.value,
                           });
                           if (rule.id === newRuleId) {

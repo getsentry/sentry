@@ -85,6 +85,11 @@ class PrebuiltDashboardId(IntEnum):
     MCP_RESOURCES = 21
     MCP_PROMPTS = 22
     LARAVEL_OVERVIEW = 23
+    FRONTEND_ASSETS = 24
+    FRONTEND_ASSETS_SUMMARY = 25
+    BACKEND_QUEUES = 26
+    BACKEND_QUEUE_SUMMARY = 27
+    BACKEND_CACHES = 28
 
 
 class PrebuiltDashboard(TypedDict):
@@ -193,6 +198,26 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
         "title": "Laravel Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS,
+        "title": "Frontend Assets",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+        "title": "Frontend Assets Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
+        "title": "Queues",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
+        "title": "Queue Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
+        "title": "Caches",
     },
 ]
 
@@ -344,29 +369,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             except Exception as err:
                 sentry_sdk.capture_exception(err)
 
-        filter_by = request.query_params.get("filter")
-        if filter_by == "onlyFavorites":
-            dashboards = Dashboard.objects.filter(
-                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-            )
-        elif filter_by == "excludeFavorites":
-            dashboards = Dashboard.objects.exclude(
-                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-            )
-        elif filter_by == "owned":
-            dashboards = Dashboard.objects.filter(
-                created_by_id=request.user.id, organization_id=organization.id
-            )
-        elif filter_by == "shared":
-            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
-                created_by_id=request.user.id
-            )
-        elif filter_by == "excludePrebuilt":
-            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
-                prebuilt_id__isnull=False
-            )
-        else:
-            dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        filters = request.query_params.getlist("filter")
+
+        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        for f in filters:
+            if f == "onlyFavorites":
+                dashboards = dashboards.filter(dashboardfavoriteuser__user_id=request.user.id)
+            elif f == "excludeFavorites":
+                dashboards = dashboards.exclude(dashboardfavoriteuser__user_id=request.user.id)
+            elif f == "owned":
+                dashboards = dashboards.filter(created_by_id=request.user.id)
+            elif f == "shared":
+                dashboards = dashboards.exclude(created_by_id=request.user.id)
+            elif f == "excludePrebuilt":
+                dashboards = dashboards.exclude(prebuilt_id__isnull=False)
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
@@ -531,12 +547,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             return serialized
 
+        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt"}
         render_pre_built_dashboard = True
-        if (
-            filter_by
-            and filter_by in {"onlyFavorites", "owned", "excludePrebuilt"}
-            or should_filter_by_prebuilt_ids
-        ):
+        if HIDE_PREBUILT_FILTERS.intersection(filters) or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
             # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show

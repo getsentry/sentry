@@ -131,7 +131,15 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
         )
         mock_has_feature.assert_called_once()
         mock_cache_get.assert_called_once()
-        mock_call_seer.assert_called_once_with(self.trace_id, self.trace_tree, False)
+        mock_call_seer.assert_called_once_with(
+            self.trace_id,
+            self.trace_tree,
+            False,
+            viewer_context={
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            },
+        )
         mock_cache_set.assert_called_once()
 
     @patch("sentry.seer.trace_summary._call_seer")

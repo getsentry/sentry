@@ -203,18 +203,6 @@ DANGEROUS_SET_TEST_HISTORY({
 // Close any open modals before each test
 beforeEach(closeModal);
 
-jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
-  const ActualReactVirtualized = jest.requireActual('react-virtualized');
-  return {
-    ...ActualReactVirtualized,
-    AutoSizer: ({
-      children,
-    }: {
-      children: (props: {height: number; width: number}) => React.ReactNode;
-    }) => children({width: 100, height: 100}),
-  };
-});
-
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
   // guaranteed to be in scope
@@ -391,4 +379,11 @@ Object.defineProperty(global.self, 'crypto', {
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = nodeStructuredClone;
+}
+
+if (typeof globalThis.setImmediate === 'undefined') {
+  // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
+  globalThis.setImmediate = setTimeout;
+  // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
+  globalThis.clearImmediate = clearTimeout;
 }

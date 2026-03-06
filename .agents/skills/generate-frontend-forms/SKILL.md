@@ -65,18 +65,16 @@ function MyForm() {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.AppField name="email">
-          {field => (
-            <field.Layout.Stack label="Email" required>
-              <field.Input value={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Stack>
-          )}
-        </form.AppField>
+    <form.AppForm form={form}>
+      <form.AppField name="email">
+        {field => (
+          <field.Layout.Stack label="Email" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
 
-        <form.SubmitButton>Submit</form.SubmitButton>
-      </form.FormWrapper>
+      <form.SubmitButton>Submit</form.SubmitButton>
     </form.AppForm>
   );
 }
@@ -86,16 +84,15 @@ function MyForm() {
 
 ### Returned Properties
 
-| Property         | Description                                    |
-| ---------------- | ---------------------------------------------- |
-| `AppForm`        | Root wrapper component (provides form context) |
-| `FormWrapper`    | Form element wrapper (handles submit)          |
-| `AppField`       | Field renderer component                       |
-| `FieldGroup`     | Section grouping with title                    |
-| `SubmitButton`   | Pre-wired submit button                        |
-| `Subscribe`      | Subscribe to form state changes                |
-| `reset()`        | Reset form to default values                   |
-| `handleSubmit()` | Manually trigger submission                    |
+| Property         | Description                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `AppForm`        | Root wrapper component (provides form context and renders `<form>` element). Must receive `form={form}` prop. |
+| `AppField`       | Field renderer component                                                                                      |
+| `FieldGroup`     | Section grouping with title                                                                                   |
+| `SubmitButton`   | Pre-wired submit button                                                                                       |
+| `Subscribe`      | Subscribe to form state changes                                                                               |
+| `reset()`        | Reset form to default values                                                                                  |
+| `handleSubmit()` | Manually trigger submission                                                                                   |
 
 ---
 
@@ -223,6 +220,85 @@ All fields are accessed via the `field` render prop and follow consistent patter
   )}
 </form.AppField>
 ```
+
+### Radio Field
+
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
+
+> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
+
+```tsx
+<form.AppField name="priority">
+  {field => (
+    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label="Priority">
+        <field.Radio.Item value="low">Low</field.Radio.Item>
+        <field.Radio.Item value="medium">Medium</field.Radio.Item>
+        <field.Radio.Item value="high" description="Urgent issues">
+          High
+        </field.Radio.Item>
+      </field.Layout.Stack>
+    </field.Radio.Group>
+  )}
+</form.AppField>
+```
+
+For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
+
+```tsx
+import {Flex} from '@sentry/scraps/layout';
+
+<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+  <field.Layout.Row label="Priority">
+    <Flex gap="lg">
+      <field.Radio.Item value="low">Low</field.Radio.Item>
+      <field.Radio.Item value="high">High</field.Radio.Item>
+    </Flex>
+  </field.Layout.Row>
+</field.Radio.Group>;
+```
+
+### Custom Fields with BaseField
+
+For one-off fields that don't have a built-in component (e.g. a color picker, or any custom input), use `field.Base`. It provides a render prop with all the necessary accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) that you spread onto your native element.
+
+```tsx
+<form.AppField name="color">
+  {field => (
+    <field.Layout.Row label="Brand Color">
+      <field.Base<HTMLInputElement>>
+        {(baseProps, {indicator}) => (
+          <Flex flexGrow={1}>
+            <input
+              {...baseProps}
+              type="color"
+              value={field.state.value}
+              onChange={e => field.handleChange(e.target.value)}
+            />
+            {indicator}
+          </Flex>
+        )}
+      </field.Base>
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+The render prop receives two arguments:
+
+1. **`baseProps`** — accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) to spread onto your element
+2. **`{indicator}`** — the auto-save status indicator (spinner/checkmark) as a React node, which you can place wherever makes sense in your custom layout
+
+The element type is inferred from the passed `ref`, so if you don't pass one, you have to manually annotate it with `<field.Base<HTMLInputElement>>`.
+
+`field.Base` automatically handles:
+
+- Merging refs (for scroll-to-hash and external ref forwarding)
+- Disabling the field when auto-save is pending
+- Setting `aria-invalid` based on validation state
+- Linking to hint text via `aria-describedby`
+
+Use `field.Base` instead of building custom wrappers that duplicate this logic. It works with any native HTML element or third-party component that accepts standard props.
 
 ---
 
@@ -509,6 +585,7 @@ function SettingsForm() {
 | Select (single)   | Immediately when selection changes                          |
 | Select (multiple) | When menu closes, or when X/clear clicked while menu closed |
 | Switch            | Immediately when toggled                                    |
+| Radio             | Immediately when selection changes                          |
 | Range             | When user releases the slider, or immediately with keyboard |
 
 ### Auto-Save Status Indicators
@@ -518,6 +595,8 @@ The form system automatically shows:
 - **Spinner** while saving (pending)
 - **Checkmark** on success (fades after 2s)
 - **Warning icon** on validation error (with tooltip)
+
+> **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
 
 ### Confirmation Dialogs
 
@@ -708,6 +787,27 @@ z.string().min(1);
 z.string().min(1, 'Email address is required');
 ```
 
+### Auto-Save Feedback
+
+```tsx
+// ❌ Don't use toasts for auto-save status
+mutationOptions={{
+  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: () => {
+    addSuccessMessage('Saved!'); // ❌ noisy and disruptive
+  },
+}}
+
+// ✅ Rely on built-in inline indicators (spinner, checkmark, warning icon)
+mutationOptions={{
+  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: (data) => {
+    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+    // No toast needed - AutoSaveField shows a checkmark automatically
+  },
+}}
+```
+
 ### Auto-Save Cache Updates
 
 ```tsx
@@ -772,7 +872,7 @@ When creating a new form:
 - [ ] Use `useScrapsForm` with `...defaultFormOptions`
 - [ ] Set `defaultValues` matching schema shape
 - [ ] Set `validators: {onDynamic: schema}`
-- [ ] Wrap with `<form.AppForm>` and `<form.FormWrapper>`
+- [ ] Wrap with `<form.AppForm form={form}>`
 - [ ] Use `<form.AppField>` for each field
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] Handle server errors with `setFieldErrors`

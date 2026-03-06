@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -11,7 +12,6 @@ import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {createIssueLink} from 'sentry/views/issueList/utils';
@@ -22,6 +22,7 @@ interface Props {
 }
 
 function MergedItem({fingerprint, totalFingerprint}: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const [busy, setBusy] = useState(false);
@@ -153,7 +154,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
                 aria-label={t('View latest event')}
                 priority="transparent"
                 size="xs"
-                style={{marginLeft: space(1)}}
+                style={{marginLeft: theme.space.md}}
               />
               <Flex justify="between" padding="md">
                 <Text size="md" data-issue-title-primary>
@@ -177,7 +178,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   justify-content: space-between;
   background-color: ${p => p.theme.tokens.background.secondary};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.tokens.border.secondary}`};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 
   ${MergedGroup}:not(:first-child) & {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -192,7 +193,7 @@ const Controls = styled('div')<{expanded: boolean}>`
 const FingerprintLabel = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
   line-height: 1;
   font-weight: ${p => p.theme.font.weight.sans.regular};

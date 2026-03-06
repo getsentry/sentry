@@ -88,7 +88,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
         # User saved query
         assert response.data[3]["name"] == "Test query"
-        assert response.data[3]["projects"] == self.project_ids
+        assert sorted(response.data[3]["projects"]) == sorted(self.project_ids)
         assert response.data[3]["range"] == "24h"
         assert response.data[3]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[3]
@@ -1285,6 +1285,12 @@ class ExploreSavedQueriesTest(APITestCase):
                     "dataset": "spans",
                     "start": "2025-11-12T23:00:00.000Z",
                     "end": "2025-11-20T22:59:59.000Z",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
         assert response.status_code == 201, response.content
@@ -1335,3 +1341,53 @@ class ExploreSavedQueriesTest(APITestCase):
         data = response.data
         assert data["query"][0]["query"] == "user.email:*@sentry.io"
         assert data["query"][0]["mode"] == "samples"
+
+    def test_malformed_query_missing_query_field_in_get(self) -> None:
+        """VULN-950: A saved query with no 'query' content returns a response
+        missing the 'query' key, which crashes the frontend All Queries page."""
+        malformed = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="malformed",
+            query={"range": "24h"},
+        )
+        malformed.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail",
+                args=[self.org.slug, malformed.id],
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        # The response is missing the 'query' key entirely — this is what
+        # crashes the frontend, which expects it to be an array.
+        assert "query" not in response.data
+
+    def test_post_without_query_is_rejected(self) -> None:
+        """VULN-950: POST with no query field should be rejected."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "crash",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400
+
+    def test_post_with_empty_query_is_rejected(self) -> None:
+        """VULN-950: POST with empty query list should also be rejected."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "crash",
+                    "projects": self.project_ids,
+                    "query": [],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400
