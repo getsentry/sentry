@@ -30,6 +30,7 @@ from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
@@ -576,6 +577,26 @@ class AbstractOrganizationView(BaseView, abc.ABC):
 
     def get_access(self, request: HttpRequest, *args: Any, **kwargs: Any) -> access.Access:
         if self.active_organization is None:
+            # During impersonation, the actual_user is actually a superuser,
+            # so we need to check if organization page we're trying to access
+            # has data secrecy enabled. If it does, we need to raise a DataSecrecyError.
+            actual_user = getattr(request, "actual_user", None)
+            if actual_user is not None:
+                organization_slug = (
+                    getattr(request, "subdomain", None)
+                    or kwargs.get("organization_slug")
+                    or (
+                        request.resolver_match.kwargs.get("organization_slug")
+                        if request.resolver_match
+                        else None
+                    )
+                )
+                if organization_slug:
+                    org_context = organization_service.get_organization_by_slug(
+                        slug=organization_slug, only_visible=True, user_id=actual_user.id
+                    )
+                    if org_context and not should_allow_superuser_access(org_context):
+                        raise DataSecrecyError()
             return access.DEFAULT
         return access.from_request_org_and_scopes(
             request=request, rpc_user_org_context=self.active_organization
@@ -629,6 +650,16 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             return False
 
         if not self.active_organization:
+            # During impersonation (ViewAs), actual_user is set to the real superuser.
+            # If active_organization is None (e.g. UID mismatch in superuser session),
+            # returning True here would cause an infinite auth redirect loop since the
+            # user is already authenticated. We return False to let the request proceed
+            # to get_access(), which enforces the data secrecy check and raises
+            # DataSecrecyError if the org disallows superuser access.
+            actual_user = getattr(request, "actual_user", None)
+            if actual_user is not None and actual_user.is_superuser:
+                return False
+
             # Require auth if we there is an organization associated with the slug that we just cannot access
             # for some reason.
             return (
