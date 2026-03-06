@@ -748,6 +748,51 @@ describe('ProjectPageFilter', () => {
     });
   });
 
+  describe('closed-membership org defaults', () => {
+    it('shows My Projects (not All Projects) as the default in closed orgs', async () => {
+      // Org without open-membership, user is a regular member (showNonMemberProjects = false)
+      const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+      OrganizationStore.onUpdate(closedOrg, {replace: true});
+
+      render(<ProjectPageFilter />, {
+        organization: closedOrg,
+        initialRouterConfig: {
+          // Empty URL = default "My Projects" state
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      // The trigger button should say "My Projects", not "All Projects"
+      expect(
+        await screen.findByRole('button', {name: 'My Projects'})
+      ).toBeInTheDocument();
+    });
+
+    it('correctly round-trips My Projects selection in closed orgs', async () => {
+      const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+      OrganizationStore.onUpdate(closedOrg, {replace: true});
+
+      const {router} = render(<ProjectPageFilter />, {
+        organization: closedOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      // Open menu and confirm My Projects checkbox is checked
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).toBeChecked();
+
+      // Explicitly apply My Projects
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // URL should use the compact [] encoding (no project param), not explicit IDs
+      await waitFor(() => {
+        expect(router.location.query.project).toBeUndefined();
+      });
+    });
+  });
+
   describe('superuser access', () => {
     it('shows All Projects option for superusers in orgs without open-membership', async () => {
       // Org without open-membership and current user is not owner/manager

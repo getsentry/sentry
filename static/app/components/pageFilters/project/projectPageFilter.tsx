@@ -33,7 +33,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
@@ -78,8 +77,6 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
-  const user = useUser();
-
   // Project data s
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {
@@ -87,20 +84,13 @@ export function ProjectPageFilter({
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
-  const showNonMemberProjects =
-    user.isSuperuser ||
-    organization.orgRole === 'owner' ||
-    organization.orgRole === 'manager' ||
-    organization.features.includes('open-membership');
-
   const committedSelectionIntent = useMemo(
     () =>
       urlSelectionToIntent({
         projects,
         urlSelection: urlProjectSelection,
-        showNonMemberProjects,
       }),
-    [urlProjectSelection, projects, showNonMemberProjects]
+    [urlProjectSelection, projects]
   );
 
   // Track optimistically bookmarked projects to prevent star from disappearing
@@ -124,7 +114,6 @@ export function ProjectPageFilter({
     const optionSelectionIntent = selectionToIntent({
       projects,
       selection: stagedValue,
-      showNonMemberProjects,
     });
 
     const getProjectItem = (project: Project) => {
@@ -361,7 +350,6 @@ export function ProjectPageFilter({
   }, [
     projects,
     stagedValue,
-    showNonMemberProjects,
     urlProjectSelection,
     optimisticallyBookmarkedProjects,
     organization,
@@ -374,7 +362,6 @@ export function ProjectPageFilter({
     const stagedSelectionIntent = selectionToIntent({
       projects,
       selection: stagedValue,
-      showNonMemberProjects,
     });
 
     if (stagedSelectionIntent.kind === 'my') {
@@ -395,7 +382,7 @@ export function ProjectPageFilter({
       v => v !== ALL_ACCESS_PROJECTS && v !== MY_PROJECTS_VALUE
     );
     return realStagedValue.length > SELECTION_COUNT_LIMIT;
-  }, [stagedValue, showNonMemberProjects, urlProjectSelection, projects]);
+  }, [stagedValue, urlProjectSelection, projects]);
 
   const onToggle = (newValue: number[]) => {
     trackAnalytics('projectselector.toggle', {
@@ -436,7 +423,6 @@ export function ProjectPageFilter({
         // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
         // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
         value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
-        showNonMemberProjects,
       }),
       router,
       {
@@ -645,28 +631,24 @@ interface SelectionIntent {
 function urlSelectionToIntent({
   projects,
   urlSelection,
-  showNonMemberProjects,
 }: {
   projects: Project[];
-  showNonMemberProjects: boolean;
   urlSelection: number[];
 }): SelectionIntent {
   if (urlSelection.includes(ALL_ACCESS_PROJECTS)) {
     return {kind: 'all', ids: allProjectIds(projects)};
   }
 
-  // Empty URL = "My Projects" (not "none" — that would be no selection at all)
+  // Empty URL = "My Projects" (not "none" — that would be no selection at all).
+  // This holds regardless of showNonMemberProjects: in closed orgs the user's member
+  // projects are their accessible projects, so the default is still "My Projects".
   if (urlSelection.length === 0) {
-    if (showNonMemberProjects) {
-      return {kind: 'my', ids: memberProjectIds(projects)};
-    }
-    return {kind: 'all', ids: allProjectIds(projects)};
+    return {kind: 'my', ids: memberProjectIds(projects)};
   }
 
   return selectionToIntent({
     projects,
     selection: urlSelection,
-    showNonMemberProjects,
   });
 }
 
@@ -678,11 +660,9 @@ function urlSelectionToIntent({
 function selectionToIntent({
   projects,
   selection,
-  showNonMemberProjects,
 }: {
   projects: Project[];
   selection: number[];
-  showNonMemberProjects: boolean;
 }): SelectionIntent {
   if (selection.length === 0) {
     return {kind: 'none', ids: []};
@@ -700,8 +680,9 @@ function selectionToIntent({
     return {kind: 'all', ids: allProjectIds(projects)};
   }
 
-  // If the user manually selected my projects
-  if (showNonMemberProjects && hasSameValues(selection, memberProjectIds(projects))) {
+  // If the user manually selected my projects — applies regardless of showNonMemberProjects
+  // so closed-org users see the "My Projects" checkbox checked when appropriate.
+  if (hasSameValues(selection, memberProjectIds(projects))) {
     return {kind: 'my', ids: memberProjectIds(projects)};
   }
 
@@ -715,11 +696,9 @@ function selectionToIntent({
  */
 function toURLSelection({
   projects,
-  showNonMemberProjects,
   value,
 }: {
   projects: Project[];
-  showNonMemberProjects: boolean;
   value: number[];
 }): number[] {
   if (value.includes(ALL_ACCESS_PROJECTS)) {
@@ -734,12 +713,9 @@ function toURLSelection({
     value.includes(project)
   );
 
-  // "My Projects"
-  if (
-    showNonMemberProjects &&
-    value.length === memberProjectIds(projects).length &&
-    memberProjectsSelected
-  ) {
+  // "My Projects" — applies regardless of showNonMemberProjects so closed-org
+  // selections round-trip correctly through the compact [] URL encoding.
+  if (value.length === memberProjectIds(projects).length && memberProjectsSelected) {
     return [];
   }
 
