@@ -437,47 +437,6 @@ class SourceCodeManager:
             lambda p: p.create_review_comment_file(pull_request_id, commit_id, body, path, side)
         )
 
-    def create_review_comment_line(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        line: int,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        """Leave a review comment on a specific line in a file."""
-        return self._exec(
-            lambda p: p.create_review_comment_line(
-                pull_request_id, commit_id, body, path, line, side
-            )
-        )
-
-    def create_review_comment_multiline(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        start_line: int,
-        start_side: ReviewSide,
-        end_line: int,
-        end_side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        """Leave a review comment on a multiline span in a file."""
-        return self._exec(
-            lambda p: p.create_review_comment_multiline(
-                pull_request_id,
-                commit_id,
-                body,
-                path,
-                start_line,
-                start_side,
-                end_line,
-                end_side,
-            )
-        )
-
     def create_review_comment_reply(
         self,
         pull_request_id: str,
@@ -547,6 +506,3 @@ class SourceCodeManager:
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         return self._exec(lambda p: p.minimize_comment(comment_node_id, reason))
-
-    def resolve_review_thread(self, thread_node_id: str) -> None:
-        return self._exec(lambda p: p.resolve_review_thread(thread_node_id))

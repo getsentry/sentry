@@ -569,64 +569,6 @@ class GitHubProvider:
         )
 
     @catch_provider_exception
-    def create_review_comment_line(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        line: int,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        """Leave a review comment on a specific line in a file."""
-        return map_action(
-            self.client.create_review_comment(
-                self.repository["name"],
-                pull_request_id,
-                {
-                    "body": body,
-                    "commit_id": commit_id,
-                    "path": path,
-                    "line": line,
-                    "side": side,
-                    "subject_type": "line",
-                },
-            ),
-            map_review_comment,
-        )
-
-    @catch_provider_exception
-    def create_review_comment_multiline(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        start_line: int,
-        start_side: ReviewSide,
-        end_line: int,
-        end_side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        """Leave a review comment on a multiline span in a file."""
-        return map_action(
-            self.client.create_review_comment(
-                self.repository["name"],
-                pull_request_id,
-                {
-                    "body": body,
-                    "commit_id": commit_id,
-                    "path": path,
-                    "line": end_line,
-                    "side": end_side,
-                    "start_line": start_line,
-                    "start_side": start_side,
-                    "subject_type": "line",
-                },
-            ),
-            map_review_comment,
-        )
-
-    @catch_provider_exception
     def create_review_comment_reply(
         self,
         pull_request_id: str,
@@ -726,10 +668,6 @@ class GitHubProvider:
     @catch_provider_exception
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         self.client.minimize_comment(comment_node_id, reason)
-
-    @catch_provider_exception
-    def resolve_review_thread(self, thread_node_id: str) -> None:
-        self.client.resolve_review_thread(thread_node_id)
 
 
 def map_author(raw_user: dict[str, Any] | None) -> Author | None:

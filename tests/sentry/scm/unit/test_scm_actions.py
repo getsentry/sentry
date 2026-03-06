@@ -97,30 +97,6 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
         },
     ),
     (
-        "create_review_comment_line",
-        {
-            "pull_request_id": "1",
-            "commit_id": "abc",
-            "body": "comment",
-            "path": "f.py",
-            "line": 10,
-            "side": "RIGHT",
-        },
-    ),
-    (
-        "create_review_comment_multiline",
-        {
-            "pull_request_id": "1",
-            "commit_id": "abc",
-            "body": "comment",
-            "path": "f.py",
-            "start_line": 5,
-            "start_side": "RIGHT",
-            "end_line": 10,
-            "end_side": "RIGHT",
-        },
-    ),
-    (
         "create_review_comment_reply",
         {
             "pull_request_id": "1",
@@ -143,7 +119,6 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("update_check_run", {"check_run_id": "300"}),
     # GraphQL mutation operations
     ("minimize_comment", {"comment_node_id": "IC_abc", "reason": "OUTDATED"}),
-    ("resolve_review_thread", {"thread_node_id": "PRT_abc"}),
 )
 
 
@@ -581,32 +556,6 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_review_comment,
     ),
     (
-        SourceCodeManager.create_review_comment_line,
-        {
-            "pull_request_id": "1",
-            "commit_id": "abc",
-            "body": "comment",
-            "path": "f.py",
-            "line": 10,
-            "side": "RIGHT",
-        },
-        _check_review_comment,
-    ),
-    (
-        SourceCodeManager.create_review_comment_multiline,
-        {
-            "pull_request_id": "1",
-            "commit_id": "abc",
-            "body": "comment",
-            "path": "f.py",
-            "start_line": 5,
-            "start_side": "RIGHT",
-            "end_line": 10,
-            "end_side": "RIGHT",
-        },
-        _check_review_comment,
-    ),
-    (
         SourceCodeManager.create_review_comment_reply,
         {
             "pull_request_id": "1",
@@ -643,11 +592,6 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.minimize_comment,
         {"comment_node_id": "IC_abc", "reason": "OUTDATED"},
-        _check_none,
-    ),
-    (
-        SourceCodeManager.resolve_review_thread,
-        {"thread_node_id": "PRT_abc"},
         _check_none,
     ),
 )

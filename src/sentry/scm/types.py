@@ -607,28 +607,6 @@ class Provider(Protocol):
         side: ReviewSide,
     ) -> ActionResult[ReviewComment]: ...
 
-    def create_review_comment_line(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        line: int,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]: ...
-
-    def create_review_comment_multiline(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        start_line: int,
-        start_side: ReviewSide,
-        end_line: int,
-        end_side: ReviewSide,
-    ) -> ActionResult[ReviewComment]: ...
-
     def create_review_comment_reply(
         self,
         pull_request_id: str,
@@ -666,5 +644,3 @@ class Provider(Protocol):
     ) -> ActionResult[CheckRun]: ...
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None: ...
-
-    def resolve_review_thread(self, thread_node_id: str) -> None: ...
