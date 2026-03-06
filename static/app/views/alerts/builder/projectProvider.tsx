@@ -4,7 +4,6 @@ import {Outlet, useOutletContext} from 'react-router-dom';
 import {Alert} from '@sentry/scraps/alert';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
@@ -13,10 +12,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
@@ -37,8 +36,8 @@ export default function AlertBuilderProjectProvider() {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const params = useParams<{projectId?: string}>();
-  const router = useRouter();
   const isMountedRef = useIsMountedRef();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location});
@@ -70,12 +69,11 @@ export default function AlertBuilderProjectProvider() {
 
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
-    navigateTo(
+    navigate(
       makeAlertsPathname({
         path: '/wizard/',
         organization,
-      }) + `?referrer=${location.query.referrer}&project=:projectId`,
-      router
+      }) + `?referrer=${location.query.referrer}`
     );
   }
 
