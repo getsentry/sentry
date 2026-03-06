@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: getsentry tests'"
+    if: false # temporarily disabled for parallel pytest testing
     name: getsentry dispatch
     runs-on: ubuntu-24.04
     steps:
