@@ -7,11 +7,15 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  type ProjectSeerPreferences,
+} from 'sentry/components/events/autofix/types';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -97,10 +101,10 @@ function CodingAgentSettings({
   handleIntegrationChange,
   canWriteProject,
   isAutomationOn,
-  cursorIntegrations,
+  codingAgentIntegrations,
 }: {
   canWriteProject: boolean;
-  cursorIntegrations: CodingAgentIntegration[];
+  codingAgentIntegrations: CodingAgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
   preference: ProjectSeerPreferences | null | undefined;
@@ -112,8 +116,13 @@ function CodingAgentSettings({
 
   const autoCreatePrValue = preference?.automation_handoff?.auto_create_pr ?? false;
   const selectedIntegrationId = preference?.automation_handoff?.integration_id;
+  const target = preference?.automation_handoff?.target;
 
-  const integrationOptions = cursorIntegrations.map(integration => ({
+  const isClaude = target === CodingAgentProvider.CLAUDE_CODE_AGENT;
+  const agentName = isClaude ? t('Claude') : t('Cursor Cloud Agent');
+  const sectionTitle = isClaude ? t('Claude Agent Settings') : t('Cursor Agent Settings');
+
+  const integrationOptions = codingAgentIntegrations.map(integration => ({
     value: integration.id,
     label: `${integration.name} (${integration.id})`,
   }));
@@ -121,7 +130,7 @@ function CodingAgentSettings({
   const fields: FieldObject[] = [];
 
   // Only show integration selector if there are multiple integrations
-  if (cursorIntegrations.length > 1) {
+  if (codingAgentIntegrations.length > 1) {
     fields.push({
       name: 'integration_id',
       label: t('Select Configuration'),
@@ -142,7 +151,8 @@ function CodingAgentSettings({
     name: 'auto_create_pr',
     label: t('Auto-Create Pull Requests'),
     help: t(
-      'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
+      'When enabled, %s will automatically create pull requests after hand off.',
+      agentName
     ),
     saveOnBlur: true,
     type: 'boolean',
@@ -165,7 +175,7 @@ function CodingAgentSettings({
       <JsonForm
         forms={[
           {
-            title: t('Cursor Agent Settings'),
+            title: sectionTitle,
             fields,
           },
         ]}
@@ -194,6 +204,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   // For backwards compatibility, use the first cursor integration as default
   const cursorIntegration = cursorIntegrations[0];
 
+  const claudeIntegrations =
+    codingAgentIntegrations?.integrations.filter(
+      integration => integration.provider === 'claude_code'
+    ) ?? [];
+
+  const claudeIntegration = claudeIntegrations[0];
+
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
       const projectSettingsQueryKey: ApiQueryKey = [
@@ -211,9 +228,19 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     organization.features.includes('integrations-cursor') && cursorIntegration
   );
 
+  const hasClaudeIntegration = Boolean(
+    organization.features.includes('integrations-claude-code') && claudeIntegration
+  );
+
   const handleStoppingPointChange = useCallback(
     (
-      value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
+      value:
+        | 'root_cause'
+        | 'solution'
+        | 'code_changes'
+        | 'open_pr'
+        | 'cursor_handoff'
+        | 'claude_handoff'
     ) => {
       if (value === 'cursor_handoff') {
         if (!cursorIntegration?.id) {
@@ -231,8 +258,29 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integration_id: parseInt(cursorIntegration.id, 10),
+            auto_create_pr: false,
+          },
+        });
+      } else if (value === 'claude_handoff') {
+        if (!claudeIntegration?.id) {
+          throw new Error('Claude integration not found');
+        }
+        trackAnalytics('coding_integration.setup_handoff_clicked', {
+          organization,
+          project_slug: project.slug,
+          provider: 'claude_code',
+          source: 'settings_dropdown',
+          user_id: user.id,
+        });
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integration_id: parseInt(claudeIntegration.id, 10),
             auto_create_pr: false,
           },
         });
@@ -251,6 +299,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       updateProjectSeerPreferences,
       preference?.repositories,
       cursorIntegration,
+      claudeIntegration,
     ]
   );
 
@@ -314,6 +363,17 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               ),
               details: t(
                 "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
+              ),
+            },
+          ]
+        : []),
+      ...(hasClaudeIntegration
+        ? [
+            {
+              value: 'claude_handoff',
+              label: <SeerSelectLabel>{t('Hand off to Claude Agent')}</SeerSelectLabel>,
+              details: t(
+                'Seer will identify the root cause and hand off the fix to Claude.'
               ),
             },
           ]
@@ -386,7 +446,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       <Form
         key={`${project.seerScannerAutomation}-${project.autofixAutomationTuning}-${
           preference?.automation_handoff
-            ? 'cursor_handoff'
+            ? `${preference.automation_handoff.target}_handoff`
             : (preference?.automated_run_stopping_point ?? 'root_cause')
         }`}
         saveOnBlur
@@ -397,7 +457,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: automationTuning,
           automated_run_stopping_point: preference?.automation_handoff
-            ? 'cursor_handoff'
+            ? preference.automation_handoff.target ===
+              CodingAgentProvider.CLAUDE_CODE_AGENT
+              ? 'claude_handoff'
+              : 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
         }}
         onSubmitSuccess={handleSubmitSuccess}
@@ -419,7 +482,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         isAutomationOn={automationTuning && automationTuning !== 'off'}
         handleIntegrationChange={handleIntegrationChange}
         canWriteProject={canWriteProject}
-        cursorIntegrations={cursorIntegrations}
+        codingAgentIntegrations={
+          preference?.automation_handoff?.target === CodingAgentProvider.CLAUDE_CODE_AGENT
+            ? claudeIntegrations
+            : cursorIntegrations
+        }
       />
     </Fragment>
   );
@@ -482,6 +549,7 @@ function ProjectSeer({
       />
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
+      <ClaudeCodeIntegrationCta project={project} />
       <GithubCopilotIntegrationCta />
       <AutofixRepositories project={project} />
       <Flex justify="center" marginTop="lg">

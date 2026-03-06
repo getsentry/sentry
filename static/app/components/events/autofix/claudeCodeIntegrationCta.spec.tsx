@@ -3,21 +3,20 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('CursorIntegrationCta', () => {
+describe('ClaudeCodeIntegrationCta', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture({
-    features: ['integrations-cursor'],
+    features: ['integrations-claude-code'],
   });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
 
-    // Default mock for seer preferences
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       body: {
@@ -26,7 +25,6 @@ describe('CursorIntegrationCta', () => {
       },
     });
 
-    // Default mock for coding agent integrations
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {
@@ -36,30 +34,30 @@ describe('CursorIntegrationCta', () => {
   });
 
   describe('Feature Flag', () => {
-    it('does not render without integrations-cursor feature flag', () => {
+    it('does not render without integrations-claude-code feature flag', () => {
       const orgWithoutFlag = OrganizationFixture({
         features: [],
       });
 
-      const {container} = render(<CursorIntegrationCta project={project} />, {
+      const {container} = render(<ClaudeCodeIntegrationCta project={project} />, {
         organization: orgWithoutFlag,
       });
 
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders with integrations-cursor feature flag', async () => {
-      render(<CursorIntegrationCta project={project} />, {
+    it('renders with integrations-claude-code feature flag', async () => {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
     });
   });
 
   describe('Loading State', () => {
     it('shows loading placeholder while fetching preferences', () => {
-      render(<CursorIntegrationCta project={project} />, {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
@@ -67,7 +65,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('shows loading placeholder while fetching integrations', () => {
-      render(<CursorIntegrationCta project={project} />, {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
@@ -76,44 +74,44 @@ describe('CursorIntegrationCta', () => {
   });
 
   describe('Stage 1: Integration Not Installed', () => {
-    it('shows install stage when cursor integration is not installed', async () => {
-      render(<CursorIntegrationCta project={project} />, {
+    it('shows install stage when claude integration is not installed', async () => {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
       expect(
-        screen.getByText(/Connect Cursor to automatically hand off/)
+        screen.getByText(/Connect Claude to automatically hand off/)
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Install Cursor Integration'})
+        screen.getByRole('button', {name: 'Install Claude Integration'})
       ).toBeInTheDocument();
     });
 
-    it('links to cursor integration settings', async () => {
-      render(<CursorIntegrationCta project={project} />, {
+    it('links to claude integration settings', async () => {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
       const installLink = await screen.findByRole('button', {
-        name: 'Install Cursor Integration',
+        name: 'Install Claude Integration',
       });
       expect(installLink).toHaveAttribute(
         'href',
-        `/settings/${organization.slug}/integrations/cursor/`
+        `/settings/${organization.slug}/integrations/claude_code/`
       );
     });
 
     it('includes documentation link', async () => {
-      render(<CursorIntegrationCta project={project} />, {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
-      await screen.findByText('Cursor Agent Integration');
+      await screen.findByText('Claude Agent Integration');
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
         'href',
-        'https://docs.sentry.io/organization/integrations/cursor/'
+        'https://docs.sentry.io/organization/integrations/claude-code/'
       );
     });
   });
@@ -125,9 +123,9 @@ describe('CursorIntegrationCta', () => {
         body: {
           integrations: [
             {
-              id: '123',
-              provider: 'cursor',
-              name: 'Cursor',
+              id: '456',
+              provider: 'claude_code',
+              name: 'Claude',
             },
           ],
         },
@@ -135,16 +133,16 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('shows configure stage when integration installed but not configured', async () => {
-      render(<CursorIntegrationCta project={project} />, {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
       expect(
-        screen.getByText(/You have the Cursor integration installed/)
+        screen.getByText(/You have the Claude integration installed/)
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Set Seer to hand off to Cursor'})
+        screen.getByRole('button', {name: 'Set Seer to hand off to Claude'})
       ).toBeInTheDocument();
     });
 
@@ -157,18 +155,18 @@ describe('CursorIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integration_id: 456,
           },
         },
       });
 
-      render(<CursorIntegrationCta project={project} />, {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
       const setupButton = await screen.findByRole('button', {
-        name: 'Set Seer to hand off to Cursor',
+        name: 'Set Seer to hand off to Claude',
       });
       await userEvent.click(setupButton);
 
@@ -182,8 +180,8 @@ describe('CursorIntegrationCta', () => {
               automated_run_stopping_point: 'root_cause',
               automation_handoff: {
                 handoff_point: 'root_cause',
-                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                integration_id: 123,
+                target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+                integration_id: 456,
               },
             },
           })
@@ -192,11 +190,11 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('includes link to project seer settings', async () => {
-      render(<CursorIntegrationCta project={project} />, {
+      render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });
 
-      await screen.findByText('Cursor Agent Integration');
+      await screen.findByText('Claude Agent Integration');
       const settingsLink = screen.getByRole('link', {
         name: 'Configure in Seer project settings',
       });
@@ -204,6 +202,53 @@ describe('CursorIntegrationCta', () => {
         'href',
         `/settings/${organization.slug}/projects/${project.slug}/seer/`
       );
+    });
+
+    it('does not enable automation when already enabled', async () => {
+      const projectWithAutomation = ProjectFixture({
+        seerScannerAutomation: true,
+        autofixAutomationTuning: 'medium',
+      });
+
+      const projectUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const preferencesUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
+        method: 'POST',
+        body: {
+          repositories: [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integration_id: 456,
+          },
+        },
+      });
+
+      render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
+        organization,
+      });
+
+      const setupButton = await screen.findByRole('button', {
+        name: 'Set Seer to hand off to Claude',
+      });
+      await userEvent.click(setupButton);
+
+      expect(projectUpdateMock).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(preferencesUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+      });
     });
 
     it('enables automation when setup button is clicked and automation is disabled', async () => {
@@ -232,24 +277,23 @@ describe('CursorIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
+            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integration_id: 456,
           },
         },
       });
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
 
-      render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
+      render(<ClaudeCodeIntegrationCta project={projectWithoutAutomation} />, {
         organization,
       });
 
       const setupButton = await screen.findByRole('button', {
-        name: 'Set Seer to hand off to Cursor',
+        name: 'Set Seer to hand off to Claude',
       });
       await userEvent.click(setupButton);
 
-      // Should first enable automation
       await waitFor(() => {
         expect(projectUpdateMock).toHaveBeenCalledWith(
           `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
@@ -263,12 +307,10 @@ describe('CursorIntegrationCta', () => {
         );
       });
 
-      // Should update the project store
       await waitFor(() => {
         expect(onUpdateSuccessSpy).toHaveBeenCalledWith(updatedProject);
       });
 
-      // Then configure handoff
       await waitFor(() => {
         expect(preferencesUpdateMock).toHaveBeenCalledWith(
           `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
@@ -279,8 +321,8 @@ describe('CursorIntegrationCta', () => {
               automated_run_stopping_point: 'root_cause',
               automation_handoff: {
                 handoff_point: 'root_cause',
-                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                integration_id: 123,
+                target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+                integration_id: 456,
               },
             },
           })
@@ -288,55 +330,6 @@ describe('CursorIntegrationCta', () => {
       });
 
       onUpdateSuccessSpy.mockRestore();
-    });
-
-    it('does not enable automation when already enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
-        seerScannerAutomation: true,
-        autofixAutomationTuning: 'medium',
-      });
-
-      const projectUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
-        method: 'PUT',
-        body: {},
-      });
-
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
-      });
-
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
-        organization,
-      });
-
-      const setupButton = await screen.findByRole('button', {
-        name: 'Set Seer to hand off to Cursor',
-      });
-      await userEvent.click(setupButton);
-
-      // Should NOT call project update since automation is already enabled
-      expect(projectUpdateMock).not.toHaveBeenCalled();
-
-      // Should only configure handoff
-      await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
-          expect.objectContaining({
-            method: 'POST',
-          })
-        );
-      });
     });
   });
 
@@ -347,9 +340,9 @@ describe('CursorIntegrationCta', () => {
         body: {
           integrations: [
             {
-              id: '123',
-              provider: 'cursor',
-              name: 'Cursor',
+              id: '456',
+              provider: 'claude_code',
+              name: 'Claude',
             },
           ],
         },
@@ -364,8 +357,8 @@ describe('CursorIntegrationCta', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integration_id: 123,
+              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+              integration_id: 456,
             },
           },
         },
@@ -378,21 +371,18 @@ describe('CursorIntegrationCta', () => {
         autofixAutomationTuning: 'off',
       });
 
-      render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
+      render(<ClaudeCodeIntegrationCta project={projectWithoutAutomation} />, {
         organization,
       });
 
-      // Should show configure stage, not configured stage
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
       expect(
-        screen.getByText(/You have the Cursor integration installed/)
+        screen.getByText(/You have the Claude integration installed/)
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Set Seer to hand off to Cursor'})
+        screen.getByRole('button', {name: 'Set Seer to hand off to Claude'})
       ).toBeInTheDocument();
-
-      // Should NOT show the configured message
-      expect(screen.queryByText(/Cursor handoff is active/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Claude handoff is active/)).not.toBeInTheDocument();
     });
   });
 
@@ -403,9 +393,9 @@ describe('CursorIntegrationCta', () => {
         body: {
           integrations: [
             {
-              id: '123',
-              provider: 'cursor',
-              name: 'Cursor',
+              id: '456',
+              provider: 'claude_code',
+              name: 'Claude',
             },
           ],
         },
@@ -420,8 +410,8 @@ describe('CursorIntegrationCta', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integration_id: 123,
+              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
+              integration_id: 456,
             },
           },
         },
@@ -434,14 +424,14 @@ describe('CursorIntegrationCta', () => {
         autofixAutomationTuning: 'medium',
       });
 
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
+      render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,
       });
 
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
-      expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
+      expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
+      expect(screen.getByText(/Claude handoff is active/)).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Set Seer to hand off to Cursor'})
+        screen.queryByRole('button', {name: 'Set Seer to hand off to Claude'})
       ).not.toBeInTheDocument();
     });
 
@@ -451,13 +441,13 @@ describe('CursorIntegrationCta', () => {
         autofixAutomationTuning: 'medium',
       });
 
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
+      render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,
       });
 
-      await screen.findByText('Cursor Agent Integration');
+      await screen.findByText('Claude Agent Integration');
       expect(
-        screen.queryByRole('button', {name: 'Set Seer to hand off to Cursor'})
+        screen.queryByRole('button', {name: 'Set Seer to hand off to Claude'})
       ).not.toBeInTheDocument();
     });
   });
