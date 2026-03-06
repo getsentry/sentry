@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -24,11 +24,9 @@ export function TextWidgetVisualization({text}: TextWidgetProps) {
   }
 
   return (
-    <Fragment>
-      <TextContainer>
-        <MarkedText text={text} />
-      </TextContainer>
-    </Fragment>
+    <TextContainer>
+      <MarkedText text={text} />
+    </TextContainer>
   );
 }
 
