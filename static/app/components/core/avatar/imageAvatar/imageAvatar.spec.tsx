@@ -1,3 +1,5 @@
+import type {Tagged} from 'type-fest';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 // eslint-disable-next-line boundaries/entry-point
@@ -8,8 +10,8 @@ describe('ImageAvatar', () => {
     render(
       <ImageAvatar
         configuration={{
-          src: 'https://example.com/avatar.jpg' as string & {__avatar: boolean},
-          alt: 'Jane Bloggs' as string & {__avatar: boolean},
+          src: 'https://example.com/avatar.jpg' as Tagged<string, '__avatar'>,
+          alt: 'Jane Bloggs' as Tagged<string, '__avatar'>,
           ref: () => undefined,
         }}
       />

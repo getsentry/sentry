@@ -121,7 +121,7 @@ interface AutoSaveFieldProps<
   mutationOptions: UseMutationOptions<
     any, // it doesn't matter here what the mutation returns
     Error,
-    Record<TFieldName, z.infer<TSchema>[TFieldName]>
+    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>
   >;
 
   /**

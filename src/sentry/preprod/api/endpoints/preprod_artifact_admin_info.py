@@ -84,7 +84,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
 
-        mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+        mobile_app_info = preprod_artifact.get_mobile_app_info()
 
         artifact_info = {
             "id": preprod_artifact.id,

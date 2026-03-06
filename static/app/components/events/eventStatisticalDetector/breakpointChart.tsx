@@ -43,8 +43,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   });
   const {start: beforeDateTime, end: afterDateTime} = datetime;
 
-  eventView.start = (beforeDateTime as Date).toISOString();
-  eventView.end = (afterDateTime as Date).toISOString();
+  eventView.start = beforeDateTime.toISOString();
+  eventView.end = afterDateTime.toISOString();
   eventView.statsPeriod = undefined;
 
   // The evidence data keys are returned to us in camelCase, but we need to

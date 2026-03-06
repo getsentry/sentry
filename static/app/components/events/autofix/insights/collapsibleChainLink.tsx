@@ -165,7 +165,7 @@ const RethinkButtonContainer = styled('div')`
 `;
 
 const AddEditContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -185,5 +185,5 @@ const RethinkLabel = styled('span')`
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;

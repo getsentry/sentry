@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {Tagged} from 'type-fest';
 
 import {Image, type ImageProps} from '@sentry/scraps/image';
 
@@ -8,9 +9,9 @@ import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentSty
 export interface ImageAvatarProps
   extends BaseAvatarStyleProps, Omit<ImageProps, 'alt' | 'ref' | 'src'> {
   configuration: {
-    alt: string & {__avatar: boolean};
+    alt: Tagged<string, '__avatar'>;
     ref: React.Ref<HTMLImageElement>;
-    src: string & {__avatar: boolean};
+    src: Tagged<string, '__avatar'>;
   };
 }
 

@@ -132,7 +132,10 @@ function WidgetPreview({
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
       tableItemLimit={widget.limit}
-      showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+      showConfidenceWarning={
+        widget.widgetType === WidgetType.SPANS ||
+        widget.widgetType === WidgetType.TRACEMETRICS
+      }
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}
       disableZoom
