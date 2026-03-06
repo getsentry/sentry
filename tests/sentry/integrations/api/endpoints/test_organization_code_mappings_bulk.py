@@ -381,6 +381,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
                 date_last_used=None,
             )
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
         response = self.make_post(HTTP_AUTHORIZATION=f"Bearer {token_str}")
         assert response.status_code == 200, response.content
         assert response.data["created"] == 1
