@@ -86,7 +86,7 @@ describe('TableView > CellActions', () => {
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex]!;
 
-    await userEvent.click(within(emptyValueCell).getByLabelText('Actions'));
+    await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
   }
 
   beforeEach(() => {
@@ -627,10 +627,9 @@ describe('TableView > CellActions', () => {
         },
       }
     );
-    const cellText = screen.getByText('444.3 KB');
-    await userEvent.hover(cellText);
-    const cell = cellText.closest('[data-test-id="cell-action-container"]')!;
-    await userEvent.click(within(cell as HTMLElement).getByLabelText('Actions'));
+    await userEvent.hover(screen.getByText('444.3 KB'));
+    const buttons = screen.getAllByRole('button');
+    await userEvent.click(buttons[buttons.length - 1]!);
     await userEvent.click(screen.getByText('Show values less than'));
 
     await waitFor(() => {

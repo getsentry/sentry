@@ -218,7 +218,7 @@ describe('Performance > Table', () => {
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
       expect(cellActionContainers).toHaveLength(27); // 9 cols x 3 rows
-      const cellActionTriggers = screen.getAllByLabelText('Actions');
+      const cellActionTriggers = screen.getAllByRole('button', {name: 'Actions'});
       expect(cellActionTriggers[8]).toBeInTheDocument();
       await userEvent.click(cellActionTriggers[8]!);
 
