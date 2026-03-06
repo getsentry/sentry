@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.caches.workflow import DEFAULT_VALUE
 
 
 class DetectorWorkflowReceiverTests(TestCase):
@@ -54,3 +55,29 @@ class DetectorWorkflowReceiverTests(TestCase):
             self.dw.delete()
 
         mock_invalidate.assert_called_once_with(self.detector.id, self.environment.id)
+
+    def test_cache_invalidate__on_delete__missing_workflow(self) -> None:
+        detector = self.create_detector()
+        workflow = self.create_workflow()
+        dw = self.create_detector_workflow(detector=detector, workflow=workflow)
+        detector_id = detector.id
+
+        # Simulate cascade delete scenario where workflow is deleted before
+        # the pre_delete signal handler can access it
+        from django.core.exceptions import ObjectDoesNotExist
+
+        def raise_does_not_exist(self: object) -> None:
+            raise ObjectDoesNotExist()
+
+        with patch(
+            "sentry.workflow_engine.receivers.detector_workflow.invalidate_processing_workflows"
+        ) as mock_invalidate:
+            with self.capture_on_commit_callbacks(execute=True):
+                with patch.object(
+                    type(dw),
+                    "workflow",
+                    property(fget=raise_does_not_exist),
+                ):
+                    dw.delete()
+
+            mock_invalidate.assert_called_once_with(detector_id, DEFAULT_VALUE)
