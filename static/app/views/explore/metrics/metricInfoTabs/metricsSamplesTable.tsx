@@ -23,7 +23,10 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {
+  getMetricTableColumnType,
+  mapMetricUnitToFieldType,
+} from 'sentry/views/explore/metrics/utils';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
@@ -76,6 +79,22 @@ export function MetricsSamplesTable({
     traceIds,
   });
 
+  const metaWithValueUnit = useMemo(() => {
+    const {fieldType, unit} = mapMetricUnitToFieldType(traceMetric?.unit);
+    const valueField = TraceMetricKnownFieldKey.METRIC_VALUE;
+    return {
+      ...meta,
+      fields: {
+        ...meta.fields,
+        [valueField]: fieldType,
+      },
+      units: {
+        ...meta.units,
+        [valueField]: unit ?? null,
+      },
+    };
+  }, [meta, traceMetric?.unit]);
+
   return (
     <SimpleTableWithHiddenColumns numColumns={columns.length - 1} embedded={embedded}>
       {isFetching && <TransparentLoadingMask />}
@@ -92,7 +111,7 @@ export function MetricsSamplesTable({
               row={row}
               telemetryData={telemetryData}
               columns={columns}
-              meta={meta}
+              meta={metaWithValueUnit}
               embedded={embedded}
             />
           ))
