@@ -35,6 +35,7 @@ GITHUB_LANGUAGE_TO_SENTRY_PLATFORM: dict[str, str] = {
     "Elixir": "elixir",
     "C": "native",
     "C++": "native",
+    "GDScript": "godot",
     "PowerShell": "powershell",
 }
 
