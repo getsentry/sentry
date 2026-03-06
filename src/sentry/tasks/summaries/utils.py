@@ -27,7 +27,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
@@ -39,9 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationReportContext:
-    def __init__(
-        self, timestamp: float, duration: int, organization: Organization, daily: bool = False
-    ):
+    def __init__(self, timestamp: float, duration: int, organization: Organization):
         self.timestamp = timestamp
         self.duration = duration
 
@@ -49,17 +46,11 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects_context_map: dict[
-            int, ProjectContext | DailySummaryProjectContext
-        ] = {}  # { project_id: ProjectContext }
+        self.projects_context_map: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
-        self.daily = daily
         for project in organization.project_set.all():
-            if self.daily:
-                self.projects_context_map[project.id] = DailySummaryProjectContext(project)
-            else:
-                self.projects_context_map[project.id] = ProjectContext(project)
+            self.projects_context_map[project.id] = ProjectContext(project)
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -131,32 +122,6 @@ class ProjectContext:
         )
 
 
-class DailySummaryProjectContext:
-    def __init__(self, project: Project):
-        self.total_today = 0
-        self.comparison_period_total = 0
-        self.comparison_period_avg = 0
-        self.project = project
-        self.key_errors_by_id: list[tuple[int, int]] = []
-        self.key_errors_by_group: list[tuple[Group, int]] = []
-        self.key_performance_issues: list[tuple[Group, int]] = []
-        self.escalated_today: list[Group] = []
-        self.regressed_today: list[Group] = []
-        self.new_in_release: dict[int, list[Group]] = {}
-
-    def check_if_project_is_empty(self):
-        return (
-            not self.key_errors_by_group
-            and not self.key_performance_issues
-            and not self.total_today
-            and not self.comparison_period_total
-            and not self.comparison_period_avg
-            and not self.escalated_today
-            and not self.regressed_today
-            and not self.new_in_release
-        )
-
-
 def user_project_ownership(ctx: OrganizationReportContext) -> None:
     """Find the projects associated with each user.
     Populates context.project_ownership which is { user_id: set<project_id> }
@@ -176,10 +141,7 @@ def project_key_errors(
     if not project.first_event:
         return None
     # Take the 3 most frequently occuring events
-    prefix = (
-        "daily_summary" if referrer == Referrer.DAILY_SUMMARY_KEY_ERRORS.value else "weekly_reports"
-    )
-    op = f"{prefix}.project_key_errors"
+    op = "weekly_reports.project_key_errors"
 
     with sentry_sdk.start_span(op=op):
         events_entity = Entity("events", alias="events")
@@ -239,12 +201,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
     if not project.first_event:
         return
 
-    prefix = (
-        "daily_summary"
-        if referrer == Referrer.DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES.value
-        else "weekly_reports"
-    )
-    op = f"{prefix}.project_key_performance_issues"
+    op = "weekly_reports.project_key_performance_issues"
 
     with sentry_sdk.start_span(op=op):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
@@ -566,12 +523,3 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         if item["substatus"] == GroupSubStatus.REGRESSED:
             project_ctx.regression_substatus_count = item["total"]
         project_ctx.total_substatus_count += item["total"]
-
-
-def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
-    """
-    Check if the context is empty. If it is, we don't want to send a notification.
-    """
-    return all(
-        project_ctx.check_if_project_is_empty() for project_ctx in ctx.projects_context_map.values()
-    )
