@@ -717,7 +717,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "coding_workflows.code-review.excluded-pr-author-logins",
+    "seer.code-review.excluded-pr-author-logins",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
