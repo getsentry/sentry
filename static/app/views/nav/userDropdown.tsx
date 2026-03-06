@@ -1,3 +1,4 @@
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -22,6 +23,11 @@ export function UserDropdown() {
   const organization = useOrganization();
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    portalContainerRef.current = document.body;
+  }, []);
 
   function handleLogout() {
     logout(api);
@@ -48,6 +54,8 @@ export function UserDropdown() {
 
   return (
     <DropdownMenu
+      usePortal
+      portalContainerRef={portalContainerRef}
       renderWrapAs={({children}) => children}
       position={isMobile ? 'bottom' : 'right-end'}
       minMenuWidth={200}
