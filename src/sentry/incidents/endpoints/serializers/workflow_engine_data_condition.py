@@ -37,10 +37,6 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         **kwargs: Any,
     ) -> defaultdict[DataCondition, dict[str, list[str]]]:
         detector_triggers = {item.id: item for item in item_list}
-        detector_trigger_ids = [dc.id for dc in item_list]
-
-        # In practice, we only ever serialize one detector trigger at a time.
-        detector_trigger = item_list[0]
 
         # below, we go from detector trigger to action filter
         detector_ids = Subquery(
@@ -58,40 +54,36 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 )
             )
         ).values_list("id", flat=True)
-        action_filter_data_condition_groups = DataCondition.objects.filter(
-            comparison__in=[item.condition_result for item in item_list],
-            condition_group__in=Subquery(workflow_dcg_ids),
-        ).values_list("condition_group", flat=True)
 
-        action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
-            condition_group_id__in=Subquery(action_filter_data_condition_groups)
-        ).values_list("action_id", flat=True)
-
-        actions = Action.objects.filter(
-            id__in=Subquery(action_filter_data_condition_group_action_ids)
-        ).order_by("id")
-
-        try:
-            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-                "alert_rule_trigger_id", flat=True
-            ).get(data_condition=detector_trigger)
-        except DataConditionAlertRuleTrigger.DoesNotExist:
-            # this data condition does not have an analog in the old system,
-            # but we need to return *something*
-            alert_rule_trigger_id = get_fake_id_from_object_id(detector_trigger.id)
-
-        serialized_actions = serialize(
-            list(actions),
-            user,
-            WorkflowEngineActionSerializer(),
-            alert_rule_trigger_id=alert_rule_trigger_id,
-        )
         result: defaultdict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
-        for data_condition in detector_triggers:
-            result[detector_triggers[data_condition]]["actions"] = []
 
-        for action in serialized_actions:
-            result[detector_triggers[detector_trigger_ids[0]]]["actions"].append(action)
+        # Map each trigger to its own actions based on condition_result matching
+        for trigger in item_list:
+            action_filter_dcg_ids = DataCondition.objects.filter(
+                comparison=trigger.condition_result,
+                condition_group__in=Subquery(workflow_dcg_ids),
+            ).values_list("condition_group", flat=True)
+
+            action_ids = DataConditionGroupAction.objects.filter(
+                condition_group_id__in=Subquery(action_filter_dcg_ids)
+            ).values_list("action_id", flat=True)
+
+            actions = Action.objects.filter(id__in=Subquery(action_ids)).order_by("id")
+
+            try:
+                alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
+                    "alert_rule_trigger_id", flat=True
+                ).get(data_condition=trigger)
+            except DataConditionAlertRuleTrigger.DoesNotExist:
+                alert_rule_trigger_id = get_fake_id_from_object_id(trigger.id)
+
+            serialized_actions = serialize(
+                list(actions),
+                user,
+                WorkflowEngineActionSerializer(),
+                alert_rule_trigger_id=alert_rule_trigger_id,
+            )
+            result[trigger]["actions"] = serialized_actions
 
         return result
 

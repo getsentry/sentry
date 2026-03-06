@@ -161,7 +161,7 @@ class TestWorkflowEngineSerializer(TestCase):
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "alertThreshold": self.warning_detector_trigger.comparison,
             "resolveThreshold": self.warning_detector_trigger.comparison,
-            "dateCreated": self.critical_trigger.date_added,
+            "dateCreated": self.warning_trigger.date_added,
             "actions": self.expected_warning_action,
         }
         self.expected_triggers[0]["resolveThreshold"] = self.warning_detector_trigger.comparison
