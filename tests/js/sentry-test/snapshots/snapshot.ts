@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-nodejs-modules
-import {existsSync, mkdirSync, writeFile} from 'node:fs';
-// eslint-disable-next-line import/no-nodejs-modules
+/* eslint-disable import/no-nodejs-modules */
+import {existsSync, mkdirSync} from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
-// eslint-disable-next-line import/no-nodejs-modules
-import {promisify} from 'node:util';
 
 import {createElement, type ReactElement} from 'react';
 import {renderToString} from 'react-dom/server';
@@ -137,21 +135,15 @@ export async function takeSnapshot(
       mkdirSync(outputDir, {recursive: true});
     }
 
-    // PNG width/height are stored as 4-byte big-endian integers at offsets 16 and 20
-    const width = screenshot.readUInt32BE(16);
-    const height = screenshot.readUInt32BE(20);
     const metadata: SnapshotImageMetadata = {
       display_name: name,
-      image_file_name: imageFilename,
-      width,
-      height,
       // Dump additional options as metadata
       ...options,
     };
 
     await Promise.all([
-      promisify(writeFile)(path.join(outputDir, imageFilename), screenshot),
-      promisify(writeFile)(
+      fs.writeFile(path.join(outputDir, imageFilename), screenshot),
+      fs.writeFile(
         path.join(outputDir, `${coreFilename}.json`),
         JSON.stringify(metadata, null, 2)
       ),
