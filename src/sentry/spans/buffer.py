@@ -744,7 +744,7 @@ class SpansBuffer:
         return payloads
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
-        hdel_batch_size = options.get("spans.buffer.hdel-redirect-map-batch-size")
+        hdel_batch_size = max(1, options.get("spans.buffer.hdel-redirect-map-batch-size"))
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
