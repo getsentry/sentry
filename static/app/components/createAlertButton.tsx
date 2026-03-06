@@ -14,8 +14,9 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useLocation from 'sentry/utils/useLocation';
+import useNavigate from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {AlertType, AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {
@@ -150,7 +151,8 @@ export default function CreateAlertButton({
   to,
   ...buttonProps
 }: CreateAlertButtonProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const {projects} = useProjects();
   const shouldDirectToMonitors =
     organization.features.includes('workflow-engine-ui') &&
@@ -186,7 +188,7 @@ export default function CreateAlertButton({
     event.preventDefault();
     onEnter?.();
 
-    navigateTo(createAlertUrl(':projectId'), router);
+    navigateTo(createAlertUrl(':projectId'), {push: navigate, location} as any);
   }
 
   const permissionTooltipText = tct(
