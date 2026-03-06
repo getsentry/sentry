@@ -34,7 +34,6 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useRouter from 'sentry/utils/useRouter';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
@@ -98,7 +97,6 @@ function PageLayout(props: Props) {
   }
 
   const theme = useTheme();
-  const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
   const metricsCardinality = useMetricsCardinalityContext();
@@ -241,7 +239,6 @@ function PageLayout(props: Props) {
               <PickProjectToContinue
                 data-test-id="transaction-sumamry-project-picker-modal"
                 projects={selectableProjects}
-                router={router}
                 nextPath={{
                   pathname: generateTransactionSummaryRoute({organization}),
                   query: {
