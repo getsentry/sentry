@@ -133,7 +133,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
 
         assert title == "Snapshot Testing"
         assert subtitle == "Comparing snapshots..."
-        assert "Comparing" in summary
+        assert "Processing" in summary
 
     def test_comparison_in_processing_state_shows_comparing(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
@@ -488,7 +488,7 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
 
         assert subtitle == "Comparing snapshots..."
         assert "✅ Unchanged" in summary
-        assert "Comparing" in summary
+        assert "Processing" in summary
 
 
 @region_silo_test
@@ -738,7 +738,7 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            "\n\n> This looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
+            "\n\nThis looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
         )
         assert summary == expected
 
@@ -805,6 +805,6 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            "\n\n> No base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+            "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
         )
         assert summary == expected
