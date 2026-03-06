@@ -62,7 +62,7 @@ const SeerSelectLabel = styled('div')`
   margin-bottom: ${p => p.theme.space.xs};
 `;
 
-export const seerScannerAutomationField = {
+const seerScannerAutomationField = {
   name: 'seerScannerAutomation',
   label: t('Scan Issues'),
   help: () =>
@@ -73,7 +73,7 @@ export const seerScannerAutomationField = {
   saveOnBlur: true,
 } satisfies FieldObject;
 
-export const autofixAutomatingTuningField = {
+const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Auto-Trigger Fixes'),
   help: () =>
