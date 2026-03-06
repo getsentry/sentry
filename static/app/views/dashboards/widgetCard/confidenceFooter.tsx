@@ -18,7 +18,6 @@ import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type Props = {
   loading: boolean;
-  other: 'Other';
   series: Array<Series & {fieldName?: string}>;
   timeseriesResults: GenericWidgetQueriesResult['timeseriesResults'];
   widget: Widget;
@@ -28,7 +27,6 @@ type Props = {
   isSampled?: boolean | null;
   sampleCount?: number;
   selection?: PageFilters;
-  shouldColorOther?: boolean;
 };
 
 export function WidgetCardConfidenceFooter({
@@ -36,11 +34,9 @@ export function WidgetCardConfidenceFooter({
   dataScanned,
   isSampled,
   loading,
-  other,
   sampleCount,
   selection: selectionProp,
   series,
-  shouldColorOther,
   timeseriesResults,
   widget,
   yAxis,
@@ -48,17 +44,14 @@ export function WidgetCardConfidenceFooter({
   const {selection: pageFilterSelection} = usePageFilters();
   const selection = selectionProp ?? pageFilterSelection;
   const rawCounts = useWidgetRawCounts({selection, widget});
+  const hasOtherSeries = timeseriesResults?.some(({seriesName}) =>
+    seriesName?.match(/(?:.* : Other)$|^Other$/)
+  );
 
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
       ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${other})|^${other}`))
-        )
-          ? 1
-          : 0)
+        (hasOtherSeries ? 1 : 0)
       : undefined;
 
   const isTopN =
