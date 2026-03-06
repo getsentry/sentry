@@ -7,6 +7,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {ConfidenceFooter as LogsConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {ConfidenceFooter as MetricsConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -17,7 +18,6 @@ import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type Props = {
   loading: boolean;
-  other: 'Other';
   series: Array<Series & {fieldName?: string}>;
   timeseriesResults: GenericWidgetQueriesResult['timeseriesResults'];
   widget: Widget;
@@ -27,7 +27,6 @@ type Props = {
   isSampled?: boolean | null;
   sampleCount?: number;
   selection?: PageFilters;
-  shouldColorOther?: boolean;
 };
 
 export function WidgetCardConfidenceFooter({
@@ -35,11 +34,9 @@ export function WidgetCardConfidenceFooter({
   dataScanned,
   isSampled,
   loading,
-  other,
   sampleCount,
   selection: selectionProp,
   series,
-  shouldColorOther,
   timeseriesResults,
   widget,
   yAxis,
@@ -47,17 +44,14 @@ export function WidgetCardConfidenceFooter({
   const {selection: pageFilterSelection} = usePageFilters();
   const selection = selectionProp ?? pageFilterSelection;
   const rawCounts = useWidgetRawCounts({selection, widget});
+  const hasOtherSeries = timeseriesResults?.some(({seriesName}) =>
+    seriesName?.match(/(?:.* : Other)$|^Other$/)
+  );
 
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
       ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${other};)|^${other};`))
-        )
-          ? 1
-          : 0)
+        (hasOtherSeries ? 1 : 0)
       : undefined;
 
   const isTopN =
@@ -112,6 +106,17 @@ export function WidgetCardConfidenceFooter({
         hasUserQuery={hasUserQuery}
         isLoading={loading}
         rawMetricCounts={rawCounts}
+      />
+    );
+  }
+
+  if (widget.widgetType === WidgetType.LOGS && rawCounts) {
+    return (
+      <LogsConfidenceFooter
+        chartInfo={footerChartInfo}
+        hasUserQuery={hasUserQuery}
+        isLoading={loading}
+        rawLogCounts={rawCounts}
       />
     );
   }

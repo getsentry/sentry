@@ -8,7 +8,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1044_remove_projecttemplate_model"),
+        ("sentry", "1045_dashboard_favorite_user_add_starred_column"),
     ]
 
     operations = [

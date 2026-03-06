@@ -15,7 +15,7 @@ export function useRelativeDateTime({
   anchor,
   relativeDays,
   retentionDays,
-}: UseRelativeDateTimeOptions): PageFilters['datetime'] {
+}: UseRelativeDateTimeOptions) {
   const timezone = useTimezone();
 
   const anchorTime = anchor * 1000;
@@ -38,5 +38,5 @@ export function useRelativeDateTime({
     end: afterDateTime,
     utc: timezone.includes('UTC'),
     period: null,
-  };
+  } satisfies PageFilters['datetime'];
 }

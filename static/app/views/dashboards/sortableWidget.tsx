@@ -49,7 +49,6 @@ type Props = {
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
   windowWidth?: number;
 };
@@ -79,7 +78,6 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
-    useTimeseriesVisualization,
     isPrebuiltDashboard = false,
   } = props;
 
@@ -155,7 +153,6 @@ function SortableWidget(props: Props) {
         : (widget.limit ?? TABLE_ITEM_LIMIT),
     onWidgetTableSort,
     onWidgetTableResizeColumn,
-    useTimeseriesVisualization,
     widgetInterval: props.widgetInterval,
   };
 

@@ -168,6 +168,8 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+# NOTE: These wildcard operators are internal implementation details and
+# should not be included in product docs. Users should use `*` instead.
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
@@ -206,6 +208,8 @@ closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
 # Note: wildcard unicode is defined in src/sentry/search/events/constants.py
+# NOTE: These wildcard operators are internal implementation details and
+# should not be included in product docs. Users should use `*` instead.
 wildcard_unicode     = "\uF00D"
 contains             = "Contains"
 starts_with          = "StartsWith"
