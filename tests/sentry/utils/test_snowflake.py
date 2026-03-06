@@ -11,7 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (
@@ -81,8 +81,8 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_id(self) -> None:
         regions = [
-            r1 := Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
-            r2 := Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
+            r1 := Cell("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
+            r2 := Cell("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
         with override_settings(SILO_MODE=SiloMode.REGION):
             with override_regions(regions, r1):

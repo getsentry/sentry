@@ -125,7 +125,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             name=update.name,
             status=update.status,
             slug=update.slug,
-            region_name=update.region_name,
+            cell_name=update.region_name,
             require_2fa=update.requires_2fa,
             early_adopter=update.early_adopter,
             allow_joinleave=update.allow_joinleave,

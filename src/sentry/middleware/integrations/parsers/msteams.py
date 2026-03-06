@@ -16,7 +16,7 @@ from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.silo.base import control_silo_function
-from sentry.types.region import Region, RegionResolutionError
+from sentry.types.region import Cell, RegionResolutionError
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class MsTeamsRequestParser(BaseRequestParser):
             )
             return self.get_response_from_control_silo()
 
-        regions: Sequence[Region] = []
+        regions: Sequence[Cell] = []
         try:
             integration = self.get_integration_from_request()
             if not integration:

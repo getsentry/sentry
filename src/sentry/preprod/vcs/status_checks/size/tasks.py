@@ -208,13 +208,13 @@ def create_preprod_status_check_task(
     # Get all artifacts for this commit across all projects in the organization
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
-    client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
+    client, repository = get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
         # logging handled in _get_status_check_client. for now we can be lax about users potentially
         # not having their repos integrated into Sentry
         return
 
-    provider = _get_status_check_provider(
+    provider = get_status_check_provider(
         client,
         commit_comparison.provider,
         preprod_artifact.project.organization_id,
@@ -319,7 +319,7 @@ def create_preprod_status_check_task(
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
-            include_approve_action=bool(triggered_rules),
+            approve_action_identifier=APPROVE_SIZE_ACTION_IDENTIFIER if triggered_rules else None,
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -334,7 +334,7 @@ def create_preprod_status_check_task(
             "preprod.status_checks.create.failed",
             extra=extra,
         )
-        _update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
+        update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
         raise
 
     if check_id is None:
@@ -347,12 +347,10 @@ def create_preprod_status_check_task(
                 "error_type": "null_check_id",
             },
         )
-        _update_posted_status_check(preprod_artifact, check_type="size", success=False)
+        update_posted_status_check(preprod_artifact, check_type="size", success=False)
         return
 
-    _update_posted_status_check(
-        preprod_artifact, check_type="size", success=True, check_id=check_id
-    )
+    update_posted_status_check(preprod_artifact, check_type="size", success=True, check_id=check_id)
 
     if triggered_rules:
         sentry_analytics.record(
@@ -376,7 +374,7 @@ def create_preprod_status_check_task(
     )
 
 
-def _update_posted_status_check(
+def update_posted_status_check(
     preprod_artifact: PreprodArtifact,
     check_type: str,
     success: bool,
@@ -809,7 +807,7 @@ def _compute_overall_status(
         return StatusCheckStatus.IN_PROGRESS, triggered_rules
 
 
-def _get_status_check_client(
+def get_status_check_client(
     project: Project, commit_comparison: CommitComparison
 ) -> tuple[StatusCheckClient, Repository] | tuple[None, None]:
     """Get status check client for the project's integration.
@@ -875,7 +873,7 @@ def _get_status_check_client(
     return client, repository
 
 
-def _get_status_check_provider(
+def get_status_check_provider(
     client: StatusCheckClient,
     provider: str | None,
     organization_id: int,
@@ -932,7 +930,7 @@ class _StatusCheckProvider(ABC):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
-        include_approve_action: bool = False,
+        approve_action_identifier: str | None = None,
     ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -952,7 +950,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
-        include_approve_action: bool = False,
+        approve_action_identifier: str | None = None,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
@@ -1029,12 +1027,12 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     "Omit completed_at entirely instead of setting it to None."
                 )
 
-            if include_approve_action:
+            if approve_action_identifier:
                 check_data["actions"] = [
                     {
                         "label": "Approve",
-                        "description": "Approve size changes for this PR",
-                        "identifier": APPROVE_SIZE_ACTION_IDENTIFIER,
+                        "description": "Approve changes for this PR",
+                        "identifier": approve_action_identifier,
                     }
                 ]
 

@@ -10,9 +10,9 @@ import type {RequestOptions} from 'sentry/api';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Option = [value: string, label: string];
 
@@ -26,6 +26,7 @@ type FilterProps = {
 
 function Filter({name, options, path, queryKey, value}: FilterProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const currentLabel = useMemo(() => {
     const selected = options.find(item => item[0] === (value ?? ''));
@@ -56,9 +57,9 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
       onChange={({value: selectedValue}) => {
         if (selectedValue === 'any') {
           const query = {...location.query, cursor: undefined, [queryKey]: undefined};
-          browserHistory.push({pathname: path, query});
+          navigate({pathname: path, query});
         } else {
-          browserHistory.push({
+          navigate({
             pathname: path,
             query: {
               ...location.query,
@@ -86,6 +87,7 @@ type SortByProps = {
 
 function SortBy({options, path, value}: SortByProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentSortLabel = useMemo(
     () => options.find(([optValue]) => optValue === value)?.[1],
     [options, value]
@@ -108,7 +110,7 @@ function SortBy({options, path, value}: SortByProps) {
           label: option[1],
         }))}
         onChange={({value: selected}) => {
-          browserHistory.push({
+          navigate({
             pathname: path,
             query: {...location.query, sortBy: selected, cursor: undefined},
           });
@@ -168,6 +170,7 @@ type State = {
 function ResultGrid(props: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
+  const navigate = useNavigate();
 
   const {
     path = '',
@@ -247,7 +250,7 @@ function ResultGrid(props: Props) {
 
     e.preventDefault();
 
-    browserHistory.push({
+    navigate({
       pathname: path,
       query: targetQueryParams,
     });

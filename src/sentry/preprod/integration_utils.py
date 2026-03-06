@@ -4,21 +4,35 @@ import logging
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.source_code_management.commit_context import CommitContextClient
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
 
-def get_github_client(organization: Organization, repo_name: str) -> GitHubApiClient | None:
+def get_commit_context_client(
+    organization: Organization, repo_name: str, provider: str = "github"
+) -> CommitContextClient | None:
+    """Get a CommitContextClient for this organization and repository.
+
+    Currently delegates to get_github_client; any integration that
+    implements CommitContextClient will work automatically.
+    """
+    return get_github_client(organization, repo_name, provider)
+
+
+def get_github_client(
+    organization: Organization, repo_name: str, provider: str = "github"
+) -> GitHubBaseClient | None:
     """Get the GitHub client for this organization and repository."""
     repository = Repository.objects.filter(
         organization_id=organization.id,
         name=repo_name,
-        provider="integrations:github",
+        provider=f"integrations:{provider}",
     ).first()
     if not repository:
         logger.info(
@@ -57,7 +71,7 @@ def get_github_client(organization: Organization, repo_name: str) -> GitHubApiCl
     )
     client = installation.get_client()
 
-    if not isinstance(client, GitHubApiClient):
+    if not isinstance(client, GitHubBaseClient):
         logger.info(
             "preprod.integration_utils.not_github_client",
             extra={

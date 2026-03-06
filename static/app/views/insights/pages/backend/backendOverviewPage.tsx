@@ -39,6 +39,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
 import {
@@ -57,16 +58,13 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
-import useHasPlatformizedBackendOverview from 'sentry/views/insights/pages/frontend/utils/useHasPlatformizedBackendOverview';
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {PlatformizedLaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel/platformizedLaravelOverviewPage';
-import useHasPlatformizedLaravelOverview from 'sentry/views/insights/pages/platform/laravel/useHasPlatformizedLaravelOverview';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
-import useHasPlatformizedNextJsOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextJsOverview';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -81,14 +79,12 @@ interface BackendOverviewPageProps {
 function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const hasPlatformizedLaravelOverview = useHasPlatformizedLaravelOverview();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
-  const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNewBackendExperienceEnabled = useInsightsEap();
-  const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
 
   if (isLaravelPageAvailable) {
-    return hasPlatformizedLaravelOverview ? (
+    return hasPlatformizedInsights ? (
       <PlatformizedLaravelOverviewPage />
     ) : (
       <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />
@@ -96,14 +92,14 @@ function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   }
 
   if (isNextJsPageEnabled) {
-    return hasPlatformizedNextJsOverview ? (
+    return hasPlatformizedInsights ? (
       <PlatformizedNextJsOverviewPage />
     ) : (
       <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />
     );
   }
 
-  if (hasPlatformizedBackendOverview) {
+  if (hasPlatformizedInsights) {
     return <PlatformizedBackendOverviewPage />;
   }
   if (isNewBackendExperienceEnabled) {
