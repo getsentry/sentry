@@ -12,7 +12,6 @@ import IdBadge from 'sentry/components/idBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -124,7 +123,7 @@ const TeamWrapper = styled('span')`
 `;
 
 const StyledActorAvatar = styled(ActorAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 export default AlertListRow;

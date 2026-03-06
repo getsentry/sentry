@@ -73,7 +73,7 @@ export function getPlanCategoryName({
       ? t('accepted spans')
       : displayNames
         ? displayNames.plural
-        : category;
+        : (getCategoryInfoFromPlural(category)?.titleName?.toLowerCase() ?? category);
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -97,7 +97,8 @@ export function getSingularCategoryName({
       ? t('accepted span')
       : displayNames
         ? displayNames.singular
-        : category.substring(0, category.length - 1);
+        : (getCategoryInfoFromPlural(category)?.displayName ??
+          category.substring(0, category.length - 1));
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize

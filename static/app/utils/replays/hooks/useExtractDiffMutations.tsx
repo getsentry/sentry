@@ -227,8 +227,7 @@ function getNameForElem(element: HTMLElement) {
 // Copy Full XPath => `/html/body/div[1]/div[2]/div/div`
 function getSelectorForElem(element: HTMLElement): string {
   const parts: string[] = [];
-  let elem: HTMLElement | null =
-    element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
+  let elem = element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
 
   while (elem) {
     parts.unshift(getNameForElem(elem));

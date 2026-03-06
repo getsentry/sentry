@@ -142,7 +142,7 @@ function FlamegraphZoomView({
 
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
-  const textRenderer: FlamegraphTextRenderer | null = useMemo(() => {
+  const textRenderer = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
@@ -153,7 +153,7 @@ function FlamegraphZoomView({
     );
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
-  const gridRenderer: GridRenderer | null = useMemo(() => {
+  const gridRenderer = useMemo(() => {
     if (!flamegraphOverlayCanvasRef || disableGrid) {
       return null;
     }
@@ -164,7 +164,7 @@ function FlamegraphZoomView({
     );
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme, disableGrid]);
 
-  const sampleTickRenderer: SampleTickRenderer | null = useMemo(() => {
+  const sampleTickRenderer = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
       return null;
     }

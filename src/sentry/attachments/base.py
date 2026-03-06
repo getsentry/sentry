@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import zstandard
 
 from sentry.objectstore import get_attachments_session
-from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -145,13 +144,7 @@ class BaseAttachmentCache:
             if attachment.chunks is not None or attachment.stored_id is not None:
                 continue
 
-            # otherwise, store it in objectstore or the attachments cache:
-            if in_random_rollout("objectstore.enable_for.cached_attachments"):
-                assert project
-                session = get_attachments_session(project.organization_id, project.id)
-                attachment.stored_id = session.put(attachment.load_data(project))
-                continue
-
+            # otherwise, store it in the attachment cache:
             metrics_tags = {"type": attachment.type}
             self.set_unchunked_data(
                 key=key,

@@ -1,6 +1,6 @@
 from unittest import TestCase, mock
 
-from django.conf import settings
+from django.test import override_settings
 
 from sentry.loader.browsersdkversion import (
     get_all_browser_sdk_version_versions,
@@ -48,19 +48,10 @@ class BrowserSdkVersionTestCase(TestCase):
         )  # Should not select version 8, since v8 is the first version that doesn't support latest
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=[])
+    @override_settings(JS_SDK_LOADER_SDK_VERSION="0.5.2")
     def test_get_highest_selected_version_no_version(
         self, load_version_from_file: mock.MagicMock
     ) -> None:
-        settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
-        assert (
-            str(match_selected_version_to_browser_sdk_version("4.x"))
-            == settings.JS_SDK_LOADER_SDK_VERSION
-        )
-        assert (
-            str(match_selected_version_to_browser_sdk_version("5.x"))
-            == settings.JS_SDK_LOADER_SDK_VERSION
-        )
-        assert (
-            str(match_selected_version_to_browser_sdk_version("latest"))
-            == settings.JS_SDK_LOADER_SDK_VERSION
-        )
+        assert str(match_selected_version_to_browser_sdk_version("4.x")) == "0.5.2"
+        assert str(match_selected_version_to_browser_sdk_version("5.x")) == "0.5.2"
+        assert str(match_selected_version_to_browser_sdk_version("latest")) == "0.5.2"

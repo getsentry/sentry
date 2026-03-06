@@ -86,12 +86,12 @@ from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
 from .projectkey import *  # NOQA
+from .projectkeymapping import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectsdk import *  # NOQA
 from .projectteam import *  # NOQA
-from .projecttemplate import *  # NOQA
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .recentsearch import *  # NOQA
@@ -114,6 +114,7 @@ from .rulefirehistory import *  # NOQA
 from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
+from sentry.seer.models import *  # NOQA
 from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA

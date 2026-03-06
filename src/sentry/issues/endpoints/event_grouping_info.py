@@ -46,7 +46,12 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
             )
             != StacktraceOrder.MOST_RECENT_LAST
         )
-        grouping_config.initial_context["reverse_stacktraces"] = should_reverse_stacktraces
+        # Create an instance-level copy so we don't mutate the class-level dict,
+        # which is shared across all instances of this config.
+        grouping_config.initial_context = {
+            **grouping_config.initial_context,
+            "reverse_stacktraces": should_reverse_stacktraces,
+        }
 
         grouping_info = get_grouping_info(grouping_config, project, event)
 

@@ -20,7 +20,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -64,19 +63,17 @@ export default function LogsContent() {
         >
           <Layout.Page>
             <LogsHeader />
-            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-              <LogsPageDataProvider allowHighFidelity>
-                {defined(onboardingProject) ? (
-                  <LogsTabOnboarding
-                    organization={organization}
-                    project={onboardingProject}
-                    datePageFilterProps={datePageFilterProps}
-                  />
-                ) : (
-                  <LogsTabContent datePageFilterProps={datePageFilterProps} />
-                )}
-              </LogsPageDataProvider>
-            </TraceItemAttributeProvider>
+            <LogsPageDataProvider allowHighFidelity>
+              {defined(onboardingProject) ? (
+                <LogsTabOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                  datePageFilterProps={datePageFilterProps}
+                />
+              ) : (
+                <LogsTabContent datePageFilterProps={datePageFilterProps} />
+              )}
+            </LogsPageDataProvider>
           </Layout.Page>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
@@ -112,7 +109,6 @@ function LogsHeader() {
       <Layout.HeaderActions>
         <Grid flow="column" align="center" gap="md">
           <FeedbackButton
-            size="xs"
             feedbackOptions={{
               messagePlaceholder: t('How can we make logs work better for you?'),
               tags: {

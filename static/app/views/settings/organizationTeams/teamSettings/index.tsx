@@ -101,65 +101,63 @@ export default function TeamSettings() {
         </Alert.Container>
       )}
 
-      <form.AppForm>
-        <form.FormWrapper>
-          <FieldGroup title={t('Team Settings')}>
-            <form.AppField name="slug">
-              {field => (
-                <field.Layout.Row
-                  label={t('Team Slug')}
-                  hintText={t('A unique ID used to identify the team')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value}
-                    onChange={value => field.handleChange(slugify(value))}
-                    placeholder="e.g. operations, web-frontend, mobile-ios"
-                    disabled={isDisabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="teamId">
-              {field => (
-                <field.Layout.Row
-                  label={t('Team ID')}
-                  hintText={t(
-                    'The unique identifier for this team. It cannot be modified.'
-                  )}
-                >
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-
-            {isDisabled ? null : (
-              <Flex gap="md" align="center" padding="sm">
-                <form.Subscribe selector={state => state.values.slug !== team.slug}>
-                  {hasChanged => (
-                    <Flex
-                      flex="1"
-                      minWidth={0}
-                      style={{visibility: hasChanged ? 'visible' : 'hidden'}}
-                    >
-                      <Alert variant="info">
-                        {t('You will be redirected to the new team slug after saving.')}
-                      </Alert>
-                    </Flex>
-                  )}
-                </form.Subscribe>
-                <Flex gap="sm" flexShrink={0}>
-                  <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
-                  <form.SubmitButton>{t('Save')}</form.SubmitButton>
-                </Flex>
-              </Flex>
+      <form.AppForm form={form}>
+        <FieldGroup title={t('Team Settings')}>
+          <form.AppField name="slug">
+            {field => (
+              <field.Layout.Row
+                label={t('Team Slug')}
+                hintText={t('A unique ID used to identify the team')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={value => field.handleChange(slugify(value))}
+                  placeholder="e.g. operations, web-frontend, mobile-ios"
+                  disabled={isDisabled}
+                />
+              </field.Layout.Row>
             )}
-          </FieldGroup>
-        </form.FormWrapper>
+          </form.AppField>
+          <form.AppField name="teamId">
+            {field => (
+              <field.Layout.Row
+                label={t('Team ID')}
+                hintText={t(
+                  'The unique identifier for this team. It cannot be modified.'
+                )}
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+
+          {isDisabled ? null : (
+            <Flex gap="md" align="center" padding="sm">
+              <form.Subscribe selector={state => state.values.slug !== team.slug}>
+                {hasChanged => (
+                  <Flex
+                    flex="1"
+                    minWidth={0}
+                    style={{visibility: hasChanged ? 'visible' : 'hidden'}}
+                  >
+                    <Alert variant="info">
+                      {t('You will be redirected to the new team slug after saving.')}
+                    </Alert>
+                  </Flex>
+                )}
+              </form.Subscribe>
+              <Flex gap="sm" flexShrink={0}>
+                <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
+                <form.SubmitButton>{t('Save')}</form.SubmitButton>
+              </Flex>
+            </Flex>
+          )}
+        </FieldGroup>
       </form.AppForm>
 
       <Panel>

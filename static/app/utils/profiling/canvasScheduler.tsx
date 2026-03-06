@@ -32,10 +32,10 @@ export interface FlamegraphEvents {
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
 
 export class CanvasScheduler {
-  beforeFrameCallbacks: Set<DrawFn> = new Set();
-  afterFrameCallbacks: Set<DrawFn> = new Set();
+  beforeFrameCallbacks = new Set<DrawFn>();
+  afterFrameCallbacks = new Set<DrawFn>();
 
-  onDisposeCallbacks: Set<() => void> = new Set();
+  onDisposeCallbacks = new Set<() => void>();
   requestAnimationFrame: number | null = null;
 
   events: EventStore = {
@@ -150,7 +150,7 @@ export class CanvasScheduler {
 }
 
 export class CanvasPoolManager {
-  schedulers: Set<CanvasScheduler> = new Set();
+  schedulers = new Set<CanvasScheduler>();
 
   registerScheduler(scheduler: CanvasScheduler): void {
     if (this.schedulers.has(scheduler)) {

@@ -326,7 +326,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
 const DefaultButtons = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

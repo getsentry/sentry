@@ -249,14 +249,14 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       fields: [
         SpanFields.SPAN_OP,
         SpanFields.SPAN_DESCRIPTION,
-        `ttid_contribution_rate()`,
-        `ttfd_contribution_rate()`,
+        `equation|ttid_contribution_rate()`,
+        `equation|ttfd_contribution_rate()`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
       aggregates: [
-        `ttid_contribution_rate()`,
-        `ttfd_contribution_rate()`,
+        `equation|ttid_contribution_rate()`,
+        `equation|ttfd_contribution_rate()`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],

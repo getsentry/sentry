@@ -1205,11 +1205,20 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
-    data_forwarder_projects = DataForwarderProject.objects.filter(
-        project_id=event.project_id,
-        is_enabled=True,
-        data_forwarder__is_enabled=True,
-    ).select_related("data_forwarder")
+    cache_key = f"data-forwarder-projects:{event.project_id}"
+    data_forwarder_projects = cache.get(cache_key)
+
+    if data_forwarder_projects is None:
+        data_forwarder_projects = list(
+            DataForwarderProject.objects.filter(
+                project_id=event.project_id,
+                is_enabled=True,
+                data_forwarder__is_enabled=True,
+            ).select_related("data_forwarder")
+        )
+        cache.set(
+            cache_key, data_forwarder_projects, options.get("data-forwarding.project-cache-ttl")
+        )
 
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
@@ -1276,6 +1285,30 @@ def fire_error_processed(job: PostProcessJob):
         project=event.project,
         event=event,
     )
+
+
+def process_processing_errors_eap(job: PostProcessJob):
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:processing-errors-eap", event.project.organization):
+        return
+
+    processing_errors = event.data.get("errors", [])
+    if not processing_errors:
+        return
+
+    from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
+
+    produce_processing_errors_to_eap(event.project, event.data, processing_errors)
+
+
+def process_sourcemap_issue_detection(job: PostProcessJob):
+    from sentry.processing_errors.detection import detect_sourcemap_issues
+
+    detect_sourcemap_issues(job)
 
 
 def sdk_crash_monitoring(job: PostProcessJob):
@@ -1648,6 +1681,8 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         link_event_to_user_report,
         detect_base_urls_for_uptime,
         check_if_flags_sent,
+        process_processing_errors_eap,
+        process_sourcemap_issue_detection,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

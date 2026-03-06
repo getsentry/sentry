@@ -1,5 +1,4 @@
 import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +15,7 @@ interface PlanMigrationsHook {
 
 export function usePlanMigrations(): PlanMigrationsHook {
   const organization = useOrganization();
-  const user: User = useUser();
+  const user = useUser();
   const enabled = hasBillingAccess(organization) || user.isStaff;
   const {data: planMigrations, isPending} = useApiQuery<PlanMigration[]>(
     [

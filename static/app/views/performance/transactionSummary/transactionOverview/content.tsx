@@ -110,7 +110,6 @@ function EAPSummaryContentInner({
 }: Props) {
   const theme = useTheme();
   const navigate = useNavigate();
-  const domainViewFilters = useDomainViewFilters();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
@@ -274,15 +273,6 @@ function EAPSummaryContentInner({
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
-        <TagExplorer
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          projects={projects}
-          transactionName={transactionName}
-          currentFilter={spanOperationBreakdownFilter}
-          domainViewFilters={domainViewFilters}
-        />
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"

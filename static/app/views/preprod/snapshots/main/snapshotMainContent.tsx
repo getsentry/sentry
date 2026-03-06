@@ -1,80 +1,231 @@
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
+import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
+import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
 
 interface SnapshotMainContentProps {
-  currentGroupImages: SnapshotImage[];
-  currentGroupName: string | null;
+  diffImageBaseUrl: string;
+  diffMode: DiffMode;
+  imageBaseUrl: string;
+  onDiffModeChange: (mode: DiffMode) => void;
+  onOverlayColorChange: (color: string) => void;
+  onShowOverlayChange: (show: boolean) => void;
   onVariantChange: (index: number) => void;
-  organizationSlug: string;
-  projectSlug: string;
+  overlayColor: string;
+  selectedItem: SidebarItem | null;
+  showOverlay: boolean;
   variantIndex: number;
 }
 
 export function SnapshotMainContent({
-  currentGroupName,
-  currentGroupImages,
+  selectedItem,
   variantIndex,
   onVariantChange,
-  organizationSlug,
-  projectSlug,
+  imageBaseUrl,
+  diffImageBaseUrl,
+  showOverlay,
+  onShowOverlayChange,
+  overlayColor,
+  onOverlayColorChange,
+  diffMode,
+  onDiffModeChange,
 }: SnapshotMainContentProps) {
-  const selectedImage = currentGroupImages[variantIndex];
-  if (!currentGroupName || !selectedImage) {
+  if (!selectedItem) {
     return (
-      <Flex align="center" justify="center" padding="3xl">
+      <Flex align="center" justify="center" padding="3xl" width="100%">
         <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
       </Flex>
     );
   }
 
-  const imageUrl = `/api/0/projects/${organizationSlug}/${projectSlug}/files/images/${selectedImage.key}/`;
-  const totalVariants = currentGroupImages.length;
-  const displayName = selectedImage.display_name ?? selectedImage.image_file_name;
+  if (selectedItem.type === 'changed') {
+    const displayName = getImageName(selectedItem.pair.head_image);
+    return (
+      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+        <Flex align="center" justify="between" gap="md" padding="xl">
+          <Text size="lg" bold>
+            {displayName}
+          </Text>
+          {diffMode === 'split' && (
+            <OverlayControls
+              showOverlay={showOverlay}
+              onShowOverlayChange={onShowOverlayChange}
+              overlayColor={overlayColor}
+              onOverlayColorChange={onOverlayColorChange}
+            />
+          )}
+        </Flex>
+        <Separator orientation="horizontal" />
+        <DiffImageDisplay
+          pair={selectedItem.pair}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          showOverlay={showOverlay}
+          overlayColor={overlayColor}
+          diffMode={diffMode}
+          onDiffModeChange={onDiffModeChange}
+        />
+      </Flex>
+    );
+  }
+
+  if (selectedItem.type === 'solo') {
+    const currentImage = selectedItem.images[variantIndex];
+    if (!currentImage) {
+      return null;
+    }
+    const displayName = getImageName(currentImage);
+    const totalVariants = selectedItem.images.length;
+    const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+
+    return (
+      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+        <Flex align="center" gap="md" padding="xl">
+          {totalVariants > 1 && (
+            <Flex align="center" gap="sm">
+              <Button
+                size="md"
+                priority="transparent"
+                icon={<IconChevron direction="left" />}
+                aria-label={t('Previous variant')}
+                disabled={variantIndex === 0}
+                onClick={() => onVariantChange(variantIndex - 1)}
+              />
+              <Button
+                size="md"
+                priority="transparent"
+                icon={<IconChevron direction="right" />}
+                aria-label={t('Next variant')}
+                disabled={variantIndex === totalVariants - 1}
+                onClick={() => onVariantChange(variantIndex + 1)}
+              />
+            </Flex>
+          )}
+          <Stack gap="md">
+            <Text size="lg" bold>
+              {displayName}
+            </Text>
+            {totalVariants > 1 && (
+              <Text variant="muted" size="sm">
+                {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+              </Text>
+            )}
+          </Stack>
+        </Flex>
+        <Separator orientation="horizontal" />
+        <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+      </Flex>
+    );
+  }
+
+  const image = selectedItem.image;
+  const displayName = getImageName(image);
+  const imageUrl = `${imageBaseUrl}${image.key}/`;
+  const STATUS_LABELS: Record<string, string> = {
+    added: t('Added'),
+    removed: t('Removed'),
+    renamed: t('Renamed'),
+  };
+  const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
       <Flex align="center" gap="md" padding="xl">
-        {totalVariants > 1 && (
-          <Flex align="center" gap="sm">
-            <Button
-              size="md"
-              priority="transparent"
-              icon={<IconChevron direction="left" />}
-              aria-label={t('Previous variant')}
-              disabled={variantIndex === 0}
-              onClick={() => onVariantChange(variantIndex - 1)}
-            />
-            <Button
-              size="md"
-              priority="transparent"
-              icon={<IconChevron direction="right" />}
-              aria-label={t('Next variant')}
-              disabled={variantIndex === totalVariants - 1}
-              onClick={() => onVariantChange(variantIndex + 1)}
-            />
-          </Flex>
-        )}
-        <Stack gap="md">
-          <Text size="lg" bold>
-            {displayName}
-          </Text>
-          {totalVariants > 1 && (
-            <Text variant="muted" size="sm">
-              {t('Variant %s / %s', variantIndex + 1, totalVariants)}
-            </Text>
-          )}
-        </Stack>
+        <Text size="lg" bold>
+          {displayName}
+        </Text>
+        <Text variant="muted" size="sm">
+          ({statusLabel})
+        </Text>
       </Flex>
       <Separator orientation="horizontal" />
       <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
     </Flex>
   );
 }
+
+function OverlayControls({
+  showOverlay,
+  onShowOverlayChange,
+  overlayColor,
+  onOverlayColorChange,
+}: {
+  onOverlayColorChange: (color: string) => void;
+  onShowOverlayChange: (show: boolean) => void;
+  overlayColor: string;
+  showOverlay: boolean;
+}) {
+  const theme = useTheme();
+
+  const overlayColors = theme.chart.getColorPalette(10);
+
+  return (
+    <Flex align="center" gap="sm">
+      <Button
+        size="xs"
+        priority={showOverlay ? 'primary' : 'default'}
+        onClick={() => onShowOverlayChange(!showOverlay)}
+      >
+        {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
+      </Button>
+      <Tooltip
+        isHoverable
+        maxWidth={400}
+        title={
+          <Flex gap="xs">
+            {overlayColors.map(color => (
+              <ColorSwatch
+                key={color}
+                $color={color}
+                $selected={overlayColor === color}
+                onClick={() => onOverlayColorChange(color)}
+                aria-label={t('Overlay color %s', color)}
+              />
+            ))}
+          </Flex>
+        }
+      >
+        <ColorTrigger $color={overlayColor} aria-label={t('Pick overlay color')} />
+      </Tooltip>
+    </Flex>
+  );
+}
+
+const ColorTrigger = styled('button')<{$color: string}>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.$color};
+  padding: 0;
+
+  &:hover {
+    border-color: ${p => p.theme.tokens.border.accent};
+  }
+`;
+
+const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid
+    ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
+  background-color: ${p => p.$color};
+  padding: 0;
+  outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
+  outline-offset: 1px;
+`;

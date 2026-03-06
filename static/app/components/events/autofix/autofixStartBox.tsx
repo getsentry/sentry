@@ -13,7 +13,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -215,8 +214,8 @@ const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: ${space(1)} ${space(4)};
-  gap: ${space(1)};
+  margin: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ScaleContainer = styled('div')`
@@ -224,7 +223,7 @@ const ScaleContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   margin-bottom: 100px;
 `;
 
@@ -239,13 +238,13 @@ const Container = styled('div')`
       ${p => p.theme.colors.pink500}20
     );
   overflow: visible;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AutofixStartText = styled('div')`
   margin: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   white-space: pre-wrap;
   word-break: break-word;
   font-size: ${p => p.theme.font.size.lg};

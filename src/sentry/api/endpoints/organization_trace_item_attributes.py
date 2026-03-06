@@ -37,6 +37,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions, VirtualColumnDefinition
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
+from sentry.search.eap.processing_errors.definitions import PROCESSING_ERROR_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -158,6 +159,8 @@ def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitio
         return TRACE_METRICS_DEFINITIONS
     elif item_type == SupportedTraceItemType.PREPROD:
         return PREPROD_SIZE_DEFINITIONS
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS:
+        return PROCESSING_ERROR_DEFINITIONS
 
     raise ValueError(f"Invalid item type: {item_type}")
 
@@ -171,6 +174,8 @@ def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
         return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
     elif item_type == SupportedTraceItemType.PREPROD.value:
         return Referrer.API_PREPROD_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS.value:
+        return Referrer.API_PROCESSING_ERRORS_TAG_KEYS_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
@@ -184,6 +189,8 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
     elif item_type == SupportedTraceItemType.PREPROD.value:
         return Referrer.API_PREPROD_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS.value:
+        return Referrer.API_PROCESSING_ERRORS_TAG_VALUES_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 

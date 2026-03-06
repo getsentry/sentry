@@ -176,7 +176,7 @@ def test_client_config_empty_region_data() -> None:
     # Usually, we would want to use other testutils functions rather than calling
     # `swap_state` directly. We make an exception here in order to test the default
     # region data that `load_from_config` fills in.
-    with get_test_env_directory().swap_state(tuple(region_directory.regions)):
+    with get_test_env_directory().swap_state(tuple(region_directory.cells)):
         request, user = make_user_request_from_org()
         request.user = user
         result = get_client_config(request)
@@ -202,13 +202,13 @@ def test_client_config_with_region_data() -> None:
 
 
 hidden_regions = [
-    region.Region(
+    region.Cell(
         name="us",
         snowflake_id=1,
         address="https//us.testserver",
         category=region.RegionCategory.MULTI_TENANT,
     ),
-    region.Region(
+    region.Cell(
         name="eu",
         snowflake_id=5,
         address="https//eu.testserver",

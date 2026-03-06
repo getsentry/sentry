@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
@@ -47,28 +46,29 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    padding: ${space(1)} ${space(3)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']}
+      ${p => p.theme.space.xl};
   }
 `;
 
 const RegistersTitle = styled('div')`
   width: 80px;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const Registers = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14.063rem, 1fr));
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
 `;
 
 const Register = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: 3em 1fr;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};

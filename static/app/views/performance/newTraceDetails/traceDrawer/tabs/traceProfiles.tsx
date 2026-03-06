@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
@@ -22,7 +22,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
   const organization = useOrganization();
 
-  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
+  const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
       (acc, project) => {
         acc[project.slug] = project.platform;

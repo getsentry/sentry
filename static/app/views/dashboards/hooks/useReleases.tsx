@@ -147,7 +147,7 @@ export function useReleases(
   });
 
   // Enrich releases with event counts
-  const enrichedReleases: ReleaseWithCount[] = useMemo(() => {
+  const enrichedReleases = useMemo(() => {
     if (!metricsFetched) {
       return allReleases;
     }

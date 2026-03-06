@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -85,13 +86,30 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
+const DEFAULT_LIMIT = 10;
+
 interface TracesTableProps {
   openTraceViewDrawer: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
+  frameless?: boolean;
+  limit?: number;
+  tableWidths?: number[];
 }
 
-export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
+export function TracesTable({
+  openTraceViewDrawer,
+  frameless,
+  limit = DEFAULT_LIMIT,
+  tableWidths,
+}: TracesTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
-    columns: defaultColumnOrder,
+    columns:
+      // If table widths are provided, use them to override the default column widths
+      tableWidths?.length === defaultColumnOrder.length
+        ? defaultColumnOrder.map((column, index) => ({
+            ...column,
+            width: tableWidths[index],
+          }))
+        : defaultColumnOrder,
   });
 
   const combinedQuery = useCombinedQuery(getHasAiSpansFilter());
@@ -102,7 +120,7 @@ export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor,
-    limit: 10,
+    limit,
   });
 
   const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
@@ -248,22 +266,40 @@ export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
     [combinedQuery, openTraceViewDrawer]
   );
 
+  const additionalGridProps = frameless
+    ? {
+        bodyStyle: FRAMELESS_STYLES,
+        fit: 'max-content' as const,
+        resizable: true,
+        scrollable: true,
+        height: '100%',
+      }
+    : {};
+
+  const tableComponent = (
+    <GridEditable
+      isLoading={tracesRequest.isPending}
+      error={tracesRequest.error}
+      data={tableData}
+      stickyHeader
+      columnOrder={columnOrder}
+      columnSortBy={EMPTY_ARRAY}
+      grid={{
+        renderBodyCell,
+        renderHeadCell,
+        onResizeColumn: handleResizeColumn,
+      }}
+      {...additionalGridProps}
+    />
+  );
+
+  if (frameless) {
+    return tableComponent;
+  }
   return (
     <Container>
       <GridEditableContainer>
-        <GridEditable
-          isLoading={tracesRequest.isPending}
-          error={tracesRequest.error}
-          data={tableData}
-          stickyHeader
-          columnOrder={columnOrder}
-          columnSortBy={EMPTY_ARRAY}
-          grid={{
-            renderBodyCell,
-            renderHeadCell,
-            onResizeColumn: handleResizeColumn,
-          }}
-        />
+        {tableComponent}
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
       <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />

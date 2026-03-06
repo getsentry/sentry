@@ -6,6 +6,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
@@ -189,6 +190,38 @@ describe('GlobalModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
+  });
+
+  it('does not close modal when pressing escape to close a select dropdown', async () => {
+    renderGlobalModal();
+
+    act(() =>
+      openModal(({Body}) => (
+        <Body>
+          <CompactSelect
+            options={[
+              {value: 'opt1', label: 'Option One'},
+              {value: 'opt2', label: 'Option Two'},
+            ]}
+            value="opt1"
+            onChange={() => {}}
+          />
+        </Body>
+      ))
+    );
+
+    // Open the select dropdown
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+
+    // Press ESC — should close the dropdown, NOT the modal
+    await userEvent.keyboard('{Escape}');
+
+    // Dropdown should be closed
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+    // Modal should still be open
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('renders interactive tooltip inside the modal', async () => {

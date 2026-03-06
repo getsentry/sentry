@@ -23,7 +23,6 @@ import {
   getArbitraryRelativePeriod,
 } from 'sentry/components/timeRangeSelector/utils';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -406,7 +405,7 @@ function AuditLogList({
 }
 
 const SentryAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Name = styled('strong')`
@@ -428,7 +427,7 @@ const UserInfo = styled('div')`
 const Note = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const IpAddressOverflow = styled('div')`
@@ -448,7 +447,7 @@ const MonoDetail = styled('code')`
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
 `;
 

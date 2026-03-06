@@ -12,28 +12,27 @@ import dataclasses
 import logging
 import math
 from collections import defaultdict
-from typing import cast
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
-from django.utils import timezone as django_timezone
 
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    ServiceMapUpdateRequest,
+    make_service_map_update_request,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger("sentry.seer.explorer.explorer_service_map_utils")
 
-# Seer endpoint path
-SEER_SERVICE_MAP_PATH = "/v1/explorer/service-map/update"
-
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000
-
-# Maximum parent span IDs per Phase 3 resolution batch, to keep query strings bounded
-_PARENT_SPAN_BATCH_SIZE = 1000
 
 
 def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
@@ -63,8 +62,9 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     def _process_rows(rows: list[dict]) -> None:
         for row in rows:
             child_project_id = row.get("project.id")
+            child_project_slug = row.get("project.slug")
             parent_span_id = row.get("parent_span")
-            if not child_project_id:
+            if not child_project_id or not child_project_slug:
                 continue
             covered_project_ids.add(child_project_id)
             key = (child_project_id, parent_span_id)
@@ -73,7 +73,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                 segments_by_parent[parent_span_id].append(
                     {
                         "child_project_id": child_project_id,
-                        "child_project_slug": row.get("project.slug"),
+                        "child_project_slug": child_project_slug,
                     }
                 )
 
@@ -81,23 +81,20 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     page_limit = min(_SNUBA_MAX_ROWS, max_segments)
     with sentry_sdk.start_span(op="explorer.service_map.broad_scan") as span:
         span.set_data("limit", page_limit)
-        try:
-            result = Spans.run_table_query(
-                params=snuba_params,
-                query_string="is_transaction:true has:parent_span",
-                selected_columns=["id", "parent_span", "project.id", "project.slug", "timestamp"],
-                orderby=["-timestamp"],
-                offset=0,
-                limit=page_limit,
-                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                config=SearchResolverConfig(),
-            )
-            rows = result.get("data", [])
-            _process_rows(rows)
-            span.set_data("rows_returned", len(rows))
-            span.set_data("covered_projects", len(covered_project_ids))
-        except Exception:
-            logger.exception("Failed broad segment scan", extra={"org_id": org_id})
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="is_transaction:true has:parent_span",
+            selected_columns=["id", "parent_span", "project.id", "project.slug", "timestamp"],
+            orderby=["-timestamp"],
+            offset=0,
+            limit=page_limit,
+            referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+            config=SearchResolverConfig(),
+        )
+        rows = result.get("data", [])
+        _process_rows(rows)
+        span.set_data("rows_returned", len(rows))
+        span.set_data("covered_projects", len(covered_project_ids))
 
     # Fallback scan: One scoped query for projects with no representation in the broad scan.
     # No has:parent_span filter — broad scan to give low-traffic projects a second chance.
@@ -112,28 +109,25 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         with sentry_sdk.start_span(op="explorer.service_map.fallback_scan") as span:
             span.set_data("uncovered_projects", len(uncovered))
             span.set_data("limit", page_limit)
-            try:
-                result = Spans.run_table_query(
-                    params=uncovered_params,
-                    query_string="is_transaction:true",
-                    selected_columns=[
-                        "id",
-                        "parent_span",
-                        "project.id",
-                        "project.slug",
-                        "timestamp",
-                    ],
-                    orderby=["-timestamp"],
-                    offset=0,
-                    limit=page_limit,
-                    referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                    config=SearchResolverConfig(),
-                )
-                rows = result.get("data", [])
-                _process_rows(rows)
-                span.set_data("rows_returned", len(rows))
-            except Exception:
-                logger.exception("Failed fallback scan", extra={"org_id": org_id})
+            result = Spans.run_table_query(
+                params=uncovered_params,
+                query_string="is_transaction:true",
+                selected_columns=[
+                    "id",
+                    "parent_span",
+                    "project.id",
+                    "project.slug",
+                    "timestamp",
+                ],
+                orderby=["-timestamp"],
+                offset=0,
+                limit=page_limit,
+                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+                config=SearchResolverConfig(),
+            )
+            rows = result.get("data", [])
+            _process_rows(rows)
+            span.set_data("rows_returned", len(rows))
 
     unique_parent_span_ids = list(segments_by_parent.keys())
     if not unique_parent_span_ids:
@@ -142,38 +136,32 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     # Parent resolution: Batch-resolve parent spans → get their project_ids.
     # Batched to keep query strings within reasonable size limits.
-    edges_by_pair: dict[tuple[int, str | None, int, str | None], int] = defaultdict(int)
+    edges_by_pair: dict[tuple[int, str, int, str], int] = defaultdict(int)
+    batch_size = options.get("explorer.service_map.parent_span_batch_size")
 
     with sentry_sdk.start_span(op="explorer.service_map.resolve_parents") as span:
         span.set_data("unique_parent_spans", len(unique_parent_span_ids))
-        span.set_data(
-            "batch_count", math.ceil(len(unique_parent_span_ids) / _PARENT_SPAN_BATCH_SIZE)
-        )
-        for i in range(0, len(unique_parent_span_ids), _PARENT_SPAN_BATCH_SIZE):
-            batch = unique_parent_span_ids[i : i + _PARENT_SPAN_BATCH_SIZE]
-            span_id_filters = " OR ".join([f'id:"{sid}"' for sid in batch])
-            try:
-                parent_result = Spans.run_table_query(
-                    params=snuba_params,
-                    query_string=span_id_filters,
-                    selected_columns=["id", "project.id", "project.slug", "timestamp"],
-                    orderby=["-timestamp"],
-                    offset=0,
-                    limit=len(batch),
-                    referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                    config=SearchResolverConfig(),
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to query parent spans", extra={"org_id": org_id, "batch_index": i}
-                )
-                continue
+        span.set_data("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
+        for i in range(0, len(unique_parent_span_ids), batch_size):
+            batch = unique_parent_span_ids[i : i + batch_size]
+            span_ids = ",".join(batch)
+            parent_result = Spans.run_table_query(
+                params=snuba_params,
+                query_string=f"id:[{span_ids}]",
+                selected_columns=["id", "project.id", "project.slug", "timestamp"],
+                orderby=["-timestamp"],
+                offset=0,
+                limit=len(batch),
+                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+                config=SearchResolverConfig(),
+                sampling_mode="HIGHEST_ACCURACY",
+            )
 
             for parent_row in parent_result.get("data", []):
                 parent_span_id = parent_row.get("id")
                 parent_project_id = parent_row.get("project.id")
                 parent_project_slug = parent_row.get("project.slug")
-                if not parent_span_id or not parent_project_id:
+                if not parent_span_id or not parent_project_id or not parent_project_slug:
                     continue
                 for segment in segments_by_parent.get(parent_span_id, []):
                     child_project_id = segment["child_project_id"]
@@ -182,7 +170,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                             parent_project_id,
                             parent_project_slug,
                             child_project_id,
-                            segment.get("child_project_slug"),
+                            segment["child_project_slug"],
                         )
                         edges_by_pair[edge_key] += 1
         span.set_data("edges_found", len(edges_by_pair))
@@ -206,57 +194,62 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     return edges
 
 
-def _build_nodes(edges: list[dict]) -> list[dict]:
+def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
     """
     Build a node list from edges for the Seer payload in a single pass.
 
-    Collects degree counts, slug mappings, and caller/callee relationships
-    simultaneously, then classifies each service's role based on its
-    in/out degree relative to the graph average:
+    all_projects is the full set of active projects for the org — projects
+    that have no cross-project edges are included as "isolated" nodes so
+    Seer has a complete picture of the service landscape.
+
+    Connected projects are classified by their in/out degree relative to
+    the graph average:
 
       hub        — high in-degree and high out-degree
       caller     — high out-degree, low in-degree
       callee     — high in-degree, low out-degree
       peripheral — low in-degree and low out-degree
+      isolated   — no cross-project edges at all
     """
-    if not edges:
-        return []
-
     in_degrees: dict[int, int] = defaultdict(int)
     out_degrees: dict[int, int] = defaultdict(int)
-    project_slugs: dict[int, str | None] = {}
+    project_slugs: dict[int, str] = {p.id: p.slug for p in all_projects}
     callers_map: dict[int, set[str]] = defaultdict(set)
     callees_map: dict[int, set[str]] = defaultdict(set)
 
     for edge in edges:
         src_id = edge["source_project_id"]
-        src_slug = edge.get("source_project_slug")
+        src_slug = edge["source_project_slug"]
         tgt_id = edge["target_project_id"]
-        tgt_slug = edge.get("target_project_slug")
+        tgt_slug = edge["target_project_slug"]
 
         out_degrees[src_id] += 1
         in_degrees[tgt_id] += 1
         project_slugs[src_id] = src_slug
         project_slugs[tgt_id] = tgt_slug
 
-        if tgt_slug:
-            callees_map[src_id].add(tgt_slug)
-        if src_slug:
-            callers_map[tgt_id].add(src_slug)
+        callees_map[src_id].add(tgt_slug)
+        callers_map[tgt_id].add(src_slug)
 
-    all_project_ids = set(project_slugs.keys())
-    n = len(all_project_ids)
-    avg_in = sum(in_degrees.values()) / n
-    avg_out = sum(out_degrees.values()) / n
+    connected_ids = set(in_degrees.keys()) | set(out_degrees.keys())
+    n = len(connected_ids)
+
+    if n > 0:
+        avg_in = sum(in_degrees.values()) / n
+        avg_out = sum(out_degrees.values()) / n
+    else:
+        avg_in = avg_out = 0.0
 
     nodes = []
     role_counts: dict[str, int] = defaultdict(int)
 
-    for project_id in all_project_ids:
+    for project_id, slug in project_slugs.items():
         in_deg = in_degrees.get(project_id, 0)
         out_deg = out_degrees.get(project_id, 0)
 
-        if in_deg >= avg_in and out_deg >= avg_out:
+        if project_id not in connected_ids:
+            role = "isolated"
+        elif in_deg >= avg_in and out_deg >= avg_out:
             role = "hub"
         elif out_deg >= avg_out and in_deg < avg_in:
             role = "caller"
@@ -269,7 +262,7 @@ def _build_nodes(edges: list[dict]) -> list[dict]:
         nodes.append(
             {
                 "project_id": project_id,
-                "project_slug": project_slugs.get(project_id),
+                "project_slug": slug,
                 "role": role,
                 "callers": sorted(callers_map.get(project_id, set())),
                 "callees": sorted(callees_map.get(project_id, set())),
@@ -278,7 +271,7 @@ def _build_nodes(edges: list[dict]) -> list[dict]:
 
     logger.info(
         "Built service map nodes",
-        extra={"total_services": n, **role_counts},
+        extra={"total_services": len(project_slugs), **role_counts},
     )
 
     return nodes
@@ -294,22 +287,32 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         edges: List of edges with source_project_id, source_project_slug, target_project_id,
                target_project_slug, count
     """
-    payload = {
-        "organization_id": org_id,
-        "nodes": nodes,
-        "edges": edges,
-        "generated_at": django_timezone.now().isoformat(),
-    }
+    # ServiceMapNode and ServiceMapEdge on the Seer side require non-null slugs.
+    valid_nodes = [n for n in nodes if n.get("project_slug") is not None]
+    valid_edges = [
+        e
+        for e in edges
+        if e.get("source_project_slug") is not None and e.get("target_project_slug") is not None
+    ]
 
-    body = orjson.dumps(payload)
+    body = ServiceMapUpdateRequest(
+        organization_id=org_id,
+        nodes=valid_nodes,
+        edges=valid_edges,
+    )
+    body_bytes = orjson.dumps(body)
 
     logger.info(
         "Sending service map to Seer",
         extra={
             "org_id": org_id,
-            "node_count": len(nodes),
-            "payload_size_bytes": len(body),
+            "node_count": len(valid_nodes),
+            "edge_count": len(valid_edges),
+            "payload_size_bytes": len(body_bytes),
         },
     )
 
-    # TODO: Add endpoint in seer before making the actual request
+    viewer_context = SeerViewerContext(organization_id=org_id)
+    response = make_service_map_update_request(body, timeout=30, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer service map update failed", response.status)

@@ -7,7 +7,6 @@ import {Switch} from '@sentry/scraps/switch';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SORTABLE_FIELDS} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
@@ -105,7 +104,7 @@ function SortableHeader({
 const HeaderCell = styled('div')<{alignment: string}>`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
   justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
   font-weight: ${p => p.theme.font.weight.sans.medium};

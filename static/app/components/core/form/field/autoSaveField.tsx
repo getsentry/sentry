@@ -121,7 +121,7 @@ interface AutoSaveFieldProps<
   mutationOptions: UseMutationOptions<
     any, // it doesn't matter here what the mutation returns
     Error,
-    Record<TFieldName, z.infer<TSchema>[TFieldName]>
+    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>
   >;
 
   /**
@@ -231,11 +231,9 @@ export function AutoSaveField<
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form as never}>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
-        <form.FormWrapper>
-          <form.AppField name={name}>{field => children(field as never)}</form.AppField>
-        </form.FormWrapper>
+        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
       </AutoSaveContextProvider>
     </form.AppForm>
   );

@@ -14,18 +14,19 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
-    Region,
+    Cell,
+    Locality,
     RegionCategory,
     RegionConfigurationError,
     RegionDirectory,
     RegionResolutionError,
+    find_all_cell_names,
     find_all_multitenant_region_names,
-    find_all_region_names,
     find_regions_for_sentry_app,
     find_regions_for_user,
+    get_cell_by_name,
+    get_cell_for_organization,
     get_local_region,
-    get_region_by_name,
-    get_region_for_organization,
     load_from_config,
     subdomain_is_region,
 )
@@ -63,28 +64,28 @@ class RegionDirectoryTest(TestCase):
     ]
 
     _EXPECTED_OUTPUTS = (
-        Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-        Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
+        Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
     )
 
     @staticmethod
     @contextmanager
     def _in_global_state(directory: RegionDirectory) -> Generator[None]:
-        with get_test_env_directory().swap_state(tuple(directory.regions)):
+        with get_test_env_directory().swap_state(tuple(directory.cells)):
             yield
 
     def test_region_config_parsing_in_monolith(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
-        assert directory.get_by_name("nowhere") is None
+        assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
+        assert directory.get_cell_by_name("nowhere") is None
 
         with self._in_global_state(directory):
-            assert get_region_by_name("eu") == self._EXPECTED_OUTPUTS[1]
+            assert get_cell_by_name("eu") == self._EXPECTED_OUTPUTS[1]
 
             with pytest.raises(RegionResolutionError):
-                get_region_by_name("nowhere")
+                get_cell_by_name("nowhere")
 
     def test_region_config_parsing_in_control(self) -> None:
         with (
@@ -92,7 +93,7 @@ class RegionDirectoryTest(TestCase):
             override_settings(SENTRY_MONOLITH_REGION="us"),
         ):
             directory = load_from_config(self._INPUTS, [])
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
+        assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
     def test_get_local_region(self) -> None:
@@ -113,41 +114,41 @@ class RegionDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
-    def test_get_region_for_organization(self) -> None:
+    def test_get_cell_for_organization(self) -> None:
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             mapping.update(region_name="az")
             with pytest.raises(RegionResolutionError):
-                # Region does not exist
-                get_region_for_organization(self.organization.slug)
+                # Cell does not exist
+                get_cell_for_organization(self.organization.slug)
 
             mapping.update(region_name=self._EXPECTED_OUTPUTS[0].name)
-            region = get_region_for_organization(self.organization.slug)
-            assert region == self._EXPECTED_OUTPUTS[0]
+            cell = get_cell_for_organization(self.organization.slug)
+            assert cell == self._EXPECTED_OUTPUTS[0]
 
             mapping.update(region_name=self._EXPECTED_OUTPUTS[1].name)
-            region = get_region_for_organization(self.organization.slug)
-            assert region == self._EXPECTED_OUTPUTS[1]
+            cell = get_cell_for_organization(self.organization.slug)
+            assert cell == self._EXPECTED_OUTPUTS[1]
 
             mapping.delete()
             with pytest.raises(RegionResolutionError):
                 # OrganizationMapping does not exist
-                get_region_for_organization(self.organization.slug)
+                get_cell_for_organization(self.organization.slug)
 
     def test_validate_region(self) -> None:
         for region in self._EXPECTED_OUTPUTS:
             region.validate()
 
-    def test_region_to_url(self) -> None:
-        region = Region("us", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
+    def test_locality_to_url(self) -> None:
+        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
         with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
-            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+            assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
-            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+            assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
-            assert region.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
+            assert locality.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     @patch("sentry.types.region.sentry_sdk")
     def test_invalid_config(self, sentry_sdk_mock: MagicMock) -> None:
@@ -217,11 +218,11 @@ class RegionDirectoryTest(TestCase):
             find_regions_for_sentry_app(sentry_app=sentry_app)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_region_names(self) -> None:
+    def test_find_all_cell_names(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            result = find_all_region_names()
+            result = find_all_cell_names()
             assert set(result) == {"us", "eu", "acme"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)

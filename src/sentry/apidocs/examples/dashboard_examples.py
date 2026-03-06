@@ -66,6 +66,7 @@ DASHBOARD_OBJECT = {
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
             "exploreUrls": None,
             "changedReason": None,
+            "axisRange": None,
         }
     ],
     "projects": [1],

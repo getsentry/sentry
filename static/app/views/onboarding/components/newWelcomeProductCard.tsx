@@ -14,7 +14,6 @@ export interface ProductOption {
   id: OnboardingWelcomeProductId;
   title: string;
   badge?: ReactNode;
-  extra?: ReactNode;
   footer?: ReactNode;
 }
 
@@ -27,7 +26,6 @@ const CardContainer = styled(Container)<{seer?: boolean}>`
     p.seer &&
     `
     @media (min-width: ${p.theme.breakpoints.md}) {
-      padding-right: 36%;
       grid-column: span 2;
     }
   `}
@@ -36,7 +34,7 @@ const CardContainer = styled(Container)<{seer?: boolean}>`
 const MotionCardContainer = motion.create(CardContainer);
 
 export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
-  const {icon, title, description, badge, footer, extra, id} = product;
+  const {icon, title, description, badge, footer, id} = product;
   const consideredSeerCard = id === OnboardingWelcomeProductId.SEER;
 
   return (
@@ -46,8 +44,6 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
       radius="lg"
       padding="xl"
       background={consideredSeerCard ? 'secondary' : 'primary'}
-      overflow={consideredSeerCard ? 'hidden' : undefined}
-      position={consideredSeerCard ? 'relative' : undefined}
       seer={consideredSeerCard}
     >
       <Grid
@@ -73,15 +69,19 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
         </Flex>
         <Stack area="cell4" gap="xl">
           <Container>
-            <Text variant="muted" size="md" density="comfortable">
+            <Text
+              as="p"
+              variant="muted"
+              size="md"
+              density="comfortable"
+              textWrap="pretty"
+            >
               {description}
             </Text>
           </Container>
           {footer}
         </Stack>
       </Grid>
-
-      {extra}
     </MotionCardContainer>
   );
 }

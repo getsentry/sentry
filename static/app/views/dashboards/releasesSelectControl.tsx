@@ -14,7 +14,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import {useReleases} from './hooks/useReleases';
@@ -195,6 +194,6 @@ const ButtonLabelWrapper = styled('span')`
 
 const MenuTitleWrapper = styled('span')`
   display: inline-block;
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;

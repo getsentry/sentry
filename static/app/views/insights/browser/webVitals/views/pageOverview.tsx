@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -28,13 +27,13 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import useHasDashboardsPlatformizedWebVitals from 'sentry/views/insights/browser/webVitals/utils/useHasDashboardsPlatformizedWebVitals';
 import {PlatformizedWebVitalsPageOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedPageOverview';
 import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
@@ -214,8 +213,8 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const hasDashboardsPlatformizedWebVitals = useHasDashboardsPlatformizedWebVitals();
-  if (hasDashboardsPlatformizedWebVitals) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedWebVitalsPageOverview />;
   }
 
@@ -236,9 +235,9 @@ const ChartContainer = styled('div')`
 `;
 
 const PageSamplePerformanceTableContainer = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;

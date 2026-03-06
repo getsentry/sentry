@@ -20,7 +20,6 @@ import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -364,11 +363,11 @@ function NotificationActionItem({
 }
 
 const StyledCard = styled(Card)<{isEditing: boolean}>`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   background-color: ${props =>
     props.isEditing ? props.theme.tokens.background.tertiary : 'inherit'};
 `;

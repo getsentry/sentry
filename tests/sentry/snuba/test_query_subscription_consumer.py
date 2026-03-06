@@ -2,6 +2,7 @@ import unittest
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from functools import cached_property
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -34,23 +35,23 @@ pytestmark = [requires_snuba, requires_kafka]
 @pytest.mark.snuba_ci
 class BaseQuerySubscriptionTest:
     @cached_property
-    def dataset(self):
+    def dataset(self) -> Dataset:
         return Dataset.Metrics
 
     @cached_property
-    def topic(self):
+    def topic(self) -> str:
         return Topic.METRICS_SUBSCRIPTIONS_RESULTS.value
 
     @cached_property
-    def jsoncodec(self):
+    def jsoncodec(self) -> Any:
         return get_codec(self.topic)
 
     @cached_property
-    def valid_wrapper(self):
+    def valid_wrapper(self) -> dict[str, Any]:
         return {"version": 3, "payload": self.valid_payload}
 
     @cached_property
-    def valid_payload(self):
+    def valid_payload(self) -> dict[str, Any]:
         return {
             "subscription_id": "1234",
             "result": {
@@ -67,7 +68,7 @@ class BaseQuerySubscriptionTest:
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    def build_mock_message(self, data, topic=None):
+    def build_mock_message(self, data: Any, topic: Any = None) -> Any:
         message = mock.Mock()
         message.value.return_value = json.dumps(data)
         if topic:
@@ -77,7 +78,7 @@ class BaseQuerySubscriptionTest:
 
 class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metrics(self):
+    def _setup_metrics(self) -> object:
         with mock.patch("sentry.utils.metrics") as self.metrics:
             yield
 
@@ -140,14 +141,16 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
-    def run_test(self, message):
+    def run_test(self, message: Any) -> None:
         parse_message_value(json.dumps(message).encode(), self.jsoncodec)
 
-    def run_invalid_schema_test(self, message):
+    def run_invalid_schema_test(self, message: Any) -> None:
         with pytest.raises(InvalidSchemaError):
             self.run_test(message)
 
-    def run_invalid_payload_test(self, remove_fields=None, update_fields=None):
+    def run_invalid_payload_test(
+        self, remove_fields: Any = None, update_fields: Any = None
+    ) -> None:
         payload = deepcopy(self.valid_payload)
         if remove_fields:
             for field in remove_fields:

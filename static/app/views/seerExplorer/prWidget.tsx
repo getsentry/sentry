@@ -135,9 +135,10 @@ export function usePRWidgetData({
   const repoNames = Object.keys(repoStats);
 
   // Compute overall sync status
-  const {allInSync, anyCreating} = useMemo(() => {
+  const {allInSync, anyCreating, hasPRs} = useMemo(() => {
     let inSync = true;
     let creating = false;
+    let prs = false;
 
     for (const repoName of repoNames) {
       const prState = repoPRStates[repoName];
@@ -149,11 +150,15 @@ export function usePRWidgetData({
       if (syncStatus?.isOutOfSync) {
         inSync = false;
       }
+      if (syncStatus?.hasPR) {
+        prs = true;
+      }
     }
 
     return {
       allInSync: inSync && !creating,
       anyCreating: creating,
+      hasPRs: prs,
     };
   }, [repoNames, repoPRStates, repoSyncStatus]);
 
@@ -198,7 +203,7 @@ export function usePRWidgetData({
             <Flex align="center" gap="md">
               {isCreating ? (
                 <Text size="xs" variant="muted">
-                  {t('Pushing...')}
+                  {hasPRs ? t('Updating PR...') : t('Creating PR...')}
                 </Text>
               ) : syncStatus?.hasPR ? (
                 <Flex align="center" gap="md" justify="between" width="100%">
@@ -236,7 +241,7 @@ export function usePRWidgetData({
         },
       };
     });
-  }, [repoNames, repoFileStats, repoPRStates, repoSyncStatus]);
+  }, [repoNames, repoFileStats, repoPRStates, repoSyncStatus, hasPRs]);
 
   // Build footer for explorer menu
   const menuFooter = useMemo(() => {
@@ -272,12 +277,12 @@ export function usePRWidgetData({
             onClick={handleCreateAllPRs}
             icon={<IconUpload />}
           >
-            {t('Push All Changes')}
+            {hasPRs ? t('Push All Changes') : t('Create PR(s)')}
           </Button>
         )}
       </Flex>
     );
-  }, [anyCreating, allInSync, repoNames, repoSyncStatus, onCreatePR]);
+  }, [anyCreating, allInSync, repoNames, repoSyncStatus, onCreatePR, hasPRs]);
 
   return {
     hasCodeChanges,
@@ -285,13 +290,14 @@ export function usePRWidgetData({
     totalRemoved,
     allInSync,
     anyCreating,
+    hasPRs,
     menuItems,
     menuFooter,
   };
 }
 
 function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidgetProps) {
-  const {hasCodeChanges, totalAdded, totalRemoved, allInSync, anyCreating} =
+  const {hasCodeChanges, totalAdded, totalRemoved, allInSync, anyCreating, hasPRs} =
     usePRWidgetData({
       blocks,
       repoPRStates,
@@ -319,7 +325,7 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
           <IconCheckmark variant="success" />
         ) : (
           <Flex gap="sm">
-            <Text>{t('Push')}</Text>
+            <Text>{hasPRs ? t('Update PR(s)') : t('Create PR')}</Text>
             <IconUpload />
           </Flex>
         )}
