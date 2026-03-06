@@ -363,13 +363,6 @@ class SeerExplorerClient:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
 
-        if features.has(
-            "organizations:seer-explorer-context-engine",
-            self.organization,
-            actor=self.user,
-        ):
-            chat_body["is_context_engine_enabled"] = True
-
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
