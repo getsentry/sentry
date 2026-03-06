@@ -6,6 +6,8 @@ import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -27,11 +29,14 @@ export function SeerAutomationDefault() {
 
   const orgMutationOptions = mutationOptions({
     mutationFn: (data: Partial<z.infer<typeof seerDefaultsSchema>>) =>
-      fetchMutation({
+      fetchMutation<Organization>({
         url: `/organizations/${organization.slug}/`,
         method: 'PUT',
         data,
       }),
+    onSuccess: org => {
+      OrganizationStore.onUpdate(org);
+    },
   });
 
   return (
@@ -44,7 +49,8 @@ export function SeerAutomationDefault() {
           initialValue={organization.defaultSeerScannerAutomation ?? false}
           mutationOptions={{
             ...orgMutationOptions,
-            onSuccess: (_data, variables) => {
+            onSuccess: (response, variables, context) => {
+              orgMutationOptions.onSuccess?.(response, variables, context);
               setScannerEnabled(variables.defaultSeerScannerAutomation);
             },
           }}
