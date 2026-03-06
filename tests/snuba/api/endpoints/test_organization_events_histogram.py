@@ -4,6 +4,7 @@ import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from django.urls import reverse
@@ -53,6 +54,9 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                             breakdown_name: {"value": value},
                         }
                     }
+                    # Unique span_id per event to avoid ClickHouse ReplacingMergeTree
+                    # deduplication on (project_id, finish_ts, transaction_name, cityHash64(span_id))
+                    data["contexts"]["trace"]["span_id"] = uuid4().hex[:16]
                     self.store_event(data, self.project.id)
 
     def as_response_data(self, specs):
