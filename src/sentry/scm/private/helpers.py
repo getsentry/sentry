@@ -9,8 +9,9 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.ipc import record_count_metric
+from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
+from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
 
 
 def is_rate_limited(
@@ -133,18 +134,18 @@ def initialize_provider(
     return provider
 
 
-def exec_provider_fn[T](
-    provider: Provider,
+def exec_provider_fn[P: Provider, T](
+    provider: P,
     *,
     referrer: Referrer = "shared",
-    provider_fn: Callable[[Provider], T],
+    provider_fn: Callable[[], T],
     record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
 ) -> T:
     if provider.is_rate_limited(referrer):
         raise SCMCodedError(provider, referrer, code="rate_limit_exceeded")
 
     try:
-        result = provider_fn(provider)
+        result = provider_fn()
         record_count(
             "sentry.scm.actions.success_by_provider", 1, {"provider": provider.__class__.__name__}
         )

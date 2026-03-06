@@ -34,7 +34,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.scm.stream_producer import produce_event_to_scm_stream
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 
 logger = logging.getLogger("sentry.webhooks")
 

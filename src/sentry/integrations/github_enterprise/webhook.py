@@ -28,7 +28,7 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.scm.stream_producer import produce_event_to_scm_stream
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")

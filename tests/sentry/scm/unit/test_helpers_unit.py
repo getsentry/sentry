@@ -1,4 +1,4 @@
-from sentry.scm.helpers import exec_provider_fn
+from sentry.scm.private.helpers import exec_provider_fn
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 

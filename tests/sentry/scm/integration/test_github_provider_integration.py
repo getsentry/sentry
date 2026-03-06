@@ -8,7 +8,10 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMProviderException
-from sentry.scm.helpers import map_integration_to_provider, map_repository_model_to_repository
+from sentry.scm.private.helpers import (
+    map_integration_to_provider,
+    map_repository_model_to_repository,
+)
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "test-org/test-repo"

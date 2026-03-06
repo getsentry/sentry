@@ -5,7 +5,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMProviderException, SCMUnhandledException
-from sentry.scm.helpers import (
+from sentry.scm.private.helpers import (
     exec_provider_fn,
     fetch_repository,
     fetch_service_provider,
