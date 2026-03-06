@@ -20,6 +20,7 @@ import WidgetQueries from './widgetQueries';
 type Results = {
   loading: boolean;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
@@ -48,6 +49,8 @@ type Props = {
       | 'timeseriesResultsUnits'
       | 'totalIssuesCount'
       | 'confidence'
+      | 'dataScanned'
+      | 'isSampled'
       | 'sampleCount'
     >
   ) => void;
