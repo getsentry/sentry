@@ -370,6 +370,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
 
+    from sentry.testutils.pytest.isolation import release_slot
+
+    release_slot()
+
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
