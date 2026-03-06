@@ -12,6 +12,7 @@ from sentry.scm.helpers import (
     map_repository_model_to_repository,
 )
 from sentry.scm.types import (
+    SHA,
     ActionResult,
     BranchName,
     BuildConclusion,
@@ -20,7 +21,6 @@ from sentry.scm.types import (
     CheckRunOutput,
     Comment,
     Commit,
-    CommitSHA,
     FileContent,
     GitBlob,
     GitCommitObject,
@@ -282,12 +282,12 @@ class SourceCodeManager:
         """Get a branch reference."""
         return self._exec(lambda p: p.get_branch(branch, request_options))
 
-    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
+    def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
         """Create a new branch pointing at the given SHA."""
         return self._exec(lambda p: p.create_branch(branch, sha))
 
     def update_branch(
-        self, branch: BranchName, sha: CommitSHA, force: bool = False
+        self, branch: BranchName, sha: SHA, force: bool = False
     ) -> ActionResult[GitRef]:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda p: p.update_branch(branch, sha, force))
@@ -306,14 +306,14 @@ class SourceCodeManager:
 
     def get_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[Commit]:
         return self._exec(lambda p: p.get_commit(sha, request_options))
 
     def get_commits(
         self,
-        sha: CommitSHA | None = None,
+        sha: SHA | None = None,
         path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -326,8 +326,8 @@ class SourceCodeManager:
 
     def compare_commits(
         self,
-        start_sha: CommitSHA,
-        end_sha: CommitSHA,
+        start_sha: SHA,
+        end_sha: SHA,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
@@ -337,7 +337,7 @@ class SourceCodeManager:
 
     def get_tree(
         self,
-        tree_sha: CommitSHA,
+        tree_sha: SHA,
         recursive: bool = True,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitTree]:
@@ -347,7 +347,7 @@ class SourceCodeManager:
 
     def get_git_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.get_git_commit(sha, request_options))
@@ -355,12 +355,12 @@ class SourceCodeManager:
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
-        base_tree: CommitSHA | None = None,
+        base_tree: SHA | None = None,
     ) -> ActionResult[GitTree]:
         return self._exec(lambda p: p.create_git_tree(tree, base_tree=base_tree))
 
     def create_git_commit(
-        self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
+        self, message: str, tree_sha: SHA, parent_shas: list[SHA]
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.create_git_commit(message, tree_sha, parent_shas))
 
@@ -427,7 +427,7 @@ class SourceCodeManager:
     def create_review_comment_file(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         side: ReviewSide,
@@ -440,7 +440,7 @@ class SourceCodeManager:
     def create_review_comment_line(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         line: int,
@@ -456,7 +456,7 @@ class SourceCodeManager:
     def create_review_comment_multiline(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         start_line: int,
@@ -492,7 +492,7 @@ class SourceCodeManager:
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: CommitSHA,
+        commit_sha: SHA,
         event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
@@ -504,7 +504,7 @@ class SourceCodeManager:
     def create_check_run(
         self,
         name: str,
-        head_sha: CommitSHA,
+        head_sha: SHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
