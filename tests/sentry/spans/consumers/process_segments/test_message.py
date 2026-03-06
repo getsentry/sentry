@@ -135,7 +135,7 @@ class TestSpansTask(TestCase):
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
         with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+            "sentry.issue_detection.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
             return_value=True,
         ):
             process_segment(spans)
@@ -194,7 +194,7 @@ class TestSpansTask(TestCase):
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
         with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
+            "sentry.issue_detection.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
         ) as mock_released:
             mock_released.return_value = True
             process_segment(spans)
