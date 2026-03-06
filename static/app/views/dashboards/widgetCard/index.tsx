@@ -125,6 +125,7 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -341,6 +342,7 @@ function WidgetCard(props: Props) {
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

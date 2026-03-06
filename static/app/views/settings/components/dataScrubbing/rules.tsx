@@ -83,7 +83,7 @@ const List = styled('ul')<{
   ${p =>
     p.isDisabled &&
     css`
-      color: ${p.theme.colors.gray200};
+      color: ${p.theme.tokens.content.disabled};
       background: ${p.theme.tokens.background.secondary};
     `}
 `;
@@ -95,10 +95,6 @@ const ListItem = styled('li')`
   align-items: center;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  &:hover {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
   &:last-child {
     border-bottom: 0;
   }

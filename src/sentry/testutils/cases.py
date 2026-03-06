@@ -81,8 +81,12 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.db.models import NodeData
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import _build_occurrence_attributes
+from sentry.eventstream.item_helpers import (
+    _build_occurrence_attributes,
+    serialize_event_data_as_item,
+)
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -1507,6 +1511,39 @@ class BaseSpansTestCase(SnubaTestCase):
             self.store_span(payload)
 
 
+class BaseOccurrenceTestCase(SnubaTestCase):
+    def create_occurrence(self, data, project: Project | None = None):
+        if project is None:
+            project = self.project
+        if "event_id" in data:
+            event_id = data["event_id"]
+        else:
+            event_id = uuid.uuid4().hex
+            data["event_id"] = event_id
+        if "timestamp" not in data:
+            data["timestamp"] = self.ten_mins_ago.timestamp()
+        if "received" not in data:
+            data["received"] = data["timestamp"]
+
+        if "contexts" not in data:
+            data["contexts"] = {"trace": {}}
+        if "trace" not in data["contexts"]:
+            data["contexts"]["trace"] = {}
+        if "trace_id" not in data["contexts"]["trace"]:
+            data["contexts"]["trace"]["trace_id"] = uuid.uuid4().hex
+
+        group = self.create_group(project=project)
+        node_id = Event.generate_node_id(project.id, event_id)
+        node_data = NodeData(node_id, data=data)
+        group_event = GroupEvent(
+            project_id=project.id,
+            event_id=event_id,
+            group=group,
+            data=node_data,
+        )
+        return serialize_event_data_as_item(group_event, data, project), group_event
+
+
 class BaseMetricsTestCase(SnubaTestCase):
     ENTITY_SHORTHANDS = {
         "c": "counter",
@@ -1668,7 +1705,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1,
+            "version": (2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1),
         }
 
         msg["mapping_meta"] = {}
@@ -1888,7 +1925,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         select: Sequence[MetricField],
         project_ids: Sequence[int] | None = None,
-        where: Sequence[BooleanCondition | Condition | MetricConditionField] | None = None,
+        where: (Sequence[BooleanCondition | Condition | MetricConditionField] | None) = None,
         having: ConditionGroup | None = None,
         groupby: Sequence[MetricGroupByField] | None = None,
         orderby: Sequence[MetricOrderByField] | None = None,
@@ -2065,7 +2102,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     ) -> None:
         """Convert on-demand metric and store it.
 
-        For sets, value needs to be a unique identifier while for counters it is a count."""
+        For sets, value needs to be a unique identifier while for counters it is a count.
+        """
         relay_metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
@@ -2431,7 +2469,7 @@ class UptimeCheckSnubaTestCase(TestCase):
             duration_ms = random.randint(1, 1000)
 
         http_status = default_if_not_set(
-            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            (200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])),
             http_status,
         )
 

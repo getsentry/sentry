@@ -37,7 +37,6 @@ import {DataCategory} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -207,10 +206,11 @@ interface ProfileFiltersProps {
 
 function ProfileFilters(props: ProfileFiltersProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleSearch = useCallback(
     (searchQuery: string) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -219,7 +219,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);

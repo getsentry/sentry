@@ -62,6 +62,7 @@ class SupportedTraceItemType(str, Enum):
     PREPROD = "preprod"
     ATTACHMENTS = "attachments"
     PROCESSING_ERRORS = "processing_errors"
+    OCCURRENCES = "occurrences"
 
 
 class AttributeSourceType(str, Enum):

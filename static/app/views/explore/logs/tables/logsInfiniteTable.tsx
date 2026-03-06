@@ -515,7 +515,6 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
-                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
