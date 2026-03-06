@@ -590,7 +590,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
       return {
         name: plottable.name,
-        label: plottable.label ?? plottable.name,
+        label: plottable.label,
         color,
       };
     });
