@@ -16,7 +16,7 @@ export interface StacktraceTreeNode {
  */
 export function buildFrameTree(frames: StacktraceFrame[]): StacktraceTreeNode[] {
   // Create nodes for each frame
-  const nodes: Map<number, StacktraceTreeNode> = new Map();
+  const nodes = new Map<number, StacktraceTreeNode>();
 
   frames.forEach((frame, index) => {
     nodes.set(index, {
@@ -109,9 +109,11 @@ export function createStacktraceFrameIndex(frames: StacktraceFrame[]): FrameInde
  * Converts the stacktrace tree structure to samples and weights format
  * suitable for creating a SampledProfile.
  *
- * Each unique path from root to leaf becomes a sample.
- * The sample is represented as an array of frame indices from root to leaf.
- * The weight for each sample comes from the leaf frame's sampleCount field.
+ * Each unique path from root to a sampled frame becomes a sample.
+ * The sample is represented as an array of frame indices from root to that frame.
+ * Non-leaf frames with a sampleCount emit a self-sample in addition to
+ * recursing into children, capturing samples where that frame was at the
+ * top of the stack.
  */
 export function treeToSampledProfileData(roots: StacktraceTreeNode[]): {
   samples: number[][];
@@ -122,13 +124,25 @@ export function treeToSampledProfileData(roots: StacktraceTreeNode[]): {
 
   function collectSamples(node: StacktraceTreeNode, currentPath: number[]) {
     const pathWithNode = [...currentPath, node.frameIndex];
+    const inclusiveCount = node.frame.sampleCount ?? 0;
 
     if (node.children.length === 0) {
-      // This is a leaf node - add the path as a sample
+      // Leaf node - emit a sample with its weight
       samples.push(pathWithNode);
-      weights.push(node.frame.sampleCount ?? 1);
+      weights.push(inclusiveCount);
     } else {
-      // Continue traversing children
+      // Self weight = inclusive count minus children's inclusive counts
+      const childrenCount = node.children.reduce(
+        (sum, child) => sum + (child.frame.sampleCount ?? 0),
+        0
+      );
+      const selfCount = inclusiveCount - childrenCount;
+
+      if (selfCount > 0) {
+        samples.push(pathWithNode);
+        weights.push(selfCount);
+      }
+
       for (const child of node.children) {
         collectSamples(child, pathWithNode);
       }

@@ -74,7 +74,10 @@ import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
-import {MetricKitHangProfileSection} from 'sentry/views/issueDetails/metricKitHangProfileSection';
+import {
+  getHangProfileData,
+  MetricKitHangProfileSection,
+} from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
@@ -115,7 +118,8 @@ export function EventDetailsContent({
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const isMetricKitHang =
     mechanism === 'mx_hang_diagnostic' &&
-    organization.features.includes('metrickit-flamegraph');
+    organization.features.includes('metrickit-flamegraph') &&
+    getHangProfileData(event) !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   const hasActionableItems = actionableItemsEnabled({

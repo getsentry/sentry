@@ -23,7 +23,7 @@ interface HangProfileData {
  * Extracts frames with flamegraph data and the associated exception info
  * from the event's exception entry.
  */
-function getHangProfileData(event: Event): HangProfileData | null {
+export function getHangProfileData(event: Event): HangProfileData | null {
   for (const entry of event.entries) {
     if (entry.type === EntryType.EXCEPTION) {
       for (const value of entry.data.values ?? []) {

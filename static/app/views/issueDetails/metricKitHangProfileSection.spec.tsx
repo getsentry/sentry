@@ -44,7 +44,9 @@ function makeExceptionEntry({
                 sampleCount: withFlamegraphData ? 5 : undefined,
               },
             ],
+            framesOmitted: null,
             hasSystemFrames: false,
+            registers: null,
           },
           rawStacktrace: null,
           mechanism: null,
@@ -74,7 +76,7 @@ describe('MetricKitHangProfileSection', () => {
   it('does not render when frames do not have parentIndex', () => {
     const event = EventFixture({
       entries: [makeExceptionEntry({withFlamegraphData: false})],
-    } as any);
+    });
 
     const {container} = render(<MetricKitHangProfileSection event={event} />, {
       organization,
@@ -86,7 +88,7 @@ describe('MetricKitHangProfileSection', () => {
   it('renders Hang Profile title and flamegraph when event has flamegraph data', () => {
     const event = EventFixture({
       entries: [makeExceptionEntry()],
-    } as any);
+    });
 
     render(<MetricKitHangProfileSection event={event} />, {organization});
 
@@ -97,7 +99,7 @@ describe('MetricKitHangProfileSection', () => {
   it('displays exception value text above flamegraph', () => {
     const event = EventFixture({
       entries: [makeExceptionEntry({value: 'MXHangDiagnostic hangDuration:2.5 s'})],
-    } as any);
+    });
 
     render(<MetricKitHangProfileSection event={event} />, {organization});
 
@@ -119,11 +121,13 @@ describe('MetricKitHangProfileSection', () => {
                 sampleCount: 10,
               },
             ],
+            framesOmitted: null,
             hasSystemFrames: false,
+            registers: null,
           },
         },
       ],
-    } as any);
+    });
 
     render(<MetricKitHangProfileSection event={event} />, {organization});
 
@@ -136,7 +140,7 @@ describe('MetricKitHangProfileSection', () => {
   it('shows tooltip explaining the hang profile', () => {
     const event = EventFixture({
       entries: [makeExceptionEntry()],
-    } as any);
+    });
 
     render(<MetricKitHangProfileSection event={event} />, {organization});
 
@@ -155,6 +159,7 @@ describe('MetricKitHangProfileSection', () => {
                 current: true,
                 crashed: false,
                 name: 'main',
+                rawStacktrace: null,
                 stacktrace: {
                   frames: [
                     {
@@ -165,14 +170,16 @@ describe('MetricKitHangProfileSection', () => {
                       sampleCount: 10,
                     },
                   ],
+                  framesOmitted: null,
                   hasSystemFrames: false,
+                  registers: null,
                 },
               },
             ],
           },
         },
       ],
-    } as any);
+    });
 
     render(<MetricKitHangProfileSection event={event} />, {organization});
 
