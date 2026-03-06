@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.silo.base import SiloMode
 
@@ -34,7 +34,7 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def update_action_status_for_sentry_app_installation(
         self,
@@ -46,7 +46,7 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
@@ -57,7 +57,7 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def update_action_status_for_webhook_via_sentry_app_slug(
         self,

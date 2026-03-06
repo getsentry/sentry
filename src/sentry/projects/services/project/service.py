@@ -11,7 +11,7 @@ from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByRegionName,
+    ByCellName,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue
@@ -30,7 +30,7 @@ class ProjectService(RpcService):
 
         return DatabaseBackedProjectService()
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_many_by_organizations(
         self,

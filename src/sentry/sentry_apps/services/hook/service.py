@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.hook import RpcServiceHook
 from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
@@ -52,7 +52,7 @@ class HookService(RpcService):
         """
         pass
 
-    @regional_rpc_method(ByRegionName())
+    @regional_rpc_method(ByCellName())
     @abc.abstractmethod
     def update_webhook_and_events_for_app_by_region(
         self,
@@ -83,7 +83,7 @@ class HookService(RpcService):
         """
         pass
 
-    @regional_rpc_method(ByRegionName())
+    @regional_rpc_method(ByCellName())
     @abc.abstractmethod
     def bulk_create_service_hooks_for_app(
         self,
