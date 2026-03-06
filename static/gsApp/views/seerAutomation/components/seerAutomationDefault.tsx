@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -23,9 +23,7 @@ const seerDefaultsSchema = z.object({
 export function SeerAutomationDefault() {
   const organization = useOrganization();
   const canWrite = hasEveryAccess(['org:write'], {organization});
-  const [scannerEnabled, setScannerEnabled] = useState(
-    organization.defaultSeerScannerAutomation ?? false
-  );
+  const scannerEnabled = organization.defaultSeerScannerAutomation ?? false;
 
   const orgMutationOptions = mutationOptions({
     mutationFn: (data: Partial<z.infer<typeof seerDefaultsSchema>>) =>
@@ -47,13 +45,7 @@ export function SeerAutomationDefault() {
           name="defaultSeerScannerAutomation"
           schema={seerDefaultsSchema}
           initialValue={organization.defaultSeerScannerAutomation ?? false}
-          mutationOptions={{
-            ...orgMutationOptions,
-            onSuccess: (response, variables, context) => {
-              orgMutationOptions.onSuccess?.(response, variables, context);
-              setScannerEnabled(variables.defaultSeerScannerAutomation);
-            },
-          }}
+          mutationOptions={orgMutationOptions}
         >
           {field => (
             <field.Layout.Row
