@@ -27,34 +27,38 @@ export function PlatformList({
   className,
   ref,
 }: Props) {
-  const visiblePlatforms = platforms.slice(0, max);
-
-  function renderContent() {
-    if (!platforms.length) {
+  switch (platforms.length) {
+    case 0:
       return <StyledPlatformIcon size={size} platform="default" />;
+
+    case 1:
+      return (
+        <StyledPlatformIcon
+          data-test-id={`platform-icon-${platforms[0]}`}
+          platform={platforms[0]!}
+          size={size}
+        />
+      );
+
+    default: {
+      const platformIcons = platforms.slice(0, max).reverse();
+
+      return (
+        <Wrapper ref={ref} className={className} size={size}>
+          <PlatformIcons>
+            {platformIcons.map((platform, index) => (
+              <StyledPlatformIcon
+                data-test-id={`platform-icon-${platform}`}
+                key={platform + index}
+                platform={platform}
+                size={size}
+              />
+            ))}
+          </PlatformIcons>
+        </Wrapper>
+      );
     }
-
-    const platformIcons = visiblePlatforms.slice().reverse();
-
-    return (
-      <PlatformIcons>
-        {platformIcons.map((visiblePlatform, index) => (
-          <StyledPlatformIcon
-            data-test-id={`platform-icon-${visiblePlatform}`}
-            key={visiblePlatform + index}
-            platform={visiblePlatform}
-            size={size}
-          />
-        ))}
-      </PlatformIcons>
-    );
   }
-
-  return (
-    <Wrapper ref={ref} className={className} size={size}>
-      {renderContent()}
-    </Wrapper>
-  );
 }
 
 function getOverlapWidth(size: number) {

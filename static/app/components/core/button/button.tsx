@@ -1,7 +1,7 @@
-import {keyframes} from '@emotion/react';
+// import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+// import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -23,19 +23,23 @@ export function Button({
   busy,
   ...props
 }: ButtonProps) {
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
+  const {
+    handleClick,
+    // hasChildren,
+    accessibleLabel,
+  } = useButtonFunctionality({
     ...props,
     type,
     disabled,
     busy,
   });
 
-  const iconGap =
-    props.icon && hasChildren
-      ? size === 'xs' || size === 'zero'
-        ? 'sm'
-        : 'md'
-      : undefined;
+  // const iconGap =
+  //   props.icon && hasChildren
+  //     ? size === 'xs' || size === 'zero'
+  //       ? 'sm'
+  //       : 'md'
+  //     : undefined;
 
   return (
     <Tooltip
@@ -49,32 +53,22 @@ export function Button({
         aria-disabled={disabled}
         aria-busy={busy}
         disabled={disabled}
+        // style={{ gap: iconGap }}
         size={size}
         type={type}
         busy={busy}
         {...props}
         onClick={handleClick}
         role="button"
+        // visibility={busy ? 'hidden' : undefined}
       >
-        <Grid as="span" align="center" justifyItems="center" minWidth="0" height="100%">
-          <Flex
-            as="span"
-            align="center"
-            area="1 / 1"
-            gap={iconGap}
-            visibility={busy ? 'hidden' : undefined}
-          >
-            {props.icon && (
-              <Flex as="span" align="center" flexShrink={0}>
-                <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                  {props.icon}
-                </IconDefaultsProvider>
-              </Flex>
-            )}
-            {props.children}
-          </Flex>
-          {busy ? <BusySpinner role="status" aria-label="Busy" /> : null}
-        </Grid>
+        {props.icon && (
+          <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
+            {props.icon}
+          </IconDefaultsProvider>
+        )}
+        {props.children}
+        {/* {busy ? <BusySpinner role="status" aria-label="Busy" /> : null} */}
       </StyledButton>
     </Tooltip>
   );
@@ -84,23 +78,23 @@ const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
 `;
 
-const spin = keyframes`
-  to {
-    transform: rotate(360deg);
-  }
-`;
+// const spin = keyframes`
+//   to {
+//     transform: rotate(360deg);
+//   }
+// `;
 
-const BusySpinner = styled('span')`
-  grid-area: 1 / 1;
+// const BusySpinner = styled('span')`
+//   grid-area: 1 / 1;
 
-  &::after {
-    content: '';
-    display: block;
-    width: 1em;
-    height: 1em;
-    border-radius: 50%;
-    border: 2px solid currentColor;
-    border-top-color: transparent;
-    animation: ${spin} 0.6s linear infinite;
-  }
-`;
+//   &::after {
+//     content: '';
+//     display: block;
+//     width: 1em;
+//     height: 1em;
+//     border-radius: 50%;
+//     border: 2px solid currentColor;
+//     border-top-color: transparent;
+//     animation: ${spin} 0.6s linear infinite;
+//   }
+// `;

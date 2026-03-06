@@ -1,4 +1,4 @@
-import {memo} from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -8,9 +8,10 @@ import {
   TeamAvatar,
   UserAvatar,
 } from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
 
-import {space, type ValidSize} from 'sentry/styles/space';
+// import {Flex} from '@sentry/scraps/layout';
+
+// import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
@@ -44,25 +45,19 @@ export const BaseBadge = memo(
     avatarProps = {},
     avatarSize = 24,
     description,
-    onClick,
+    // onClick,
     team,
     user,
     organization,
     project,
     actor,
-    className,
+    // className,
   }: AllBaseBadgeProps) => {
     // Space items appropriatley depending on avatar size
-    const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
+    // const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Flex
-        align="center"
-        flexShrink={0}
-        className={className}
-        style={{gap: space(wrapperGap)}}
-        onClick={onClick}
-      >
+      <Fragment>
         {!hideAvatar && (
           <EntityAvatarType
             team={team}
@@ -82,7 +77,7 @@ export const BaseBadge = memo(
             {!!description && <Description>{description}</Description>}
           </DisplayNameAndDescription>
         )}
-      </Flex>
+      </Fragment>
     );
   }
 );
