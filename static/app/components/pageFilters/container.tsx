@@ -21,7 +21,6 @@ import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
@@ -70,7 +69,6 @@ function PageFiltersContainer({
     disablePersistence,
     storageNamespace,
   } = props;
-  const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -98,7 +96,6 @@ function PageFiltersContainer({
     initializeUrlState({
       organization,
       queryParams: location.query,
-      router,
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       maxPickableDays,
@@ -181,8 +178,8 @@ function PageFiltersContainer({
       environment: [],
       project: [],
     });
-    updateDateTime(newDateState, router);
-  }, [maxPickableDays, router, selection.datetime.utc, shouldResetDateTime]);
+    updateDateTime(newDateState);
+  }, [maxPickableDays, selection.datetime.utc, shouldResetDateTime]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
