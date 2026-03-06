@@ -546,12 +546,10 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         confidence={confidence}
                         dataScanned={dataScanned}
                         isSampled={isSampled}
-                        other={OTHER}
                         loading={loading}
                         sampleCount={sampleCount}
                         selection={selection}
                         series={series}
-                        shouldColorOther={shouldColorOther}
                         timeseriesResults={timeseriesResults}
                         widget={widget}
                         yAxis={axisLabel}
