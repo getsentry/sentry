@@ -143,19 +143,19 @@ def _format_snapshot_summary(
         )
 
         if not metrics:
-            table_rows.append(f"| {name_cell} | - | - | - | - | ⏳ Processing |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | ⏳ Processing |")
             continue
 
         comparison = comparisons_map.get(metrics.id)
         if not comparison:
-            table_rows.append(f"| {name_cell} | - | - | - | - | ⏳ Processing |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | ⏳ Processing |")
             continue
 
         if comparison.state in (
             PreprodSnapshotComparison.State.PENDING,
             PreprodSnapshotComparison.State.PROCESSING,
         ):
-            table_rows.append(f"| {name_cell} | - | - | - | - | ⏳ Comparing |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | ⏳ Comparing |")
         else:
             added = comparison.images_added
             removed = comparison.images_removed
