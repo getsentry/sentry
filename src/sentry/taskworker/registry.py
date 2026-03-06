@@ -101,8 +101,8 @@ class TaskNamespace:
             The retry policy for the task. If none and at_most_once is not enabled
             the Task namespace default retry policy will be used.
         expires: int | datetime.timedelta
-            The number of seconds a task activation is valid for. After this
-            duration the activation will be discarded and not executed.
+            The duration in seconds that a task has to start execution.
+            After received_at + expires has passed an activation is expired and will not be executed.
         at_most_once : bool
             Enable at-most-once execution. Tasks with `at_most_once` cannot
             define retry policies, and use a worker side idempotency key to
