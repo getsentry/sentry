@@ -424,6 +424,56 @@ class TestCodeReviewPreflightService(TestCase):
 
         mock_check_quota.assert_called_once()
 
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    def test_denied_when_pr_author_is_excluded(self, mock_check_quota: MagicMock) -> None:
+        mock_check_quota.return_value = True
+
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+            alias="dependabot[bot]",
+        )
+
+        with self.options({"seer.code-review.excluded-pr-author-logins": ["dependabot[bot]"]}):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.PR_AUTHOR_EXCLUDED
+        mock_check_quota.assert_not_called()
+
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @with_feature(
+        [
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+        ]
+    )
+    def test_excluded_author_denied_for_beta_org(self, mock_check_quota: MagicMock) -> None:
+        """Excluded author check applies to all org types, including beta orgs."""
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+            alias="dependabot[bot]",
+        )
+
+        with self.options({"seer.code-review.excluded-pr-author-logins": ["dependabot[bot]"]}):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.PR_AUTHOR_EXCLUDED
+
     def test_feature_flag_checks_are_cached(self) -> None:
         service = self._create_service()
 
