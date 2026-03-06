@@ -277,6 +277,124 @@ describe('CreateProject', () => {
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
   });
 
+  it('should preserve user-entered project slug when returning via auto-fill after delayed route replace', async () => {
+    // Regression test: when the user clicks "Back to Platform Selection", the browser
+    // POP navigation fires first (without query params), mounting the component with
+    // autoFill=false. Then router.replace adds ?referrer=getting-started&project=<id>,
+    // transitioning autoFill to true. useRef only initializes once, so without the
+    // useEffect sync, hasUserModifiedProjectName stays false and platform changes
+    // overwrite the user's custom slug.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    // Simulate a previously created project stored in localStorage
+    window.localStorage.setItem(
+      'created-project-context',
+      JSON.stringify({
+        id: '12345',
+        name: 'my-custom-name',
+        team: teamWithAccess.slug,
+        platform: {
+          key: 'javascript-angular',
+          name: 'Angular',
+          type: 'framework',
+          language: 'javascript',
+          category: 'popular',
+        },
+        wasNameManuallyModified: true,
+      })
+    );
+
+    // Step 1: Mount WITHOUT query params (simulates the browser POP navigation)
+    const {router} = render(<CreateProject />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/projects/new/',
+        },
+      },
+    });
+
+    // Step 2: Navigate WITH query params (simulates router.replace)
+    router.navigate('/projects/new/?referrer=getting-started&project=12345');
+
+    // The slug field should be auto-filled with the stored name
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-name');
+    });
+
+    // Step 3: Click a different platform
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+
+    // The user's custom slug must be preserved, not replaced with 'apple-ios'
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-name');
+
+    // Clean up localStorage
+    window.localStorage.removeItem('created-project-context');
+  });
+
+  it('should update project slug on platform change when slug was not manually modified', async () => {
+    // When the user didn't manually type a slug (wasNameManuallyModified: false),
+    // changing the platform should update the slug to the new platform's ID.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    window.localStorage.setItem(
+      'created-project-context',
+      JSON.stringify({
+        id: '12345',
+        name: 'javascript-angular',
+        team: teamWithAccess.slug,
+        platform: {
+          key: 'javascript-angular',
+          name: 'Angular',
+          type: 'framework',
+          language: 'javascript',
+          category: 'popular',
+        },
+        wasNameManuallyModified: false,
+      })
+    );
+
+    const {router} = render(<CreateProject />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/projects/new/',
+        },
+      },
+    });
+
+    router.navigate('/projects/new/?referrer=getting-started&project=12345');
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-slug')).toHaveValue(
+        'javascript-angular'
+      );
+    });
+
+    // Click a different platform — slug should update since user didn't manually modify it
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
+
+    window.localStorage.removeItem('created-project-context');
+  });
+
   it('should display success message on proj creation', async () => {
     const {organization} = initializeOrg({
       organization: {

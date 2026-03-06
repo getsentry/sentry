@@ -68,6 +68,7 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
   alertRule?: Partial<AlertRuleOptions>;
   notificationRule?: IssueAlertRule;
   team?: string;
+  wasNameManuallyModified?: boolean;
 };
 
 function getMissingValues({
@@ -192,7 +193,23 @@ export function CreateProject() {
 
   const [formData, setFormData] = useState<FormData>(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
-  const hasUserModifiedProjectName = useRef(autoFill && !!createdProject?.name);
+  const hasUserModifiedProjectName = useRef(false);
+
+  // Sync the ref when autoFill data becomes available.
+  // useRef only initializes once, but the component may first mount without
+  // query params (e.g. browser back fires a POP before router.replace adds them),
+  // so autoFill can transition from false → true after the initial render.
+  // When that happens we also need to populate the projectName since useState
+  // would have initialized with the non-autoFill (empty) value.
+  useEffect(() => {
+    if (autoFill && createdProject?.name) {
+      hasUserModifiedProjectName.current = createdProject.wasNameManuallyModified ?? true;
+      setFormData(prev => ({
+        ...prev,
+        projectName: createdProject.name ?? prev.projectName,
+      }));
+    }
+  }, [autoFill, createdProject?.name, createdProject?.wasNameManuallyModified]);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -310,6 +327,7 @@ export function CreateProject() {
           platform: selectedPlatform,
           alertRule,
           notificationRule,
+          wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
         navigate(
