@@ -128,17 +128,19 @@ export function treeToSampledProfileData(roots: StacktraceTreeNode[]): {
   const weights: number[] = [];
   const visited = new Set<number>();
 
-  function collectSamples(node: StacktraceTreeNode, currentPath: number[]) {
+  const currentPath: number[] = [];
+
+  function collectSamples(node: StacktraceTreeNode) {
     if (visited.has(node.frameIndex)) {
       return;
     }
     visited.add(node.frameIndex);
-    const pathWithNode = [...currentPath, node.frameIndex];
+    currentPath.push(node.frameIndex);
     const inclusiveCount = node.frame.sampleCount ?? 0;
 
     if (node.children.length === 0) {
       if (inclusiveCount > 0) {
-        samples.push(pathWithNode);
+        samples.push(currentPath.slice());
         weights.push(inclusiveCount);
       }
     } else {
@@ -150,18 +152,19 @@ export function treeToSampledProfileData(roots: StacktraceTreeNode[]): {
       const selfCount = inclusiveCount - childrenCount;
 
       if (selfCount > 0) {
-        samples.push(pathWithNode);
+        samples.push(currentPath.slice());
         weights.push(selfCount);
       }
 
       for (const child of node.children) {
-        collectSamples(child, pathWithNode);
+        collectSamples(child);
       }
     }
+    currentPath.pop();
   }
 
   for (const root of roots) {
-    collectSamples(root, []);
+    collectSamples(root);
   }
 
   return {samples, weights};
