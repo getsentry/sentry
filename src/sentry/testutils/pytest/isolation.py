@@ -30,7 +30,7 @@ import tempfile
 from pathlib import Path
 
 _TEST_REDIS_DB = 9  # Must match the historical default in sentry.py.
-_MAX_SLOTS = 7  # Redis DBs 9-15 → slots 0-6.  DB 0 reserved for dev.
+_MAX_SLOTS = 15  # Slots 0-14 → Redis DBs 9, 1-8, 10-15.  DB 0 reserved for dev.
 
 _SLOT_DIR = Path(tempfile.gettempdir()) / "sentry_test_slots"
 
@@ -107,10 +107,16 @@ def get_db_suffix() -> str:
 
 
 def get_redis_db() -> int:
-    """Return a Redis DB number unique to this worker."""
-    if worker_num is not None:
-        return _TEST_REDIS_DB + worker_num
-    return _TEST_REDIS_DB
+    """Return a Redis DB number unique to this worker.
+
+    Slot 0 → DB 9 (historical default).  Slots 1-8 → DBs 1-8.
+    Slots 9-14 → DBs 10-15.  DB 0 is reserved for dev.
+    """
+    if worker_num is None or worker_num == 0:
+        return _TEST_REDIS_DB
+    if worker_num < _TEST_REDIS_DB:
+        return worker_num  # slots 1-8 → DBs 1-8
+    return worker_num + 1  # slots 9-14 → DBs 10-15 (skip DB 9)
 
 
 # -- Kafka ---------------------------------------------------------------------

@@ -5,8 +5,6 @@ import subprocess
 import sys
 import textwrap
 
-import pytest
-
 from sentry.utils import json
 
 _SRC_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "src")
@@ -68,7 +66,7 @@ class TestWorkerIdentityResolution:
         data = _run_snippet(_PRINT_IDENTITY)
         assert data["worker_id"] is not None
         assert isinstance(data["worker_num"], int)
-        assert 0 <= data["worker_num"] < 7
+        assert 0 <= data["worker_num"] < 15
         # worker_id == str(worker_num) for auto-allocated slots
         assert data["worker_id"] == str(data["worker_num"])
 
@@ -157,7 +155,7 @@ class TestHelperFunctions:
             """,
             env_override={"SENTRY_TEST_WORKER_ID": "2"},
         )
-        assert data["v"] == 11  # 9 + 2
+        assert data["v"] == 2  # slot 2 → DB 2
 
     def test_get_redis_db_serial(self):
         data = _run_snippet(
@@ -170,8 +168,8 @@ class TestHelperFunctions:
         assert data["v"] == 9
 
     def test_get_redis_db_within_bounds(self):
-        """All valid worker_num values produce Redis DBs 9-15."""
-        for slot in range(7):
+        """All valid slots produce unique Redis DBs in 1-15 (DB 0 reserved)."""
+        for slot in range(15):
             data = _run_snippet(
                 """
                 from sentry.testutils.pytest import isolation
@@ -179,7 +177,7 @@ class TestHelperFunctions:
                 """,
                 env_override={"SENTRY_TEST_WORKER_ID": str(slot)},
             )
-            assert 9 <= data["v"] <= 15
+            assert 1 <= data["v"] <= 15
 
     def test_get_kafka_topic_slot_0(self):
         """Slot 0 returns the base name (no suffix) for backward compat."""
@@ -232,7 +230,19 @@ class TestHelperFunctions:
         )
         assert data["v"] is None
 
-    @pytest.mark.parametrize("slot", range(7))
-    def test_redis_db_within_bounds(self, slot):
-        """All slot values produce Redis DBs 9-15."""
-        assert 9 <= 9 + slot <= 15
+    def test_redis_db_all_unique(self):
+        """All 15 slots produce unique Redis DBs in 1-15."""
+        import sentry.testutils.pytest.isolation as iso
+        from sentry.testutils.pytest.isolation import get_redis_db
+
+        old = iso.worker_num
+        dbs = set()
+        try:
+            for slot in range(15):
+                iso.worker_num = slot
+                db = get_redis_db()
+                assert 1 <= db <= 15, f"slot {slot} → DB {db} out of range"
+                dbs.add(db)
+            assert len(dbs) == 15, f"Expected 15 unique DBs, got {dbs}"
+        finally:
+            iso.worker_num = old
