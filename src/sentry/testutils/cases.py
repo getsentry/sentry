@@ -1262,17 +1262,6 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
-    def store_profile_functions(self, profile_functions):
-        files = {
-            f"profile_functions_{i}": profile_function.SerializeToString()
-            for i, profile_function in enumerate(profile_functions)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
