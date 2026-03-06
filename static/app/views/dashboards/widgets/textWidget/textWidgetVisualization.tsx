@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -15,11 +15,11 @@ interface TextWidgetProps {
 export function TextWidgetVisualization({text}: TextWidgetProps) {
   if (!text) {
     return (
-      <Flex align="center" justify="center" height="100%" minHeight="100px">
+      <EmptyStateContainer>
         <Text variant="muted" size="2xl">
           {EMPTY_PLACEHOLDER}
         </Text>
-      </Flex>
+      </EmptyStateContainer>
     );
   }
 
@@ -32,11 +32,23 @@ export function TextWidgetVisualization({text}: TextWidgetProps) {
   );
 }
 
-const TextContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-  height: 100%;
-  overflow-y: auto;
-  white-space: pre-wrap;
+function EmptyStateContainer({children}: {children: ReactNode}) {
+  return (
+    <Flex align="center" justify="center" height="100%" minHeight="100px">
+      {children}
+    </Flex>
+  );
+}
+
+function TextContainer({children}: {children: ReactNode}) {
+  return (
+    <StyledContainer padding="xl" overflowY="auto" height="100%" whiteSpace="pre-wrap">
+      {children}
+    </StyledContainer>
+  );
+}
+
+const StyledContainer = styled(Container)`
   word-wrap: break-word;
   overflow-wrap: break-word;
 `;
