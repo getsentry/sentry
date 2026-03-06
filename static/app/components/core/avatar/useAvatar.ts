@@ -52,15 +52,14 @@ export function useAvatar(options: {
     };
   }
 
+  const {background, content} = theme.swatch.get(options.identifier);
+
   return {
     type: 'letter',
     configuration: {
       initials: getInitials(options.name),
-      background: theme.swatch.get(options.identifier).background as Tagged<
-        string,
-        '__avatar'
-      >,
-      content: theme.swatch.get(options.identifier).content as Tagged<string, '__avatar'>,
+      background: background as Tagged<string, '__avatar'>,
+      content: content as Tagged<string, '__avatar'>,
     },
   };
 }
