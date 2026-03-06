@@ -113,5 +113,4 @@ class RequireSingleOrganization(CellResolutionStrategy):
 
 
 # TODO(cells): Remove once all callers have been migrated to new names
-RegionResolutionStrategy = CellResolutionStrategy
 ByRegionName = ByCellName
