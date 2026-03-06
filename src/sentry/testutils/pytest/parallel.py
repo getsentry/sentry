@@ -55,6 +55,7 @@ _OUTCOME_LABELS = {
     "passed": "PASSED",
     "failed": "FAILED",
     "skipped": "SKIPPED",
+    "rerun": "RERUN",
 }
 
 
@@ -241,14 +242,16 @@ class _CoordinatorPlugin:
         longrepr = ev.get("r")
 
         with self._print_lock:
-            self._completed += 1
+            # Reruns are intermediate results — don't count toward completion.
+            if outcome != "rerun":
+                self._completed += 1
             if outcome == "failed":
                 self._failed += 1
 
             if self._verbose:
                 if outcome == "passed":
                     tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)")
-                elif outcome == "skipped":
+                elif outcome in ("skipped", "rerun"):
                     tw.line(f"[w{worker_idx}] {nodeid} {label}")
                 else:
                     tw.line(f"[w{worker_idx}] {nodeid} {label} ({duration:.2f}s)", red=True)
@@ -257,6 +260,8 @@ class _CoordinatorPlugin:
                     self._write_dot_progress(".", tw)
                 elif outcome == "skipped":
                     self._write_dot_progress("s", tw)
+                elif outcome == "rerun":
+                    self._write_dot_progress("R", tw)
                 else:
                     self._write_dot_progress("F", tw)
 
