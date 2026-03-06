@@ -22,9 +22,11 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import useLocation from 'sentry/utils/useLocation';
+import useNavigate from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<MultipleSelectProps<string>, 'onChange'>
@@ -62,7 +64,9 @@ export function EnvironmentPageFilter({
   storageNamespace,
   ...selectProps
 }: EnvironmentPageFilterProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const routes = useRoutes();
   const organization = useOrganization();
 
   // Ref to break the circular dependency: options need toggleOption, but toggleOption
@@ -125,23 +129,33 @@ export function EnvironmentPageFilter({
 
       trackAnalytics('environmentselector.update', {
         count: newValue.length,
-        path: getRouteStringFromRoutes(router.routes),
+        path: getRouteStringFromRoutes(routes),
         organization,
       });
 
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      updateEnvironments(newValue, router, {
-        save: true,
-        resetParams: resetParamsOnChange,
-        storageNamespace,
-      });
+      updateEnvironments(
+        newValue,
+        {
+          location,
+          push: path => navigate(path),
+          replace: path => navigate(path, {replace: true}),
+        } as any,
+        {
+          save: true,
+          resetParams: resetParamsOnChange,
+          storageNamespace,
+        }
+      );
     },
     [
       envPageFilterValue,
       resetParamsOnChange,
-      router,
+      location,
+      navigate,
+      routes,
       organization,
       onChange,
       storageNamespace,
@@ -152,19 +166,19 @@ export function EnvironmentPageFilter({
     (newValue: any) => {
       trackAnalytics('environmentselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
-        path: getRouteStringFromRoutes(router.routes),
+        path: getRouteStringFromRoutes(routes),
         organization,
       });
     },
-    [value, router.routes, organization]
+    [value, routes, organization]
   );
 
   const onReplace = useCallback(() => {
     trackAnalytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       organization,
     });
-  }, [router.routes, organization]);
+  }, [routes, organization]);
 
   const options = useMemo(
     () =>
