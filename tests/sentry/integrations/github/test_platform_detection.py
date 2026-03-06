@@ -2117,7 +2117,9 @@ class TestDetectPlatforms:
         platforms = [r["platform"] for r in result]
         assert "node" in platforms
 
-    def test_node_detected_from_engines_field(self) -> None:
+    def test_engines_node_alone_does_not_trigger_node(self) -> None:
+        """engines.node is too common in JS ecosystem (even browser libs set it)
+        so it should not by itself trigger Node detection."""
         client = mock.MagicMock()
         client.get_languages.return_value = {"JavaScript": 30000}
 
@@ -2139,7 +2141,8 @@ class TestDetectPlatforms:
 
         result = detect_platforms(client, "owner/repo")
         platforms = [r["platform"] for r in result]
-        assert "node" in platforms
+        assert "node" not in platforms
+        assert "javascript" in platforms
 
     def test_go_base_platform_when_no_framework(self) -> None:
         """Go with no framework should emit plain 'go'."""

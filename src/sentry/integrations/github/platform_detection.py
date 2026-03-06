@@ -378,7 +378,6 @@ FRAMEWORKS: list[FrameworkDef] = [
             {"path": ".node-version"},
             {"path": "nodemon.json"},
             {"path": "Procfile", "match_content": r"\bnode\b"},
-            {"path": "package.json", "match_content": r'"engines"\s*:\s*\{[^}]*"node"'},
         ],
     },
     # ===================================================================
