@@ -285,6 +285,7 @@ def test_observability_metrics(
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
                 _output_segment(b"b" * 16, b"b" * 16, True),
