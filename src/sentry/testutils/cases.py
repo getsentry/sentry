@@ -4058,22 +4058,6 @@ class ReplayEAPTestCase(BaseTestCase):
             server_sample_rate=1.0,
         )
 
-    def store_replays_eap(self, replays):
-        import requests
-        from django.conf import settings
-
-        files = {f"replay_{i}": replay.SerializeToString() for i, replay in enumerate(replays)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for replay in replays:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            replay.item_id = replay.item_id[::-1]
-
 
 class UptimeResultEAPTestCase(BaseTestCase):
     """Test case for creating and storing EAP uptime results."""
