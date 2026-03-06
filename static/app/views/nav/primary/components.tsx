@@ -1,5 +1,12 @@
-import {createContext, Fragment, useContext, type MouseEventHandler} from 'react';
-import {css} from '@emotion/react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useRef,
+  type MouseEventHandler,
+} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -129,11 +136,20 @@ export function SidebarMenu({
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
   const {size: defaultSize} = useSidebarItemDefaults();
+  const theme = useTheme();
 
   const showLabel = layout === NavLayout.MOBILE;
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    portalContainerRef.current = document.body;
+  }, []);
 
   return (
     <DropdownMenu
+      usePortal
+      portalContainerRef={portalContainerRef}
+      style={{zIndex: theme.zIndex.orgAndUserMenu}}
       renderWrapAs={({children: _children}: {children: React.ReactNode}) => _children}
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}

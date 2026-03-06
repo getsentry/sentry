@@ -67,6 +67,12 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   size?: MenuItemProps['size'];
+  /**
+   * Style overrides applied to the position wrapper. Useful for overriding
+   * the default z-index (e.g. when the menu is inside a high z-index container
+   * like a sidebar).
+   */
+  style?: React.CSSProperties;
 }
 
 function DropdownMenuList({
@@ -77,6 +83,7 @@ function DropdownMenuList({
   menuFooter,
   overlayState,
   overlayPositionProps,
+  style,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -229,7 +236,12 @@ function DropdownMenuList({
   );
   return (
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
+      <PositionWrapper
+        zIndex={
+          style?.zIndex === undefined ? theme.zIndex.dropdown : Number(style.zIndex)
+        }
+        {...overlayPositionProps}
+      >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}

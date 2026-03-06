@@ -51,6 +51,7 @@ export function PrimaryNavigationHelp() {
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
+
   return (
     <SidebarMenu
       triggerWrap={StackedNavigationTourReminder}
