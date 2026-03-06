@@ -30,9 +30,10 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -79,7 +80,8 @@ export function ProjectPageFilter({
   ...selectProps
 }: ProjectPageFilterProps) {
   const user = useUser();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const routes = useRoutes();
   const organization = useOrganization();
 
@@ -209,7 +211,11 @@ export function ProjectPageFilter({
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      updateProjects(mapNormalValueToURLValue(newValue), router, {
+      updateProjects(mapNormalValueToURLValue(newValue), {
+        location,
+        push: (path: any) => navigate(path),
+        replace: (path: any) => navigate(path, {replace: true}),
+      } as any, {
         save: true,
         resetParams: resetParamsOnChange,
         environments: [], // Clear environments when switching projects
@@ -219,7 +225,8 @@ export function ProjectPageFilter({
     [
       value,
       resetParamsOnChange,
-      router,
+      navigate,
+      location,
       organization,
       routes,
       onChange,
