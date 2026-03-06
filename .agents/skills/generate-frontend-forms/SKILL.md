@@ -223,9 +223,9 @@ All fields are accessed via the `field` render prop and follow consistent patter
 
 ### Radio Field
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` renders a `<fieldset>` and provides group context, so the layout's label automatically renders as a `<legend>` for proper accessibility semantics.
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
 
-> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context that makes the label render as a `<legend>` is provided by `Radio.Group`, so placing the layout outside will result in a plain `<label>` instead of the correct `<legend>` element.
+> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
 
 ```tsx
 <form.AppField name="priority">
@@ -263,17 +263,17 @@ import {Flex} from '@sentry/scraps/layout';
 For one-off fields that don't have a built-in component (e.g. a color picker, or any custom input), use `field.Base`. It provides a render prop with all the necessary accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) that you spread onto your native element.
 
 ```tsx
-<form.AppField name="acceptTerms">
+<form.AppField name="color">
   {field => (
-    <field.Layout.Row label="Terms of Service:">
+    <field.Layout.Row label="Brand Color">
       <field.Base<HTMLInputElement>>
         {(baseProps, {indicator}) => (
           <Flex flexGrow={1}>
             <input
               {...baseProps}
-              type="checkbox"
-              checked={field.state.value}
-              onChange={e => field.handleChange(e.target.checked)}
+              type="color"
+              value={field.state.value}
+              onChange={e => field.handleChange(e.target.value)}
             />
             {indicator}
           </Flex>

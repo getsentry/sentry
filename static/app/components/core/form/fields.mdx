@@ -1,0 +1,284 @@
+---
+title: Form Fields
+description: Reference for all available form field components and how to create custom fields.
+category: forms
+source: '@sentry/scraps/form'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/field
+---
+
+import {Container} from '@sentry/scraps/layout';
+
+import {BaseFieldDemo} from './__stories__/formDemos';
+
+import * as Storybook from 'sentry/stories';
+
+All field components are accessed via the `field` render prop inside `form.AppField`. They follow a consistent pattern: pass `value` and `onChange` from the field state, and wrap in a layout component. They are built on top of the form primitives [Input](./input.mdx), [Select](./select.mdx), [Slider](./slider.mdx), [Switch](./switch.mdx) etc.
+
+```jsx
+<form.AppField name="fieldName">
+  {field => (
+    <field.Layout.Row label={t('Label')}>
+      <field.Input value={field.state.value} onChange={field.handleChange} />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Input
+
+Text input for single-line string values.
+
+```jsx
+<form.AppField name="firstName">
+  {field => (
+    <field.Layout.Row label={t('First Name')} required>
+      <field.Input
+        value={field.state.value}
+        onChange={field.handleChange}
+        placeholder={t('Enter your name')}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Number
+
+Numeric input with optional min/max/step constraints.
+
+```jsx
+<form.AppField name="age">
+  {field => (
+    <field.Layout.Row label={t('Age')} required>
+      <field.Number
+        value={field.state.value}
+        onChange={field.handleChange}
+        min={0}
+        max={120}
+        step={1}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Password
+
+Password input with a built-in show/hide toggle.
+
+```jsx
+<form.AppField name="password">
+  {field => (
+    <field.Layout.Row label={t('Password')} required>
+      <field.Password value={field.state.value} onChange={field.handleChange} />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## TextArea
+
+Multi-line text input. Use `rows` to control the default height.
+
+```jsx
+<form.AppField name="bio">
+  {field => (
+    <field.Layout.Row label={t('Bio')} hintText={t('Tell us about yourself')}>
+      <field.TextArea
+        value={field.state.value ?? ''}
+        onChange={field.handleChange}
+        rows={4}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Select
+
+Single-value select dropdown.
+
+```jsx
+<form.AppField name="country">
+  {field => (
+    <field.Layout.Row label={t('Country')}>
+      <field.Select
+        value={field.state.value}
+        onChange={field.handleChange}
+        options={[
+          {value: 'us', label: 'United States'},
+          {value: 'uk', label: 'United Kingdom'},
+        ]}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+### Multiple Selection
+
+Add the `multiple` prop for multi-select. The field value should be an array.
+
+```jsx
+<form.AppField name="tags">
+  {field => (
+    <field.Layout.Row label={t('Tags')}>
+      <field.Select
+        multiple
+        value={field.state.value ?? []}
+        onChange={field.handleChange}
+        options={[
+          {value: 'bug', label: t('Bug')},
+          {value: 'feature', label: t('Feature')},
+        ]}
+        clearable
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## SelectAsync
+
+Async search select that loads options from an API. Pass `queryOptions` to configure the data fetching.
+
+```jsx
+<form.AppField name="assignee">
+  {field => (
+    <field.Layout.Row label={t('Assignee')}>
+      <field.SelectAsync
+        value={field.state.value}
+        onChange={field.handleChange}
+        queryOptions={inputValue => ({
+          queryKey: ['users', inputValue],
+          queryFn: () => fetchUsers({search: inputValue}),
+        })}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Switch
+
+Boolean toggle for on/off values. Uses `checked` instead of `value`.
+
+```jsx
+<form.AppField name="notifications">
+  {field => (
+    <field.Layout.Row label={t('Enable Notifications')}>
+      <field.Switch checked={field.state.value ?? false} onChange={field.handleChange} />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Range
+
+Slider input for numeric values within a range.
+
+```jsx
+<form.AppField name="volume">
+  {field => (
+    <field.Layout.Row label={t('Volume')}>
+      <field.Range
+        value={field.state.value ?? 50}
+        onChange={field.handleChange}
+        min={0}
+        max={100}
+        step={10}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Radio
+
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`.
+
+> [!WARNING]
+> The layout **must** be rendered inside `Radio.Group`. The group provides context that changes how the label is rendered for proper accessibility semantics.
+
+```jsx
+<form.AppField name="priority">
+  {field => (
+    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label={t('Priority')}>
+        <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
+        <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
+        <field.Radio.Item value="high" description={t('Urgent issues')}>
+          {t('High')}
+        </field.Radio.Item>
+      </field.Layout.Stack>
+    </field.Radio.Group>
+  )}
+</form.AppField>
+```
+
+For horizontal arrangement, wrap the items in a `Flex`:
+
+```jsx
+import {Flex} from '@sentry/scraps/layout';
+
+<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+  <field.Layout.Row label={t('Priority')}>
+    <Flex gap="lg">
+      <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
+      <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
+    </Flex>
+  </field.Layout.Row>
+</field.Radio.Group>;
+```
+
+## Custom Fields with `field.Base`
+
+For one-off fields that don't have a built-in component (color picker, date picker, etc.), use `field.Base`. It provides a render prop with all the accessibility and form integration props you need.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <BaseFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="color">
+  {field => (
+    <field.Layout.Row label={t('Brand Color:')}>
+      <field.Base<HTMLInputElement>>
+        {(baseProps, {indicator}) => (
+          <Flex flexGrow={1}>
+            <input
+              {...baseProps}
+              type="color"
+              value={field.state.value}
+              onChange={e => field.handleChange(e.target.value)}
+            />
+            {indicator}
+          </Flex>
+        )}
+      </field.Base>
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+The render prop receives two arguments:
+
+1. **`baseProps`** — Props to spread onto your element: `ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`.
+2. **`{indicator}`** — The auto-save status indicator (spinner/checkmark) as a React node. Place it wherever makes sense in your layout.
+
+The element type is inferred from the passed `ref`. If you don't pass one, annotate it manually: `<field.Base<HTMLInputElement>>`.
+
+`field.Base` automatically handles:
+
+- Merging refs (for scroll-to-hash and external ref forwarding)
+- Disabling the field when auto-save is pending
+- Setting `aria-invalid` based on validation state
+- Linking to hint text via `aria-describedby`
+
+## See Also
+
+- [Form](./form.mdx) — Main form documentation
+- [AutoSaveField](./autoSaveField.mdx) — Auto-save fields for settings pages
