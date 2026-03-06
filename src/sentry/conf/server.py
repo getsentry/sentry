@@ -3097,9 +3097,6 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
-SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
-
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 
