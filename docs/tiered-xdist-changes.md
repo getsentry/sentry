@@ -79,7 +79,7 @@ Region name RNG is seeded with `PYTEST_XDIST_TESTRUNUID` so all workers generate
 
 Sets `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False`.
 
-**Root cause:** `sentry/conf/server.py` line 40 sets `socket.setdefaulttimeout(5)`, a global default for all newly created sockets. When `pytest-rerunfailures` creates its crash recovery server, it calls `setblocking(1)` on the listening socket (overriding the default to no timeout). But `socket.accept()` creates a *new* socket for each accepted connection, and Python docs specify that new sockets inherit their timeout from `socket.getdefaulttimeout()`, not from the listening socket. So each accepted connection has a 5-second timeout.
+**Root cause:** `sentry/conf/server.py` line 40 sets `socket.setdefaulttimeout(5)`, a global default for all newly created sockets. When `pytest-rerunfailures` creates its crash recovery server, it calls `setblocking(1)` on the listening socket (overriding the default to no timeout). But `socket.accept()` creates a _new_ socket for each accepted connection, and Python docs specify that new sockets inherit their timeout from `socket.getdefaulttimeout()`, not from the listening socket. So each accepted connection has a 5-second timeout.
 
 Under xdist, the server spawns a `run_connection` thread per worker. Each thread blocks on `conn.recv(1)` waiting for the next message. If no message arrives within 5 seconds (e.g., during heavy Django/plugin initialization or between test batches), `recv` raises `TimeoutError`, the thread dies, and crash recovery for that worker is lost. With 3 workers, all 3 threads die during startup, producing the `Exception in thread Thread-N (run_connection)` errors.
 
@@ -112,6 +112,7 @@ The per-query savings are tiny, but Sentry's test suite does hundreds of thousan
 **Safety:** This is purely a transport-layer change. The SQL queries, results, transaction semantics, SAVEPOINT behavior, connection pooling — everything above the socket is identical. Postgres uses the same wire protocol over Unix sockets as TCP. `psycopg2` connects via `AF_UNIX` instead of `AF_INET`, but the application sees no difference. There are no subtle correctness risks — if the socket file doesn't exist or has wrong permissions, the connection fails immediately with a clear error.
 
 **Code change:** Add `SENTRY_DB_SOCKET` env var handling in `pytest_configure` before `configure_split_db()` so the HOST override propagates to control/secondary databases:
+
 ```python
 if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
     settings.DATABASES["default"]["HOST"] = _pg_socket
@@ -125,6 +126,7 @@ if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
 **File:** `src/sentry/testutils/pytest/relay.py`
 
 Three changes:
+
 - `relay_server_setup` broadened from `module` → `session` scope. Container start + health check moved into it from `relay_server`. One container per worker session instead of per test.
 - `relay_server` slimmed to: adjust settings + re-insert Relay DB row + yield URL. The DB row insertion (reading `template/credentials.json`) is needed because 4 of 6 relay test files use `TransactionTestCase` which flushes the DB between tests, deleting the Relay identity row.
 - `import json` added for reading credentials file.
@@ -145,14 +147,17 @@ Each test is tagged with the **union** of static and runtime detection. Static d
 
 - **`split-tiers`**: Downloads latest classification artifact from `classify-services.yml`, runs the split script, uploads `backend-light-tests.txt` and `backend-tests.txt`. Only runs when selective testing is NOT active (i.e., push to master / workflow_dispatch). If no classification run exists, outputs `has-tiers=false` and the tier path is skipped gracefully.
 
-- **`backend-light`**: 5 shards, `-n 4 --dist=loadfile`, `mode: migrations` (postgres + redis only). Uses GitHub Actions service containers for Kafka, redis-cluster, and Zookeeper (needed because app code produces to Kafka even without Snuba). No Snuba bootstrap. Runs ~71% of tests that don't need the full stack.
+- **`backend-light`**: 6 shards, `-n 5 --dist=loadscope`, `mode: migrations` (postgres + redis only). Uses GitHub Actions service containers for Kafka, redis-cluster, and Zookeeper (needed because app code produces to Kafka even without Snuba). No Snuba bootstrap. Runs ~71% of tests that don't need the full stack.
 
-- **`backend-test` (modified)**: When tiers are active, its `SELECTED_TESTS_FILE` points to `backend-tests.txt` (tier2 tests only, ~29%). When selective testing is active or tiers aren't available, it runs as before with the full test suite. No structural changes to this job — just an additional artifact download step and a conditional `SELECTED_TESTS_FILE`.
+- **`backend-test` (modified)**: 16 shards, `-n 3 --dist=loadfile`. When tiers are active, its `SELECTED_TESTS_FILE` points to `backend-tests.txt` (tier2 tests only, ~29%). When selective testing is active or tiers aren't available, it runs as before with the full test suite. No structural changes to this job — just an additional artifact download step and a conditional `SELECTED_TESTS_FILE`.
+
+Total shards: 6 + 16 = 22 (unchanged from pre-tiered count).
 
 **Design decisions:**
+
 - Selective testing and tiered testing are mutually exclusive. PRs use selective testing (existing path). Master pushes use tiers.
 - The existing `backend-test` job doubles as the tier2 path — no duplication of the full-stack job configuration.
-- `calculate-shards` is kept for the selective testing path. Tier shard counts are hardcoded (5 + 22).
+- `calculate-shards` is kept for the selective testing path. Tier shard counts are hardcoded (6 + 16).
 - `backend-required-check` updated to include `backend-light` and `split-tiers`.
 
 ## 6. Tiered Workflow Optimizations
@@ -170,10 +175,12 @@ Added `pytest_ignore_collect` hook. When `SELECTED_TESTS_FILE` is set, prevents 
 Both backend-light and backend-test jobs now use `skip-devservices: true` on `setup-sentry` and start services in a background subshell while pytest runs in the foreground. Pytest collection (~77s) overlaps with service startup (~17s on T1, ~120s on T2), saving the overlap window per shard.
 
 **Python-side changes:**
+
 - `wait_for_services` session fixture in `sentry.py`: polls for `SERVICES_READY_FILE` sentinel file. Runs after collection, blocks before first test. No-op without the env var.
 - `_wait_for_service()` + `SNUBA_WAIT_TIMEOUT` in `skips.py`: `_requires_snuba` polls for the per-worker Snuba port instead of failing immediately when it's not yet up.
 
 **Workflow changes:**
+
 - Both tier jobs use `skip-devservices: true` on `setup-sentry`, then a single combined step that backgrounds service startup (devservices + pg-socket + Snuba bootstrap on T2) while running pytest in the foreground. The background subshell touches `/tmp/services-ready` when all services are healthy.
 - T1 and T2 use the same pattern for consistency. T1's background subshell is simpler (no Snuba bootstrap).
 
