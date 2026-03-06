@@ -39,8 +39,20 @@ export function SeerAutomationDefault() {
         method: 'PUT',
         data,
       }),
+    onMutate: data => {
+      const previousOrg = OrganizationStore.get().organization;
+      OrganizationStore.onUpdate(data);
+      return () => {
+        if (previousOrg) {
+          OrganizationStore.onUpdate(previousOrg, {replace: true});
+        }
+      };
+    },
     onSuccess: org => {
       OrganizationStore.onUpdate(org);
+    },
+    onError: (_error, _variables, rollback) => {
+      rollback?.();
     },
   });
 

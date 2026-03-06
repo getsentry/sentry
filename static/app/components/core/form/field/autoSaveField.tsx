@@ -5,6 +5,7 @@ import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import {type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
+import {formContext} from '@sentry/scraps/form/formContext';
 import {
   setFieldErrors,
   useScrapsForm,
@@ -108,7 +109,10 @@ interface AutoSaveFieldProps<
   /**
    * Render prop that receives field props and additional props
    */
-  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactNode;
+  children: (
+    field: AutoSaveFieldRenderArg<TSchema, TFieldName>,
+    render: (content: React.ReactNode) => React.ReactElement
+  ) => React.ReactNode;
 
   /**
    * Initial value - must match the schema's type for this field
@@ -121,7 +125,8 @@ interface AutoSaveFieldProps<
   mutationOptions: UseMutationOptions<
     any, // it doesn't matter here what the mutation returns
     Error,
-    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>
+    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>,
+    any // context type from onMutate - allow any shape
   >;
 
   /**
@@ -231,10 +236,23 @@ export function AutoSaveField<
   });
 
   return (
-    <form.AppForm form={form as never}>
+    <formContext.Provider value={form as never}>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
-        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
+        <form.AppField name={name}>
+          {field => {
+            let renderCalled = false;
+            const renderFn = (content: React.ReactNode) => {
+              renderCalled = true;
+              return <form.AppForm form={form as never}>{content}</form.AppForm>;
+            };
+            const result = children(field as never, renderFn);
+            if (renderCalled) {
+              return result;
+            }
+            return <form.AppForm form={form as never}>{result}</form.AppForm>;
+          }}
+        </form.AppField>
       </AutoSaveContextProvider>
-    </form.AppForm>
+    </formContext.Provider>
   );
 }
