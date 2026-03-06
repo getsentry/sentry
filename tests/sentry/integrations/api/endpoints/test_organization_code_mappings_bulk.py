@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -242,3 +244,50 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         response = self.make_post({"defaultBranch": ""})
         assert response.status_code == 400
         assert "defaultBranch is required" in response.data["detail"]
+
+    # --- Side effects ---
+
+    def test_process_resource_change_fires_once_after_batch(self) -> None:
+        with mock.patch(
+            "sentry.integrations.api.endpoints.organization_code_mappings_bulk.process_resource_change"
+        ) as mock_prc:
+            response = self.make_post(
+                {
+                    "mappings": [
+                        {"stackRoot": "com/example/a", "sourceRoot": "modules/a/src"},
+                        {"stackRoot": "com/example/b", "sourceRoot": "modules/b/src"},
+                        {"stackRoot": "com/example/c", "sourceRoot": "modules/c/src"},
+                    ],
+                }
+            )
+        assert response.status_code == 200, response.content
+        assert mock_prc.call_count == 1
+        instance = mock_prc.call_args[0][0]
+        assert instance._skip_post_save is False
+
+    # --- Edge cases ---
+
+    def test_duplicate_stack_root_in_request_last_wins(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {"stackRoot": "com/example/dup", "sourceRoot": "first/path"},
+                    {"stackRoot": "com/example/dup", "sourceRoot": "second/path"},
+                ],
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["created"] == 1
+        assert response.data["updated"] == 1
+
+        config = RepositoryProjectPathConfig.objects.get(
+            project=self.project1, stack_root="com/example/dup"
+        )
+        assert config.source_root == "second/path"
+
+    def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
+        self.make_post()
+        config = RepositoryProjectPathConfig.objects.get(
+            project=self.project1, stack_root="com/example/maps"
+        )
+        assert config._skip_post_save is False

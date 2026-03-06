@@ -1,6 +1,6 @@
 import logging
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -17,7 +17,6 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
-    OrganizationIntegrationMixin,
     gen_path_regex_field,
 )
 from sentry.integrations.models.repository_project_path_config import (
@@ -62,7 +61,7 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer):
 
 
 @region_silo_endpoint
-class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -190,7 +189,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint, OrganizationInt
                         "status": "created" if created else "updated",
                     }
                 )
-            except Exception:
+            except IntegrityError:
                 logger.exception(
                     "bulk_code_mappings.mapping_error",
                     extra={
