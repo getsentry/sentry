@@ -71,6 +71,12 @@ worker_id: str | None
 worker_num: int | None
 
 if _serial:
+    # Serial mode uses the same DB/Redis/Kafka as slot 0.  Acquire slot 0's
+    # lock so a concurrent auto-allocated process can't collide with us.
+    try:
+        _acquire_slot()
+    except (OSError, RuntimeError):
+        pass  # Best-effort — don't block serial mode if locking fails.
     worker_id = None
     worker_num = None
 elif _explicit_id is not None:
