@@ -51,6 +51,7 @@ type TraceItemAttributeResult = {
 export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
+  projectIds?: Array<string | number>;
   projects?: Project[];
   query?: string;
   search?: string;
@@ -61,6 +62,7 @@ type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceIt
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
+  projectIds,
   projects,
   search,
   query,
@@ -75,6 +77,7 @@ function useTraceItemAttributeConfig({
       enabled,
       type: 'number',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -85,6 +88,7 @@ function useTraceItemAttributeConfig({
       enabled,
       type: 'string',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -95,6 +99,7 @@ function useTraceItemAttributeConfig({
       enabled: enabled && hasBooleanFilters,
       type: 'boolean',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,

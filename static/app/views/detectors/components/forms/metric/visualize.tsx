@@ -32,14 +32,10 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
-import {
-  useTraceItemBooleanAttributes,
-  useTraceItemNumberAttributes,
-  useTraceItemStringAttributes,
-} from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 /**
@@ -244,18 +240,21 @@ function GenericVisualize() {
 
   const traceItemType =
     dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS;
-  const {attributes: numericSpanTags} = useTraceItemNumberAttributes({
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
-  const {attributes: stringSpanTags} = useTraceItemStringAttributes({
+    {projectIds: [Number(projectId)]},
+    'number'
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
-  const {attributes: booleanSpanTags} = useTraceItemBooleanAttributes({
+    {projectIds: [Number(projectId)]},
+    'string'
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
+    {projectIds: [Number(projectId)]},
+    'boolean'
+  );
   const formContext = useContext(FormContext);
 
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
