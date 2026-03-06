@@ -1,11 +1,9 @@
 import {createContext, useMemo} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 const DEFAULT_CONTEXT = {
@@ -40,10 +38,9 @@ interface Props {
 export default function RouteAnalyticsContextProvider({children}: Props) {
   const useRouteActivatedHook = HookStore.get('react-hook:route-activated')[0];
 
-  const context: RouteContextInterface = {
+  const context = {
     params: useParams(),
     routes: useRoutes(),
-    router: useRouter(),
     location: useLocation(),
   };
 
