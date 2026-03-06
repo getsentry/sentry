@@ -14,7 +14,6 @@ import type {
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useRouter from 'sentry/utils/useRouter';
 
 // TODO: replace usages of ChartZoom with useChartZoom
 
@@ -131,7 +130,6 @@ export function useChartZoom({
   const {handleChartReady} = useChartZoomCancel();
   const location = useLocation();
   const navigate = useNavigate();
-  const router = useRouter();
 
   /**
    * Sets the new period due to a zoom related action
@@ -181,12 +179,12 @@ export function useChartZoom({
             start: startFormatted,
             end: endFormatted,
           },
-          router,
+          null,
           {save: saveOnZoom}
         );
       }
     },
-    [onZoom, navigate, location, router, saveOnZoom, usePageDate]
+    [onZoom, navigate, location, saveOnZoom, usePageDate]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
