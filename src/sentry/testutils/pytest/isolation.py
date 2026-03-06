@@ -53,7 +53,7 @@ def _acquire_slot() -> int:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             _slot_lock_fd = fd
             _slot_lock_path = str(lock_path)
-            atexit.register(fd.close)
+            atexit.register(release_slot)
             return slot
         except OSError:
             fd.close()
@@ -61,6 +61,23 @@ def _acquire_slot() -> int:
         f"All {_MAX_SLOTS} parallel test slots are in use. "
         "Wait for other test processes to finish or set SENTRY_PYTEST_SERIAL=1."
     )
+
+
+def release_slot() -> None:
+    """Close the lock fd and remove the lock file."""
+    global _slot_lock_fd, _slot_lock_path
+    if _slot_lock_fd is not None:
+        try:
+            _slot_lock_fd.close()
+        except OSError:
+            pass
+        _slot_lock_fd = None
+    if _slot_lock_path is not None:
+        try:
+            os.unlink(_slot_lock_path)
+        except OSError:
+            pass
+        _slot_lock_path = None
 
 
 # ---------------------------------------------------------------------------
