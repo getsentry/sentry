@@ -200,7 +200,7 @@
     "@testing-library/user-event": "14.6.1",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
-    "@typescript/native-preview": "7.0.0-dev.20260112.1",
+    "@typescript/native-preview": "7.0.0-dev.20260306.1",
     "@typescript-eslint/utils": "8.56.1",
     "@typescript-eslint/rule-tester": "8.56.1",
     "babel-jest": "30.0.4",
@@ -234,7 +234,7 @@
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
-    "typescript": "6.0.0-beta",
+    "typescript": "6.0.1-rc",
     "typescript-eslint": "8.56.1"
   },
   "pnpm": {
