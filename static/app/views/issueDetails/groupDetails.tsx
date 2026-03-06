@@ -483,7 +483,6 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
-    has_streamlined_ui: true,
     has_seer_access: hasAutofixQuota,
     notification_uuid:
       typeof notification_uuid === 'string' ? notification_uuid : undefined,
