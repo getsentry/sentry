@@ -12,7 +12,7 @@ def test_exec_provider_fn():
     result = exec_provider_fn(
         provider,
         referrer="emerge",
-        provider_fn=lambda p: 42,
+        provider_fn=lambda: 42,
         record_count=record_count,
     )
     assert result == 42

@@ -387,7 +387,7 @@ class TestExecProviderFn(TestCase):
 
         result = exec_provider_fn(
             provider,
-            provider_fn=lambda p: "success",
+            provider_fn=lambda: "success",
         )
 
         assert result == "success"
@@ -396,14 +396,14 @@ class TestExecProviderFn(TestCase):
         with pytest.raises(SCMCodedError) as exc_info:
             exec_provider_fn(
                 _make_provider(is_rate_limited=True),
-                provider_fn=lambda p: None,
+                provider_fn=lambda: None,
             )
         assert exc_info.value.code == "rate_limit_exceeded"
 
     def test_scm_provider_exception_is_reraised(self):
         """SCMError subclasses from provider_fn should pass through unwrapped."""
 
-        def raise_scm_provider_exception(provider):
+        def raise_scm_provider_exception():
             raise SCMProviderException("API failure")
 
         with pytest.raises(SCMProviderException, match="API failure"):
@@ -415,7 +415,7 @@ class TestExecProviderFn(TestCase):
     def test_scm_coded_error_is_reraised(self):
         """SCMCodedError from provider_fn should pass through unwrapped."""
 
-        def raise_scm_coded_error(provider):
+        def raise_scm_coded_error():
             raise SCMCodedError(code="unsupported_integration")
 
         with pytest.raises(SCMCodedError) as exc_info:
@@ -428,7 +428,7 @@ class TestExecProviderFn(TestCase):
     def test_generic_exception_wrapped_in_scm_unhandled_exception(self):
         """Non-SCMError exceptions should be wrapped in SCMUnhandledException."""
 
-        def raise_value_error(provider):
+        def raise_value_error():
             raise ValueError("something unexpected")
 
         with pytest.raises(SCMUnhandledException) as exc_info:
@@ -442,7 +442,7 @@ class TestExecProviderFn(TestCase):
     def test_key_error_wrapped_in_scm_unhandled_exception(self):
         """KeyError (e.g. from malformed response) should be wrapped."""
 
-        def raise_key_error(provider):
+        def raise_key_error():
             raise KeyError("missing_field")
 
         with pytest.raises(SCMUnhandledException) as exc_info:
@@ -455,7 +455,7 @@ class TestExecProviderFn(TestCase):
     def test_runtime_error_wrapped_in_scm_unhandled_exception(self):
         """RuntimeError should be wrapped in SCMUnhandledException."""
 
-        def raise_runtime_error(provider):
+        def raise_runtime_error():
             raise RuntimeError("unexpected state")
 
         with pytest.raises(SCMUnhandledException) as exc_info:
