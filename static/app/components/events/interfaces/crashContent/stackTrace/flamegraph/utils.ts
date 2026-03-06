@@ -1,7 +1,7 @@
 import type {Frame as StacktraceFrame} from 'sentry/types/event';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
 
-export interface StacktraceTreeNode {
+interface StacktraceTreeNode {
   children: StacktraceTreeNode[];
   depth: number;
   frame: StacktraceFrame;
