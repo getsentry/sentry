@@ -1197,8 +1197,6 @@ def get_event_details(
     if bool(event_id) == bool(issue_id):
         raise BadRequest("Either event_id or issue_id must be provided, but not both.")
 
-    start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
-
     organization = Organization.objects.get(id=organization_id)
 
     project_ids = list(
@@ -1215,6 +1213,8 @@ def get_event_details(
     group: Group | None
 
     if event_id is None:
+        start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
+
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
         if issue_id.isdigit():
@@ -1321,7 +1321,7 @@ def get_issue_and_event_details_v2(
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
-
+        assert group is not None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
