@@ -241,7 +241,7 @@ def test_client_config_with_multiple_membership() -> None:
     Factories.create_organization(slug="us-co", owner=user)
     Factories.create_organization(slug="eu-co", owner=user)
     mapping = OrganizationMapping.objects.get(slug="eu-co")
-    mapping.update(region_name="eu")
+    mapping.update(cell_name="eu")
 
     result = get_client_config(request)
 
@@ -263,7 +263,7 @@ def test_client_config_with_single_tenant_membership() -> None:
 
     Factories.create_organization(slug="acme-co", owner=user)
     mapping = OrganizationMapping.objects.get(slug="acme-co")
-    mapping.update(region_name="acme")
+    mapping.update(cell_name="acme")
 
     result = get_client_config(request)
 
@@ -309,7 +309,7 @@ def test_client_config_region_display_order() -> None:
 
     Factories.create_organization(slug="acme-co", owner=user)
     mapping = OrganizationMapping.objects.get(slug="acme-co")
-    mapping.update(region_name="acme")
+    mapping.update(cell_name="acme")
 
     result = get_client_config(request)
     region_names = [region["name"] for region in result["regions"]]

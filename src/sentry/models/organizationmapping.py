@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.db.models.functions import Now, TruncSecond
@@ -45,6 +45,13 @@ class OrganizationMapping(Model):
     @property
     def region_name(self) -> str:
         return self.cell_name
+
+    # TODO(cells): remove this function once all callers have been migrated to cell_name
+    # This is currently needed by https://github.com/getsentry/getsentry/blob/94673f4686d5fa78e71b8c81addba9a3b33bc64a/tests/getsentry/middleware/integrations/parsers/test_salesforce.py#L97
+    def update(self, **kwargs: Any) -> int:
+        if "region_name" in kwargs:
+            kwargs["cell_name"] = kwargs.pop("region_name")
+        return super().update(**kwargs)
 
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
