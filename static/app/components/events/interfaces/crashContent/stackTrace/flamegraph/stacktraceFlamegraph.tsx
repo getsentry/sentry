@@ -71,7 +71,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
 
   return (
     <FlamegraphThemeProvider>
-      <FlamegraphWrapper>
+      <Flex direction="column" gap="md">
         <FlamegraphLegend />
         <FlamegraphContainer>
           <FlamegraphPreview
@@ -80,7 +80,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
             relativeStopTimestamp={duration}
           />
         </FlamegraphContainer>
-      </FlamegraphWrapper>
+      </Flex>
     </FlamegraphThemeProvider>
   );
 }
@@ -105,12 +105,6 @@ function FlamegraphLegend() {
     </Flex>
   );
 }
-
-const FlamegraphWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 const FlamegraphContainer = styled('div')`
   height: 300px;
