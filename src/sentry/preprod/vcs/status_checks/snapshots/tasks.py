@@ -248,6 +248,7 @@ def _has_snapshot_changes(
             comparison.images_changed > 0
             or comparison.images_added > 0
             or comparison.images_removed > 0
+            or comparison.images_renamed > 0
         ):
             return True
     return False
