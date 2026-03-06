@@ -363,11 +363,16 @@ def _get_repo_file_content(
         return None
 
 
-def _get_root_file_names(client: GitHubBaseClient, repo: str, ref: str | None = None) -> set[str]:
+def _get_root_file_names(
+    client: GitHubBaseClient, repo: str, ref: str | None = None
+) -> set[str] | None:
     """Fetch the list of file names in the repository root directory.
 
     Uses the GitHub Contents API on the root path, which returns all
     top-level files and directories in a single API call.
+
+    Returns None on API failure so callers can fall back to fetching
+    files individually rather than assuming the repo root is empty.
     """
     try:
         params: dict[str, str] = {}
@@ -376,7 +381,7 @@ def _get_root_file_names(client: GitHubBaseClient, repo: str, ref: str | None = 
         response = client.get(f"/repos/{repo}/contents", params=params)
         return {item["name"] for item in response if item.get("type") == "file" and "name" in item}
     except (ApiError, AttributeError, TypeError):
-        return set()
+        return None
 
 
 def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifest | None:
@@ -414,7 +419,7 @@ def _package_in_manifest(package_name: str, manifest: _PackageManifest | None) -
 
 def _rule_matches(
     rule: DetectorRule,
-    root_files: set[str],
+    root_files: set[str] | None,
     file_contents: dict[str, str],
     package_manifest: _PackageManifest | None,
 ) -> bool:
@@ -433,12 +438,15 @@ def _rule_matches(
         return bool(re.search(rule["match_content"], content))
 
     # path-only rule: check if file exists in root
+    # When root_files is None (API failed), we can't confirm existence
+    if root_files is None:
+        return False
     return path in root_files
 
 
 def _framework_matches(
     fw: FrameworkDef,
-    root_files: set[str],
+    root_files: set[str] | None,
     file_contents: dict[str, str],
     package_manifest: _PackageManifest | None,
 ) -> bool:
@@ -501,14 +509,16 @@ def detect_platforms(
         if base_platform is not None:
             active_platforms[base_platform].append((language, byte_count))
 
-    # Collect all file paths that need content fetching (path + match_content rules)
+    # Collect all file paths that need content fetching (path + match_content rules).
+    # When root_files is None (API failed), try all paths rather than skipping.
     needed_paths: set[str] = set()
     for base_platform in active_platforms:
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
             for rule in [*fw.get("every", []), *fw.get("some", [])]:
                 path = rule.get("path")
-                if path and "match_content" in rule and path in root_files:
-                    needed_paths.add(path)
+                if path and "match_content" in rule:
+                    if root_files is None or path in root_files:
+                        needed_paths.add(path)
 
     # Fetch file contents in one pass
     file_contents: dict[str, str] = {}
@@ -523,7 +533,7 @@ def detect_platforms(
         manifest_file = _PACKAGE_MANIFEST_FILES.get(base_platform)
         if manifest_file is None or manifest_file in package_manifests:
             continue
-        if manifest_file not in root_files:
+        if root_files is not None and manifest_file not in root_files:
             package_manifests[manifest_file] = None
             continue
         content = file_contents.get(manifest_file)

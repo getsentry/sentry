@@ -290,13 +290,13 @@ class TestGetRootFileNames:
 
         assert result == set()
 
-    def test_returns_empty_on_api_error(self) -> None:
+    def test_returns_none_on_api_error(self) -> None:
         client = mock.MagicMock()
         client.get.side_effect = ApiError("Not Found", code=404)
 
         result = _get_root_file_names(client, "owner/repo")
 
-        assert result == set()
+        assert result is None
 
     def test_passes_ref_param(self) -> None:
         client = mock.MagicMock()
@@ -315,11 +315,11 @@ class TestGetRootFileNames:
 
         assert _get_root_file_names(client, "owner/repo") == {"README.md"}
 
-    def test_returns_empty_on_non_list_response(self) -> None:
+    def test_returns_none_on_non_list_response(self) -> None:
         client = mock.MagicMock()
         client.get.return_value = {"message": "Not Found"}  # dict instead of list
 
-        assert _get_root_file_names(client, "owner/repo") == set()
+        assert _get_root_file_names(client, "owner/repo") is None
 
 
 class TestApplySupersession:
@@ -842,6 +842,30 @@ class TestDetectPlatforms:
         for r in result:
             assert r["confidence"] == "medium"
             assert r["priority"] == 1
+
+    def test_root_listing_failure_still_detects_frameworks_via_manifest(self) -> None:
+        """When the root contents API fails, framework detection should fall
+        back to fetching manifest files individually rather than returning
+        only base platforms."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                raise ApiError("Server Error", code=500)
+            if path.endswith("/contents/requirements.txt"):
+                return {
+                    "content": b64encode(b"Django>=4.0\ncelery>=5.0").decode(),
+                    "encoding": "base64",
+                }
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "python-django" in platforms
 
     def test_laravel_detected_from_artisan(self) -> None:
         client = mock.MagicMock()
