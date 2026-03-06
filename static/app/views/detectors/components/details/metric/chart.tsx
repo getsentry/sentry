@@ -20,7 +20,6 @@ import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import {RateUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -340,17 +339,6 @@ export function useMetricDetectorChart({
           undefined,
           undefined,
           2
-        );
-      }
-      if (unit) {
-        return axisLabelFormatterUsingAggregateOutputType(
-          value,
-          outputType,
-          true,
-          undefined,
-          outputType === 'rate' ? (unit as RateUnit) : undefined,
-          undefined,
-          unit as DataUnit
         );
       }
       return formatYAxisLabel(value);
