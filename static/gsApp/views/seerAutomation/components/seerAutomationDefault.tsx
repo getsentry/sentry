@@ -41,12 +41,13 @@ export function SeerAutomationDefault() {
       }),
     onMutate: data => {
       const previousOrg = OrganizationStore.get().organization;
-      OrganizationStore.onUpdate(data);
-      return () => {
-        if (previousOrg) {
+      if (previousOrg) {
+        OrganizationStore.onUpdate(data);
+        return () => {
           OrganizationStore.onUpdate(previousOrg, {replace: true});
-        }
-      };
+        };
+      }
+      return undefined;
     },
     onSuccess: org => {
       OrganizationStore.onUpdate(org);
