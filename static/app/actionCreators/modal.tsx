@@ -12,7 +12,6 @@ import type {ReprocessEventModalOptions} from 'sentry/components/modals/reproces
 import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
-import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
@@ -255,19 +254,6 @@ export async function openInviteMissingMembersModal({
   });
 }
 
-export async function openWidgetBuilderOverwriteModal(
-  options: OverwriteWidgetModalProps
-) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/widgetBuilder/overwriteWidgetModal'
-  );
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
-    modalCss,
-  });
-}
-
 export async function openAddToDashboardModal(options: AddToDashboardModalProps) {
   const {default: Modal, modalCss} = await import(
     'sentry/components/modals/widgetBuilder/addToDashboardModal'
@@ -320,7 +306,7 @@ export async function demoSignupModal(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export type DemoEndModalOptions = {
+type DemoEndModalOptions = {
   tour: string;
 };
 
@@ -381,7 +367,7 @@ export async function openCreateReleaseIntegration(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export type NavigateToExternalLinkModalOptions = {
+type NavigateToExternalLinkModalOptions = {
   linkText: string;
 };
 
