@@ -506,7 +506,6 @@ describe('Dashboards > Dashboard', () => {
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
             widgetInterval={widgetInterval}
-            useTimeseriesVisualization
           />
         </MEPSettingProvider>
       );
