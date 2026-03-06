@@ -8,7 +8,7 @@ import {
   DurationUnit,
   RateUnit,
   SizeUnit,
-  type ColumnValueType,
+  type ColumnType,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -224,7 +224,7 @@ const SIZE_UNIT_VALUES = new Set<string>(Object.values(SizeUnit));
 const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
 
 /**
- * Maps a metric unit (from TraceMetric.unit) to the ColumnValueType and
+ * Maps a metric unit (from TraceMetric.unit) to the ColumnType and
  * unit string that the discover FieldRenderer system expects.
  *
  * The backend can't infer units for the raw `value` field in events
@@ -232,7 +232,7 @@ const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
  * metric's unit.
  */
 export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
-  fieldType: ColumnValueType;
+  fieldType: ColumnType;
   unit: string | undefined;
 } {
   if (!metricUnit || metricUnit === '-') {

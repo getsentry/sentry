@@ -5,6 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   TraceSamplesTableColumns,
   TraceSamplesTableEmbeddedColumns,
@@ -79,18 +80,17 @@ export function MetricsSamplesTable({
     traceIds,
   });
 
-  const metaWithValueUnit = useMemo(() => {
+  const metaWithValueUnit = useMemo<EventsMetaType>(() => {
     const {fieldType, unit} = mapMetricUnitToFieldType(traceMetric?.unit);
-    const valueField = TraceMetricKnownFieldKey.METRIC_VALUE;
     return {
       ...meta,
       fields: {
         ...meta.fields,
-        [valueField]: fieldType,
+        [TraceMetricKnownFieldKey.METRIC_VALUE]: fieldType,
       },
       units: {
         ...meta.units,
-        [valueField]: unit ?? null,
+        [TraceMetricKnownFieldKey.METRIC_VALUE]: unit ?? '',
       },
     };
   }, [meta, traceMetric?.unit]);
