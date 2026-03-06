@@ -1255,14 +1255,17 @@ def detect_platforms(
                     )
                 else:
                     # Same platform detected via a different base_platform
-                    # (e.g. android under both java and kotlin).  Keep the
-                    # higher byte count so sorting reflects the dominant language.
+                    # (e.g. android under both java and kotlin, or apple-ios
+                    # under both swift and objective-c).  Always upgrade to
+                    # framework confidence/priority, and keep the higher
+                    # byte count so sorting reflects the dominant language.
                     for r in results:
-                        if r["platform"] == platform_id and byte_count > r["bytes"]:
-                            r["bytes"] = byte_count
-                            r["language"] = language
+                        if r["platform"] == platform_id:
                             r["confidence"] = "high"
-                            r["priority"] = 100 - fw["sort"]
+                            r["priority"] = max(r["priority"], 100 - fw["sort"])
+                            if byte_count > r["bytes"]:
+                                r["bytes"] = byte_count
+                                r["language"] = language
                             break
 
         if base_platform not in seen_platforms:

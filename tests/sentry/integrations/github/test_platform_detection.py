@@ -1940,6 +1940,31 @@ class TestDetectPlatforms:
         platforms = [r["platform"] for r in result]
         assert "apple-ios" in platforms
 
+    def test_cross_base_dedup_upgrades_confidence(self) -> None:
+        """When apple-ios is first added as a base platform (via Objective-C)
+        and then matched as a framework (via Swift + .xcodeproj), the entry
+        should be upgraded to high confidence even if Obj-C has more bytes."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {
+            "Objective-C": 80000,
+            "Swift": 20000,
+        }
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "MyApp.xcodeproj", "type": "dir"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        ios_entry = next(r for r in result if r["platform"] == "apple-ios")
+        assert ios_entry["confidence"] == "high"
+        assert ios_entry["priority"] == 90
+        assert ios_entry["bytes"] == 80000
+
     def test_apple_ios_higher_priority_than_macos(self) -> None:
         """When both iOS and macOS are in Package.swift, iOS should rank higher."""
         client = mock.MagicMock()
