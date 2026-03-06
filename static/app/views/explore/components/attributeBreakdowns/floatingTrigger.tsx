@@ -6,8 +6,9 @@ import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import useLocation from 'sentry/utils/useLocation';
+import useNavigate from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
@@ -20,7 +21,8 @@ type Props = {
 };
 
 export function FloatingTrigger({chartIndex, params, setTab}: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const {setChartSelection} = useChartSelection();
   const {selectionState, setSelectionState, clearSelection} = params;
@@ -50,12 +52,12 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
         start: getUtcDateString(startTimestamp),
         end: getUtcDateString(endTimestamp),
       },
-      router,
+      {location, push: navigate, replace: path => navigate(path, {replace: true})},
       {save: true}
     );
 
     clearSelection();
-  }, [clearSelection, selectionState, router, organization]);
+  }, [clearSelection, selectionState, navigate, location, organization]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
     if (!selectionState) return;
