@@ -109,7 +109,6 @@ type LogsRowProps = {
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
-  canDeferRenderElements?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -157,7 +156,6 @@ export const LogRowContent = memo(function LogRowContent({
   onCollapse,
   onExpandHeight,
   blockRowExpanding,
-  canDeferRenderElements,
   onEmbeddedRowClick,
   logStart,
   logEnd,
@@ -170,18 +168,7 @@ export const LogRowContent = memo(function LogRowContent({
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
-    canDeferRenderElements ? false : true
-  );
-
-  const setShouldRenderHoverElements = useCallback(
-    (value: boolean) => {
-      if (canDeferRenderElements) {
-        _setShouldRenderHoverElements(value);
-      }
-    },
-    [canDeferRenderElements, _setShouldRenderHoverElements]
-  );
+  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
@@ -405,9 +392,14 @@ export const LogRowContent = memo(function LogRowContent({
             type: FieldValueType.STRING,
           };
 
+          const shouldRenderActions =
+            !embedded &&
+            field !== OurLogKnownFieldKey.TIMESTAMP &&
+            shouldRenderHoverElements;
+
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
-              {shouldRenderHoverElements ? (
+              {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
                   dataRow={dataRow as unknown as TableDataRow}
@@ -433,11 +425,7 @@ export const LogRowContent = memo(function LogRowContent({
                         break;
                     }
                   }}
-                  allowActions={
-                    field === OurLogKnownFieldKey.TIMESTAMP || embedded
-                      ? []
-                      : ALLOWED_CELL_ACTIONS
-                  }
+                  allowActions={ALLOWED_CELL_ACTIONS}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
