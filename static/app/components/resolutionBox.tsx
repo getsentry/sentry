@@ -4,11 +4,9 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 
 import CommitLink from 'sentry/components/commitLink';
-import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -126,17 +124,6 @@ export function renderResolutionReason({
   return hasStreamlinedUI ? null : t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox(props: Props) {
-  return (
-    <BannerContainer priority="default">
-      <BannerSummary>
-        <StyledIconCheckmark variant="success" />
-        <span>{renderResolutionReason(props)}</span>
-      </BannerSummary>
-    </BannerContainer>
-  );
-}
-
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${p => p.theme.space.xs};
@@ -148,17 +135,6 @@ const StreamlinedTimeSince = styled(TimeSince)`
   font-size: inherit;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.colors.green500};
-`;
-
-const StyledIconCheckmark = styled(IconCheckmark)`
-  /* override margin defined in BannerSummary */
-  margin-top: 0 !important;
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: ${p => p.theme.space.xs} !important;
-    align-self: flex-start;
-  }
 `;
 
 const StreamlinedVersion = styled(Version)`
@@ -183,5 +159,3 @@ const StreamlinedCommitLink = styled(CommitLink)`
     text-decoration: none;
   }
 `;
-
-export default ResolutionBox;

@@ -1,51 +1,12 @@
-import {useMemo, useRef, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
-import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
-import {
-  GridLineLabels,
-  GridLineOverlay,
-} from 'sentry/components/checkInTimeline/gridLines';
-import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
-import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
-import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import Panel from 'sentry/components/panels/panel';
-import {useTimezone} from 'sentry/components/timezoneProvider';
-import {IconSettings} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {fadeIn} from 'sentry/styles/animations';
-import type {Event} from 'sentry/types/event';
+import {t} from 'sentry/locale';
 import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {useDimensions} from 'sentry/utils/useDimensions';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
-import {
-  checkStatusPrecedent,
-  statusToText,
-  tickStyle,
-} from 'sentry/views/insights/uptime/timelineConfig';
-import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-
-interface Props {
-  event: Event;
-  group: Group;
-  project: Project;
-}
 
 const DOWNTIME_START_TYPES = [
   GroupActivityType.SET_UNRESOLVED,
@@ -100,92 +61,6 @@ export function DowntimeDuration({group}: {group: Group}) {
   );
 }
 
-export function UptimeDataSection({group, event, project}: Props) {
-  const organization = useOrganization();
-  const location = useLocation();
-  const now = useMemo(() => new Date(), []);
-
-  const isResolved = group.status === GroupStatus.RESOLVED;
-  const detectorId: number | undefined = event.occurrence?.evidenceData.detectorId;
-
-  const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
-  const timeWindow = location.query?.timeWindow as TimeWindow;
-  const {since, until} = usePageFilterDates();
-  const timezone = useTimezone();
-
-  const timeWindowConfig = useMemo(() => {
-    if (defined(timeWindow)) {
-      const {start, end} = getTimeRangeFromEvent(event, now, timeWindow);
-      return getConfigFromTimeRange(start, end, timelineWidth, timezone);
-    }
-    return getConfigFromTimeRange(since, until, timelineWidth, timezone);
-  }, [timeWindow, timelineWidth, since, until, event, now, timezone]);
-
-  const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    detectorIds: detectorId ? [String(detectorId)] : [],
-    timeWindowConfig,
-  });
-  const bucketedData = detectorId ? (uptimeStats?.[detectorId] ?? []) : [];
-
-  const actions = (
-    <Grid flow="column" align="center" gap="md">
-      {defined(detectorId) && (
-        <LinkButton
-          icon={<IconSettings />}
-          size="xs"
-          to={makeAlertsPathname({
-            path: `/rules/uptime/${project.slug}/${detectorId}/details/`,
-            organization,
-          })}
-        >
-          {t('Uptime Alert Rule')}
-        </LinkButton>
-      )}
-      <ResolutionSelector />
-    </Grid>
-  );
-
-  return (
-    <InterimSection
-      title={t('Downtime Information')}
-      type={SectionKey.DOWNTIME}
-      help={t('Information about the detected downtime')}
-      preventCollapse
-      actions={actions}
-    >
-      <Text>
-        {isResolved
-          ? tct('Domain was down for [duration]', {
-              duration: <DowntimeDuration group={group} />,
-            })
-          : tct('Domain has been down for [duration]', {
-              duration: <DowntimeDuration group={group} />,
-            })}
-      </Text>
-      <TimelineContainer>
-        <TimelineWidthTracker ref={elementRef} />
-        <StyledGridLineTimeLabels timeWindowConfig={timeWindowConfig} />
-        <GridLineOverlay timeWindowConfig={timeWindowConfig} showCursor={!isPending} />
-        {bucketedData && !isPending ? (
-          <FadeInContainer>
-            <CheckInTimeline
-              statusLabel={statusToText}
-              statusStyle={tickStyle}
-              statusPrecedent={checkStatusPrecedent}
-              timeWindowConfig={timeWindowConfig}
-              bucketedData={bucketedData}
-            />
-          </FadeInContainer>
-        ) : (
-          <CheckInPlaceholder />
-        )}
-      </TimelineContainer>
-    </InterimSection>
-  );
-}
-
 const DowntimeTooltipTitle = styled('div')`
   display: grid;
   column-gap: ${p => p.theme.space.md};
@@ -195,30 +70,4 @@ const DowntimeTooltipTitle = styled('div')`
 
 const DowntimeLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const Text = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const TimelineContainer = styled(Panel)`
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 40px 100px;
-  align-items: center;
-`;
-
-const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const TimelineWidthTracker = styled('div')`
-  position: absolute;
-  width: 100%;
-  grid-row: 1;
-  grid-column: 0;
-`;
-
-const FadeInContainer = styled('div')`
-  animation: ${fadeIn} 500ms ease-out forwards;
 `;

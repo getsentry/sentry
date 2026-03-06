@@ -2,7 +2,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
 import type {Group, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupSubstatus} from 'sentry/types/group';
@@ -81,14 +80,3 @@ export function renderArchiveReason({
 
   return t('This issue has been archived forever.');
 }
-function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps) {
-  return (
-    <BannerContainer priority="default">
-      <BannerSummary>
-        <span>{renderArchiveReason({substatus, statusDetails, organization})}</span>
-      </BannerSummary>
-    </BannerContainer>
-  );
-}
-
-export default ArchivedBox;
