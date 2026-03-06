@@ -6,19 +6,32 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
+from django.core.cache.backends.base import memcache_key_warnings
 
 from sentry import options
+from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from sentry.models.grouphash import GroupHash
 
 
+def _clean_key_for_memcached(key: str) -> str:
+    """
+    See memcache_key_warnings in django. Certain keys will throw.
+    This function finds those keys and consistently md5's them.
+    This fixes SENTRY-5HXA.
+    """
+    if memcache_key_warnings(key):
+        return md5_text(key).hexdigest()
+    return key
+
+
 def get_grouphash_existence_cache_key(hash_value: str, project_id: int) -> str:
-    return f"secondary_grouphash_existence:{project_id}:{hash_value}"
+    return f"secondary_grouphash_existence:{project_id}:{_clean_key_for_memcached(hash_value)}"
 
 
 def get_grouphash_object_cache_key(hash_value: str, project_id: int) -> str:
-    return f"grouphash_with_assigned_group:{project_id}:{hash_value}"
+    return f"grouphash_with_assigned_group:{project_id}:{_clean_key_for_memcached(hash_value)}"
 
 
 def invalidate_grouphash_cache_on_save(instance: GroupHash, **kwargs: Any) -> None:
