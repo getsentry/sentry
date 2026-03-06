@@ -2,7 +2,8 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 
-from sentry.issues.grouptype import GroupType, PerformanceP95EndpointRegressionGroupType
+from sentry.issue_detection.grouptype import PerformanceP95EndpointRegressionGroupType
+from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.seer.breakpoints import BreakpointData

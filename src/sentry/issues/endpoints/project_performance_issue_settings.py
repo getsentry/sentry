@@ -17,8 +17,7 @@ from sentry.issue_detection.performance_detection import (
     reset_performance_settings,
     update_performance_settings,
 )
-from sentry.issues.grouptype import (
-    GroupType,
+from sentry.issue_detection.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -36,6 +35,8 @@ from sentry.issues.grouptype import (
     WebVitalsGroup,
 )
 from sentry.models.project import Project
+from sentry.issue_detection.performance_detection import get_merged_settings
+from sentry.issues.grouptype import GroupType
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds

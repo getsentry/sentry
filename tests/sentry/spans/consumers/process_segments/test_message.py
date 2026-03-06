@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.issue_detection.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
