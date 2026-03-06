@@ -24,7 +24,6 @@ import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -64,8 +63,6 @@ export default function ShareIssueModal({
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
   const isPublished = group?.isPublic;
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const hasPublicShare = organization.features.includes('shared-issues') && hasIssueShare;
 
   const issueUrl =
@@ -237,7 +234,7 @@ export default function ShareIssueModal({
                       analyticsEventKey="issue_details.publish_issue_modal.copy_link"
                       analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
                       analyticsParams={{
-                        streamline: hasStreamlinedUI,
+                        streamline: true,
                       }}
                     >
                       {t('Copy Public Link')}

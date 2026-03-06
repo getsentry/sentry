@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
-import {Button} from '@sentry/scraps/button';
-
 import {openModal} from 'sentry/actionCreators/modal';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -17,28 +15,23 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 /**
  * This hook will cause the promotional modal to appear if:
  *  - All the steps have been registered
  *  - The tour has not been completed
  *  - The tour is not currently active
- *  - The streamline UI is enabled
  *  - The user's browser has not stored that they've seen the promo
  *
  * Returns a function that can be used to reset the modal.
  */
 function useIssueDetailsPromoModal() {
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const {mutate: mutateAssistant} = useMutateAssistant();
   const {
     startTour,
@@ -57,7 +50,6 @@ function useIssueDetailsPromoModal() {
     isTourRegistered &&
     !isTourCompleted &&
     currentStepId === null &&
-    hasStreamlinedUI &&
     !localTourState.hasSeen;
 
   const handleEndTour = useCallback(() => {
@@ -124,7 +116,6 @@ function useIssueDetailsPromoModal() {
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
-  const user = useUser();
   const isSuperUser = isActiveSuperuser();
   const {
     startTour,
@@ -152,46 +143,13 @@ export function NewIssueExperienceButton() {
     return () => clearTimeout(timeout);
   }, [isTourCompleted, organization]);
 
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const openForm = useFeedbackForm();
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
-
-  const handleToggle = useCallback(() => {
-    mutateUserOptions({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
-    trackAnalytics('issue_details.streamline_ui_toggle', {
-      isEnabled: !hasStreamlinedUI,
-      organization,
-      enforced_streamline_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
-    });
-  }, [
-    mutateUserOptions,
-    organization,
-    hasStreamlinedUI,
-    user?.options?.prefersIssueDetailsStreamlinedUI,
-  ]);
-
-  if (!hasStreamlinedUI) {
-    return (
-      <TryNewButton
-        icon={<IconLab />}
-        size="sm"
-        tooltipProps={{title: t('Switch to the new issue experience')}}
-        aria-label={t('Switch to the new issue experience')}
-        onClick={() => {
-          handleToggle();
-        }}
-      >
-        {t('Try New UI')}
-      </TryNewButton>
-    );
-  }
 
   const items = [
     {
       key: 'take-tour',
       label: t('Take a tour'),
-      hidden: hasStreamlinedUI && !isTourRegistered,
+      hidden: !isTourRegistered,
       onAction: () => {
         trackAnalytics('issue_details.tour.started', {organization, method: 'dropdown'});
         startTour();
@@ -249,11 +207,11 @@ export function NewIssueExperienceButton() {
             trigger={triggerProps => (
               <StyledDropdownButton
                 {...triggerProps}
-                size={hasStreamlinedUI ? 'xs' : 'sm'}
+                size="xs"
                 aria-label={t('Manage issue experience')}
               >
                 {/* Passing icon as child to avoid extra icon margin */}
-                <IconLab isSolid={hasStreamlinedUI} />
+                <IconLab isSolid />
               </StyledDropdownButton>
             )}
             items={items}
@@ -269,18 +227,5 @@ const StyledDropdownButton = styled(DropdownButton)`
   color: ${p => p.theme.colors.blue400};
   :hover {
     color: ${p => p.theme.colors.blue400};
-  }
-`;
-
-const TryNewButton = styled(Button)`
-  background: linear-gradient(90deg, #3468d8, #248574);
-  color: ${p => p.theme.colors.white};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.colors.white};
-  }
-  ::after {
-    background: linear-gradient(90deg, #3468d8, #248574);
   }
 `;
