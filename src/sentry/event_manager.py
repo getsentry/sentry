@@ -2455,6 +2455,9 @@ def save_attachment(
 
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
+    # Rate limits protect against filestore write abuse. When stored_id is set,
+    # the payload is already in objectstore and putfile will read from there —
+    # no filestore write occurs, so there is nothing to limit.
     if not attachment.stored_id:
         from sentry import ratelimits as ratelimiter
 
