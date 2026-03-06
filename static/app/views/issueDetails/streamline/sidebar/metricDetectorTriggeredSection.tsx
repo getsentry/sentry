@@ -264,6 +264,7 @@ function ContributingIssues({
     end,
     limit: 5,
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
+    groupStatsPeriod: 'auto',
   };
 
   const discoverUrl: LocationDescriptor = {
