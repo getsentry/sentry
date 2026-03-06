@@ -631,7 +631,8 @@ function WidgetViewerModal(props: Props) {
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={
                 widget.widgetType === WidgetType.SPANS ||
-                widget.widgetType === WidgetType.TRACEMETRICS
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
               }
               widgetInterval={widgetInterval}
             />
