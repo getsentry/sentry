@@ -1262,6 +1262,8 @@ def detect_platforms(
                         if r["platform"] == platform_id and byte_count > r["bytes"]:
                             r["bytes"] = byte_count
                             r["language"] = language
+                            r["confidence"] = "high"
+                            r["priority"] = 100 - fw["sort"]
                             break
 
         if base_platform not in seen_platforms:
