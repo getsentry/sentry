@@ -52,8 +52,13 @@ export function buildFrameTree(frames: StacktraceFrame[]): StacktraceTreeNode[] 
     }
   });
 
-  // Calculate depths via DFS
+  // Calculate depths via DFS, tracking visited nodes to avoid cycles
+  const visited = new Set<number>();
   function calculateDepth(node: StacktraceTreeNode, depth: number) {
+    if (visited.has(node.frameIndex)) {
+      return;
+    }
+    visited.add(node.frameIndex);
     node.depth = depth;
     node.children.forEach(child => calculateDepth(child, depth + 1));
   }
@@ -121,8 +126,13 @@ export function treeToSampledProfileData(roots: StacktraceTreeNode[]): {
 } {
   const samples: number[][] = [];
   const weights: number[] = [];
+  const visited = new Set<number>();
 
   function collectSamples(node: StacktraceTreeNode, currentPath: number[]) {
+    if (visited.has(node.frameIndex)) {
+      return;
+    }
+    visited.add(node.frameIndex);
     const pathWithNode = [...currentPath, node.frameIndex];
     const inclusiveCount = node.frame.sampleCount ?? 0;
 

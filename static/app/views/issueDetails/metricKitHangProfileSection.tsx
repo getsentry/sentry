@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -14,7 +13,7 @@ import {EntryType} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-interface HangProfileData {
+export interface HangProfileData {
   exceptionValue: string;
   frames: Frame[];
 }
@@ -60,13 +59,7 @@ export function getHangProfileData(event: Event): HangProfileData | null {
   return null;
 }
 
-export function MetricKitHangProfileSection({event}: {event: Event}) {
-  const data = useMemo(() => getHangProfileData(event), [event]);
-
-  if (!data) {
-    return null;
-  }
-
+export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
   return (
     <ErrorBoundary mini>
       <InterimSection

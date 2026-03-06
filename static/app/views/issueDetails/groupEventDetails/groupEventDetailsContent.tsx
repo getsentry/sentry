@@ -116,10 +116,12 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const isMetricKitHang =
+  const hangProfileData =
     mechanism === 'mx_hang_diagnostic' &&
-    organization.features.includes('metrickit-flamegraph') &&
-    getHangProfileData(event) !== null;
+    organization.features.includes('metrickit-flamegraph')
+      ? getHangProfileData(event)
+      : null;
+  const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   const hasActionableItems = actionableItemsEnabled({
@@ -244,7 +246,7 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       {isMetricKitHang ? (
-        <MetricKitHangProfileSection event={event} />
+        <MetricKitHangProfileSection data={hangProfileData} />
       ) : (
         /* Wrapping all stacktrace components since multiple could appear */
         <ClassNames>

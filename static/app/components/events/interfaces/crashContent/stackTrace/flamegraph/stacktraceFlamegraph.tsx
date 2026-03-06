@@ -2,10 +2,10 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types/event';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -94,14 +94,18 @@ function FlamegraphLegend() {
 
   return (
     <Flex gap="lg">
-      <LegendItem>
+      <Flex align="center" gap="xs">
         <LegendMarker color={applicationFrameColor} />
-        {t('Application Function')}
-      </LegendItem>
-      <LegendItem>
+        <Text size="sm" variant="muted">
+          {t('Application Function')}
+        </Text>
+      </Flex>
+      <Flex align="center" gap="xs">
         <LegendMarker color={systemFrameColor} />
-        {t('System Function')}
-      </LegendItem>
+        <Text size="sm" variant="muted">
+          {t('System Function')}
+        </Text>
+      </Flex>
     </Flex>
   );
 }
@@ -109,15 +113,6 @@ function FlamegraphLegend() {
 const FlamegraphContainer = styled('div')`
   height: 300px;
   position: relative;
-`;
-
-const LegendItem = styled('span')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.5)};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`
