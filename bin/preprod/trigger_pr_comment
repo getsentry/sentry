@@ -24,9 +24,9 @@ from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 #################
 ORG_SLUG = "sentry"
 PROJECT_SLUG = "internal"
-REPO_NAME = "runningcode/Test-github-sentry"
+REPO_NAME = "EmergeTools/hackernews"
 PR_NUMBER = 1
-COMMIT_SHA = "746a4f8b311bb179a2057272cae04855404b4137"
+COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
 
 # Build configurations - set to None to disable a build
 BUILDS = [
