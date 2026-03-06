@@ -263,12 +263,20 @@ def get_scim_token_for_display(
     if not scim_enabled:
         return None
 
-    tokens = SentryAppInstallationToken.objects.select_related("api_token").filter(
-        sentry_app_installation__sentryappinstallationforprovider__organization_id=organization_id,
-        sentry_app_installation__sentryappinstallationforprovider__provider=f"{provider}_scim",
+    tokens = list(
+        SentryAppInstallationToken.objects.select_related("api_token").filter(
+            sentry_app_installation__sentryappinstallationforprovider__organization_id=organization_id,
+            sentry_app_installation__sentryappinstallationforprovider__provider=f"{provider}_scim",
+        )
     )
     if not tokens:
         return None
+
+    if len(tokens) > 1:
+        logger.warning(
+            "Multiple SCIM tokens found for organization",
+            extra={"organization_id": organization_id, "token_count": len(tokens)},
+        )
 
     api_token = tokens[0].api_token
     is_visible = (
