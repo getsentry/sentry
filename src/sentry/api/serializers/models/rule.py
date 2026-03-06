@@ -651,11 +651,11 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             for condition in trigger_conditions:
                 if condition.type in UNSUPPORTED_CONDITIONS:
-                    errors.append(f"Condition not supported: {condition.type}")
+                    errors.append({"detail": f"Condition not supported: {condition.type}"})
 
             for f in filter_conditions:
                 if f.type in UNSUPPORTED_CONDITIONS:
-                    errors.append(f"Filter not supported: {f.type}")
+                    errors.append({"detail": f"Filter not supported: {f.type}"})
 
             if len(errors):
                 result[workflow]["errors"] = errors

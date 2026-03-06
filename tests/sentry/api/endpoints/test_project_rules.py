@@ -197,7 +197,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         )
         assert len(issue_resolved_trigger_resp["filters"]) == 1
         assert (
-            issue_resolved_trigger_resp["errors"][0]
+            issue_resolved_trigger_resp["errors"][0]["detail"]
             == f"Condition not supported: {Condition.ISSUE_RESOLVED_TRIGGER}"
         )
 
