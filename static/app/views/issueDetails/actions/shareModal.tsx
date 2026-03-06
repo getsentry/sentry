@@ -147,10 +147,7 @@ export default function ShareIssueModal({
               onClick={handleCopyMarkdownLink}
               analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
               analyticsEventName="Issue Details: Copy Issue Markdown Link"
-              analyticsParams={{
-                ...getAnalyticsDataForGroup(group),
-                streamline: true,
-              }}
+              analyticsParams={getAnalyticsDataForGroup(group)}
             >
               {t('Copy as Markdown')}
             </Button>
@@ -173,12 +170,8 @@ export default function ShareIssueModal({
                   ? {
                       ...getAnalyticsDataForGroup(group),
                       ...getAnalyticsDataForEvent(event),
-                      streamline: true,
                     }
-                  : {
-                      ...getAnalyticsDataForGroup(group),
-                      streamline: true,
-                    }
+                  : getAnalyticsDataForGroup(group)
               }
             >
               {t('Copy Link')}
@@ -233,9 +226,6 @@ export default function ShareIssueModal({
                       }
                       analyticsEventKey="issue_details.publish_issue_modal.copy_link"
                       analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
-                      analyticsParams={{
-                        streamline: true,
-                      }}
                     >
                       {t('Copy Public Link')}
                     </Button>
