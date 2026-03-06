@@ -2,7 +2,6 @@ import hashlib
 import hmac
 import ipaddress
 import logging
-import time
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
@@ -30,7 +29,6 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.scm.stream_producer import produce_event_to_scm_stream
 from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")
@@ -266,31 +264,5 @@ class BitbucketWebhookEndpoint(Endpoint):
             provider_key=event_handler.provider,
         ).capture():
             event_handler(event, repo=repo, organization=organization)
-
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
-        #
-        # NOTE: Publication of the event assumes the event has been properly authorized (as it has
-        #       been above).
-        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
-        #       middleware has handled routing.
-        produce_event_to_scm_stream(
-            {
-                "event": request.body.decode("utf-8"),
-                "event_type_hint": request.headers["X-Event-Key"],
-                "extra": {},
-                "received_at": int(time.time()),
-                "sentry_meta": [
-                    {
-                        "id": None,
-                        "integration_id": integration.id if integration else None,
-                        "organization_id": organization_id,
-                    }
-                ],
-                "type": "bitbucket",
-            },
-            silo="region",
-        )
 
         return HttpResponse(status=204)
