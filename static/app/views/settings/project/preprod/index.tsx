@@ -64,9 +64,8 @@ export default function PreprodSettings() {
             successMessage={t('Build distribution settings updated')}
             docsUrl="https://docs.sentry.io/product/build-distribution/"
             display={PreprodBuildsDisplay.DISTRIBUTION}
-          >
-            <PrCommentsToggle />
-          </FeatureFilter>
+          />
+          <PrCommentsToggle />
         </Stack>
       </Feature>
     </Fragment>
