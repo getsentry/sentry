@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
+import {sample} from 'lodash';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
@@ -28,16 +29,14 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
           : undefined,
   });
 
-  const pageBackground = theme.tokens.background.primary;
-
   const imageUrl =
     avatarDefinition.type === 'image'
       ? (avatarDefinition.configuration.src as string)
       : null;
 
   const {data: imageResult = null} = useQuery({
-    queryKey: ['avatar-color', imageUrl, pageBackground],
-    queryFn: () => resolveImageAvatarColors(imageUrl!, pageBackground),
+    queryKey: ['avatar-color', imageUrl, theme.tokens.background.primary],
+    queryFn: () => resolveImageAvatarColors(imageUrl!, theme.tokens.background.primary),
     enabled: !!imageUrl,
     staleTime: Infinity,
   });
@@ -50,7 +49,7 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
         chonk={
           getLetterAvatarColors(
             avatarDefinition.configuration.background as string,
-            pageBackground
+            theme.tokens.background.primary
           )?.chonk ?? ''
         }
       >
@@ -135,11 +134,9 @@ function getLetterAvatarColors(
   if (contrastWithPage < 1.3) {
     return undefined;
   }
-  const isLightTheme = color(pageBackground).luminosity() > 0.5;
+
   return {
-    chonk: isLightTheme
-      ? color(surface).darken(0.35).hex()
-      : color(surface).lighten(0.35).hex(),
+    chonk: color(surface).darken(0.65).hex(),
   };
 }
 
@@ -203,50 +200,53 @@ function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   }
 }
 
-function sampleAvatarColor(img: HTMLImageElement): {
-  hex: string | null;
-  style: 'fill' | 'padded';
-} | null {
+function sampleAvatarColor(
+  img: HTMLImageElement
+): {hex: string | null; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
-
   if (!data) return null;
 
-  let r = 0,
-    g = 0,
-    b = 0,
-    count = 0;
+  const style = shouldPadImage(data);
+
+  // Accumulate two sets: chromatic pixels (saturation ≥ 0.15) and all opaque pixels.
+  // prettier-ignore
+  let cr = 0, cg = 0, cb = 0, ccount = 0;
+  // prettier-ignore
+  let ar = 0, ag = 0, ab = 0, acount = 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    // if (data[i + 3]! < 128) continue;
-    const pr = data[i]!,
-      pg = data[i + 1]!,
-      pb = data[i + 2]!;
+    if (data[i + 3]! < 128) continue;
 
-    // 0.15 is minimum saturation for a pixel to count as chromatic
-    if ((Math.max(pr, pg, pb) - Math.min(pr, pg, pb)) / 255 < 0.15) continue;
-    r += pr;
-    g += pg;
-    b += pb;
-    count++;
+    const r = data[i]!,
+      g = data[i + 1]!,
+      b = data[i + 2]!;
+
+    // accumulate all pixels
+    ar += r;
+    ag += g;
+    ab += b;
+    acount++;
+
+    // accumulate chromatic pixels
+    if ((Math.max(r, g, b) - Math.min(r, g, b)) / 255 >= 0.15) {
+      cr += r;
+      cg += g;
+      cb += b;
+      ccount++;
+    }
   }
 
-  const style = shouldPadImage(data);
+  // Prefer the chromatic average; fall back to all opaque pixels so dark logos
+  // (e.g. black wordmarks) still produce a hex. The contrast guard in
+  // resolveImageAvatarColors will reject near-white results.
+  const [r, g, b, count] = ccount > 0 ? [cr, cg, cb, ccount] : [ar, ag, ab, acount];
   if (count === 0) return {hex: null, style};
 
-  return {
-    hex:
-      '#' +
-      Math.round(r / count)
-        .toString(16)
-        .padStart(2, '0') +
-      Math.round(g / count)
-        .toString(16)
-        .padStart(2, '0') +
-      Math.round(b / count)
-        .toString(16)
-        .padStart(2, '0'),
-    style,
-  };
+  const toHex = (v: number) =>
+    Math.round(v / count)
+      .toString(16)
+      .padStart(2, '0');
+  return {hex: `#${toHex(r)}${toHex(g)}${toHex(b)}`, style};
 }
 
 function fetchAvatarColor(
@@ -269,12 +269,15 @@ async function resolveImageAvatarColors(
 
   if (!sampled) return null;
 
+  if (!sampled.hex || color(sampled.hex).contrast(color(pageBackground)) < 1.3) {
+    return null;
+  }
+
   return {
-    chonk: sampled.hex
-      ? color(pageBackground).luminosity() > 0.5
-        ? color(sampled.hex).darken(0.35).hex()
-        : color(sampled.hex).lighten(0.35).hex()
-      : undefined,
+    chonk:
+      sampled.style === 'fill'
+        ? color(sampled.hex).darken(0.65).hex()
+        : color(sampled.hex).darken(0.45).hex(),
     style: sampled.style,
   };
 }
