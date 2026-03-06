@@ -11,10 +11,10 @@ from django.dispatch import Signal
 
 from sentry.hybridcloud.rpc import OptionValue, silo_mode_delegation
 from sentry.hybridcloud.rpc.resolvers import (
+    ByCellName,
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
-    ByRegionName,
     RequireSingleOrganization,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
@@ -142,7 +142,7 @@ class OrganizationService(RpcService):
         :param user_id: The user to check membership with
         """
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
         self, *, region_name: str, user: RpcUser, scope: str | None = None
@@ -479,7 +479,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
         """
