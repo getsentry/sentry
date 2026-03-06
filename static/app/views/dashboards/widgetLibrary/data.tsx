@@ -8,7 +8,7 @@ import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widg
 import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
-import {hasPlatformizedNextJsOverviewWidget} from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextJsOverview';
+import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 
 const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -293,7 +293,7 @@ const getDefaultWidgets = (organization: Organization) => {
     SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
 
-  if (hasPlatformizedNextJsOverviewWidget(organization)) {
+  if (hasPlatformizedInsights(organization)) {
     spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE);
     spanWidgets.push(RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
   }
