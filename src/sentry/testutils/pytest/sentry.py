@@ -73,8 +73,11 @@ def _configure_test_env_regions() -> None:
     region_name = "testregion" + "".join(random.choices(string.digits, k=6))
 
     # Each parallel worker gets a unique snowflake_id so concurrent model
-    # creation doesn't produce colliding IDs.
-    region_snowflake_id = isolation.worker_num + 1 if isolation.worker_num is not None else 0
+    # creation doesn't produce colliding IDs.  Slot 0 keeps the historical
+    # default of 0 for backward compatibility.
+    region_snowflake_id = (
+        isolation.worker_num if isolation.worker_num and isolation.worker_num > 0 else 0
+    )
 
     default_region = Cell(
         region_name,

@@ -23,13 +23,14 @@ cross-worker data.
 
 from __future__ import annotations
 
+import atexit
 import fcntl
 import os
 import tempfile
 from pathlib import Path
 
-_TEST_REDIS_DB = 1  # DB 0 is left for dev server / production defaults.
-_MAX_SLOTS = 15  # Redis DBs 1-15 → slots 0-14.
+_TEST_REDIS_DB = 9  # Must match the historical default in sentry.py.
+_MAX_SLOTS = 7  # Redis DBs 9-15 → slots 0-6.  DB 0 reserved for dev.
 
 _SLOT_DIR = Path(tempfile.gettempdir()) / "sentry_test_slots"
 
@@ -38,7 +39,7 @@ _slot_lock_fd: object | None = None
 
 
 def _acquire_slot() -> int:
-    """Claim an exclusive slot via file lock.  Returns 0-6."""
+    """Claim an exclusive slot via file lock.  Returns 0–(_MAX_SLOTS-1)."""
     global _slot_lock_fd
     _SLOT_DIR.mkdir(exist_ok=True)
     for slot in range(_MAX_SLOTS):
@@ -47,6 +48,7 @@ def _acquire_slot() -> int:
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             _slot_lock_fd = fd
+            atexit.register(fd.close)
             return slot
         except OSError:
             fd.close()
@@ -85,12 +87,13 @@ else:
 
 
 def get_db_suffix() -> str:
-    """Return a suffix for PostgreSQL database names, or ``""`` for serial.
+    """Return a suffix for PostgreSQL database names, or ``""`` for serial/slot-0.
 
-    Examples: ``"_0"``, ``"_3"``, ``""``.
+    Slot 0 returns ``""`` so the default database name matches the historical
+    unsuffixed name — critical for ``--reuse-db`` and ClickHouse data alignment.
     """
-    if worker_id is not None:
-        return f"_{worker_id}"
+    if worker_num is not None and worker_num > 0:
+        return f"_{worker_num}"
     return ""
 
 
@@ -108,9 +111,12 @@ def get_redis_db() -> int:
 
 
 def get_kafka_topic(base_name: str) -> str:
-    """Return a Kafka topic name unique to this worker."""
-    if worker_id:
-        return f"{base_name}-{worker_id}"
+    """Return a Kafka topic name unique to this worker.
+
+    Slot 0 returns the base name (matching serial mode) for backward compat.
+    """
+    if worker_num is not None and worker_num > 0:
+        return f"{base_name}-{worker_num}"
     return base_name
 
 

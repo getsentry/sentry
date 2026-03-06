@@ -10,6 +10,7 @@ import os
 import re
 import sys
 from collections.abc import Callable, Generator
+from concurrent.futures import ThreadPoolExecutor
 from string import Template
 from typing import Any, ContextManager, Protocol, overload
 
@@ -330,6 +331,27 @@ def call_snuba(settings):
         return requests.post(settings.SENTRY_SNUBA + endpoint)
 
     return inner
+
+
+@pytest.fixture
+def reset_snuba(call_snuba):
+    init_endpoints = [
+        "/tests/events_analytics_platform/drop",
+        "/tests/spans/drop",
+        "/tests/events/drop",
+        "/tests/functions/drop",
+        "/tests/groupedmessage/drop",
+        "/tests/transactions/drop",
+        "/tests/metrics/drop",
+        "/tests/generic_metrics/drop",
+        "/tests/search_issues/drop",
+        "/tests/group_attributes/drop",
+    ]
+
+    assert all(
+        response.status_code == 200
+        for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
+    )
 
 
 @pytest.fixture
