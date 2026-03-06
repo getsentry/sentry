@@ -35,7 +35,8 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouter from 'sentry/utils/useRouter';
+import useLocation from 'sentry/utils/useLocation';
+import useNavigate from 'sentry/utils/useNavigate';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -354,7 +355,8 @@ function UsageStatsOrganization({
   children,
   endpointQuery,
 }: UsageStatsOrganizationProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const orgStatsQuery = useMemo(() => {
     return (
       endpointQuery ??
@@ -405,11 +407,9 @@ function UsageStatsOrganization({
     (event: ReactMouseEvent) => {
       event.preventDefault();
       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-      if (router) {
-        navigateTo(url, router);
-      }
+      navigateTo(url, {location, push: (path: any) => navigate(path)} as any);
     },
-    [router, organization]
+    [navigate, location, organization]
   );
 
   const chartDataTransform = useMemo(() => {
