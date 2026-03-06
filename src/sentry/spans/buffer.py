@@ -744,6 +744,7 @@ class SpansBuffer:
         return payloads
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
+        hdel_batch_size = options.get("spans.buffer.hdel-redirect-map-batch-size")
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
@@ -757,7 +758,7 @@ class SpansBuffer:
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
-                    for span_batch in itertools.batched(flushed_segment.spans, 100):
+                    for span_batch in itertools.batched(flushed_segment.spans, hdel_batch_size):
                         span_ids = [output_span.payload["span_id"] for output_span in span_batch]
                         p.hdel(redirect_map_key, *span_ids)
 
