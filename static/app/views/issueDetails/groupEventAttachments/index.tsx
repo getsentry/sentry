@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -11,13 +10,11 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupEventAttachments from './groupEventAttachments';
 
 function GroupEventAttachmentsContainer() {
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const params = useParams();
 
   const {
@@ -43,7 +40,7 @@ function GroupEventAttachmentsContainer() {
         <FeatureDisabled {...props} featureName={t('Event Attachments')} />
       )}
     >
-      <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutBody>
         <Layout.Main width="full">
           <GroupEventAttachments project={group.project} group={group} />
         </Layout.Main>
@@ -52,18 +49,14 @@ function GroupEventAttachmentsContainer() {
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
-  ${p =>
-    p.hasStreamlinedUI &&
-    css`
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: ${p.theme.radius.md};
-      padding: ${space(2)} 0;
+const StyledLayoutBody = styled(Layout.Body)`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${space(2)} 0;
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        padding: ${space(2)} ${space(2)};
-      }
-    `}
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${space(2)} ${space(2)};
+  }
 `;
 
 export default GroupEventAttachmentsContainer;

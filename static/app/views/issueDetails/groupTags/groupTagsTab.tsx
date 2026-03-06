@@ -22,10 +22,7 @@ import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {
-  useEnvironmentsFromUrl,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type SimpleTag = {
   key: string;
@@ -155,14 +152,7 @@ export function GroupTagsTab() {
 }
 
 function GroupTagsRoute() {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  // TODO(streamlined-ui): Point the router to group event details
-  if (hasStreamlinedUI) {
-    return <GroupEventDetails />;
-  }
-
-  return <GroupTagsTab />;
+  return <GroupEventDetails />;
 }
 
 export default GroupTagsRoute;
