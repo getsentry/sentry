@@ -9,7 +9,6 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
@@ -23,8 +22,9 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {useStackedNavigationTour} from 'sentry/views/nav/tour/tour';
 
 /**
@@ -176,7 +176,8 @@ interface TaskProps {
 function Task({task, hidePanel}: TaskProps) {
   const organization = useOrganization();
   const mutateOnboardingTasks = useMutateOnboardingTasks();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
@@ -213,7 +214,17 @@ function Task({task, hidePanel}: TaskProps) {
       }
 
       if (task.actionType === 'action') {
-        task.action(router);
+        task.action({
+          push: path => navigate(path),
+          replace: path => navigate(path, {replace: true}),
+          go: delta => navigate(delta),
+          goBack: () => navigate(-1),
+          goForward: () => navigate(1),
+          location,
+          params: {},
+          routes: [],
+          isActive: () => false,
+        });
       }
 
       if (task.actionType === 'app') {
@@ -223,11 +234,11 @@ function Task({task, hidePanel}: TaskProps) {
         // Add referrer to all links
         to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
 
-        navigateTo(to, router);
+        navigate(to);
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel, tours, sidebarTour]
+    [task, organization, navigate, location, hidePanel, tours, sidebarTour]
   );
 
   const handleMarkSkipped = useCallback(() => {
