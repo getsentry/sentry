@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, override
 
@@ -47,6 +47,11 @@ JS_SOURCEMAP_ERROR_TYPES = frozenset(
 )
 
 
+def has_js_sourcemap_errors(errors: Sequence[Mapping[str, Any]]) -> bool:
+    """Check whether any of the given processing errors are JS sourcemap errors."""
+    return any(e.get("type") in JS_SOURCEMAP_ERROR_TYPES for e in errors)
+
+
 class SourcemapCheckStatus(enum.IntEnum):
     """
     Status values used as the comparison value for detector conditions.
@@ -81,8 +86,11 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
     @override
     def extract_value(self, data_packet: DataPacket[SourcemapPacketValue]) -> SourcemapCheckStatus:
         errors = data_packet.packet.event_data.get("errors", [])
-        has_js_errors = any(e.get("type") in JS_SOURCEMAP_ERROR_TYPES for e in errors)
-        return SourcemapCheckStatus.FAILURE if has_js_errors else SourcemapCheckStatus.SUCCESS
+        return (
+            SourcemapCheckStatus.FAILURE
+            if has_js_sourcemap_errors(errors)
+            else SourcemapCheckStatus.SUCCESS
+        )
 
     @override
     def extract_dedupe_value(self, data_packet: DataPacket[SourcemapPacketValue]) -> int:

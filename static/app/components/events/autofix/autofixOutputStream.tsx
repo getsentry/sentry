@@ -18,7 +18,6 @@ import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnim
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -346,8 +345,8 @@ const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ScaleContainer = styled(motion.div)`
@@ -401,7 +400,7 @@ const Container = styled(motion.div)<{required: boolean}>`
 
 const StreamContent = styled('div')`
   margin: 0;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   white-space: pre-wrap;
   word-break: break-word;
   color: ${p => p.theme.tokens.content.secondary};
@@ -415,21 +414,21 @@ const ActiveLogWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   background: ${p => p.theme.tokens.background.secondary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   overflow: visible;
 `;
 
 const ActiveLog = styled('div')`
   flex-grow: 1;
   word-break: break-word;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const VerticalLine = styled('div')`
   width: 0;
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
   border-left: 1px dashed ${p => p.theme.tokens.border.primary};
   margin-left: 33px;
   margin-bottom: -1px;
@@ -437,14 +436,14 @@ const VerticalLine = styled('div')`
 
 const InputWrapper = styled('form')`
   display: flex;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   position: relative;
 `;
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
   border-color: ${p => p.theme.tokens.border.secondary};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
   resize: none;
 
   &:hover {
@@ -454,7 +453,7 @@ const StyledInput = styled(TextArea)`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;
