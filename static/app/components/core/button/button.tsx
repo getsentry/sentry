@@ -61,6 +61,8 @@ export function Button({
             as="span"
             align="center"
             area="1 / 1"
+            width="100%"
+            justify="center"
             gap={iconGap}
             visibility={busy ? 'hidden' : undefined}
           >
