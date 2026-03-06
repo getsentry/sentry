@@ -1,12 +1,11 @@
 from typing import Any
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 
 from sentry.workflow_engine.caches.workflow import DEFAULT_VALUE, invalidate_processing_workflows
-from sentry.workflow_engine.models import DetectorWorkflow
+from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 
 
 @receiver(pre_save, sender=DetectorWorkflow)
@@ -63,7 +62,7 @@ def invalidate_processing_workflows_cache_delete_relationship(
     # invalidate all environments related to the detector
     try:
         env_id = instance.workflow.environment_id
-    except ObjectDoesNotExist:
+    except Workflow.DoesNotExist:
         env_id = DEFAULT_VALUE
 
     transaction.on_commit(

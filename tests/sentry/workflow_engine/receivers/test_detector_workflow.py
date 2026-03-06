@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.workflow import DEFAULT_VALUE
+from sentry.workflow_engine.models import Workflow
 
 
 class DetectorWorkflowReceiverTests(TestCase):
@@ -62,12 +63,8 @@ class DetectorWorkflowReceiverTests(TestCase):
         dw = self.create_detector_workflow(detector=detector, workflow=workflow)
         detector_id = detector.id
 
-        # Simulate cascade delete scenario where workflow is deleted before
-        # the pre_delete signal handler can access it
-        from django.core.exceptions import ObjectDoesNotExist
-
         def raise_does_not_exist(self: object) -> None:
-            raise ObjectDoesNotExist()
+            raise Workflow.DoesNotExist()
 
         with patch(
             "sentry.workflow_engine.receivers.detector_workflow.invalidate_processing_workflows"
