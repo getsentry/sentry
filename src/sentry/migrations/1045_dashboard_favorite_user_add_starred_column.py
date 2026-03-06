@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="dashboardfavoriteuser",
-            name="starred",
+            name="favorited",
             field=models.BooleanField(db_default=True),
         ),
     ]
