@@ -215,7 +215,6 @@ export default function PrimaryNavSeerConfigReminder() {
         label={t('Configure Seer')}
         buttonProps={{
           ...overlayTriggerProps,
-          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
           icon: <IconSeer />,
         }}
       >

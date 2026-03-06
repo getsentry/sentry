@@ -23,7 +23,6 @@ import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
-  SidebarItemDefaultsContext,
   SidebarLink,
   SidebarList,
 } from 'sentry/views/nav/primary/components';
@@ -64,21 +63,19 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   }
 
   return (
-    <SidebarItemDefaultsContext.Provider value={{size: isMobile ? 'xs' : 'sm'}}>
-      <Flex
-        display="flex"
-        // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
-        align="center"
-        justify={isMobile ? 'start' : 'center'}
-        width={isMobile ? '100%' : 'auto'}
-      >
-        {isMobile ? (
-          <Stack width="100%">{children}</Stack>
-        ) : (
-          <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
-        )}
-      </Flex>
-    </SidebarItemDefaultsContext.Provider>
+    <Flex
+      display="flex"
+      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
+      align="center"
+      justify={isMobile ? 'start' : 'center'}
+      width={isMobile ? '100%' : 'auto'}
+    >
+      {isMobile ? (
+        <Stack width="100%">{children}</Stack>
+      ) : (
+        <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
+      )}
+    </Flex>
   );
 }
 

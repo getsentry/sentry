@@ -1,11 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useEffect,
-  useRef,
-  type MouseEventHandler,
-} from 'react';
+import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -77,16 +70,6 @@ function recordPrimaryItemClick(
   });
 }
 
-interface SidebarItemDefaultsValue {
-  size?: ButtonProps['size'];
-}
-
-export const SidebarItemDefaultsContext = createContext<SidebarItemDefaultsValue>({});
-
-function useSidebarItemDefaults() {
-  return useContext(SidebarItemDefaultsContext);
-}
-
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
@@ -129,13 +112,11 @@ export function SidebarMenu({
   onOpen,
   disableTooltip,
   icon,
-  size,
   triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
-  const {size: defaultSize} = useSidebarItemDefaults();
   const theme = useTheme();
 
   const showLabel = layout === NavLayout.MOBILE;
@@ -175,7 +156,6 @@ export function SidebarMenu({
                   triggerProps.onClick?.(event);
                   onOpen?.(event);
                 }}
-                size={defaultSize ?? size}
                 icon={icon}
               >
                 {showLabel ? label : null}
@@ -200,7 +180,6 @@ function SidebarNavLink({
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const {layout, activePrimaryNavGroup} = useNavContext();
-  const {size} = useSidebarItemDefaults();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
@@ -216,7 +195,6 @@ function SidebarNavLink({
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
-      size={size}
       onClick={() => {
         recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
       }}
@@ -231,7 +209,7 @@ function SidebarNavLink({
         </Fragment>
       ) : (
         <Fragment>
-          <NavLinkIconContainer size={size}>{children}</NavLinkIconContainer>
+          <NavLinkIconContainer>{children}</NavLinkIconContainer>
           <NavLinkLabel>{label}</NavLinkLabel>
         </Fragment>
       )}
@@ -276,24 +254,22 @@ export function SidebarButton({
 }: SidebarButtonProps) {
   const organization = useOrganization();
   const {layout} = useNavContext();
-  const {size: groupSize} = useSidebarItemDefaults();
   const showLabel = layout === NavLayout.MOBILE;
-  const resolvedButtonProps = {...buttonProps, size: buttonProps.size ?? groupSize};
 
   return (
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavButton
-        {...resolvedButtonProps}
+        {...buttonProps}
         isMobile={layout === NavLayout.MOBILE}
         analyticsParams={analyticsParams}
         className={className}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
-          resolvedButtonProps.onClick?.(e);
+          buttonProps.onClick?.(e);
           onClick?.(e);
         }}
-        icon={resolvedButtonProps.icon}
+        icon={buttonProps.icon}
       >
         {showLabel ? label : null}
         {children}
@@ -336,11 +312,11 @@ const Separator = styled('hr')`
   margin: 0;
 `;
 
-const NavLinkIconContainer = styled('span')<{size?: ButtonProps['size']}>`
+const NavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${p => (p.size ? p.theme.space.sm : p.theme.space.md)};
+  padding: ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -493,7 +469,6 @@ export const SidebarItemUnreadIndicator = styled('span')<{
   position: absolute;
   top: 0;
   right: 0;
-  transform: translate(calc(50% + 4px), -50%);
   display: block;
   text-align: center;
   color: ${p => p.theme.colors.white};
@@ -510,7 +485,6 @@ export const SidebarItemUnreadIndicator = styled('span')<{
       top: 2px;
       right: auto;
       left: 11px;
-      transform: none;
     `}
 `;
 
