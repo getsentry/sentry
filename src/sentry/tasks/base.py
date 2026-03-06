@@ -83,9 +83,9 @@ def instrumented_task(
     name : str
         The name of the task. This is serialized and must be stable across deploys.
     namespace : TaskNamespace
-        The namespace of the task. This is used to group tasks together.
+        The namespace of the task. Tasks in a given namespace are all processed by the same taskbroker pool.
     alias : str | None
-        The alias of the task. Used to rename a task.
+        The alias of the task. Used for maintaining backwards compatibility after renaming a task.
     alias_namespace : TaskNamespace | None
         The namespace of the alias task. Used to move a task to a different namespace.
     retry : Retry | None
@@ -98,13 +98,13 @@ def instrumented_task(
         After received_at + expires has passed an activation is expired and will not be executed.
     processing_deadline_duration : int | datetime.timedelta | None
         The duration in seconds that a worker has to complete task execution.
-        When an activation is moved from pending -> processing a result is expected
+        When a taskbroker gives an activation to the taskworker to execute, a result is expected
         in this many seconds. If not provided, the default task duration of
         DEFAULT_PROCESSING_DEADLINE will be used.
     at_most_once : bool
         Enable at-most-once execution. Tasks with `at_most_once` cannot
         define retry policies, and use a worker side idempotency key to
-        prevent processing deadline based retries.
+        to guarantee that they are only attempted once (regardless of success or failure).
     wait_for_delivery : bool
         If true, the task will wait for the delivery report to be received
         before returning.
