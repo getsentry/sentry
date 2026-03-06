@@ -33,7 +33,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0002_add_default_coding_agent
 
-sentry: 1044_remove_projecttemplate_model
+sentry: 1045_dashboard_favorite_user_add_starred_column
 
 social_auth: 0003_social_auth_json_field
 
