@@ -14,7 +14,6 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
@@ -169,6 +168,6 @@ export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
 export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   cursor: ${p => (p.isFrozen ? 'default' : 'pointer')};
 `;

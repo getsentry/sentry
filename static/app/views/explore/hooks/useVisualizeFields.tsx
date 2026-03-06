@@ -31,7 +31,7 @@ export function useVisualizeFields({
   stringTags,
   traceItemType,
 }: UseVisualizeFieldsProps) {
-  const tags: TagCollection = useMemo(() => {
+  const tags = useMemo(() => {
     return getSupportedAttributes({
       functionName: parsedFunction?.name || '',
       numberTags,

@@ -23,6 +23,7 @@ import HttpDurationChartWidget from 'sentry/views/insights/common/components/wid
 import HttpResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget';
 import HttpThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -30,7 +31,6 @@ import {
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import useHasDashboardsPlatformizedHttp from 'sentry/views/insights/http/utils/useHasDashboardsPlatformizedHttp';
 import {PlatformizedHttpOverview} from 'sentry/views/insights/http/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -155,8 +155,8 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const hasDashboardsPlatformizedHttp = useHasDashboardsPlatformizedHttp();
-  if (hasDashboardsPlatformizedHttp) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedHttpOverview />;
   }
 

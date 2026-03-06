@@ -202,13 +202,13 @@ def test_client_config_with_region_data() -> None:
 
 
 hidden_regions = [
-    region.Region(
+    region.Cell(
         name="us",
         snowflake_id=1,
         address="https//us.testserver",
         category=region.RegionCategory.MULTI_TENANT,
     ),
-    region.Region(
+    region.Cell(
         name="eu",
         snowflake_id=5,
         address="https//eu.testserver",

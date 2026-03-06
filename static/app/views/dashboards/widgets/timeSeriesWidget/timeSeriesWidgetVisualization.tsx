@@ -241,7 +241,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
-  const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
+  const leftYAxis = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
         formatter: (value: number) =>
@@ -253,7 +253,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     axisRangeProp
   );
 
-  const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
+  const rightYAxis = rightYAxisType
     ? TimeSeriesWidgetYAxis(
         {
           axisLabel: {

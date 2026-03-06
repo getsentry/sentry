@@ -1,68 +1,125 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
+  SidebarItem,
   SnapshotDetailsApiResponse,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
+import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
+import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
 import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
-  const {projectId, projectSlug, snapshotId} = useParams<{
-    projectId: string;
-    projectSlug: string;
+  const theme = useTheme();
+  const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
 
-  const {data, isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage} =
-    useInfiniteApiQuery<SnapshotDetailsApiResponse>({
-      queryKey: [
-        'infinite',
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectSlug,
-              snapshotId,
-            },
-          }
-        ),
-        {query: {per_page: 20}},
-      ],
-      staleTime: 0,
-      enabled: !!projectSlug && !!snapshotId,
-    });
+  const {
+    data,
+    isPending,
+    isError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteApiQuery<SnapshotDetailsApiResponse>({
+    queryKey: [
+      'infinite',
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            snapshotId,
+          },
+        }
+      ),
+      {query: {per_page: 20}},
+    ],
+    staleTime: 0,
+    enabled: !!snapshotId,
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
+  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [overlayColor, setOverlayColor] = useState<string>(() => {
+    const palette = theme.chart.getColorPalette(10);
+    return palette.at(-1) ?? '#67C800';
+  });
+  const [diffMode, setDiffMode] = useState<DiffMode>('split');
+
+  const {
+    size: sidebarWidth,
+    isHeld,
+    onMouseDown,
+    onDoubleClick,
+  } = useResizableDrawer({
+    direction: 'left',
+    initialSize: 350,
+    min: 200,
+    onResize: () => {},
+    sizeStorageKey: 'snapshot-sidebar-width',
+  });
 
   const firstPageData = data?.pages[0]?.[0];
+  const comparisonType = firstPageData?.comparison_type ?? 'solo';
+  const comparisonRunInfo = firstPageData?.comparison_run_info;
 
-  const groupedImages = useMemo(() => {
+  const sidebarItems = useMemo(() => {
     if (!data?.pages) {
-      return new Map<string, SnapshotImage[]>();
+      return [];
     }
+
+    if (comparisonType === 'diff' && firstPageData) {
+      const items: SidebarItem[] = [];
+
+      for (const pair of firstPageData.changed) {
+        items.push({type: 'changed', name: getImageName(pair.head_image), pair});
+      }
+      for (const img of firstPageData.added) {
+        items.push({type: 'added', name: getImageName(img), image: img});
+      }
+      for (const img of firstPageData.removed) {
+        items.push({type: 'removed', name: getImageName(img), image: img});
+      }
+      for (const img of firstPageData.renamed ?? []) {
+        items.push({type: 'renamed', name: getImageName(img), image: img});
+      }
+      for (const img of firstPageData.unchanged) {
+        items.push({type: 'unchanged', name: getImageName(img), image: img});
+      }
+
+      return items;
+    }
+
     const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of allImages) {
-      const name = image.display_name ?? image.image_file_name;
+      const name = getImageName(image);
       const existing = groups.get(name);
       if (existing) {
         existing.push(image);
@@ -70,36 +127,39 @@ export default function SnapshotsPage() {
         groups.set(name, [image]);
       }
     }
-    return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
-  }, [data?.pages]);
 
-  const filteredGroups = useMemo(() => {
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, images]) => ({type: 'solo' as const, name, images}));
+  }, [data?.pages, comparisonType, firstPageData]);
+
+  const filteredItems = useMemo(() => {
     if (!searchQuery) {
-      return groupedImages;
+      return sidebarItems;
     }
     const query = searchQuery.toLowerCase();
-    const filtered = new Map<string, SnapshotImage[]>();
-    for (const [name, images] of groupedImages) {
-      if (name.toLowerCase().includes(query)) {
-        filtered.set(name, images);
-      }
-    }
-    return filtered;
-  }, [groupedImages, searchQuery]);
+    return sidebarItems.filter(item => item.name.toLowerCase().includes(query));
+  }, [sidebarItems, searchQuery]);
 
-  // Default to first group if nothing selected or selection no longer in filtered results
-  const currentGroupName =
-    selectedGroupName && filteredGroups.has(selectedGroupName)
-      ? selectedGroupName
-      : (filteredGroups.keys().next().value ?? null);
-  const currentGroupImages = currentGroupName
-    ? (filteredGroups.get(currentGroupName) ?? [])
-    : [];
+  const currentItemName =
+    selectedItemName && filteredItems.some(i => i.name === selectedItemName)
+      ? selectedItemName
+      : (filteredItems[0]?.name ?? null);
+  const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
 
-  const handleSelectGroupName = (name: string) => {
-    setSelectedGroupName(name);
+  useEffect(() => {
+    setVariantIndex(0);
+  }, [currentItemName]);
+
+  const handleSelectItem = (name: string) => {
+    setSelectedItemName(name);
     setVariantIndex(0);
   };
+
+  const imageBaseUrl = `/api/0/projects/${organization.slug}/${firstPageData?.project_id ?? ''}/files/images/`;
+  const diffImageBaseUrl = firstPageData
+    ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${firstPageData.project_id}/${organization.id}/${firstPageData.project_id}/`
+    : '';
 
   if (isPending) {
     return (
@@ -129,30 +189,77 @@ export default function SnapshotsPage() {
     <SentryDocumentTitle title={t('Snapshot')}>
       <Layout.Page>
         <Layout.Header>
-          <SnapshotHeaderContent projectId={projectId} data={firstPageData} />
+          <SnapshotHeaderContent
+            projectId={firstPageData.project_id}
+            data={firstPageData}
+          />
+          <Layout.HeaderActions>
+            <SnapshotDevTools
+              organizationSlug={organization.slug}
+              snapshotId={snapshotId}
+              comparisonRunInfo={comparisonRunInfo}
+              hasBaseArtifact={firstPageData.base_artifact_id !== null}
+              refetch={refetch}
+            />
+          </Layout.HeaderActions>
         </Layout.Header>
-        <Flex direction="row" gap="0" height="100%" width="100%">
-          <SnapshotSidebarContent
-            filteredGroups={filteredGroups}
-            currentGroupName={currentGroupName}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onSelectGroupName={handleSelectGroupName}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            fetchNextPage={fetchNextPage}
-          />
-          <Separator orientation="vertical" />
-          <SnapshotMainContent
-            currentGroupName={currentGroupName}
-            currentGroupImages={currentGroupImages}
-            variantIndex={variantIndex}
-            onVariantChange={setVariantIndex}
-            organizationSlug={organization.slug}
-            projectSlug={projectSlug}
-          />
+
+        <Flex direction="row" height="100%" width="100%" overflow="hidden">
+          <Flex flexShrink={0} overflow="hidden" style={{width: sidebarWidth}}>
+            <SnapshotSidebarContent
+              items={filteredItems}
+              currentItemName={currentItemName}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onSelectItem={handleSelectItem}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              fetchNextPage={fetchNextPage}
+            />
+          </Flex>
+          <DragHandle
+            data-is-held={isHeld}
+            onMouseDown={onMouseDown}
+            onDoubleClick={onDoubleClick}
+          >
+            <IconGrabbable size="sm" />
+          </DragHandle>
+          <Flex flex="1" minWidth={0} overflow="hidden">
+            <SnapshotMainContent
+              selectedItem={currentItem}
+              variantIndex={variantIndex}
+              onVariantChange={setVariantIndex}
+              imageBaseUrl={imageBaseUrl}
+              diffImageBaseUrl={diffImageBaseUrl}
+              showOverlay={showOverlay}
+              onShowOverlayChange={setShowOverlay}
+              overlayColor={overlayColor}
+              onOverlayColorChange={setOverlayColor}
+              diffMode={diffMode}
+              onDiffModeChange={setDiffMode}
+            />
+          </Flex>
         </Flex>
       </Layout.Page>
     </SentryDocumentTitle>
   );
 }
+
+const DragHandle = styled('div')`
+  display: grid;
+  place-items: center;
+  width: ${space(2)};
+  height: 100%;
+  cursor: ew-resize;
+  user-select: inherit;
+  background: ${p => p.theme.tokens.background.secondary};
+
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &[data-is-held='true'] {
+    user-select: none;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;

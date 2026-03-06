@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
@@ -10,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
 
@@ -18,6 +18,7 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
+  className?: string;
   isTooltipDisabled?: boolean;
   loading?: boolean;
   showLabel?: boolean;
@@ -32,7 +33,9 @@ export function AssigneeBadge({
   chevronDirection = 'down',
   loading = false,
   isTooltipDisabled,
+  className,
 }: AssigneeBadgeProps) {
+  const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (
@@ -56,7 +59,7 @@ export function AssigneeBadge({
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders
           style={{
-            marginLeft: actor.type === 'team' ? space(0.5) : '0',
+            marginLeft: actor.type === 'team' ? theme.space.xs : '0',
           }}
         />
         {showLabel && (
@@ -89,7 +92,7 @@ export function AssigneeBadge({
   );
 
   return loading ? (
-    <StyledTag icon={loadingIcon} variant="muted" />
+    <StyledTag className={className} icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -105,7 +108,11 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
+      <StyledTag
+        className={className}
+        icon={makeAssignedIcon(assignedTo)}
+        variant="muted"
+      />
     </Tooltip>
   ) : (
     <Tooltip
@@ -128,7 +135,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag icon={unassignedIcon} variant="muted" />
+      <UnassignedTag className={className} icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }
@@ -153,10 +160,10 @@ const StyledText = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   height: 24px;
-  padding: ${space(0.5)};
-  padding-right: ${space(0.25)};
+  padding: ${p => p.theme.space.xs};
+  padding-right: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

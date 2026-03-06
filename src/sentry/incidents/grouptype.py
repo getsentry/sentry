@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -11,7 +11,11 @@ from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
-from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import (
+    AnomalyDetectionUpdate,
+    AnomalyDetectionValues,
+    ProcessedSubscriptionUpdate,
+)
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
@@ -27,7 +31,12 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import (
+    DetectorException,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +54,23 @@ QUERY_AGGREGATION_DISPLAY = {
 
 
 MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
-MetricResult = float | dict
+
+MetricResult = float | AnomalyDetectionValues
+
+
+# Post-serialization: what's stored in evidence data after JSON round-trip.
+class StoredAnomalyDetectionResult(TypedDict):
+    value: float
+    source_id: str
+    subscription_id: str
+    timestamp: str
+
+
+StoredMetricResult = float | StoredAnomalyDetectionResult
 
 
 @dataclass
-class MetricIssueEvidenceData(EvidenceData[MetricResult]):
+class MetricIssueEvidenceData(EvidenceData[StoredMetricResult]):
     alert_id: int
 
 
@@ -239,12 +260,15 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
         return int(data_packet.packet.timestamp.timestamp())
 
-    def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
-        # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
-        values = data_packet.packet.values
+    def extract_value(
+        self, data_packet: DataPacket[MetricUpdate]
+    ) -> MetricResult | dict[DetectorGroupKey, MetricResult]:
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            return {None: values}
-        return values.get("value")
+            # A bare AnomalyDetectionValues dict would be interpreted as a grouped
+            # result dict, so wrap it with an explicit group key.
+            grouped: dict[DetectorGroupKey, MetricResult] = {None: data_packet.packet.values}
+            return grouped
+        return data_packet.packet.values["value"]
 
     def construct_title(
         self,

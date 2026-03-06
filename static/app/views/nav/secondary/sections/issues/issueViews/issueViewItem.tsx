@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -225,7 +224,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
 
   /* Hide the project icon on hover in favor of the drag handle */
   :hover {

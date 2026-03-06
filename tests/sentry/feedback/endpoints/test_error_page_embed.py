@@ -9,7 +9,7 @@ from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_locality
 
 
 class ErrorPageEmbedTest(TestCase):
@@ -83,8 +83,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
-        region = get_local_region()
-        region_url = region.to_url(self.path_with_qs)
+        region_url = get_local_locality().to_url(self.path_with_qs)
         body = resp.content.decode("utf8")
         assert f'endpoint = /**/"{region_url}";/**/' in body
 

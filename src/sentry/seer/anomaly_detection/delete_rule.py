@@ -4,13 +4,14 @@ import logging
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ALERT_DELETION_URL
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import AlertInSeer, DataSourceType, DeleteAlertDataRequest
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
@@ -19,6 +20,20 @@ logger = logging.getLogger(__name__)
 seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL, timeout=settings.SEER_DEFAULT_TIMEOUT
 )
+
+
+def make_delete_alert_data_request(
+    body: DeleteAlertDataRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_anomaly_detection_connection_pool,
+        SEER_ALERT_DELETION_URL,
+        body=json.dumps(body).encode("utf-8"),
+        viewer_context=viewer_context,
+    )
+
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.detector import Detector
@@ -66,12 +81,9 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
     extra_data = {
         "source_id": source_id,
     }
+    viewer_context = SeerViewerContext(organization_id=organization.id)
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ALERT_DELETION_URL,
-            body=json.dumps(body).encode("utf-8"),
-        )
+        response = make_delete_alert_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning(
             "Timeout error when hitting Seer delete rule data endpoint",

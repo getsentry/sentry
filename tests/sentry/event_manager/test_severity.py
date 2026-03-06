@@ -88,6 +88,7 @@ class TestGetEventSeverity(TestCase):
             override_settings(SEER_API_SHARED_SECRET="some-secret"),
         ):
             _get_severity_score(event)
+            viewer_context_bytes = orjson.dumps({"organization_id": self.project.organization_id})
             mock_urlopen.assert_called_with(
                 "POST",
                 "/v0/issues/severity-score",
@@ -95,6 +96,10 @@ class TestGetEventSeverity(TestCase):
                 headers={
                     "content-type": "application/json;charset=utf-8",
                     "Authorization": f"Rpcsignature rpc0:{hmac.new(b'some-secret', orjson.dumps(payload), hashlib.sha256).hexdigest()}",
+                    "X-Viewer-Context": viewer_context_bytes.decode("utf-8"),
+                    "X-Viewer-Context-Signature": hmac.new(
+                        b"some-secret", viewer_context_bytes, hashlib.sha256
+                    ).hexdigest(),
                 },
                 timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )

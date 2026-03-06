@@ -28,6 +28,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
+    SeerViewerContext,
     make_org_project_knowledge_index_request,
 )
 from sentry.tasks.base import instrumented_task
@@ -104,10 +105,13 @@ def index_org_project_knowledge(org_id: int) -> None:
 
     payload = OrgProjectKnowledgeIndexRequest(org_id=org_id, projects=project_data)
 
+    viewer_context = SeerViewerContext(organization_id=org_id)
+
     try:
         response = make_org_project_knowledge_index_request(
             payload,
             timeout=30,
+            viewer_context=viewer_context,
         )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -193,6 +197,13 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     except Organization.DoesNotExist:
         logger.error("Organization not found", extra={"org_id": organization_id})
         return
+    except Exception:
+        sentry_sdk.capture_exception()
+        logger.exception(
+            "Failed to build service map",
+            extra={"org_id": organization_id},
+        )
+        raise
 
 
 @instrumented_task(

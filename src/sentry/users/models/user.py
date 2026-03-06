@@ -44,7 +44,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
-from sentry.types.region import find_all_region_names, find_regions_for_user
+from sentry.types.region import find_all_cell_names, find_regions_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user_avatar import UserAvatar
@@ -371,7 +371,7 @@ class User(Model, AbstractBaseUser):
         # of anything with a HybridCloudForeignKey, even if the user is no longer
         # a member of any organizations in that region.
         if is_user_delete:
-            user_regions = set(find_all_region_names())
+            user_regions = set(find_all_cell_names())
         else:
             user_regions = find_regions_for_user(identifier)
 

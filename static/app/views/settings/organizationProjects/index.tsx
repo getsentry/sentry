@@ -15,15 +15,14 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
@@ -38,6 +37,7 @@ type ProjectStats = Record<string, Required<Project['stats']>>;
 function OrganizationProjects() {
   const organization = useOrganization();
 
+  const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
@@ -90,13 +90,16 @@ function OrganizationProjects() {
     () =>
       debounce(
         (searchQuery: string) =>
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {...location.query, query: searchQuery, cursor: undefined},
-          }),
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {...location.query, query: searchQuery, cursor: undefined},
+            },
+            {replace: true}
+          ),
         DEFAULT_DEBOUNCE_DURATION
       ),
-    [location.pathname, location.query]
+    [location.pathname, location.query, navigate]
   );
 
   return (
@@ -148,7 +151,7 @@ function OrganizationProjects() {
 export default OrganizationProjects;
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const GridPanelItem = styled(PanelItem)`
@@ -158,12 +161,12 @@ const GridPanelItem = styled(PanelItem)`
 `;
 
 const ProjectListItemWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   flex: 1;
 `;
 
 const ProjectStatsGraphWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   width: 25%;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;

@@ -4,7 +4,6 @@ import Processings from 'sentry/components/events/interfaces/debugMeta/debugImag
 import {getImageAddress} from 'sentry/components/events/interfaces/debugMeta/utils';
 import NotAvailable from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Image} from 'sentry/types/debugImage';
 
 type Props = {
@@ -58,7 +57,8 @@ const Wrapper = styled('div')`
 
 const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
+    ${p => p.theme.space.md};
   ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;
 
@@ -66,7 +66,7 @@ const Value = styled(Label)`
   white-space: pre-wrap;
   word-break: break-all;
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
   ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;

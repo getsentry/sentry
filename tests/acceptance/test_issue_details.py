@@ -5,7 +5,6 @@ from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
-from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
 
 now = datetime.now(timezone.utc)
@@ -23,9 +22,6 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        UserOption.objects.set_value(
-            user=self.user, key="prefers_issue_details_streamlined_ui", value=False
-        )
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
@@ -159,9 +155,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="python")
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.go_to_subtab("activity")
-
-        self.browser.wait_until_test_id("activity-item")
+        self.browser.wait_until_test_id("note-input-form")
 
     def test_resolved(self) -> None:
         event = self.create_sample_event(platform="python")
