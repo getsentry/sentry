@@ -44,7 +44,7 @@ import {
   LogDate,
   LogsFilteredHelperText,
   LogsHighlight,
-  WrappingText,
+  // WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
@@ -135,14 +135,12 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   const level = getLogSeverityLevel(severityNumber, severityText);
   const levelLabel = useFullSeverityText ? severityText : severityLevelToText(level);
   return (
-    <AlignedCellContent align={props.extra.align}>
-      <SeverityCircle
-        level={level}
-        levelLabel={levelLabel}
-        severityText={severityText}
-        logColors={props.extra.logColors}
-      />
-    </AlignedCellContent>
+    <SeverityCircle
+      level={level}
+      levelLabel={levelLabel}
+      severityText={severityText}
+      logColors={props.extra.logColors}
+    />
   );
 }
 
@@ -154,15 +152,13 @@ export function TimestampRenderer(props: LogFieldRendererProps) {
     : props.item.value;
 
   return (
-    <LogDate align={props.extra.align}>
-      <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
-        attributes={props.extra.attributes}
-        shouldRender={props.extra.shouldRenderHoverElements}
-      >
-        <DateTime seconds milliseconds date={timestampToUse} />
-      </LogsTimestampTooltip>
-    </LogDate>
+    <LogsTimestampTooltip
+      timestamp={props.item.value as string | number}
+      attributes={props.extra.attributes}
+      shouldRender={props.extra.shouldRenderHoverElements}
+    >
+      <DateTime seconds milliseconds date={timestampToUse} />
+    </LogsTimestampTooltip>
   );
 }
 
@@ -450,17 +446,15 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       extra={props.extra}
       isAppendingTemplate={!!templateText}
     >
-      <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
-        {isBodyFiltered && templateText && (
-          <FieldReplacementHelper
-            original={attribute_value}
-            replacement={templateText as string}
-            extra={props.extra}
-            item={props.item}
-          />
-        )}
-      </WrappingText>
+      <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+      {isBodyFiltered && templateText && (
+        <FieldReplacementHelper
+          original={attribute_value}
+          replacement={templateText as string}
+          extra={props.extra}
+          item={props.item}
+        />
+      )}
     </FilteredTooltip>
   );
 }
@@ -476,7 +470,7 @@ function LogTemplateRenderer(props: LogFieldRendererProps) {
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
-  const type = props.meta?.fields?.[props.item.fieldKey];
+  // const type = props.meta?.fields?.[props.item.fieldKey];
   const adjustedFieldKey =
     fullFieldToExistingField[props.item.fieldKey] ?? props.item.fieldKey;
 
@@ -493,7 +487,7 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
 
   const customRenderer = LogAttributesRendererMap[props.item.fieldKey];
 
-  const align = logsFieldAlignment(adjustedFieldKey, type);
+  // const align = logsFieldAlignment(adjustedFieldKey, type);
 
   if (!customRenderer) {
     return (
@@ -505,9 +499,7 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
 
   return (
     <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
-      <AlignedCellContent align={align}>
-        {customRenderer({...props, basicRendered})}
-      </AlignedCellContent>
+      {customRenderer({...props, basicRendered})}
     </AnnotatedAttributeWrapper>
   );
 }

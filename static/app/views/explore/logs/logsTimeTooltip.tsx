@@ -142,6 +142,7 @@ export default function LogsTimestampTooltip({
       }
       maxWidth={400}
       isHoverable
+      skipWrapper
     >
       {children}
     </Tooltip>

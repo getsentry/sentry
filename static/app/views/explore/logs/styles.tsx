@@ -108,23 +108,23 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(TableBodyCell)`
-  min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
+// export const LogTableBodyCell = styled(TableBodyCell)`
+//   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
-  padding: 2px ${p => p.theme.space.xl};
+//   padding: 2px ${p => p.theme.space.xl};
 
-  font-size: ${p => p.theme.font.size.md};
+//   font-size: ${p => p.theme.font.size.md};
 
-  /* Need to select the 2nd child to select the first cell
-     as the first child is the interaction state layer */
-  &:nth-child(2) {
-    padding: 2px 0 2px ${p => p.theme.space['2xl']};
-  }
+//   /* Need to select the 2nd child to select the first cell
+//      as the first child is the interaction state layer */
+//   &:nth-child(2) {
+//     padding: 2px 0 2px ${p => p.theme.space['2xl']};
+//   }
 
-  &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
-  }
-`;
+//   &:last-child {
+//     padding: 2px ${p => p.theme.space.xl};
+//   }
+// `;
 
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
@@ -189,9 +189,9 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-export function LogFirstCellContent(props: FlexProps<'div'>) {
-  return <Flex align="center" {...props} />;
-}
+// export function LogFirstCellContent(props: FlexProps<'div'>) {
+//   return <Flex align="center" {...props} />;
+// }
 
 export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
   ${NumberContainer} {
@@ -282,10 +282,10 @@ export const FirstTableHeadCell = styled(TableHeadCell)`
   padding-left: ${p => p.theme.space.xl};
 `;
 
-export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
-  padding-right: 0;
-  padding-left: ${p => p.theme.space.md};
-`;
+// export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
+//   padding-right: 0;
+//   padding-left: ${p => p.theme.space.md};
+// `;
 
 export function TableActionsContainer(props: FlexProps<'div'>) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
@@ -506,4 +506,12 @@ export const TraceIconStyleWrapper = styled(Flex)`
     height: 12px;
     fill: #ffffff;
   }
+`;
+
+// ...
+
+export const JoshCell = styled('td')`
+  align-items: center;
+  display: flex;
+  height: 28px;
 `;

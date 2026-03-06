@@ -68,13 +68,14 @@ import {
   DetailsContent,
   DetailsWrapper,
   getLogColors,
+  JoshCell,
   LogAttributeTreeWrapper,
   LogDetailTableActionsButtonBar,
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
-  LogFirstCellContent,
-  LogsTableBodyFirstCell,
-  LogTableBodyCell,
+  // LogFirstCellContent,
+  // LogsTableBodyFirstCell,
+  // LogTableBodyCell,
   LogTableRow,
   StyledChevronButton,
   TraceIconStyleWrapper,
@@ -328,45 +329,43 @@ export const LogRowContent = memo(function LogRowContent({
           }
         }}
       >
-        <LogsTableBodyFirstCell key="first">
-          <LogFirstCellContent>
-            {isPseudoRow ? (
-              <span className="log-table-row-pseudo-row-chevron-replacement" />
-            ) : blockRowExpanding ? null : shouldRenderHoverElements ? (
-              <StyledChevronButton
-                icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
-                aria-label={t('Toggle trace details')}
-                aria-expanded={expanded}
-                size="zero"
-                priority="transparent"
-                onClick={() => toggleExpanded()}
-              />
-            ) : (
-              <span className="log-table-row-chevron-button">{chevronIcon}</span>
-            )}
-            {isPseudoRow ? (
-              <Flex align="center" justify="center" gap="sm">
-                <TraceIconStyleWrapper>
-                  <div className="TraceIcon error">
-                    <TraceIcons.Fire />
-                  </div>
-                </TraceIconStyleWrapper>
-              </Flex>
-            ) : (
-              <React.Fragment>
-                <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
-                {project ? (
-                  <ProjectBadge project={project} avatarSize={12} hideName />
-                ) : null}
-              </React.Fragment>
-            )}
-          </LogFirstCellContent>
-        </LogsTableBodyFirstCell>
+        <JoshCell>
+          {isPseudoRow ? (
+            <span className="log-table-row-pseudo-row-chevron-replacement" />
+          ) : blockRowExpanding ? null : shouldRenderHoverElements ? (
+            <StyledChevronButton
+              icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+              aria-label={t('Toggle trace details')}
+              aria-expanded={expanded}
+              size="zero"
+              priority="transparent"
+              onClick={() => toggleExpanded()}
+            />
+          ) : (
+            <span className="log-table-row-chevron-button">{chevronIcon}</span>
+          )}
+          {isPseudoRow ? (
+            <Flex align="center" justify="center" gap="sm">
+              <TraceIconStyleWrapper>
+                <div className="TraceIcon error">
+                  <TraceIcons.Fire />
+                </div>
+              </TraceIconStyleWrapper>
+            </Flex>
+          ) : (
+            <React.Fragment>
+              <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
+              {project ? (
+                <ProjectBadge project={project} avatarSize={12} hideName />
+              ) : null}
+            </React.Fragment>
+          )}
+        </JoshCell>
         {fields?.map(field => {
           const value = (dataRow as OurLogsResponseItem)[field];
 
           if (!defined(value)) {
-            return <LogTableBodyCell key={field} />;
+            return <JoshCell key={field} />;
           }
 
           const renderedField = (
@@ -398,7 +397,7 @@ export const LogRowContent = memo(function LogRowContent({
             shouldRenderHoverElements;
 
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
+            <JoshCell key={field} data-test-id={'log-table-cell-' + field}>
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
@@ -433,7 +432,7 @@ export const LogRowContent = memo(function LogRowContent({
               ) : (
                 renderedField
               )}
-            </LogTableBodyCell>
+            </JoshCell>
           );
         })}
       </LogTableRow>
@@ -531,9 +530,9 @@ function LogRowDetails({
             <DetailsContent>
               <DetailsBody>
                 {isRegularLogResponseItem(dataRow) ? (
-                  LogBodyRenderer({
-                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                    extra: {
+                  <LogBodyRenderer
+                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    extra={{
                       highlightTerms,
                       logColors,
                       wrapBody: true,
@@ -545,8 +544,8 @@ function LogRowDetails({
                       meta,
                       theme,
                       traceItemMeta: data?.meta,
-                    },
-                  })
+                    }}
+                  />
                 ) : (
                   <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
                 )}
