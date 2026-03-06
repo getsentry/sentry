@@ -113,6 +113,7 @@ type ComponentSubcategory =
   | 'typography'
   | 'layout'
   | 'buttons'
+  | 'controls'
   | 'forms'
   | 'navigation'
   | 'status'
@@ -157,14 +158,11 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   buttons: {
     label: 'Buttons',
-    components: [
-      'button',
-      'linkbutton',
-      'buttonbar',
-      'compactselect',
-      'composite',
-      'segmentedcontrol',
-    ],
+    components: ['button', 'linkbutton'],
+  },
+  controls: {
+    label: 'Controls',
+    components: ['buttonbar', 'compactselect', 'composite', 'segmentedcontrol'],
   },
   forms: {
     label: 'Forms',
@@ -225,6 +223,7 @@ const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'layout',
   'typography',
   'buttons',
+  'controls',
   'forms',
   'navigation',
   'status',
