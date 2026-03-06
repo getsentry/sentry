@@ -225,6 +225,32 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   code {
     background-color: transparent;
   }
+
+  /* Reset heading styles inside TanStack Devtools to prevent global style leaking */
+  #tanstack_devtools {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: revert;
+      line-height: revert;
+      font-weight: revert;
+      font-size: revert;
+    }
+  }
+
+  /* TanStack Query has a fixed height but inside TanStack Devtools we want it to grow */
+  .tsqd-parent-container {
+    height: unset !important;
+  }
+  .tsqd-queries-container code {
+    /* Don't override colors inside @tanstack/react-query-devtools */
+    background-color: unset;
+    color: inherit;
+  }
+
   ${prismStyles(theme, darkTheme)}
 
   /**
