@@ -20,7 +20,7 @@ from sentry.workflow_engine.models import Detector
 
 class DetectorCountResponse(TypedDict):
     active: int
-    deactive: int
+    inactive: int
     total: int
 
 
@@ -77,7 +77,7 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
                     output_field=IntegerField(),
                 )
             ),
-            deactive=Count(
+            inactive=Count(
                 Case(
                     When(enabled=False, then=1),
                     output_field=IntegerField(),
