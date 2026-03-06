@@ -11,7 +11,6 @@ import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import Header from 'sentry/views/organizationStats/header';
 
@@ -26,7 +25,6 @@ import {dataDatetime} from './utils';
 export default function TeamStatsIssues() {
   const organization = useOrganization();
   const location = useLocation();
-  const router = useRouter();
   const {teams, isLoading, isError} = useUserTeams();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
@@ -67,7 +65,6 @@ export default function TeamStatsIssues() {
         <TeamStatsControls
           showEnvironment
           location={location}
-          router={router}
           currentTeam={currentTeam}
           currentEnvironment={environment}
         />
