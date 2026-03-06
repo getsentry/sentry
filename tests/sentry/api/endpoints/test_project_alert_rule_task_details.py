@@ -147,9 +147,22 @@ class ProjectAlertRuleTaskDetailsDeltaTest(APITestCase):
         new_data = response_new.data["alertRule"]
 
         skip_fields = {"triggers"}
+
+        # Known differences between old and new serializers that are acceptable
+        known_differences = {
+            # createdBy: Lost during migration when AlertRuleActivity CREATED type wasn't
+            # tracked. Detector.created_by_id is None if user wasn't provided during migration.
+            # Cannot use AlertRuleActivity as it's being phased out.
+            "createdBy",
+            # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
+            # but workflow engine always creates a resolve condition during migration.
+            # Cannot distinguish between explicit None vs migrated value without AlertRule.
+            "resolveThreshold",
+        }
+
         mismatches: list[str] = []
         for field in set(list(old_data.keys()) + list(new_data.keys())):
-            if field in skip_fields:
+            if field in skip_fields or field in known_differences:
                 continue
             if field not in new_data:
                 mismatches.append(f"Missing from new: {field}")

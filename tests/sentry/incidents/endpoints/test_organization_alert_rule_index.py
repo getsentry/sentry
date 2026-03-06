@@ -290,10 +290,18 @@ class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
         new_data = new_resp.data
         assert len(new_data) == len(old_data)
 
+        # Known differences between old and new serializers
+        known_differences = {
+            # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
+            # but workflow engine always creates a resolve condition during migration.
+            # Cannot distinguish between explicit None vs migrated value without AlertRule.
+            "resolveThreshold",
+        }
+
         mismatches: list[str] = []
         for old_rule, new_rule in zip(old_data, new_data):
             for field in set(list(old_rule.keys()) + list(new_rule.keys())):
-                if field == "triggers":
+                if field == "triggers" or field in known_differences:
                     continue
                 if field not in new_rule:
                     mismatches.append(f"Missing from new: {field}")
@@ -310,7 +318,7 @@ class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
                 )
             for old_t, new_t in zip(old_triggers, new_triggers):
                 for tfield in set(list(old_t.keys()) + list(new_t.keys())):
-                    if tfield == "actions":
+                    if tfield == "actions" or tfield in known_differences:
                         continue
                     if old_t.get(tfield) != new_t.get(tfield):
                         mismatches.append(
