@@ -78,6 +78,38 @@ jobs:
 
   # Selective testing - only on PRs, determine which tests to run based on coverage data.
   # This job is skipped on push-to-master where the full suite runs instead.
+  #
+  # === CUTOVER: Cross-repo selective testing ===
+  # getsentry maintains a cross-repo coverage DB (backend-with-coverage.yml)
+  # that maps sentry source files → test files with better accuracy than
+  # sentry's single-repo coverage. To switch, replace this job with:
+  #
+  #   prepare-selective-tests:
+  #     if: >-
+  #       needs.files-changed.outputs.backend == 'true' &&
+  #       needs.files-changed.outputs.skip_selective_testing != 'true' &&
+  #       github.event_name == 'pull_request'
+  #     needs: files-changed
+  #     uses: getsentry/getsentry/.github/workflows/select-sentry-tests.yml@master
+  #     with:
+  #       sentry-changed-files: ${{ needs.files-changed.outputs.changed-files }}
+  #     secrets: inherit
+  #
+  # And add a changed-files output to the files-changed job:
+  #     changed-files: ${{ steps.changed-files.outputs.files }}
+  #   with step:
+  #     - name: Get changed files
+  #       id: changed-files
+  #       if: github.event_name == 'pull_request'
+  #       run: |
+  #         CHANGED=$(git diff --name-only \
+  #           "${{ github.event.pull_request.base.sha }}"..."${{ github.event.pull_request.head.sha }}" \
+  #           | tr '\n' ' ')
+  #         echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
+  #
+  # The reusable workflow has the same output interface (has-selected-tests,
+  # test-count) and uploads the same artifact name (selected-tests-{run_id}),
+  # so calculate-shards and backend-test work without modification.
   prepare-selective-tests:
     if: >-
       needs.files-changed.outputs.backend == 'true' &&
