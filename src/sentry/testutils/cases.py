@@ -4050,7 +4050,7 @@ class ReplayEAPTestCase(BaseTestCase):
         **attributes,
     ):
         """Create single EAP replay breadcrumb TraceItem."""
-        from datetime import datetime, timezone
+        from datetime import datetime
         from uuid import uuid4
 
         from google.protobuf.timestamp_pb2 import Timestamp
@@ -4060,7 +4060,7 @@ class ReplayEAPTestCase(BaseTestCase):
         if organization is None:
             organization = self.organization
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
         if trace_id is None:
             trace_id = replay_id
 
@@ -4178,19 +4178,12 @@ class UptimeResultEAPTestCase(BaseTestCase):
         status_reason_description=None,
         span_id=None,
     ):
-        from datetime import datetime, timedelta, timezone
-        from uuid import uuid4
-
-        from google.protobuf.timestamp_pb2 import Timestamp
-        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-        from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
-
         if organization is None:
             organization = self.organization
         if project is None:
             project = self.project
         if scheduled_check_time is None:
-            scheduled_check_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+            scheduled_check_time = datetime.now(UTC) - timedelta(minutes=1)
         if trace_id is None:
             trace_id = uuid4().hex
         if guid is None:
@@ -4291,3 +4284,72 @@ class UptimeResultEAPTestCase(BaseTestCase):
             # Reverse the ids here since these are stored in little endian in Clickhouse
             # and end up reversed.
             result.item_id = result.item_id[::-1]
+
+
+class ProcessingErrorTestCase(BaseTestCase):
+    """Test case for creating and storing EAP processing error items."""
+
+    def create_processing_error(
+        self,
+        *,
+        organization=None,
+        project=None,
+        timestamp=None,
+        trace_id=None,
+        event_id=None,
+        error_type="js_no_source",
+        symbolicator_type=None,
+        release=None,
+        environment=None,
+        platform="javascript",
+        sdk_name=None,
+        sdk_version=None,
+    ):
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now(UTC) - timedelta(minutes=1)
+        if trace_id is None:
+            trace_id = uuid4().hex
+        if event_id is None:
+            event_id = uuid4().hex
+
+        attributes_data: dict[str, str | int] = {
+            "event_id": event_id,
+            "error_type": error_type,
+        }
+
+        if symbolicator_type is not None:
+            attributes_data["symbolicator_type"] = symbolicator_type
+        if release is not None:
+            attributes_data["release"] = release
+        if environment is not None:
+            attributes_data["environment"] = environment
+        if platform is not None:
+            attributes_data["platform"] = platform
+        if sdk_name is not None:
+            attributes_data["sdk_name"] = sdk_name
+        if sdk_version is not None:
+            attributes_data["sdk_version"] = sdk_version
+
+        attributes_proto = {}
+        for k, v in attributes_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
