@@ -12,7 +12,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import Header from 'sentry/views/organizationStats/header';
 
@@ -25,7 +24,6 @@ import TeamStability from './teamStability';
 import {dataDatetime} from './utils';
 
 export default function TeamStatsHealth() {
-  const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
   const {teams, isLoading, isError} = useUserTeams();
@@ -66,7 +64,6 @@ export default function TeamStatsHealth() {
       <div>
         <TeamStatsControls
           location={location}
-          router={router}
           currentTeam={currentTeam}
         />
 
