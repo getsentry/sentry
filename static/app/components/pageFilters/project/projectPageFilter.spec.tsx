@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
@@ -14,6 +15,7 @@ import {
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -718,6 +720,32 @@ describe('ProjectPageFilter', () => {
     expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
     MockApiClient.clearMockResponses();
+  });
+
+  describe('superuser access', () => {
+    it('shows All Projects option for superusers in orgs without open-membership', async () => {
+      // Org without open-membership and current user is not owner/manager
+      const closedOrg = OrganizationFixture({
+        features: [],
+        orgRole: 'member',
+      });
+      OrganizationStore.onUpdate(closedOrg, {replace: true});
+      ConfigStore.set('user', UserFixture({isSuperuser: true}));
+
+      render(<ProjectPageFilter />, {
+        organization: closedOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+
+      // Superuser should see the "All Projects" option
+      expect(
+        screen.getByRole('checkbox', {name: 'Select All Projects'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('single-project org label', () => {

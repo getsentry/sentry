@@ -33,6 +33,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
@@ -77,6 +78,7 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
+  const user = useUser();
 
   // Project data s
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -86,6 +88,7 @@ export function ProjectPageFilter({
   } = usePageFilters();
 
   const showNonMemberProjects =
+    user.isSuperuser ||
     organization.orgRole === 'owner' ||
     organization.orgRole === 'manager' ||
     organization.features.includes('open-membership');
