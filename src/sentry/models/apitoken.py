@@ -30,7 +30,7 @@ from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.silo.safety import unguarded_write
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_cell_names
 from sentry.types.token import AuthTokenType
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -329,7 +329,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return super().update(*args, **kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
-        return list(find_all_region_names())
+        return list(find_all_cell_names())
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token

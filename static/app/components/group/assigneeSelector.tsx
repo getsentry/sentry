@@ -116,7 +116,7 @@ export function AssigneeSelector({
           aria-label={t('Modify issue assignee')}
           size="zero"
         >
-          <AssigneeBadge
+          <StyledAssigneeBadge
             assignedTo={group.assignedTo ?? undefined}
             assignmentReason={
               group.owners?.find(owner => {
@@ -135,15 +135,11 @@ export function AssigneeSelector({
   );
 }
 
-const StyledTrigger = styled(OverlayTrigger.Button)`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  border: none;
-  padding: 0;
-  height: unset;
-  border-radius: 20px;
-  box-shadow: none;
+const StyledAssigneeBadge = styled(AssigneeBadge)`
+  border-radius: ${p => p.theme.radius.full};
+`;
 
-  > span > div {
-    border-radius: 20px;
-  }
+const StyledTrigger = styled(OverlayTrigger.Button)`
+  padding: 0;
+  border-radius: ${p => p.theme.radius.full};
 `;
