@@ -2455,39 +2455,40 @@ def save_attachment(
 
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
-    from sentry import ratelimits as ratelimiter
+    if not attachment.stored_id:
+        from sentry import ratelimits as ratelimiter
 
-    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
-        key="event_attachment.save_per_sec",
-        limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
-        project=project,
-        window=1,
-    )
-    rate_limit_tag = "per_sec"
-    if not is_limited:
         is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
-            key="event_attachment.save_5_min",
-            limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+            key="event_attachment.save_per_sec",
+            limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
             project=project,
-            window=5 * 60,
+            window=1,
         )
-        rate_limit_tag = "per_five_min"
-    if is_limited:
-        metrics.incr(
-            "event_manager.attachments.rate_limited", tags={"rate_limit_type": rate_limit_tag}
-        )
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.RATE_LIMITED,
-            reason="rate_limited",
-            timestamp=timestamp,
-            event_id=event_id,
-            category=DataCategory.ATTACHMENT,
-            quantity=attachment.size or 1,
-        )
-        return
+        rate_limit_tag = "per_sec"
+        if not is_limited:
+            is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
+                key="event_attachment.save_5_min",
+                limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+                project=project,
+                window=5 * 60,
+            )
+            rate_limit_tag = "per_five_min"
+        if is_limited:
+            metrics.incr(
+                "event_manager.attachments.rate_limited", tags={"rate_limit_type": rate_limit_tag}
+            )
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=key_id,
+                outcome=Outcome.RATE_LIMITED,
+                reason="rate_limited",
+                timestamp=timestamp,
+                event_id=event_id,
+                category=DataCategory.ATTACHMENT,
+                quantity=attachment.size or 1,
+            )
+            return
 
     file = EventAttachment.putfile(project.id, attachment)
 
