@@ -150,7 +150,7 @@ class IssueAlertMigratorTest(TestCase):
         assert error_detector.project_id == self.project.id
         assert error_detector.enabled is True
         assert error_detector.owner_user_id is None
-        assert error_detector.owner_team is None
+        assert error_detector.owner_team_id is None
         assert error_detector.type == ErrorGroupType.slug
         assert error_detector.config == {}
 
@@ -168,7 +168,7 @@ class IssueAlertMigratorTest(TestCase):
         assert issue_stream_detector.name == "Issue Stream"
         assert issue_stream_detector.enabled is True
         assert issue_stream_detector.owner_user_id is None
-        assert issue_stream_detector.owner_team is None
+        assert issue_stream_detector.owner_team_id is None
         assert issue_stream_detector.config == {}
 
         issue_stream_detector_workflow = DetectorWorkflow.objects.get(

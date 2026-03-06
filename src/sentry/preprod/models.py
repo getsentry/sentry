@@ -229,6 +229,10 @@ class PreprodArtifact(DefaultFieldsModel):
     )
     installable_app_error_message = models.TextField(null=True)
 
+    def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
+        """Safely access the related mobile_app_info without raising RelatedObjectDoesNotExist."""
+        return getattr(self, "mobile_app_info", None)
+
     @property
     def platform(self) -> Platform | None:
         if self.artifact_type is None:
@@ -789,6 +793,14 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     app_name = models.CharField(max_length=255, null=True)
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
+
+    def format_version_string(self, default: str = "--") -> str:
+        parts: list[str] = []
+        if self.build_version:
+            parts.append(self.build_version)
+        if self.build_number:
+            parts.append(f"({self.build_number})")
+        return " ".join(parts) if parts else default
 
     class Meta:
         app_label = "preprod"

@@ -196,7 +196,7 @@
     "@tanstack/eslint-plugin-query": "5.83.1",
     "@tanstack/react-devtools": "0.9.9",
     "@tanstack/react-form-devtools": "0.2.17",
-    "@tanstack/react-pacer-devtools": "0.5.2",
+    "@tanstack/react-pacer-devtools": "0.5.3",
     "@tanstack/react-query-devtools": "5.85.0",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
@@ -253,10 +253,7 @@
       "@sentry/cli",
       "core-js",
       "esbuild"
-    ],
-    "patchedDependencies": {
-      "@tanstack/pacer-devtools": "patches/@tanstack__pacer-devtools.patch"
-    }
+    ]
   },
   "optionalDependencies": {
     "fsevents": "^2.3.3"

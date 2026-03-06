@@ -32,7 +32,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
 const schema = z.object({
-  email: z.string().email(t('Enter a valid email address')),
+  email: z.email(t('Enter a valid email address')),
 });
 
 function AccountEmails() {
