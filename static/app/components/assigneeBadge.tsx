@@ -18,6 +18,7 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
+  className?: string;
   isTooltipDisabled?: boolean;
   loading?: boolean;
   showLabel?: boolean;
@@ -32,6 +33,7 @@ export function AssigneeBadge({
   chevronDirection = 'down',
   loading = false,
   isTooltipDisabled,
+  className,
 }: AssigneeBadgeProps) {
   const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
@@ -90,7 +92,7 @@ export function AssigneeBadge({
   );
 
   return loading ? (
-    <StyledTag icon={loadingIcon} variant="muted" />
+    <StyledTag className={className} icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -106,7 +108,11 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
+      <StyledTag
+        className={className}
+        icon={makeAssignedIcon(assignedTo)}
+        variant="muted"
+      />
     </Tooltip>
   ) : (
     <Tooltip
@@ -129,7 +135,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag icon={unassignedIcon} variant="muted" />
+      <UnassignedTag className={className} icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }
