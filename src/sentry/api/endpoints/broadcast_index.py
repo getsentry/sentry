@@ -115,10 +115,16 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
             if not data:
-                # No active broadcasts — fall back to the 3 most recent so the
-                # menu never shows a blank empty state.
-                fallback = list(Broadcast.objects.order_by("-date_added")[:3])
-                return self.respond(self._serialize_objects(fallback, request))
+                # No org-targeted broadcasts — fall back to the 3 most recent
+                # globally-active broadcasts so the menu never shows an empty state.
+                # _secondary_filtering is intentionally skipped here: we want to
+                # surface any active broadcast rather than nothing when no
+                # org-specific ones exist.
+                fallback_qs = Broadcast.objects.filter(
+                    Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()),
+                    is_active=True,
+                ).order_by("-date_added")[:3]
+                return self.respond(self._serialize_objects(list(fallback_qs), request))
             return self.respond(self._serialize_objects(data, request))
 
         sort_by = request.GET.get("sortBy")
