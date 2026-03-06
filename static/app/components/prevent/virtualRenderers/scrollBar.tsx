@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {LINE_HEIGHT} from 'sentry/components/prevent/virtualRenderers/constants';
-import {space} from 'sentry/styles/space';
 
 interface ScrollBarProps {
   scrollBarRef: React.RefObject<HTMLDivElement | null>;
@@ -21,7 +20,7 @@ export function ScrollBar({scrollBarRef, wrapperWidth}: ScrollBarProps) {
 }
 
 const ScrollBarDiv = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
   height: ${LINE_HEIGHT - 3}px;
   pointer-events: auto;
   position: sticky;

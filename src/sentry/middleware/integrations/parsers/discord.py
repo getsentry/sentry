@@ -26,7 +26,7 @@ from sentry.integrations.web.discord_extension_configuration import (
     DiscordExtensionConfigurationView,
 )
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
-from sentry.types.region import Region
+from sentry.types.region import Cell
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class DiscordRequestParser(BaseRequestParser):
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
 
-    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponse:
+    def get_async_region_response(self, regions: Sequence[Cell]) -> HttpResponse:
         if self.discord_request:
             convert_to_async_discord_response.apply_async(
                 kwargs={

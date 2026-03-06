@@ -46,8 +46,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   });
   const {start: beforeDateTime, end: afterDateTime} = datetime;
 
-  eventView.start = (beforeDateTime as Date).toISOString();
-  eventView.end = (afterDateTime as Date).toISOString();
+  eventView.start = beforeDateTime.toISOString();
+  eventView.end = afterDateTime.toISOString();
   eventView.statsPeriod = undefined;
   const environments = location.query.environment
     ? toArray(location.query.environment)

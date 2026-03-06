@@ -178,6 +178,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     WHEEL = 10
     RAGE_AND_DEAD_CLICKS = 11
     SERVER_TREE = 12
+    TEXT = 13
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -191,6 +192,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (WHEEL, "wheel"),
         (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
         (SERVER_TREE, "server_tree"),
+        (TEXT, "text"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -332,7 +334,7 @@ class DashboardWidget(Model):
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField(null=True)
     title = models.CharField(max_length=255)
-    description = models.CharField(max_length=255, null=True)
+    description = models.TextField(null=True, blank=True)
     thresholds = JSONField(null=True)
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())

@@ -6,7 +6,6 @@ import {Link} from '@sentry/scraps/link';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupActivityReprocess} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import localStorage from 'sentry/utils/localStorage';
@@ -92,7 +91,7 @@ export default ReprocessedBox;
 const StyledBannerSummary = styled(BannerSummary)`
   & > svg:last-child {
     margin-right: 0;
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 `;
 

@@ -1,13 +1,9 @@
 import {useEffect} from 'react';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useNavigate', () => {
   const configState = ConfigStore.getState();
@@ -24,18 +20,7 @@ describe('useNavigate', () => {
       return null;
     }
 
-    const routeContext: RouteContextInterface = {
-      location: LocationFixture(),
-      params: {},
-      router: RouterFixture(),
-      routes: [],
-    };
-
-    render(
-      <TestRouteContext value={routeContext}>
-        <HomePage />
-      </TestRouteContext>
-    );
+    render(<HomePage />);
 
     expect(typeof navigate).toBe('function');
   });
@@ -56,22 +41,14 @@ describe('useNavigate', () => {
       return null;
     }
 
-    const routeContext: RouteContextInterface = {
-      location: LocationFixture(),
-      params: {},
-      router: RouterFixture(),
-      routes: [],
-    };
+    const {router} = render(<HomePage />, {
+      initialRouterConfig: {
+        location: {pathname: '/organizations/acme/issues/'},
+      },
+    });
 
-    render(
-      <TestRouteContext value={routeContext}>
-        <HomePage />
-      </TestRouteContext>
-    );
-
-    expect(routeContext.router.push).toHaveBeenCalledWith({
-      pathname: '/issues/',
-      state: undefined,
+    return waitFor(() => {
+      expect(router.location.pathname).toBe('/issues/');
     });
   });
 });

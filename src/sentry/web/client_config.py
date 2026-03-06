@@ -16,7 +16,7 @@ from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
@@ -36,6 +36,7 @@ from sentry.types.region import (
     find_all_multitenant_locality_names,
     get_global_directory,
     get_locality_by_name,
+    get_locality_name_for_cell,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import UserSerializeType
@@ -293,9 +294,11 @@ class _ClientConfig:
                 organization_mapping = OrganizationMapping.objects.get(
                     organization_id=self.last_org.id
                 )
-                region_url = generate_region_url(organization_mapping.region_name)
+                region_url = generate_locality_url(
+                    get_locality_name_for_cell(organization_mapping.region_name)
+                )
             else:
-                region_url = generate_region_url()
+                region_url = generate_locality_url()
 
         yield "organizationUrl", organization_url
         yield "regionUrl", region_url
@@ -374,9 +377,11 @@ class _ClientConfig:
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
+        monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
+
         def region_display_order(region: Locality) -> tuple[bool, bool, str]:
             return (
-                region.name != settings.SENTRY_MONOLITH_REGION,  # default region comes first
+                region.name != monolith_locality,  # default locality comes first
                 region.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
                 region.name,  # then sort alphabetically
             )

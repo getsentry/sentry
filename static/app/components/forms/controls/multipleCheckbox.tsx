@@ -6,8 +6,6 @@ import noop from 'lodash/noop';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 type Props<T> = {
   children: ReactNode;
   name: string;
@@ -126,7 +124,7 @@ const Label = styled('label')`
 `;
 
 const CheckboxLabel = styled('span')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const LabelContainer = styled('div')`

@@ -1,71 +1,43 @@
+import type {Tagged} from 'type-fest';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 // eslint-disable-next-line boundaries/entry-point
-import {LetterAvatar} from './letterAvatar';
+import {LetterAvatar, type LetterAvatarProps} from './letterAvatar';
+
+function makeConfiguration(
+  initials: string,
+  background: string,
+  content: string
+): LetterAvatarProps['configuration'] {
+  return {
+    initials: initials as Tagged<string, '__avatar'>,
+    background: background as Tagged<string, '__avatar'>,
+    content: content as Tagged<string, '__avatar'>,
+  };
+}
 
 describe('LetterAvatar', () => {
   describe('initials rendering', () => {
-    it.each([
-      ['jane bloggs', 'JB'],
-      ['jane', 'J'],
-      ['jane austen bloggs', 'JB'],
-      ['johnsmith@example.com', 'J'],
-      ['X', 'X'],
-      [' Jane Bloggs ', 'JB'],
-      ['☃super ☃duper', '☃☃'],
-      ['123', '1'],
-      ['127.0.0.1', '1'],
-    ])('renders %s as %s', (name, expected) => {
-      render(<LetterAvatar identifier="test@example.com" name={name} />);
-      expect(screen.getByText(expected)).toBeInTheDocument();
-    });
-  });
-
-  describe('fallback rendering', () => {
-    it.each([[''], ['   '], [' '], [undefined]])(
-      'renders question mark for empty/whitespace: "%s"',
-      (name: string | undefined) => {
-        // @ts-expect-error test untyped falsy values
-        render(<LetterAvatar identifier="unknown" name={name} />);
-        expect(screen.getByText('?')).toBeInTheDocument();
+    it.each([['JB'], ['J'], ['☃☃'], ['1'], ['?']])(
+      'renders initials "%s" as passed',
+      initials => {
+        render(
+          <LetterAvatar
+            configuration={makeConfiguration(initials, '#ff0000', '#ffffff')}
+          />
+        );
+        expect(screen.getByText(initials)).toBeInTheDocument();
       }
     );
-
-    it('renders question mark for data-scrubbed [Filtered] name', () => {
-      render(<LetterAvatar identifier="user@example.com" name="[Filtered]" />);
-      expect(screen.getByText('?')).toBeInTheDocument();
-    });
   });
 
-  describe('identifier vs name separation', () => {
-    it('uses identifier prop for color hashing', () => {
-      // Render with identifier - this should determine the color
-      render(<LetterAvatar identifier="user123" name="Jane Doe" />);
-      expect(screen.getByText('JD')).toBeInTheDocument();
-    });
-
-    it('uses name prop for initials, not identifier', () => {
-      // Different identifiers but same name should show same initials
-      const {rerender} = render(
-        <LetterAvatar identifier="jane.doe@example.com" name="Jane Doe" />
+  describe('color rendering', () => {
+    it('applies the provided background color to the rect', () => {
+      render(
+        <LetterAvatar configuration={makeConfiguration('JD', '#ff0000', '#ffffff')} />
       );
       expect(screen.getByText('JD')).toBeInTheDocument();
-
-      rerender(<LetterAvatar identifier="jane.smith@example.com" name="Jane Doe" />);
-      // Initials still come from name, not identifier
-      expect(screen.getByText('JD')).toBeInTheDocument();
-    });
-
-    it('handles initials change while keeping same identifier', () => {
-      // Same identifier (for color) but different name (for initials)
-      const {rerender} = render(
-        <LetterAvatar identifier="user@example.com" name="Jane Doe" />
-      );
-      expect(screen.getByText('JD')).toBeInTheDocument();
-
-      // Change name but keep identifier the same
-      rerender(<LetterAvatar identifier="user@example.com" name="Jane Smith" />);
-      expect(screen.getByText('JS')).toBeInTheDocument();
     });
   });
 });

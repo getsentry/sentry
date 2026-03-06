@@ -13,7 +13,10 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.integrations.claude_code.utils import ClaudeSessionStatus
+from sentry.issues.auto_source_code_config.code_mapping import (
+    get_sorted_code_mapping_configs,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -79,6 +82,20 @@ class CodingAgentStatus(StrEnum):
 
         return status_mapping.get(cursor_status.upper(), None)
 
+    @classmethod
+    def from_claude_code_status(cls, claude_code_status: str) -> "CodingAgentStatus":
+        status_mapping = {
+            ClaudeSessionStatus.PENDING: cls.PENDING,
+            ClaudeSessionStatus.RUNNING: cls.RUNNING,
+            ClaudeSessionStatus.IDLE: cls.COMPLETED,
+            ClaudeSessionStatus.CLOSED: cls.COMPLETED,
+        }
+        try:
+            status = ClaudeSessionStatus(claude_code_status.lower())
+        except ValueError:
+            return cls.RUNNING
+        return status_mapping[status]
+
 
 class AutofixTriggerSource(StrEnum):
     ROOT_CAUSE = "root_cause"
@@ -89,13 +106,13 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
-    branch_name: str | None = None
     pr_url: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
+    CLAUDE_CODE_AGENT = "claude_code_agent"
 
 
 class CodingAgentState(BaseModel):
@@ -106,6 +123,7 @@ class CodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
+    integration_id: int | None = None
 
 
 class CodebaseState(BaseModel):
@@ -461,9 +479,11 @@ def has_project_connected_repos(
 
 def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_get_project_preferences_request(
         BulkGetProjectPreferencesRequest(organization_id=organization_id, project_ids=project_ids),
         timeout=10,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
@@ -478,9 +498,11 @@ def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) 
     if not preferences:
         return
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_set_project_preferences_request(
         BulkSetProjectPreferencesRequest(organization_id=organization_id, preferences=preferences),
         timeout=15,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
@@ -532,7 +554,8 @@ def get_autofix_state(
         check_repo_access=check_repo_access,
         is_user_fetching=is_user_fetching,
     )
-    response = make_get_autofix_state_request(body)
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")

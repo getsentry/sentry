@@ -257,7 +257,8 @@ def _call_seer(
         organization_id=group.organization.id,
         project_id=group.project.id,
     )
-    response = make_summarize_issue_request(body, timeout=30)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -305,7 +306,10 @@ def _generate_fixability_score(
     )
     if summary is not None:
         body["summary"] = summary
-    response = make_fixability_score_request(body, timeout=settings.SEER_FIXABILITY_TIMEOUT)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    response = make_fixability_score_request(
+        body, timeout=settings.SEER_FIXABILITY_TIMEOUT, viewer_context=viewer_context
+    )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)

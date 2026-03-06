@@ -6,7 +6,6 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -164,7 +163,7 @@ function DeviceClassBreakdownBarChart({
       grid={{
         left: '0',
         right: '0',
-        top: space(2),
+        top: theme.space.xl,
         bottom: '0',
         containLabel: true,
       }}

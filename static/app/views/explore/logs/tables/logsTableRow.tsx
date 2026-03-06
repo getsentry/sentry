@@ -21,7 +21,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -110,7 +109,6 @@ type LogsRowProps = {
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
-  canDeferRenderElements?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -158,7 +156,6 @@ export const LogRowContent = memo(function LogRowContent({
   onCollapse,
   onExpandHeight,
   blockRowExpanding,
-  canDeferRenderElements,
   onEmbeddedRowClick,
   logStart,
   logEnd,
@@ -171,18 +168,7 @@ export const LogRowContent = memo(function LogRowContent({
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
-    canDeferRenderElements ? false : true
-  );
-
-  const setShouldRenderHoverElements = useCallback(
-    (value: boolean) => {
-      if (canDeferRenderElements) {
-        _setShouldRenderHoverElements(value);
-      }
-    },
-    [canDeferRenderElements, _setShouldRenderHoverElements]
-  );
+  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
@@ -406,9 +392,14 @@ export const LogRowContent = memo(function LogRowContent({
             type: FieldValueType.STRING,
           };
 
+          const shouldRenderActions =
+            !embedded &&
+            field !== OurLogKnownFieldKey.TIMESTAMP &&
+            shouldRenderHoverElements;
+
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
-              {shouldRenderHoverElements ? (
+              {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
                   dataRow={dataRow as unknown as TableDataRow}
@@ -434,11 +425,7 @@ export const LogRowContent = memo(function LogRowContent({
                         break;
                     }
                   }}
-                  allowActions={
-                    field === OurLogKnownFieldKey.TIMESTAMP || embedded
-                      ? []
-                      : ALLOWED_CELL_ACTIONS
-                  }
+                  allowActions={ALLOWED_CELL_ACTIONS}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
@@ -612,6 +599,7 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
+  const theme = useTheme();
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
@@ -625,7 +613,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: space(0.5)}} />
+        <IconAdd size="md" style={{paddingRight: theme.space.xs}} />
         {t('Add to filter')}
       </Button>
       <Button
@@ -639,7 +627,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconSubtract size="md" style={{paddingRight: space(0.5)}} />
+        <IconSubtract size="md" style={{paddingRight: theme.space.xs}} />
         {t('Exclude from filter')}
       </Button>
     </LogDetailTableActionsButtonBar>
@@ -653,6 +641,7 @@ function LogRowDetailsActions({
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
   tableDataRow: LogTableRowItem;
 }) {
+  const theme = useTheme();
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
@@ -692,7 +681,7 @@ function LogRowDetailsActions({
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: space(0.5)}} />
+          <IconJson size="md" style={{paddingRight: theme.space.xs}} />
           {t('Copy as JSON')}
         </Button>
       </LogDetailTableActionsButtonBar>

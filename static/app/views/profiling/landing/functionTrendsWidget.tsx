@@ -23,16 +23,15 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
@@ -70,6 +69,7 @@ export function FunctionTrendsWidget({
   onDataState,
 }: FunctionTrendsWidgetProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   const analyticsSource =
@@ -88,12 +88,12 @@ export function FunctionTrendsWidget({
 
   const handleCursor = useCallback(
     (cursor: any, pathname: any, query: any) => {
-      browserHistory.push({
+      navigate({
         pathname,
         query: {...query, [cursorName]: cursor},
       });
     },
-    [cursorName]
+    [cursorName, navigate]
   );
 
   const paginationAnalyticsEvent = useCallback(
@@ -553,5 +553,5 @@ const DurationChange = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

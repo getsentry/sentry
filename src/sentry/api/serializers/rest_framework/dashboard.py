@@ -7,8 +7,7 @@ from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Max
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
@@ -104,38 +103,30 @@ def is_table_display_type(display_type):
     )
 
 
-@extend_schema_field(field=OpenApiTypes.OBJECT)
-class LayoutField(serializers.Field):
-    REQUIRED_KEYS = {
-        "x",
-        "y",
-        "w",
-        "h",
-        "min_h",
-    }
+MAX_WIDGET_COLS = 6
 
-    def to_internal_value(self, data):
-        if data is None:
-            return None
 
-        missing_keys = self.REQUIRED_KEYS - set(data.keys())
-        if missing_keys:
-            missing_key_str = ", ".join(sorted(snake_to_camel_case(key) for key in missing_keys))
-            raise serializers.ValidationError(f"Missing required keys: {missing_key_str}")
+class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
+    """Widget grid layout position and dimensions.
 
-        layout_to_store = {}
-        for key in self.REQUIRED_KEYS:
-            value = data.get(key)
-            if value is None:
-                continue
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    """
 
-            if not isinstance(value, int):
-                raise serializers.ValidationError(f"Expected number for: {key}")
-            layout_to_store[key] = value
+    x = serializers.IntegerField(
+        min_value=0, max_value=MAX_WIDGET_COLS - 1, help_text="Column position (0-indexed)."
+    )
+    y = serializers.IntegerField(min_value=0, help_text="Row position (0-indexed).")
+    w = serializers.IntegerField(
+        min_value=1, max_value=MAX_WIDGET_COLS, help_text="Width in grid columns (1-6)."
+    )
+    h = serializers.IntegerField(min_value=1, help_text="Height in grid rows.")
+    min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
 
-        # Store the layout with camel case dict keys because they'll be
-        # served as camel case in outgoing responses anyways
-        return convert_dict_key_case(layout_to_store, snake_to_camel_case)
+    def validate(self, data):
+        if data["x"] + data["w"] > MAX_WIDGET_COLS:
+            raise serializers.ValidationError(f"x + w must not exceed {MAX_WIDGET_COLS}")
+        return convert_dict_key_case(data, snake_to_camel_case)
 
 
 class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
@@ -305,9 +296,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    description = serializers.CharField(
-        required=False, max_length=255, allow_null=True, allow_blank=True
-    )
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     thresholds = serializers.JSONField(required=False, allow_null=True)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
@@ -315,10 +304,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
     widget_type = serializers.ChoiceField(
-        choices=DashboardWidgetTypes.as_text_choices(), required=False
+        choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout = LayoutField(required=False, allow_null=True)
+    layout = WidgetLayoutSerializer(required=False, allow_null=True)
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
@@ -334,8 +323,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
-    def validate_widget_type(self, widget_type):
-        widget_type = DashboardWidgetTypes.get_id_for_type_name(widget_type)
+    def _validate_widget_type(self, data):
+        widget_type = DashboardWidgetTypes.get_id_for_type_name(data.get("widget_type"))
         if widget_type == DashboardWidgetTypes.DISCOVER or widget_type is None:
             sentry_sdk.set_context(
                 "dashboard",
@@ -345,16 +334,18 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
             raise serializers.ValidationError(
-                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                {
+                    "widget_type": "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                }
             )
         return widget_type
 
     validate_id = validate_id
 
-    def validate_interval(self, interval):
+    def _validate_interval(self, data):
+        interval = data.get("interval")
         if parse_stats_period(interval) is None:
-            raise serializers.ValidationError("Invalid interval")
-        return interval
+            raise serializers.ValidationError({"interval": "Invalid interval"})
 
     def to_internal_value(self, data):
         # Update the context for the queries serializer because the display type is
@@ -372,15 +363,49 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         queries_serializer.context.update(additional_context)
         return super().to_internal_value(data)
 
+    def _validate_text_widget(self, data):
+        if not features.has(
+            "organizations:dashboards-text-widgets",
+            organization=self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            raise serializers.ValidationError({"display_type": "Text widgets are not enabled"})
+
+        if data.get("widget_type"):
+            raise serializers.ValidationError(
+                {"widget_type": "Text widgets don't have a widget type or dataset"}
+            )
+
+        queries = data.get("queries")
+        if queries and len(queries) > 0:
+            raise serializers.ValidationError({"queries": "Text widgets don't have queries"})
+
+        if not data.get("id"):
+            if not data.get("title"):
+                raise serializers.ValidationError({"title": "Title is required during creation."})
+
+        return data
+
     def validate(self, data):
+        self.query_warnings = {"queries": [], "columns": {}}
+
+        if data.get("display_type") == DashboardWidgetDisplayTypes.TEXT:
+            return self._validate_text_widget(data)
+
         query_errors = []
         all_columns: set[str] = set()
         has_columns = False
         has_query_error = False
-        self.query_warnings = {"queries": [], "columns": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         current_widget_specs = None
         organization = self.context["organization"]
+
+        if "interval" in data:
+            self._validate_interval(data)
+        # Only validate and convert widget_type when the client sent it; otherwise keep
+        # missing for partial updates (use existing) or default in create_widget.
+        if "widget_type" in data:
+            data["widget_type"] = self._validate_widget_type(data)
 
         ondemand_feature = features.has(
             "organizations:on-demand-metrics-extraction-widgets", organization
@@ -399,6 +424,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {
                     "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
                 }
+            )
+
+        description = data.get("description")
+        description_length = len(description) if description else 0
+        if description_length > 255:
+            raise serializers.ValidationError(
+                {"description": "Ensure description has no more than 255 characters."}
             )
 
         if data.get("queries"):
@@ -827,6 +859,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidget.objects.filter(dashboard_id=dashboard_id).exclude(id__in=keep_ids).delete()
 
     def create_widget(self, dashboard, widget_data):
+        is_text_widget = widget_data.get("display_type") == DashboardWidgetDisplayTypes.TEXT
+
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             display_type=widget_data["display_type"],
@@ -834,7 +868,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
+            widget_type=(
+                None
+                if is_text_widget
+                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS)
+            ),
             discover_widget_split=widget_data.get("discover_widget_split", None),
             limit=widget_data.get("limit", None),
             detail={
@@ -843,6 +881,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             },
             dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
         )
+
+        # text widgets don't have queries
+        if is_text_widget:
+            return
 
         new_queries = []
         query_data_list = widget_data.pop("queries")
@@ -1027,6 +1069,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def update_widget(self, widget, data):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         prev_axis_range = widget.detail.get("axis_range") if widget.detail else None
+        is_text_widget = data.get("display_type") == DashboardWidgetDisplayTypes.TEXT
+
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
         widget.thresholds = data.get("thresholds", widget.thresholds)
@@ -1044,7 +1088,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             "axis_range": data.get("axis_range", prev_axis_range),
         }
 
-        if widget.widget_type == DashboardWidgetTypes.SPANS:
+        # Text widgets don't have widget_type or dataset_source
+        if is_text_widget:
+            widget.widget_type = None
+            widget.discover_widget_split = None
+            widget.dataset_source = DatasetSourcesTypes.UNKNOWN.value
+        elif widget.widget_type == DashboardWidgetTypes.SPANS:
             if new_dataset_source == DatasetSourcesTypes.USER.value:
                 widget.changed_reason = None
         # we don't want to reset dataset source for spans widgets in case they are part of the migration
@@ -1060,7 +1109,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         widget.save()
 
-        if "queries" in data:
+        if is_text_widget:
+            # Text widgets don't have queries - delete all if the previous widget had queries
+            DashboardWidgetQuery.objects.filter(widget=widget).delete()
+        elif "queries" in data:
             self.update_widget_queries(widget, data["queries"])
 
     def update_widget_queries(self, widget, data):

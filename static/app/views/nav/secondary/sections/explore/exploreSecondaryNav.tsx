@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {ExploreSavedQueryNavItems} from 'sentry/views/nav/secondary/sections/explore/exploreSavedQueryNavItems';
@@ -75,10 +76,7 @@ export function ExploreSecondaryNav() {
       <SecondaryNav.Body>
         <SecondaryNav.Section id="explore-main">
           <Feature features={['performance-view']}>
-            <Feature
-              features={['performance-trace-explorer', 'visibility-explore-view']}
-              requireAll={false}
-            >
+            <Feature features={['visibility-explore-view']}>
               <SecondaryNav.Item
                 to={`${baseUrl}/traces/`}
                 analyticsItemName="explore_traces"
@@ -144,6 +142,15 @@ export function ExploreSecondaryNav() {
           >
             {t('Releases')}
           </SecondaryNav.Item>
+          <Feature features="gen-ai-conversations">
+            <SecondaryNav.Item
+              to={`${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`}
+              analyticsItemName="explore_conversations"
+              trailingItems={<FeatureBadge type="alpha" />}
+            >
+              {t('Conversations')}
+            </SecondaryNav.Item>
+          </Feature>
         </SecondaryNav.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
           <SecondaryNav.Section id="explore-all-queries">

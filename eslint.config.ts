@@ -595,6 +595,7 @@ export default typescript.config([
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
+          '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
   },
@@ -1290,6 +1291,7 @@ export default typescript.config([
                 '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
                 '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
                 '**/*.png', // needed for story-files
+                '**/__stories__/*.{ts,tsx}', // story demo helpers imported by .mdx files
               ],
             },
             {
