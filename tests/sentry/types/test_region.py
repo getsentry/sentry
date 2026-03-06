@@ -72,13 +72,13 @@ class RegionDirectoryTest(TestCase):
     @staticmethod
     @contextmanager
     def _in_global_state(directory: RegionDirectory) -> Generator[None]:
-        with get_test_env_directory().swap_state(tuple(directory.regions)):
+        with get_test_env_directory().swap_state(tuple(directory.cells)):
             yield
 
     def test_region_config_parsing_in_monolith(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
+        assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
         assert directory.get_cell_by_name("nowhere") is None
 
         with self._in_global_state(directory):
@@ -93,7 +93,7 @@ class RegionDirectoryTest(TestCase):
             override_settings(SENTRY_MONOLITH_REGION="us"),
         ):
             directory = load_from_config(self._INPUTS, [])
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
+        assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
     def test_get_local_region(self) -> None:

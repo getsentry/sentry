@@ -63,7 +63,7 @@ class OrgCellMappingsEndpoint(Endpoint):
 
         cell_to_locality = {
             cell.name: loc.name
-            for cell in directory.regions
+            for cell in directory.cells
             if (loc := directory.get_locality_for_cell(cell.name)) is not None
         }
 

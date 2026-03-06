@@ -48,7 +48,7 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
     """
     region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
-    for region in get_global_directory().regions:
+    for region in get_global_directory().cells:
         url = urllib3.util.parse_url(region.address)
         if url.host:
             # This is an IPv4 address.

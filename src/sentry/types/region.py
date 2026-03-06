@@ -156,7 +156,7 @@ class RegionDirectory:
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
     @property
-    def regions(self) -> frozenset[Cell]:
+    def cells(self) -> frozenset[Cell]:
         return self._cells
 
     @property
@@ -192,7 +192,7 @@ class RegionDirectory:
         return (r for name in loc.cells if (r := self._by_name.get(name)) is not None)
 
     def validate_all(self) -> None:
-        for region in self.regions:
+        for region in self.cells:
             region.validate()
 
         # Ensure that a cell cannot be registered to more than one locality
