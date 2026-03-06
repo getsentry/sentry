@@ -3731,7 +3731,7 @@ urlpatterns = [
     ),
     # Organization invite
     re_path(
-        r"^accept-invite/(?P<organization_id_or_slug>[^/]+)/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
+        r"^accept-invite/(?P<organization_id_or_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>[^/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-organization-accept-organization-invite",
     ),
@@ -3741,7 +3741,7 @@ urlpatterns = [
         name="sentry-api-0-data-export-notifications",
     ),
     re_path(
-        r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
+        r"^accept-invite/(?P<member_id>\d+)/(?P<token>[^/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
     ),
