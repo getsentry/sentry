@@ -145,7 +145,7 @@ class CodeReviewPreflightService:
 
         # Excluded author check applies to all organization types
         if contributor.alias and contributor.alias in options.get(
-            "seer.code-review.excluded-pr-author-logins"
+            "coding-workflows.code-review.excluded-pr-author-logins"
         ):
             return PreflightDenialReason.PR_AUTHOR_EXCLUDED
 
