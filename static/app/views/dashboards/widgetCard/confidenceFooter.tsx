@@ -55,7 +55,7 @@ export function WidgetCardConfidenceFooter({
         (timeseriesResults?.some(
           ({seriesName}) =>
             shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${other};)|^${other};`))
+            seriesName?.match(new RegExp(`(?:.* : ${other})|^${other}`))
         )
           ? 1
           : 0)
