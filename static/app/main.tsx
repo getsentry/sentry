@@ -47,6 +47,7 @@ export default function Main() {
             </NuqsAdapter>
             {USE_TANSTACK_DEVTOOL && (
               <TanStackDevtools
+                config={{position: 'bottom-left'}}
                 plugins={[
                   {
                     name: 'TanStack Query',
