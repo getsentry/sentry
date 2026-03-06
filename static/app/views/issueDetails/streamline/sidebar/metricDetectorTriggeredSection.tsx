@@ -304,7 +304,7 @@ function ContributingIssues({
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            withChart={false}
+            withChart
             withPagination={false}
             source="metric-issue-contributing-issues"
             numPlaceholderRows={3}
