@@ -15,9 +15,7 @@ Create a new ESLint rule named `$ARGUMENTS` in the eslintPluginScraps plugin.
 ```typescript
 import {ESLintUtils} from '@typescript-eslint/utils';
 
-type MessageIds = 'forbidden'; // add more as needed
-
-export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs<[], MessageIds>({
+export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem', // 'problem' for correctness, 'suggestion' for style
     docs: {
