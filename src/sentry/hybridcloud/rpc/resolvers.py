@@ -37,13 +37,17 @@ class CellResolutionStrategy(ABC):
 
 @dataclass(frozen=True)
 class ByCellName(CellResolutionStrategy):
-    """Resolve from a `str` parameter representing a cell's name."""
+    """Resolve from a `str` parameter representing a cell's name.
 
-    # TODO(cells): change default to "cell_name" once service method parameters are renamed
-    parameter_name: str = "region_name"
+    Accepts either ``cell_name`` or ``region_name`` to ease the migration of
+    service method parameters from the old name to the new one.
+    """
+
+    parameter_name: str = "cell_name"
 
     def resolve(self, arguments: ArgumentDict) -> Cell:
-        cell_name = arguments[self.parameter_name]
+        # TODO(cells): Temporary fall back to "region_name" while service methods are being migrated.
+        cell_name = arguments.get(self.parameter_name) or arguments["region_name"]
         return get_cell_by_name(cell_name)
 
 
