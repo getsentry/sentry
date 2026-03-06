@@ -4327,3 +4327,8 @@ class ProcessingErrorTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+        for item in processing_errors:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
+            item.item_id = item.item_id[::-1]
