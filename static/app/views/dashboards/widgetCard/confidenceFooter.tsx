@@ -7,6 +7,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {ConfidenceFooter as MetricsConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -71,6 +72,9 @@ export function WidgetCardConfidenceFooter({
     : samplingMeta?.sampleCount;
   const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta?.isSampled;
   const footerDataScanned = dataScanned ?? samplingMeta?.dataScanned;
+  const hasUserQuery = widget.queries.some(
+    query => (query.conditions ?? '').trim().length > 0
+  );
   const userQuery =
     widget.queries.find(query => (query.conditions ?? '').trim().length > 0)
       ?.conditions ?? '';
@@ -97,6 +101,17 @@ export function WidgetCardConfidenceFooter({
         sampleCount={footerChartInfo.sampleCount}
         topEvents={footerChartInfo.topEvents}
         userQuery={userQuery}
+      />
+    );
+  }
+
+  if (widget.widgetType === WidgetType.TRACEMETRICS && rawCounts) {
+    return (
+      <MetricsConfidenceFooter
+        chartInfo={footerChartInfo}
+        hasUserQuery={hasUserQuery}
+        isLoading={loading}
+        rawMetricCounts={rawCounts}
       />
     );
   }

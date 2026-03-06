@@ -94,6 +94,49 @@ describe('WidgetCardConfidenceFooter', () => {
     expect(footer).toHaveTextContent('500 spans');
   });
 
+  it('renders metrics footer with raw counts from API', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value,duration,d,-)': 120}]},
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'tracemetrics'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value,duration,d,-)': 500}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'HIGHEST_ACCURACY',
+          dataset: 'tracemetrics',
+        }),
+      ],
+    });
+
+    render(
+      <WidgetCardConfidenceFooter
+        loading={false}
+        other="Other"
+        series={series}
+        timeseriesResults={timeseriesResults}
+        widget={WidgetFixture({
+          displayType: DisplayType.LINE,
+          widgetType: WidgetType.TRACEMETRICS,
+          queries: [
+            WidgetQueryFixture({
+              aggregates: ['avg(value,duration,d,-)'],
+              fields: ['avg(value,duration,d,-)'],
+              columns: [],
+            }),
+          ],
+        })}
+        yAxis="count()"
+      />
+    );
+
+    const footer = await screen.findByText(/Estimated from/i);
+    expect(footer).toHaveTextContent('10 matches');
+    expect(footer).toHaveTextContent('500 data points');
+  });
+
   it('does not render footer for unsupported widget types', () => {
     render(
       <WidgetCardConfidenceFooter
