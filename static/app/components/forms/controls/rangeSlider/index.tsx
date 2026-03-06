@@ -62,7 +62,7 @@ type SliderProps = {
    * be triggered quite frequently
    */
   onBlur?: (
-    event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
+    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
   ) => void;
 
   onChange?: (
@@ -142,12 +142,21 @@ export function RangeSlider({
     onChange?.(getActualValue(newSliderValue), e);
   }
 
+  function handleSliderChange(newSliderValue: number) {
+    setSliderValue(newSliderValue);
+    // Legacy onChange takes (value, event) but the new Slider no longer provides an event.
+    // Pass a synthetic-like object for backward compat with callers that destructure the event.
+    onChange?.(getActualValue(newSliderValue), {
+      currentTarget: {valueAsNumber: newSliderValue},
+    } as React.ChangeEvent<HTMLInputElement>);
+  }
+
   function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     setSliderValue(parseFloat(e.target.value) || 0);
   }
 
   function handleBlur(
-    e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
+    e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
   ) {
     if (typeof onBlur !== 'function') {
       return;
@@ -195,7 +204,7 @@ export function RangeSlider({
             max={max}
             step={step}
             disabled={disabled}
-            onChange={(_, e) => handleInput(e)}
+            onChange={handleSliderChange}
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}
