@@ -370,8 +370,8 @@ importers:
         specifier: 7.0.1
         version: 7.0.1
       gl-matrix:
-        specifier: ^3.4.3
-        version: 3.4.3
+        specifier: 3.4.4
+        version: 3.4.4
       html-webpack-plugin:
         specifier: 5.6.3
         version: 5.6.3(@rspack/core@1.7.6(@swc/helpers@0.5.15))(webpack@5.99.6(esbuild@0.25.10))
@@ -5722,8 +5722,8 @@ packages:
   gettext-parser@7.0.1:
     resolution: {integrity: sha512-LU+ieGH3L9HmKEArTlX816/iiAlyA0fx/n/QSeQpkAaH/+jxMk/5UtDkAzcVvW+KlY25/U+IE6dnfkJ8ynt8pQ==}
 
-  gl-matrix@3.4.3:
-    resolution: {integrity: sha512-wcCp8vu8FT22BnvKVPjXa/ICBWRq/zjFfdofZy1WSpQZpphblv12/bOQLBC1rMM7SGOFS9ltVmKOHil5+Ml7gA==}
+  gl-matrix@3.4.4:
+    resolution: {integrity: sha512-latSnyDNt/8zYUB6VIJ6PCh2jBjJX6gnDsoCZ7LyW7GkqrD51EWwa9qCoGixj8YqBtETQK/xY7OmpTF8xz1DdQ==}
 
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
@@ -15310,7 +15310,7 @@ snapshots:
       readable-stream: 4.7.0
       safe-buffer: 5.2.1
 
-  gl-matrix@3.4.3: {}
+  gl-matrix@3.4.4: {}
 
   glob-parent@5.1.2:
     dependencies:
