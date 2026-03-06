@@ -82,14 +82,14 @@ def assert_alert_rule_migrated(alert_rule: AlertRule, project_id: int) -> None:
     assert workflow.name == get_workflow_name(alert_rule)
     assert workflow.organization_id == alert_rule.organization.id
     assert workflow.owner_user_id == alert_rule.user_id
-    assert workflow.owner_team == alert_rule.team
+    assert workflow.owner_team_id == alert_rule.team_id
     detector = Detector.objects.get(id=alert_rule_detector.detector.id)
     assert detector.name == alert_rule.name
     assert detector.project_id == project_id
     assert detector.enabled is True
     assert detector.description == alert_rule.description
     assert detector.owner_user_id == alert_rule.user_id
-    assert detector.owner_team == alert_rule.team
+    assert detector.owner_team_id == alert_rule.team_id
     assert detector.type == MetricIssue.slug
     assert detector.config == {
         "comparison_delta": alert_rule.comparison_delta,

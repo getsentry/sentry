@@ -4463,3 +4463,39 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
                 if isinstance(call[0][0], EventProcessingErrorRecorded)
             ]
             assert len(processing_error_calls) == 0
+
+
+class SaveAttachmentTest(TestCase):
+    def test_rate_limit_skipped_when_stored_id_set(self) -> None:
+        from sentry.event_manager import save_attachment
+
+        stored_id = "test-stored-id"
+        attachment = CachedAttachment(
+            name="test.txt",
+            stored_id=stored_id,
+            size=100,
+        )
+
+        mock_putfile = mock.MagicMock()
+        mock_putfile.return_value.content_type = "text/plain"
+        mock_putfile.return_value.size = 100
+        mock_putfile.return_value.sha1 = "abc"
+        mock_putfile.return_value.blob_path = None
+
+        with (
+            mock.patch(
+                "sentry.ratelimits.backend.is_limited_with_value",
+                return_value=(True, 0, 0),
+            ) as mock_rate_limit,
+            mock.patch("sentry.models.eventattachment.EventAttachment.putfile", mock_putfile),
+            mock.patch("sentry.models.eventattachment.EventAttachment.objects.create"),
+        ):
+            save_attachment(
+                cache_key=None,
+                attachment=attachment,
+                project=self.project,
+                event_id="a" * 32,
+            )
+
+        mock_rate_limit.assert_not_called()
+        mock_putfile.assert_called_once()

@@ -1,5 +1,5 @@
 """
-Utilities related to proxying a request to a region silo
+Utilities related to proxying a request to a cell
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from sentry.types.region import (
     Cell,
     RegionResolutionError,
     get_cell_by_name,
-    get_region_for_organization,
+    get_cell_for_organization,
 )
 from sentry.utils import metrics
 from sentry.utils.http import BodyWithLength
@@ -46,7 +46,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-dsym-files": 90.0,
     "sentry-api-0-installable-preprod-artifact-download": 90.0,
     "sentry-api-0-project-preprod-artifact-download": 90.0,
-    "sentry-api-0-project-preprod-artifact-size-analysis-download": 90.0,
+    "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
 }
 
@@ -80,12 +80,12 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
     """Take a django request object and proxy it to a remote location given an org_id_or_slug"""
 
     try:
-        region = get_region_for_organization(org_id_or_slug)
+        cell = get_cell_for_organization(org_id_or_slug)
     except RegionResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
-    return proxy_region_request(request, region, url_name)
+    return proxy_cell_request(request, cell, url_name)
 
 
 def proxy_error_embed_request(
@@ -107,23 +107,21 @@ def proxy_error_embed_request(
     if len(host_segments) - len(app_segments) < 3:
         # If we don't have a o123.ingest.{region}.{app_host} style domain
         # we forward to the monolith region
-        region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-        return proxy_region_request(request, region, url_name)
+        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        return proxy_cell_request(request, cell, url_name)
     try:
-        region_offset = len(app_segments) + 1
-        region_segment = host_segments[region_offset * -1]
-        region = get_cell_by_name(region_segment)
+        cell_offset = len(app_segments) + 1
+        cell_segment = host_segments[cell_offset * -1]
+        cell = get_cell_by_name(cell_segment)
     except Exception:
         return None
 
-    return proxy_region_request(request, region, url_name)
+    return proxy_cell_request(request, cell, url_name)
 
 
-def proxy_region_request(
-    request: HttpRequest, region: Cell, url_name: str
-) -> StreamingHttpResponse:
-    """Take a django request object and proxy it to a region silo"""
-    target_url = urljoin(region.address, request.path)
+def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> StreamingHttpResponse:
+    """Take a django request object and proxy it to a cell silo"""
+    target_url = urljoin(cell.address, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
@@ -134,7 +132,7 @@ def proxy_region_request(
     query_params = request.GET
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
-    metric_tags = {"region": region.name, "url_name": url_name}
+    metric_tags = {"region": cell.name, "url_name": url_name}
 
     # XXX: See sentry.testutils.pytest.sentry for more information
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):

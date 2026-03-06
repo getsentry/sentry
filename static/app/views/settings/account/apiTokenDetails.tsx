@@ -17,11 +17,11 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useMutateApiToken from 'sentry/utils/useMutateApiToken';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -38,13 +38,14 @@ const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
   [getApiUrl(`/api-tokens/$tokenId/`, {path: {tokenId}})] as const;
 
 function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
+  const navigate = useNavigate();
   const initialData = {
     name: token.name,
     tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
   };
 
   const handleGoBack = () => {
-    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
+    navigate(normalizeUrl(API_INDEX_ROUTE));
   };
 
   const onSuccess = () => {

@@ -10,6 +10,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
@@ -21,8 +22,6 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
-import useHasDashboardsPlatformizedMobileSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedMobileSessionHealth';
-import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
 import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -132,16 +131,13 @@ function ViewSpecificCharts({
 
 function PageWithProviders() {
   const {view = ''} = useDomainViewFilters();
-  const hasDashboardsPlatformizedSessionHealth =
-    useHasDashboardsPlatformizedSessionHealth();
-  const hasDashboardsPlatformizedMobileSessionHealth =
-    useHasDashboardsPlatformizedMobileSessionHealth();
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
 
-  if (hasDashboardsPlatformizedSessionHealth && view === FRONTEND_LANDING_SUB_PATH) {
+  if (hasPlatformizedInsights && view === FRONTEND_LANDING_SUB_PATH) {
     return <PlatformizedSessionsOverview />;
   }
 
-  if (hasDashboardsPlatformizedMobileSessionHealth && view === MOBILE_LANDING_SUB_PATH) {
+  if (hasPlatformizedInsights && view === MOBILE_LANDING_SUB_PATH) {
     return <PlatformizedMobileSessionsOverview />;
   }
   return (

@@ -9,8 +9,8 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.hybridcloud.apigateway.proxy import (
+    proxy_cell_request,
     proxy_error_embed_request,
-    proxy_region_request,
     proxy_request,
 )
 from sentry.silo.base import SiloLimit, SiloMode
@@ -79,7 +79,7 @@ def proxy_request_if_needed(
         request.resolver_match
         and request.resolver_match.url_name in settings.REGION_PINNED_URL_NAMES
     ):
-        region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         metrics.incr(
             "apigateway.proxy_request",
             tags={
@@ -88,7 +88,7 @@ def proxy_request_if_needed(
             },
         )
 
-        return proxy_region_request(request, region, url_name)
+        return proxy_cell_request(request, cell, url_name)
 
     if url_name != "unknown":
         # If we know the URL but didn't proxy it record we could be missing

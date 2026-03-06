@@ -7,8 +7,7 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 import {ImageAvatar} from './imageAvatar/imageAvatar';
 import {LetterAvatar} from './letterAvatar/letterAvatar';
 import type {BaseAvatarStyleProps} from './avatarComponentStyles';
-
-const DEFAULT_REMOTE_SIZE = 120;
+import {useAvatar} from './useAvatar';
 
 export interface AvatarProps extends BaseAvatarStyleProps {
   className?: string;
@@ -41,6 +40,11 @@ export interface UploadBaseAvatarProps extends AvatarProps {
   uploadUrl: string;
 }
 
+export type BaseAvatarProps =
+  | GravatarBaseAvatarProps
+  | LetterBaseAvatarProps
+  | UploadBaseAvatarProps;
+
 export function Avatar({
   ref,
   className,
@@ -51,9 +55,21 @@ export function Avatar({
   hasTooltip = false,
   'data-test-id': testId,
   ...avatarProps
-}: GravatarBaseAvatarProps | LetterBaseAvatarProps | UploadBaseAvatarProps) {
+}: BaseAvatarProps) {
   // Destructure avatar-specific props to prevent spreading onto DOM
   const {type, identifier, name, title, round, suggested, ...restProps} = avatarProps;
+
+  const avatarDefinition = useAvatar({
+    identifier,
+    name,
+    imageDefinition:
+      type === 'upload'
+        ? // @TODO(Jonas): rename this from uploadUrl to url
+          {type: 'upload', uploadUrl: avatarProps.uploadUrl}
+        : type === 'gravatar'
+          ? {type: 'gravatar', gravatarId: avatarProps.gravatarId}
+          : undefined,
+  });
 
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
@@ -67,47 +83,22 @@ export function Avatar({
         title={title}
         {...restProps}
       >
-        {type === 'upload' || type === 'gravatar' ? (
+        {avatarDefinition.type === 'image' ? (
           <ImageAvatar
-            definition={
-              type === 'upload'
-                ? {
-                    type: 'image',
-                    src: buildUploadUrl(avatarProps.uploadUrl),
-                  }
-                : {
-                    type: 'gravatar',
-                    gravatarId: avatarProps.gravatarId,
-                  }
-            }
-            identifier={identifier}
-            name={name}
+            configuration={avatarDefinition.configuration}
             round={round}
             suggested={suggested}
           />
-        ) : type === 'letter_avatar' ? (
+        ) : (
           <LetterAvatar
-            identifier={identifier}
-            name={name}
+            configuration={avatarDefinition.configuration}
             round={round}
             suggested={suggested}
           />
-        ) : null}
+        )}
       </AvatarContainer>
     </Tooltip>
   );
-}
-
-/**
- * Appends size parameter to uploaded avatar URLs for optimization.
- * Skips data URLs which are already base64 encoded.
- */
-function buildUploadUrl(url: string): string {
-  if (url.startsWith('data:')) {
-    return url;
-  }
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}s=${DEFAULT_REMOTE_SIZE}`;
 }
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
