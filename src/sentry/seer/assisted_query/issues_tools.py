@@ -636,7 +636,9 @@ def get_filter_key_values(
     # Merge results by value, summing counts and keeping most recent timestamps
     merged: dict[str, dict[str, Any]] = {}
     for item in all_results:  # expected to be TagValueSerializerResponse
-        item["count"] = item.get("count") or 1
+        if not item.get("value") or not item.get("count"):
+            continue
+
         value = item["value"]
         if value not in merged:
             merged[value] = item.copy()
