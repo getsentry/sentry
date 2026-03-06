@@ -266,18 +266,21 @@ def _compute_snapshot_status(
     - FAILURE if any comparison failed, or if any has changes and not approved
     - SUCCESS if all comparisons succeeded with no changes, or all approved
     """
+    has_in_progress = False
+
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
         comparison = metrics and comparisons_map.get(metrics.id)
 
         if not comparison:
-            return StatusCheckStatus.IN_PROGRESS
+            has_in_progress = True
+            continue
 
         match comparison.state:
             case (
                 PreprodSnapshotComparison.State.PENDING | PreprodSnapshotComparison.State.PROCESSING
             ):
-                return StatusCheckStatus.IN_PROGRESS
+                has_in_progress = True
             case PreprodSnapshotComparison.State.FAILED:
                 return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
@@ -288,5 +291,8 @@ def _compute_snapshot_status(
                     or comparison.images_renamed > 0
                 ) and artifact.id not in approvals_map:
                     return StatusCheckStatus.FAILURE
+
+    if has_in_progress:
+        return StatusCheckStatus.IN_PROGRESS
 
     return StatusCheckStatus.SUCCESS
