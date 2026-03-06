@@ -45,6 +45,7 @@ export default function PreprodSettings() {
         </TextBlock>
         <PreprodQuotaAlert />
         <Stack gap="lg">
+          <StatusCheckRules />
           <FeatureFilter
             enabledReadKey={SIZE_ENABLED_READ_KEY}
             enabledWriteKey={SIZE_ENABLED_WRITE_KEY}
@@ -54,7 +55,6 @@ export default function PreprodSettings() {
             successMessage={t('Size analysis settings updated')}
             docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
           />
-          <StatusCheckRules />
           <FeatureFilter
             enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
             enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
