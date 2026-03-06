@@ -41,8 +41,8 @@ export function useD3Zoom({
       .filter(event => {
         return (
           event.type === 'wheel' ||
-          event.type === 'mousedown' ||
-          event.type === 'touchstart'
+          event.type === 'touchstart' ||
+          (event.type === 'mousedown' && !event.button && !event.ctrlKey)
         );
       })
       .on('zoom', event => {
