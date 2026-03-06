@@ -4,12 +4,12 @@ Usage::
 
     pytest -n4 tests/sentry/foo/
 
-Distributes all collected tests upfront across N worker subprocesses.
-Each worker gets isolated databases, Redis, and Kafka via the isolation module.
+The coordinator collects tests once, partitions them, and spawns N worker
+subprocesses.  Each worker runs a shim that calls ``pytest.main(nodeids)``
+directly — skipping the expensive collection walk entirely.
 
+Workers get isolated databases, Redis, and Kafka via the isolation module.
 No execnet, no dynamic load balancing, no master-worker IPC beyond temp files.
-Workers are plain ``pytest`` processes with ``SENTRY_TEST_WORKER_ID`` and
-``_SENTRY_PARALLEL_NODEIDS`` set.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import textwrap
 import threading
 import time
 from pathlib import Path
@@ -27,19 +26,7 @@ import pytest
 
 from sentry.testutils.pytest.isolation import _MAX_SLOTS
 
-# Tiny plugin injected into workers for structured result reporting.
-# Writes one JSON line per test to a temp file the coordinator polls.
-_WORKER_REPORTER = textwrap.dedent("""\
-    import json, os
-    _f = os.environ.get("_SENTRY_PARALLEL_RESULTS", "")
-    def pytest_runtest_logreport(report):
-        if _f and (report.when == "call" or (report.when == "setup" and report.failed)):
-            with open(_f, "a") as fh:
-                fh.write(json.dumps({
-                    "n": report.nodeid, "o": report.outcome, "d": round(report.duration, 3),
-                    "r": str(report.longrepr) if report.longrepr else None,
-                }) + "\\n")
-""")
+_WORKER_SCRIPT = os.path.join(os.path.dirname(__file__), "parallel_worker.py")
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -77,8 +64,6 @@ class _CoordinatorPlugin:
         self.num_workers = num_workers
         self._verbose = config.option.verbose > 0
         self._work_dir = Path(tempfile.mkdtemp(prefix="sentry_parallel_"))
-        self._reporter_path = self._work_dir / "_reporter.py"
-        self._reporter_path.write_text(_WORKER_REPORTER)
         self._print_lock = threading.Lock()
         self._completed = 0
         self._total = 0
@@ -146,10 +131,19 @@ class _CoordinatorPlugin:
             paths.append(p)
         return paths
 
-    def _worker_args(self) -> list[str]:
-        """Reconstruct pytest CLI args, stripping ``-n``/``--numprocesses``."""
-        args = [sys.executable, "-m", "pytest"]
+    def _forwarded_args(self) -> str:
+        """Extract non-positional pytest args, stripping ``-n`` and test paths.
+
+        Returns a shell-quoted string for the worker shim to parse.
+        """
+        import shlex
+
+        args: list[str] = []
         skip_next = False
+        known = self.config.known_args_namespace
+        # Positional args from the original invocation (test paths/dirs).
+        positionals = set(getattr(known, "file_or_dir", []) or [])
+
         for arg in sys.argv[1:]:
             if skip_next:
                 skip_next = False
@@ -159,15 +153,16 @@ class _CoordinatorPlugin:
                 continue
             if arg.startswith(("-n", "--numprocesses=")):
                 continue
+            if arg in positionals:
+                positionals.discard(arg)
+                continue
             args.append(arg)
-        # Inject our worker-side reporter plugin.
-        args.extend(["-p", "_reporter"])
-        return args
+        return shlex.join(args)
 
     def _spawn(
         self, active: list[tuple[int, Path]]
     ) -> list[tuple[int, subprocess.Popen[bytes], Path]]:
-        base_args = self._worker_args()
+        forwarded = self._forwarded_args()
         workers = []
         for i, test_file in active:
             result_path = self._work_dir / f"w{i}_results.jsonl"
@@ -177,14 +172,13 @@ class _CoordinatorPlugin:
             env["_SENTRY_PARALLEL_NODEIDS"] = str(test_file)
             env["_SENTRY_PARALLEL_WORKER"] = "1"
             env["_SENTRY_PARALLEL_RESULTS"] = str(result_path)
-            # Ensure the reporter plugin is importable.
-            env["PYTHONPATH"] = str(self._work_dir) + os.pathsep + env.get("PYTHONPATH", "")
+            env["_SENTRY_PARALLEL_ARGS"] = forwarded
             # Don't let workers inherit stale identity or pre-configured Django.
             env.pop("SENTRY_PYTEST_SERIAL", None)
             env.pop("DJANGO_SETTINGS_MODULE", None)
 
             proc = subprocess.Popen(
-                base_args,
+                [sys.executable, _WORKER_SCRIPT],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 env=env,
