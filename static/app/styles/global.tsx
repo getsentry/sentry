@@ -225,12 +225,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   code {
     background-color: transparent;
   }
-  .tsqd-queries-container code {
-    /* Don't override colors inside @tanstack/react-query-devtools */
-    background-color: unset;
-    color: inherit;
-  }
-
   ${prismStyles(theme, darkTheme)}
 
   /**
