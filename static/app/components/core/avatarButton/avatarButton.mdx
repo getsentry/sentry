@@ -12,6 +12,11 @@ import {AvatarButton} from '@sentry/scraps/avatarButton';
 import * as Storybook from 'sentry/stories';
 
 import documentation from '!!type-loader!@sentry/scraps/avatarButton/avatarButton';
+import {
+  averageSampler,
+  dominantBucketSampler,
+  saturatedAverageSampler,
+} from './sampleAvatarColor';
 
 export {documentation};
 
@@ -122,3 +127,136 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
   avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}
 />
 ```
+
+## Color Sampling Visual Tests
+
+Each row below renders the same five images with a different sampler strategy.
+Compare the button color across rows to evaluate how each strategy performs:
+
+**Colorful logos** (should produce a strong accent color):
+Firefox (orange/blue), Spotify (green), GitLab (orange), Stripe (purple), Shopify (green), Slack (multicolor), John Deere (green/yellow)
+
+**Neutral logos** (should fall back to default neutral button styling):
+Vercel (white logotype), NVIDIA (black/white logotype)
+
+**Broken URL** (tests graceful letter-avatar fallback):
+McMaster-Carr (Wikipedia page URL, not a direct image)
+
+export const IMAGES = [
+  // --- Colorful logos (should produce a strong accent color) ---
+  {
+    key: 'firefox',
+    name: 'Firefox',
+    // Warm orange/blue — good multi-color case
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Mozilla_Firefox_0.8_logo.svg/250px-Mozilla_Firefox_0.8_logo.svg.png',
+  },
+  {
+    key: 'spotify',
+    name: 'Spotify',
+    // Strong green brand icon
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/250px-Spotify_icon.svg.png',
+  },
+  {
+    key: 'gitlab',
+    name: 'GitLab',
+    // Orange logotype
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/GitLab_logo.svg/250px-GitLab_logo.svg.png',
+  },
+  {
+    key: 'stripe',
+    name: 'Stripe',
+    // Purple/violet logotype
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/250px-Stripe_Logo%2C_revised_2016.svg.png',
+  },
+  {
+    key: 'shopify',
+    name: 'Shopify',
+    // Green logotype
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Shopify_logo_2018.svg/250px-Shopify_logo_2018.svg.png',
+  },
+  {
+    key: 'slack',
+    name: 'Slack',
+    // Multicolor logotype — tests blending behaviour
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Slack_Technologies_Logo.svg/250px-Slack_Technologies_Logo.svg.png',
+  },
+  {
+    key: 'deere',
+    name: 'John Deere',
+    // Strong green + yellow
+    uploadUrl: 'https://companieslogo.com/img/orig/DE_BIG-974c9e49.png?t=1720244491',
+  },
+  // --- Neutral / near-black logos (should fall back to default button) ---
+  {
+    key: 'vercel',
+    name: 'Vercel',
+    // White logotype on transparent — expects neutral fallback
+    uploadUrl:
+      'https://vercel.com/vc-ap-vercel-marketing/_next/static/media/vercel-logotype-light.e2cdcb0f.svg?dpl=dpl_AzS8aAkE4oTYDGQfdAVd1r9cdWGL',
+  },
+  {
+    key: 'nvidia',
+    name: 'NVIDIA',
+    // Black/white logotype — expects neutral fallback
+    uploadUrl:
+      'https://s3.amazonaws.com/cms.ipressroom.com/219/files/202512/692f56b83d6332f881bbc58b_nvidia-logo-horiz-blk-16x9+1/nvidia-logo-horiz-blk-16x9+1_3b6e36c5-dc74-4a75-86f4-5faefc2a7f7d-prv.png',
+  },
+  // --- Broken / page URL (tests graceful fallback to letter avatar) ---
+  {
+    key: 'mcmaster',
+    name: 'McMaster-Carr',
+    // Wikipedia page URL, not a direct image — will fail to load
+    uploadUrl: 'https://en.wikipedia.org/wiki/McMaster-Carr#/media/File:McMaster-Carr_logo.svg',
+  },
+];
+
+### averageSampler
+
+Mean RGB of all opaque pixels. Fast but blends all colors together.
+
+<Storybook.Demo>
+  {IMAGES.map(img => (
+    <AvatarButton
+      key={img.key}
+      sampler={averageSampler}
+      aria-label={img.name}
+      avatar={{type: 'upload', identifier: img.key, name: img.name, uploadUrl: img.uploadUrl}}
+    />
+  ))}
+</Storybook.Demo>
+
+### saturatedAverageSampler (default)
+
+Mean of chromatic pixels only. Skips near-white/gray/black — returns null for neutral images.
+
+<Storybook.Demo>
+  {IMAGES.map(img => (
+    <AvatarButton
+      key={img.key}
+      sampler={saturatedAverageSampler}
+      aria-label={img.name}
+      avatar={{type: 'upload', identifier: img.key, name: img.name, uploadUrl: img.uploadUrl}}
+    />
+  ))}
+</Storybook.Demo>
+
+### dominantBucketSampler
+
+Most-populated 2-bit-per-channel histogram bucket. Finds the single most common hue region.
+
+<Storybook.Demo>
+  {IMAGES.map(img => (
+    <AvatarButton
+      key={img.key}
+      sampler={dominantBucketSampler}
+      aria-label={img.name}
+      avatar={{type: 'upload', identifier: img.key, name: img.name, uploadUrl: img.uploadUrl}}
+    />
+  ))}
+</Storybook.Demo>
