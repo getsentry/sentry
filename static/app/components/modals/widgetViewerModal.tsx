@@ -70,6 +70,7 @@ import type {
   DashboardFilters,
   DashboardPermissions,
   Widget,
+  WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -181,6 +182,17 @@ async function fetchDiscoverTotal(
   }
 }
 
+function generateBlankQuery(): WidgetQuery {
+  return {
+    aggregates: [],
+    columns: [],
+    orderby: '',
+    fields: [],
+    conditions: '',
+    name: '',
+  };
+}
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
@@ -205,6 +217,8 @@ function WidgetViewerModal(props: Props) {
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
   const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
+  widget.queries =
+    widget.displayType === DisplayType.TEXT ? [generateBlankQuery()] : widget.queries;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const hasSessionDuration = widget.queries.some(query =>
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
@@ -262,45 +276,24 @@ function WidgetViewerModal(props: Props) {
       : widget;
   const api = useApi();
 
-  // Declare all query-dependent variables
-  let tableWidget: Widget;
-  let aggregates: string[];
-  let columns: string[];
-  let orderby: string;
-  let order: boolean;
-  let rawOrderby: string;
-  let fields: string[];
+  // Create Table widget
+  const tableWidget = {
+    ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
+    displayType: DisplayType.TABLE,
+    // Strip `limit` for Table widgets to avoid stale values from previous display types
+    // (e.g., a widget that was previously a chart with limit 3). The viewer's own
+    // FULL_TABLE_ITEM_LIMIT / HALF_TABLE_ITEM_LIMIT will be used instead.
+    limit: isTableWidget ? undefined : widget.limit,
+  };
+  const {aggregates, columns} = tableWidget.queries[0]!;
+  const orderby = widget.queries[0]!.orderby;
+  const order = orderby.startsWith('-');
+  const rawOrderby = trimStart(orderby, '-');
 
-  // Text widgets don't have queries - preset everything to empty values
-  if (widget.displayType === DisplayType.TEXT) {
-    tableWidget = widget; // No need to create a separate table widget
-    aggregates = [];
-    columns = [];
-    orderby = '';
-    order = false;
-    rawOrderby = '';
-    fields = [];
-  } else {
-    // Create Table widget for non-text widgets
-    tableWidget = {
-      ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
-      displayType: DisplayType.TABLE,
-      // Strip `limit` for Table widgets to avoid stale values from previous display types
-      // (e.g., a widget that was previously a chart with limit 3). The viewer's own
-      // FULL_TABLE_ITEM_LIMIT / HALF_TABLE_ITEM_LIMIT will be used instead.
-      limit: isTableWidget ? undefined : widget.limit,
-    };
-    aggregates = tableWidget.queries[0]!.aggregates;
-    columns = tableWidget.queries[0]!.columns;
-    orderby = widget.queries[0]!.orderby;
-    order = orderby.startsWith('-');
-    rawOrderby = trimStart(orderby, '-');
-
-    fields =
-      widget.displayType === DisplayType.TABLE && defined(tableWidget.queries[0]!.fields)
-        ? tableWidget.queries[0]!.fields
-        : [...columns, ...aggregates];
-  }
+  const fields =
+    widget.displayType === DisplayType.TABLE && defined(tableWidget.queries[0]!.fields)
+      ? tableWidget.queries[0]!.fields
+      : [...columns, ...aggregates];
 
   // Timeseries Widgets (Line, Area, Bar) allow the user to specify an orderby
   // that is not explicitly selected as an aggregate or column. We need to explicitly
@@ -371,7 +364,7 @@ function WidgetViewerModal(props: Props) {
     }
   });
 
-  if (shouldReplaceTableColumns && widget.displayType !== DisplayType.TEXT) {
+  if (shouldReplaceTableColumns) {
     switch (widget.widgetType) {
       case WidgetType.DISCOVER:
         if (fields.length === 1) {
@@ -544,6 +537,10 @@ function WidgetViewerModal(props: Props) {
   };
 
   function renderWidgetViewerTable() {
+    if (widget.displayType === DisplayType.TEXT) {
+      return null;
+    }
+
     if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
       return (
         <AgentsTracesTableWidgetVisualization
@@ -757,7 +754,7 @@ function WidgetViewerModal(props: Props) {
               )}
             </QueryContainer>
           )}
-        {widget.displayType !== DisplayType.TEXT && renderWidgetViewerTable()}
+        {renderWidgetViewerTable()}
       </Fragment>
     );
   }
@@ -798,8 +795,11 @@ function WidgetViewerModal(props: Props) {
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
                   <ResultsContainer>
-                    {widget.displayType !== DisplayType.TEXT &&
-                      renderTotalResults(totalResults, widget.widgetType)}
+                    {renderTotalResults(
+                      totalResults,
+                      widget.widgetType,
+                      widget.displayType
+                    )}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
                         <Button
@@ -930,10 +930,19 @@ function OpenButton({
   );
 }
 
-function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
+function renderTotalResults(
+  totalResults?: string,
+  widgetType?: WidgetType,
+  displayType?: DisplayType
+) {
   if (totalResults === undefined) {
     return <span />;
   }
+
+  if (displayType === DisplayType.TEXT) {
+    return null;
+  }
+
   switch (widgetType) {
     case WidgetType.ISSUE:
       return (
