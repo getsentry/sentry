@@ -131,10 +131,10 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return formatPercentage(value, decimalPlaces);
     case 'duration': {
       const durationDataUnit = sizeUnit ?? undefined;
-      const durationMult = isADurationUnit(durationDataUnit)
+      const durationMultiplier = isADurationUnit(durationDataUnit)
         ? DURATION_UNIT_MULTIPLIERS[durationDataUnit]
         : 1; // default to milliseconds
-      const valueInMs = value * durationMult;
+      const valueInMs = value * durationMultiplier;
       return axisDuration(valueInMs, durationUnit);
     }
     case 'size': {

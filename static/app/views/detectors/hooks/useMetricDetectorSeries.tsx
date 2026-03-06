@@ -123,10 +123,11 @@ export function useMetricDetectorSeries({
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 
   // Extract unit and type metadata from the API response meta field
-  const unit: string | null = (data as any)?.meta?.units?.[aggregate] ?? null;
-  const outputType: AggregationOutputType | undefined = (data as any)?.meta?.fields?.[
-    aggregate
-  ];
+  if (data && 'meta' in data) {
+    const unit = data.meta?.units?.[aggregate] ?? null;
+    const outputType = data.meta?.fields?.[aggregate];
+    return {series, comparisonSeries, isLoading, error, unit, outputType};
+  }
 
-  return {series, comparisonSeries, isLoading, error, unit, outputType};
+  return {series, comparisonSeries, isLoading, error, unit: null, outputType: undefined};
 }
