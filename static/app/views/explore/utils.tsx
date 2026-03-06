@@ -423,10 +423,7 @@ export function viewSamplesTarget({
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (
-    organization.features.includes('performance-trace-explorer') ||
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     return 'traces';
   }
 

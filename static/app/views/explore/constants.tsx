@@ -93,11 +93,10 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'build_version',
   'git_base_ref',
   'git_head_ref',
-  'git_pr_number',
   'platform_name',
 ];
 
-export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [];
+export const SENTRY_PREPROD_NUMBER_TAGS: string[] = ['git_pr_number'];
 
 export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = [];
 

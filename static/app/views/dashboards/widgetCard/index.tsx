@@ -43,7 +43,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
-import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
@@ -126,6 +125,7 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -191,15 +191,7 @@ function WidgetCard(props: Props) {
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
-    const queries = widget.queries.map(query => ({
-      ...query,
-      // Use the last aggregate because that's where the y-axis is stored
-      aggregates: query.aggregates.length
-        ? [query.aggregates[query.aggregates.length - 1]!]
-        : [],
-    }));
-    widget.queries = queries;
-    widget.limit = DEFAULT_RESULTS_LIMIT;
+    widget.displayType = DisplayType.AREA;
   }
 
   const hasSessionDuration = widget.queries.some(query =>
@@ -350,6 +342,7 @@ function WidgetCard(props: Props) {
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

@@ -6,7 +6,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useLocation} from './useLocation';
 import {useNavigate} from './useNavigate';
 import {useParams} from './useParams';
-import {useTestRouteContext} from './useRouteContext';
 import {useRoutes} from './useRoutes';
 
 /**
@@ -16,25 +15,12 @@ import {useRoutes} from './useRoutes';
  * react-router 6 does not include this hook.
  */
 function useRouter(): InjectedRouter<any, any> {
-  // When running in test mode we still read from the legacy route context to
-  // keep test compatability while we fully migrate to react router 6
-  const testRouteContext = useTestRouteContext();
-
-  if (testRouteContext) {
-    return testRouteContext.router;
-  }
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const navigate = useNavigate();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const location = useLocation();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const params = useParams();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const routes = useRoutes();
 
   // XXX(epurkhiser): We emulate the react-router 3 `router` interface here
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const router = useMemo(
     () =>
       ({

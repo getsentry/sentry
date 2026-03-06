@@ -174,7 +174,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
             )
         )
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
 
     return BuildDetailsAppInfo(
         app_id=artifact.app_id,
