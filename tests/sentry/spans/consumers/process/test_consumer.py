@@ -292,7 +292,6 @@ def test_flusher_processes_limit() -> None:
             fac._flusher.join()
 
 
-# @pytest.mark.django_db
 @django_db_all
 @override_options(
     {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
