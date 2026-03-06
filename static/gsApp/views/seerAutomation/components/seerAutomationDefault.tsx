@@ -30,6 +30,7 @@ const seerDefaultsSchema = z.object({
 export function SeerAutomationDefault() {
   const organization = useOrganization();
   const canWrite = hasEveryAccess(['org:write'], {organization});
+  const scannerEnabled = organization.defaultSeerScannerAutomation ?? false;
 
   const orgMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
@@ -53,53 +54,49 @@ export function SeerAutomationDefault() {
           initialValue={organization.defaultSeerScannerAutomation ?? false}
           mutationOptions={orgMutationOptions}
         >
-          {(scannerField, render) => (
-            <Fragment>
-              {render(
-                <scannerField.Layout.Row
-                  label={t('Default for Issue Scans')}
-                  hintText={t(
-                    'Seer will scan all new and ongoing issues in your project, flagging the most actionable issues, giving more context in Slack alerts, and enabling Issue Fixes to be triggered automatically.'
-                  )}
-                >
-                  <scannerField.Switch
-                    checked={scannerField.state.value}
-                    onChange={scannerField.handleChange}
-                    disabled={!canWrite}
-                  />
-                </scannerField.Layout.Row>
+          {field => (
+            <field.Layout.Row
+              label={t('Default for Issue Scans')}
+              hintText={t(
+                'Seer will scan all new and ongoing issues in your project, flagging the most actionable issues, giving more context in Slack alerts, and enabling Issue Fixes to be triggered automatically.'
               )}
-              {scannerField.state.value && (
-                <AutoSaveField
-                  name="defaultAutofixAutomationTuning"
-                  schema={seerDefaultsSchema}
-                  initialValue={organization.defaultAutofixAutomationTuning ?? 'off'}
-                  mutationOptions={orgMutationOptions}
-                >
-                  {field => (
-                    <field.Layout.Row
-                      label={t('Default for Auto-Triggered Fixes')}
-                      hintText={t(
-                        'If Seer detects that an issue is actionable enough, it will automatically analyze it in the background. By the time you see it, the root cause and solution will already be there for you.'
-                      )}
-                    >
-                      <field.Select
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                        options={SEER_THRESHOLD_OPTIONS.map(option => ({
-                          value: option.value,
-                          label: option.label,
-                          details: option.details,
-                        }))}
-                        disabled={!canWrite}
-                      />
-                    </field.Layout.Row>
-                  )}
-                </AutoSaveField>
-              )}
-            </Fragment>
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!canWrite}
+              />
+            </field.Layout.Row>
           )}
         </AutoSaveField>
+        {scannerEnabled && (
+          <AutoSaveField
+            name="defaultAutofixAutomationTuning"
+            schema={seerDefaultsSchema}
+            initialValue={organization.defaultAutofixAutomationTuning ?? 'off'}
+            mutationOptions={orgMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Default for Auto-Triggered Fixes')}
+                hintText={t(
+                  'If Seer detects that an issue is actionable enough, it will automatically analyze it in the background. By the time you see it, the root cause and solution will already be there for you.'
+                )}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={SEER_THRESHOLD_OPTIONS.map(option => ({
+                    value: option.value,
+                    label: option.label,
+                    details: option.details,
+                  }))}
+                  disabled={!canWrite}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+        )}
       </FieldGroup>
       <FieldGroup title={t('Advanced Settings')}>
         <AutoSaveField
