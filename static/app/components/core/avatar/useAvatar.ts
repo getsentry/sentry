@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import color from 'color';
 import * as qs from 'query-string';
+import type {Tagged} from 'type-fest';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Theme} from 'sentry/utils/theme';
@@ -47,8 +48,8 @@ export function useAvatar(options: {
       type: 'image',
       configuration: {
         ref,
-        alt: options.name as string & {__avatar: boolean},
-        src: src as string & {__avatar: boolean},
+        alt: options.name as Tagged<string, '__avatar'>,
+        src: src as Tagged<string, '__avatar'>,
       },
     };
   }
@@ -156,16 +157,16 @@ async function hashGravatarId(gravatarId: string): Promise<string> {
  * Also see avatar.py. Anything changed in this file (how colors are selected,
  * the svg, etc) will also need to be changed there.
  */
-function getInitials(name: string | undefined): string & {__avatar: boolean} {
+function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
   const sanitizedName = name?.trim();
 
   if (!sanitizedName) {
-    return '?' as string & {__avatar: boolean};
+    return '?' as Tagged<string, '__avatar'>;
   }
 
   // Special case for data-scrubbed names
   if (sanitizedName === '[Filtered]') {
-    return '?' as string & {__avatar: boolean};
+    return '?' as Tagged<string, '__avatar'>;
   }
 
   const words = sanitizedName.split(' ');
@@ -176,7 +177,7 @@ function getInitials(name: string | undefined): string & {__avatar: boolean} {
   if (words.length > 1) {
     initials += Array.from(words[words.length - 1]!)[0]!;
   }
-  return initials.toUpperCase() as string & {__avatar: boolean};
+  return initials.toUpperCase() as Tagged<string, '__avatar'>;
 }
 
 /**
@@ -194,7 +195,7 @@ function hashIdentifier(identifier: string): number {
 function getColor(
   identifier: string | undefined,
   theme: Theme
-): {background: string & {__avatar: boolean}; content: string & {__avatar: boolean}} {
+): {background: Tagged<string, '__avatar'>; content: Tagged<string, '__avatar'>} {
   const colors = makeLetterAvatarColors(theme);
   if (identifier === undefined) {
     return colors[0]!;
@@ -210,7 +211,7 @@ function makeLetterAvatarColors(theme: Theme) {
       ? theme.tokens.content.onVibrant.light
       : theme.tokens.content.onVibrant.dark,
   })) as Array<{
-    background: string & {__avatar: boolean};
-    content: string & {__avatar: boolean};
+    background: Tagged<string, '__avatar'>;
+    content: Tagged<string, '__avatar'>;
   }>;
 }

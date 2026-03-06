@@ -1,3 +1,5 @@
+import type {Tagged} from 'type-fest';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 // eslint-disable-next-line boundaries/entry-point
@@ -9,9 +11,9 @@ function makeConfiguration(
   content: string
 ): LetterAvatarProps['configuration'] {
   return {
-    initials: initials as string & {__avatar: boolean},
-    background: background as string & {__avatar: boolean},
-    content: content as string & {__avatar: boolean},
+    initials: initials as Tagged<string, '__avatar'>,
+    background: background as Tagged<string, '__avatar'>,
+    content: content as Tagged<string, '__avatar'>,
   };
 }
 
