@@ -29,7 +29,6 @@ export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs<[], MessageIds>({
       forbidden: 'Error message shown to user',
     },
   },
-  defaultOptions: [],
   create(context) {
     return {
       // AST visitor methods
