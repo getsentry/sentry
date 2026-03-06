@@ -1,6 +1,7 @@
-import pytest
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
+
+import pytest
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
