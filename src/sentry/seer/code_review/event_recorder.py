@@ -47,8 +47,13 @@ def _extract_pr_metadata(
         pr_number = issue.get("number")
         pr_title = issue.get("title")
         pr_author = issue.get("user", {}).get("login")
-        pr_url = issue.get("pull_request", {}).get("html_url")
-        pr_state = issue.get("state")
+        pr_data = issue.get("pull_request", {})
+        pr_url = pr_data.get("html_url")
+        # GitHub issue objects use "closed" for merged PRs; check merged_at to distinguish
+        if pr_data.get("merged_at"):
+            pr_state = "merged"
+        else:
+            pr_state = issue.get("state")
 
     return {
         "pr_number": pr_number,
