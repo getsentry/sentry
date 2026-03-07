@@ -1277,10 +1277,10 @@ def process_processing_errors_eap(job: PostProcessJob):
     produce_processing_errors_to_eap(event.project, event.data, processing_errors)
 
 
-def process_sourcemap_issue_detection(job: PostProcessJob):
-    from sentry.processing_errors.detection import detect_sourcemap_issues
+def process_processing_issue_detection(job: PostProcessJob):
+    from sentry.processing_errors.detection import detect_processing_issues
 
-    detect_sourcemap_issues(job)
+    detect_processing_issues(job)
 
 
 def sdk_crash_monitoring(job: PostProcessJob):
@@ -1654,7 +1654,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         detect_base_urls_for_uptime,
         check_if_flags_sent,
         process_processing_errors_eap,
-        process_sourcemap_issue_detection,
+        process_processing_issue_detection,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
