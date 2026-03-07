@@ -1,6 +1,14 @@
 import os
+import sys
+from pathlib import Path
+
+# Make the standalone pytest-parallel plugin importable.
+_parallel_src = str(Path(__file__).resolve().parents[4] / "tests" / "pytest-parallel" / "src")
+if _parallel_src not in sys.path:
+    sys.path.insert(0, _parallel_src)
 
 pytest_plugins = [
+    "pytest_parallel",
     "sentry.testutils.skips",
     "sentry.testutils.pytest.parallel",
     "sentry.testutils.pytest.sentry",

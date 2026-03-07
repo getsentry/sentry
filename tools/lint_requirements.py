@@ -19,7 +19,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         with open(filename, "rb") as f:
             lockfile = tomllib.load(f)
             for package in lockfile["package"]:
-                if package["name"] in ("sentry", "pytest-parallel"):
+                if package["name"] == "sentry":
                     continue
 
                 # non-specifier requirements won't have registry as a source
