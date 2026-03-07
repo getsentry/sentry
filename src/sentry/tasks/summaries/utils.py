@@ -33,7 +33,6 @@ from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
-COMPARISON_PERIOD = 14
 logger = logging.getLogger(__name__)
 
 
