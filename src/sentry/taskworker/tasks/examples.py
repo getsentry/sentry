@@ -20,7 +20,7 @@ def say_hello(name: str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
 
 @exampletasks.register(
     name="examples.retry_deadletter",
-    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),  # type:ignore[arg-type]
+    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),
 )
 def retry_deadletter() -> None:
     raise RetryTaskError
@@ -28,7 +28,7 @@ def retry_deadletter() -> None:
 
 @exampletasks.register(
     name="examples.retry_state",
-    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),  # type:ignore[arg-type]
+    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),
 )
 def retry_state() -> None:
     try:
@@ -40,7 +40,7 @@ def retry_state() -> None:
 
 @exampletasks.register(
     name="examples.will_retry",
-    retry=Retry(times=3, on=(RuntimeError,), times_exceeded=LastAction.Discard),  # type:ignore[arg-type]
+    retry=Retry(times=3, on=(RuntimeError,), times_exceeded=LastAction.Discard),
 )
 def will_retry(failure: str) -> None:
     if failure == "retry":
@@ -71,7 +71,7 @@ def simple_task_wait_delivery() -> None:
     logger.debug("simple_task_wait_delivery complete")
 
 
-@exampletasks.register(name="examples.retry_task", retry=Retry(times=2))  # type:ignore[arg-type]
+@exampletasks.register(name="examples.retry_task", retry=Retry(times=2))
 def retry_task() -> None:
     raise RetryTaskError
 
@@ -92,7 +92,7 @@ def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str,
     logger.debug("timed_task complete")
 
 
-@exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)  # type:ignore[arg-type]
+@exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
 def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
     sleep(0.1)
     logger.debug("simple_task_compressed complete")

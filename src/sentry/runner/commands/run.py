@@ -5,7 +5,7 @@ import os
 import random
 import signal
 import time
-from typing import Any
+from typing import Any, cast
 
 import click
 
@@ -143,21 +143,27 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
 
     if settings.TASKWORKER_USE_LIBRARY:
-        from taskbroker_client.scheduler import RunStorage, ScheduleRunner
+        from django.conf import settings
+        from taskbroker_client.app import TaskbrokerApp
+        from taskbroker_client.scheduler import RunStorage as TbRunStorage
+        from taskbroker_client.scheduler import ScheduleRunner as TbScheduleRunner
+        from taskbroker_client.scheduler.config import ScheduleConfig as TbScheduleConfig
 
         from sentry.taskworker.adapters import SentryMetricsBackend
         from sentry.taskworker.runtime import app
         from sentry.utils.redis import redis_clusters
 
-        app.load_modules()
-        run_storage = RunStorage(
+        tb_app = cast(TaskbrokerApp, app)
+        tb_app.load_modules()
+        tb_run_storage = TbRunStorage(
             metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
         )
 
         with managed_bgtasks(role="taskworker-scheduler"):
-            runner = ScheduleRunner(app, run_storage)
+            tb_runner = TbScheduleRunner(tb_app, tb_run_storage)
             for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-                runner.add(key, schedule_data)
+                tb_schedule_data = cast(TbScheduleConfig, schedule_data)
+                tb_runner.add(key, tb_schedule_data)
 
             logger.info(
                 "taskworker.scheduler.schedule_data",
@@ -166,9 +172,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
                 },
             )
 
-            runner.log_startup()
+            tb_runner.log_startup()
             while True:
-                sleep_time = runner.tick()
+                sleep_time = tb_runner.tick()
                 time.sleep(sleep_time)
     else:
         from sentry.taskworker.runtime import app
@@ -359,12 +365,12 @@ def run_taskworker(
     from django.conf import settings
 
     if settings.TASKWORKER_USE_LIBRARY:
-        from taskbroker_client.worker import TaskWorker
+        from taskbroker_client.worker import TaskWorker as TbTaskWorker
 
         from sentry.taskworker.client.client import make_broker_hosts
 
         with managed_bgtasks(role="taskworker"):
-            worker = TaskWorker(
+            worker = TbTaskWorker(
                 app_module="sentry.taskworker.runtime:app",
                 broker_hosts=make_broker_hosts(
                     host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
@@ -384,10 +390,10 @@ def run_taskworker(
             raise SystemExit(exitcode)
     else:
         from sentry.taskworker.client.client import make_broker_hosts
-        from sentry.taskworker.worker import TaskWorker
+        from sentry.taskworker.worker import TaskWorker as TaskWorker
 
         with managed_bgtasks(role="taskworker"):
-            worker = TaskWorker(
+            sentry_worker = TaskWorker(
                 app_module="sentry.taskworker.runtime:app",
                 broker_hosts=make_broker_hosts(
                     host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
@@ -403,7 +409,7 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 **options,
             )
-            exitcode = worker.start()
+            exitcode = sentry_worker.start()
             raise SystemExit(exitcode)
 
 
