@@ -171,7 +171,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 slug=temporary_slug,
                 organization_id=self.organization.id,
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
-                region_name=primary_slug_res.region_name,
+                cell_name=primary_slug_res.cell_name,
                 user_id=user.id,
             ).save(unsafe_write=True)
 

@@ -81,7 +81,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             )
             return False
 
-        org_slug_regions_set = {org_slug.region_name for org_slug in org_slugs}
+        org_slug_regions_set = {org_slug.cell_name for org_slug in org_slugs}
         if update.region_name not in org_slug_regions_set:
             capture_exception(
                 OrganizationMappingConsistencyException(
