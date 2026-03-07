@@ -36,6 +36,9 @@
 /tests/sentry/relay/                                     @getsentry/ingest
 /tests/relay_integration/                                @getsentry/ingest
 /bin/invalidate-project-configs                          @getsentry/ingest
+/src/sentry/debug_files/                                 @getsentry/ingest
+/src/sentry/lang/java/                                   @getsentry/ingest
+/src/sentry/lang/javascript/                             @getsentry/ingest
 /src/sentry/lang/native/                                 @getsentry/ingest
 /src/sentry/tasks/symbolication.py                       @getsentry/ingest
 /src/sentry/tasks/assemble.py                            @getsentry/ingest
@@ -182,11 +185,12 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/snuba/subscriptions.py                        @getsentry/alerts-notifications
 /src/sentry/snuba/tasks.py                                @getsentry/alerts-notifications
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
-/tests/sentry/rules/                                      @getsentry/alerts-notifications
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
 /tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
 /src/sentry/notifications/api/endpoints/                  @getsentry/alerts-notifications
+/src/sentry/rules/                                        @getsentry/alerts-notifications
+/tests/sentry/rules/                                      @getsentry/alerts-notifications
 ## Endof Alerts & Notifications
 
 
@@ -255,6 +259,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
 
 /src/sentry/discover/                                                @getsentry/explore
+/src/sentry/explore/                                                 @getsentry/explore
 
 /src/sentry/api/event_search.py                                      @getsentry/data-browsing
 /tests/sentry/api/test_event_search.py                               @getsentry/data-browsing
@@ -383,6 +388,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
 /src/sentry/identity/                                                @getsentry/enterprise
 
+/src/sentry/middleware/integrations/                                 @getsentry/ecosystem
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
 /src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
@@ -633,6 +639,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/serializers/rest_framework/ai_conversations.py                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
 ## End of AI Conversations
+
+## Billing
+/src/sentry/billing/                          @getsentry/revenue
 
 ## gsApp
 /static/gsApp/*                               @getsentry/revenue
