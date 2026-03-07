@@ -8,6 +8,12 @@ from __future__ import annotations
 import pytest
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    # Accept pytest-xdist ini options so getsentry (which sets looponfailroots)
+    # doesn't get "unrecognized config" errors.
+    parser.addini("looponfailroots", type="paths", help="(compat) ignored by pytest-parallel")
+
+
 def pytest_parallel_max_slots() -> int:
     from sentry.testutils.pytest.isolation import _MAX_SLOTS
 
