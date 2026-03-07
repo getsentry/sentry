@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
@@ -82,7 +75,6 @@ interface EventGraphProps {
    * Enable/disables showing the event and user summary
    */
   showSummary?: boolean;
-  style?: CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
