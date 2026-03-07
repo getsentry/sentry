@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Count
@@ -512,7 +512,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         .annotate(total=Count("substatus"))
     )
     for item in substatus_counts:
-        project_ctx = cast(ProjectContext, ctx.projects_context_map[item["project_id"]])
+        project_ctx = ctx.projects_context_map[item["project_id"]]
         if item["substatus"] == GroupSubStatus.NEW:
             project_ctx.new_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.ESCALATING:
