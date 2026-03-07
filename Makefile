@@ -89,7 +89,7 @@ build-chartcuterie-config:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log
 	@echo ""
 
 test-cli: create-db
@@ -130,9 +130,7 @@ test-python-ci:
 		--ignore tests/tools \
 		--json-report \
 		--json-report-file=".artifacts/pytest.json" \
-		--json-report-omit=log \
-		--junit-xml=.artifacts/pytest.junit.xml \
-		-o junit_suite_name=pytest
+		--json-report-omit=log
 	@echo ""
 
 test-backend-ci-with-coverage:
@@ -148,9 +146,7 @@ test-backend-ci-with-coverage:
 		--cov-context=test \
 		--json-report \
 		--json-report-file=".artifacts/pytest.json" \
-		--json-report-omit=log \
-		--junit-xml=.artifacts/pytest.junit.xml \
-		-o junit_suite_name=pytest
+		--json-report-omit=log
 	@echo ""
 
 compute-selected-tests:
@@ -200,23 +196,21 @@ test-monolith-dbs:
 	  --reuse-db \
 	  --json-report \
 	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
-	  --json-report-omit=log \
-	  --junit-xml=.artifacts/monolith-dbs.junit.xml \
-	  -o junit_suite_name=monolith-dbs \
+	  --json-report-omit=log
 	;
 	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
 	@# bogus configuration to force vanilla pytest
-	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools --reuse-db -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
+	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools --reuse-db -vv
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	python3 -b -m pytest tests/symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
+	python3 -b -m pytest tests/symbolicator --reuse-db -vv
 	python3 -b -m pytest tests/relay_integration/lang/javascript/ --reuse-db -vv -m symbolicator
 	python3 -b -m pytest tests/relay_integration/lang/java/ --reuse-db -vv -m symbolicator
 	@echo ""
