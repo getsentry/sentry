@@ -148,7 +148,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         from taskbroker_client.scheduler import RunStorage as TbRunStorage
         from taskbroker_client.scheduler import ScheduleRunner as TbScheduleRunner
         from taskbroker_client.scheduler.config import ScheduleConfig as TbScheduleConfig
+        from taskbroker_client.scheduler.config import crontab as tb_crontab
 
+        from sentry.conf.types.taskworker import crontab
         from sentry.taskworker.adapters import SentryMetricsBackend
         from sentry.taskworker.runtime import app
         from sentry.utils.redis import redis_clusters
@@ -162,8 +164,16 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         with managed_bgtasks(role="taskworker-scheduler"):
             tb_runner = TbScheduleRunner(tb_app, tb_run_storage)
             for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-                tb_schedule_data = cast(TbScheduleConfig, schedule_data)
-                tb_runner.add(key, tb_schedule_data)
+                schedule = cast(TbScheduleConfig, schedule_data.copy())
+                if isinstance(schedule["schedule"], crontab):
+                    schedule["schedule"] = tb_crontab(
+                        minute=schedule["schedule"].minute,
+                        hour=schedule["schedule"].hour,
+                        day_of_week=schedule["schedule"].day_of_week,
+                        day_of_month=schedule["schedule"].day_of_month,
+                        month_of_year=schedule["schedule"].month_of_year,
+                    )
+                tb_runner.add(key, schedule)
 
             logger.info(
                 "taskworker.scheduler.schedule_data",
@@ -371,7 +381,7 @@ def run_taskworker(
 
         with managed_bgtasks(role="taskworker"):
             worker = TbTaskWorker(
-                app_module="sentry.taskworker.runtime:app",
+                app_module="sentry.taskworker.bootstrap:app",
                 broker_hosts=make_broker_hosts(
                     host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
                 ),
