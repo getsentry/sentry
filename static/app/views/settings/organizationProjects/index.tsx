@@ -92,14 +92,13 @@ function OrganizationProjects() {
         (searchQuery: string) =>
           navigate(
             {
-              pathname: location.pathname,
               query: {...location.query, query: searchQuery, cursor: undefined},
             },
             {replace: true}
           ),
         DEFAULT_DEBOUNCE_DURATION
       ),
-    [location.pathname, location.query, navigate]
+    [location.query, navigate]
   );
 
   return (

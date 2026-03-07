@@ -66,7 +66,13 @@ class OrganizationMapping(Model):
                 TruncSecond("date_updated"),
                 "id",
                 name="sentry_orgmapping_date_updated_id_idx",
-            )
+            ),
+            IndexWithPostgresNameLimits(
+                "cell_name",
+                TruncSecond("date_updated"),
+                "id",
+                name="sentry_orgmapping_cell_name_date_updated_id_idx",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "slug", "cell_name", "verified")
