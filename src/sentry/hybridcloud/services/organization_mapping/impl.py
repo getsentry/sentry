@@ -112,7 +112,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         ).first()
         if org_slug_reservation is None:
             OrganizationSlugReservation(
-                region_name=mapping_update.region_name,
+                cell_name=mapping_update.region_name,
                 slug=mapping_update.slug,
                 organization_id=organization_id,
                 user_id=-1,
