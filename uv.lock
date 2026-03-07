@@ -1770,6 +1770,17 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-parallel"
+version = "0.1.0"
+source = { editable = "tests/pytest-parallel" }
+dependencies = [
+    { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pytest", specifier = ">=7.0" }]
+
+[[package]]
 name = "pytest-rerunfailures"
 version = "15.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2212,6 +2223,7 @@ dev = [
     { name = "pytest-django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-fail-slow", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-json-report", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pytest-parallel", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-rerunfailures", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-sentry", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-workaround-12888", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2377,6 +2389,7 @@ dev = [
     { name = "pytest-django", specifier = ">=4.9.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
+    { name = "pytest-parallel", editable = "tests/pytest-parallel" },
     { name = "pytest-rerunfailures", specifier = ">=15.0" },
     { name = "pytest-sentry", specifier = ">=0.3.0" },
     { name = "pytest-workaround-12888", specifier = ">=1.0.0" },

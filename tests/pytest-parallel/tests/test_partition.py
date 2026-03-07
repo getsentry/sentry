@@ -26,7 +26,6 @@ class TestPartition:
 
         buckets = CoordinatorPlugin._partition(items, 3)
 
-        # Files round-robin: a→w0, b→w1, c→w2, d→w0, e→w1
         assert [it.nodeid for it in buckets[0]] == ["a.py::test_1", "a.py::test_2", "d.py::test_1"]
         assert [it.nodeid for it in buckets[1]] == ["b.py::test_1", "e.py::test_1"]
         assert [it.nodeid for it in buckets[2]] == ["c.py::test_1", "c.py::test_2"]

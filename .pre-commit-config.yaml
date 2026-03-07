@@ -158,6 +158,7 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+        exclude: ^tests/pytest-parallel/src/
       - id: check-added-large-files
         args: ['--maxkb=1024']
 

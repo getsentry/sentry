@@ -7,7 +7,7 @@ is set.
 Worker identity is resolved in this order:
 
 1. ``SENTRY_PYTEST_SERIAL=1`` → no isolation, all defaults (old behaviour).
-2. ``SENTRY_TEST_WORKER_ID`` env var (set by ``sentry-parallel`` or explicitly).
+2. ``PYTEST_PARALLEL_WORKER_ID`` or ``SENTRY_TEST_WORKER_ID`` env var.
 3. File-lock slot allocation (default for plain ``pytest``).
 
 File locks guarantee exclusive Redis DB access and stable DB names (so
@@ -87,7 +87,9 @@ def release_slot() -> None:
 _serial = os.environ.get("SENTRY_PYTEST_SERIAL") == "1"
 
 # Set by sentry-parallel plugin or manually.
-_explicit_id: str | None = os.environ.get("SENTRY_TEST_WORKER_ID")
+_explicit_id: str | None = os.environ.get("PYTEST_PARALLEL_WORKER_ID") or os.environ.get(
+    "SENTRY_TEST_WORKER_ID"
+)
 
 worker_id: str | None
 worker_num: int | None

@@ -25,6 +25,7 @@ def _run_snippet(snippet: str, env_override: dict[str, str] | None = None) -> di
         not in {
             "SENTRY_PYTEST_SERIAL",
             "SENTRY_TEST_WORKER_ID",
+            "PYTEST_PARALLEL_WORKER_ID",
         }
     }
     if env_override:
@@ -84,7 +85,8 @@ class TestWorkerIdentityResolution:
         env = {
             k: v
             for k, v in os.environ.items()
-            if k not in {"SENTRY_PYTEST_SERIAL", "SENTRY_TEST_WORKER_ID"}
+            if k
+            not in {"SENTRY_PYTEST_SERIAL", "SENTRY_TEST_WORKER_ID", "PYTEST_PARALLEL_WORKER_ID"}
         }
 
         procs = []

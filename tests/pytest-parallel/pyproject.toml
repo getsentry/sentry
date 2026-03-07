@@ -1,0 +1,13 @@
+[project]
+name = "pytest-parallel"
+version = "0.1.0"
+description = "Lean parallel test execution for pytest"
+requires-python = ">=3.10"
+dependencies = ["pytest>=7.0"]
+
+[project.entry-points.pytest11]
+parallel = "pytest_parallel"
+
+[build-system]
+requires = ["uv_build>=0.9.26,<1"]
+build-backend = "uv_build"

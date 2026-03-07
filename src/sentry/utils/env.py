@@ -15,6 +15,7 @@ def in_test_environment() -> bool:
         or "vscode" in sys.argv[0]
         or "cursor" in sys.argv[0]
         or os.environ.get("SENTRY_IN_TEST_ENVIRONMENT") in {"1", "true"}
+        or "PYTEST_PARALLEL_WORKER_ID" in os.environ
         or "SENTRY_TEST_WORKER_ID" in os.environ
     )
 
