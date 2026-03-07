@@ -45,7 +45,6 @@
 /src/sentry/tasks/reprocessing2.py                       @getsentry/ingest
 /src/sentry/reprocessing2.py                             @getsentry/ingest
 /src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
-/src/sentry/issues/endpoints/event_reprocessable.py      @getsentry/ingest
 /src/sentry/api/endpoints/project_reprocessing.py        @getsentry/ingest
 /tests/symbolicator/                                     @getsentry/ingest
 
@@ -128,6 +127,14 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
+## Frontend
+/static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
+/static/app/components/analyticsArea.tsx       @getsentry/app-frontend
+/static/app/components/events/interfaces/      @getsentry/app-frontend
+/static/app/components/forms/                  @getsentry/app-frontend
+/static/app/locale.tsx                         @getsentry/app-frontend
+## End of Frontend
+
 # Owners by product feature
 #
 # The following ownership rules are specific to particular features of the
@@ -188,7 +195,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
 /tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
-/src/sentry/notifications/api/endpoints/                  @getsentry/alerts-notifications
 /src/sentry/rules/                                        @getsentry/alerts-notifications
 /tests/sentry/rules/                                      @getsentry/alerts-notifications
 ## Endof Alerts & Notifications
@@ -205,7 +211,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_vitals.py                     @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_tagkey_values.py                     @getsentry/data-browsing
-/src/sentry/issues/endpoints/organization_event_details.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events.py                            @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets.py                     @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_meta.py                       @getsentry/data-browsing
@@ -232,8 +237,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/snuba/discover.py                                               @getsentry/data-browsing
 /src/sentry/snuba/metrics_performance.py                                    @getsentry/data-browsing
 /src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/data-browsing
-
-/tests/snuba/search/test_backend.py                                         @getsentry/data-browsing
 
 /src/sentry/search/events/                                                  @getsentry/data-browsing
 /src/sentry/search/eap/                                                     @getsentry/data-browsing
@@ -313,18 +316,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Profiling
 
 
-## Flags
-/src/sentry/flags/                                              @getsentry/replay-backend
-/tests/sentry/flags/                                            @getsentry/replay-backend
-/static/app/components/featureFlags/                            @getsentry/replay-frontend
-/static/app/components/events/featureFlags/                     @getsentry/replay-frontend
-/static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
-/static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
-/static/app/views/issueDetails/groupTags/                       @getsentry/replay-frontend
-/static/app/views/settings/featureFlags/                        @getsentry/replay-frontend
-## End of Flags
-
-
 ## Replays
 /static/app/components/replays/                                          @getsentry/replay-frontend
 /static/app/utils/replays/                                               @getsentry/replay-frontend
@@ -333,10 +324,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
 /src/sentry/replays/                                                     @getsentry/replay-backend
 /tests/sentry/replays/                                                   @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay-backend
 ## End of Replays
 
 
@@ -355,20 +342,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/toolbar/                       @getsentry/replay-frontend @getsentry/replay-backend
 ## End of DevToolbar
 
-## Codecov Merge UX
-/static/app/components/prevent/  @getsentry/codecov-merge
-/static/app/views/prevent/       @getsentry/codecov-merge
-## End of Codecov Merge UX
-
 /src/sentry/codecov/ @getsentry/codecov
-
-## Frontend
-/static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
-/static/app/components/analyticsArea.tsx       @getsentry/app-frontend
-/static/app/components/events/interfaces/      @getsentry/app-frontend
-/static/app/components/forms/                  @getsentry/app-frontend
-/static/app/locale.tsx                         @getsentry/app-frontend
-## End of Frontend
 
 # Workflow engine
 /src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
@@ -546,7 +520,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/events.py                           @getsentry/issue-workflow
 /src/sentry/api/helpers/group_index/                        @getsentry/issue-workflow
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
-/src/sentry/api/endpoints/                                  @getsentry/issue-workflow
 /src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
@@ -554,6 +527,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
+/src/sentry/issues/endpoints/event_reprocessable.py         @getsentry/ingest
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
 /src/sentry/issues/issue_occurrence.py                      @getsentry/issue-detection-backend
@@ -625,6 +599,21 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
+
+## Flags
+/src/sentry/flags/                                                       @getsentry/replay-backend
+/tests/sentry/flags/                                                     @getsentry/replay-backend
+/static/app/components/featureFlags/                                     @getsentry/replay-frontend
+/static/app/components/events/featureFlags/                              @getsentry/replay-frontend
+/static/app/views/issueDetails/groupDistributionsDrawer.tsx              @getsentry/replay-frontend
+/static/app/views/issueDetails/groupFeatureFlags/                        @getsentry/replay-frontend
+/static/app/views/issueDetails/groupTags/                                @getsentry/replay-frontend
+/static/app/views/settings/featureFlags/                                 @getsentry/replay-frontend
+/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
+/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay-backend
+/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay-backend
+/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay-backend
+## End of Flags
 
 ## Onboarding (Value Discovery)
 # These must come after /src/sentry/api/endpoints/ catch-all above
