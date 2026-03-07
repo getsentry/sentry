@@ -8,17 +8,20 @@ a task to forward the original run ID to Seer so it can rerun the PR review.
 
 from __future__ import annotations
 
-import enum
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError  # noqa: F401
+from pydantic import BaseModel, ValidationError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.code_review_event import CodeReviewEventStatus
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 
+from ..event_recorder import create_event_record, update_event_status
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
@@ -31,7 +34,7 @@ from ..metrics import (
 logger = logging.getLogger(__name__)
 
 
-class Log(enum.StrEnum):
+class Log(StrEnum):
     MISSING_ACTION = "github.webhook.check_run.missing-action"
     INVALID_PAYLOAD = "github.webhook.check_run.invalid-payload"
 
@@ -46,8 +49,8 @@ class GitHubCheckRunAction(StrEnum):
 class GitHubCheckRunData(BaseModel):
     """GitHub check_run object structure."""
 
-    external_id: str = Field(..., description="The external ID set by Seer")
-    html_url: str = Field(..., description="The URL to view the check run on GitHub")
+    external_id: str  # The external ID set by Seer
+    html_url: str  # The URL to view the check run on GitHub
 
     class Config:
         extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
@@ -59,8 +62,8 @@ class GitHubCheckRunEvent(BaseModel):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
     """
 
-    action: str = Field(..., description="The action performed (e.g., 'rerequested')")
-    check_run: GitHubCheckRunData = Field(..., description="The check run data")
+    action: str
+    check_run: GitHubCheckRunData
 
     class Config:
         extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
@@ -69,8 +72,11 @@ class GitHubCheckRunEvent(BaseModel):
 def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
+    github_delivery_id: str | None = None,
     event: Mapping[str, Any],
-    tags: Mapping[str, Any],
+    organization: Organization | None = None,
+    repo: Repository | None = None,
+    tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -81,7 +87,7 @@ def handle_check_run_event(
     Args:
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
         event: The webhook event payload
-        tags: Sentry SDK tags from the handler (from get_tags); merged with check_run-specific overrides
+        organization: The Sentry organization that the webhook event belongs to
         **kwargs: Additional keyword arguments
     """
     if github_event != GithubWebhookType.CHECK_RUN:
@@ -116,6 +122,19 @@ def handle_check_run_event(
         )
         return
 
+    # Action is supported — create the event record
+    event_record = None
+    if organization is not None and repo is not None:
+        event_record = create_event_record(
+            organization_id=organization.id,
+            repository_id=repo.id,
+            raw_event_type=github_event.value,
+            raw_event_action=action,
+            trigger_id=github_delivery_id,
+            event=event,
+            status=CodeReviewEventStatus.WEBHOOK_RECEIVED,
+        )
+
     # Import here to avoid circular dependency with webhook_task
     from .task import process_github_webhook_event
 
@@ -124,23 +143,25 @@ def handle_check_run_event(
     process_github_webhook_event.delay(
         github_event=github_event.value,
         # A reduced payload is enough for the task to process.
-        event_payload={"original_run_id": validated_event.check_run.external_id},
+        # trigger_id is included so Seer can echo it back in the completion webhook.
+        event_payload={
+            "original_run_id": validated_event.check_run.external_id,
+            "trigger_id": github_delivery_id,
+        },
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        trigger_id=github_delivery_id,
+        organization_id=organization.id if organization else None,
+        repository_id=repo.id if repo else None,
         tags=tags,
     )
     record_webhook_enqueued(github_event, action)
+    update_event_status(event_record, CodeReviewEventStatus.TASK_ENQUEUED)
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:
-    """
-    Validate GitHub check_run event payload using Pydantic.
-
-    Raises:
-        ValidationError: If the event payload is invalid
-        ValueError: If external_id is not numeric
-    """
+    """Raises ValidationError or ValueError if the payload is invalid."""
     validated_event = GitHubCheckRunEvent.parse_obj(event)
-    int(validated_event.check_run.external_id)  # Raises ValueError if not numeric
+    int(validated_event.check_run.external_id)  # Must be numeric
     return validated_event

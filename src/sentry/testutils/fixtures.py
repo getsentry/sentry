@@ -280,6 +280,11 @@ class Fixtures:
     def create_repository_settings(self, *args, **kwargs):
         return Factories.create_repository_settings(*args, **kwargs)
 
+    def create_code_review_event(self, organization=None, repository=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_code_review_event(organization, repository, **kwargs)
+
     def create_commit(self, *args, **kwargs):
         return Factories.create_commit(*args, **kwargs)
 

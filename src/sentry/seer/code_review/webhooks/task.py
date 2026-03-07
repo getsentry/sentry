@@ -9,6 +9,7 @@ import sentry_sdk
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.code_review_event import CodeReviewEventStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.code_review.models import (
@@ -24,6 +25,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
+from ..event_recorder import find_event_by_trigger_id, update_event_status
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
     convert_enum_keys_to_strings,
@@ -38,7 +40,6 @@ PREFIX = "seer.code_review.task"
 MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
-METRICS_PREFIX = "seer.code_review.task"
 
 
 def schedule_task(
@@ -48,10 +49,11 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    tags: Mapping[str, object],
+    event_record: Any | None = None,
+    tags: Mapping[str, object] | None = None,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
-    from .task import process_github_webhook_event
+    trigger_id = getattr(event_record, "trigger_id", None) if event_record else None
 
     transformed_event = transform_webhook_to_codegen_request(
         github_event=github_event,
@@ -60,11 +62,15 @@ def schedule_task(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        trigger_id=trigger_id,
     )
 
     if transformed_event is None:
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
+        )
+        update_event_status(
+            event_record, CodeReviewEventStatus.WEBHOOK_FILTERED, denial_reason="transform_failed"
         )
         return
 
@@ -97,9 +103,13 @@ def schedule_task(
         github_event=github_event.value,
         event_payload=payload,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        trigger_id=trigger_id,
+        organization_id=organization.id,
+        repository_id=repo.id,
         tags=tags,
     )
     record_webhook_enqueued(github_event, github_event_action)
+    update_event_status(event_record, CodeReviewEventStatus.TASK_ENQUEUED)
 
 
 @instrumented_task(
@@ -113,31 +123,31 @@ def process_github_webhook_event(
     enqueued_at_str: str,
     github_event: str,
     event_payload: Mapping[str, Any],
+    trigger_id: str | None = None,
+    organization_id: int | None = None,
+    repository_id: int | None = None,
     tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
-    """
-    Process GitHub webhook event by forwarding to Seer if applicable.
+    """Validate and forward webhook event payload to Seer."""
+    event_record = (
+        find_event_by_trigger_id(trigger_id, organization_id, repository_id) if trigger_id else None
+    )
 
-    Args:
-        enqueued_at_str: The timestamp when the task was enqueued
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
-        event_payload: The payload of the webhook event (already validated before scheduling)
-        tags: Sentry SDK tags to set on this task's scope for error correlation
-        **kwargs: Parameters to pass to webhook handler functions
-    """
     status = "success"
     should_record_latency = True
     try:
         if tags:
             sentry_sdk.set_tags(tags)
         path = get_seer_endpoint_for_event(github_event).value
-        viewer_context: SeerViewerContext | None = None
-        if tags and (org_id := tags.get("sentry_organization_id")):
-            viewer_context = SeerViewerContext(organization_id=int(org_id))
+        viewer_context = (
+            SeerViewerContext(organization_id=organization_id) if organization_id else None
+        )
         make_seer_request(path=path, payload=event_payload, viewer_context=viewer_context)
+        update_event_status(event_record, CodeReviewEventStatus.SENT_TO_SEER)
     except Exception as e:
         status = e.__class__.__name__
+        update_event_status(event_record, CodeReviewEventStatus.REVIEW_FAILED)
         # Retryable errors are automatically retried by taskworker.
         if isinstance(e, RETRYABLE_ERRORS):
             task = current_task()

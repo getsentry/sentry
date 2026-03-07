@@ -13,9 +13,11 @@ from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.models.code_review_event import CodeReviewEventStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
+from ..event_recorder import create_event_record
 from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
 from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
 
@@ -47,6 +49,7 @@ def is_pr_review_command(comment_body: str | None) -> bool:
 def handle_issue_comment_event(
     *,
     github_event: GithubWebhookType,
+    github_delivery_id: str | None = None,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -87,6 +90,17 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value)
         return
 
+    # All checks passed — create the event record
+    event_record = create_event_record(
+        organization_id=organization.id,
+        repository_id=repo.id,
+        raw_event_type=github_event.value,
+        raw_event_action=github_event_action,
+        trigger_id=github_delivery_id,
+        event=event,
+        status=CodeReviewEventStatus.WEBHOOK_RECEIVED,
+    )
+
     if comment_id:
         # We shouldn't ever need to delete :eyes: from the PR description unless Seer fails to do so.
         # But if we're already deleting :tada: we might as well delete :eyes: if we come across it.
@@ -117,5 +131,6 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        event_record=event_record,
         tags=tags,
     )

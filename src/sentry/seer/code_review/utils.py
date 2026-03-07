@@ -212,6 +212,7 @@ def transform_webhook_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    trigger_id: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into a code review request format for Seer.
@@ -223,6 +224,7 @@ def transform_webhook_to_codegen_request(
         organization: The Sentry organization
         repo: The repository model
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
+        trigger_id: Sentry-side correlation ID (GitHub delivery ID) echoed back by Seer in the completion webhook
 
     Returns:
         Dictionary with request_type, data, and external_owner_id that matches either
@@ -232,11 +234,16 @@ def transform_webhook_to_codegen_request(
     payload = None
     if github_event == GithubWebhookType.ISSUE_COMMENT:
         payload = transform_issue_comment_to_codegen_request(
-            event_payload, organization, repo, target_commit_sha
+            event_payload, organization, repo, target_commit_sha, trigger_id=trigger_id
         )
     elif github_event == GithubWebhookType.PULL_REQUEST:
         payload = transform_pull_request_to_codegen_request(
-            github_event_action, event_payload, organization, repo, target_commit_sha
+            github_event_action,
+            event_payload,
+            organization,
+            repo,
+            target_commit_sha,
+            trigger_id=trigger_id,
         )
     return payload
 
@@ -276,6 +283,7 @@ def transform_issue_comment_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    trigger_id: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Transform an issue comment on a PR into a code review request for Seer.
@@ -298,6 +306,7 @@ def transform_issue_comment_to_codegen_request(
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
     config["trigger_at"] = trigger_metadata["trigger_at"]
     config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
+    config["trigger_id"] = trigger_id
     return payload
 
 
@@ -307,6 +316,7 @@ def transform_pull_request_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    trigger_id: str | None = None,
 ) -> dict[str, Any] | None:
     review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
     match github_event_action:
@@ -340,6 +350,7 @@ def transform_pull_request_to_codegen_request(
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
     config["trigger_at"] = trigger_metadata["trigger_at"]
     config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
+    config["trigger_id"] = trigger_id
     return payload
 
 
@@ -359,6 +370,7 @@ def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
         "organization_id": repo.organization_id,
+        "repository_id": repo.id,
     }
 
     # add integration_id which is used in pr_closed_step for product metrics dashboarding only

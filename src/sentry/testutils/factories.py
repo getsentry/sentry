@@ -932,6 +932,22 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_code_review_event(organization, repository, **kwargs):
+        from sentry.models.code_review_event import CodeReviewEvent
+
+        defaults = {
+            "raw_event_type": "pull_request",
+            "raw_event_action": "opened",
+        }
+        defaults.update(kwargs)
+        return CodeReviewEvent.objects.create(
+            organization_id=organization.id,
+            repository_id=repository.id,
+            **defaults,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_commit(
         repo, project=None, author=None, release=None, message=None, key=None, date_added=None
     ):

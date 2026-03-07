@@ -83,6 +83,7 @@ class TestHandleWebhookEvent(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.repo = self.create_repo(project=self.project, name="owner/repo")
         self.mock_pull_request_handler = MagicMock()
         patcher = patch.dict(
             handlers_module.EVENT_TYPE_TO_HANDLER,
@@ -105,7 +106,7 @@ class TestHandleWebhookEvent(TestCase):
             github_delivery_id=delivery_id,
             event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
             organization=self.organization,
-            repo=MagicMock(),
+            repo=self.repo,
             integration=integration,
         )
 
@@ -121,14 +122,13 @@ class TestHandleWebhookEvent(TestCase):
         integration.provider = IntegrationProviderSlug.GITHUB
         integration.id = 123
         event = {"action": "opened", "pull_request": {"number": 1, "draft": False}}
-        repo = MagicMock()
 
         handle_webhook_event(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_delivery_id=delivery_id,
             event=event,
             organization=self.organization,
-            repo=repo,
+            repo=self.repo,
             integration=integration,
         )
         handle_webhook_event(
@@ -136,7 +136,7 @@ class TestHandleWebhookEvent(TestCase):
             github_delivery_id=delivery_id,
             event=event,
             organization=self.organization,
-            repo=repo,
+            repo=self.repo,
             integration=integration,
         )
 
@@ -152,14 +152,13 @@ class TestHandleWebhookEvent(TestCase):
         integration.provider = IntegrationProviderSlug.GITHUB
         integration.id = 123
         event = {"action": "opened", "pull_request": {"number": 1, "draft": False}}
-        repo = MagicMock()
 
         handle_webhook_event(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_delivery_id=delivery_id,
             event=event,
             organization=self.organization,
-            repo=repo,
+            repo=self.repo,
             integration=integration,
         )
         assert self.mock_pull_request_handler.call_count == 1
@@ -174,7 +173,7 @@ class TestHandleWebhookEvent(TestCase):
             github_delivery_id=delivery_id,
             event=event,
             organization=self.organization,
-            repo=repo,
+            repo=self.repo,
             integration=integration,
         )
 
@@ -190,7 +189,7 @@ class TestHandleWebhookEvent(TestCase):
             github_event=GithubWebhookType.PULL_REQUEST,
             event={"action": "opened", "pull_request": {"number": 3, "draft": False}},
             organization=self.organization,
-            repo=MagicMock(),
+            repo=self.repo,
             integration=integration,
         )
 

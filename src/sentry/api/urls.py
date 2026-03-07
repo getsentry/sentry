@@ -514,6 +514,15 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
+from sentry.seer.code_review.api.endpoints.organization_code_review_event_details import (
+    OrganizationCodeReviewPRDetailsEndpoint,
+)
+from sentry.seer.code_review.api.endpoints.organization_code_review_events import (
+    OrganizationCodeReviewPRsEndpoint,
+)
+from sentry.seer.code_review.api.endpoints.organization_code_review_stats import (
+    OrganizationCodeReviewStatsEndpoint,
+)
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -1453,6 +1462,22 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/code-mappings/(?P<config_id>[^/]+)/codeowners/$",
         OrganizationCodeMappingCodeOwnersEndpoint.as_view(),
         name="sentry-api-0-organization-code-mapping-codeowners",
+    ),
+    # Code Review PRs
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-review-prs/$",
+        OrganizationCodeReviewPRsEndpoint.as_view(),
+        name="sentry-api-0-organization-code-review-prs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-review-prs/(?P<repo_id>\d+)/(?P<pr_number>\d+)/$",
+        OrganizationCodeReviewPRDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-code-review-pr-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-review-stats/$",
+        OrganizationCodeReviewStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-code-review-stats",
     ),
     # Data Forwarding
     re_path(

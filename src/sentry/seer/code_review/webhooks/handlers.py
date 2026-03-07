@@ -11,10 +11,12 @@ from rediscluster import RedisCluster
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.code_review_event import CodeReviewEventStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.utils.redis import redis_clusters
 
+from ..event_recorder import create_event_record
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
 from ..utils import get_tags
@@ -61,14 +63,14 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
-    if integration is None:
-        return
-
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
-    if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
+    if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
+    if integration is None:
+        return
+
     tags = {}
     try:
         tags = get_tags(
@@ -103,20 +105,32 @@ def handle_webhook_event(
                 github_event_action=event.get("action", "unknown"),
                 reason=preflight.denial_reason,
             )
+            create_event_record(
+                organization_id=organization.id,
+                repository_id=repo.id,
+                raw_event_type=github_event.value,
+                raw_event_action=event.get("action", "unknown"),
+                trigger_id=github_delivery_id,
+                event=event,
+                status=CodeReviewEventStatus.PREFLIGHT_DENIED,
+                denial_reason=preflight.denial_reason.value,
+            )
             if organization.slug == "sentry":
                 sentry_sdk.set_tag("denial_reason", preflight.denial_reason)
                 logger.info("github.webhook.code_review.denied")
         return
 
-    # Ensure only one request per delivery_id within the TTL window: skip if already processed
+    # Deduplicate: skip if this delivery_id was already processed within the TTL window
     if github_delivery_id:
         try:
             cluster = _get_webhook_seen_cluster()
             seen_key = f"{WEBHOOK_SEEN_KEY_PREFIX}{github_delivery_id}"
             is_first_time_seen = cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
         except Exception as e:
-            sentry_sdk.set_tag("error", str(e))
-            logger.warning("github.webhook.code_review.mark_seen_failed")
+            logger.warning(
+                "github.webhook.code_review.mark_seen_failed",
+                extra={"error": str(e)},
+            )
             # Keep going if error (e.g. Redis down) since we'd rather process twice than never
         else:
             if not is_first_time_seen:
@@ -125,6 +139,7 @@ def handle_webhook_event(
 
     handler(
         github_event=github_event,
+        github_delivery_id=github_delivery_id,
         event=event,
         organization=organization,
         repo=repo,
