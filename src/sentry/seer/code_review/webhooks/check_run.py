@@ -143,7 +143,11 @@ def handle_check_run_event(
     process_github_webhook_event.delay(
         github_event=github_event.value,
         # A reduced payload is enough for the task to process.
-        event_payload={"original_run_id": validated_event.check_run.external_id},
+        # trigger_id is included so Seer can echo it back in the completion webhook.
+        event_payload={
+            "original_run_id": validated_event.check_run.external_id,
+            "trigger_id": github_delivery_id,
+        },
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
