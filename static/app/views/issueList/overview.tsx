@@ -734,11 +734,13 @@ function IssueListOverview({
     itemIds,
     actionType,
     shouldRemove,
+    skipRefetch,
     undo,
   }: {
     actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
+    skipRefetch?: boolean;
     undo?: () => void;
   }) => {
     if (itemIds.length > 1) {
@@ -766,6 +768,10 @@ function IssueListOverview({
     actionTakenRef.current = true;
     setQueryCount(newQueryCount);
 
+    if (skipRefetch) {
+      return;
+    }
+
     if (GroupStore.getAllItemIds().length === 0) {
       // If we run out of issues on the last page, navigate back a page to
       // avoid showing an empty state - if not on the last page, just show a spinner
@@ -778,10 +784,6 @@ function IssueListOverview({
   };
 
   const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
-    if (realtimeActive) {
-      return;
-    }
-
     const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
 
     if ('status' in data) {
@@ -793,11 +795,14 @@ function IssueListOverview({
             query.includes('is:unresolved') ||
             query.includes('is:ignored') ||
             isForReviewQuery(query),
-          undo: () =>
-            undoAction({
-              data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-              groupItems,
-            }),
+          skipRefetch: realtimeActive,
+          undo: realtimeActive
+            ? undefined
+            : () =>
+                undoAction({
+                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
+                  groupItems,
+                }),
         });
         return;
       }
@@ -807,11 +812,14 @@ function IssueListOverview({
           itemIds,
           actionType: 'Archived',
           shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
-          undo: () =>
-            undoAction({
-              data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-              groupItems,
-            }),
+          skipRefetch: realtimeActive,
+          undo: realtimeActive
+            ? undefined
+            : () =>
+                undoAction({
+                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
+                  groupItems,
+                }),
         });
         return;
       }
@@ -822,6 +830,7 @@ function IssueListOverview({
         itemIds,
         actionType: 'Reviewed',
         shouldRemove: isForReviewQuery(query),
+        skipRefetch: realtimeActive,
       });
       return;
     }
@@ -834,6 +843,7 @@ function IssueListOverview({
         itemIds,
         actionType: 'Reprioritized',
         shouldRemove: !priorityValues.has(priority),
+        skipRefetch: realtimeActive,
       });
       return;
     }
