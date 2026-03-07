@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import abc
 import enum
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, override
+from typing import Any, ClassVar, override
 
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -35,6 +36,29 @@ from sentry.workflow_engine.types import (
 
 logger = logging.getLogger(__name__)
 
+
+class ProcessingErrorCheckStatus(enum.IntEnum):
+    """
+    Generic pass/fail status used as the comparison value for detector conditions.
+    These must match the values used in DataCondition.comparison when
+    provisioning the detector.
+    """
+
+    SUCCESS = 0
+    FAILURE = 1
+
+
+@dataclass(frozen=True)
+class ProcessingErrorPacketValue:
+    """
+    The data payload passed into processing error detectors via DataPacket.
+    Represents the error event that triggered detection.
+    """
+
+    event_id: str
+    event_data: Mapping[str, Any]
+
+
 # Error types from symbolicator that indicate sourcemap configuration problems
 JS_SOURCEMAP_ERROR_TYPES = frozenset(
     {
@@ -47,34 +71,31 @@ JS_SOURCEMAP_ERROR_TYPES = frozenset(
 )
 
 
-def has_js_sourcemap_errors(errors: Sequence[Mapping[str, Any]]) -> bool:
-    """Check whether any of the given processing errors are JS sourcemap errors."""
-    return any(e.get("type") in JS_SOURCEMAP_ERROR_TYPES for e in errors)
-
-
-class SourcemapCheckStatus(enum.IntEnum):
+class ProcessingErrorDetectorHandler(
+    StatefulDetectorHandler[ProcessingErrorPacketValue, ProcessingErrorCheckStatus],
+    abc.ABC,
+):
     """
-    Status values used as the comparison value for detector conditions.
-    These must match the values used in DataCondition.comparison when
-    provisioning the detector.
-    """
+    Base handler for processing error configuration issue detectors.
 
-    SUCCESS = 0
-    FAILURE = 1
-
-
-@dataclass(frozen=True)
-class SourcemapPacketValue:
-    """
-    The data payload passed into the sourcemap detector via DataPacket.
-    Represents the error event that triggered detection
+    Subclasses define class-level attributes to customize which error types
+    to match, issue titles, fingerprints, and metrics. The ``group_type_id``
+    attribute is resolved at runtime via the GroupType registry to avoid
+    circular references between the handler and its GroupType.
     """
 
-    event_id: str
-    event_data: Mapping[str, Any]
+    error_types: ClassVar[frozenset[str]]
+    fingerprint_key: ClassVar[str]
+    issue_title: ClassVar[str]
+    issue_subtitle: ClassVar[str]
+    group_type_id: ClassVar[int]
 
+    @property
+    def group_type(self) -> type[GroupType]:
+        from sentry.issues.grouptype import registry
 
-class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, SourcemapCheckStatus]):
+        return registry.get_by_type_id(self.group_type_id)
+
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
@@ -84,34 +105,35 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
         }
 
     @override
-    def extract_value(self, data_packet: DataPacket[SourcemapPacketValue]) -> SourcemapCheckStatus:
+    def extract_value(
+        self, data_packet: DataPacket[ProcessingErrorPacketValue]
+    ) -> ProcessingErrorCheckStatus:
         errors = data_packet.packet.event_data.get("errors", [])
+        has_errors = any(e.get("type") in self.error_types for e in errors)
         return (
-            SourcemapCheckStatus.FAILURE
-            if has_js_sourcemap_errors(errors)
-            else SourcemapCheckStatus.SUCCESS
+            ProcessingErrorCheckStatus.FAILURE if has_errors else ProcessingErrorCheckStatus.SUCCESS
         )
 
     @override
-    def extract_dedupe_value(self, data_packet: DataPacket[SourcemapPacketValue]) -> int:
+    def extract_dedupe_value(self, data_packet: DataPacket[ProcessingErrorPacketValue]) -> int:
         # Not used — we override evaluate_impl and skip dedupe logic
         return 0
 
     @override
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
-        return [f"{self.detector.project_id}:sourcemap"]
+        return [f"{self.detector.project_id}:{self.fingerprint_key}"]
 
     @override
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
-        data_packet: DataPacket[SourcemapPacketValue],
+        data_packet: DataPacket[ProcessingErrorPacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         event_data_dict = data_packet.packet.event_data
         errors = event_data_dict.get("errors", [])
-        js_errors = [e for e in errors if e.get("type") in JS_SOURCEMAP_ERROR_TYPES]
-        error_types = {e.get("type", "unknown") for e in js_errors}
+        matching_errors = [e for e in errors if e.get("type") in self.error_types]
+        error_types = {e.get("type", "unknown") for e in matching_errors}
 
         evidence_data: dict[str, Any] = {
             "error_types": sorted(error_types),
@@ -127,11 +149,11 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
         ]
 
         occurrence = DetectorOccurrence(
-            issue_title="Broken source maps detected",
-            subtitle="Source maps are not configured correctly for this project",
+            issue_title=self.issue_title,
+            subtitle=self.issue_subtitle,
             evidence_data=evidence_data,
             evidence_display=evidence_display,
-            type=SourcemapConfigurationType,
+            type=self.group_type,
             level="warning",
             culprit="",
             priority=priority,
@@ -146,7 +168,7 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
 
     @override
     def evaluate_impl(
-        self, data_packet: DataPacket[SourcemapPacketValue]
+        self, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> GroupedDetectorEvaluationResult:
         """
         Custom evaluation that skips dedupe and threshold counting.
@@ -171,7 +193,7 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
         rows_updated = self._try_state_transition(DetectorPriorityLevel.HIGH)
 
         if not rows_updated:
-            metrics.incr("workflow_engine.sourcemap_detector.state_transition_conflict")
+            metrics.incr(f"processing_errors.{self.detector.type}.state_transition_race")
             return GroupedDetectorEvaluationResult(result=results, tainted=False)
 
         results[None] = self._build_detector_evaluation_result(
@@ -216,6 +238,14 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
             state=new_priority,
             date_updated=timezone.now(),
         )
+
+
+class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
+    error_types = JS_SOURCEMAP_ERROR_TYPES
+    fingerprint_key = "sourcemap"
+    issue_title = "Broken source maps detected"
+    issue_subtitle = "Source maps are not configured correctly for this project"
+    group_type_id = 13001
 
 
 @dataclass(frozen=True)
