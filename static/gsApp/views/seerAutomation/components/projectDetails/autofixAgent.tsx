@@ -26,7 +26,7 @@ import SeerAgentSettings from 'getsentry/views/seerAutomation/components/project
 import {
   useAgentOptions,
   useMutateSelectedAgent,
-  useSelectedAgent,
+  useSelectedAgentFromProjectSettings,
 } from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 interface Props {
@@ -64,7 +64,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
     select: data => data.json.integrations ?? [],
   });
   const options = useAgentOptions({integrations: integrations ?? []});
-  const selected = useSelectedAgent({
+  const selected = useSelectedAgentFromProjectSettings({
     preference,
     project,
     integrations: integrations ?? [],
