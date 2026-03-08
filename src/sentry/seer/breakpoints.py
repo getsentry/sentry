@@ -7,7 +7,7 @@ from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -74,16 +74,21 @@ SnubaTSEntry = tuple[int, tuple[SnubaMetadata]]
 def make_breakpoint_detection_request(
     body: BreakpointRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or seer_breakpoint_connection_pool,
         "/trends/breakpoint-detector",
         body=json.dumps(body).encode("utf-8"),
+        viewer_context=viewer_context,
     )
 
 
-def detect_breakpoints(breakpoint_request: BreakpointRequest) -> BreakpointResponse:
-    response = make_breakpoint_detection_request(breakpoint_request)
+def detect_breakpoints(
+    breakpoint_request: BreakpointRequest,
+    viewer_context: SeerViewerContext | None = None,
+) -> BreakpointResponse:
+    response = make_breakpoint_detection_request(breakpoint_request, viewer_context=viewer_context)
 
     if response.status >= 200 and response.status < 300:
         try:

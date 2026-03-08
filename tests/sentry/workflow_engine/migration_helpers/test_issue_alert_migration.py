@@ -150,7 +150,7 @@ class IssueAlertMigratorTest(TestCase):
         assert error_detector.project_id == self.project.id
         assert error_detector.enabled is True
         assert error_detector.owner_user_id is None
-        assert error_detector.owner_team is None
+        assert error_detector.owner_team_id is None
         assert error_detector.type == ErrorGroupType.slug
         assert error_detector.config == {}
 
@@ -168,7 +168,7 @@ class IssueAlertMigratorTest(TestCase):
         assert issue_stream_detector.name == "Issue Stream"
         assert issue_stream_detector.enabled is True
         assert issue_stream_detector.owner_user_id is None
-        assert issue_stream_detector.owner_team is None
+        assert issue_stream_detector.owner_team_id is None
         assert issue_stream_detector.config == {}
 
         issue_stream_detector_workflow = DetectorWorkflow.objects.get(
@@ -635,23 +635,24 @@ class TestEnsureDefaultDetectors(TestCase):
 
     def test_ensure_default_detector(self) -> None:
         project = self.create_project()
-        error_detector, issue_stream_detector = ensure_default_detectors(project)
+        detectors = ensure_default_detectors(project)
 
+        error_detector = detectors[ErrorGroupType.slug]
         assert error_detector.name == ERROR_DETECTOR_NAME
         assert error_detector.project_id == project.id
         assert error_detector.type == ErrorGroupType.slug
+
+        issue_stream_detector = detectors[IssueStreamGroupType.slug]
         assert issue_stream_detector.name == ISSUE_STREAM_DETECTOR_NAME
         assert issue_stream_detector.project_id == project.id
         assert issue_stream_detector.type == IssueStreamGroupType.slug
 
     def test_ensure_default_detector__already_exists(self) -> None:
         project = self.create_project()
-        detectors = Detector.objects.filter(project=project)
+        existing = Detector.objects.filter(project=project)
         with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
             default_detectors = ensure_default_detectors(project)
-            assert {default_detectors[0].id, default_detectors[1].id} == {
-                detectors.id for detectors in detectors
-            }
+            assert {d.id for d in default_detectors.values()} == {d.id for d in existing}
             # No lock if it already exists.
             mock_lock.assert_not_called()
 

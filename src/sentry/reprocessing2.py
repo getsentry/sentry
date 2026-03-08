@@ -414,27 +414,21 @@ def _maybe_copy_attachment_into_cache(
     stored_id = None
     chunks = None
 
-    if in_random_rollout("objectstore.enable_for.attachments"):
-        blob_path = attachment.blob_path or ""
-        if blob_path.startswith(V2_PREFIX):
-            # in case the attachment is already stored in objectstore, there is nothing to do
-            stored_id = blob_path.removeprefix(V2_PREFIX)
-        else:
-            # otherwise, we store it in objectstore
-            with attachment.getfile() as fp:
-                stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
-            # but we then also make that storage permanent, as otherwise
-            # the codepaths won’t be cleaning up this stored file.
-            # essentially this means we are moving the file from the previous storage
-            # into objectstore at this point.
-            attachment.blob_path = V2_PREFIX + stored_id
-            attachment.save()
-            if blob_path.startswith(V1_PREFIX):
-                storage = get_storage()
-                storage.delete(blob_path)
-
+    blob_path = attachment.blob_path or ""
+    if blob_path.startswith(V2_PREFIX):
+        # attachment is already in objectstore (regardless of flag)
+        stored_id = blob_path.removeprefix(V2_PREFIX)
+    elif in_random_rollout("objectstore.enable_for.attachments"):
+        # move the attachment into objectstore and update the record
+        with attachment.getfile() as fp:
+            stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
+        attachment.blob_path = V2_PREFIX + stored_id
+        attachment.save()
+        if blob_path.startswith(V1_PREFIX):
+            storage = get_storage()
+            storage.delete(blob_path)
     else:
-        # when not using objectstore, store chunks in the attachment cache
+        # store chunks in the attachment cache
         with attachment.getfile() as fp:
             chunk_index = 0
             size = 0

@@ -77,15 +77,6 @@ class SeerOperator[CachePayloadT]:
         if not has_seer_access(organization):
             return False
 
-        # Currently, this feature is built around legacy autofix
-        # The explorer autofix pipeline and history is entirely separate, so the runs we trigger
-        # at the moment, won't be visible in-app to users with this flag.
-        # This check can only be removed once this feature migrates to explorer-based autofix.
-        if features.has("organizations:autofix-on-explorer", organization) and not features.has(
-            "organizations:seer-slack-workflows-explorer", organization
-        ):
-            return False
-
         if entrypoint_key:
             if entrypoint_key not in entrypoint_registry.registrations:
                 logger.error(
@@ -159,6 +150,7 @@ class SeerOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
+            get_autofix_explorer_client,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
         )
@@ -211,24 +203,36 @@ class SeerOperator[CachePayloadT]:
                         )
                     return
 
-            if not run_id:
-                run_id = trigger_autofix_explorer(
-                    group=group,
-                    step=AutofixStep.ROOT_CAUSE,
-                    run_id=None,
-                )
-            elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                pass  # TODO: OPENING PRs is a little more complicated so putting it off for now
-            else:
-                # NOTE: Stopping point here is really just what
-                # step to run next. Not the same as the stopping_point
-                # argument supported by `trigger_autofix_explorer` which allows one
-                # to run multiple steps at once
-                run_id = trigger_autofix_explorer(
-                    group=group,
-                    step=AutofixStep.from_autofix_stopping_point(stopping_point),
-                    run_id=run_id,
-                )
+            try:
+                if not run_id:
+                    run_id = trigger_autofix_explorer(
+                        group=group,
+                        step=AutofixStep.ROOT_CAUSE,
+                        run_id=None,
+                    )
+                elif stopping_point == AutofixStoppingPoint.OPEN_PR:
+                    client = get_autofix_explorer_client(group)
+                    client.push_changes(run_id, blocking=False)
+                else:
+                    # NOTE: Stopping point here is really just what
+                    # step to run next. Not the same as the stopping_point
+                    # argument supported by `trigger_autofix_explorer` which allows one
+                    # to run multiple steps at once
+                    run_id = trigger_autofix_explorer(
+                        group=group,
+                        step=AutofixStep.from_autofix_stopping_point(stopping_point),
+                        run_id=run_id,
+                    )
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
 
             lifecycle.add_extra("run_id", str(run_id))
 
@@ -562,6 +566,21 @@ def get_autofix_explorer_status(
             continue
 
         if step == expected_step:
+            # OPEN_PR step gets special treatment as it's not part of the normal blocks.
+            # We look for the code_changes step then the presence of repo_pr_states.
+            #
+            # This only works with a single code_changes step but that is the current
+            # expected behaviour.
+            if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                # If there are no repo_pr_states, it means it's not started
+                if not autofix_state.repo_pr_states:
+                    return None
+                # If there are repo_pr_states, make sure they're not still creating
+                return all(
+                    pr_state.pr_creation_status != "creating"
+                    for pr_state in autofix_state.repo_pr_states.values()
+                )
+
             # If the expected step is not the last step
             # then we can assume it is already completed
             # so return True to indicate that
@@ -573,17 +592,7 @@ def get_autofix_explorer_status(
             #
             # Everything except the processing status
             # is considered as some form of completed
-            completed = autofix_state.status != "processing"
-
-            # OPEN_PR step gets special treatment to also
-            # check on the status of the pr creation
-            if stopping_point == AutofixStoppingPoint.OPEN_PR and completed:
-                return all(
-                    pr_state.pr_creation_status != "creating"
-                    for pr_state in autofix_state.repo_pr_states.values()
-                )
-
-            return completed
+            return autofix_state.status != "processing"
 
         is_last = False
 

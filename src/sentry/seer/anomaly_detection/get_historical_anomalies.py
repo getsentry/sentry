@@ -15,7 +15,7 @@ from sentry.seer.anomaly_detection.types import (
     DetectHistoricalAnomaliesRequest,
     TimeSeriesPoint,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
@@ -37,12 +37,14 @@ SEER_RETRIES = Retry(
 def make_detect_historical_anomalies_request(
     body: DetectHistoricalAnomaliesRequest,
     connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or seer_anomaly_detection_connection_pool,
         SEER_ANOMALY_DETECTION_ENDPOINT_URL,
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
+        viewer_context=viewer_context,
     )
 
 
@@ -134,8 +136,9 @@ def get_historical_anomaly_data_from_seer_preview(
         "config": config,
         "context": context,
     }
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     try:
-        response = make_detect_historical_anomalies_request(body)
+        response = make_detect_historical_anomalies_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None

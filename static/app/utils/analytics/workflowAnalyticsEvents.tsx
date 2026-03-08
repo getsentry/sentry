@@ -69,7 +69,12 @@ export type TeamInsightsEventParameters = {
   'alert_builder.noisy_warning_agreed': Record<string, unknown>;
   'alert_builder.noisy_warning_viewed': Record<string, unknown>;
   'alert_details.viewed': {alert_id: number};
-  'alert_rule_details.viewed': {alert: string; has_chartcuterie: string; rule_id: number};
+  'alert_rule_details.viewed': {
+    alert: string;
+    has_chartcuterie: string;
+    notification_uuid: string;
+    rule_id: number;
+  };
   'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': Record<string, unknown>;
   'alert_wizard.option_selected': {alert_type: string};

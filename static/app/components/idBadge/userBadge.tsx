@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
 
 import BadgeDisplayName from './badgeDisplayName';
@@ -65,7 +64,7 @@ const Name = styled('span')<{hideEmail: boolean}>`
 
 const Email = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
   display: block;
   width: 100%;

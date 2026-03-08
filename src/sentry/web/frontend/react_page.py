@@ -11,14 +11,13 @@ from django.middleware.csrf import get_token as get_csrf_token
 from django.urls import resolve
 
 from sentry import features, options
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.types.region import (
-    find_all_multitenant_region_names,
-    get_region_by_name,
+    find_all_multitenant_locality_names,
     subdomain_is_region,
 )
 from sentry.utils.http import is_using_customer_domain, query_string
@@ -77,12 +76,10 @@ class ReactMixin:
         return preconnects
 
     def dns_prefetch(self) -> list[str]:
-        regions = find_all_multitenant_region_names()
-        if len(regions) < 2:
+        localities = find_all_multitenant_locality_names()
+        if len(localities) < 2:
             return []
-        return [
-            generate_region_url(get_region_by_name(region_name).name) for region_name in regions
-        ]
+        return [generate_locality_url(locality_name) for locality_name in localities]
 
     def handle_react(
         self, request: HttpRequest, *, organization: Organization | None = None, **kwargs

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import logging
 from typing import NamedTuple
 
@@ -19,6 +18,9 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.vcs.status_checks.snapshots.tasks import (
+    create_preprod_snapshot_status_check_task,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -35,6 +37,49 @@ class _DiffCandidate(NamedTuple):
     head_hash: str
     base_hash: str
     pixel_count: int
+
+
+class _ImageDiffResult(NamedTuple):
+    renamed_pairs: list[tuple[str, str]]
+    added: set[str]
+    removed: set[str]
+    matched: set[str]
+    head_by_name: dict[str, str]
+    base_by_name: dict[str, str]
+
+
+def categorize_image_diff(
+    head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
+) -> _ImageDiffResult:
+    head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
+    base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
+
+    matched = head_by_name.keys() & base_by_name.keys()
+    added = head_by_name.keys() - base_by_name.keys()
+    removed = base_by_name.keys() - head_by_name.keys()
+
+    added_hash_to_names: dict[str, list[str]] = {}
+    for name in added:
+        h = head_by_name[name]
+        added_hash_to_names.setdefault(h, []).append(name)
+
+    removed_hash_to_names: dict[str, list[str]] = {}
+    for name in removed:
+        h = base_by_name[name]
+        removed_hash_to_names.setdefault(h, []).append(name)
+
+    renamed_pairs: list[tuple[str, str]] = []
+    for h in added_hash_to_names.keys() & removed_hash_to_names.keys():
+        a_names = added_hash_to_names[h]
+        r_names = removed_hash_to_names[h]
+        if len(a_names) == 1 and len(r_names) == 1:
+            renamed_pairs.append((a_names[0], r_names[0]))
+
+    for new_name, old_name in renamed_pairs:
+        added.discard(new_name)
+        removed.discard(old_name)
+
+    return _ImageDiffResult(renamed_pairs, added, removed, matched, head_by_name, base_by_name)
 
 
 def _image_name_to_path_stem(name: str) -> str:
@@ -209,12 +254,13 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
-        head_by_name = {meta.image_file_name: h for h, meta in head_images.items()}
-        base_by_name = {meta.image_file_name: h for h, meta in base_images.items()}
-
-        matched = head_by_name.keys() & base_by_name.keys()
-        added = head_by_name.keys() - base_by_name.keys()
-        removed = base_by_name.keys() - head_by_name.keys()
+        categories = categorize_image_diff(head_manifest, base_manifest)
+        renamed_pairs = categories.renamed_pairs
+        added = categories.added
+        removed = categories.removed
+        matched = categories.matched
+        head_by_name = categories.head_by_name
+        base_by_name = categories.base_by_name
 
         image_results: dict[str, dict[str, object]] = {}
         changed_count = 0
@@ -355,7 +401,7 @@ def compare_snapshots(
                     diff_mask_key = (
                         f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
                     )
-                    diff_mask_bytes = base64.b64decode(diff_result.diff_mask_png)
+                    diff_mask_bytes = diff_result.diff_mask_png
                     logger.info(
                         "compare_snapshots: uploading mask for %s (%d bytes, changed_px=%d)",
                         name,
@@ -404,16 +450,25 @@ def compare_snapshots(
                 "before_height": base_meta.height,
             }
 
+        for new_name, old_name in sorted(renamed_pairs):
+            content_hash = head_by_name[new_name]
+            image_results[new_name] = {
+                "status": "renamed",
+                "head_hash": content_hash,
+                "previous_image_file_name": old_name,
+            }
+
         comparison_manifest = ComparisonManifest(
             head_artifact_id=head_artifact_id,
             base_artifact_id=base_artifact_id,
             summary=ComparisonSummary(
-                total=len(matched) + len(added) + len(removed),
+                total=len(matched) + len(added) + len(removed) + len(renamed_pairs),
                 changed=changed_count,
                 unchanged=unchanged_count,
                 added=len(added),
                 removed=len(removed),
                 errored=error_count,
+                renamed=len(renamed_pairs),
             ),
             images=image_results,
         )
@@ -433,6 +488,7 @@ def compare_snapshots(
         comparison.images_unchanged = unchanged_count
         comparison.images_added = len(added)
         comparison.images_removed = len(removed)
+        comparison.images_renamed = len(renamed_pairs)
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
@@ -445,9 +501,17 @@ def compare_snapshots(
                 "images_unchanged",
                 "images_added",
                 "images_removed",
+                "images_renamed",
                 "extras",
                 "date_updated",
             ]
+        )
+
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_completion",
+            },
         )
 
         logger.info(
@@ -459,6 +523,7 @@ def compare_snapshots(
                 "unchanged": unchanged_count,
                 "added": len(added),
                 "removed": len(removed),
+                "renamed": len(renamed_pairs),
                 "errored": error_count,
             },
         )
@@ -481,4 +546,11 @@ def compare_snapshots(
                     "Failed to save FAILED state for comparison",
                     extra={"comparison_id": comparison.id},
                 )
+
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
         raise

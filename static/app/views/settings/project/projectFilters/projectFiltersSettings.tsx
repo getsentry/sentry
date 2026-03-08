@@ -37,7 +37,6 @@ import filterGroups, {
 } from 'sentry/data/forms/inboundFilters';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -651,18 +650,18 @@ const NestedForm = styled(Form)<FormProps>`
 const FilterGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const FilterGridItem = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const FilterGridIcon = styled('img')`

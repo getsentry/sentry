@@ -35,9 +35,7 @@ describe('Performance Onboarding View > Unsupported Banner', () => {
 });
 
 describe('Testing new onboarding ui', () => {
-  const organization = OrganizationFixture({
-    features: ['tracing-onboarding-new-ui'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({

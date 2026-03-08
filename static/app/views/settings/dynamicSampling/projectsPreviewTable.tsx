@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
@@ -124,6 +123,6 @@ const Footer = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: flex;
   justify-content: flex-end;
-  gap: ${space(2)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;

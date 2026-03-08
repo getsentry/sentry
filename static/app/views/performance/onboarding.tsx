@@ -64,7 +64,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -155,6 +154,7 @@ function SampleButton({
   api,
 }: SampleButtonProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   return (
     <Button
       data-test-id="create-sample-transaction-btn"
@@ -171,7 +171,7 @@ function SampleButton({
           const eventData = await api.requestPromise(url, {method: 'POST'});
           const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
 
-          browserHistory.push(
+          navigate(
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
@@ -420,7 +420,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
-  const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
   const tracesQuery = useTraces({
     enabled: received,
@@ -470,10 +469,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
     organization,
     doesNotSupportPerformance,
   ]);
-
-  if (!showNewUi) {
-    return <LegacyOnboarding organization={organization} project={project} />;
-  }
 
   const performanceDocs = docs?.performanceOnboarding;
 

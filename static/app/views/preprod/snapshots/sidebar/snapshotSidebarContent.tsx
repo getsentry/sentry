@@ -1,104 +1,223 @@
-import {useEffect, useRef} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons';
+import {
+  IconAdd,
+  IconCheckmark,
+  IconCopy,
+  IconEdit,
+  IconSearch,
+  IconSubtract,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus, type SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
+
+interface SectionConfig {
+  defaultExpanded: boolean;
+  icon: React.ReactNode;
+  label: string;
+  type: DiffStatus;
+}
+
+const SECTION_ORDER: SectionConfig[] = [
+  {
+    type: DiffStatus.CHANGED,
+    label: t('Modified'),
+    icon: <IconEdit size="xs" />,
+    defaultExpanded: true,
+  },
+  {
+    type: DiffStatus.ADDED,
+    label: t('Added'),
+    icon: <IconAdd size="xs" />,
+    defaultExpanded: true,
+  },
+  {
+    type: DiffStatus.REMOVED,
+    label: t('Removed'),
+    icon: <IconSubtract size="xs" />,
+    defaultExpanded: true,
+  },
+  {
+    type: DiffStatus.RENAMED,
+    label: t('Renamed'),
+    icon: <IconCopy size="xs" />,
+    defaultExpanded: true,
+  },
+  {
+    type: DiffStatus.UNCHANGED,
+    label: t('Unchanged'),
+    icon: <IconCheckmark size="xs" />,
+    defaultExpanded: true,
+  },
+];
 
 interface SnapshotSidebarContentProps {
-  currentGroupName: string | null;
-  fetchNextPage: () => Promise<unknown>;
-  filteredGroups: Map<string, SnapshotImage[]>;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
+  currentItemName: string | null;
+  items: SidebarItem[];
   onSearchChange: (query: string) => void;
-  onSelectGroupName: (name: string) => void;
+  onSelectItem: (name: string) => void;
   searchQuery: string;
+  totalItemCount: number;
 }
 
 export function SnapshotSidebarContent({
-  filteredGroups,
-  currentGroupName,
+  items,
+  totalItemCount,
+  currentItemName,
   searchQuery,
   onSearchChange,
-  onSelectGroupName,
-  hasNextPage,
-  isFetchingNextPage,
-  fetchNextPage,
+  onSelectItem,
 }: SnapshotSidebarContentProps) {
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const isDiffMode = items.length > 0 && items[0]!.type !== 'solo';
 
-  useEffect(() => {
-    const sentinel = loadMoreRef.current;
-    if (!sentinel || !hasNextPage) {
-      return undefined;
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
+    () => {
+      const initial: Record<string, boolean> = {};
+      for (const section of SECTION_ORDER) {
+        initial[section.type] = section.defaultExpanded;
+      }
+      return initial;
     }
+  );
 
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      {threshold: 0}
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const groupedItems = useMemo(() => {
+    if (!isDiffMode) {
+      return null;
+    }
+    const groups = new Map<string, SidebarItem[]>();
+    for (const item of items) {
+      const existing = groups.get(item.type);
+      if (existing) {
+        existing.push(item);
+      } else {
+        groups.set(item.type, [item]);
+      }
+    }
+    return groups;
+  }, [items, isDiffMode]);
+
+  const isSearching = searchQuery.length > 0;
+
+  const handleExpandedChange = (type: string, expanded: boolean) => {
+    if (isSearching) return;
+    setExpandedSections(prev => ({...prev, [type]: expanded}));
+  };
+
+  const isGroupedDiff = isDiffMode && groupedItems !== null;
 
   return (
-    <Flex direction="column" gap="md" minWidth="300px">
-      <Container padding="xl">
-        <InputGroup>
+    <Flex direction="column" gap="md" height="100%" width="100%">
+      <Flex padding="xl" paddingBottom="0">
+        <InputGroup style={{flex: 1}}>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch size="sm" />
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search images...')}
+            placeholder={t('Search %s images...', totalItemCount)}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
         </InputGroup>
-      </Container>
+      </Flex>
       <Stack overflow="auto" flex="1">
-        {[...filteredGroups.entries()].map(([name, images]) => {
-          const isSelected = name === currentGroupName;
-          return (
-            <SidebarItem
-              key={name}
-              isSelected={isSelected}
-              onClick={() => onSelectGroupName(name)}
-            >
-              <Text
-                size="md"
-                variant={isSelected ? 'accent' : 'muted'}
-                bold={isSelected}
-                ellipsis
-              >
-                {name}
-              </Text>
-              <Tag variant="muted">{images.length}</Tag>
-            </SidebarItem>
-          );
-        })}
-        {filteredGroups.size === 0 && !hasNextPage && !isFetchingNextPage && (
+        {isGroupedDiff
+          ? SECTION_ORDER.map(section => {
+              const sectionItems = groupedItems.get(section.type);
+              if (!sectionItems || sectionItems.length === 0) {
+                return null;
+              }
+              const isExpanded = isSearching || expandedSections[section.type];
+              return (
+                <SectionWrapper key={section.type}>
+                  <Disclosure
+                    size="xs"
+                    expanded={isExpanded}
+                    onExpandedChange={expanded =>
+                      handleExpandedChange(section.type, expanded)
+                    }
+                  >
+                    <Disclosure.Title
+                      trailingItems={
+                        <Flex align="center" gap="xs">
+                          <Text size="xs" bold>
+                            {sectionItems.length}
+                          </Text>
+                          {section.icon}
+                        </Flex>
+                      }
+                    >
+                      <Text size="xs" bold uppercase>
+                        {section.label}
+                      </Text>
+                    </Disclosure.Title>
+                    <Disclosure.Content>
+                      {sectionItems.map(item => (
+                        <SidebarItemRow
+                          key={item.name}
+                          isSelected={item.name === currentItemName}
+                          onClick={() => onSelectItem(item.name)}
+                        >
+                          <Flex align="center" gap="sm" flex="1" minWidth="0">
+                            <Text
+                              size="md"
+                              variant={item.name === currentItemName ? 'accent' : 'muted'}
+                              bold={item.name === currentItemName}
+                              ellipsis
+                            >
+                              {item.name}
+                            </Text>
+                          </Flex>
+                          {item.type === 'changed' && item.pair.diff !== null && (
+                            <Text variant="muted" size="xs">
+                              {`${(item.pair.diff * 100).toFixed(1)}%`}
+                            </Text>
+                          )}
+                        </SidebarItemRow>
+                      ))}
+                    </Disclosure.Content>
+                  </Disclosure>
+                </SectionWrapper>
+              );
+            })
+          : items.map(item => {
+              const isSelected = item.name === currentItemName;
+
+              return (
+                <SidebarItemRow
+                  key={item.name}
+                  isSelected={isSelected}
+                  onClick={() => onSelectItem(item.name)}
+                >
+                  <Flex align="center" gap="sm" flex="1" minWidth="0">
+                    <Text
+                      size="md"
+                      variant={isSelected ? 'accent' : 'muted'}
+                      bold={isSelected}
+                      ellipsis
+                    >
+                      {item.name}
+                    </Text>
+                  </Flex>
+                  {item.type === 'solo' && item.images.length > 1 && (
+                    <Text variant="muted" size="xs">
+                      {item.images.length}
+                    </Text>
+                  )}
+                </SidebarItemRow>
+              );
+            })}
+        {items.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No images found.')}
             </Text>
-          </Flex>
-        )}
-        <div ref={loadMoreRef} />
-        {isFetchingNextPage && (
-          <Flex align="center" justify="center" padding="md">
-            <LoadingIndicator size={20} />
           </Flex>
         )}
       </Stack>
@@ -106,10 +225,32 @@ export function SnapshotSidebarContent({
   );
 }
 
-const SidebarItem = styled('div')<{isSelected: boolean}>`
+const SectionWrapper = styled('div')`
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  [data-disclosure] > :not(:first-child) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  [data-disclosure] > div > button {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  [data-disclosure] > div > button ~ * {
+    flex-shrink: 0;
+    padding-right: ${p => p.theme.space.md};
+  }
+`;
+
+const SidebarItemRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   cursor: pointer;
   border-right: 3px solid

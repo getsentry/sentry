@@ -357,7 +357,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert vcs_info["pr_number"] == 123
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
-    def test_get_snapshot_details_pagination(self, mock_get_session):
+    def test_get_snapshot_details_returns_all_images(self, mock_get_session):
         images = {
             f"img{i:03d}": {
                 "display_name": f"Image {i}",
@@ -372,22 +372,12 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         url = self._get_detail_url(artifact.id)
         with self.feature("organizations:preprod-snapshots"):
-            # First page: items 0-2
-            response = self.client.get(url, {"per_page": "3"})
+            response = self.client.get(url)
 
         assert response.status_code == 200
-        assert len(response.data["images"]) == 3
+        assert len(response.data["images"]) == 10
         assert response.data["images"][0]["key"] == "img000"
-        assert response.data["images"][2]["key"] == "img002"
-
-        with self.feature("organizations:preprod-snapshots"):
-            # Second page: cursor format is "{per_page}:{page}:0"
-            response = self.client.get(url, {"cursor": "3:1:0", "per_page": "3"})
-
-        assert response.status_code == 200
-        assert len(response.data["images"]) == 3
-        assert response.data["images"][0]["key"] == "img003"
-        assert response.data["images"][2]["key"] == "img005"
+        assert response.data["images"][9]["key"] == "img009"
 
     def test_get_snapshot_not_found(self):
         url = self._get_detail_url(99999)
@@ -421,28 +411,6 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 403
         assert response.data["detail"] == "Feature not enabled"
-
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
-    def test_get_snapshot_invalid_pagination(self, mock_get_session):
-        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
-        mock_get_session.return_value = self._create_mock_session(manifest_json)
-
-        url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url, {"per_page": "0"})
-
-        assert response.status_code == 400
-
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
-    def test_get_snapshot_limit_too_large(self, mock_get_session):
-        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
-        mock_get_session.return_value = self._create_mock_session(manifest_json)
-
-        url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url, {"per_page": "101"})
-
-        assert response.status_code == 400
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_objectstore_error(self, mock_get_session):

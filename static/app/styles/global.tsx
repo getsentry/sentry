@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {css, Global} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 const generateThemePrismVariables = (theme: Theme, blockBackground: string) => ({
@@ -35,7 +34,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
 
   pre[class*='language-'] {
     overflow-x: auto;
-    padding: ${space(1)} ${space(2)};
+    padding: ${theme.space.md} ${theme.space.xl};
     border-radius: ${theme.radius.md};
     box-shadow: none;
 
@@ -126,7 +125,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
     }
     .line-highlight {
       position: absolute;
-      left: -${space(2)};
+      left: -${theme.space.xl};
       right: 0;
       background: var(--prism-highlight-background);
       box-shadow: inset 5px 0 0 var(--prism-highlight-accent);
@@ -392,25 +391,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
         }
         .rdrMonthAndYearPickers select {
           color: ${theme.tokens.content.primary};
-        }
-        .dropdown-menu {
-          background-color: ${theme.tokens.background.primary} !important;
-          color: ${theme.tokens.content.primary};
-          border: 1px solid ${theme.tokens.border.primary};
-          &:before {
-            border-bottom-color: ${theme.tokens.border.primary};
-          }
-          &:after {
-            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-            border-bottom-color: ${theme.tokens.background.primary};
-          }
-          &.inverted:before {
-            border-top-color: ${theme.tokens.border.primary};
-          }
-          &.inverted:after {
-            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-            border-top-color: ${theme.tokens.background.primary};
-          }
         }
       `
     : ''}

@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -104,7 +103,7 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
 const QueryCountBubble = styled(motion.span)`
   line-height: 20px;
   font-size: ${p => p.theme.font.size.xs};
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
   min-width: 20px;
   display: flex;
   height: 18px;

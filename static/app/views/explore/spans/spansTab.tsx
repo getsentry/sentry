@@ -113,7 +113,6 @@ interface SpanTabProps {
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
-  const organization = useOrganization();
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
 
   return (
@@ -123,10 +122,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
           <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
         </ExploreBodySearch>
         <ExploreBodyContent>
-          <SpanTabControlSection
-            organization={organization}
-            controlSectionExpanded={controlSectionExpanded}
-          />
+          <SpanTabControlSection controlSectionExpanded={controlSectionExpanded} />
           <SpanTabContentSection
             setControlSectionExpanded={setControlSectionExpanded}
             controlSectionExpanded={controlSectionExpanded}
@@ -149,18 +145,10 @@ function useVisitExplore() {
 
 interface SpanTabControlSectionProps {
   controlSectionExpanded: boolean;
-  organization: Organization;
 }
 
-function SpanTabControlSection({
-  controlSectionExpanded,
-  organization,
-}: SpanTabControlSectionProps) {
-  const toolbarExtras = [
-    ...(organization?.features?.includes('visibility-explore-equations')
-      ? ['equations' as const]
-      : []),
-  ];
+function SpanTabControlSection({controlSectionExpanded}: SpanTabControlSectionProps) {
+  const toolbarExtras: Array<'equations'> = ['equations'];
 
   return (
     <ExploreControlSection expanded={controlSectionExpanded}>

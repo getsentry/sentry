@@ -1787,7 +1787,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const moduleUrlToModule: Record<string, ModuleName> = Object.fromEntries(
+  const moduleUrlToModule = Object.fromEntries(
     Object.values(ModuleName).map(name => [MODULE_BASE_URLS[name], name])
   );
 
@@ -2101,20 +2101,12 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    // Redirect old conversations links to the new explore location
     {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
-      component: make(() => import('sentry/views/insights/pages/conversations/layout')),
-      children: [
-        {
-          index: true,
-          handle: {module: undefined},
-          component: make(
-            () => import('sentry/views/insights/pages/conversations/overview')
-          ),
-        },
-        transactionSummaryRoute,
-        traceView,
-      ],
+      path: `${CONVERSATIONS_LANDING_SUB_PATH}/*`,
+      component: make(
+        () => import('sentry/views/insights/pages/conversations/conversationsRedirect')
+      ),
     },
     // Redirect old links to the new agents landing page
     {
@@ -2348,6 +2340,21 @@ function buildRoutes(): RouteObject[] {
       children: metricsChildren,
     },
     {
+      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/conversations/layout')),
+      children: [
+        {
+          index: true,
+          handle: {module: undefined},
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/overview')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
+      ],
+    },
+    {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
@@ -2356,42 +2363,6 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
-  };
-
-  const preventRoutes: SentryRouteObject = {
-    path: '/prevent/',
-    withOrgPath: true,
-    component: make(() => import('sentry/views/prevent/index')),
-    children: [
-      {
-        index: true,
-        redirectTo: 'tests/',
-      },
-      {
-        path: 'tests/',
-        component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-        children: [
-          {
-            index: true,
-            component: make(() => import('sentry/views/prevent/tests/tests')),
-          },
-          {
-            path: 'new/',
-            component: make(() => import('sentry/views/prevent/tests/onboarding')),
-          },
-        ],
-      },
-      {
-        path: 'tokens/',
-        component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
-        children: [
-          {
-            index: true,
-            component: make(() => import('sentry/views/prevent/tokens/tokens')),
-          },
-        ],
-      },
-    ],
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2828,7 +2799,6 @@ function buildRoutes(): RouteObject[] {
       issueRoutes,
       alertRoutes,
       monitorRoutes,
-      preventRoutes,
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,

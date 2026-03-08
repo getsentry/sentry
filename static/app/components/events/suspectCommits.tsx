@@ -8,7 +8,6 @@ import Panel from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -162,7 +161,7 @@ const StyledPanel = styled(Panel)`
 const ExpandButton = styled('button')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const Title = styled('div')`
@@ -180,14 +179,14 @@ const StreamlinedPanel = styled(Panel)`
   width: 100%;
   min-width: 65%;
   &:last-child {
-    margin-right: ${space(2)};
+    margin-right: ${p => p.theme.space.xl};
   }
   &:first-child {
-    margin-left: ${space(2)};
+    margin-left: ${p => p.theme.space.xl};
   }
 `;
 
 const SuspectCommitWrapper = styled('div')`
-  margin-right: -${space(2)};
-  margin-left: -${space(2)};
+  margin-right: -${p => p.theme.space.xl};
+  margin-left: -${p => p.theme.space.xl};
 `;

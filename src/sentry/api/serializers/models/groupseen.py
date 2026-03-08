@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register
 from sentry.models.groupseen import GroupSeen
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 
@@ -7,7 +8,8 @@ from sentry.users.services.user.service import user_service
 class GroupSeenSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         serialized_users = user_service.serialize_many(
-            filter=dict(user_ids=[i.user_id for i in item_list]), as_user=user
+            filter=dict(user_ids=[i.user_id for i in item_list]),
+            as_user=serialize_generic_user(user),
         )
         user_map = {}
         for serialized in serialized_users:

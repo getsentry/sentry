@@ -16,7 +16,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.paginator import OffsetPaginator
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -24,6 +23,7 @@ from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
+    SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
@@ -37,6 +37,7 @@ from sentry.preprod.snapshots.manifest import ComparisonManifest, ImageMetadata,
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -50,7 +51,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "images": {
             "type": "object",
             "additionalProperties": ImageMetadata.schema(),
-            "maxProperties": 1000,
+            "maxProperties": 50000,
         },
         **VCS_SCHEMA_PROPERTIES,
     },
@@ -216,6 +217,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_manifest, images_by_file_name, base_manifest
             )
         else:
+            if comparison is not None:
+                base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
             categorized = CategorizedComparison()
             pending_or_failed_state = (
                 PreprodSnapshotComparison.objects.filter(
@@ -231,19 +234,30 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 .first()
             )
             if pending_or_failed_state is not None:
-                comparison_state = PreprodSnapshotComparison.State(
-                    pending_or_failed_state
-                ).name.lower()
+                comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
 
         comparison_type = "diff" if comparison_manifest is not None else "solo"
 
-        def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
-            response = SnapshotDetailsApiResponse(
+        run_info: SnapshotComparisonRunInfo | None = None
+        if comparison_state is not None:
+            run_info = SnapshotComparisonRunInfo(state=comparison_state)
+        elif comparison is not None:
+            duration = comparison.date_updated - comparison.date_added
+            run_info = SnapshotComparisonRunInfo(
+                state=PreprodSnapshotComparison.State(comparison.state).name,
+                completed_at=comparison.date_updated.isoformat(),
+                duration_ms=int(duration.total_seconds() * 1000),
+            )
+
+        return Response(
+            SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,
+                project_id=str(artifact.project_id),
+                comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
-                images=images,
+                images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),
@@ -251,28 +265,14 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 added_count=len(categorized.added),
                 removed=categorized.removed,
                 removed_count=len(categorized.removed),
+                renamed=categorized.renamed,
+                renamed_count=len(categorized.renamed),
                 unchanged=categorized.unchanged,
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
-            )
-
-            result = response.dict()
-            result["org_id"] = str(organization.id)
-            result["project_id"] = str(artifact.project_id)
-            result["comparison_type"] = comparison_type
-            if comparison_state is not None:
-                result["comparison_state"] = comparison_state
-
-            return result
-
-        return self.paginate(
-            request=request,
-            queryset=image_list,
-            paginator_cls=OffsetPaginator,
-            on_results=on_results,
-            default_per_page=20,
-            max_per_page=100,
+                comparison_run_info=run_info,
+            ).dict()
         )
 
 
@@ -433,6 +433,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "artifactId": str(artifact.id),
                 "snapshotMetricsId": str(snapshot_metrics.id),
                 "imageCount": snapshot_metrics.image_count,
+                "snapshotUrl": get_preprod_artifact_url(artifact, view_type="snapshots"),
             },
             status=200,
         )

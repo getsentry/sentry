@@ -24,7 +24,6 @@ import type {FieldValue} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
@@ -295,7 +294,7 @@ export default function TicketRuleModal({
    * Set the initial data from the Rule, replace `title` and `description` with
    * disabled inputs, and use the cached dynamic choices.
    */
-  const cleanFields: IssueConfigField[] = useMemo(() => {
+  const cleanFields = useMemo(() => {
     const fields: IssueConfigField[] = [
       {
         name: 'title',
@@ -355,7 +354,7 @@ export default function TicketRuleModal({
     return [...fields, ...cleanedFields];
   }, [instance, integrationDetails, cache, showInstanceValues]);
 
-  const formErrors: ExternalIssueFormErrors = useMemo(() => {
+  const formErrors = useMemo(() => {
     const errors: ExternalIssueFormErrors = {};
     for (const field of cleanFields) {
       // If the field is a select and has a default value, make sure that the
@@ -450,10 +449,10 @@ export default function TicketRuleModal({
 }
 
 const BodyText = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const FieldErrorLabel = styled('label')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.danger};
 `;

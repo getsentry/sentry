@@ -8,7 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import GlobalParams, MonitorParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
@@ -29,6 +29,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

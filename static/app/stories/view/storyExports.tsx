@@ -64,7 +64,7 @@ function StoryLayout() {
   );
 }
 
-export function makeStorybookDocumentTitle(title: string | undefined): string {
+function makeStorybookDocumentTitle(title: string | undefined): string {
   return title ? `${title} — Scraps` : 'Scraps';
 }
 

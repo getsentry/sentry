@@ -15,15 +15,15 @@ from sentry.middleware.integrations.tasks import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils import json
 
 
 @control_silo_test
 class AsyncSlackResponseTest(TestCase):
     factory = RequestFactory()
-    us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-    eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
+    us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    eu = Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (us, eu)
 
     def setUp(self) -> None:
@@ -148,8 +148,8 @@ class AsyncSlackResponseTest(TestCase):
 @control_silo_test
 class AsyncDiscordResponseTest(TestCase):
     factory = RequestFactory()
-    us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-    eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
+    us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    eu = Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (us, eu)
 
     def setUp(self) -> None:

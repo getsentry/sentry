@@ -22,9 +22,6 @@ import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
@@ -63,26 +60,18 @@ const waitForMetaToHaveBeenCalled = async () => {
 async function renderModal({
   initialData: {organization, initialRouterConfig},
   widget,
-  seriesData,
-  tableData,
-  pageLinks,
-  seriesResultsType,
   dashboardFilters,
 }: {
   initialData: InitialData;
   widget: any;
   dashboardFilters?: DashboardFilters;
-  pageLinks?: string;
-  seriesData?: Series[];
-  seriesResultsType?: Record<string, AggregationOutputType>;
-  tableData?: TableDataWithTitle[];
 }) {
-  const routerLocation: LocationConfig = initialRouterConfig.location;
+  const routerLocation = initialRouterConfig.location;
   const routerConfig: RouterConfig = {
     ...initialRouterConfig,
     location: routerLocation,
   };
-  const widgetLegendLocation: Location = {
+  const widgetLegendLocation = {
     ...routerLocation,
     hash: '',
     search: '',
@@ -106,10 +95,6 @@ async function renderModal({
         organization={organization}
         widget={widget}
         onEdit={() => undefined}
-        seriesData={seriesData}
-        tableData={tableData}
-        pageLinks={pageLinks}
-        seriesResultsType={seriesResultsType}
         dashboardFilters={dashboardFilters}
         widgetLegendState={widgetLegendState}
       />
@@ -523,11 +508,24 @@ describe('Modals -> WidgetViewerModal', () => {
 
       it('renders widget chart with y axis formatter using provided seriesResultType', async () => {
         mockEvents();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          body: {
+            data: [
+              [[1646100000], [{count: 1}]],
+              [[1646120000], [{count: 1}]],
+            ],
+            start: 1646100000,
+            end: 1646120000,
+            isMetricsData: false,
+            meta: {
+              fields: {count: 'duration'},
+            },
+          },
+        });
         await renderModal({
           initialData: initialDataWithFlag,
           widget: mockWidget,
-          seriesData: [],
-          seriesResultsType: {'count()': 'duration', 'count_unique()': 'duration'},
         });
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
@@ -540,8 +538,6 @@ describe('Modals -> WidgetViewerModal', () => {
         await renderModal({
           initialData: initialDataWithFlag,
           widget: mockWidget,
-          seriesData: [],
-          seriesResultsType: {'count()': 'duration', 'count_unique()': 'size'},
         });
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
@@ -586,8 +582,6 @@ describe('Modals -> WidgetViewerModal', () => {
         await renderModal({
           initialData: initialDataWithFlag,
           widget: mockWidget,
-          seriesData: [],
-          seriesResultsType: {'count()': 'duration'},
         });
 
         const link = await screen.findByTestId('widget-viewer-transaction-link');
@@ -785,25 +779,17 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
       });
 
-      it('uses provided seriesData and does not make an events-stats requests', async () => {
-        const eventsStatsMock = mockEventsStats();
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget, seriesData: []});
-        expect(eventsStatsMock).not.toHaveBeenCalled();
-      });
-
       it('makes events-stats requests when table is sorted', async () => {
         const eventsStatsMock = mockEventsStats();
         mockEvents();
         await renderModal({
           initialData,
           widget: mockWidget,
-          seriesData: [],
         });
-        expect(eventsStatsMock).not.toHaveBeenCalled();
+        expect(eventsStatsMock).toHaveBeenCalled();
         await userEvent.click(screen.getByText('count()'));
         await waitForMetaToHaveBeenCalled();
-        expect(eventsStatsMock).toHaveBeenCalled();
+        expect(eventsStatsMock).toHaveBeenCalledTimes(2);
       });
 
       it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
@@ -883,13 +869,7 @@ describe('Modals -> WidgetViewerModal', () => {
         await renderModal({
           initialData,
           widget: mockWidget,
-          tableData: [],
-          pageLinks:
-            '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
         });
-        await act(tick);
-        expect(eventsMock).not.toHaveBeenCalled();
-        await userEvent.click(await screen.findByLabelText('Next'));
         await waitFor(() => {
           expect(eventsMock).toHaveBeenCalled();
         });
@@ -1164,9 +1144,9 @@ describe('Modals -> WidgetViewerModal', () => {
       });
     });
 
-    it('uses provided tableData and does not make an issues requests', async () => {
-      await renderModal({initialData, widget: mockWidget, tableData: []});
-      expect(issuesMock).not.toHaveBeenCalled();
+    it('makes issues requests on render', async () => {
+      await renderModal({initialData, widget: mockWidget});
+      expect(issuesMock).toHaveBeenCalled();
     });
   });
 
@@ -1274,12 +1254,10 @@ describe('Modals -> WidgetViewerModal', () => {
       const {router} = await renderModal({
         initialData,
         widget: mockWidget,
-        tableData: [],
-        seriesData: [],
       });
-      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(1));
-      await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
+      await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
+      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(3));
       expect(router.location.query).toEqual(
         expect.objectContaining({sort: '-sum(session)'})
       );
@@ -1358,9 +1336,7 @@ describe('Modals -> WidgetViewerModal', () => {
       });
       const projects = [ProjectFixture()];
       initialData = {
-        organization: OrganizationFixture({
-          features: ['discover-cell-actions-v2'],
-        }),
+        organization: OrganizationFixture(),
         projects,
         initialRouterConfig: {
           ...defaultInitialRouterConfig,
@@ -1423,6 +1399,15 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     it('links to the spans page when "View span samples" is clicked in the context menu', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [{transaction: 'test-transaction', 'count()': 10}],
+          meta: {
+            fields: {transaction: 'string', 'count()': 'integer'},
+          },
+        },
+      });
       const mockSpanWidget = WidgetFixture({
         widgetType: WidgetType.SPANS,
         title: 'Span Transactions Widget',
@@ -1442,12 +1427,6 @@ describe('Modals -> WidgetViewerModal', () => {
       const {router} = await renderModal({
         initialData,
         widget: mockSpanWidget,
-        tableData: [
-          {
-            title: 'Span Transactions Widget',
-            data: [{transaction: 'test-transaction', count: 10, id: 'test-id'}],
-          },
-        ],
       });
 
       const transactionCell = await screen.findByText('test-transaction');

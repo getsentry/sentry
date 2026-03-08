@@ -22,7 +22,7 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.VALUE_DISCOVERY
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)

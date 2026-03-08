@@ -27,10 +27,10 @@ from sentry.silo.util import (
     clean_proxy_headers,
 )
 from sentry.types.region import (
-    Region,
+    Cell,
     RegionResolutionError,
+    get_cell_by_name,
     get_global_directory,
-    get_region_by_name,
 )
 from sentry.utils import metrics
 
@@ -48,8 +48,8 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
     """
     region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
-    for region in get_global_directory().regions:
-        url = urllib3.util.parse_url(region.address)
+    for cell in get_global_directory().cells:
+        url = urllib3.util.parse_url(cell.address)
         if url.host:
             # This is an IPv4 address.
             # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
@@ -58,7 +58,7 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
             except Exception:
                 metrics.incr(
                     "hybrid_cloud.silo_client.ip_address_resolution_error",
-                    tags={"region": region.name},
+                    tags={"region": cell.name},
                 )
                 sentry_sdk.capture_exception(
                     RegionResolutionError(f"Unable to resolve region host for: {url.host}")
@@ -67,7 +67,7 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
             region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
         else:
             sentry_sdk.capture_exception(
-                RegionResolutionError(f"Unable to parse url to host for: {region.address}")
+                RegionResolutionError(f"Unable to parse url to host for: {cell.address}")
             )
 
     return frozenset(region_ip_addresses)
@@ -103,7 +103,7 @@ class RegionSiloClient(BaseApiClient):
     logger = logging.getLogger("sentry.silo.client.region")
     silo_client_name = "region"
 
-    def __init__(self, region: Region, retry: bool = False) -> None:
+    def __init__(self, region: Cell, retry: bool = False) -> None:
         super().__init__()
         if SiloMode.get_current_mode() not in self.access_modes:
             access_mode_str = ", ".join(str(m) for m in self.access_modes)
@@ -112,11 +112,11 @@ class RegionSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-        if not isinstance(region, Region):
+        if not isinstance(region, Cell):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
 
         # Ensure the region is registered
-        self.region = get_region_by_name(region.name)
+        self.region = get_cell_by_name(region.name)
         self.base_url = self.region.address
         self.retry = retry
 
