@@ -14,7 +14,7 @@ import {
   useAgentOptions,
   useMutateSelectedAgent,
   useSelectedAgent,
-} from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
+} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 describe('useAgentHooks', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});

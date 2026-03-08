@@ -27,7 +27,7 @@ import {
   useAgentOptions,
   useMutateSelectedAgent,
   useSelectedAgent,
-} from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
+} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 interface Props {
   canWrite: boolean;
