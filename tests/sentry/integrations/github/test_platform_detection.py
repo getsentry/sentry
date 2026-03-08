@@ -830,7 +830,8 @@ class TestDetectPlatforms:
         assert result[0]["confidence"] == "medium"
         assert result[0]["priority"] == 1
 
-    def test_detects_multi_language_repo(self) -> None:
+    def test_only_top_language_platform_detected(self) -> None:
+        """Only the top language's base platform is processed."""
         client = mock.MagicMock()
         client.get_languages.return_value = {"Python": 50000, "JavaScript": 30000}
         client.get.side_effect = ApiError("Not Found", code=404)
@@ -839,7 +840,7 @@ class TestDetectPlatforms:
 
         platforms = [r["platform"] for r in result]
         assert "python" in platforms
-        assert "javascript" in platforms
+        assert "javascript" not in platforms
 
     def test_filters_ignored_languages(self) -> None:
         client = mock.MagicMock()
@@ -891,32 +892,29 @@ class TestDetectPlatforms:
         assert python_result["confidence"] == "medium"
 
     def test_results_sorted_by_bytes_then_priority(self) -> None:
+        """Frameworks for the top language are sorted by (bytes, priority)."""
         client = mock.MagicMock()
-        client.get_languages.return_value = {"Python": 80000, "JavaScript": 30000}
+        client.get_languages.return_value = {"Python": 80000}
 
         def get_side_effect(path, params=None):
             if path.endswith("/contents"):
                 return [
                     {"name": "requirements.txt", "type": "file"},
-                    {"name": "package.json", "type": "file"},
+                    {"name": "manage.py", "type": "file"},
                 ]
             if "requirements.txt" in path:
-                return _make_b64_response("flask==3.0\n")
-            if "package.json" in path:
-                return _make_b64_response(
-                    json.dumps({"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}})
-                )
+                return _make_b64_response("flask==3.0\ncelery>=5.0\n")
             raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
 
-        # Python (80k bytes) > JavaScript (30k bytes); language majority wins
         platforms = [r["platform"] for r in result]
+        # Flask (sort=10, priority=90) should rank above Celery (sort=50, priority=50)
         flask_idx = platforms.index("python-flask")
-        nextjs_idx = platforms.index("javascript-nextjs")
-        assert flask_idx < nextjs_idx
+        celery_idx = platforms.index("python-celery")
+        assert flask_idx < celery_idx
 
     def test_nextjs_supersedes_react_in_full_flow(self) -> None:
         client = mock.MagicMock()
@@ -1173,13 +1171,9 @@ class TestDetectPlatforms:
         result = detect_platforms(client, "owner/repo")
 
         platforms = [r["platform"] for r in result]
-        assert platforms == ["python", "javascript"] or set(platforms) == {
-            "python",
-            "javascript",
-        }
-        for r in result:
-            assert r["confidence"] == "medium"
-            assert r["priority"] == 1
+        assert platforms == ["python"]
+        assert result[0]["confidence"] == "medium"
+        assert result[0]["priority"] == 1
 
     def test_root_listing_failure_still_detects_frameworks_via_manifest(self) -> None:
         """When the root contents API fails, framework detection should fall
@@ -1940,10 +1934,10 @@ class TestDetectPlatforms:
         platforms = [r["platform"] for r in result]
         assert "apple-ios" in platforms
 
-    def test_cross_base_dedup_upgrades_confidence(self) -> None:
-        """When apple-ios is first added as a base platform (via Objective-C)
-        and then matched as a framework (via Swift + .xcodeproj), the entry
-        should be upgraded to high confidence even if Obj-C has more bytes."""
+    def test_objc_dominant_repo_returns_apple_ios_base(self) -> None:
+        """When Objective-C dominates, apple-ios is returned as the base
+        platform (medium confidence) since framework detection for apple-ios
+        runs under the swift base platform which isn't processed."""
         client = mock.MagicMock()
         client.get_languages.return_value = {
             "Objective-C": 80000,
@@ -1961,8 +1955,7 @@ class TestDetectPlatforms:
 
         result = detect_platforms(client, "owner/repo")
         ios_entry = next(r for r in result if r["platform"] == "apple-ios")
-        assert ios_entry["confidence"] == "high"
-        assert ios_entry["priority"] == 90
+        assert ios_entry["confidence"] == "medium"
         assert ios_entry["bytes"] == 80000
 
     def test_apple_ios_higher_priority_than_macos(self) -> None:
@@ -2318,7 +2311,9 @@ class TestDetectPlatformsMultiStack:
     - Plus build/infra languages that should be ignored
     """
 
-    def test_full_stack_repo(self) -> None:
+    def test_full_stack_repo_only_detects_top_language(self) -> None:
+        """In a multi-language repo, only the top language's platform is
+        processed. Only one suggestion is shown to the user."""
         client = mock.MagicMock()
         client.get_languages.return_value = {
             "Python": 120000,
@@ -2350,73 +2345,35 @@ class TestDetectPlatformsMultiStack:
                 return _make_b64_response(
                     "Django==4.2\ncelery>=5.3\ngunicorn\npsycopg2-binary\nredis\n"
                 )
-            if "package.json" in path:
-                return _make_b64_response(
-                    json.dumps(
-                        {
-                            "dependencies": {
-                                "next": "^14.0.0",
-                                "react": "^18.2.0",
-                                "react-dom": "^18.2.0",
-                            },
-                            "devDependencies": {
-                                "typescript": "^5.0.0",
-                                "eslint": "^8.0.0",
-                            },
-                        }
-                    )
-                )
-            if "go.mod" in path:
-                return _make_b64_response(
-                    "module github.com/myorg/myapp\n\n"
-                    "go 1.21\n\n"
-                    "require (\n"
-                    "\tgithub.com/gin-gonic/gin v1.9.1\n"
-                    "\tgithub.com/lib/pq v1.10.9\n"
-                    ")\n"
-                )
             raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
-        platforms = [r["platform"] for r in result]
-        platform_set = set(platforms)
+        platform_set = {r["platform"] for r in result}
 
-        # Frameworks detected with high confidence
+        # Only Python frameworks detected (top language)
         assert "python-django" in platform_set
         assert "python-celery" in platform_set
-        assert "python-wsgi" in platform_set  # gunicorn in requirements.txt
-        assert "javascript-nextjs" in platform_set
-        assert "go-gin" in platform_set
-
-        # Supersession: React removed because Next.js is present
-        assert "javascript-react" not in platform_set
-
-        # Base platforms as fallback
+        assert "python-wsgi" in platform_set
         assert "python" in platform_set
-        assert "javascript" in platform_set
-        assert "go" in platform_set
 
-        # Ignored languages excluded entirely
-        for r in result:
-            assert r["language"] not in ("HTML", "CSS", "Shell", "Makefile", "Dockerfile")
+        # Other languages not processed
+        assert "javascript-nextjs" not in platform_set
+        assert "go-gin" not in platform_set
+        assert "javascript" not in platform_set
+        assert "go" not in platform_set
 
-        # TypeScript deduplicates into javascript base platform
-        ts_results = [r for r in result if r["language"] == "TypeScript"]
-        assert ts_results == []
-
-        # Priority ordering within a language: meta-frameworks > primary > utilities > base
-        nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
+        # Priority ordering within Python: frameworks > utilities > base
         django = next(r for r in result if r["platform"] == "python-django")
         celery = next(r for r in result if r["platform"] == "python-celery")
         python_base = next(r for r in result if r["platform"] == "python")
 
-        assert nextjs["priority"] > django["priority"] > celery["priority"]
+        assert django["priority"] > celery["priority"]
         assert celery["priority"] > python_base["priority"]
         assert python_base["priority"] == 1
 
-        # Results are sorted by (bytes, priority) descending — language majority first
+        # Results are sorted by (bytes, priority) descending
         for i in range(len(result) - 1):
             a, b = result[i], result[i + 1]
             assert (a["bytes"], a["priority"]) >= (b["bytes"], b["priority"])

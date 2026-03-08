@@ -1176,14 +1176,21 @@ def detect_platforms(
     languages = client.get_languages(repo)
     root_files, root_dirs = _get_root_entries(client, repo, ref)
 
-    # Group languages by base platform
-    active_platforms: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    # Find the top language and only process its base platform to limit
+    # API calls — only one suggestion is shown to the user anyway.
+    top_language: str | None = None
+    top_bytes = 0
     for language, byte_count in languages.items():
         if language in IGNORED_LANGUAGES:
             continue
-        base_platform = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get(language)
-        if base_platform is not None:
-            active_platforms[base_platform].append((language, byte_count))
+        if GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get(language) is not None and byte_count > top_bytes:
+            top_language = language
+            top_bytes = byte_count
+
+    active_platforms: dict[str, list[tuple[str, int]]] = {}
+    if top_language is not None:
+        bp = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM[top_language]
+        active_platforms[bp] = [(top_language, top_bytes)]
 
     # Collect all file paths that need content fetching.
     # When root_files is None (API failed), try all paths rather than skipping.
