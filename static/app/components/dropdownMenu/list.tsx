@@ -72,7 +72,7 @@ export interface DropdownMenuListProps
    * the default z-index (e.g. when the menu is inside a high z-index container
    * like a sidebar).
    */
-  style?: React.CSSProperties;
+  zIndex?: number;
 }
 
 function DropdownMenuList({
@@ -83,7 +83,7 @@ function DropdownMenuList({
   menuFooter,
   overlayState,
   overlayPositionProps,
-  style,
+  zIndex,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -237,9 +237,7 @@ function DropdownMenuList({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
-        zIndex={
-          style?.zIndex === undefined ? theme.zIndex.dropdown : Number(style.zIndex)
-        }
+        zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>

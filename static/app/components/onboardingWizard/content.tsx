@@ -7,7 +7,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -488,7 +487,7 @@ function TaskGroup({
         }
       />
       {isExpanded ? <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} /> : null}
-      {separator && <Separator orientation="horizontal" />}
+      {separator && <Stack.Separator />}
     </Stack>
   );
 }
