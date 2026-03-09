@@ -82,7 +82,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     organization_ids = {oi.organization_id for oi in ois}
     region_names = (
         OrganizationMapping.objects.filter(organization_id__in=organization_ids)
-        .values_list("region_name", flat=True)
+        .values_list("cell_name", flat=True)
         .distinct()
     )
 

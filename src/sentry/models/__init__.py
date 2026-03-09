@@ -92,7 +92,6 @@ from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectsdk import *  # NOQA
 from .projectteam import *  # NOQA
-from .projecttemplate import *  # NOQA
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .recentsearch import *  # NOQA

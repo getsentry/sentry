@@ -546,12 +546,10 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         confidence={confidence}
                         dataScanned={dataScanned}
                         isSampled={isSampled}
-                        other={OTHER}
                         loading={loading}
                         sampleCount={sampleCount}
                         selection={selection}
                         series={series}
-                        shouldColorOther={shouldColorOther}
                         timeseriesResults={timeseriesResults}
                         widget={widget}
                         yAxis={axisLabel}
@@ -627,9 +625,8 @@ function TableComponent({
       }
     }
 
-    const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
     let cellActions = ALLOWED_CELL_ACTIONS;
-    if (disableTableActions || !useCellActionsV2) {
+    if (disableTableActions) {
       cellActions = [];
     } else if (widget.widgetType === WidgetType.SPANS) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];

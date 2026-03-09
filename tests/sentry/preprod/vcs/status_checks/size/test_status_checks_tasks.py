@@ -89,11 +89,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         mock_provider.create_status_check.return_value = "check_12345"
 
         patcher_client = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_client",
             return_value=(mock_client, repository),
         )
         patcher_provider = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_provider",
             return_value=mock_provider,
         )
 
@@ -105,11 +105,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         mock_provider = Mock()
 
         patcher_client = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_client",
             return_value=(mock_client, None),
         )
         patcher_provider = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_provider",
             return_value=mock_provider,
         )
 

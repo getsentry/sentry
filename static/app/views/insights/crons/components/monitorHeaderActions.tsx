@@ -9,9 +9,9 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -26,6 +26,7 @@ type Props = {
 
 function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -38,7 +39,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
 
   const handleDelete = async () => {
     await deleteMonitor(api, orgSlug, monitor);
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${orgSlug}/insights/crons/`,
         query: endpointOptions.query,
