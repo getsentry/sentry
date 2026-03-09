@@ -55,13 +55,18 @@ export function useDateNavigation(): DateNavigation {
     );
     const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
 
-    updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, {
-      location,
-      push: navigate,
-      replace: (path: Parameters<typeof navigate>[0]) => navigate(path, {replace: true}),
-    } as any, {
-      keepCursor: true,
-    });
+    updateDateTime(
+      {start: nextSince.toDate(), end: nextUntil.toDate()},
+      {
+        location,
+        push: navigate,
+        replace: (path: Parameters<typeof navigate>[0]) =>
+          navigate(path, {replace: true}),
+      } as any,
+      {
+        keepCursor: true,
+      }
+    );
   }, [until, windowMs, now, navigate, location]);
 
   return {
