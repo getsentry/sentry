@@ -7,7 +7,7 @@ import rawStacktraceContent from 'sentry/components/events/interfaces/crashConte
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
-import {StackTraceFrame} from './frame/stackTraceFrame';
+import {StackTraceFrameRow} from './frame/frameRow';
 import {useStackTraceContext, useStackTraceViewState} from './stackTraceContext';
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
@@ -53,7 +53,7 @@ export function StackTraceFrames() {
             );
           }
 
-          return <StackTraceFrame key={row.frameIndex} row={row} />;
+          return <StackTraceFrameRow key={row.frameIndex} row={row} />;
         })}
       </div>
     </FramesPanel>

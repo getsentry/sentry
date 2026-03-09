@@ -21,15 +21,15 @@ import {
 import {FrameContext} from './frameContext';
 import {FrameHeader} from './frameHeader';
 
-interface StackTraceFrameProps {
+interface StackTraceFrameRowProps {
   row: FrameRow;
   children?: React.ReactNode;
 }
 
-const StackTraceFrameRoot = memo(function StackTraceFrameRoot({
+const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   row,
   children,
-}: StackTraceFrameProps) {
+}: StackTraceFrameRowProps) {
   const {
     event,
     frames,
@@ -103,7 +103,7 @@ const StackTraceFrameRoot = memo(function StackTraceFrameRoot({
   );
 });
 
-function StackTraceFrameActionsContainer({children}: {children: React.ReactNode}) {
+function FrameRowActionsContainer({children}: {children: React.ReactNode}) {
   return (
     <Flex gap="xs" align="center">
       {children}
@@ -111,7 +111,7 @@ function StackTraceFrameActionsContainer({children}: {children: React.ReactNode}
   );
 }
 
-const StackTraceFrameActions = Object.assign(StackTraceFrameActionsContainer, {
+const FrameRowActions = Object.assign(FrameRowActionsContainer, {
   Chevron: ChevronAction,
   Default: DefaultFrameActions,
   HiddenFramesToggle: HiddenFramesToggleAction,
@@ -119,10 +119,10 @@ const StackTraceFrameActions = Object.assign(StackTraceFrameActionsContainer, {
   SourceMapsDebugger: SourceMapsDebuggerAction,
 });
 
-export const StackTraceFrame = Object.assign(StackTraceFrameRoot, {
+export const StackTraceFrameRow = Object.assign(StackTraceFrameRowRoot, {
   Context: FrameContext,
   Header: FrameHeader,
-  Actions: StackTraceFrameActions,
+  Actions: FrameRowActions,
 });
 
 const FrameRowContainer = styled('div')`

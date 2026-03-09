@@ -8,7 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import {
   IssueStackTrace,
   StackTrace,
-  StackTraceFrame,
+  StackTraceFrameRow,
   StackTraceProvider,
   StackTraceViewStateProvider,
   useStackTraceContext,
@@ -853,14 +853,14 @@ export default Storybook.story('StackTrace', story => {
               }
 
               return (
-                <StackTraceFrame key={row.frameIndex} row={row}>
-                  <StackTraceFrame.Header
+                <StackTraceFrameRow key={row.frameIndex} row={row}>
+                  <StackTraceFrameRow.Header
                     actions={({isHovering}) => (
-                      <StackTraceFrame.Actions.Default isHovering={isHovering} />
+                      <StackTraceFrameRow.Actions.Default isHovering={isHovering} />
                     )}
                   />
-                  <StackTraceFrame.Context />
-                </StackTraceFrame>
+                  <StackTraceFrameRow.Context />
+                </StackTraceFrameRow>
               );
             })}
           </div>
@@ -872,7 +872,7 @@ export default Storybook.story('StackTrace', story => {
       <Fragment>
         <p>
           Use <Storybook.JSXNode name="useStackTraceContext" /> and{' '}
-          <Storybook.JSXNode name="StackTraceFrame" /> to render individual frames with
+          <Storybook.JSXNode name="StackTraceFrameRow" /> to render individual frames with
           complete control over layout.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
@@ -900,49 +900,49 @@ export default Storybook.story('StackTrace', story => {
               if (i === 0) {
                 // Default: all actions unchanged
                 return (
-                  <StackTraceFrame key={row.frameIndex} row={row}>
-                    <StackTraceFrame.Header
+                  <StackTraceFrameRow key={row.frameIndex} row={row}>
+                    <StackTraceFrameRow.Header
                       actions={({isHovering}) => (
-                        <StackTraceFrame.Actions.Default isHovering={isHovering} />
+                        <StackTraceFrameRow.Actions.Default isHovering={isHovering} />
                       )}
                     />
-                    <StackTraceFrame.Context />
-                  </StackTraceFrame>
+                    <StackTraceFrameRow.Context />
+                  </StackTraceFrameRow>
                 );
               }
 
               if (i === 1) {
                 // Custom: SourceLink + Chevron only (no source maps debugger, no hidden toggle)
                 return (
-                  <StackTraceFrame key={row.frameIndex} row={row}>
-                    <StackTraceFrame.Header
+                  <StackTraceFrameRow key={row.frameIndex} row={row}>
+                    <StackTraceFrameRow.Header
                       actions={
                         <Fragment>
-                          <StackTraceFrame.Actions.SourceLink />
-                          <StackTraceFrame.Actions.Chevron />
+                          <StackTraceFrameRow.Actions.SourceLink />
+                          <StackTraceFrameRow.Actions.Chevron />
                         </Fragment>
                       }
                     />
-                    <StackTraceFrame.Context />
-                  </StackTraceFrame>
+                    <StackTraceFrameRow.Context />
+                  </StackTraceFrameRow>
                 );
               }
 
               // Custom: extra button injected before the chevron
               return (
-                <StackTraceFrame key={row.frameIndex} row={row}>
-                  <StackTraceFrame.Header
+                <StackTraceFrameRow key={row.frameIndex} row={row}>
+                  <StackTraceFrameRow.Header
                     actions={
-                      <StackTraceFrame.Actions>
-                        <StackTraceFrame.Actions.SourceLink />
-                        <StackTraceFrame.Actions.SourceMapsDebugger />
-                        <StackTraceFrame.Actions.HiddenFramesToggle />
-                        <StackTraceFrame.Actions.Chevron />
-                      </StackTraceFrame.Actions>
+                      <StackTraceFrameRow.Actions>
+                        <StackTraceFrameRow.Actions.SourceLink />
+                        <StackTraceFrameRow.Actions.SourceMapsDebugger />
+                        <StackTraceFrameRow.Actions.HiddenFramesToggle />
+                        <StackTraceFrameRow.Actions.Chevron />
+                      </StackTraceFrameRow.Actions>
                     }
                   />
-                  <StackTraceFrame.Context />
-                </StackTraceFrame>
+                  <StackTraceFrameRow.Context />
+                </StackTraceFrameRow>
               );
             })}
           </div>
@@ -954,7 +954,7 @@ export default Storybook.story('StackTrace', story => {
       <Fragment>
         <p>
           Use <Storybook.JSXProperty name="actions" value="ReactNode" /> on{' '}
-          <Storybook.JSXNode name="StackTraceFrame.Header" /> to compose exactly the
+          <Storybook.JSXNode name="StackTraceFrameRow.Header" /> to compose exactly the
           actions you need. The first frame uses the default actions, the second uses only{' '}
           <Storybook.JSXNode name="SourceLink" /> + <Storybook.JSXNode name="Chevron" />,
           and the rest use a fully custom <Storybook.JSXNode name="Frame.Actions" />{' '}
