@@ -197,11 +197,15 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     def test_skips_when_not_installable(self, mock_get_client):
-        mock_get_client.return_value = Mock()
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
         artifact = self._create_artifact(installable_app_file_id=None, build_number=None)
 
         with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_not_called()
+        mock_client.update_comment.assert_not_called()
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     def test_skips_when_project_option_disabled(self, mock_get_client):
