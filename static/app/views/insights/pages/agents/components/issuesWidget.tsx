@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';

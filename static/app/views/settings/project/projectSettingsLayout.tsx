@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -15,7 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import ProjectContext from 'sentry/views/projects/projectContext';
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
 type ProjectSettingsOutletContext = {
   project: Project;

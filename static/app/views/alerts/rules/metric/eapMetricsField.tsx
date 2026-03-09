@@ -44,7 +44,7 @@ function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
-export default function EAPMetricsField({
+export function EAPMetricsField({
   aggregate,
   onChange,
   onLoadingChange,

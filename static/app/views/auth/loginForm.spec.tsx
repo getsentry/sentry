@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import LoginForm from 'sentry/views/auth/loginForm';
+import {LoginForm} from 'sentry/views/auth/loginForm';
 
 async function doLogin() {
   await userEvent.type(screen.getByRole('textbox', {name: 'Account'}), 'test@test.com');

@@ -16,7 +16,11 @@ interface ProductTrialTagProps {
   variant?: TagProps['variant'];
 }
 
-function ProductTrialTag({trial, variant, showTrialEnded = false}: ProductTrialTagProps) {
+export function ProductTrialTag({
+  trial,
+  variant,
+  showTrialEnded = false,
+}: ProductTrialTagProps) {
   const now = moment();
 
   if (moment(trial.endDate).add(1, 'days').isBefore(now)) {
@@ -47,5 +51,3 @@ function ProductTrialTag({trial, variant, showTrialEnded = false}: ProductTrialT
     </Tag>
   );
 }
-
-export default ProductTrialTag;

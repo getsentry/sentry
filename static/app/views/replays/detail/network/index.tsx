@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Placeholder from 'sentry/components/placeholder';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons, {
   type VisibleRange,
@@ -20,16 +20,16 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
-import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
-import NetworkDetails from 'sentry/views/replays/detail/network/details';
-import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
+import {FilterLoadingIndicator} from 'sentry/views/replays/detail/filterLoadingIndicator';
+import {NetworkDetails} from 'sentry/views/replays/detail/network/details';
+import {NetworkFilters} from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
-import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCell';
+import {NetworkTableCell} from 'sentry/views/replays/detail/network/networkTableCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
 import {
@@ -46,7 +46,7 @@ const MIN_DYNAMIC_COLUMN_WIDTH = 180;
 const OVERSCAN = 20;
 const STATIC_COLUMN_WIDTHS = [76, 76, 0, 88, 88, 98, 116];
 
-export default function NetworkList() {
+export function NetworkList() {
   const organization = useOrganization();
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();

@@ -21,7 +21,7 @@ interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 }
 
-export default function ReplayBadge({replay}: Props) {
+export function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;

@@ -12,7 +12,7 @@ import {
   sendReplayOnboardRequest,
   sendUpgradeRequest,
 } from 'getsentry/actionCreators/upsell';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';

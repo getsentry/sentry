@@ -4,7 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
   setErrors: Dispatch<string | null>;
 };
 
-function EnableSpendAllocations({
+export function EnableSpendAllocations({
   hasScope,
   fetchSpendAllocations,
   api,
@@ -72,5 +72,3 @@ function EnableSpendAllocations({
     </Panel>
   );
 }
-
-export default EnableSpendAllocations;

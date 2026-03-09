@@ -11,9 +11,9 @@ import {
   CardContainer,
   EventFeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
-import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
-import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import FlagActionDropdown from 'sentry/components/events/featureFlags/flagActionDropdown';
+import {FeatureFlagSettingsButton} from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
+import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
+import {FlagActionDropdown} from 'sentry/components/events/featureFlags/flagActionDropdown';
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
@@ -21,7 +21,7 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import {KeyValueData} from 'sentry/components/keyValueData';

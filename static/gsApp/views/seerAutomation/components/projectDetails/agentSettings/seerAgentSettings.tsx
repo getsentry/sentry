@@ -16,7 +16,7 @@ interface Props {
   project: Project;
 }
 
-export default function SeerAgentSettings({canWrite, preference, project}: Props) {
+export function SeerAgentSettings({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
   const disabledReason = canWrite

@@ -15,7 +15,7 @@ type Props = ModalRenderProps & {
   name: string | null;
 };
 
-function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
+export function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
   const api = useApi();
 
   const deleteClientAndCloseModal = async () => {
@@ -44,8 +44,6 @@ function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
     </Fragment>
   );
 }
-
-export default ConfirmClientDeleteModal;
 
 const StyledButton = styled(Button)`
   margin-top: 10px;

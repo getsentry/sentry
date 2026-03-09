@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-function NoIssuesMatched() {
+export function NoIssuesMatched() {
   const organization = useOrganization();
   const router = useRouter();
 
@@ -90,8 +90,6 @@ function NoIssuesMatched() {
     </Wrapper>
   );
 }
-
-export default NoIssuesMatched;
 
 const Wrapper = styled('div')`
   display: flex;

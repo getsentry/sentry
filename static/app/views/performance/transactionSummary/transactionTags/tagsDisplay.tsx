@@ -11,7 +11,7 @@ import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKe
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import TagsHeatMap from './tagsHeatMap';
+import {TagsHeatMap} from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
 import {getTagSortForTagsPage} from './utils';
 

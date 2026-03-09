@@ -6,7 +6,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {tct} from 'sentry/locale';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 
-export default function TwoFactorRequired() {
+export function TwoFactorRequired() {
   return getPendingInvite() ? (
     <StyledAlert data-test-id="require-2fa" variant="danger">
       {tct(

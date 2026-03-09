@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedback';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';

@@ -2,8 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {frontend} from 'sentry/data/platformCategories';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,7 +17,7 @@ interface Props {
   feedbackItem: FeedbackIssue;
 }
 
-export default function FeedbackUrl({eventData, feedbackItem}: Props) {
+export function FeedbackUrl({eventData, feedbackItem}: Props) {
   const theme = useTheme();
 
   const isFrontend = frontend.includes(feedbackItem.project?.platform ?? 'other');

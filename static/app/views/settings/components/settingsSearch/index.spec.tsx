@@ -9,7 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
+import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 jest.mock('sentry/actionCreators/navigation');
 

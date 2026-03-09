@@ -1,6 +1,6 @@
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

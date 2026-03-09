@@ -27,11 +27,11 @@ import {
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
@@ -53,10 +53,10 @@ import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetri
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
-import withTags from 'sentry/utils/withTags';
+import {withProjects} from 'sentry/utils/withProjects';
+import {withTags} from 'sentry/utils/withTags';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
-import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {WizardField} from 'sentry/views/alerts/rules/metric/wizardField';
 import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,

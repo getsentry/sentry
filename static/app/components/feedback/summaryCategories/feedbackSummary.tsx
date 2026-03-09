@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function FeedbackSummary() {
+export function FeedbackSummary() {
   const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
 
   // if we are showing this component, gen-ai-features must be true

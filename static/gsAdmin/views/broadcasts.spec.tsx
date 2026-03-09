@@ -10,7 +10,7 @@ import {
 
 import ConfigStore from 'sentry/stores/configStore';
 
-import Broadcasts from 'admin/views/broadcasts';
+import {Broadcasts} from 'admin/views/broadcasts';
 
 function renderMockRequests() {
   MockApiClient.addMockResponse({

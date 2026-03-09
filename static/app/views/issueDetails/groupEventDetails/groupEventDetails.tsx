@@ -4,11 +4,11 @@ import isEqual from 'lodash/isEqual';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import ArchivedBox from 'sentry/components/archivedBox';
-import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
+import {GroupEventDetailsLoadingError} from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
@@ -24,9 +24,9 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
-import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
+import {GroupEventHeader} from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
-import ReprocessingProgress from 'sentry/views/issueDetails/reprocessingProgress';
+import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {

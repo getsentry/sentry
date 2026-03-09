@@ -26,9 +26,7 @@ type LocalStorageState = Record<string, Org> & {
 
 const VALUES_TO_RESET_URL_PARAMS = ['repository', 'branch', 'testSuites'];
 
-export default function PreventQueryParamsProvider({
-  children,
-}: PreventQueryParamsProviderProps) {
+export function PreventQueryParamsProvider({children}: PreventQueryParamsProviderProps) {
   const organization = useOrganization();
   const initialLocalStorageState: LocalStorageState = {};
   const [localStorageState, setLocalStorageState] = useLocalStorageState(

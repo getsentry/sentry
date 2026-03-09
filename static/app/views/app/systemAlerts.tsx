@@ -1,7 +1,7 @@
 import AlertStore from 'sentry/stores/alertStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-import AlertMessage from './alertMessage';
+import {AlertMessage} from './alertMessage';
 
 type Props = {className?: string};
 

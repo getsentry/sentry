@@ -14,7 +14,7 @@ type Props = {
   group: Group;
 };
 
-export default function Resources({configResources, eventPlatform, group}: Props) {
+export function Resources({configResources, eventPlatform, group}: Props) {
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,

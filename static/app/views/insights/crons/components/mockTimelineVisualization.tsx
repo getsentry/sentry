@@ -10,7 +10,7 @@ import {
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import FormContext from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/model';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';

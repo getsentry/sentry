@@ -10,7 +10,7 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {type ProductTrial} from 'getsentry/types';
 
-function ProductTrialRibbon({
+export function ProductTrialRibbon({
   activeProductTrial,
   potentialProductTrial,
 }: {
@@ -53,8 +53,6 @@ function ProductTrialRibbon({
     </RibbonContainer>
   );
 }
-
-export default ProductTrialRibbon;
 
 const RibbonContainer = styled('td')<{isActiveProductTrial: boolean}>`
   display: flex;

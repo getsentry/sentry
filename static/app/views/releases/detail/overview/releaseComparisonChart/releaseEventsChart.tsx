@@ -7,7 +7,7 @@ import EventsChart from 'sentry/components/charts/eventsChart';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
@@ -19,7 +19,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   generateReleaseMarkLines,

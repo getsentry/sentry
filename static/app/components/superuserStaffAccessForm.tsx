@@ -8,7 +8,7 @@ import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';

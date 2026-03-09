@@ -21,8 +21,8 @@ import {
 import type {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
@@ -70,7 +70,7 @@ function makeIntegrationIssueConfigTicketRuleQueryKey({
   ];
 }
 
-export default function TicketRuleModal({
+export function TicketRuleModal({
   instance,
   link,
   onSubmitAction,

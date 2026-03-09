@@ -9,7 +9,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -30,7 +30,7 @@ import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import ChartFooter from 'sentry/views/discover/results/chartFooter';
+import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
 
 type ResultsChartProps = {
   api: Client;

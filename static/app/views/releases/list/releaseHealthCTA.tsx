@@ -21,7 +21,7 @@ interface Props {
   selection: PageFilters;
 }
 
-export default function ReleaseHealthCTA({
+export function ReleaseHealthCTA({
   organization,
   releases,
   selectedProject,

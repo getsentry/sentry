@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {TeamWithProjects} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
@@ -13,11 +13,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import Header from 'sentry/views/organizationStats/header';
+import {StatsHeader as Header} from 'sentry/views/organizationStats/header';
 
-import TeamStatsControls from './controls';
-import DescriptionCard from './descriptionCard';
-import TeamIssuesAge from './teamIssuesAge';
+import {TeamStatsControls} from './controls';
+import {DescriptionCard} from './descriptionCard';
+import {TeamIssuesAge} from './teamIssuesAge';
 import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamResolutionTime from './teamResolutionTime';
 import {TeamUnresolvedIssues} from './teamUnresolvedIssues';

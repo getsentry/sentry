@@ -5,7 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

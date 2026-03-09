@@ -6,8 +6,8 @@ import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 
-import PageHeader from 'admin/components/pageHeader';
-import PromoCodeModal from 'admin/components/promoCodes/promoCodeModal';
+import {PageHeader} from 'admin/components/pageHeader';
+import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
 import ResultGrid from 'admin/components/resultGrid';
 import titleCase from 'getsentry/utils/titleCase';
 
@@ -43,7 +43,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-export default function PromoCodes() {
+export function PromoCodes() {
   return (
     <div>
       <PageHeader title="Promo Codes">

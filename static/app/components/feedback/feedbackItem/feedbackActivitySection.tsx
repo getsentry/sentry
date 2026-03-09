@@ -14,13 +14,13 @@ import {
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
-import ActivitySection from 'sentry/views/issueDetails/activitySection';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
 type Props = {
   feedbackItem: Group;
 };
 
-function FeedbackActivitySection(props: Props) {
+export function FeedbackActivitySection(props: Props) {
   const {feedbackItem} = props;
   const organization = useOrganization();
 
@@ -118,5 +118,3 @@ function FeedbackActivitySection(props: Props) {
     />
   );
 }
-
-export default FeedbackActivitySection;

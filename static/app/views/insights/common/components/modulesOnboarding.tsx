@@ -19,7 +19,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';

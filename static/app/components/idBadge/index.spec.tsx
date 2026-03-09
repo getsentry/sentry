@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 
 describe('IdBadge', () => {
   it('renders the correct component when `user` property is passed', () => {

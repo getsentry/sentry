@@ -46,7 +46,7 @@ interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
  * which should include be a button. If the sandbox is hidden,
  * don't render the children
  */
-function DemoSandboxButton({
+export function DemoSandboxButton({
   scenario,
   projectSlug,
   errorType,
@@ -90,5 +90,3 @@ function DemoSandboxButton({
     />
   );
 }
-
-export default DemoSandboxButton;

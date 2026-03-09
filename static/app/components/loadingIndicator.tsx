@@ -14,7 +14,7 @@ interface LoadingIndicatorProps {
   style?: React.CSSProperties;
 }
 
-function LoadingIndicator(props: LoadingIndicatorProps) {
+export function LoadingIndicator(props: LoadingIndicatorProps) {
   return (
     <div
       className={classNames('loading', props.className, {
@@ -53,5 +53,3 @@ function getLoadingIndicatorBorderWidth(size: number | undefined): number | unde
 
   return 2 + ((size - 24) / 40) * (6 - 2);
 }
-
-export default LoadingIndicator;

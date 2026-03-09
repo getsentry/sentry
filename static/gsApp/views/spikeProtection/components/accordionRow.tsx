@@ -28,7 +28,7 @@ type AccordionRowProps = {
   onOpen?: () => Promise<void>;
 };
 
-function AccordionRow({
+export function AccordionRow({
   disabled = false,
   disableBody,
   body,
@@ -100,5 +100,3 @@ const Title = styled('div')<{disabled: boolean}>`
   align-items: center;
   cursor: ${props => (props.disabled ? 'auto' : 'pointer')};
 `;
-
-export default AccordionRow;

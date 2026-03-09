@@ -11,7 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -43,7 +43,7 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-import EventsTable from './eventsTable';
+import {EventsTable} from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
 import {getEventsFilterOptions} from './utils';
 
@@ -74,7 +74,7 @@ const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('timestamp'),
 ];
 
-function EventsContent(props: Props) {
+export function EventsContent(props: Props) {
   const {
     location,
     organization,
@@ -326,5 +326,3 @@ const StyledSearchBarWrapper = styled('div')`
     grid-column: auto;
   }
 `;
-
-export default EventsContent;

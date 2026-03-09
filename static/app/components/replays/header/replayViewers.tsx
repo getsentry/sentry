@@ -18,7 +18,7 @@ interface Props {
   replayId: string;
 }
 
-export default function ReplayViewers({projectId, replayId}: Props) {
+export function ReplayViewers({projectId, replayId}: Props) {
   const organization = useOrganization();
 
   const {projects} = useProjects();

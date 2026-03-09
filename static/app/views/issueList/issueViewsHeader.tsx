@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
+import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -210,7 +210,7 @@ function IssueViewEditMenu() {
   );
 }
 
-function IssueViewsHeader({
+export function IssueViewsHeader({
   title,
   description,
   realtimeActive,
@@ -250,8 +250,6 @@ function IssueViewsHeader({
     </Layout.Header>
   );
 }
-
-export default IssueViewsHeader;
 
 const LeftAlignContainer = styled('div')`
   text-align: left;

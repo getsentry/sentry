@@ -9,8 +9,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import PanelItem from 'sentry/components/panels/panelItem';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -25,7 +25,7 @@ type Props = {
   showProvider?: boolean;
 };
 
-export default function RepositoryRow({
+export function RepositoryRow({
   repository,
   onRepositoryChange,
   orgSlug,

@@ -15,7 +15,7 @@ interface SuggestedAvatarStackProps extends Omit<
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 3;
 
-function SuggestedAvatarStack({
+export function SuggestedAvatarStack({
   owners,
   tooltip,
   tooltipOptions,
@@ -60,5 +60,3 @@ const AvatarStack = styled('div')<{reverse: boolean}>`
 const Avatar = styled(ActorAvatar)<{index: number; reverse: boolean}>`
   transform: translateX(${p => (p.reverse ? 60 * p.index : 60 * -p.index)}%);
 `;
-
-export default SuggestedAvatarStack;

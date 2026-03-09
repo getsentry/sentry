@@ -3,15 +3,15 @@ import {Outlet} from 'react-router-dom';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
-import NotFound from 'sentry/components/errors/notFound';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function TestAnalyticsPageWrapper() {
+export function TestAnalyticsPageWrapper() {
   const organization = useOrganization();
 
   if (!organization.features.includes('prevent-test-analytics')) {

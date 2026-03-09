@@ -11,8 +11,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import RepoProviderIcon from 'sentry/components/repositories/repoProviderIcon';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import type {TreeNode} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {IconAdd, IconChevron, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

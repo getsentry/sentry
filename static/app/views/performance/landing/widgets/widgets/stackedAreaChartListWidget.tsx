@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
+import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
-import Truncate from 'sentry/components/truncate';
+import {Count} from 'sentry/components/count';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
