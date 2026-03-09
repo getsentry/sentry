@@ -215,6 +215,7 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
                 _output_segment(b"b" * 16, b"b" * 16, True),
@@ -284,6 +285,7 @@ def test_observability_metrics(
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
                 _output_segment(b"b" * 16, b"b" * 16, True),
@@ -435,6 +437,7 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
                 _output_segment(b"b" * 16, b"a" * 16, False),
@@ -517,6 +520,7 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
                 _output_segment(b"b" * 16, b"a" * 16, False),
@@ -590,7 +594,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+            queue_key=mock.ANY, project_id=2, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
         )
     }
     buffer.done_flush_segments(rv)
@@ -602,6 +606,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"c" * 16, b"b" * 16, False),
                 _output_segment(b"d" * 16, b"b" * 16, False),
@@ -670,10 +675,11 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+            queue_key=mock.ANY, project_id=2, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
         ),
         _segment_id(1, "a" * 32, "c" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"c" * 16, b"c" * 16, True),
             ],
@@ -688,6 +694,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"d" * 16, b"b" * 16, False),
                 _output_segment(b"e" * 16, b"b" * 16, False),
@@ -723,7 +730,7 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY, spans=[_output_segment(b"a" * 16, b"a" * 16, True)]
+            queue_key=mock.ANY, project_id=1, spans=[_output_segment(b"a" * 16, b"a" * 16, True)]
         ),
     }
 
@@ -1086,6 +1093,7 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
                 _output_segment(b"b" * 16, b"a" * 16, False),
@@ -1167,6 +1175,7 @@ def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
         assert rv == {
             _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
                 queue_key=mock.ANY,
+                project_id=1,
                 spans=[
                     _output_segment(b"a" * 16, b"b" * 16, False),
                     _output_segment(b"b" * 16, b"b" * 16, True),
