@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -65,7 +66,18 @@ export default function RepositoryProjectPathConfigForm({
 
   const isStreamBased = integration.provider.key === 'perforce';
 
-  const projectOptions = projects.map(({slug, id}) => ({value: id, label: slug}));
+  const projectOptions = projects.map(project => ({
+    value: project.id,
+    label: project.slug,
+    leadingItems: (
+      <IdBadge
+        project={project}
+        avatarSize={20}
+        avatarProps={{consistentWidth: true}}
+        hideName
+      />
+    ),
+  }));
   const repoOptions = repos.map(({name, id}) => ({value: id, label: name}));
 
   const endpoint = existingConfig
