@@ -23,6 +23,7 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -32,12 +33,14 @@ import {
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -262,6 +265,40 @@ export function getMenuOptions(
         getReferrer(widget.displayType)
       ),
     });
+  }
+
+  if (widget.widgetType === WidgetType.SPANS && usesTimeSeriesData(widget.displayType)) {
+    const aggregates = widget.queries.flatMap(query => query.aggregates);
+    const uniqueAggregates = [...new Set(aggregates)];
+    const query = widget.queries[0]?.conditions ?? '';
+
+    if (uniqueAggregates.length > 0) {
+      const newAlertLabel = organization.features.includes('workflow-engine-ui')
+        ? t('Create a Monitor for')
+        : t('Create an Alert for');
+
+      const alertMenuOptions: MenuItemProps[] = uniqueAggregates.map(
+        (aggregate, index) => ({
+          key: `create-alert-${aggregate}-${index}`,
+          label: aggregate,
+          to: getAlertsUrl({
+            query,
+            aggregate,
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            pageFilters: selection,
+            organization,
+            referrer: getReferrer(widget.displayType),
+          }),
+        })
+      );
+
+      menuOptions.push({
+        key: 'create-alert',
+        label: newAlertLabel,
+        isSubmenu: true,
+        children: alertMenuOptions,
+      });
+    }
   }
 
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
