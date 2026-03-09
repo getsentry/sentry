@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {isArrayOf} from 'sentry/types/utils';
 
 export enum DiffFileType {
   ADDED = 'A',
@@ -9,10 +10,26 @@ export enum DiffFileType {
   DELETED = 'D',
 }
 
+function isDiffFileType(value: unknown): value is DiffFileType {
+  return (
+    value === DiffFileType.ADDED ||
+    value === DiffFileType.MODIFIED ||
+    value === DiffFileType.DELETED
+  );
+}
+
 export enum DiffLineType {
   ADDED = '+',
   REMOVED = '-',
   CONTEXT = ' ',
+}
+
+function isDiffLineType(value: unknown): value is DiffLineType {
+  return (
+    value === DiffLineType.ADDED ||
+    value === DiffLineType.REMOVED ||
+    value === DiffLineType.CONTEXT
+  );
 }
 
 export enum AutofixStepType {
@@ -271,6 +288,22 @@ export type FilePatch = {
   type: DiffFileType;
 };
 
+export function isFilePatch(value: unknown): value is FilePatch {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.added === 'number' &&
+    isArrayOf(obj.hunks, isHunk) &&
+    typeof obj.path === 'string' &&
+    typeof obj.removed === 'number' &&
+    typeof obj.source_file === 'string' &&
+    typeof obj.target_file === 'string' &&
+    isDiffFileType(obj.type)
+  );
+}
+
 type Hunk = {
   lines: DiffLine[];
   section_header: string;
@@ -280,6 +313,21 @@ type Hunk = {
   target_start: number;
 };
 
+function isHunk(value: unknown): value is Hunk {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    isArrayOf(obj.lines, isDiffLine) &&
+    typeof obj.section_header === 'string' &&
+    typeof obj.source_length === 'number' &&
+    typeof obj.source_start === 'number' &&
+    typeof obj.target_length === 'number' &&
+    typeof obj.target_start === 'number'
+  );
+}
+
 export type DiffLine = {
   diff_line_no: number | null;
   line_type: DiffLineType;
@@ -287,6 +335,20 @@ export type DiffLine = {
   target_line_no: number | null;
   value: string;
 };
+
+function isDiffLine(value: unknown): value is DiffLine {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    (typeof obj.diff_line_no === 'number' || obj.diff_line_no === null) &&
+    isDiffLineType(obj.line_type) &&
+    (typeof obj.source_line_no === 'number' || obj.source_line_no === null) &&
+    (typeof obj.target_line_no === 'number' || obj.target_line_no === null) &&
+    typeof obj.value === 'string'
+  );
+}
 
 export interface AutofixRepoDefinition {
   name: string;

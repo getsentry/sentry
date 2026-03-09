@@ -471,8 +471,8 @@ export const SidebarItemUnreadIndicator = styled('span')<{
   variant?: 'accent' | 'danger' | 'warning';
 }>`
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -${p => p.theme.space.xs};
+  right: -${p => p.theme.space.md};
   display: block;
   text-align: center;
   color: ${p => p.theme.colors.white};
