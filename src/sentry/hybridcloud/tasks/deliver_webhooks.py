@@ -281,6 +281,8 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     _set_webhook_delivery_sentry_context(payload)
 
     delivered = 0
+    failed = 0
+    current_id = payload.id
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     try:
         while True:
@@ -302,12 +304,15 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
             # Fetch records from the batch in slices of 100. This avoids reading
             # redundant data should we hit an error and should help keep query duration low.
             query = WebhookPayloadReplica.filter(
-                id__gte=payload.id, mailbox_name=payload.mailbox_name
+                id__gte=current_id, mailbox_name=payload.mailbox_name
             ).order_by("id")
 
             batch_count = 0
             for record in query[:100]:
                 batch_count += 1
+                # Advance past this record regardless of outcome so that failed
+                # messages are not re-attempted in subsequent batches of this drain.
+                current_id = record.id + 1
                 # Refresh the lock on each delivery so a slow HTTP response in the
                 # inner loop (up to 30s timeout × 100 records) cannot outlast the
                 # 15s TTL and let the key expire mid-batch.
@@ -317,18 +322,31 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                     deliver_message(record)
                     delivered += 1
                 except DeliveryFailed:
+                    failed += 1
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
-                    return
+                    # Continue processing remaining messages instead of stopping.
+                    # Failed messages have already been rescheduled by deliver_message.
+                    continue
 
             # No more messages to deliver
             if batch_count < 1:
-                logger.debug(
-                    "deliver_webhook.delivery_complete",
-                    extra={
-                        **payload.as_dict(),
-                        "delivered": delivered,
-                    },
-                )
+                if failed > 0:
+                    logger.info(
+                        "deliver_webhook.delivery_complete_with_failures",
+                        extra={
+                            **payload.as_dict(),
+                            "delivered": delivered,
+                            "failed": failed,
+                        },
+                    )
+                else:
+                    logger.debug(
+                        "deliver_webhook.delivery_complete",
+                        extra={
+                            **payload.as_dict(),
+                            "delivered": delivered,
+                        },
+                    )
                 return
     finally:
         # Only release the lock if this is a push-triggered drain (mailbox_name is

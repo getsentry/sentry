@@ -306,34 +306,44 @@ class DrainMailboxTest(TestCase):
     @responses.activate
     @override_regions(region_config)
     def test_drain_success_partial(self) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=500,
-            body="",
-        )
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
         records = create_payloads(5, "github:123")
         drain_mailbox(records[0].id)
 
-        # Attempts should stop as soon as the first delivery
-        # fails. This retains mailbox ordering while yielding this
-        # worker for new work
-        assert len(responses.calls) == 2
+        # Failed messages are skipped and processing continues.
+        # All 5 messages are attempted despite the failure.
+        assert len(responses.calls) == 5
 
-        # Mailbox should have 4 records left
-        assert WebhookPayload.objects.count() == 4
+        # Only the failed message remains in the mailbox.
+        assert WebhookPayload.objects.count() == 1
 
-        # Remaining record should be scheduled to run later.
+        # Failed record should be scheduled to run later.
         first = WebhookPayload.objects.order_by("id").first()
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_mailbox_multiple_consecutive_failures(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "github:123")
+        drain_mailbox(records[0].id)
+
+        # All 5 messages are attempted even though all fail.
+        assert len(responses.calls) == 5
+
+        # All 5 messages remain with incremented attempts and a future schedule_for.
+        assert WebhookPayload.objects.count() == 5
+        for record in WebhookPayload.objects.all():
+            assert record.attempts == 1
+            assert record.schedule_for > timezone.now()
 
     @responses.activate
     @override_regions(region_config)
