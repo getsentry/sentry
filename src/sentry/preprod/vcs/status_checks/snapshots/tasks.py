@@ -169,7 +169,8 @@ def create_preprod_snapshot_status_check_task(
                 snapshot_metrics_map,
             )
         else:
-            status = StatusCheckStatus.FAILURE
+            # TODO(EME-921) Add logic to fail if there's any base_sha set but no base artifact
+            status = StatusCheckStatus.SUCCESS
             title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
