@@ -114,7 +114,7 @@ class TestMapIntegrationToProvider(TestCase):
             "integration_id": integration.id,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
-            "status": 0,
+            "is_active": False,
         }
 
         provider = map_integration_to_provider(
@@ -137,7 +137,7 @@ class TestMapIntegrationToProvider(TestCase):
             "integration_id": integration.id,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
-            "status": 0,
+            "is_active": False,
         }
 
         with pytest.raises(SCMCodedError) as exc_info:

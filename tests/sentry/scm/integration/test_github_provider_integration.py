@@ -12,12 +12,15 @@ from sentry.scm.private.helpers import (
     map_integration_to_provider,
     map_repository_model_to_repository,
 )
+from sentry.scm.private.providers.github import GitHubProvider
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "test-org/test-repo"
 
 
 class TestGitHubProviderIntegration(TestCase):
+    provider: GitHubProvider
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, mock_get_jwt):
         super().setUp()
@@ -41,7 +44,7 @@ class TestGitHubProviderIntegration(TestCase):
             status=ObjectStatus.ACTIVE,
         )
         self.repository = map_repository_model_to_repository(self.repo_model)
-        self.provider = map_integration_to_provider(
+        self.provider = map_integration_to_provider(  # type: ignore[assignment]
             self.organization.id, self.integration, self.repository
         )
 

@@ -469,6 +469,7 @@ _DEFAULT_PAGINATED_META: PaginatedResponseMeta = PaginatedResponseMeta(next_curs
 
 
 class BaseTestProvider(Provider):
+    organization_id: int
     repository: Repository
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
