@@ -38,6 +38,9 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.snapshots.tasks import (
+    create_preprod_snapshot_status_check_task,
+)
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -376,6 +379,13 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
+            },
+        )
+
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "upload_completion",
             },
         )
 
