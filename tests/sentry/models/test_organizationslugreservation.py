@@ -22,7 +22,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
         slug_replica: OrganizationSlugReservationReplica,
     ):
         matches = slug_replica.organization_id == slug_reservation.organization_id
-        matches = matches and slug_replica.region_name == slug_reservation.region_name
+        matches = matches and slug_replica.region_name == slug_reservation.cell_name
         matches = matches and slug_replica.reservation_type == slug_reservation.reservation_type
 
         return matches
@@ -92,7 +92,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -101,7 +101,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -117,7 +117,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -137,7 +137,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -156,7 +156,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -173,7 +173,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -181,7 +181,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="acme",
             user_id=self.user.id,
             organization_id=43,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -199,7 +199,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -207,7 +207,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="acme",
             user_id=self.user.id,
             organization_id=43,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -215,7 +215,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="foobar",
             user_id=self.user.id,
             organization_id=44,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 

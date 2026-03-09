@@ -3,15 +3,18 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  type ProjectSeerPreferences,
+} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {
   useAgentOptions,
   useMutateSelectedAgent,
-  useSelectedAgent,
-} from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
+  useSelectedAgentFromProjectSettings,
+} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 describe('useAgentHooks', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -69,7 +72,7 @@ describe('useAgentHooks', () => {
     it('returns "none" when project autofixAutomationTuning is off', () => {
       const p = ProjectFixture({...project, autofixAutomationTuning: 'off'});
 
-      const {result} = renderHookWithProviders(useSelectedAgent, {
+      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {repositories: []},
           project: p,
@@ -82,7 +85,7 @@ describe('useAgentHooks', () => {
     });
 
     it('returns "seer" when no automation_handoff integration_id', () => {
-      const {result} = renderHookWithProviders(useSelectedAgent, {
+      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {repositories: []},
           project,
@@ -99,13 +102,13 @@ describe('useAgentHooks', () => {
         {id: '99', name: 'Cursor', provider: 'cursor'},
       ];
 
-      const {result} = renderHookWithProviders(useSelectedAgent, {
+      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {
             repositories: [],
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 99,
             },
           },
@@ -252,7 +255,7 @@ describe('useAgentHooks', () => {
             automated_run_stopping_point: 'code_changes',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
               auto_create_pr: false,
             },

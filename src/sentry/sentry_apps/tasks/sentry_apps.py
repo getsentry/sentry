@@ -525,7 +525,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     # Limit our operations to the region this outbox is for.
     # This could be a single query if we use raw_sql.
     region_query = OrganizationMapping.objects.filter(
-        organization_id__in=list(install_map.keys()), region_name=region_name
+        organization_id__in=list(install_map.keys()), cell_name=region_name
     ).values("organization_id")
     for region_row in region_query:
         region_caching_service.clear_key(

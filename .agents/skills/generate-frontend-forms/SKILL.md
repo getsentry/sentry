@@ -810,6 +810,8 @@ mutationOptions={{
 
 ### Auto-Save Cache Updates
 
+Always update the data store or cache in `onSuccess`. Without this, toggling a field back to its original value won't trigger a save — TanStack Form compares against `defaultValues` (derived from `initialValue`) and skips submission when the value matches.
+
 ```tsx
 // ❌ Don't forget to update the cache after auto-save
 mutationOptions={{
@@ -825,31 +827,28 @@ mutationOptions={{
 }}
 ```
 
-### Auto-Save Mutation Typing with Mixed-Type Schemas
+### Auto-Save Mutation Typing
 
-When using `AutoSaveField` with schemas that have mixed types (e.g., strings and booleans), the mutation options must be typed using the schema-inferred type. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types.
+Type the `mutationFn` with the API's data type, **not** the zod schema type. The schema is for client-side field validation — the mutation should accept whatever the API endpoint accepts. Don't use generic types like `Record<string, unknown>` either, as that breaks TanStack Form's ability to narrow field types.
 
 ```tsx
-const preferencesSchema = z.object({
-  theme: z.string(),
-  language: z.string(),
-  notifications: z.boolean(),
-});
-
-type Preferences = z.infer<typeof preferencesSchema>;
-
 // ❌ Don't use generic types - breaks field type narrowing
-const mutationOptions = mutationOptions({
+const opts = mutationOptions({
   mutationFn: (data: Record<string, unknown>) => fetchMutation({...}),
 });
 
-// ✅ Use schema-inferred type for proper type narrowing
-const mutationOptions = mutationOptions({
-  mutationFn: (data: Partial<Preferences>) => fetchMutation({...}),
+// ❌ Don't tie mutation type to the zod schema
+const opts = mutationOptions({
+  mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => fetchMutation({...}),
+});
+
+// ✅ Use the API's data type
+const opts = mutationOptions({
+  mutationFn: (data: Partial<UserDetails>) => fetchMutation({...}),
 });
 ```
 
-This ensures that when you use `name="theme"`, the field correctly infers `string` type, and `name="notifications"` infers `boolean` type.
+Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
 ### Layout Choice
 

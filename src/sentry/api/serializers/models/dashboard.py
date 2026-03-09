@@ -522,7 +522,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
         favorited_dashboard_ids = set(
             DashboardFavoriteUser.objects.filter(
-                user_id=user.id, dashboard_id__in=item_dict.keys()
+                user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
             ).values_list("dashboard_id", flat=True)
         )
 

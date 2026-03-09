@@ -113,7 +113,8 @@ export default function RepositoryRow({
                 }
                 onConfirm={deleteRepo}
                 message={t(
-                  'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+                  'Are you sure you want to remove %s? All associated commit data will be removed in addition to the repository.',
+                  <code>{repository.name}</code>
                 )}
               >
                 <Button

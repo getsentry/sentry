@@ -344,7 +344,7 @@ export default function FiltersBar({
                 disabled={!hasEditAccess}
                 busy={shouldBusySaveButton}
               >
-                {t('Save')}
+                {isPrebuiltDashboard ? t('Save for Everyone') : t('Save')}
               </Button>
               <Button
                 data-test-id="filter-bar-cancel"

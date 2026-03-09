@@ -178,6 +178,7 @@ class SeerExplorerClient:
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
+            max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
     """
 
     def __init__(
@@ -192,6 +193,7 @@ class SeerExplorerClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
         enable_coding: bool = False,
+        max_iterations: int | None = None,
     ):
         self.organization = organization
         self.user = user
@@ -202,6 +204,7 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.max_iterations = max_iterations
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -272,6 +275,9 @@ class SeerExplorerClient:
             enable_coding=self.enable_coding,
         )
 
+        if self.max_iterations is not None:
+            chat_body["max_iterations"] = self.max_iterations
+
         if self.project:
             chat_body["project_id"] = self.project.id
 
@@ -304,7 +310,7 @@ class SeerExplorerClient:
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        ):  # Set to True at the start of the run and persist in Seer explorer run state
             chat_body["is_context_engine_enabled"] = True
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
@@ -362,13 +368,6 @@ class SeerExplorerClient:
         if artifact_key and artifact_schema:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
-
-        if features.has(
-            "organizations:seer-explorer-context-engine",
-            self.organization,
-            actor=self.user,
-        ):
-            chat_body["is_context_engine_enabled"] = True
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 

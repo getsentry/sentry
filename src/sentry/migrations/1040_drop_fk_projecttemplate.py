@@ -26,6 +26,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1039_widget_description_to_textfield"),
+        ("monitors", "0008_fix_processing_error_keys"),
     ]
 
     operations = [

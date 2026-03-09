@@ -86,6 +86,7 @@ class SeerCodeReviewRepoDefinition(BaseModel):
     # Optional in base, overridden in subclasses based on request type
     organization_id: int | None = None
     integration_id: str | None = None
+    is_private: bool | None = None
 
 
 class SeerCodeReviewRepoForPrReview(SeerCodeReviewRepoDefinition):
