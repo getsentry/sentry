@@ -12,19 +12,14 @@ const ITEMS: LegendItem[] = [
 ];
 
 /**
- * Mock useDimensions to control wrapper and trigger widths.
- * The hook is called twice: first for wrapperRef, then for triggerRef.
+ * Mock useDimensions to control the wrapper width reported to ChartLegend.
+ * The hook is now called only once (for wrapperRef); trigger width is read
+ * directly from the DOM via getBoundingClientRect inside the layout effect.
  */
-function mockDimensions(wrapperWidth: number, triggerWidth = 60) {
-  let callCount = 0;
-  jest.spyOn(useDimensionsModule, 'useDimensions').mockImplementation(() => {
-    callCount++;
-    // First call is for wrapperRef, second for triggerRef
-    if (callCount % 2 === 1) {
-      return {width: wrapperWidth, height: 24};
-    }
-    return {width: triggerWidth, height: 24};
-  });
+function mockDimensions(wrapperWidth: number) {
+  jest
+    .spyOn(useDimensionsModule, 'useDimensions')
+    .mockReturnValue({width: wrapperWidth, height: 24});
 }
 
 /**
