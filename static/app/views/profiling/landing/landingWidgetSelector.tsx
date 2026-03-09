@@ -58,10 +58,13 @@ export function LandingWidgetSelector({
   const onWidgetChange = useCallback(
     (opt: any) => {
       const newQuery = omit(location.query, [cursorName]);
-      navigate({
-        pathname: location.pathname,
-        query: newQuery,
-      }, {replace: true});
+      navigate(
+        {
+          pathname: location.pathname,
+          query: newQuery,
+        },
+        {replace: true}
+      );
       setSelectedWidget(opt.value);
       trackAnalytics('profiling_views.landing.widget_change', {
         organization,
