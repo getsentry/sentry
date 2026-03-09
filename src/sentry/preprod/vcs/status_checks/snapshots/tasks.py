@@ -20,6 +20,8 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     update_posted_status_check,
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
+    format_first_snapshot_status_check_messages,
+    format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -143,25 +145,53 @@ def create_preprod_snapshot_status_check_task(
 
     base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
 
-    status = _compute_snapshot_status(
-        all_artifacts, snapshot_metrics_map, comparisons_map, approvals_map
-    )
+    is_solo = not base_artifact_map
+    approve_action_identifier: str | None = None
+
+    if is_solo:
+        app_ids = {a.app_id for a in all_artifacts if a.app_id}
+        has_previous_snapshots = (
+            PreprodSnapshotMetrics.objects.filter(
+                preprod_artifact__project_id=preprod_artifact.project_id,
+                preprod_artifact__app_id__in=app_ids,
+            )
+            .exclude(preprod_artifact__commit_comparison_id=commit_comparison.id)
+            .exists()
+            if app_ids
+            else False
+        )
+        is_first_upload = not has_previous_snapshots
+
+        if is_first_upload:
+            status = StatusCheckStatus.SUCCESS
+            title, subtitle, summary = format_first_snapshot_status_check_messages(
+                all_artifacts,
+                snapshot_metrics_map,
+            )
+        else:
+            # TODO(EME-921) Add logic to fail if there's any base_sha set but no base artifact
+            status = StatusCheckStatus.SUCCESS
+            title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
+                all_artifacts,
+                snapshot_metrics_map,
+            )
+    else:
+        status = _compute_snapshot_status(
+            all_artifacts, snapshot_metrics_map, comparisons_map, approvals_map
+        )
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            all_artifacts,
+            snapshot_metrics_map,
+            comparisons_map,
+            status,
+            base_artifact_map,
+        )
+        if _has_snapshot_changes(all_artifacts, snapshot_metrics_map, comparisons_map):
+            approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     completed_at: datetime | None = None
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
-
-    title, subtitle, summary = format_snapshot_status_check_messages(
-        all_artifacts,
-        snapshot_metrics_map,
-        comparisons_map,
-        status,
-        base_artifact_map,
-    )
-
-    approve_action_identifier: str | None = None
-    if _has_snapshot_changes(all_artifacts, snapshot_metrics_map, comparisons_map):
-        approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     url_artifact = (
         preprod_artifact
