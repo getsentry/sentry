@@ -1101,7 +1101,7 @@ def get_issue_details(
             Project.objects.filter(
                 organization=organization,
                 status=ObjectStatus.ACTIVE,
-                **({("slug"): project_slug} if project_slug else {}),
+                **({"slug": project_slug} if project_slug else {}),
             ).values_list("id", flat=True)
         )
         if not project_ids:
