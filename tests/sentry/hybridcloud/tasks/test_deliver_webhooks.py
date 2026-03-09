@@ -121,17 +121,18 @@ class ScheduleWebhooksTest(TestCase):
         with self.tasks():
             schedule_webhook_delivery()
 
-        # First attempt will fail rescheduling messages.
-        assert len(responses.calls) == 1
+        # All messages are attempted but all fail due to timeout, so all are rescheduled.
+        assert len(responses.calls) == num_records
         assert WebhookPayload.objects.count() == num_records
         head = WebhookPayload.objects.all().order_by("id").first()
         assert head
         assert head.schedule_for > timezone.now()
 
         # Do another scheduled run. This should not make any forwarding requests
+        # because all messages have schedule_for in the future.
         with self.tasks():
             schedule_webhook_delivery()
-        assert len(responses.calls) == 1
+        assert len(responses.calls) == num_records
         # Head doesn't move.
         new_head = WebhookPayload.objects.all().order_by("id").first()
         assert new_head
