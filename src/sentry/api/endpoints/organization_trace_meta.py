@@ -1,6 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
@@ -55,7 +55,7 @@ def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
     return len(first_column.results) if first_column.results else 0
 
 
-def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> dict[str, Any]:
+def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:
     errors_query = DiscoverQueryBuilder(
         dataset=Dataset.Events,
         selected_columns=[
@@ -95,12 +95,7 @@ def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> dict[str, Any]
             },
         )
 
-    if not errors.get("data"):
-        errors["data"] = [{"errors": errors_count}]
-    else:
-        errors["data"][0]["errors"] = errors_count
-
-    return errors
+    return errors_count
 
 
 @region_silo_endpoint
@@ -234,8 +229,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
 
             results = spans_future.result()
             perf_issues = perf_issues_future.result()
-            errors = errors_future.result()
-            results["errors"] = errors
+            errors_count = errors_future.result()
 
             uptime_count = None
             if uptime_future:
@@ -244,15 +238,19 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                     uptime_count = extract_uptime_count(uptime_result)
                 except Exception:
                     logger.exception("Failed to fetch uptime results")
-        return Response(self.serialize(results, perf_issues, uptime_count))
+        return Response(self.serialize(results, errors_count, perf_issues, uptime_count))
 
     def serialize(
-        self, results: dict[str, EAPResponse], perf_issues: int, uptime_count: int | None = None
+        self,
+        results: dict[str, EAPResponse],
+        errors_count: int,
+        perf_issues: int,
+        uptime_count: int | None = None,
     ) -> SerializedResponse:
         response: SerializedResponse = {
             # Values can be null if there's no result
             "logs": results["logs_meta"]["data"][0].get("count()") or 0,
-            "errors": results["errors"]["data"][0].get("errors") or 0,
+            "errors": errors_count,
             "performance_issues": perf_issues,
             "span_count": results["spans_meta"]["data"][0].get("count()") or 0,
             "transaction_child_count_map": results["transaction_children"]["data"],
