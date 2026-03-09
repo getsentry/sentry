@@ -241,6 +241,8 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
+        mock_get_client.assert_called_once()
+
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
     def test_handles_api_error(self, mock_format, mock_get_client):
