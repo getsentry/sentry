@@ -635,7 +635,7 @@ class MinimalProvider:
 @pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
 def test_exec_raises_provider_not_supported_for_all_actions(method: str, kwargs: dict[str, Any]):
     """Every SCM action raises SCMProviderNotSupported when the provider lacks the protocol."""
-    scm = SourceCodeManager(MinimalProvider())  # type: ignore[arg-type]
+    scm = SourceCodeManager(MinimalProvider())
 
     with pytest.raises(SCMProviderNotSupported):
         getattr(scm, method)(**kwargs)
