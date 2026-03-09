@@ -47,16 +47,6 @@ function SubscriptionBox({
     );
   }
 
-  if (
-    resource === 'size_analysis' &&
-    !features.includes('preprod-size-analysis-webhooks')
-  ) {
-    disabled = true;
-    message = t(
-      'Your organization does not have access to the size analysis subscription resource.'
-    );
-  }
-
   if (webhookDisabled) {
     message = t('Cannot enable webhook subscription without specifying a webhook url');
   }

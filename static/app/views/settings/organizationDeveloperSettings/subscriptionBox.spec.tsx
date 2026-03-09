@@ -84,22 +84,8 @@ describe('SubscriptionBox', () => {
   });
 
   describe('size_analysis resource subscription', () => {
-    it('checkbox disabled without preprod-size-analysis-webhooks flag', async () => {
+    it('renders size_analysis checkbox enabled', () => {
       renderComponent({resource: 'size_analysis'});
-
-      expect(screen.getByRole('checkbox')).toBeDisabled();
-
-      await userEvent.hover(screen.getByRole('checkbox'));
-      expect(
-        await screen.findByText(
-          'Your organization does not have access to the size analysis subscription resource.'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('checkbox visible with preprod-size-analysis-webhooks flag', () => {
-      org = OrganizationFixture({features: ['preprod-size-analysis-webhooks']});
-      renderComponent({resource: 'size_analysis', organization: org});
 
       expect(screen.getByRole('checkbox')).toBeEnabled();
     });

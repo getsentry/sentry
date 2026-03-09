@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sentry import features
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -93,20 +92,8 @@ def send_size_analysis_webhook(
     """
     Send the size_analysis.completed webhook for a given artifact, if applicable.
 
-    Checks feature flag, builds the payload, and enqueues via the generic broadcaster.
+    Builds the payload and enqueues via the generic broadcaster.
     """
-    organization = artifact.project.organization
-
-    if not features.has("organizations:preprod-size-analysis-webhooks", organization):
-        logger.info(
-            "preprod.size_analysis.webhook.feature_disabled",
-            extra={
-                "artifact_id": artifact.id,
-                "organization_id": organization_id,
-            },
-        )
-        return
-
     payload = build_webhook_payload(artifact)
     if payload is None:
         logger.info(

@@ -10,7 +10,6 @@ from sentry.preprod.size_analysis.webhooks import (
     send_size_analysis_webhook,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -345,17 +344,14 @@ class SendSizeAnalysisWebhookTest(TestCase):
         )
         return artifact
 
-    @with_feature("organizations:preprod-size-analysis-webhooks")
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
-    def test_sends_webhook_when_feature_enabled(self, mock_broadcast):
-        """Webhook is sent when feature flag is enabled."""
+    def test_sends_webhook(self, mock_broadcast):
+        """Webhook is sent for a completed build."""
         artifact = self._create_artifact_with_metrics()
 
         send_size_analysis_webhook(artifact=artifact, organization_id=self.organization.id)
 
         mock_broadcast.delay.assert_called_once()
-        call_kwargs = mock_broadcast.delay.call_kwargs
-        # Use call_args since .delay is a mock
         call_kwargs = mock_broadcast.delay.call_args
         assert call_kwargs.kwargs["resource_name"] == "size_analysis"
         assert call_kwargs.kwargs["event_name"] == "completed"
@@ -363,16 +359,6 @@ class SendSizeAnalysisWebhookTest(TestCase):
         assert call_kwargs.kwargs["payload"]["buildId"] == str(artifact.id)
         assert call_kwargs.kwargs["payload"]["status"] == "success"
 
-    @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
-    def test_does_not_send_when_feature_disabled(self, mock_broadcast):
-        """Webhook is NOT sent when feature flag is disabled."""
-        artifact = self._create_artifact_with_metrics()
-
-        send_size_analysis_webhook(artifact=artifact, organization_id=self.organization.id)
-
-        mock_broadcast.delay.assert_not_called()
-
-    @with_feature("organizations:preprod-size-analysis-webhooks")
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
     def test_does_not_send_for_not_ran(self, mock_broadcast):
         """Webhook is NOT sent for NOT_RAN state."""
@@ -388,7 +374,6 @@ class SendSizeAnalysisWebhookTest(TestCase):
 
         mock_broadcast.delay.assert_not_called()
 
-    @with_feature("organizations:preprod-size-analysis-webhooks")
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
     def test_does_not_send_for_no_main_metric(self, mock_broadcast):
         """Webhook is NOT sent when no main metric exists."""
@@ -398,7 +383,6 @@ class SendSizeAnalysisWebhookTest(TestCase):
 
         mock_broadcast.delay.assert_not_called()
 
-    @with_feature("organizations:preprod-size-analysis-webhooks")
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
     def test_broadcast_exception_is_caught(self, mock_broadcast):
         """Exceptions from broadcast are caught and logged, not re-raised."""
