@@ -60,7 +60,6 @@ export default function RepositoryProjectPathConfigForm({
     : getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
         path: {organizationIdOrSlug: organization.slug},
       });
-  const apiMethod = existingConfig ? ('PUT' as const) : ('POST' as const);
 
   const {data: integrationReposData} = useApiQuery<{repos: IntegrationRepository[]}>(
     [
@@ -84,7 +83,7 @@ export default function RepositoryProjectPathConfigForm({
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        method: apiMethod,
+        method: existingConfig ? 'PUT' : 'POST',
         url: endpoint,
         data,
       }),
