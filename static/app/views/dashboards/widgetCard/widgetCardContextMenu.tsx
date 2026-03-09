@@ -14,6 +14,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -21,6 +22,7 @@ import {
   MEPState,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -38,6 +40,7 @@ import {
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -188,7 +191,8 @@ export function getMenuOptions(
   location: Location,
   onDelete?: () => void,
   onDuplicate?: () => void,
-  onEdit?: () => void
+  onEdit?: () => void,
+  timeseriesResults?: Series[]
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -267,30 +271,53 @@ export function getMenuOptions(
     });
   }
 
-  if (widget.widgetType === WidgetType.SPANS && usesTimeSeriesData(widget.displayType)) {
+  if (
+    widget.widgetType === WidgetType.SPANS &&
+    usesTimeSeriesData(widget.displayType) &&
+    timeseriesResults?.length
+  ) {
+    const firstQuery = widget.queries[0];
     const aggregates = widget.queries.flatMap(query => query.aggregates);
     const uniqueAggregates = [...new Set(aggregates)];
-    const query = widget.queries[0]?.conditions ?? '';
+    const baseQuery = firstQuery?.conditions ?? '';
 
     if (uniqueAggregates.length > 0) {
       const newAlertLabel = organization.features.includes('workflow-engine-ui')
         ? t('Create a Monitor for')
         : t('Create an Alert for');
 
-      const alertMenuOptions: MenuItemProps[] = uniqueAggregates.map(
-        (aggregate, index) => ({
-          key: `create-alert-${aggregate}-${index}`,
-          label: aggregate,
-          to: getAlertsUrl({
-            query,
-            aggregate,
-            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-            pageFilters: selection,
-            organization,
-            referrer: getReferrer(widget.displayType),
-          }),
+      const alertMenuOptions = timeseriesResults
+        .map((series, index) => {
+          const transformed = transformWidgetSeriesToTimeSeries(series, widget);
+
+          if (!transformed || transformed.timeSeries.meta.isOther) {
+            return null;
+          }
+
+          const {timeSeries, label, seriesName} = transformed;
+
+          // Add group-by values as filters to the alert query
+          const search = new MutableSearch(baseQuery);
+          for (const group of timeSeries.groupBy ?? []) {
+            if (group.value !== null && !Array.isArray(group.value)) {
+              search.addFilterValue(group.key, `${group.value}`);
+            }
+          }
+
+          return {
+            key: `create-alert-${seriesName}-${index}`,
+            label,
+            to: getAlertsUrl({
+              query: search.formatString(),
+              aggregate: timeSeries.yAxis,
+              dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+              pageFilters: selection,
+              organization,
+              referrer: getReferrer(widget.displayType),
+            }),
+          } satisfies MenuItemProps;
         })
-      );
+        .filter(Boolean) as MenuItemProps[];
 
       menuOptions.push({
         key: 'create-alert',
