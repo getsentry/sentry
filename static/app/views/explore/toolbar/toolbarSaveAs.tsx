@@ -68,7 +68,10 @@ export function ToolbarSaveAs() {
   const id = useQueryParamsId();
 
   const visualizeFunctions = visualizes.filter(isVisualizeFunction);
-  const visualizeYAxes = dedupeArray(visualizeFunctions.map(v => v.yAxis));
+  const visualizeYAxes = useMemo(
+    () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
+    [visualizeFunctions]
+  );
   const [caseInsensitive] = useCaseInsensitivity();
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
