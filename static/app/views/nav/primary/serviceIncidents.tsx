@@ -31,10 +31,15 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
       <SidebarButton
         analyticsKey="statusupdate"
         label={t('Service status')}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          icon: <IconFire />,
+        }}
       >
-        <IconFire />
-        <DangerUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
+        <SidebarItemUnreadIndicator
+          isMobile={layout === NavLayout.MOBILE}
+          variant="danger"
+        />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -51,7 +56,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
 export function PrimaryNavigationServiceIncidents() {
   const {data: incidents = []} = useServiceIncidents();
 
-  if (!incidents || incidents.length === 0) {
+  if (!incidents?.length) {
     return null;
   }
 
@@ -67,8 +72,4 @@ const IncidentItemWrapper = styled('div')`
   :not(:first-child) {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const DangerUnreadIndicator = styled(SidebarItemUnreadIndicator)`
-  background: ${p => p.theme.tokens.background.danger.vibrant};
 `;

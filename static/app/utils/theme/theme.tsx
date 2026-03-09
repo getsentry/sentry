@@ -214,7 +214,7 @@ const commonTheme = {
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
-    orgAndUserMenu: 1030,
+    sidebarDropdownMenu: 1030,
 
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
