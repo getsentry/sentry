@@ -44,9 +44,6 @@ export function useGetTraceItemAttributeTagKeys({
         getBooleanKeys(searchQuery),
       ]);
       const fetched = [...Object.values(s), ...Object.values(n), ...Object.values(b)];
-      if (!extraTagValues.length) {
-        return fetched;
-      }
       const fetchedKeySet = new Set(fetched.map(t => t.key));
       return [...fetched, ...extraTagValues.filter(t => !fetchedKeySet.has(t.key))];
     },
