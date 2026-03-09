@@ -1,10 +1,8 @@
-import {Fragment, useMemo} from 'react';
-import partition from 'lodash/partition';
+import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {
@@ -29,7 +27,6 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
-import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
@@ -37,17 +34,6 @@ export function InsightsSecondaryNav() {
   const user = useUser();
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
-
-  const {projects} = useProjects();
-
-  const [starredProjects, nonStarredProjects] = useMemo(() => {
-    return partition(projects, project => project.isBookmarked);
-  }, [projects]);
-
-  const displayStarredProjects = starredProjects.length > 0;
-  const projectsToDisplay = displayStarredProjects
-    ? starredProjects.slice(0, 8)
-    : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
 
   const shouldRedirectToMonitors =
     organization.features.includes('workflow-engine-ui') && !user?.isStaff;
@@ -116,36 +102,6 @@ export function InsightsSecondaryNav() {
             </SecondaryNav.Item>
           </Feature>
         </SecondaryNav.Section>
-        <SecondaryNav.Section id="insights-projects-all">
-          <SecondaryNav.Item
-            to={`${baseUrl}/projects/`}
-            end
-            analyticsItemName="insights_projects_all"
-          >
-            {t('All Projects')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
-        {projectsToDisplay.length > 0 ? (
-          <SecondaryNav.Section
-            id="insights-starred-projects"
-            title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
-          >
-            {projectsToDisplay.map(project => (
-              <SecondaryNav.Item
-                key={project.id}
-                to={`${baseUrl}/projects/${project.slug}/`}
-                leadingItems={
-                  <ProjectIcon
-                    projectPlatforms={project.platform ? [project.platform] : ['default']}
-                  />
-                }
-                analyticsItemName="insights_project_starred"
-              >
-                {project.slug}
-              </SecondaryNav.Item>
-            ))}
-          </SecondaryNav.Section>
-        ) : null}
       </SecondaryNav.Body>
     </Fragment>
   );

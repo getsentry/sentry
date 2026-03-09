@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-const PROJECTS_BASE_PATHNAME = 'insights/projects';
+const PROJECTS_BASE_PATHNAME = 'projects';
 
 export function makeProjectsPathname({
   path,
