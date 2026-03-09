@@ -1,7 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import {sample} from 'lodash';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
@@ -30,9 +29,7 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
   });
 
   const imageUrl =
-    avatarDefinition.type === 'image'
-      ? (avatarDefinition.configuration.src as string)
-      : null;
+    avatarDefinition.type === 'image' ? avatarDefinition.configuration.src : null;
 
   const {data: imageResult = null} = useQuery({
     queryKey: ['avatar-color', imageUrl, theme.tokens.background.primary],
@@ -42,17 +39,12 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
   });
 
   if (avatarDefinition.type === 'letter') {
+    const avatarChonk = color(avatarDefinition.configuration.background)
+      .darken(0.65)
+      .hex();
+
     return (
-      <StyledAvatarButton
-        {...props}
-        size={size}
-        chonk={
-          getLetterAvatarColors(
-            avatarDefinition.configuration.background as string,
-            theme.tokens.background.primary
-          )?.chonk ?? ''
-        }
-      >
+      <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
         <AvatarContainer size={size} padded={false}>
           <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         </AvatarContainer>
@@ -61,7 +53,7 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
   }
 
   return (
-    <StyledAvatarButton {...props} size={size} chonk={imageResult?.chonk ?? ''}>
+    <StyledAvatarButton {...props} size={size} chonk={imageResult?.chonk}>
       <AvatarContainer size={size} padded={imageResult?.style === 'padded'}>
         <StyledImageAvatar configuration={avatarDefinition.configuration} />
       </AvatarContainer>
@@ -76,7 +68,6 @@ const AvatarContainer = styled('div')<{
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border: 1px solid transparent;
   border-radius: ${p =>
     p.size === 'md'
       ? p.theme.radius.lg
@@ -108,7 +99,7 @@ const AVATAR_BUTTON_ELEVATION: Record<string, string> = {
   xs: '1px',
 };
 
-const StyledAvatarButton = styled(Button)<{chonk: string}>`
+const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
   padding: 0;
   width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
   min-width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
@@ -126,22 +117,9 @@ const StyledAvatarButton = styled(Button)<{chonk: string}>`
   `}
 `;
 
-function getLetterAvatarColors(
-  surface: string,
-  pageBackground: string
-): {chonk: string | undefined} | undefined {
-  const contrastWithPage = color(surface).contrast(color(pageBackground));
-  if (contrastWithPage < 1.3) {
-    return undefined;
-  }
-
-  return {
-    chonk: color(surface).darken(0.65).hex(),
-  };
-}
-
-// Checks the alpha channel of each edge pixel to determine if the image should be padded.
-// If any edge pixel is opaque, the image should be padded.
+// Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.
+// Each edge check returns 'padded' when every pixel on that edge is transparent (alpha < 128).
+// Pixel (col, row) has its alpha channel at (row * 12 + col) * 4 + 3 in a 12×12 RGBA canvas.
 function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
   // prettier-ignore
   if (!(data[3]!>=128   || data[51]!>=128  || data[99]!>=128  ||
@@ -163,7 +141,7 @@ function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
         data[543]!>=128 || data[547]!>=128 || data[551]!>=128 ||
         data[555]!>=128 || data[559]!>=128 || data[563]!>=128 ||
         data[567]!>=128 || data[571]!>=128 || data[575]!>=128)) return 'padded';
-  if (!(data[3]! >= 128 && data[47]! >= 128 && data[531]! >= 128 && data[575]! >= 128))
+  if (data[3]! < 128 || data[47]! < 128 || data[531]! < 128 || data[575]! < 128)
     return 'padded';
 
   return 'fill';
