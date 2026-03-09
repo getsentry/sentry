@@ -95,7 +95,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
         logger.warning("mapping_missing", extra=logger_extra)
         return True
 
-    return mapping.region_name not in region_names
+    return mapping.cell_name not in region_names
 
 
 class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):

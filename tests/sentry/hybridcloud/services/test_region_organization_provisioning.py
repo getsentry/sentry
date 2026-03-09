@@ -244,7 +244,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
                 slug=slug,
                 organization_id=organization.id,
-                region_name=region,
+                cell_name=region,
                 user_id=-1,
             ).save(unsafe_write=True)
 

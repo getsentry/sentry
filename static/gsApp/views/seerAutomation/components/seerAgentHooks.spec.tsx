@@ -13,8 +13,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   useAgentOptions,
   useMutateSelectedAgent,
-  useSelectedAgent,
-} from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
+  useSelectedAgentFromProjectSettings,
+} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 describe('useAgentHooks', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -72,7 +72,7 @@ describe('useAgentHooks', () => {
     it('returns "none" when project autofixAutomationTuning is off', () => {
       const p = ProjectFixture({...project, autofixAutomationTuning: 'off'});
 
-      const {result} = renderHookWithProviders(useSelectedAgent, {
+      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {repositories: []},
           project: p,
@@ -85,7 +85,7 @@ describe('useAgentHooks', () => {
     });
 
     it('returns "seer" when no automation_handoff integration_id', () => {
-      const {result} = renderHookWithProviders(useSelectedAgent, {
+      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {repositories: []},
           project,
@@ -102,7 +102,7 @@ describe('useAgentHooks', () => {
         {id: '99', name: 'Cursor', provider: 'cursor'},
       ];
 
-      const {result} = renderHookWithProviders(useSelectedAgent, {
+      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {
             repositories: [],

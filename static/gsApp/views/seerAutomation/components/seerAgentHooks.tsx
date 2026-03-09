@@ -27,7 +27,7 @@ export function useAgentOptions({
   }, [integrations]);
 }
 
-export function useSelectedAgent({
+export function useSelectedAgentFromProjectSettings({
   preference,
   project,
   integrations,

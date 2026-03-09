@@ -136,6 +136,7 @@ class OutputSpan(NamedTuple):
 class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
+    project_id: int  # Used to track outcomes
 
 
 class SpansBuffer:
@@ -151,7 +152,6 @@ class SpansBuffer:
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
-        self.empty_flush_segment_calls = 0
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -528,7 +528,7 @@ class SpansBuffer:
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
-
+            project_id, _, _ = parse_segment_key(segment_key)
             if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 
@@ -561,6 +561,7 @@ class SpansBuffer:
             return_segments[segment_key] = FlushedSegment(
                 queue_key=queue_key,
                 spans=output_spans,
+                project_id=int(project_id.decode("ascii")),
             )
             num_has_root_spans += int(has_root_span)
 
@@ -600,19 +601,6 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
-
-        if not return_segments:
-            self.empty_flush_segment_calls += 1
-        else:
-            if self.empty_flush_segment_calls > 0:
-                try:
-                    if self._debug_trace_logger is None:
-                        self._debug_trace_logger = DebugTraceLogger(self.client)
-                    self._debug_trace_logger.log_empty_segments(self.empty_flush_segment_calls)
-                except Exception:
-                    logger.exception("flush_segments: Failed to log empty flush count")
-                finally:
-                    self.empty_flush_segment_calls = 0
 
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments

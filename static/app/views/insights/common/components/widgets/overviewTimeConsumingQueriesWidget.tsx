@@ -148,7 +148,7 @@ export default function OverviewTimeConsumingQueriesWidget(
           <SpanDescriptionCell
             projectId={Number(item[SpanFields.PROJECT_ID])}
             group={item[SpanFields.SPAN_GROUP]}
-            description={item[SpanFields.NORMALIZED_DESCRIPTION]}
+            description={item[SpanFields.NORMALIZED_DESCRIPTION] ?? ''}
             moduleName={ModuleName.DB}
           />
           <TimeSpentCell

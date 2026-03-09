@@ -492,6 +492,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.releases",
     "sentry.prevent",
     "sentry.seer",
+    "sentry.scm",
 )
 
 # Silence internal hints from Django's system checks
@@ -902,6 +903,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
+    "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
@@ -3096,9 +3098,6 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
-
-SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
