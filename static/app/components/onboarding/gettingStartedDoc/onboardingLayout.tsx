@@ -8,6 +8,10 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -62,6 +66,7 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled('project_creation');
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
@@ -155,6 +160,9 @@ export function OnboardingLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
+    ?.hideInstructionsCopy;
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <TabSelectionScope>
@@ -178,9 +186,37 @@ export function OnboardingLayout({
           </Stack>
           <Divider withBottomMargin />
           <div>
-            {steps.map((step, index) => (
-              <StyledStep key={step.title ?? step.type} stepIndex={index} {...step} />
-            ))}
+            {steps.map((step, index) => {
+              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
+              const copyButton = showCopy ? (
+                <OnboardingCopyMarkdownButton
+                  steps={steps}
+                  source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                />
+              ) : null;
+
+              const trailingItems = copyButton ? (
+                step.trailingItems ? (
+                  <Fragment>
+                    {step.trailingItems}
+                    {copyButton}
+                  </Fragment>
+                ) : (
+                  copyButton
+                )
+              ) : (
+                step.trailingItems
+              );
+
+              return (
+                <StyledStep
+                  key={step.title ?? step.type}
+                  stepIndex={index}
+                  {...step}
+                  trailingItems={trailingItems}
+                />
+              );
+            })}
           </div>
           {nextSteps.length > 0 && (
             <Fragment>
@@ -250,6 +286,6 @@ const Wrapper = styled('div')`
 
 const Introduction = styled('div')`
   & > p:not(:last-child) {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;

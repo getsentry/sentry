@@ -298,7 +298,7 @@ export function SeparatorItem({
 const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
-  padding: 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space.lg};
   ${p =>
     p.hasMargin &&
     css`
@@ -319,7 +319,7 @@ const NavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -346,7 +346,7 @@ const NavLink = styled(Link, {
     p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`};
 
   /* On mobile, the buttons are horizontal, so we need a gap between the icon and label */
-  gap: ${p => (p.isMobile ? space(1) : space(0.5))};
+  gap: ${p => (p.isMobile ? p.theme.space.md : p.theme.space.xs)};
 
   /* Disable default link styles and only apply them to the icon container */
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
@@ -477,11 +477,11 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   list-style: none;
   margin: 0;
   padding: 0;
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   display: flex;
   flex-direction: column;
   align-items: ${p => (p.isMobile ? 'stretch' : 'center')};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   width: 100%;
 
   /* TriggerWrap div is getting in the way here */

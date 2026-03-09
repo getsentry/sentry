@@ -16,7 +16,6 @@ import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -375,14 +374,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
 `;
 
 const NavigationLabel = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${space(0.25)};
-  padding-left: ${space(1.5)};
+  padding-right: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const LargeInThisIssueText = styled('div')`
@@ -408,11 +407,11 @@ const EventNavigationWrapper = styled('div')`
 
 const NavigationWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   justify-content: space-between;
 
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space.xs};
   }
 `;
 
@@ -420,7 +419,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   font-variant-numeric: tabular-nums;
   font-weight: ${p =>
     p.isCurrentTab ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};

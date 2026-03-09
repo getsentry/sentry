@@ -1,7 +1,7 @@
 ---
 title: ButtonBar
 description: ButtonBar is a specialized component for creating pill-like button layouts where buttons are visually joined together.
-category: buttons
+category: controls
 source: '@sentry/scraps/button'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/buttonBar.tsx
@@ -44,6 +44,25 @@ ButtonBar is used to create merged button groups where buttons are visually join
 </Storybook.Demo>
 ```jsx
 <ButtonBar>
+  <Button>One</Button>
+  <Button>Two</Button>
+  <Button>Three</Button>
+</ButtonBar>
+```
+
+## Orientation
+
+Use `orientation="vertical"` to stack buttons vertically with joined borders.
+
+<Storybook.Demo>
+  <ButtonBar orientation="vertical">
+    <Button>One</Button>
+    <Button>Two</Button>
+    <Button>Three</Button>
+  </ButtonBar>
+</Storybook.Demo>
+```jsx
+<ButtonBar orientation="vertical">
   <Button>One</Button>
   <Button>Two</Button>
   <Button>Three</Button>

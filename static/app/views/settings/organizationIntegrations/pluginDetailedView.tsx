@@ -11,7 +11,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
   PluginProjectItem,
@@ -369,7 +368,7 @@ function PluginDetailedView() {
 }
 
 const AddButton = styled(Button)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export default withOrganization(PluginDetailedView);

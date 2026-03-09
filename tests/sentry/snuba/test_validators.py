@@ -269,4 +269,46 @@ class SnubaQueryValidatorTest(TestCase):
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
 
         assert validator.is_valid()
-        assert validator.validated_data["group_by"] == ["project", "environment", "release", "user"]
+        assert validator.validated_data["group_by"] == [
+            "project",
+            "environment",
+            "release",
+            "user",
+        ]
+
+    def test_eap_user_misery_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "user_misery(span.duration,300)",
+            "timeWindow": 60,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["aggregate"] == "user_misery(span.duration,300)"
+
+    @with_feature(
+        {
+            "organizations:performance-view": True,
+            "organizations:tracemetrics-alerts": True,
+            "organizations:tracemetrics-enabled": True,
+            "organizations:custom-metrics": True,
+        }
+    )
+    def test_trace_metrics_per_second_field(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "per_second(value,sentry.apigateway.proxy_request,counter,none)",
+            "timeWindow": 60,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        assert (
+            validator.validated_data["aggregate"]
+            == "per_second(value,sentry.apigateway.proxy_request,counter,none)"
+        )

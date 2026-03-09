@@ -171,18 +171,18 @@ export function SamplingBreakdown({
 }
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(1.5)} ${space(2)};
-  margin-bottom: ${space(1.5)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const Heading = styled('h6')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.md};
 `;
 
 const Breakdown = styled('div')`
   display: flex;
-  height: ${space(2)};
+  height: ${p => p.theme.space.xl};
   width: 100%;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
@@ -192,8 +192,8 @@ const Breakdown = styled('div')`
 const Legend = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  margin-top: ${space(1.5)};
-  gap: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.md};
   flex: 1;
 `;
@@ -201,7 +201,7 @@ const Legend = styled('div')`
 const Total = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.md};
   flex-shrink: 0;
 `;
@@ -213,6 +213,6 @@ const SubText = styled('span')`
 
 const EmptyStateText = styled('div')`
   text-align: center;
-  padding: ${space(0.5)} 0 ${space(3)};
+  padding: ${p => p.theme.space.xs} 0 ${p => p.theme.space['2xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;

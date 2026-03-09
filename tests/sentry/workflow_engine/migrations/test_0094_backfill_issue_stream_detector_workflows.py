@@ -52,7 +52,7 @@ class TestBackfillIssueStreamDetectorWorkflows(TestMigrations):
         assert issue_stream_detector2.name == "Issue Stream"
         assert issue_stream_detector2.enabled is True
         assert issue_stream_detector2.owner_user_id is None
-        assert issue_stream_detector2.owner_team is None
+        assert issue_stream_detector2.owner_team_id is None
         assert issue_stream_detector2.config == {}
 
         issue_stream_detector2_workflows = DetectorWorkflow.objects.filter(

@@ -191,7 +191,7 @@ export function makeMetricsAggregate({
     attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
     traceMetric.name,
     traceMetric.type,
-    '-', // hard coded to `-` for now, but can be other units`
+    traceMetric.unit ?? '-',
   ];
   return `${aggregate}(${args.join(',')})`;
 }

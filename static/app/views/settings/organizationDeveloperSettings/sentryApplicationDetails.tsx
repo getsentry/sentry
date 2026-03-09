@@ -37,7 +37,6 @@ import {
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
@@ -224,7 +223,7 @@ export default function SentryApplicationDetails() {
     return location.pathname.endsWith('new-internal/');
   };
 
-  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
+  const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
 
   const headerTitle = () => {
     const action = app ? 'Edit' : 'Create';
@@ -442,7 +441,7 @@ export default function SentryApplicationDetails() {
             }}
           </Observer>
 
-          {app && app.status === 'internal' && (
+          {app?.status === 'internal' && (
             <PanelTable
               headers={[
                 t('Token'),
@@ -533,7 +532,7 @@ const ClientSecret = styled('div')`
 `;
 
 const AddTokenHeader = styled('div')`
-  margin: -${space(1)} 0;
+  margin: -${p => p.theme.space.md} 0;
   display: flex;
   justify-content: flex-end;
 `;

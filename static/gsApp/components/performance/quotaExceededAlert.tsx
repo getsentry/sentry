@@ -76,7 +76,7 @@ function useQuotaExceededAlertMessage(
     return null;
   }
 
-  const formattedDateRange: string | null = getFormattedDateTime(selection.datetime);
+  const formattedDateRange = getFormattedDateTime(selection.datetime);
   const billingPageLink = (
     <Link
       to={{

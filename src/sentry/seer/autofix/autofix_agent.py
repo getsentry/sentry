@@ -25,6 +25,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_pre
 from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerRepoDefinition
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -151,6 +152,27 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
     return step_to_action_type[step][is_completed]
 
 
+def get_autofix_explorer_client(
+    group: Group,
+    intelligence_level: Literal["low", "medium", "high"] = "low",
+    enable_coding: bool = False,
+) -> SeerExplorerClient:
+    from sentry.seer.autofix.on_completion_hook import (
+        AutofixOnCompletionHook,  # nested to avoid circular import
+    )
+
+    return SeerExplorerClient(
+        organization=group.organization,
+        project=group.project,
+        user=None,  # No user personalization for autofix
+        category_key="autofix",
+        category_value=str(group.id),
+        intelligence_level=intelligence_level,
+        on_completion_hook=AutofixOnCompletionHook,
+        enable_coding=enable_coding,
+    )
+
+
 def trigger_autofix_explorer(
     group: Group,
     step: AutofixStep,
@@ -170,19 +192,11 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
-    from sentry.seer.autofix.on_completion_hook import (
-        AutofixOnCompletionHook,  # nested to avoid circular import
-    )
 
     config = STEP_CONFIGS[step]
-    client = SeerExplorerClient(
-        organization=group.organization,
-        project=group.project,
-        user=None,  # No user personalization for autofix
-        category_key="autofix",
-        category_value=str(group.id),
+    client = get_autofix_explorer_client(
+        group,
         intelligence_level=intelligence_level,
-        on_completion_hook=AutofixOnCompletionHook,
         enable_coding=config.enable_coding,
     )
 
@@ -362,13 +376,11 @@ def trigger_coding_agent_handoff(
     """
     # Fetch project preferences for repos and auto_create_pr setting
     auto_create_pr = False
-    repos: list[str] = []
+    repo_definitions: list[SeerRepoDefinition] = []
     try:
         preference_response = get_project_seer_preferences(group.project_id)
         if preference_response and preference_response.preference:
-            repos = [
-                f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
-            ]
+            repo_definitions = list(preference_response.preference.repositories)
             if preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except Exception:
@@ -381,7 +393,7 @@ def trigger_coding_agent_handoff(
             },
         )
 
-    if not repos:
+    if not repo_definitions:
         return {
             "successes": [],
             "failures": [{"error_message": "No repositories configured in project preferences"}],
@@ -405,7 +417,7 @@ def trigger_coding_agent_handoff(
         provider=provider,
         user_id=user_id,
         prompt=prompt,
-        repos=repos,
+        repos=repo_definitions,
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )

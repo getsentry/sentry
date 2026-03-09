@@ -14,9 +14,10 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
         self.user = self.create_user(email="test@example.com")
         self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.project = self.create_project(organization=self.org, teams=[self.team])
         self.api_token = self.create_user_auth_token(
-            user=self.user, scope_list=["org:admin", "project:admin"]
+            user=self.user, scope_list=["org:admin", "project:admin", "event:read"]
         )
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
@@ -60,8 +61,8 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
-            "sentry-api-0-project-preprod-artifact-build-details",
-            args=[self.org.slug, self.project.slug, artifact_id],
+            "sentry-api-0-organization-preprod-artifact-build-details",
+            args=[self.org.slug, artifact_id],
         )
 
     def test_get_build_details_success(self) -> None:

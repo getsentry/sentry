@@ -318,10 +318,10 @@ const ImageWrapper = styled('div')<{noVisualizationPadding?: boolean}>`
 const ButtonContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: center;
   align-items: center;
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
 `;
 
 const ChartPanelTextContainer = styled('div')`

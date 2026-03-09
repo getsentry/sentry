@@ -6,6 +6,7 @@ from typing import Any, cast
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
+    SHA,
     ActionResult,
     Author,
     BranchName,
@@ -17,7 +18,6 @@ from sentry.scm.types import (
     Commit,
     CommitAuthor,
     CommitFile,
-    CommitSHA,
     FileContent,
     FileStatus,
     GitBlob,
@@ -140,16 +140,17 @@ class GitHubProvider:
         self.organization_id = organization_id
         self.repository = repository
 
-    def is_rate_limited(self, referrer: Referrer) -> bool:
-        from sentry.scm.private.helpers import is_rate_limited_with_allocation_policy
+    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
+        # from sentry.scm.helpers import is_rate_limited_with_allocation_policy
 
-        return is_rate_limited_with_allocation_policy(
-            self.organization_id,
-            referrer,
-            provider="github",
-            window=3600,
-            allocation_policy=REFERRER_ALLOCATION,
-        )
+        # return is_rate_limited_with_allocation_policy(
+        #     organization_id,
+        #     referrer,
+        #     provider="github",
+        #     window=3600,
+        #     allocation_policy=REFERRER_ALLOCATION,
+        # )
+        return False  # Rate-limits temporarily disabled.
 
     @catch_provider_exception
     def get_issue_comments(
@@ -320,7 +321,7 @@ class GitHubProvider:
         return map_action(raw, lambda r: GitRef(ref=r["name"], sha=r["commit"]["sha"]))
 
     @catch_provider_exception
-    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
+    def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
         ref = f"refs/heads/{branch}"
         raw = self.client.create_git_ref(self.repository["name"], {"ref": ref, "sha": sha})
         return map_action(
@@ -329,7 +330,7 @@ class GitHubProvider:
 
     @catch_provider_exception
     def update_branch(
-        self, branch: BranchName, sha: CommitSHA, force: bool = False
+        self, branch: BranchName, sha: SHA, force: bool = False
     ) -> ActionResult[GitRef]:
         raw = self.client.update_git_ref(
             self.repository["name"], branch, {"sha": sha, "force": force}
@@ -357,7 +358,7 @@ class GitHubProvider:
     @catch_provider_exception
     def get_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[Commit]:
         raw = self.client.get_commit(self.repository["name"], sha)
@@ -366,7 +367,7 @@ class GitHubProvider:
     @catch_provider_exception
     def get_commits(
         self,
-        sha: CommitSHA | None = None,
+        sha: SHA | None = None,
         path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -382,8 +383,8 @@ class GitHubProvider:
     @catch_provider_exception
     def compare_commits(
         self,
-        start_sha: CommitSHA,
-        end_sha: CommitSHA,
+        start_sha: SHA,
+        end_sha: SHA,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
@@ -398,7 +399,7 @@ class GitHubProvider:
     @catch_provider_exception
     def get_tree(
         self,
-        tree_sha: CommitSHA,
+        tree_sha: SHA,
         recursive: bool = True,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitTree]:
@@ -408,7 +409,7 @@ class GitHubProvider:
     @catch_provider_exception
     def get_git_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitCommitObject]:
         raw = self.client.get_git_commit(self.repository["name"], sha)
@@ -418,7 +419,7 @@ class GitHubProvider:
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
-        base_tree: CommitSHA | None = None,
+        base_tree: SHA | None = None,
     ) -> ActionResult[GitTree]:
         data: dict[str, Any] = {"tree": tree}
         if base_tree is not None:
@@ -430,8 +431,8 @@ class GitHubProvider:
     def create_git_commit(
         self,
         message: str,
-        tree_sha: CommitSHA,
-        parent_shas: list[CommitSHA],
+        tree_sha: SHA,
+        parent_shas: list[SHA],
     ) -> ActionResult[GitCommitObject]:
         data: dict[str, Any] = {
             "message": message,
@@ -549,7 +550,7 @@ class GitHubProvider:
     def create_review_comment_file(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         side: ReviewSide,
@@ -565,64 +566,6 @@ class GitHubProvider:
                     "path": path,
                     "side": side,
                     "subject_type": "file",
-                },
-            ),
-            map_review_comment,
-        )
-
-    @catch_provider_exception
-    def create_review_comment_line(
-        self,
-        pull_request_id: str,
-        commit_id: CommitSHA,
-        body: str,
-        path: str,
-        line: int,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        """Leave a review comment on a specific line in a file."""
-        return map_action(
-            self.client.create_review_comment(
-                self.repository["name"],
-                pull_request_id,
-                {
-                    "body": body,
-                    "commit_id": commit_id,
-                    "path": path,
-                    "line": line,
-                    "side": side,
-                    "subject_type": "line",
-                },
-            ),
-            map_review_comment,
-        )
-
-    @catch_provider_exception
-    def create_review_comment_multiline(
-        self,
-        pull_request_id: str,
-        commit_id: CommitSHA,
-        body: str,
-        path: str,
-        start_line: int,
-        start_side: ReviewSide,
-        end_line: int,
-        end_side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        """Leave a review comment on a multiline span in a file."""
-        return map_action(
-            self.client.create_review_comment(
-                self.repository["name"],
-                pull_request_id,
-                {
-                    "body": body,
-                    "commit_id": commit_id,
-                    "path": path,
-                    "line": end_line,
-                    "side": end_side,
-                    "start_line": start_line,
-                    "start_side": start_side,
-                    "subject_type": "line",
                 },
             ),
             map_review_comment,
@@ -652,7 +595,7 @@ class GitHubProvider:
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: CommitSHA,
+        commit_sha: SHA,
         event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
@@ -671,7 +614,7 @@ class GitHubProvider:
     def create_check_run(
         self,
         name: str,
-        head_sha: CommitSHA,
+        head_sha: SHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
@@ -728,10 +671,6 @@ class GitHubProvider:
     @catch_provider_exception
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         self.client.minimize_comment(comment_node_id, reason)
-
-    @catch_provider_exception
-    def resolve_review_thread(self, thread_node_id: str) -> None:
-        self.client.resolve_review_thread(thread_node_id)
 
 
 def map_author(raw_user: dict[str, Any] | None) -> Author | None:

@@ -12,7 +12,6 @@ import Panel from 'sentry/components/panels/panel';
 import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -169,8 +168,9 @@ export default function ChartWithIssues(props: Props) {
 
 const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(0.5)} ${space(1.5)} ${space(0.5)};
-  margin-inline: ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} ${p => p.theme.space.lg}
+    ${p => p.theme.space.xs};
+  margin-inline: ${p => p.theme.space.md};
 
   &:first-child {
     border-top: none;

@@ -8,7 +8,6 @@ import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/are
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
@@ -338,7 +337,7 @@ export function getMetricAlertChartOption(
           }
         });
 
-        if (selectedIncident && incident.id === selectedIncident.id) {
+        if (incident.id === selectedIncident?.id) {
           const selectedIncidentColor =
             incidentColor === theme.colors.yellow400
               ? theme.colors.yellow100
@@ -416,9 +415,9 @@ export function getMetricAlertChartOption(
       yAxis,
       series,
       grid: {
-        left: space(0.25),
-        right: space(2),
-        top: space(3),
+        left: theme.space['2xs'],
+        right: theme.space.xl,
+        top: theme.space['2xl'],
         bottom: 0,
       },
     },

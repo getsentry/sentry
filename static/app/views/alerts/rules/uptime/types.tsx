@@ -184,7 +184,7 @@ export enum PreviewCheckStatus {
   DISALLOWED_BY_ROBOTS = 'disallowed_by_robots',
 }
 
-enum PreviewCheckStatusReasonType {
+export enum PreviewCheckStatusReasonType {
   TIMEOUT = 'timeout',
   DNS_ERROR = 'dns_error',
   TLS_ERROR = 'tls_error',
@@ -199,12 +199,14 @@ enum PreviewCheckStatusReasonType {
 
 interface PreviewCheckStatusReason {
   description: string;
+  details: AssertionErrorDetail | null;
   type: PreviewCheckStatusReasonType;
 }
 
-export interface PreviewCheckResponse {
+export interface PreviewCheckResult {
   check_result?: {
     actual_check_time_ms: number;
+    assertion_failure_data: UptimeAssertion | null;
     duration_ms: number | null;
     guid: string;
     region: string;
@@ -224,6 +226,85 @@ export interface PreviewCheckResponse {
       response_headers?: Array<[string, string]> | null;
     } | null;
   };
+}
+
+export enum CompilationErrorType {
+  INVALID_GLOB = 'invalid_glob',
+  JSON_PATH_PARSER = 'json_path_parser',
+  INVALID_JSON_PATH = 'invalid_json_path',
+  TOO_MANY_OPERATIONS = 'too_many_operations',
+}
+
+export enum PreviewCheckErrorKind {
+  COMPILATION_ERROR = 'compilation_error',
+  SERIALIZATION_ERROR = 'serialization_error',
+}
+
+type AssertionCompilationErrorDetail =
+  | {
+      assertPath: string[];
+      glob: string;
+      msg: string;
+      type: CompilationErrorType.INVALID_GLOB;
+    }
+  | {
+      assertPath: string[];
+      msg: string;
+      path: string;
+      pos: number;
+      type: CompilationErrorType.JSON_PATH_PARSER;
+    }
+  | {
+      assertPath: string[];
+      msg: string;
+      type: CompilationErrorType.INVALID_JSON_PATH;
+    }
+  | {
+      assertPath: string[];
+      type: CompilationErrorType.TOO_MANY_OPERATIONS;
+    };
+
+export enum RuntimeErrorType {
+  INVALID_JSON_PATH = 'invalid_json_path',
+  TOOK_TOO_LONG = 'took_too_long',
+  INVALID_JSON_BODY = 'invalid_json_body',
+  INVALID_TYPE_COMPARISON = 'invalid_type_comparison',
+}
+
+type AssertionEvaluationErrorDetail =
+  | {
+      assertPath: string[];
+      msg: string;
+      type: RuntimeErrorType.INVALID_JSON_PATH;
+    }
+  | {
+      assertPath: string[];
+      type: RuntimeErrorType.TOOK_TOO_LONG;
+    }
+  | {
+      body: string;
+      type: RuntimeErrorType.INVALID_JSON_BODY;
+    }
+  | {
+      assertPath: string[];
+      msg: string;
+      type: RuntimeErrorType.INVALID_TYPE_COMPARISON;
+    };
+
+type AssertionErrorDetail =
+  | AssertionCompilationErrorDetail
+  | AssertionEvaluationErrorDetail;
+
+export interface PreviewCheckError {
+  assertion:
+    | {
+        compileError: AssertionCompilationErrorDetail;
+        error: PreviewCheckErrorKind.COMPILATION_ERROR;
+      }
+    | {
+        details: string;
+        error: PreviewCheckErrorKind.SERIALIZATION_ERROR;
+      };
 }
 
 export interface PreviewCheckPayload {
@@ -255,7 +336,7 @@ export interface UptimeAssertionSuggestion {
 }
 
 export interface UptimeAssertionSuggestionsResponse {
-  preview_result: PreviewCheckResponse;
+  preview_result: PreviewCheckResult;
   suggested_assertion: UptimeAssertion | null;
   suggestions: UptimeAssertionSuggestion[] | null;
 }

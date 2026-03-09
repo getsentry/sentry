@@ -26,7 +26,7 @@ class TestFetchRepository(TestCase):
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="github",
+            provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
         )
@@ -48,7 +48,7 @@ class TestFetchRepository(TestCase):
         repo = RepositoryModel.objects.create(
             organization_id=other_org.id,
             name="other-org/other-repo",
-            provider="github",
+            provider="integrations:github",
             external_id="67890",
             status=ObjectStatus.ACTIVE,
         )
@@ -88,7 +88,7 @@ class TestMapRepositoryModelToRepository(TestCase):
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="github",
+            provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
             integration_id=integration.id,

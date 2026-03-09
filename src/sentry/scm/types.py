@@ -7,6 +7,7 @@ type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
 type EventTypeHint = Literal["check_run", "comment", "pull_request"]
 type HybridCloudSilo = Literal["control", "region"]
 
+
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 """The SCM provider that owns an integration or repository."""
 
@@ -107,7 +108,7 @@ type ReviewSide = Literal["LEFT", "RIGHT"]
 """
 
 type BranchName = str
-type CommitSHA = str
+type SHA = str
 type PullRequestState = Literal["open", "closed"]
 type ReviewEvent = Literal["approve", "change_request", "comment"]
 
@@ -184,7 +185,7 @@ class ReactionResult(TypedDict):
 class PullRequestBranch(TypedDict):
     """A branch reference within a pull request (head or base)."""
 
-    sha: CommitSHA
+    sha: SHA
     ref: BranchName
 
 
@@ -247,16 +248,16 @@ class GitRef(TypedDict):
     """A git reference (branch pointer)."""
 
     ref: BranchName
-    sha: CommitSHA
+    sha: SHA
 
 
 class GitBlob(TypedDict):
-    sha: CommitSHA
+    sha: SHA
 
 
 class FileContent(TypedDict):
     path: str
-    sha: CommitSHA
+    sha: SHA
     content: str  # base64-encoded
     encoding: str
     size: int
@@ -275,7 +276,7 @@ class CommitFile(TypedDict):
 
 
 class Commit(TypedDict):
-    id: CommitSHA
+    id: SHA
     message: str
     author: CommitAuthor | None
     files: list[CommitFile]
@@ -291,7 +292,7 @@ class TreeEntry(TypedDict):
     path: str
     mode: TreeEntryMode
     type: TreeEntryType
-    sha: CommitSHA
+    sha: SHA
     size: int | None
 
 
@@ -299,21 +300,21 @@ class InputTreeEntry(TypedDict):
     path: str
     mode: TreeEntryMode
     type: TreeEntryType
-    sha: CommitSHA | None  # None for deletions
+    sha: SHA | None  # None for deletions
 
 
 class GitTree(TypedDict):
-    sha: CommitSHA
+    sha: SHA
     tree: list[TreeEntry]
     truncated: bool
 
 
 class GitCommitTree(TypedDict):
-    sha: CommitSHA
+    sha: SHA
 
 
 class GitCommitObject(TypedDict):
-    sha: CommitSHA
+    sha: SHA
     tree: GitCommitTree
     message: str
 
@@ -323,12 +324,12 @@ class PullRequestFile(TypedDict):
     status: FileStatus
     patch: str | None
     changes: int
-    sha: CommitSHA
+    sha: SHA
     previous_filename: str | None
 
 
 class PullRequestCommit(TypedDict):
-    sha: CommitSHA
+    sha: SHA
     message: str
     author: CommitAuthor | None
 

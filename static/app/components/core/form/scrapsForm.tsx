@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
@@ -38,6 +39,7 @@ export const defaultFormOptions = formOptions({
 });
 
 const fieldComponents = {
+  Base: BaseField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
@@ -96,6 +98,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
     <form
       data-test-id={form.formId}
       id={form.formId}
+      style={{width: '100%', flexGrow: 1}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();

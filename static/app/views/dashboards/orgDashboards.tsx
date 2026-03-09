@@ -84,12 +84,20 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
     useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);
 
-  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
+  // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
     selectedDashboard = {
       ...selectedDashboard,
       ...prebuiltDashboard,
       id: selectedDashboard.id,
+      filters: selectedDashboard.filters,
+      projects: selectedDashboard.projects,
+      environment: selectedDashboard.environment,
+      period: selectedDashboard.period,
+      start: selectedDashboard.start,
+      end: selectedDashboard.end,
+      utc: selectedDashboard.utc,
     };
   }
 

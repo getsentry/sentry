@@ -13,7 +13,6 @@ import {
 } from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -199,7 +198,7 @@ const StackTracePreviewWrapper = styled('div')`
 
 const NoStackTraceWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;

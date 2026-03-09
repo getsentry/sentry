@@ -330,7 +330,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 },
                 "received_at": int(time.time()),
                 "sentry_meta": None,
-                "type": "github_enterprise",
+                "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
             silo="region",
         )

@@ -925,20 +925,7 @@ class GitHubBaseClient(
         query: str,
         variables: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Execute a GraphQL query/mutation against GitHub's API.
-
-        Checks the graphql-specific rate limit, posts to /graphql,
-        and raises ApiRateLimitedError or ApiError on failure.
-        Returns the 'data' dict from the response.
-        """
-        try:
-            rate_limit = self.get_rate_limit(specific_resource="graphql")
-        except ApiError:
-            pass  # Some GHE instances don't enforce rate limiting (404)
-        else:
-            if rate_limit.remaining < MINIMUM_REQUESTS:
-                raise ApiRateLimitedError("Not enough requests remaining for GitHub")
-
+        """Execute a GraphQL query/mutation against GitHub's API."""
         payload: dict[str, Any] = {"query": query}
         if variables:
             payload["variables"] = variables

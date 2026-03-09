@@ -6,7 +6,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
@@ -164,7 +163,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
 }
 
 const ReferenceLink = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Value = styled('h2')`
@@ -184,6 +183,6 @@ const WebVitalScore = styled('div')`
   display: flex;
   align-items: anchor-center;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
 `;

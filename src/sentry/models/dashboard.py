@@ -194,6 +194,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     position = models.PositiveSmallIntegerField(null=True)
+    favorited = models.BooleanField(db_default=True)
 
     objects: ClassVar[DashboardFavoriteUserManager] = DashboardFavoriteUserManager()
 
