@@ -689,6 +689,62 @@ def test_exec_passes_custom_referrer():
     ]
 
 
+class TestCan:
+    """Tests for SourceCodeManager.can()."""
+
+    def test_can_returns_true_for_all_known_actions_with_full_provider(self):
+        """A provider implementing every protocol satisfies every action."""
+        scm = SourceCodeManager(BaseTestProvider())
+        actions = [name for name, _kwargs in ALL_ACTIONS]
+        assert scm.can(actions) is True
+
+    def test_can_returns_false_when_provider_lacks_protocol(self):
+        """A minimal provider that implements no action protocols fails every action."""
+        scm = SourceCodeManager(MinimalProvider())
+        for action_name, _ in ALL_ACTIONS:
+            assert scm.can([action_name]) is False, f"Expected can([{action_name!r}]) to be False"
+
+    def test_can_returns_false_for_unknown_action(self):
+        """An action name not in ActionMap causes can() to return False."""
+        scm = SourceCodeManager(BaseTestProvider())
+        assert scm.can(["nonexistent_action"]) is False
+
+    def test_can_returns_true_for_empty_list(self):
+        """An empty action list is trivially satisfiable."""
+        scm = SourceCodeManager(MinimalProvider())
+        assert scm.can([]) is True
+
+    def test_can_returns_false_when_any_action_unsupported(self):
+        """If even one action is unsupported the entire check fails."""
+        scm = SourceCodeManager(BaseTestProvider())
+        assert scm.can(["get_branch", "nonexistent_action"]) is False
+
+    def test_can_with_partial_provider(self):
+        """A provider implementing only branch protocols passes branch checks but not others."""
+
+        class BranchOnlyProvider:
+            organization_id: int = 1
+            repository: Repository = {
+                "integration_id": 1,
+                "name": "test",
+                "organization_id": 1,
+                "is_active": True,
+            }
+
+            def is_rate_limited(self, referrer: Referrer) -> bool:
+                return False
+
+            def get_branch(self, branch, request_options=None):
+                pass
+
+            def create_branch(self, branch, sha):
+                pass
+
+        scm = SourceCodeManager(BranchOnlyProvider())
+        assert scm.can(["get_branch", "create_branch"]) is True
+        assert scm.can(["get_branch", "get_commit"]) is False
+
+
 def test_exec_passes_custom_record_count():
     """A custom record_count callable provided at construction is used by _exec."""
     calls: list[tuple[str, int, dict[str, str]]] = []
