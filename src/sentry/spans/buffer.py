@@ -746,13 +746,14 @@ class SpansBuffer:
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
+            queue_removals: dict[bytes, list[SegmentKey]] = {}
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
                     p.delete(b"span-buf:hrs:" + segment_key)
                     p.delete(b"span-buf:ic:" + segment_key)
                     p.delete(b"span-buf:ibc:" + segment_key)
                     p.unlink(segment_key)
-                    p.zrem(flushed_segment.queue_key, segment_key)
+                    queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
@@ -760,5 +761,9 @@ class SpansBuffer:
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         span_ids = [output_span.payload["span_id"] for output_span in span_batch]
                         p.hdel(redirect_map_key, *span_ids)
+
+                for queue_key, keys in queue_removals.items():
+                    for key_batch in itertools.batched(keys, 100):
+                        p.zrem(queue_key, *key_batch)
 
                 p.execute()
