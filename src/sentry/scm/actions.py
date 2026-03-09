@@ -103,14 +103,13 @@ class SourceCodeManager:
         referrer: Referrer = "shared",
         record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     ) -> Self:
-        repository_ = map_repository_model_to_repository(repository)
-        provider = map_integration_to_provider(organization_id, integration, repository_)
-
         provider = initialize_provider(
             organization_id,
             repository.id,
-            fetch_repository=lambda _, __: repository_,
-            fetch_service_provider=lambda _, __: provider,
+            fetch_repository=lambda _, __: map_repository_model_to_repository(repository),
+            fetch_service_provider=lambda oid, repo: map_integration_to_provider(
+                oid, integration, repo
+            ),
         )
 
         return cls(provider, referrer=referrer, record_count=record_count)
