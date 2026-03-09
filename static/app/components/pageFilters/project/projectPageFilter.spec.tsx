@@ -781,7 +781,11 @@ describe('ProjectPageFilter', () => {
       await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
       expect(screen.getByRole('checkbox', {name: 'Select My Projects'})).toBeChecked();
 
-      // Explicitly apply My Projects
+      // Toggle My Projects off and back on to create staged changes, making Apply available
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select My Projects'}));
+
+      // Apply My Projects — should use compact [] encoding, not explicit IDs
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       // URL should use the compact [] encoding (no project param), not explicit IDs
