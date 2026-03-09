@@ -46,7 +46,7 @@ describe('AutofixSection', () => {
     });
   });
 
-  it('renders Seer section title when AI features are enabled', async () => {
+  it('renders Seer section title when AI features are enabled', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},

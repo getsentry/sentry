@@ -354,7 +354,7 @@ export function getOrderedAutofixArtifacts(
       return Array.from(artifact.patches.values());
     });
 
-  if (runState?.repo_pr_states) {
+  if (runState?.repo_pr_states?.length) {
     artifacts.push(Object.values(runState.repo_pr_states));
   }
 

@@ -1,9 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {
-  RootCauseArtifactData,
-  SolutionArtifactData,
-} from 'sentry/components/events/autofix/types';
+  RootCauseArtifact,
+  SolutionArtifact,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {
   Artifact,
   ExplorerFilePatch,
@@ -19,7 +19,7 @@ import {
 
 describe('RootCausePreview', () => {
   it('renders root cause title and description', () => {
-    const artifact: Artifact<RootCauseArtifactData> = {
+    const artifact: Artifact<RootCauseArtifact> = {
       key: 'root-cause',
       reason: 'Found root cause',
       data: {
@@ -36,7 +36,7 @@ describe('RootCausePreview', () => {
   });
 
   it('handles null data', () => {
-    const artifact: Artifact<RootCauseArtifactData> = {
+    const artifact: Artifact<RootCauseArtifact> = {
       key: 'root-cause',
       reason: 'No data',
       data: null,
@@ -50,7 +50,7 @@ describe('RootCausePreview', () => {
 
 describe('SolutionPreview', () => {
   it('renders implementation plan title and summary', () => {
-    const artifact: Artifact<SolutionArtifactData> = {
+    const artifact: Artifact<SolutionArtifact> = {
       key: 'solution',
       reason: 'Found solution',
       data: {
@@ -66,7 +66,7 @@ describe('SolutionPreview', () => {
   });
 
   it('handles null data', () => {
-    const artifact: Artifact<SolutionArtifactData> = {
+    const artifact: Artifact<SolutionArtifact> = {
       key: 'solution',
       reason: 'No data',
       data: null,

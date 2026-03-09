@@ -4,9 +4,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  type RootCauseArtifact,
-  type SolutionArtifact,
+import type {
+  RootCauseArtifact,
+  SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -58,15 +58,7 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
     return patchesByRepo;
   }, [artifact]);
 
-  const reposChanged = useMemo(() => {
-    const changed = new Set<string>();
-
-    for (const repo of patchesForRepos.keys()) {
-      changed.add(repo);
-    }
-
-    return changed.size;
-  }, [patchesForRepos]);
+  const reposChanged = patchesForRepos.size;
 
   const filesChanged = useMemo(() => {
     const changed = new Set<string>();

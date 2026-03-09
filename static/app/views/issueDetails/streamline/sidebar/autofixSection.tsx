@@ -130,11 +130,11 @@ function AutofixContent({
             return <SolutionPreview key="solution" artifact={artifact} />;
           }
 
-          if (isArrayOf(artifact, isExplorerFilePatch)) {
+          if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
             return <CodeChangesPreview key="code-changes" artifact={artifact} />;
           }
 
-          if (isArrayOf(artifact, isRepoPRState)) {
+          if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
             return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
           }
 
