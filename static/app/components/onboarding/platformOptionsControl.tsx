@@ -29,8 +29,8 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
     return Object.keys(platformOptions).reduce((acc, key) => {
       const defaultValue = platformOptions[key]!.defaultValue;
       const values = platformOptions[key]!.items.map(({value}) => value);
-      acc[key as keyof PlatformOptions] = values.includes(query[key])
-        ? query[key]
+      acc[key as keyof PlatformOptions] = values.includes(query[key] as string)
+        ? (query[key] as string)
         : (defaultValue ?? values[0]);
       return acc;
     }, {} as SelectedPlatformOptions<PlatformOptions>);
