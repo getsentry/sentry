@@ -23,6 +23,7 @@ from sentry.preprod.size_analysis.grouptype import (
 )
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
+from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -72,6 +73,7 @@ def compare_preprod_artifact_size_analysis(
             "preprod.size_analysis.compare.artifact_no_commit_comparison",
             extra={"artifact_id": artifact_id},
         )
+        send_size_analysis_webhook(artifact=artifact, organization_id=org_id)
         return
 
     comparisons: list[dict[str, PreprodArtifactSizeMetrics]] = []
@@ -92,6 +94,7 @@ def compare_preprod_artifact_size_analysis(
                     "caller": "compare_build_config_mismatch",
                 }
             )
+            send_size_analysis_webhook(artifact=artifact, organization_id=org_id)
             return
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -248,6 +251,8 @@ def compare_preprod_artifact_size_analysis(
             "artifact_type": artifact_type_name,
         },
     )
+
+    send_size_analysis_webhook(artifact=artifact, organization_id=org_id)
 
 
 @instrumented_task(
