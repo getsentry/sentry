@@ -9,7 +9,10 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {
+  DISTRIBUTION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
@@ -37,7 +40,12 @@ export default function ApiNewToken() {
   const [hasNewToken, setHasnewToken] = useState(false);
   const [preview, setPreview] = useState<string>('');
 
-  const displayedPermissions = SENTRY_APP_PERMISSIONS;
+  // Personal tokens can't be used for Distribution. The point of
+  // Distribution is to emebed the token into an app. We don't want people
+  // using personal tokens for that.
+  const displayedPermissions = SENTRY_APP_PERMISSIONS.filter(
+    o => o !== DISTRIBUTION_SENTRY_APP_PERMISSION
+  );
 
   const getPreview = () => {
     let previewString = '';
