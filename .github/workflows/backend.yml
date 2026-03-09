@@ -1,9 +1,6 @@
 name: backend
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
@@ -14,29 +11,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
-env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  SNUBA_NO_WORKERS: 1
-  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
-
 jobs:
   files-changed:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
-    # Map a step output to a job output
     outputs:
-      api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend_all }}
-      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
-      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
-      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
-      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
-      # When true, skip selective testing and run the full backend suite
-      skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
+      changed-files: ${{ steps.changed-files.outputs.files }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -45,637 +31,50 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-  api-docs:
-    if: needs.files-changed.outputs.api_docs == 'true'
-    needs: files-changed
-    name: api docs test
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        id: setup-node
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
-      - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: default
-
-      - name: Run API docs tests
-        run: |
-          make test-api-docs
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-  # Selective testing - only on PRs, determine which tests to run based on coverage data.
-  # This job is skipped on push-to-master where the full suite runs instead.
-  #
-  # === CUTOVER: Cross-repo selective testing ===
-  # getsentry maintains a cross-repo coverage DB (backend-with-coverage.yml)
-  # that maps sentry source files → test files with better accuracy than
-  # sentry's single-repo coverage. To switch, replace this job with:
-  #
-  #   prepare-selective-tests:
-  #     if: >-
-  #       needs.files-changed.outputs.backend == 'true' &&
-  #       needs.files-changed.outputs.skip_selective_testing != 'true' &&
-  #       github.event_name == 'pull_request'
-  #     needs: files-changed
-  #     uses: getsentry/getsentry/.github/workflows/select-sentry-tests.yml@master
-  #     with:
-  #       sentry-changed-files: ${{ needs.files-changed.outputs.changed-files }}
-  #     secrets: inherit
-  #
-  # And add a changed-files output to the files-changed job:
-  #     changed-files: ${{ steps.changed-files.outputs.files }}
-  #   with step:
-  #     - name: Get changed files
-  #       id: changed-files
-  #       if: github.event_name == 'pull_request'
-  #       run: |
-  #         CHANGED=$(git diff --name-only \
-  #           "${{ github.event.pull_request.base.sha }}"..."${{ github.event.pull_request.head.sha }}" \
-  #           | tr '\n' ' ')
-  #         echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
-  #
-  # The reusable workflow has the same output interface (has-selected-tests,
-  # test-count) and uploads the same artifact name (selected-tests-{run_id}),
-  # so calculate-shards and backend-test work without modification.
-  prepare-selective-tests:
-    if: >-
-      needs.files-changed.outputs.backend == 'true' &&
-      needs.files-changed.outputs.skip_selective_testing != 'true' &&
-      github.event_name == 'pull_request'
-    needs: files-changed
-    name: prepare selective tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
-    outputs:
-      has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
-      test-count: ${{ steps.compute-tests.outputs.test-count }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0 # Need full history for git diff
-
-      - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.13.1'
-
-      - name: Authenticate to Google Cloud
-        id: gcloud-auth
-        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
-        with:
-          project_id: sentry-dev-tooling
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
-      - name: Find coverage data for selective testing
-        id: find-coverage
-        env:
-          GCS_BUCKET: sentry-coverage-data
-        run: |
-          set -euo pipefail
-
-          # Get the base commit (what the PR branches from)
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-
-          echo "Looking for coverage data starting from base commit: $BASE_SHA"
-
-          COVERAGE_SHA=""
-          for sha in $(git rev-list "$BASE_SHA" --max-count=30); do
-            # Check if coverage exists in GCS for this commit
-            if gcloud storage ls "gs://${GCS_BUCKET}/${sha}/" &>/dev/null; then
-              COVERAGE_SHA="$sha"
-              echo "Found coverage data at commit: $sha"
-              break
-            fi
-            echo "No coverage at $sha, checking parent..."
-          done
-
-          if [[ -z "$COVERAGE_SHA" ]]; then
-            echo "No coverage found in last 30 commits, will run full test suite"
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "coverage-sha=$COVERAGE_SHA" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download coverage database
-        id: download-coverage
-        if: steps.find-coverage.outputs.found == 'true'
-        env:
-          COVERAGE_SHA: ${{ steps.find-coverage.outputs.coverage-sha }}
-        run: |
-          set -euxo pipefail
-          mkdir -p .coverage
-
-          if ! gcloud storage cp "gs://sentry-coverage-data/${COVERAGE_SHA}/.coverage.combined" .coverage/; then
-            echo "Warning: Failed to download coverage file"
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [[ ! -f .coverage/.coverage.combined ]]; then
-            echo "Warning: Coverage file not found after download"
-            ls -la .coverage/ || true
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-          else
-            echo "Downloaded coverage file: .coverage/.coverage.combined"
-            echo "coverage-file=.coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Get changed files
         id: changed-files
+        if: github.event_name == 'pull_request'
         run: |
-          # Get files changed between base and head of PR
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}"..."${{ github.event.pull_request.head.sha }}" \
+            | tr '\n' ' ')
+          echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
 
-          # Use triple-dot syntax to find the merge-base first, so we only get
-          # changes introduced in this PR, not changes merged to master since branching
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
-          echo "Changed files: $CHANGED_FILES"
-          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
-
-      - name: Compute selected tests
-        id: compute-tests
-        if: steps.download-coverage.outputs.coverage-file != ''
-        env:
-          COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
-          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
-        run: make compute-selected-tests
-
-      - name: Upload selected tests artifact
-        if: steps.compute-tests.outputs.has-selected-tests == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: selected-tests-${{ github.run_id }}
-          path: .artifacts/selected-tests.txt
-          retention-days: 1
-
-  calculate-shards:
-    # Use always() so this job runs even when prepare-selective-tests is skipped (master)
+  select-sentry-tests:
     if: >-
-      always() &&
-      !cancelled() &&
-      needs.files-changed.outputs.backend == 'true'
-    needs: [files-changed, prepare-selective-tests]
-    name: calculate test shards
+      needs.files-changed.outputs.backend == 'true' &&
+      github.event_name == 'pull_request'
+    needs: files-changed
+    uses: getsentry/getsentry/.github/workflows/select-sentry-tests.yml@ci-generate-cross-repo-coverage
+    with:
+      sentry-changed-files: ${{ needs.files-changed.outputs.changed-files }}
+    secrets: inherit
+
+  print-results:
+    if: always() && !cancelled()
+    needs: [files-changed, select-sentry-tests]
+    name: print selective test results
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    outputs:
-      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
-      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
-
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: backend-ci
-          skip-devservices: true
+      - name: Print outputs
+        run: |
+          echo "=== select-sentry-tests outputs ==="
+          echo "has-selected-tests: ${{ needs.select-sentry-tests.outputs.has-selected-tests }}"
+          echo "test-count: ${{ needs.select-sentry-tests.outputs.test-count }}"
 
       - name: Download selected tests artifact
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
+        if: needs.select-sentry-tests.outputs.has-selected-tests == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
 
-      - name: Calculate test shards
-        id: calculate-shards
-        env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-          SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count || '' }}
+      - name: Print selected tests
+        if: needs.select-sentry-tests.outputs.has-selected-tests == 'true'
         run: |
-          python3 .github/workflows/scripts/calculate-backend-test-shards.py
-
-  backend-test:
-    # Use always() so this job runs even when prepare-selective-tests is skipped (master)
-    if: >-
-      always() &&
-      !cancelled() &&
-      needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
-    needs: [files-changed, prepare-selective-tests, calculate-shards]
-    name: backend test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    permissions:
-      contents: read
-      id-token: write
-      actions: read # used for DIM metadata and job URL lookup
-      pull-requests: write # used to post failure comments
-    strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-      fail-fast: false
-      matrix:
-        # Dynamic matrix from calculate-shards
-        instance: ${{ fromJSON(needs.calculate-shards.outputs.shard-indices) }}
-
-    env:
-      # Dynamic total from calculate-shards
-      MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
-      TEST_GROUP_STRATEGY: roundrobin
-
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: backend-ci
-
-      - name: Download odiff binary
-        run: |
-          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
-
-      - name: Download selected tests artifact
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: selected-tests-${{ github.run_id }}
-          path: .artifacts/
-
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-        run: |
-          make test-python-ci
-
-      - name: Report failures
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-        continue-on-error: true
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
-          PYTEST_ARTIFACT_DIR: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
-        with:
-          script: |
-            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
-            await reportShard({ github, context, core });
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        with:
-          artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
-
-  backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
-    name: backend migration tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      actions: read
-      pull-requests: write
-
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: default
-
-      - name: run tests
-        run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
-
-      - name: Report failures
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-        continue-on-error: true
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
-          PYTEST_ARTIFACT_DIR: pytest-results-migration-${{ github.run_id }}
-        with:
-          script: |
-            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
-            await reportShard({ github, context, core });
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-  cli:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
-    name: cli test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: migrations
-
-      - name: Run test
-        env:
-          # This short circuits the create_default_projects post_upgrade hook
-          # which spawns taskworkers which will spin for 5 minutes on kafka
-          # not being up. We don't need the default project here as this is not local dev.
-          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
-        run: make test-cli
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-  requirements:
-    if: needs.files-changed.outputs.backend_dependencies == 'true'
-    needs: files-changed
-    name: requirements check
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    steps:
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
-        id: token
-        continue-on-error: true
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
-        with:
-          version: '0.9.28'
-
-      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
-        with:
-          cache-dependency-path: uv.lock
-          install-cmd: echo
-
-      - name: check requirements
-        run: |
-          make freeze-requirements
-          if ! git diff --exit-code; then
-            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
-            exit 1
-          fi
-
-      - name: apply any requirements changes
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
-        with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':snowflake: re-freeze requirements'
-
-  api-url-typescript:
-    if: needs.files-changed.outputs.backend_api_urls == 'true'
-    needs: files-changed
-    name: api url typescript generation
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
-        id: token
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        with:
-          mode: backend-ci
-
-      - name: Sync API Urls to TypeScript
-        run: |
-          python3 -m tools.api_urls_to_typescript
-
-      - name: Apply any file changes
-        if: github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
-        with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':hammer_and_wrench: Sync API Urls to TypeScript'
-
-  migration:
-    if: needs.files-changed.outputs.migration_lockfile == 'true'
-    needs: files-changed
-    name: check migration
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: migrations
-
-      - name: Migration & lockfile checks
-        env:
-          SENTRY_LOG_LEVEL: ERROR
-          PGPASSWORD: postgres
-        run: |
-          ./.github/workflows/scripts/migration-check.sh
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-  monolith-dbs:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
-    name: monolith-dbs test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      id-token: write
-      actions: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: migrations
-
-      - name: Run test
-        run: |
-          make test-monolith-dbs
-
-      - name: Report failures
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-        continue-on-error: true
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.monolith-dbs.json
-          PYTEST_ARTIFACT_DIR: pytest-results-monolith-dbs-${{ github.run_id }}
-        with:
-          script: |
-            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
-            await reportShard({ github, context, core });
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        with:
-          artifact_path: .artifacts/pytest.monolith-dbs.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
-  typing:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
-    name: backend typing
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
-        with:
-          version: '0.9.28'
-          # we just cache the venv-dir directly in action-setup-venv
-          enable-cache: false
-
-      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
-        with:
-          cache-dependency-path: uv.lock
-          install-cmd: uv sync --frozen --active
-
-      - name: setup sentry (lite)
-        run: |
-          python3 -m tools.fast_editable --path .
-          sentry init
-
-      - run: PYTHONWARNINGS=error::RuntimeWarning mypy
-        id: run
-
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
-        id: token
-        continue-on-error: true
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-      # only if `mypy` succeeds should we try and trim the blocklist
-      - run: python3 -m tools.mypy_helpers.make_module_ignores
-        id: regen-blocklist
-
-      - run: git diff --exit-code
-
-      - run: |
-          # mypy does not have granular codes so don't allow specific messages to regress
-          set -euo pipefail
-          ! grep "'Settings' object has no attribute" .artifacts/mypy-all
-          ! grep 'Argument .* of "dispatch" is incompatible with' .artifacts/mypy-all
-          ! grep 'Cannot override class variable' .artifacts/mypy-all
-          ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
-          ! grep 'Incompatible default for argument' .artifacts/mypy-all
-          ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
-          ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
-          ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
-          ! grep 'No return value expected' .artifacts/mypy-all
-          ! grep 'Return value expected' .artifacts/mypy-all
-          ! grep 'Unpacking a string is disallowed' .artifacts/mypy-all
-          ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
-          ! grep 'does not explicitly export attribute' .artifacts/mypy-all
-          ! grep 'gets multiple values for' .artifacts/mypy-all
-
-      - name: apply blocklist changes
-        if: |
-          steps.token.outcome == 'success' &&
-          steps.run.outcome == 'success' &&
-          steps.regen-blocklist.outcome == 'success' &&
-          github.ref != 'refs/heads/master' &&
-          always()
-        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
-        with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':knife: regenerate mypy module blocklist'
-
-  # This check runs once all dependent jobs have passed
-  # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
-  # This step is the only required backend check
-  backend-required-check:
-    needs:
-      [
-        api-docs,
-        backend-test,
-        backend-migration-tests,
-        calculate-shards,
-        cli,
-        files-changed,
-        requirements,
-        migration,
-        monolith-dbs,
-        typing,
-      ]
-    name: Backend
-    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
-    if: always()
-    runs-on: ubuntu-24.04
-    steps:
-      # If any jobs we depend on fail, we will fail since this is a required check
-      # NOTE: A timeout is considered a failure
-      - name: Check for failures
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
-        run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+          echo "=== Selected test files ==="
+          cat .artifacts/selected-tests.txt
+          echo ""
+          echo "=== Line count ==="
+          wc -l .artifacts/selected-tests.txt
