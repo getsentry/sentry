@@ -22,7 +22,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
         slug_replica: OrganizationSlugReservationReplica,
     ):
         matches = slug_replica.organization_id == slug_reservation.organization_id
-        matches = matches and slug_replica.region_name == slug_reservation.cell_name
+        matches = matches and slug_replica.cell_name == slug_reservation.cell_name
         matches = matches and slug_replica.reservation_type == slug_reservation.reservation_type
 
         return matches
