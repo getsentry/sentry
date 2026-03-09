@@ -273,6 +273,9 @@ export enum IssueTitle {
   PREPROD_STATIC = 'Static Analysis',
   PREPROD_DELTA = 'Static Analysis Delta',
   PREPROD_SIZE_ANALYSIS = 'Size Analysis',
+
+  // Configuration Issues
+  SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -317,6 +320,8 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   preprod_static: IssueTitle.PREPROD_STATIC,
   preprod_delta: IssueTitle.PREPROD_DELTA,
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
+
+  sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {

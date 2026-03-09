@@ -4,7 +4,23 @@ import {Tab} from 'sentry/views/issueDetails/types';
 
 const configurationIssuesConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
+    actions: {
+      archiveUntilOccurrence: {enabled: true},
+      delete: {enabled: false},
+      deleteAndDiscard: {enabled: false},
+      merge: {enabled: false},
+      ignore: {enabled: true},
+      resolve: {enabled: false},
+      resolveInRelease: {enabled: false},
+      share: {enabled: true},
+    },
+    defaultTimePeriod: {sinceFirstSeen: false},
+    customCopy: {
+      resolution: t('Auto-resolved'),
+      eventUnits: t('Open Periods'),
+    },
     usesIssuePlatform: true,
+    useOpenPeriodChecks: true,
     evidence: {title: t('Details')},
     issueSummary: {enabled: false},
     stacktrace: {enabled: false},
@@ -12,6 +28,7 @@ const configurationIssuesConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: false},
     mergedIssues: {enabled: false},
     regression: {enabled: false},
+    eventAndUserCounts: {enabled: false},
     tags: {enabled: false},
     stats: {enabled: false},
     header: {
@@ -23,7 +40,7 @@ const configurationIssuesConfig: IssueCategoryConfigMapping = {
     pages: {
       landingPage: Tab.DETAILS,
       events: {enabled: true},
-      openPeriods: {enabled: false},
+      openPeriods: {enabled: true},
       checkIns: {enabled: false},
       uptimeChecks: {enabled: false},
       attachments: {enabled: false},
