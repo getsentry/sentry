@@ -42,7 +42,7 @@ class ActionConditionData(TypedDict):
 
 
 class ActionTriggersData(TypedDict):
-    actions: []  # empty list
+    actions: list[Any]  # requires an empty list to be passed
     logicType: str
     conditions: ActionConditionData
 
@@ -55,7 +55,7 @@ class ActionFiltersActionData(TypedDict):
 
 
 class ActionFiltersData(TypedDict):
-    conditions: []  # empty list
+    conditions: list[Any]  # requires an empty list to be passed
     logicType: str
     actions: list[ActionFiltersActionData]
 

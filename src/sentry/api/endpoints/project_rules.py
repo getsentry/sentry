@@ -741,7 +741,7 @@ def format_request_data(
 ) -> dict[str, Any]:
     workflow_payload = {
         "name": data.get("name"),
-        "enabled": data.get("status") == "active",
+        "enabled": data.get("status", "active") == "active",
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
@@ -775,8 +775,12 @@ def format_request_data(
         if target_type is not None:
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
 
+    filter_match = data.get("filterMatch", "any-short")
+    if filter_match == "any":
+        filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+
     action_filters = {
-        "logicType": data.get("filterMatch", "any-short"),
+        "logicType": filter_match,
         "conditions": translated_filter_list,
         "actions": translated_actions,
     }
