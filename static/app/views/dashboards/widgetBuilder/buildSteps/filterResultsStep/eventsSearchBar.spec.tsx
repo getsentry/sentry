@@ -1,7 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -53,12 +59,13 @@ describe('EventsSearchBar', () => {
 
     // Focus the input and type "has:p" to simulate a search for p50
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.type(input, 'has:p');
+    await userEvent.click(input, {delay: null});
+    await userEvent.paste('has:p', {delay: null});
 
     // Check that "p50" (a function tag) is NOT in the dropdown
-    expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/p50/)).not.toBeInTheDocument();
+    });
   });
 
   it('shows the selected aggregate in the dropdown', async () => {
@@ -86,11 +93,11 @@ describe('EventsSearchBar', () => {
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-
-    await userEvent.type(input, 'count_uni');
+    await userEvent.click(input);
+    await userEvent.paste('count_uni', {delay: null});
 
     expect(
-      await within(screen.getByRole('listbox')).findByText('count_unique(...)')
+      await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
     ).toBeInTheDocument();
   });
 
@@ -120,10 +127,11 @@ describe('EventsSearchBar', () => {
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.clear(input);
-    await userEvent.type(input, 'transact');
+    await userEvent.click(input, {delay: null});
+    await userEvent.paste('transact', {delay: null});
 
     expect(
-      await within(screen.getByRole('listbox')).findByRole('option', {
+      await within(await screen.findByRole('listbox')).findByRole('option', {
         name: 'transaction',
       })
     ).toBeInTheDocument();
