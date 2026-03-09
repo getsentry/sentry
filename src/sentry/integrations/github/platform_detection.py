@@ -1249,31 +1249,16 @@ def detect_platforms(
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
             if _framework_matches(fw, root_files, file_contents, manifest, root_dirs):
                 platform_id = fw["platform"]
-                if platform_id not in seen_platforms:
-                    seen_platforms.add(platform_id)
-                    results.append(
-                        DetectedPlatform(
-                            platform=platform_id,
-                            language=language,
-                            bytes=byte_count,
-                            confidence="high",
-                            priority=100 - fw["sort"],
-                        )
+                seen_platforms.add(platform_id)
+                results.append(
+                    DetectedPlatform(
+                        platform=platform_id,
+                        language=language,
+                        bytes=byte_count,
+                        confidence="high",
+                        priority=100 - fw["sort"],
                     )
-                else:
-                    # Same platform detected via a different base_platform
-                    # (e.g. android under both java and kotlin, or apple-ios
-                    # under both swift and objective-c).  Always upgrade to
-                    # framework confidence/priority, and keep the higher
-                    # byte count so sorting reflects the dominant language.
-                    for r in results:
-                        if r["platform"] == platform_id:
-                            r["confidence"] = "high"
-                            r["priority"] = max(r["priority"], 100 - fw["sort"])
-                            if byte_count > r["bytes"]:
-                                r["bytes"] = byte_count
-                                r["language"] = language
-                            break
+                )
 
         if base_platform not in seen_platforms:
             seen_platforms.add(base_platform)
