@@ -17,7 +17,7 @@ from sentry.seer.entrypoints.operator import (
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import (
-    SeerEntrypoint,
+    SeerAutofixEntrypoint,
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
@@ -30,8 +30,8 @@ class MockCachePayload(TypedDict):
     thread_id: str
 
 
-class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
-    """Mock entrypoint implementation for testing. Stores function calls similar to a mock."""
+class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
+    """Mock autofix entrypoint implementation for testing. Stores function calls similar to a mock."""
 
     key = cast(SeerEntrypointKey, "MOCK")
 
@@ -69,19 +69,19 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
 
 class SeerOperatorTest(TestCase):
     def setUp(self):
-        self.entrypoint = MockEntrypoint()
+        self.entrypoint = MockAutofixEntrypoint()
         self.operator = SeerOperator(self.entrypoint)
 
     @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True)
     def test_has_access_with_seer(self, _mock_has_seer_access):
-        MockNoAccessEntrypoint = Mock(spec=SeerEntrypoint)
+        MockNoAccessEntrypoint = Mock(spec=SeerAutofixEntrypoint)
         MockNoAccessEntrypoint.key = cast(SeerEntrypointKey, "MOCK_NO_ACCESS")
         MockNoAccessEntrypoint.has_access.return_value = False
         with (
             patch.dict(
                 "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
                 {
-                    MockEntrypoint.key: MockEntrypoint,
+                    MockAutofixEntrypoint.key: MockAutofixEntrypoint,
                     MockNoAccessEntrypoint.key: MockNoAccessEntrypoint,
                 },
                 clear=True,
@@ -90,7 +90,7 @@ class SeerOperatorTest(TestCase):
             assert SeerOperator.has_access(organization=self.group.project.organization)
             assert SeerOperator.has_access(
                 organization=self.group.project.organization,
-                entrypoint_key=MockEntrypoint.key,
+                entrypoint_key=MockAutofixEntrypoint.key,
             )
             assert not SeerOperator.has_access(
                 organization=self.group.project.organization,
@@ -268,7 +268,7 @@ class SeerOperatorTest(TestCase):
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
         mock_populate_post_autofix_cache.assert_called_with(
-            entrypoint_key=MockEntrypoint.key,
+            entrypoint_key=MockAutofixEntrypoint.key,
             run_id=MOCK_RUN_ID,
             cache_payload=self.entrypoint.create_autofix_cache_payload(),
         )
@@ -276,11 +276,11 @@ class SeerOperatorTest(TestCase):
     @patch.object(SeerOperator, "has_access", return_value=True)
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
-        {MockEntrypoint.key: MockEntrypoint},
+        {MockAutofixEntrypoint.key: MockAutofixEntrypoint},
         clear=True,
     )
     def test_process_autofix_updates_early_exits(self, _mock_has_access):
-        with patch.object(MockEntrypoint, "on_autofix_update") as mock_on_autofix_update:
+        with patch.object(MockAutofixEntrypoint, "on_autofix_update") as mock_on_autofix_update:
             # Missing group_id/run_id
             process_autofix_updates(
                 event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
@@ -320,14 +320,14 @@ class SeerOperatorTest(TestCase):
         mock_autofix_cache_get.side_effect = lambda **kwargs: SeerOperatorCacheResult(
             payload=cache_payload, source="run_id", key="abc"
         )
-        mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
+        mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         mock_entrypoint_cls.has_access.return_value = True
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
-            {MockEntrypoint.key: mock_entrypoint_cls},
+            {MockAutofixEntrypoint.key: mock_entrypoint_cls},
             clear=True,
         ):
             process_autofix_updates(
@@ -343,7 +343,7 @@ class SeerOperatorTest(TestCase):
         )
 
     def test_process_autofix_updates_no_operator_access(self):
-        mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
+        mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
@@ -351,7 +351,7 @@ class SeerOperatorTest(TestCase):
             patch.object(SeerOperator, "has_access", return_value=False),
             patch.dict(
                 "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
-                {MockEntrypoint.key: mock_entrypoint_cls},
+                {MockAutofixEntrypoint.key: mock_entrypoint_cls},
                 clear=True,
             ),
         ):
@@ -373,9 +373,9 @@ class SeerOperatorTest(TestCase):
         mock_autofix_cache_get.side_effect = lambda **kwargs: SeerOperatorCacheResult(
             payload=cache_payload, source="run_id", key="abc"
         )
-        mock_no_access_cls = Mock(spec=SeerEntrypoint)
+        mock_no_access_cls = Mock(spec=SeerAutofixEntrypoint)
         mock_no_access_cls.has_access.return_value = False
-        mock_has_access_cls = Mock(spec=SeerEntrypoint)
+        mock_has_access_cls = Mock(spec=SeerAutofixEntrypoint)
         mock_has_access_cls.has_access.return_value = True
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
