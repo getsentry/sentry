@@ -151,7 +151,6 @@ class SpansBuffer:
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
-        self.empty_flush_segment_calls = 0
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -600,19 +599,6 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
-
-        if not return_segments:
-            self.empty_flush_segment_calls += 1
-        else:
-            if self.empty_flush_segment_calls > 0:
-                try:
-                    if self._debug_trace_logger is None:
-                        self._debug_trace_logger = DebugTraceLogger(self.client)
-                    self._debug_trace_logger.log_empty_segments(self.empty_flush_segment_calls)
-                except Exception:
-                    logger.exception("flush_segments: Failed to log empty flush count")
-                finally:
-                    self.empty_flush_segment_calls = 0
 
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments
