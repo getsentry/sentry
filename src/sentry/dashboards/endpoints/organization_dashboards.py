@@ -310,7 +310,7 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
         return
 
     with transaction.atomic(router.db_for_write(DashboardFavoriteUser)):
-        prebuilt_dashboard_ids_without_favorite = (
+        prebuilt_dashboards_without_favorite = (
             Dashboard.objects.filter(
                 organization=organization,
                 prebuilt_id__in=pre_favorited_ids,
@@ -322,13 +322,12 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
                 ).values_list("dashboard_id", flat=True)
             )
             .order_by("prebuilt_id")
-            .values_list("id", flat=True)
         )
-        for dashboard_id in prebuilt_dashboard_ids_without_favorite:
+        for dashboard in prebuilt_dashboards_without_favorite:
             DashboardFavoriteUser.objects.insert_favorite_dashboard(
                 organization=organization,
                 user_id=user_id,
-                dashboard=Dashboard.objects.get(id=dashboard_id),
+                dashboard=dashboard,
             )
 
 
