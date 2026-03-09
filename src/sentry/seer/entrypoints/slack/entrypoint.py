@@ -20,7 +20,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     send_thread_update,
     update_existing_message,
 )
-from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
+from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
@@ -47,7 +47,7 @@ class SlackEntrypointCachePayload(TypedDict):
 
 
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
-class SlackEntrypoint(SeerAutofixEntrypoint[SlackEntrypointCachePayload]):
+class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
     autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 

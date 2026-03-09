@@ -9,9 +9,14 @@ class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
 
 
-class SeerEntrypointCore(Protocol):
+class SeerEntrypoint[CachePayloadT](Protocol):
     """
-    Base protocol for all Seer entrypoints. Provides core access control.
+    A protocol for external entrypoints (usually integrations) into accessing Seer functionality.
+    The idea being, if you want to trigger some operation in Seer, all you should need to do
+    is implement this protocol, instantiate it, and pass it to the operator.
+
+    The operator will do all the interfacing with Seer, and the entrypoint will do the interfacing
+    with your external service.
     """
 
     key: SeerEntrypointKey
@@ -19,17 +24,11 @@ class SeerEntrypointCore(Protocol):
     @staticmethod
     def has_access(organization: Organization) -> bool:
         """
-        Used by has_seer_entrypoint_access to gate access and prevent a workflow unless
+        Used by the operator (SeerOperator.has_access) to gate access prevent a workflow unless
         the organization has access to at least one entrypoint. The operator will check for
         seer-access prior to this check, so no need to repeat that check on the entrypoint.
         """
         ...
-
-
-class SeerAutofixEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
-    """
-    Protocol for entrypoints that support Autofix workflows.
-    """
 
     def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
         """
@@ -81,53 +80,6 @@ class SeerAutofixEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
         updates are being received, so leverage the cached payload to persist any state.
         """
         ...
-
-
-class SeerExplorerEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
-    """
-    Protocol for entrypoints that support Explorer workflows.
-    """
-
-    def on_trigger_explorer_error(self, *, error: str) -> None:
-        """
-        Called when an explorer run failed to start.
-
-        Example Usage: Adding a :x: reaction, sending a failure message, etc.
-        """
-        ...
-
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
-        """
-        Called when an explorer run has been started successfully.
-
-        Example Usage: Adding an :hourglass: reaction, sending a temporary message, etc.
-        """
-        ...
-
-    def create_explorer_cache_payload(self) -> CachePayloadT:
-        """
-        Creates a cached payload which will be provided to on_explorer_update.
-
-        Example Usage: Persisting a provider thread ID to issue replies, etc.
-        """
-        ...
-
-    @staticmethod
-    def on_explorer_update(
-        event_payload: dict[str, Any],
-        cache_payload: CachePayloadT,
-    ) -> None:
-        """
-        Called when an explorer update is received (via Seer's completion hook).
-
-        Note: This is a static method, the entrypoint instance will NOT be persisted while explorer
-        updates are being received, so leverage the cached payload to persist any state.
-        """
-        ...
-
-
-# Keep SeerEntrypoint as an alias for backwards compatibility during migration
-SeerEntrypoint = SeerAutofixEntrypoint
 
 
 class SeerOperatorCacheResult[CachePayloadT](TypedDict):
