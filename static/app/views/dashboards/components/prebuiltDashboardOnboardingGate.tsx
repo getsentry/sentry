@@ -1,5 +1,3 @@
-import {useEffect, type ReactNode} from 'react';
-
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,41 +13,41 @@ import {Onboarding as MCPOnboarding} from 'sentry/views/insights/pages/mcp/onboa
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-import {OverviewOnboardingPanel} from './overviewOnboardingPanel';
+import {GenericOnboarding} from './genericOnboarding';
 
 interface PrebuiltDashboardOnboardingGateProps {
-  children: ReactNode;
+  children: React.ReactNode;
   prebuiltId?: PrebuiltDashboardId;
 }
 
-/** Shows onboarding instead of dashboard widgets when the selected projects lack telemetry data. */
 export function PrebuiltDashboardOnboardingGate({
   prebuiltId,
   children,
 }: PrebuiltDashboardOnboardingGateProps) {
   const organization = useOrganization();
-  const {projects, reloadProjects} = useProjects();
+  const {projects} = useProjects();
   const pageFilters = usePageFilters();
+
   const onboarding = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId]?.onboarding : undefined;
 
   const moduleName =
     onboarding?.type === 'module' ? onboarding.moduleName : ModuleName.OTHER;
-  const onboardingProject = useOnboardingProject();
-  const hasFirstSpan = useHasFirstSpan(moduleName);
 
-  useEffect(() => {
-    if (onboarding?.type === 'module' && !hasFirstSpan) {
-      reloadProjects();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFirstSpan]);
+  // First project that doesn't have any span data at all
+  const onboardingProject = useOnboardingProject();
+  const hasAnySpanData = !onboardingProject;
+
+  // Whether the selected projects have span of the required type
+  const hasFirstSpan = useHasFirstSpan(moduleName);
 
   if (!onboarding) {
     return children;
   }
 
+  // If the dashboard uses module-specific onboarding, check whether
+  // module-specific data is available
   if (onboarding.type === 'module') {
-    if (onboardingProject) {
+    if (!hasAnySpanData) {
       return (
         <ModuleLayout.Full>
           <LegacyOnboarding organization={organization} project={onboardingProject} />
@@ -81,13 +79,13 @@ export function PrebuiltDashboardOnboardingGate({
     return children;
   }
 
-  if (onboarding.type === 'overview') {
-    return <OverviewOnboardingPanel heading={onboarding.description} />;
+  if (onboarding.type === 'custom') {
+    if (onboarding.componentId === 'agent-monitoring') {
+      return <AgentOnboarding />;
+    }
+
+    return <MCPOnboarding />;
   }
 
-  if (onboarding.componentId === 'agent-monitoring') {
-    return <AgentOnboarding />;
-  }
-
-  return <MCPOnboarding />;
+  return <GenericOnboarding heading={onboarding.description} />;
 }

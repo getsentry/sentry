@@ -12,7 +12,7 @@ interface OverviewOnboardingPanelProps {
   heading: string;
 }
 
-export function OverviewOnboardingPanel({heading}: OverviewOnboardingPanelProps) {
+export function GenericOnboarding({heading}: OverviewOnboardingPanelProps) {
   return (
     <Panel>
       <Flex justify="center">
