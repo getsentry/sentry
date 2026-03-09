@@ -32,6 +32,10 @@ sentry/
 
 This section contains critical command execution instructions that apply across all Sentry development.
 
+### Worktrees
+
+When in a worktree, always work in the current worktree, do not use the main worktree. This includes exploring files, and executing commands.
+
 ### Python Command Execution Requirements
 
 **CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
