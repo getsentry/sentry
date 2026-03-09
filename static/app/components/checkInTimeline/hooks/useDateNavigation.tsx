@@ -43,7 +43,7 @@ export function useDateNavigation(): DateNavigation {
     updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, {
       location,
       push: navigate,
-      replace: path => navigate(path, {replace: true}),
+      replace: (path: Parameters<typeof navigate>[0]) => navigate(path, {replace: true}),
     } as any);
   }, [windowMs, navigate, location, until]);
 
@@ -58,7 +58,7 @@ export function useDateNavigation(): DateNavigation {
     updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, {
       location,
       push: navigate,
-      replace: path => navigate(path, {replace: true}),
+      replace: (path: Parameters<typeof navigate>[0]) => navigate(path, {replace: true}),
     } as any, {
       keepCursor: true,
     });
