@@ -384,6 +384,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             if not data.get("title"):
                 raise serializers.ValidationError({"title": "Title is required during creation."})
 
+        dataset_source = data.get("dataset_source")
+        if dataset_source is not None:
+            data["dataset_source"] = DATASET_SOURCE_MAP[dataset_source]
+
         return data
 
     def validate(self, data):

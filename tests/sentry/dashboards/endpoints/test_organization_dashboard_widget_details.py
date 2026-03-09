@@ -1452,6 +1452,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "title": "Text Widget Title",
                 "displayType": "text",
                 "description": "This is a text widget description",
+                "datasetSource": "user",
             }
             response = self.do_request(
                 "post",
