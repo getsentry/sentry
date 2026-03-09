@@ -106,7 +106,6 @@ describe('ResolutionBox', () => {
             type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
             data: {version: releaseVersion},
             sentry_app: {
-              id: '3216',
               name: 'Linear',
               slug: 'linear',
               uuid: 'abc-123',
