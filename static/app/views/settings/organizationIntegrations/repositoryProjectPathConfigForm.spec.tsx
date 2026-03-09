@@ -218,4 +218,41 @@ describe('RepositoryProjectPathConfigForm', () => {
       expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('trunk');
     });
   });
+
+  it('does not override manually changed branch when repo is selected', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      body: {
+        repos: [{identifier: 'org/repo-one', defaultBranch: 'trunk'}],
+      },
+      match: [MockApiClient.matchQuery({search: 'org/repo-one'})],
+    });
+
+    render(
+      <RepositoryProjectPathConfigForm
+        organization={organization}
+        integration={integration}
+        projects={projects}
+        repos={repos}
+        onSubmitSuccess={onSubmitSuccess}
+        onCancel={onCancel}
+      />
+    );
+
+    // Manually change the branch first
+    const branchInput = screen.getByRole('textbox', {name: 'Branch'});
+    await userEvent.clear(branchInput);
+    await userEvent.type(branchInput, 'my-custom-branch');
+
+    // Now select a repo
+    await userEvent.click(screen.getByRole('textbox', {name: 'Repo'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'org/repo-one'}));
+
+    // Branch should keep the manually entered value
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue(
+        'my-custom-branch'
+      );
+    });
+  });
 });

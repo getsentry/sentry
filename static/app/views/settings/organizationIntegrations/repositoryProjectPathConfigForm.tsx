@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,8 +15,9 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 type Props = {
   integration: Integration;
@@ -37,6 +38,20 @@ const schema = z.object({
   integrationId: z.string(),
 });
 
+const integrationReposOptions = (
+  orgSlug: string,
+  integrationId: string,
+  search: string
+) =>
+  apiOptions.as<{repos: IntegrationRepository[]}>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
+    {
+      path: {organizationIdOrSlug: orgSlug, integrationId},
+      query: {search},
+      staleTime: 1000 * 60 * 5,
+    }
+  );
+
 export default function RepositoryProjectPathConfigForm({
   existingConfig,
   integration,
@@ -46,7 +61,7 @@ export default function RepositoryProjectPathConfigForm({
   projects,
   repos,
 }: Props) {
-  const [selectedRepoLabel, setSelectedRepoLabel] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const isStreamBased = integration.provider.key === 'perforce';
 
@@ -60,25 +75,6 @@ export default function RepositoryProjectPathConfigForm({
     : getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
         path: {organizationIdOrSlug: organization.slug},
       });
-
-  const {data: integrationReposData} = useApiQuery<{repos: IntegrationRepository[]}>(
-    [
-      getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: integration.id,
-          },
-        }
-      ),
-      {query: {search: selectedRepoLabel}},
-    ],
-    {
-      enabled: !!selectedRepoLabel,
-      staleTime: 1000 * 60 * 5,
-    }
-  );
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
@@ -112,17 +108,6 @@ export default function RepositoryProjectPathConfigForm({
     },
   });
 
-  // Auto-fill defaultBranch when integration repos data is available
-  useEffect(() => {
-    if (integrationReposData?.repos && selectedRepoLabel) {
-      const {defaultBranch} =
-        integrationReposData.repos.find(r => r.identifier === selectedRepoLabel) ?? {};
-      if (defaultBranch) {
-        form.setFieldValue('defaultBranch', defaultBranch);
-      }
-    }
-  }, [integrationReposData, selectedRepoLabel, form]);
-
   return (
     <form.AppForm form={form}>
       <Stack gap="xl">
@@ -139,18 +124,42 @@ export default function RepositoryProjectPathConfigForm({
           )}
         </form.AppField>
 
-        <form.AppField name="repositoryId">
+        <form.AppField
+          name="repositoryId"
+          listeners={{
+            onChange: async ({value}) => {
+              const repoLabel = repoOptions.find(opt => opt.value === value)?.label;
+              if (!repoLabel) {
+                return;
+              }
+
+              // If the default branch field has been blurred (i.e., the user has interacted with it),
+              // do not auto-update its value when the repo changes, to avoid overwriting user input.
+              if (form.getFieldMeta('defaultBranch')?.isBlurred) {
+                return;
+              }
+
+              try {
+                const data = await queryClient.fetchQuery(
+                  integrationReposOptions(organization.slug, integration.id, repoLabel)
+                );
+                const defaultBranch = data.json.repos.find(
+                  r => r.identifier === repoLabel
+                )?.defaultBranch;
+                if (defaultBranch) {
+                  form.setFieldValue('defaultBranch', defaultBranch);
+                }
+              } catch {
+                // If the fetch fails, keep the current default branch value
+              }
+            },
+          }}
+        >
           {field => (
             <field.Layout.Stack label={t('Repo')} required>
               <field.Select
                 value={field.state.value}
-                onChange={value => {
-                  field.handleChange(value);
-                  const selectedOption = repoOptions.find(opt => opt.value === value);
-                  if (selectedOption) {
-                    setSelectedRepoLabel(selectedOption.label);
-                  }
-                }}
+                onChange={field.handleChange}
                 placeholder={t('Choose repo')}
                 options={repoOptions}
               />
