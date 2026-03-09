@@ -312,13 +312,23 @@ class Dashboard(Model):
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
             existing_favorites.filter(
                 user_id__in=existing_user_ids - new_user_ids, favorited=True
-            ).update(favorited=False)
+            ).update(favorited=False, position=None)
 
             users_to_add = new_user_ids - existing_user_ids
             users_to_refavorite = new_user_ids & existing_user_ids
-            existing_favorites.filter(user_id__in=users_to_refavorite, favorited=False).update(
-                favorited=True
-            )
+
+            for user_id in users_to_refavorite:
+                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()
+                if fav:
+                    last_position = DashboardFavoriteUser.objects.get_last_position(
+                        self.organization, user_id
+                    )
+                    has_any = DashboardFavoriteUser.objects.filter(
+                        organization=self.organization, user_id=user_id, favorited=True
+                    ).exists()
+                    fav.favorited = True
+                    fav.position = 0 if not has_any else last_position + 1
+                    fav.save(update_fields=["favorited", "position"])
             DashboardFavoriteUser.objects.bulk_create(
                 [
                     DashboardFavoriteUser(
