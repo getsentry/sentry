@@ -7,8 +7,8 @@ import {
   aggregateOutputType,
   type AggregationOutputType,
   type DataUnit,
-  type RateUnit,
 } from 'sentry/utils/discover/fields';
+import {isARateUnit} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 type DetectionType = MetricDetector['config']['detectionType'];
@@ -44,7 +44,7 @@ export function getDetectorChartFormatters({
         outputType,
         true,
         undefined,
-        outputType === 'rate' ? (unit as RateUnit) : undefined,
+        outputType === 'rate' && isARateUnit(unit) ? unit : undefined,
         undefined,
         unit as DataUnit
       );
