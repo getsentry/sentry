@@ -803,7 +803,11 @@ function WidgetViewerModal(props: Props) {
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
                   <ResultsContainer>
-                    {renderTotalResults(totalResults, widget.widgetType)}
+                    {renderTotalResults(
+                      totalResults,
+                      widget.widgetType,
+                      widget.displayType
+                    )}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
                         <Button
