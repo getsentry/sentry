@@ -220,9 +220,6 @@ function sampleAvatarColor(
     }
   }
 
-  // Prefer the chromatic average; fall back to all opaque pixels so dark logos
-  // (e.g. black wordmarks) still produce a hex. The contrast guard in
-  // resolveImageAvatarColors will reject near-white results.
   const [r, g, b, count] = ccount > 0 ? [cr, cg, cb, ccount] : [ar, ag, ab, acount];
   if (count === 0) return {hex: null, style};
 
