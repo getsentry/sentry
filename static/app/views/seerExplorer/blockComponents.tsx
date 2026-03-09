@@ -376,6 +376,7 @@ function BlockComponent({
     !isAwaitingQuestion &&
     !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
+  const showCopyButton = block.message.role !== 'tool_use';
 
   return (
     <Block
@@ -496,14 +497,16 @@ function BlockComponent({
           <ActionButtonBar gap="xs">
             {showFeedbackButtons && thumbsFeedbackButton('positive')}
             {showFeedbackButtons && thumbsFeedbackButton('negative')}
-            <Button
-              aria-label={t('Copy block content')}
-              icon={<IconCopy />}
-              priority="transparent"
-              size="xs"
-              tooltipProps={{title: t('Copy to clipboard')}}
-              onClick={handleCopyClick}
-            />
+            {showCopyButton && (
+              <Button
+                aria-label={t('Copy block content')}
+                icon={<IconCopy />}
+                priority="transparent"
+                size="xs"
+                tooltipProps={{title: t('Copy to clipboard')}}
+                onClick={handleCopyClick}
+              />
+            )}
             <Button
               size="xs"
               priority="transparent"
