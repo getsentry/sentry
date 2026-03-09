@@ -96,7 +96,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         actions_by_id = {a.id: a for a in Action.objects.filter(id__in=all_action_ids)}
 
         # Bulk-fetch alert_rule_trigger_id mappings
-        trigger_id_map: dict[int, int] = dict(
+        trigger_id_map: dict[int, int | None] = dict(
             DataConditionAlertRuleTrigger.objects.filter(data_condition__in=item_list).values_list(
                 "data_condition_id", "alert_rule_trigger_id"
             )
