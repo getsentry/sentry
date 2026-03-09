@@ -47,6 +47,7 @@ describe('IssueDiff', () => {
 
   it('is loading when initially rendering', async () => {
     render(<IssueDiff baseIssueId="base" targetIssueId="target" />);
+    expect(screen.getByTestId('issue-diff-loading-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });
@@ -62,6 +63,7 @@ describe('IssueDiff', () => {
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
+    expect(screen.getAllByTestId('split-diff')).toHaveLength(1);
     expect(trackAnalytics).toHaveBeenCalled();
   });
 
