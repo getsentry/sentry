@@ -47,7 +47,7 @@ export function makeSwatch(palette: Record<string, string>, onVibrant: OnVibrant
      */
     get(input: string): {background: string; content: string} {
       const index = hashIdentifier(input ?? '') % swatchColors.length;
-      return swatchColors[index]!;
+      return {...swatchColors[index]!};
     },
 
     /**
