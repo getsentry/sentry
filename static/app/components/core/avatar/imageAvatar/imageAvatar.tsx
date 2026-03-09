@@ -24,5 +24,4 @@ export const ImageAvatar = styled(({configuration, ...props}: ImageAvatarProps) 
   />
 ))<BaseAvatarStyleProps>`
   ${baseAvatarStyles};
-  object-fit: contain;
 `;

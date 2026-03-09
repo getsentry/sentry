@@ -1,3 +1,4 @@
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -14,6 +15,7 @@ interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'pri
 }
 
 export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps) {
+  const theme = useTheme();
   const avatarDefinition = useAvatar({
     identifier: avatar.identifier,
     name: avatar.name,
@@ -28,10 +30,10 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
   const imageUrl =
     avatarDefinition.type === 'image' ? avatarDefinition.configuration.src : null;
 
-  const {data: imageResult = null} = useQuery({
-    queryKey: ['avatar-color', imageUrl],
-    queryFn: () => resolveImageAvatarColors(imageUrl!),
-    enabled: !!imageUrl,
+  const {data: imageResult} = useQuery({
+    queryKey: ['avatar-button-chonk', imageUrl, theme.type],
+    queryFn: () => resolveImageAvatarColors(imageUrl!, theme.type),
+    enabled: !!imageUrl && avatarDefinition.type === 'image',
     staleTime: Infinity,
   });
 
@@ -90,7 +92,9 @@ const StyledImageAvatar = styled(ImageAvatar)`
   height: 100%;
   border-radius: 0;
   position: relative;
+  object-fit: contain;
 `;
+
 const StyledLetterAvatar = styled(LetterAvatar)`
   width: 100%;
   height: 100%;
@@ -243,14 +247,19 @@ function fetchAvatarColor(
 }
 
 async function resolveImageAvatarColors(
-  url: string
+  url: string,
+  theme: Theme['type']
 ): Promise<{chonk: string | undefined; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
 
   if (!sampled?.hex) return null;
 
+  const chonk = color(sampled.hex)
+    .darken(theme === 'dark' ? 0.85 : 0.45)
+    .hex();
+
   return {
-    chonk: color(sampled.hex).darken(0.35).hex(),
+    chonk,
     style: sampled.style,
   };
 }
