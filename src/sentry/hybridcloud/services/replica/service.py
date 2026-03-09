@@ -38,6 +38,18 @@ class ControlReplicaService(RpcService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_project_key_mapping(
+        self, *, project_key_id: int, public_key: str, cell_name: str
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def delete_project_key_mapping(self, *, public_key: str) -> None:
+        pass
+
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from .impl import DatabaseBackedControlReplicaService

@@ -324,6 +324,21 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
 
         handle_replication(OrganizationMemberTeam, destination, fk="organizationmemberteam_id")
 
+    def upsert_project_key_mapping(
+        self, *, project_key_id: int, public_key: str, cell_name: str
+    ) -> None:
+        from sentry.models.projectkeymapping import ProjectKeyMapping
+
+        ProjectKeyMapping.objects.update_or_create(
+            public_key=public_key,
+            defaults={"project_key_id": project_key_id, "cell_name": cell_name},
+        )
+
+    def delete_project_key_mapping(self, *, public_key: str) -> None:
+        from sentry.models.projectkeymapping import ProjectKeyMapping
+
+        ProjectKeyMapping.objects.filter(public_key=public_key).delete()
+
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
         destination = TeamReplica(
             team_id=team.id,

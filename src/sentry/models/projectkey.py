@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
+from django.db.models.signals import pre_delete
 from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
@@ -22,10 +23,10 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.base import Model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.silo.base import SiloMode
@@ -191,6 +192,11 @@ class ProjectKey(Model):
         return (0, 0)
 
     def save(self, *args, **kwargs):
+        from django.db import router, transaction
+
+        from sentry.hybridcloud.services.replica import control_replica_service
+        from sentry.types.region import get_local_region
+
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
@@ -198,6 +204,18 @@ class ProjectKey(Model):
         if not self.label:
             self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
+
+        public_key = self.public_key
+        project_key_id = self.id
+        cell_name = get_local_region().name
+        transaction.on_commit(
+            lambda: control_replica_service.upsert_project_key_mapping(
+                project_key_id=project_key_id,
+                public_key=public_key,
+                cell_name=cell_name,
+            ),
+            using=router.db_for_write(ProjectKey),
+        )
 
     def get_dsn(self, domain=None, secure=True, public=False):
         urlparts = urlparse(self.get_endpoint())
@@ -369,3 +387,21 @@ class ProjectKey(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+def _delete_project_key_mapping(instance: ProjectKey, **kwargs: object) -> None:
+    from django.db import router, transaction
+
+    from sentry.hybridcloud.services.replica import control_replica_service
+
+    if not instance.public_key:
+        return
+
+    public_key = instance.public_key
+    transaction.on_commit(
+        lambda: control_replica_service.delete_project_key_mapping(public_key=public_key),
+        using=router.db_for_write(ProjectKey),
+    )
+
+
+pre_delete.connect(_delete_project_key_mapping, sender=ProjectKey, weak=False)
