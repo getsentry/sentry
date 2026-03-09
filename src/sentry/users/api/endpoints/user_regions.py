@@ -62,9 +62,9 @@ class UserRegionsEndpoint(UserEndpoint):
         )
         cell_names = (
             OrganizationMapping.objects.filter(organization_id__in=organization_ids)
-            .distinct("region_name")
-            .order_by("region_name")
-            .values_list("region_name", flat=True)
+            .distinct("cell_name")
+            .order_by("cell_name")
+            .values_list("cell_name", flat=True)
         )
         directory = get_global_directory()
         localities = sorted(

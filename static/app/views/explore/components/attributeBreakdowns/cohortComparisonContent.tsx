@@ -10,7 +10,6 @@ import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
@@ -176,7 +175,7 @@ const SelectionHint = styled(Text)<{backgroundColor?: string}>`
     height: 8px;
     border-radius: 50%;
     background-color: ${p => p.backgroundColor || p.theme.colors.gray500};
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
     flex-shrink: 0;
   }
 `;

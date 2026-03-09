@@ -10,7 +10,6 @@ import {
 } from 'sentry/components/events/viewHierarchy/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
-import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -41,7 +40,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
   );
   const viewHierarchies =
     attachments?.filter(attachment => attachment.type === 'event.view_hierarchy') ?? [];
-  const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
+  const hierarchyMeta = viewHierarchies[0];
 
   // There should be only one view hierarchy
   const {isPending, data} = useApiQuery<string | ViewHierarchyData>(

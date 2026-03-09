@@ -61,6 +61,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
@@ -87,7 +88,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -97,7 +97,6 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectsdk import EventType, ProjectSDK
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
@@ -486,12 +485,6 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationAccessRequest.objects.create(member=invited, team=team, requester_id=owner_id)
 
         # Project*
-        project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
-        ProjectTemplateOption.objects.create(
-            project_template=project_template, key="mail:subject_prefix", value=f"[{slug}]"
-        )
-
-        # TODO (@saponifi3d): Add project template to project
         project = self.create_project(name=f"project-{slug}", teams=[team], organization=org)
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
@@ -654,6 +647,25 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_NEW_COMMIT,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
+        )
+
+        CodeReviewEvent.objects.create(
+            organization=org,
+            repository=repo,
+            raw_event_type="pull_request",
+            raw_event_action="opened",
+            trigger_id=f"trigger-{slug}",
+            pr_number=1,
+            pr_title=f"Test PR for {slug}",
+            pr_author="test-author",
+            pr_url="https://github.com/getsentry/getsentry/pull/1",
+            pr_state="open",
+            trigger="on_new_commit",
+            trigger_user="test-user",
+            target_commit_sha="abc123",
+            status=CodeReviewEventStatus.REVIEW_COMPLETED,
+            seer_run_id=f"seer-run-{slug}",
+            comments_posted=2,
         )
 
         # Group*

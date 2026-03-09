@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface CarouselProps {
@@ -83,7 +82,7 @@ const CarouselContainer = styled('div')`
   /* We provide some margin to make room for the scroll bar. It is applied on
    * the top and bottom for consistency.
    */
-  margin: ${space(0.25)};
+  margin: ${p => p.theme.space['2xs']};
 `;
 
 const CarouselItems = styled('div')`
@@ -93,7 +92,7 @@ const CarouselItems = styled('div')`
   /* We provide some margin to make room for the scroll bar. It is applied on
    * the top and bottom for consistency.
    */
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space.lg} 0;
 `;
 
 const StyledArrowButton = styled(Button)<{direction: string}>`

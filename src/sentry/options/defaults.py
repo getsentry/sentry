@@ -716,6 +716,12 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.code-review.excluded-pr-author-logins",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -3246,16 +3252,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Threshold in bytes for out-of-band storage of large compressed span payloads.
-# Payloads larger than this are stored in separate Redis string keys instead of
-# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
-# Only applies when compression is enabled (compression.level >= 0).
-register(
-    "spans.buffer.oob-threshold-bytes",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Maximum number of subsegments to process in each Redis pipeline. Each
 # subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
 register(
@@ -4127,6 +4123,15 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# SCM
+
+register(
+    "sentry.scm.stream.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

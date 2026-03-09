@@ -92,13 +92,14 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
@@ -122,6 +123,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
+    dataScanned?: 'full' | 'partial';
     disableZoom?: boolean;
     isMobile?: boolean;
     isSampled?: boolean | null;
@@ -155,6 +157,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     timeseriesResultsTypes,
     shouldResize,
     confidence,
+    dataScanned,
     showConfidenceWarning,
     sampleCount,
     isSampled,
@@ -262,8 +265,18 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <AgentsTracesTableWidgetVisualization
           limit={widget.limit}
           tableWidths={widget.tableWidths}
+          frameless
         />
       </TableWrapper>
+    );
+  }
+
+  if (widget.displayType === DisplayType.TEXT) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <TextComponent {...props} />
+      </TransitionChart>
     );
   }
 
@@ -472,20 +485,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     }
   };
 
-  // Excluding Other uses a slightly altered regex to match the Other series name
-  // because the series names are formatted with widget IDs to avoid conflicts
-  // when deactivating them across widgets
-  const topEventsCountExcludingOther =
-    timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${OTHER};)|^${OTHER};`))
-        )
-          ? 1
-          : 0)
-      : undefined;
   return (
     <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
       {zoomRenderProps => {
@@ -552,15 +551,20 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
-
-                    {showConfidenceWarning && confidence && (
-                      <ConfidenceFooter
+                    {showConfidenceWarning ? (
+                      <WidgetCardConfidenceFooter
                         confidence={confidence}
-                        sampleCount={sampleCount}
-                        topEvents={topEventsCountExcludingOther}
+                        dataScanned={dataScanned}
                         isSampled={isSampled}
+                        loading={loading}
+                        sampleCount={sampleCount}
+                        selection={selection}
+                        series={series}
+                        timeseriesResults={timeseriesResults}
+                        widget={widget}
+                        yAxis={axisLabel}
                       />
-                    )}
+                    ) : null}
                   </ChartWrapper>
                 </TransitionChart>
               );
@@ -631,9 +635,8 @@ function TableComponent({
       }
     }
 
-    const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
     let cellActions = ALLOWED_CELL_ACTIONS;
-    if (disableTableActions || !useCellActionsV2) {
+    if (disableTableActions) {
       cellActions = [];
     } else if (widget.widgetType === WidgetType.SPANS) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
@@ -755,14 +758,6 @@ function BigNumberComponent({
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {widget, tableResults, loading} = props;
 
-  const hasCategoricalBarCharts = useOrganization().features.includes(
-    'dashboards-categorical-bar-charts'
-  );
-
-  if (!hasCategoricalBarCharts) {
-    return null;
-  }
-
   if (loading || !tableResults?.[0]) {
     return <LoadingPlaceholder />;
   }
@@ -863,6 +858,16 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
   );
 }
 
+function TextComponent(props: TableComponentProps): React.ReactNode {
+  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
+
+  if (!hasTextWidgets) {
+    return null;
+  }
+
+  return <TextWidgetVisualization text={props.widget.description} />;
+}
+
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
   const stacked = widget.queries[0]?.columns.length! > 0;
 
@@ -917,7 +922,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 ))`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -978,18 +983,18 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const RenderedChartContainer = styled('div')`

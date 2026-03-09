@@ -97,7 +97,7 @@ class VictorOpsPluginTest(PluginTestCase):
         )
         event.interfaces = {
             "Message": UnicodeTestInterface(
-                title="abcd\xde\xb4", body="\xdc\xea\x80\x80abcd\xde\xb4"
+                {"title": "abcd\xde\xb4", "body": "\xdc\xea\x80\x80abcd\xde\xb4"}
             )
         }
 

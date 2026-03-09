@@ -142,7 +142,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     const {key} = col;
 
     if (key === NORMALIZED_DESCRIPTION) {
-      const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
+      const fileExtension = (row[NORMALIZED_DESCRIPTION] ?? '').split('.').pop() || '';
       const extraLinkQueryParams = {};
       if (filters[SpanFields.USER_GEO_SUBREGION]) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -156,7 +156,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             moduleName={ModuleName.RESOURCE}
             projectId={row[PROJECT_ID]}
             spanOp={row[SPAN_OP]}
-            description={row[NORMALIZED_DESCRIPTION]}
+            description={row[NORMALIZED_DESCRIPTION] ?? ''}
             group={row[SPAN_GROUP]}
             extraLinkQueryParams={extraLinkQueryParams}
           />
@@ -173,7 +173,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
+      const fileExtension = (row[NORMALIZED_DESCRIPTION] ?? '').split('.').pop() || '';
       const spanOp = row[key];
       if (fileExtension === 'js' || spanOp === 'resource.script') {
         return <span>{t('JavaScript')}</span>;

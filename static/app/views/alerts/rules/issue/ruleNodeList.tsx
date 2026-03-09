@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertGenericConditionConfig,
@@ -331,8 +330,8 @@ const StyledSelectControl = styled(Select)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-auto-flow: row;

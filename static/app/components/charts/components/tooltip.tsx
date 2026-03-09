@@ -399,7 +399,7 @@ export function computeChartTooltip(
         parentNode = dom.parentNode;
       }
 
-      const chartElement: Element =
+      const chartElement =
         props.appendToBody && chartId
           ? (document.getElementById(chartId) ?? parentNode)
           : parentNode;

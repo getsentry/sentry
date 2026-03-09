@@ -350,7 +350,7 @@ class OrganizationsCreateInRegionTest(OrganizationIndexTest):
         with assume_test_silo_mode(SiloMode.CONTROL):
             mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         assert mapping
-        assert mapping.region_name == "de"
+        assert mapping.cell_name == "de"
 
 
 @control_silo_test

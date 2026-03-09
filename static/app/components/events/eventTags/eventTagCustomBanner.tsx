@@ -8,7 +8,6 @@ import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export default function EventTagCustomBanner() {
   return (
@@ -44,7 +43,7 @@ const Wrapper = styled(Panel)`
 `;
 
 const Body = styled(PanelBody)`
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   flex: 1;
   max-width: 350px;
 `;
@@ -52,17 +51,17 @@ const Body = styled(PanelBody)`
 const Title = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SubTitle = styled('p')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const ContextArea = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const SentaurIllustration = styled('img')`

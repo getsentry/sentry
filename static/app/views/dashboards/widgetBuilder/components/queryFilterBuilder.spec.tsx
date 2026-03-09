@@ -7,10 +7,13 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
 
 describe('QueryFilterBuilder', () => {
   let organization: Organization;
@@ -21,8 +24,11 @@ describe('QueryFilterBuilder', () => {
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     jest
-      .mocked(useTraceItemTags)
-      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
+      .mocked(useTraceItemDatasetAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',

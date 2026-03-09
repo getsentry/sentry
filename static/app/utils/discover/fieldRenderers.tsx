@@ -387,7 +387,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <NumberContainer>{emptyValue}</NumberContainer>;
       }
       return <CurrencyCell value={data[field]} />;
     },
