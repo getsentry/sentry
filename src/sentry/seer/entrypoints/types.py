@@ -9,14 +9,10 @@ class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
 
 
-class SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT](Protocol):
+class SeerEntrypointCore(Protocol):
     """
-    A protocol for external entrypoints (usually integrations) into accessing Seer functionality.
-    The idea being, if you want to trigger some operation in Seer, all you should need to do
-    is implement this protocol, instantiate it, and pass it to the operator.
-
-    The operator will do all the interfacing with Seer, and the entrypoint will do the interfacing
-    with your external service.
+    Base protocol for all Seer entrypoints. Contains only the fields and methods
+    shared across all entrypoint types (autofix, explorer, etc.).
     """
 
     key: SeerEntrypointKey
@@ -29,6 +25,13 @@ class SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT](Protocol):
         seer-access prior to this check, so no need to repeat that check on the entrypoint.
         """
         ...
+
+
+class SeerAutofixEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
+    """
+    Protocol for entrypoints that support autofix workflows.
+    Implement this to trigger autofix operations and receive updates via the operator.
+    """
 
     def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
         """
@@ -55,39 +58,7 @@ class SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT](Protocol):
         """
         ...
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
-        """Called when Explorer failed to start."""
-        ...
-
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
-        """Called when Explorer run started successfully."""
-        ...
-
-    def create_explorer_cache_payload(self) -> ExplorerCachePayloadT:
-        """Creates cached payload for Explorer completion hook."""
-        ...
-
-    @staticmethod
-    def on_explorer_update(
-        cache_payload: ExplorerCachePayloadT,
-    ) -> None:
-        """
-        Called when an Explorer run completes, via ExplorerOnCompletionHook.
-
-        Unlike on_autofix_update which receives streaming webhook events during a run,
-        this is invoked once when the Explorer run reaches a terminal state. The completion
-        hook (ExplorerOnCompletionHook.execute) retrieves the cached payload and delegates
-        to this method so the entrypoint can notify the external service (e.g., remove a
-        :thinking_face: reaction and post a thread reply with the Explorer result link).
-
-        The shape of the cached payload is determined by `create_explorer_cache_payload`.
-
-        Note: This is a static method. The entrypoint instance is NOT persisted between
-        trigger and completion, so leverage the cached payload to persist any state.
-        """
-        ...
-
-    def create_autofix_cache_payload(self) -> AutofixCachePayloadT:
+    def create_autofix_cache_payload(self) -> CachePayloadT:
         """
         Creates a cached payload which will be provided to on_autofix_update.
 
@@ -99,7 +70,7 @@ class SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT](Protocol):
     def on_autofix_update(
         event_type: SentryAppEventType,
         event_payload: dict[str, Any],
-        cache_payload: AutofixCachePayloadT,
+        cache_payload: CachePayloadT,
     ) -> None:
         """
         Called when an autofix update is received (via Seer's webhooks).
@@ -112,6 +83,15 @@ class SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT](Protocol):
         updates are being received, so leverage the cached payload to persist any state.
         """
         ...
+
+
+class SeerExplorerEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
+    """
+    Protocol for entrypoints that support explorer workflows.
+    Explorer-specific methods will be added in later PRs.
+    """
+
+    ...
 
 
 class SeerOperatorCacheResult[CachePayloadT](TypedDict):
