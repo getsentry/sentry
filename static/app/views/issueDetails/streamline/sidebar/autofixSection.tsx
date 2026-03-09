@@ -4,11 +4,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
+  getOrderedAutofixArtifacts,
   isRootCauseArtifact,
   isSolutionArtifact,
-} from 'sentry/components/events/autofix/types';
-import {
-  getOrderedAutofixArtifacts,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
