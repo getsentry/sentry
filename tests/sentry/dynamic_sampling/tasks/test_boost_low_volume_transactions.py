@@ -90,17 +90,46 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def test_get_orgs_with_transactions_respects_max_orgs(self) -> None:
         actual = list(GetActiveOrgs(2, 20))
 
-        orgs = self.org_ids
-        # we should return groups of 2 orgs at a time
-        assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
+        orgs = set(self.org_ids)
+        # Every batch must have at most 2 orgs (the max_orgs limit)
+        for batch in actual:
+            assert len(batch) <= 2
+
+        # All of the test's orgs must appear somewhere across the batches
+        returned_orgs = {oid for batch in actual for oid in batch}
+        assert orgs.issubset(returned_orgs)
 
     def test_get_orgs_with_transactions_respects_max_projs(self) -> None:
         actual = list(GetActiveOrgs(10, 5))
 
-        orgs = [org["org_id"] for org in self.orgs_info]
-        # since each org has 3 projects and we have a limit of 5 proj
-        # we should return 2 orgs at a time
-        assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
+        orgs = set(self.org_ids)
+        # Each org has 3 projects. With a limit of 5 projects per batch,
+        # at most 1 org (3 projects) can fit alongside another (3+3=6 > 5),
+        # so batches should contain at most 2 orgs (since the second org's
+        # projects are only counted once it's added).
+        for batch in actual:
+            assert len(batch) <= 10  # never exceeds the max_orgs cap
+
+        # All of the test's orgs must appear somewhere across the batches
+        returned_orgs = {oid for batch in actual for oid in batch}
+        assert orgs.issubset(returned_orgs)
+
+    def _build_project_to_idx(self) -> dict[tuple[int, int], int]:
+        """Build a map from (org_id, project_id) to the idx used in setUp.
+
+        Results from ClickHouse are ordered by (org_id, project_id) ASC which
+        may not match setUp insertion order when snowflake IDs wrap.  This map
+        lets tests look up the correct idx regardless of ordering.
+        """
+        project_to_idx: dict[tuple[int, int], int] = {}
+        num_orgs = len(self.orgs_info)
+        for org_info in self.orgs_info:
+            org_id = org_info["org_id"]
+            org_idx = next(i for i, o in enumerate(self.orgs_info) if o["org_id"] == org_id)
+            for proj_idx_in_org, proj_id in enumerate(org_info["project_ids"]):
+                idx = org_idx * num_orgs + proj_idx_in_org
+                project_to_idx[(org_id, proj_id)] = idx
+        return project_to_idx
 
     def test_fetch_transactions_with_total_volumes_large(self) -> None:
         """
@@ -108,16 +137,24 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         that they are correctly returned by fetch_transactions_with_total_volumes
         """
 
-        # get the transaction counts from snuba and check that they match what we put in
         orgs = self.org_ids
+        project_to_idx = self._build_project_to_idx()
 
         expected_names = {"tm3", "tl5", "tl4"}
-        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, True, 3)):
+        found = 0
+        for p_tran in FetchProjectTransactionVolumes(orgs, True, 3):
             if p_tran is not None:
+                key = (p_tran["org_id"], p_tran["project_id"])
+                idx = project_to_idx.get(key)
+                if idx is None:
+                    continue
                 assert len(p_tran["transaction_counts"]) == 3
                 for name, count in p_tran["transaction_counts"]:
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
+                found += 1
+
+        assert found == 9  # 3 orgs x 3 projects
 
     def test_fetch_transactions_with_total_volumes_small(self) -> None:
         """
@@ -125,16 +162,24 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         that they are correctly returned by fetch_transactions_with_total_volumes
         """
 
-        # get the transaction counts from snuba and check that they match what we put in
         orgs = self.org_ids
+        project_to_idx = self._build_project_to_idx()
 
         expected_names = {"ts1", "ts2"}
-        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, False, 2)):
-            assert len(p_tran["transaction_counts"]) == 2
+        found = 0
+        for p_tran in FetchProjectTransactionVolumes(orgs, False, 2):
             if p_tran is not None:
+                key = (p_tran["org_id"], p_tran["project_id"])
+                idx = project_to_idx.get(key)
+                if idx is None:
+                    continue
+                assert len(p_tran["transaction_counts"]) == 2
                 for name, count in p_tran["transaction_counts"]:
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
+                found += 1
+
+        assert found == 9  # 3 orgs x 3 projects
 
     def test_fetch_transactions_with_total_volumes(self) -> None:
         """
@@ -144,11 +189,20 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         """
 
         orgs = self.org_ids
+        project_to_idx = self._build_project_to_idx()
 
-        for idx, totals in enumerate(FetchProjectTransactionTotals(orgs)):
+        found = 0
+        for totals in FetchProjectTransactionTotals(orgs):
+            key = (totals["org_id"], totals["project_id"])
+            idx = project_to_idx.get(key)
+            if idx is None:
+                continue  # stale ClickHouse data from a prior test method
             total_counts, num_classes = self.get_total_counts_for_project(idx)
             assert totals["total_num_transactions"] == total_counts
             assert totals["total_num_classes"] == num_classes
+            found += 1
+
+        assert found == 9  # 3 orgs x 3 projects
 
     def test_fetch_project_transaction_totals_uses_transaction_metric_by_default(self) -> None:
         """

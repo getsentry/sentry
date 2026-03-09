@@ -46,10 +46,10 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
             ]
         )
         results = self.backend.fetch_projects_with_recent_sessions()
-        assert results == {
-            self.organization.id: [self.project1.id, self.project2.id],
-            self.org2.id: [self.org2_project.id],
-        }
+        # ClickHouse is shared across test workers, so results may include stale
+        # orgs from other tests. Only assert on this test's own orgs.
+        assert sorted(results[self.organization.id]) == sorted([self.project1.id, self.project2.id])
+        assert results[self.org2.id] == [self.org2_project.id]
 
     @override_options({"release-health.use-org-and-project-filter": True})
     def test_monitor_release_adoption_with_filter(self) -> None:
@@ -74,10 +74,10 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
             ]
         )
         results = self.backend.fetch_projects_with_recent_sessions()
-        assert results == {
-            self.organization.id: [self.project1.id, self.project2.id],
-            self.org2.id: [self.org2_project.id],
-        }
+        # ClickHouse is shared across test workers, so results may include stale
+        # orgs from other tests. Only assert on this test's own orgs.
+        assert sorted(results[self.organization.id]) == sorted([self.project1.id, self.project2.id])
+        assert results[self.org2.id] == [self.org2_project.id]
 
 
 class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):

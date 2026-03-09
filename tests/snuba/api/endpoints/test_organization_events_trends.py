@@ -1,4 +1,6 @@
+from copy import deepcopy
 from datetime import timedelta
+from uuid import uuid4
 
 from django.urls import reverse
 
@@ -15,16 +17,19 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.prototype = load_data("transaction")
-        data = self.prototype.copy()
+        data = deepcopy(self.prototype)
         data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
         data["user"] = {"email": "foo@example.com"}
         data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=2)).isoformat()
         data["measurements"]["lcp"]["value"] = 2000
+        # Unique span_id per event to avoid ClickHouse ReplacingMergeTree
+        # deduplication on (project_id, finish_ts, transaction_name, cityHash64(span_id))
+        data["contexts"]["trace"]["span_id"] = uuid4().hex[:16]
         self.store_event(data, project_id=self.project.id)
 
         second = [0, 2, 10]
         for i in range(3):
-            data = self.prototype.copy()
+            data = deepcopy(self.prototype)
             data["start_timestamp"] = (
                 self.day_ago + timedelta(hours=1, minutes=30 + i)
             ).isoformat()
@@ -33,6 +38,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
             ).isoformat()
             data["measurements"]["lcp"]["value"] = second[i] * 1000
             data["user"] = {"email": f"foo{i}@example.com"}
+            data["contexts"]["trace"]["span_id"] = uuid4().hex[:16]
             self.store_event(data, project_id=self.project.id)
 
         self.expected_data = {

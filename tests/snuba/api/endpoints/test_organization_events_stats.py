@@ -1363,6 +1363,14 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             data = event_data["data"].copy()
             for i in range(event_data["count"]):
                 data["event_id"] = f"{index}{i}" * 16
+                # Unique span_id per event to avoid ClickHouse ReplacingMergeTree
+                # deduplication on (project_id, finish_ts, transaction_name,
+                # cityHash64(span_id))
+                if "contexts" in data and "trace" in data["contexts"]:
+                    data["contexts"] = {
+                        **data["contexts"],
+                        "trace": {**data["contexts"]["trace"], "span_id": uuid4().hex[:16]},
+                    }
                 event = self.store_event(data, project_id=event_data["project"].id)
             self.events.append(event)
         self.transaction = self.events[4]
@@ -2776,7 +2784,8 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         other = data["Other"]
         assert other["order"] == 5
-        assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
+        # "Other" = setUp transaction events (3) + "sorta bad" (2) + "not so bad" (1)
+        assert [{"count": 6}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_can_exclude_other_series(self) -> None:
         with self.feature(self.enabled_features):
@@ -2826,7 +2835,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         other = data["Other"]
         assert other["order"] == 5
-        assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
+        assert [{"count": 6}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_boolean_condition_and_project_field(self) -> None:
         with self.feature(self.enabled_features):

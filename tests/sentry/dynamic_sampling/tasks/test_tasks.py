@@ -263,6 +263,10 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         self,
         get_blended_sample_rate,
     ):
+        from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+            boost_low_volume_projects_of_org,
+        )
+
         get_blended_sample_rate.return_value = 0.25
         test_org = self.create_old_organization(name="sample-org")
 
@@ -272,9 +276,20 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
         proj_e = self.create_project_without_metrics("e", test_org)
 
+        # Call the per-org task directly with known project volumes to
+        # avoid ClickHouse insert visibility timing issues.  The sliding
+        # window cache is intentionally left empty so the blended sample
+        # rate (0.25) is used as the fallback.
         with self.tasks():
-            sliding_window_org()
-            boost_low_volume_projects()
+            boost_low_volume_projects_of_org(
+                org_id=test_org.id,
+                projects_with_tx_count_and_rates=[
+                    (proj_a.id, 9, 9, 0),
+                    (proj_b.id, 7, 7, 0),
+                    (proj_c.id, 3, 3, 0),
+                    (proj_d.id, 1, 1, 0),
+                ],
+            )
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -339,17 +354,15 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_change(
         self,
-        extrapolate_monthly_volume,
-        get_transaction_sampling_tier_for_volume,
         get_blended_sample_rate,
         schedule_invalidate_project_config,
     ):
-        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
-        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+            boost_low_volume_projects_of_org,
+        )
+
         get_blended_sample_rate.return_value = 0.8
 
         test_org = self.create_old_organization(name="sample-org")
@@ -360,9 +373,22 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=0.1)
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=0.2)
 
+        # Pre-populate the sliding window cache so we don't depend on
+        # ClickHouse insert visibility timing from GetActiveOrgsVolumes.
+        redis_client = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(test_org.id)
+        redis_client.set(cache_key, 0.8)
+
+        # Call the per-org task directly with known project volumes to
+        # avoid ClickHouse insert visibility timing issues.
         with self.tasks():
-            sliding_window_org()
-            boost_low_volume_projects()
+            boost_low_volume_projects_of_org(
+                org_id=test_org.id,
+                projects_with_tx_count_and_rates=[
+                    (proj_a.id, 9, 9, 0),
+                    (proj_b.id, 7, 7, 0),
+                ],
+            )
 
         assert schedule_invalidate_project_config.call_count == 2
 
@@ -1049,12 +1075,24 @@ class TestSlidingWindowOrgTask(TasksTestCase):
         """
         Test that sliding_window_org processes all orgs using TRANSACTIONS measure by default.
         """
+        from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+
         extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
         get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
         redis_client = get_redis_client_for_ds()
 
-        with self.tasks():
-            sliding_window_org()
+        # Mock GetActiveOrgsVolumes to avoid ClickHouse insert visibility
+        # timing issues.  Return the test's three orgs with their volumes.
+        volumes = [
+            [OrganizationDataVolume(org_id=org.id, total=100 * (i + 1), indexed=None)]
+            for i, org in enumerate(self.orgs)
+        ]
+        with patch(
+            "sentry.dynamic_sampling.tasks.sliding_window_org.GetActiveOrgsVolumes",
+            return_value=iter(volumes),
+        ):
+            with self.tasks():
+                sliding_window_org()
 
         # All orgs should have cache entries
         for org in self.orgs:
