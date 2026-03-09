@@ -321,11 +321,11 @@ export function ToolbarSaveAs() {
             organization,
             mode,
             location,
-            queries: visualizeFunctions.map((visual, index) => ({
+            queries: visualizeFunctions.map(visual => ({
               query,
               groupBys,
               sortBys,
-              yAxes: [visualizeYAxes[index]!],
+              yAxes: [visual.yAxis],
               chartType: visual.chartType,
               caseInsensitive: caseInsensitive ? '1' : undefined,
             })),
