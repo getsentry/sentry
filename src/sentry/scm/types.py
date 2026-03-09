@@ -788,14 +788,26 @@ class CommentEvent:
 
 type PullRequestAction = Literal[
     "assigned",
+    "auto_merge_disabled",
+    "auto_merge_enabled",
     "closed",
+    "converted_to_draft",
+    "demilestoned",  # Removed a milestone.
+    "dequeued",  # Removed from merge queue.
     "edited",
+    "enqueued",  # Added to merge queue.
     "labeled",
+    "locked",
+    "milestoned",  # Added a milestone.
     "opened",
     "ready_for_review",
     "reopened",
     "review_request_removed",
     "review_requested",
+    "synchronize",  # Commits were pushed.
+    "unassigned",
+    "unlabeled",
+    "unlocked",
 ]
 
 
