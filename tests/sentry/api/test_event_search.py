@@ -25,8 +25,12 @@ from sentry.api.event_search import (
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
-from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.constants import WILDCARD_OPERATOR_MAP, WILDCARD_UNICODE
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.search.events.constants import (
+    TEAM_KEY_TRANSACTION_ALIAS,
+    WILDCARD_OPERATOR_MAP,
+    WILDCARD_UNICODE,
+)
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -1063,6 +1067,37 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         # malformed key
         with pytest.raises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
+
+    def test_not_has_team_key_transaction_allowed_when_disabled(self) -> None:
+        config = SearchConfig.create_from(default_config, allow_not_has_filter=False)
+
+        assert parse_search_query(f"!has:{TEAM_KEY_TRANSACTION_ALIAS}", config=config) == [
+            SearchFilter(
+                key=SearchKey(name=TEAM_KEY_TRANSACTION_ALIAS),
+                operator="=",
+                value=SearchValue(raw_value="", use_raw_value=False),
+            )
+        ]
+        assert parse_search_query(f"!has:[{TEAM_KEY_TRANSACTION_ALIAS}]", config=config) == [
+            ParenExpression(
+                children=[
+                    SearchFilter(
+                        key=SearchKey(name=TEAM_KEY_TRANSACTION_ALIAS),
+                        operator="=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    )
+                ]
+            )
+        ]
+
+    def test_not_has_raises_when_disabled(self) -> None:
+        config = SearchConfig.create_from(default_config, allow_not_has_filter=False)
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            parse_search_query("!has:release", config=config)
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            parse_search_query("!has:[release]", config=config)
 
 
 @pytest.mark.parametrize(
