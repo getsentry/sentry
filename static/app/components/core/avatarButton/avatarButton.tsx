@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -15,8 +14,6 @@ interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'pri
 }
 
 export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps) {
-  const theme = useTheme();
-
   const avatarDefinition = useAvatar({
     identifier: avatar.identifier,
     name: avatar.name,
@@ -32,8 +29,8 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
     avatarDefinition.type === 'image' ? avatarDefinition.configuration.src : null;
 
   const {data: imageResult = null} = useQuery({
-    queryKey: ['avatar-color', imageUrl, theme.tokens.background.primary],
-    queryFn: () => resolveImageAvatarColors(imageUrl!, theme.tokens.background.primary),
+    queryKey: ['avatar-color', imageUrl],
+    queryFn: () => resolveImageAvatarColors(imageUrl!),
     enabled: !!imageUrl,
     staleTime: Infinity,
   });
@@ -45,7 +42,7 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
 
     return (
       <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
-        <AvatarContainer size={size} padded={false}>
+        <AvatarContainer size={size} padded={false} chonk={avatarChonk}>
           <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         </AvatarContainer>
       </StyledAvatarButton>
@@ -54,7 +51,11 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
 
   return (
     <StyledAvatarButton {...props} size={size} chonk={imageResult?.chonk}>
-      <AvatarContainer size={size} padded={imageResult?.style === 'padded'}>
+      <AvatarContainer
+        size={size}
+        padded={imageResult?.style === 'padded'}
+        chonk={imageResult?.chonk}
+      >
         <StyledImageAvatar configuration={avatarDefinition.configuration} />
       </AvatarContainer>
     </StyledAvatarButton>
@@ -63,11 +64,14 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
 
 const AvatarContainer = styled('div')<{
   size: NonNullable<ButtonProps['size']>;
+  chonk?: string;
   padded?: boolean;
 }>`
   width: 100%;
   height: 100%;
   overflow: hidden;
+  border: 1px solid ${p => p.chonk ?? 'transparent'};
+  will-change: transform;
   border-radius: ${p =>
     p.size === 'md'
       ? p.theme.radius.lg
@@ -76,7 +80,9 @@ const AvatarContainer = styled('div')<{
         : p.size === 'xs'
           ? p.theme.radius.sm
           : p.theme.radius.xs};
-  padding: ${p => (p.padded ? '12%' : '0')};
+  padding: ${p => (p.padded ? p.theme.space.xs : '0')};
+  background: ${p => (p.padded ? p.theme.tokens.background.primary : 'transparent')};
+  position: relative;
 `;
 
 const StyledImageAvatar = styled(ImageAvatar)`
@@ -240,22 +246,14 @@ function fetchAvatarColor(
 }
 
 async function resolveImageAvatarColors(
-  url: string,
-  pageBackground: string
+  url: string
 ): Promise<{chonk: string | undefined; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
 
-  if (!sampled) return null;
-
-  if (!sampled.hex || color(sampled.hex).contrast(color(pageBackground)) < 1.3) {
-    return null;
-  }
+  if (!sampled?.hex) return null;
 
   return {
-    chonk:
-      sampled.style === 'fill'
-        ? color(sampled.hex).darken(0.65).hex()
-        : color(sampled.hex).darken(0.45).hex(),
+    chonk: color(sampled.hex).darken(0.35).hex(),
     style: sampled.style,
   };
 }
