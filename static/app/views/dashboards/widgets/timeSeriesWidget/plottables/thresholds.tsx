@@ -47,7 +47,8 @@ export class Thresholds implements Plottable {
   dataType: PlottableTimeSeriesValueType = 'duration';
   dataUnit: TimeSeriesValueUnit = null;
   isEmpty = false;
-  name = '';
+  label = t('Thresholds');
+  name = '__thresholds__';
   needsColor = false;
   start: number | null = null;
   end: number | null = null;

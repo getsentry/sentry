@@ -167,12 +167,12 @@ class Csp(SecurityReport):
     title = "CSP Report"
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         data.setdefault("document_uri", None)
         data.setdefault("violated_directive", None)
         data.setdefault("blocked_uri", None)
         data.setdefault("effective_directive", None)
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_string(self, event) -> str:
         return orjson.dumps(

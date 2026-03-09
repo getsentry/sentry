@@ -229,6 +229,17 @@ class SupergroupsEmbeddingRequest(TypedDict):
     artifact_data: dict[str, Any]
 
 
+class SupergroupsListRequest(TypedDict):
+    organization_id: int
+    offset: NotRequired[int | None]
+    limit: NotRequired[int | None]
+
+
+class SupergroupsGetRequest(TypedDict):
+    organization_id: int
+    supergroup_id: int
+
+
 class ServiceMapUpdateRequest(TypedDict):
     organization_id: int
     nodes: list[dict[str, Any]]
@@ -328,6 +339,30 @@ def make_supergroups_embedding_request(
     )
 
 
+def make_supergroups_list_request(
+    body: SupergroupsListRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/list",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_supergroups_get_request(
+    body: SupergroupsGetRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
 def make_service_map_update_request(
     body: ServiceMapUpdateRequest,
     timeout: int | float | None = None,
@@ -370,12 +405,14 @@ def make_search_agent_state_request(
 
 def make_translate_query_request(
     body: TranslateQueryRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -396,12 +433,14 @@ def make_search_agent_start_request(
 
 def make_translate_agentic_request(
     body: TranslateAgenticRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate-agentic",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 

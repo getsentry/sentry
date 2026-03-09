@@ -30,7 +30,7 @@ from sentry.seer.explorer.on_completion_hook import (
     ExplorerOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.users.models.user import User
@@ -304,7 +304,7 @@ class SeerExplorerClient:
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        ):  # Set to True at the start of the run and persist in Seer explorer run state
             chat_body["is_context_engine_enabled"] = True
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
@@ -362,13 +362,6 @@ class SeerExplorerClient:
         if artifact_key and artifact_schema:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
-
-        if features.has(
-            "organizations:seer-explorer-context-engine",
-            self.organization,
-            actor=self.user,
-        ):
-            chat_body["is_context_engine_enabled"] = True
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
@@ -573,7 +566,7 @@ class SeerExplorerClient:
         run_id: int,
         integration_id: int | None,
         prompt: str,
-        repos: list[str],
+        repos: list[SeerRepoDefinition],
         branch_name_base: str = "seer",
         auto_create_pr: bool = False,
         provider: str | None = None,
@@ -589,7 +582,7 @@ class SeerExplorerClient:
             run_id: The Explorer run ID (used to store coding agent state)
             integration_id: The coding agent integration ID (for org-installed integrations)
             prompt: The instruction/prompt for the coding agent
-            repos: List of repo names to target (format: "owner/name")
+            repos: List of SeerRepoDefinition objects with full repo metadata
             branch_name_base: Base name for the branch (random suffix will be added)
             auto_create_pr: Whether to automatically create a PR when agent finishes
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id

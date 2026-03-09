@@ -307,7 +307,8 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 #
 # We use this character as a prefix and suffix with our wildcard operators to avoid
 # introducing breaking changes, and leave the possibility open down to the road to add in
-# new operators.
+# new operators. These operators are internal implementation details and should
+# not be included in product docs. Users should use `*` instead.
 WILDCARD_UNICODE = "\uf00d"
 
 WILDCARD_OPERATOR_MAP = {

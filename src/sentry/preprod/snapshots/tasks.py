@@ -18,6 +18,9 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.vcs.status_checks.snapshots.tasks import (
+    create_preprod_snapshot_status_check_task,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -504,6 +507,13 @@ def compare_snapshots(
             ]
         )
 
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_completion",
+            },
+        )
+
         logger.info(
             "Snapshot comparison complete",
             extra={
@@ -536,4 +546,11 @@ def compare_snapshots(
                     "Failed to save FAILED state for comparison",
                     extra={"comparison_id": comparison.id},
                 )
+
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
         raise

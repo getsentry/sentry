@@ -141,7 +141,6 @@ type Props = {
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   storageNamespace?: string;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
 };
 
@@ -1042,7 +1041,6 @@ class DashboardDetail extends Component<Props, State> {
       location,
       onDashboardUpdate,
       projects,
-      useTimeseriesVisualization,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1242,7 +1240,6 @@ class DashboardDetail extends Component<Props, State> {
                                 onNewWidgetScrollComplete={
                                   this.handleScrollToNewWidgetComplete
                                 }
-                                useTimeseriesVisualization={useTimeseriesVisualization}
                                 widgetInterval={this.props.widgetInterval}
                               />
                             </WidgetQueryQueueProvider>

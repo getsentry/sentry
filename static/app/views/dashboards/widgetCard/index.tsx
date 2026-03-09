@@ -118,13 +118,13 @@ type Props = WithRouterProps & {
   showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
   windowWidth?: number;
 };
 
 type Data = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -185,7 +185,6 @@ function WidgetCard(props: Props) {
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
-    useTimeseriesVisualization,
     widgetInterval,
   } = props;
 
@@ -298,7 +297,7 @@ function WidgetCard(props: Props) {
     : undefined;
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
-  if (canUseTimeseriesVisualization && useTimeseriesVisualization) {
+  if (canUseTimeseriesVisualization) {
     return (
       <ErrorBoundary
         customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -341,6 +340,7 @@ function WidgetCard(props: Props) {
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

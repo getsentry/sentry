@@ -42,7 +42,7 @@ class BitbucketRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            region = get_cell_by_name(mapping.region_name)
+            region = get_cell_by_name(mapping.cell_name)
         except RegionResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id

@@ -67,7 +67,6 @@ export default function DevKitSettings({organization, project}: Props) {
                   initialStep={decodeInteger(location.query.guidedStep)}
                   onStepChange={step => {
                     navigate({
-                      pathname: location.pathname,
                       query: {
                         ...location.query,
                         guidedStep: step,
