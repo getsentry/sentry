@@ -295,7 +295,7 @@ class _ClientConfig:
                     organization_id=self.last_org.id
                 )
                 region_url = generate_locality_url(
-                    get_locality_name_for_cell(organization_mapping.region_name)
+                    get_locality_name_for_cell(organization_mapping.cell_name)
                 )
             else:
                 region_url = generate_locality_url()

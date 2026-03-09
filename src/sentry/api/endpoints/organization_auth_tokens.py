@@ -75,7 +75,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
             org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
             token_str = generate_token(
                 organization.slug,
-                generate_locality_url(get_locality_name_for_cell(org_mapping.region_name)),
+                generate_locality_url(get_locality_name_for_cell(org_mapping.cell_name)),
             )
         except SystemUrlPrefixMissingException:
             return Response(

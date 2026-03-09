@@ -6,17 +6,12 @@ import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {EventsStatsSeries} from 'sentry/types/organization';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
-
-export type FunctionRegressionPercentileData = {
-  data: EventsStatsSeries<'p95()'>;
-};
 
 type FunctionRegressionChartData = {
   evidenceData: NormalizedTrendsTransaction;
@@ -85,12 +80,8 @@ export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<Char
         data.rawResponse
       );
 
-      const percentileData = {
-        data: transformed,
-      };
-
-      const param = {
-        percentileData: percentileData as FunctionRegressionPercentileData,
+      const param: EventBreakpointChartData = {
+        percentileData: transformed,
         evidenceData: data.evidenceData,
       };
 

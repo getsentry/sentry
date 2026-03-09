@@ -1125,7 +1125,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         #       middleware has handled routing.
         produce_event_to_scm_stream(
             {
-                "event_type_hint": request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY],
+                "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
                 "event": request.body.decode("utf-8"),
                 "extra": {},
                 "received_at": int(time.time()),

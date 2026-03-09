@@ -129,7 +129,7 @@ class TestMapIntegrationToProvider(TestCase):
     def test_raises_error_for_unsupported_provider(self):
         integration = self.create_integration(
             organization=self.organization,
-            provider="unsupported_provider",
+            provider="integrations:github",
             name="Unsupported Provider Test",
             external_id="1",
         )

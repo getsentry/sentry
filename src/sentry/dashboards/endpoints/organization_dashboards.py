@@ -13,6 +13,7 @@ from django.db.models import (
     IntegerField,
     OrderBy,
     OuterRef,
+    Q,
     Subquery,
     Value,
     When,
@@ -374,9 +375,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         dashboards = Dashboard.objects.filter(organization_id=organization.id)
         for f in filters:
             if f == "onlyFavorites":
-                dashboards = dashboards.filter(dashboardfavoriteuser__user_id=request.user.id)
+                dashboards = dashboards.filter(
+                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__favorited=True,
+                )
             elif f == "excludeFavorites":
-                dashboards = dashboards.exclude(dashboardfavoriteuser__user_id=request.user.id)
+                dashboards = dashboards.exclude(
+                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__favorited=True,
+                )
             elif f == "owned":
                 dashboards = dashboards.filter(created_by_id=request.user.id)
             elif f == "shared":
@@ -493,7 +500,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             "organizations:dashboards-starred-reordering", organization, actor=request.user
         ):
             dashboards = dashboards.annotate(
-                favorites_count=Count("dashboardfavoriteuser", distinct=True)
+                favorites_count=Count(
+                    "dashboardfavoriteuser",
+                    filter=Q(dashboardfavoriteuser__favorited=True),
+                    distinct=True,
+                )
             )
             order_by = [
                 "favorites_count" if desc else "-favorites_count",
@@ -506,7 +517,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                dashboard=OuterRef("pk"), user_id=request.user.id
+                dashboard=OuterRef("pk"), user_id=request.user.id, favorited=True
             )
 
             order_by_favorites = [

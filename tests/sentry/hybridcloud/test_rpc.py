@@ -56,7 +56,7 @@ class RpcServiceTest(TestCase):
                 defaults={
                     "slug": organization.slug,
                     "name": organization.name,
-                    "region_name": target_region.name,
+                    "cell_name": target_region.name,
                 },
             )
 
