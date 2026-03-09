@@ -32,7 +32,7 @@ function AlertHeader({activeTab}: Props) {
   const handleNavigateToSettings = (e: React.MouseEvent) => {
     e.preventDefault();
     navigateTo(`/settings/${organization.slug}/projects/:projectId/alerts/`, {
-      push: path => navigate(path),
+      push: (path: Parameters<typeof navigate>[0]) => navigate(path),
       location,
     } as any);
   };
