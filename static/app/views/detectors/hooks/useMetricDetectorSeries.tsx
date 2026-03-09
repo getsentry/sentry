@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {
+  getAggregateAlias,
+  type AggregationOutputType,
+} from 'sentry/utils/discover/fields';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -124,8 +127,12 @@ export function useMetricDetectorSeries({
 
   // Extract unit and type metadata from the API response meta field
   if (data && 'meta' in data) {
-    const unit = data.meta?.units?.[aggregate] ?? null;
-    const outputType = data.meta?.fields?.[aggregate];
+    const unit =
+      data.meta?.units?.[aggregate] ??
+      data.meta?.units?.[getAggregateAlias(aggregate)] ??
+      null;
+    const outputType =
+      data.meta?.fields?.[aggregate] ?? data.meta?.fields?.[getAggregateAlias(aggregate)];
     return {series, comparisonSeries, isLoading, error, unit, outputType};
   }
 
