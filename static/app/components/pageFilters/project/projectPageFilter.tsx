@@ -500,10 +500,10 @@ export function ProjectPageFilter({
     });
     // Committing the selection immediately causes the UI to block th thread (we update QS which rerenders the entire app)
     // This is a workaround to ensure the UI is responsive and that the menu closes immediately after a user action
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       clearDraftSelectionState();
       commitSelection(stagedSelect.value);
-    });
+    }, 0);
   };
 
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
