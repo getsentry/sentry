@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.testutils.cases import BaseOccurrenceTestCase
+from sentry.testutils.cases import OccurrenceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
@@ -20,7 +20,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsTimeseriesOccurrencesEndpointTest(
-    OrganizationEventsEndpointTestBase, BaseOccurrenceTestCase
+    OrganizationEventsEndpointTestBase, OccurrenceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-timeseries"
     callsite_name = "api.events.endpoints"
@@ -48,23 +48,19 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
 
     def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
-        occurrence_and_groups = []
+        occurrences = []
         for hour, count in enumerate(event_counts):
-            occurrence_and_groups.extend(
+            occurrences.extend(
                 [
-                    self.create_occurrence(
-                        {
-                            "description": "foo",
-                            "sentry_tags": {"status": "success"},
-                            "timestamp": (
-                                self.start + timedelta(hours=hour, minutes=minute)
-                            ).timestamp(),
-                        },
+                    self.create_eap_occurrence(
+                        tags={"status": "success"},
+                        timestamp=self.start + timedelta(hours=hour, minutes=minute),
+                        attributes={"description": "foo"},
                     )
                     for minute in range(count)
                 ],
             )
-        self.store_eap_items([occurrence for occurrence, group in occurrence_and_groups])
+        self.store_eap_items(occurrences)
 
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}

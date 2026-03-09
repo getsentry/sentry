@@ -1,14 +1,14 @@
 import uuid
 
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.testutils.cases import BaseOccurrenceTestCase
+from sentry.testutils.cases import OccurrenceTestCase
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
 )
 
 
 class OrganizationEventsOccurrencesDatasetEndpointTest(
-    OrganizationEventsEndpointTestBase, BaseOccurrenceTestCase
+    OrganizationEventsEndpointTestBase, OccurrenceTestCase
 ):
     callsite_name = "api.events.endpoints"
 
@@ -18,11 +18,13 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
     def test_simple(self) -> None:
         event_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
-        occ, group = self.create_occurrence(
-            data={
-                "event_id": event_id,
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=trace_id,
+            attributes={
                 "fingerprint": ["group1"],
-                "contexts": {"trace": {"trace_id": trace_id}},
             },
             project=self.project,
         )
@@ -43,16 +45,18 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         row = response.data["data"][0]
         assert row["id"] == event_id
         assert row["trace"] == trace_id
-        assert row["group_id"] == group.group_id
+        assert row["group_id"] == group.id
 
     def test_group_id(self) -> None:
         event_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
-        occ, group = self.create_occurrence(
-            data={
-                "event_id": event_id,
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=trace_id,
+            attributes={
                 "fingerprint": ["group1"],
-                "contexts": {"trace": {"trace_id": trace_id}},
             },
             project=self.project,
         )
@@ -65,7 +69,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                 {
                     "field": ["count()"],
                     "statsPeriod": "1h",
-                    "query": f"project:{group.project.slug} group_id:{group.group_id}",
+                    "query": f"project:{group.project.slug} group_id:{group.id}",
                     "dataset": "occurrences",
                 }
             )
