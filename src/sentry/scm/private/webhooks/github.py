@@ -1,3 +1,5 @@
+from typing import Optional
+
 import msgspec
 
 from sentry.scm.types import (
@@ -82,7 +84,7 @@ class GitHubPullRequestBase(msgspec.Struct, gc=False):
 
 class GitHubPullRequestHead(msgspec.Struct, gc=False):
     ref: str
-    repo: "GitHubPullRequestRepo" | None
+    repo: Optional["GitHubPullRequestRepo"]
     sha: str
 
 
