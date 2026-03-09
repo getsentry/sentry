@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,7 +59,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
 
 const SeerLink = styled(Link)`
   display: inline-grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   grid-auto-flow: column;
   color: ${p => p.theme.tokens.content.primary};

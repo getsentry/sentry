@@ -93,7 +93,7 @@ const ButtonContent = styled('div')`
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ButtonTitle = styled('div')`
@@ -107,6 +107,6 @@ const ButtonSubtitle = styled('div')`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   height: auto;
 `;

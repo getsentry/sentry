@@ -18,10 +18,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -46,6 +45,7 @@ const DEFAULT_SCHEDULE_CONFIG = {
 
 export default function MonitorCreateForm() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -73,7 +73,7 @@ export default function MonitorCreateForm() {
         environment: selection.environments,
       },
     };
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
         query: endpointOptions.query,
@@ -248,7 +248,7 @@ const FieldContainer = styled('div')`
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
-  border-radius: 0 ${space(0.75)} ${space(0.75)} 0;
+  border-radius: 0 ${p => p.theme.space.sm} ${p => p.theme.space.sm} 0;
 
   ${p =>
     p.highlighted
@@ -260,13 +260,13 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
         `};
 
   &:first-child {
-    border-radius: ${space(0.75)} 0 0 ${space(0.75)};
+    border-radius: ${p => p.theme.space.sm} 0 0 ${p => p.theme.space.sm};
   }
 `;
 
 const ScheduleLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Label = styled('div')`
@@ -277,8 +277,8 @@ const Label = styled('div')`
 const SubHeading = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
   text-transform: uppercase;
 `;
 
@@ -290,7 +290,7 @@ const ScheduleOptions = styled('div')`
 const MultiColumnInput = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ProjectOwnerNameInputs = styled(MultiColumnInput)`

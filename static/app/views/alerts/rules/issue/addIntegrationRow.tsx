@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import Access from 'sentry/components/acl/access';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -72,7 +71,7 @@ const RowWrapper = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   justify-content: space-between;
   align-items: center;
-  padding: ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
 `;
 
 const NameHeader = styled('h6')`

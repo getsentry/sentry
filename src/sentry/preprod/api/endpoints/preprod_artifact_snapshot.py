@@ -16,7 +16,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.paginator import OffsetPaginator
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -52,7 +51,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "images": {
             "type": "object",
             "additionalProperties": ImageMetadata.schema(),
-            "maxProperties": 1000,
+            "maxProperties": 50000,
         },
         **VCS_SCHEMA_PROPERTIES,
     },
@@ -250,15 +249,15 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 duration_ms=int(duration.total_seconds() * 1000),
             )
 
-        def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
-            return SnapshotDetailsApiResponse(
+        return Response(
+            SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,
                 project_id=str(artifact.project_id),
                 comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
-                images=images,
+                images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),
@@ -266,20 +265,14 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 added_count=len(categorized.added),
                 removed=categorized.removed,
                 removed_count=len(categorized.removed),
+                renamed=categorized.renamed,
+                renamed_count=len(categorized.renamed),
                 unchanged=categorized.unchanged,
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
             ).dict()
-
-        return self.paginate(
-            request=request,
-            queryset=image_list,
-            paginator_cls=OffsetPaginator,
-            on_results=on_results,
-            default_per_page=20,
-            max_per_page=100,
         )
 
 

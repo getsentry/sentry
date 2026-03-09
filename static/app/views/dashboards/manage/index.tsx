@@ -26,7 +26,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -68,6 +67,7 @@ import {
 import TemplateCard from './templateCard';
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
+const SHOW_PREBUILT_KEY = 'dashboards-show-prebuilt';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
@@ -75,6 +75,11 @@ const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
+  return shouldShow === 'true' || shouldShow === null;
+}
+
+function shouldShowPrebuilt(): boolean {
+  const shouldShow = localStorage.getItem(SHOW_PREBUILT_KEY);
   return shouldShow === 'true' || shouldShow === null;
 }
 
@@ -139,10 +144,17 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
+  const hasPrebuiltDashboards = organization.features.includes(
+    'dashboards-prebuilt-insights-dashboards'
+  );
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
+  );
+  const [showPrebuilt, setShowPrebuiltLocal] = useLocalStorageState(
+    SHOW_PREBUILT_KEY,
+    shouldShowPrebuilt()
   );
   const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
     LAYOUT_KEY,
@@ -177,6 +189,7 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
+          ...(hasPrebuiltDashboards && !showPrebuilt ? {filter: 'excludePrebuilt'} : {}),
         },
       },
     ],
@@ -353,8 +366,15 @@ function ManageDashboards() {
       organization,
       show_templates: !showTemplates,
     });
-
     setShowTemplatesLocal(!showTemplates);
+  };
+
+  const togglePrebuilt = () => {
+    setShowPrebuiltLocal(!showPrebuilt);
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, cursor: undefined, [OWNED_CURSOR_KEY]: undefined},
+    });
   };
 
   function getQuery() {
@@ -578,14 +598,26 @@ function ManageDashboards() {
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <Grid flow="column" align="center" gap="lg">
-                      <TemplateSwitch>
-                        {t('Show Templates')}
-                        <Switch
-                          checked={showTemplates}
-                          size="lg"
-                          onChange={toggleTemplates}
-                        />
-                      </TemplateSwitch>
+                      {hasPrebuiltDashboards ? (
+                        <TemplateSwitch>
+                          {t('Show Sentry Built Dashboards')}
+                          <Switch
+                            checked={showPrebuilt}
+                            size="lg"
+                            onChange={togglePrebuilt}
+                          />
+                        </TemplateSwitch>
+                      ) : (
+                        <TemplateSwitch>
+                          {t('Show Templates')}
+                          <Switch
+                            checked={showTemplates}
+                            size="lg"
+                            onChange={toggleTemplates}
+                          />
+                        </TemplateSwitch>
+                      )}
+
                       <FeedbackButton />
                       <DashboardCreateLimitWrapper>
                         {({
@@ -635,7 +667,7 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main width="full">
-                    {showTemplates && renderTemplates()}
+                    {!hasPrebuiltDashboards && showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}
@@ -658,8 +690,8 @@ function ManageDashboards() {
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content max-content;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
@@ -671,15 +703,15 @@ const TemplateSwitch = styled('label')`
   font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: max-content;
   margin: 0;
 `;
 
 const TemplateContainer = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xs};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
@@ -691,7 +723,7 @@ const TemplateContainer = styled('div')`
 `;
 
 const PaginationRow = styled(Pagination)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 export default ManageDashboards;

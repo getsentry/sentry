@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -14,8 +13,9 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 interface WidgetBuilderGroupBySelectorProps {
@@ -30,7 +30,7 @@ function WidgetBuilderGroupBySelector({
 
   const organization = useOrganization();
 
-  const tags: TagCollection = useTags();
+  const tags = useTags();
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -38,9 +38,25 @@ function WidgetBuilderGroupBySelector({
   } else if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
     hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES;
   }
-  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'number',
+    hiddenKeys
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'string',
+    hiddenKeys
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'boolean',
+    hiddenKeys
+  );
 
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);

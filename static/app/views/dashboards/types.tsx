@@ -38,6 +38,7 @@ export enum DisplayType {
   WHEEL = 'wheel',
   CATEGORICAL_BAR = 'categorical_bar',
   AGENTS_TRACES_TABLE = 'agents_traces_table',
+  TEXT = 'text',
 }
 
 export enum WidgetType {

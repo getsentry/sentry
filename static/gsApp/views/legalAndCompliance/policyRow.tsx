@@ -10,7 +10,6 @@ import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -194,7 +193,7 @@ export function PolicyRow({
   return (
     <PanelItemPolicy>
       <div>
-        <PolicyTitle style={{marginBottom: showUpdated ? space(0.5) : 0}}>
+        <PolicyTitle style={{marginBottom: showUpdated ? theme.space.xs : 0}}>
           {policy.slug === 'terms' ? 'Terms of Service' : policy.name}
         </PolicyTitle>
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
@@ -241,7 +240,7 @@ const PolicyFrame = styled('iframe')`
   width: 100%;
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 3px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PolicySubtext = styled('div')`

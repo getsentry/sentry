@@ -4,7 +4,7 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.detector import Detector
 
-CACHE_TTL = 60 * 3  # 3 minutes
+CACHE_TTL = 60 * 20  # 20 minutes
 
 
 class _DetectorCacheKey(NamedTuple):

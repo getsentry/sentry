@@ -4,6 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
 import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
@@ -176,7 +177,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
     y: 5,
     w: 6,
     h: 3,
-    minH: 3,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -227,7 +228,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
     y: 8,
     w: 6,
     h: 3,
-    minH: 3,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 

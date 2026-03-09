@@ -29,6 +29,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
             "occurrences",
             "tracemetrics",
             "uptime_results",
+            "processing_errors",
             "profiles",
         }
         assert types_present == expected_types

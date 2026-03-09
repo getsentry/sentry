@@ -18,7 +18,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
@@ -139,10 +138,10 @@ export default function PluginConfig({
 }
 
 const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   padding-bottom: 0;
 `;

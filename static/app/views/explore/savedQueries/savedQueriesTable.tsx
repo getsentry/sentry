@@ -15,7 +15,6 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -414,6 +413,6 @@ const TableHeading = styled('h2')`
   justify-content: space-between;
   align-items: center;
   font-size: ${p => p.theme.font.size.xl};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.lg};
 `;

@@ -10,7 +10,6 @@ import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
@@ -216,23 +215,23 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StepHeader = styled('h5')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-left: -${space(4)};
+    margin-left: -${p => p.theme.space['3xl']};
   }
 `;
 
 const ContentIndent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    margin-left: ${space(4)};
+    margin-left: ${p => p.theme.space['3xl']};
   }
 `;

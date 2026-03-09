@@ -22,7 +22,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Panel from 'sentry/components/panels/panel';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -188,11 +187,11 @@ const Container = styled('div')`
   position: relative;
   overflow: hidden;
   min-height: 160px;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SplitContainer = styled(Panel)`
@@ -210,21 +209,21 @@ const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   object-fit: contain;
 `;
 
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -244,9 +243,9 @@ const SupportedSdkIconContainer = styled('div')`
 
 const ValueProp = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   ul {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 

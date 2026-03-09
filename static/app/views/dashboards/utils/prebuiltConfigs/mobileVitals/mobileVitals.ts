@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -328,7 +329,7 @@ const APP_START_TABLE: Widget = {
     x: 0,
     y: 2,
     w: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -378,7 +379,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
     x: 0,
     y: 8,
     w: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -422,7 +423,7 @@ const SCREEN_LOAD_TABLE: Widget = {
     x: 0,
     y: 5,
     w: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 

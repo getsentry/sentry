@@ -37,7 +37,6 @@ import {
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
@@ -533,7 +532,7 @@ const ClientSecret = styled('div')`
 `;
 
 const AddTokenHeader = styled('div')`
-  margin: -${space(1)} 0;
+  margin: -${p => p.theme.space.md} 0;
   display: flex;
   justify-content: flex-end;
 `;

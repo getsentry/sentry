@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 
@@ -164,13 +163,13 @@ const Card = styled('div')<{highlight?: boolean}>`
       ? p.theme.tokens.interactive.link.accent.active
       : p.theme.tokens.content.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 const Error = styled('div')`
   color: red;
 `;
 const SearchResults = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 const SuggestionCard = styled(Card)`
   &:hover {
