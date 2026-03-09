@@ -110,6 +110,8 @@ export enum IssueCategory {
   PREPROD = 'preprod',
 
   INSTRUMENTATION = 'instrumentation',
+
+  CONFIGURATION = 'configuration',
 }
 
 /**
@@ -127,6 +129,7 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.MOBILE,
   IssueCategory.FEEDBACK,
   IssueCategory.PREPROD,
+  IssueCategory.CONFIGURATION,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -147,6 +150,9 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
   [IssueCategory.INSTRUMENTATION]: t(
     'Improvements to your instrumentation and SDK usage.'
+  ),
+  [IssueCategory.CONFIGURATION]: t(
+    'Issues detected from SDK or tooling configuration problems.'
   ),
 };
 
@@ -202,6 +208,9 @@ export enum IssueType {
   PREPROD_STATIC = 'preprod_static',
   PREPROD_DELTA = 'preprod_delta',
   PREPROD_SIZE_ANALYSIS = 'preprod_size_analysis',
+
+  // Configuration
+  SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
