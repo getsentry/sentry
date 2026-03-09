@@ -67,20 +67,26 @@ class GitHubPullRequestEvent(msgspec.Struct, gc=False):
 class GitHubPullRequest(msgspec.Struct, gc=False):
     body: str | None
     head: "GitHubPullRequestHead"
-    base: "GitHubPullRequestHead"
+    base: "GitHubPullRequestBase"
     merge_commit_sha: str | None
     title: str
     user: GitHubUser
     merged: bool | None = None
 
 
-class GitHubPullRequestHead(msgspec.Struct, gc=False):
+class GitHubPullRequestBase(msgspec.Struct, gc=False):
     ref: str
-    repo: "GitHubPullRequestHeadRepo"
+    repo: "GitHubPullRequestRepo" | None
     sha: str
 
 
-class GitHubPullRequestHeadRepo(msgspec.Struct, gc=False):
+class GitHubPullRequestHead(msgspec.Struct, gc=False):
+    ref: str
+    repo: "GitHubPullRequestRepo"
+    sha: str
+
+
+class GitHubPullRequestRepo(msgspec.Struct, gc=False):
     private: bool
 
 
