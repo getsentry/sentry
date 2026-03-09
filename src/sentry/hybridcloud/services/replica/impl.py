@@ -34,6 +34,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.notifications.services import RpcExternalActor
@@ -282,6 +283,16 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 
+    def delete_project_key(self, *, project_key_id: int, cell_name: str) -> None:
+        """
+        Delete a ProjectKey in the cell to restore consistent state.
+
+        Called by the control silo when a ProjectKey cannot be synced to control, for example
+        if the public_key is a duplicate of another.
+        """
+        # TODO(cells): implement delete back to restore consistent state
+        pass
+
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
@@ -327,11 +338,11 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_project_key_mapping(
         self, *, project_key_id: int, public_key: str, cell_name: str
     ) -> None:
-        from sentry.models.projectkeymapping import ProjectKeyMapping
-
         # We lookup on (project_key_id, cell_name) rather than public_key because
         # public_key can be reassigned (e.g. during relocation). This ensures the
         # old mapping does not get orphaned in the control silo.
+
+        # TODO(cells): handle conflicting public_key unique constraint here
         with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
             rows_updated = ProjectKeyMapping.objects.filter(
                 project_key_id=project_key_id, cell_name=cell_name
@@ -345,8 +356,6 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
                 )
 
     def delete_project_key_mapping(self, *, public_key: str) -> None:
-        from sentry.models.projectkeymapping import ProjectKeyMapping
-
         ProjectKeyMapping.objects.filter(public_key=public_key).delete()
 
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
