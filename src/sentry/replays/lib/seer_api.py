@@ -10,7 +10,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_
 # Shared connection pool for replay AI usecases. No timeout or retries by default, but requests can override these params.
 seer_summarization_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
-    timeout=None,
+    timeout=5,
     retries=0,
     maxsize=20,  # Max persisted connections. If the number of concurrent requests exceeds this, temporary connections are created.
 )
