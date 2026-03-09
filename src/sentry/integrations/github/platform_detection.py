@@ -1153,9 +1153,12 @@ def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatfor
     """Remove platforms that are superseded by more specific ones.
 
     e.g. if Next.js is detected, React is redundant since Next.js includes it.
+    Non-selectable platforms (like php-wordpress) are excluded from superseding
+    because they will be filtered out later, which would drop valid detections.
     """
     detected = {r["platform"] for r in results}
-    superseded = {child for pid in detected for child in _SUPERSESSION_MAP.get(pid, [])}
+    selectable = detected - _NON_SELECTABLE_PLATFORMS
+    superseded = {child for pid in selectable for child in _SUPERSESSION_MAP.get(pid, [])}
     return [r for r in results if r["platform"] not in superseded]
 
 

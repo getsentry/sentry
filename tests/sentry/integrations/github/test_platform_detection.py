@@ -1459,6 +1459,28 @@ class TestDetectPlatforms:
         assert "php-wordpress" not in platforms
         assert "php" in platforms
 
+    def test_wordpress_does_not_supersede_symfony(self) -> None:
+        """Non-selectable platforms should not supersede selectable ones."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"PHP": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "wp-config.php", "type": "file"}]
+            if "composer.json" in path:
+                return _make_b64_response(
+                    json.dumps({"require": {"symfony/framework-bundle": "^6.0"}})
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "php-wordpress" not in platforms
+        assert "php-symfony" in platforms
+
     def test_ruby_rack_detected_from_gemfile(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"Ruby": 50000}
