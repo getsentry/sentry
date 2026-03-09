@@ -38,7 +38,7 @@ export default Storybook.story('TextWidgetVisualization', story => {
     return (
       <Fragment>
         <p>
-          When the <code>text</code> prop is notprovided (or an empty string is passed),{' '}
+          When the <code>text</code> prop is not provided (or an empty string is passed),{' '}
           <Storybook.JSXNode name="TextWidgetVisualization" /> renders a centered em dash
           placeholder.
         </p>
