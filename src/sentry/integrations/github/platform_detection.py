@@ -7,6 +7,8 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+from yaml import YAMLError
+
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.yaml import safe_load
@@ -983,7 +985,7 @@ def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifes
             return _parse_gemfile(content)
         elif manifest_file == "go.mod":
             return _parse_go_mod(content)
-    except Exception:
+    except (json.JSONDecodeError, YAMLError, ValueError, KeyError, TypeError, AttributeError):
         pass
     return None
 
@@ -1027,7 +1029,7 @@ def _parse_go_mod(content: str) -> _PackageManifest:
         stripped = line.strip()
         if not stripped or stripped.startswith("//"):
             continue
-        if stripped.startswith("require ("):
+        if stripped.startswith("require (") or stripped.startswith("require("):
             in_require = True
             continue
         if in_require:
