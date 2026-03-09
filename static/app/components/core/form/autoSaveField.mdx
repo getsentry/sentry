@@ -119,9 +119,25 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
 > [!NOTE]
 > Confirmation dialogs always focus the Cancel button for safety, preventing accidental confirmation of dangerous operations.
 
+## Typing Mutations
+
+Type the `mutationFn` with the API's data type, **not** the zod schema type. The schema is for client-side field validation only — the mutation should accept whatever the API endpoint accepts.
+
+```jsx
+// ❌ Don't tie mutation type to the zod schema
+mutationFn: (data: Partial<z.infer<typeof schema>>) =>
+  fetchMutation({url: '/user/', method: 'PUT', data})
+
+// ✅ Use the API's data type
+mutationFn: (data: Partial<UserDetails>) =>
+  fetchMutation({url: '/user/', method: 'PUT', data})
+```
+
+Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
+
 ## Cache Updates
 
-Always update the React Query cache (or invalidate it with `invalidateQueries`) in `onSuccess` so the UI stays in sync:
+Always update the data store or React Query cache in `onSuccess` so the UI stays in sync. This is critical for `AutoSaveField` — without it, toggling a field back to its original value won't trigger a save, because TanStack Form compares against `defaultValues` (derived from `initialValue`) to determine if the value has changed.
 
 ```jsx
 mutationOptions={{
