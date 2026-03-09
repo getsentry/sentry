@@ -433,6 +433,7 @@ def get_tags(
             - scm_owner: The repository owner/organization name
             - scm_provider: Always "github"
             - scm_repo_full_name: The repository full name (owner/repo)
+            - scm_repo_is_private: Whether the repo is private (if available)
             - scm_repo_name: The repository name
             - sentry_integration_id: The Sentry integration ID
             - sentry_organization_id: Sentry organization ID (if available)
@@ -456,6 +457,8 @@ def get_tags(
             result["scm_repo_name"] = repo_name
         if owner_repo_name := repository.get("full_name"):
             result["scm_repo_full_name"] = owner_repo_name
+        if (repo_private := repository.get("private")) is not None:
+            result["scm_repo_is_private"] = str(repo_private)
 
     github_event_action = event.get("action")
     if github_event_action:
