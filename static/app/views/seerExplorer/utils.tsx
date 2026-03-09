@@ -115,27 +115,39 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_issue_details: (args, isLoading) => {
-    const {issue_id, event_id, start, end} = args;
+    const {short_id, issue_id, start, end} = args;
 
-    if (issue_id) {
+    if (short_id || issue_id) {
       if (start && end) {
         return isLoading
-          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
-          : `Inspected issue ${issue_id} between ${start} to ${end}`;
+          ? `Inspecting issue ${short_id || issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${short_id || issue_id} between ${start} to ${end}`;
       }
       return isLoading
-        ? `Inspecting issue ${issue_id}...`
-        : `Inspected issue ${issue_id}`;
+        ? `Inspecting issue ${short_id || issue_id}...`
+        : `Inspected issue ${short_id || issue_id}`;
     }
-
-    if (event_id) {
-      return isLoading
-        ? `Inspecting event ${event_id.slice(0, 8)}...`
-        : `Inspected event ${event_id.slice(0, 8)}`;
-    }
-
-    // Should not happen unless there's a bug.
     return isLoading ? `Inspecting issue...` : `Inspected issue`;
+  },
+
+  get_event_details: (args, isLoading) => {
+    const {selected_event, issue_id, start, end} = args;
+    if (selected_event) {
+      if (selected_event === 'recommended' && issue_id) {
+        if (start && end) {
+          return isLoading
+            ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
+            : `Inspected recommended event for issue ${issue_id} between ${start} to ${end}`;
+        }
+        return isLoading
+          ? `Inspecting recommended event for issue ${issue_id}...`
+          : `Inspected recommended event for issue ${issue_id}`;
+      }
+      return isLoading
+        ? `Inspecting event ${selected_event.slice(0, 8)}...`
+        : `Inspected event ${selected_event.slice(0, 8)}`;
+    }
+    return isLoading ? `Inspecting event...` : `Inspected event`;
   },
 
   code_search: (args, isLoading) => {
@@ -468,6 +480,11 @@ export function toggleSeerExplorerPanel(): void {
   document.dispatchEvent(keyboardEvent);
 }
 
+function validateIso(val: unknown): string | undefined {
+  const d = new Date(val as string);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 /**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
@@ -634,10 +651,27 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_issue_details': {
-      const {event_id, issue_id} = toolLink.params;
+      const {issue_id, start, end} = toolLink.params;
+
+      if (issue_id) {
+        const query = {
+          start: validateIso(start),
+          end: validateIso(end),
+        };
+        return {pathname: `/issues/${issue_id}/`, query};
+      }
+
+      return null;
+    }
+    case 'get_event_details': {
+      const {event_id, issue_id, start, end} = toolLink.params;
 
       if (event_id && issue_id) {
-        return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+        const query = {
+          start: validateIso(start),
+          end: validateIso(end),
+        };
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
       }
 
       return null;
