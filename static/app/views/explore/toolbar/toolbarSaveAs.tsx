@@ -67,7 +67,10 @@ export function ToolbarSaveAs() {
   const mode = useQueryParamsMode();
   const id = useQueryParamsId();
 
-  const visualizeFunctions = visualizes.filter(isVisualizeFunction);
+  const visualizeFunctions = useMemo(
+    () => visualizes.filter(isVisualizeFunction),
+    [visualizes]
+  );
   const visualizeYAxes = useMemo(
     () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
     [visualizeFunctions]
