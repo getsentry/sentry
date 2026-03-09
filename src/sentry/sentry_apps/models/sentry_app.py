@@ -44,6 +44,7 @@ REQUIRED_EVENT_PERMISSIONS = {
     "organization": "org:read",
     "team": "team:read",
     "comment": "event:read",
+    "size_analysis": "project:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
