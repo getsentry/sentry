@@ -20,8 +20,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useLocation from 'sentry/utils/useLocation';
-import useNavigate from 'sentry/utils/useNavigate';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
 import {NOTIFICATION_SETTING_FIELDS} from './fields';
