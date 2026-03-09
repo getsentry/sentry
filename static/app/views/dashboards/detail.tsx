@@ -1248,7 +1248,6 @@ class DashboardDetail extends Component<Props, State> {
                                   onNewWidgetScrollComplete={
                                     this.handleScrollToNewWidgetComplete
                                   }
-                                  useTimeseriesVisualization={useTimeseriesVisualization}
                                   widgetInterval={this.props.widgetInterval}
                                 />
                               </WidgetQueryQueueProvider>
