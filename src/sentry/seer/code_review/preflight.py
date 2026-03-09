@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 
-from sentry import features, quotas
+from sentry import features, options, quotas
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
@@ -31,6 +31,7 @@ class PreflightDenialReason(StrEnum):
     BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
     BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
     ORG_CONTRIBUTOR_NOT_FOUND = "org_contributor_not_found"
+    PR_AUTHOR_EXCLUDED = "pr_author_excluded"
 
 
 @dataclass
@@ -130,13 +131,6 @@ class CodeReviewPreflightService:
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
         """
-        # Code review beta and legacy usage-based plan orgs are exempt from quota checks
-        # as long as they haven't purchased the new seat-based plan
-        if not self._is_seat_based_seer_plan_org and (
-            self._is_code_review_beta_org or self._is_legacy_usage_based_seer_plan_org
-        ):
-            return None
-
         if self.integration_id is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
@@ -148,6 +142,19 @@ class CodeReviewPreflightService:
             )
         except OrganizationContributors.DoesNotExist:
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
+
+        # Excluded author check applies to all organization types
+        if contributor.alias and contributor.alias in options.get(
+            "seer.code-review.excluded-pr-author-logins"
+        ):
+            return PreflightDenialReason.PR_AUTHOR_EXCLUDED
+
+        # Code review beta and legacy usage-based plan orgs are exempt from quota checks
+        # as long as they haven't purchased the new seat-based plan
+        if not self._is_seat_based_seer_plan_org and (
+            self._is_code_review_beta_org or self._is_legacy_usage_based_seer_plan_org
+        ):
+            return None
 
         has_quota = quotas.backend.check_seer_quota(
             org_id=self.organization.id,
