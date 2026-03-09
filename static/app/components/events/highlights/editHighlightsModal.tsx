@@ -529,7 +529,7 @@ const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
-  margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
+  margin: ${p => (p.extraMargin ? p.theme.space['2xl'] : 0)} 0;
 `;
 
 const EditHighlightSection = styled('div')`

@@ -15,7 +15,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -218,7 +217,7 @@ const StyledPanelTable = styled(PanelTable)`
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;

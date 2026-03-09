@@ -98,7 +98,7 @@ const Icon = styled('div')`
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`
-  margin-top: ${p => (p.isNarrow ? '0' : space(4))};
+  margin-top: ${p => (p.isNarrow ? '0' : p.theme.space['3xl'])};
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<

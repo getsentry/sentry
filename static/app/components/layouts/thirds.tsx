@@ -14,7 +14,7 @@ export const Page = styled('main')<{withPadding?: boolean}>`
   display: flex;
   flex-direction: column;
   flex: 1;
-  ${p => p.withPadding && `padding: ${space(3)} ${space(4)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
 `;
 
 /**
@@ -139,14 +139,17 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
+    padding: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${p.theme.space['2xl']}` : `${p.theme.space['2xl']}`)};
   }
 `;
 

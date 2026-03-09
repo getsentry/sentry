@@ -17,7 +17,6 @@ import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithA
 import Placeholder from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -246,7 +245,7 @@ const ResourcesWrapper = styled('div')`
 
 const ResourcesContent = styled('div')`
   position: relative;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space[2]};
 `;
 
 const HeaderContainer = styled('div')`

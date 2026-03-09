@@ -59,8 +59,8 @@ export default BreakdownBars;
 const BreakdownGrid = styled('div')`
   display: grid;
   grid-template-columns: min-content auto;
-  column-gap: ${space(1)};
-  row-gap: ${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.md};
 `;
 
 const Percentage = styled('div')`

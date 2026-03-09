@@ -29,7 +29,6 @@ import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -708,7 +707,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.tokens.content.secondary};
     font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.space.md} ${p.space.xl};
     border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
     font-size: ${p.theme.font.size.sm};
@@ -732,7 +731,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
-    margin-right: ${space(1)};
+    margin-right: ${p.space.md};
     display: block;
     width: 100%;
     white-space: nowrap;
@@ -772,7 +771,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
-    gap: ${space(3)};
+    gap: ${p.space['2xl']};
   }
 
   .tooltip-footer-centered {

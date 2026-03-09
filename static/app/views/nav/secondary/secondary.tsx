@@ -284,7 +284,7 @@ const Body = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
-      padding: 0 0 ${space(1)} 0;
+      padding: 0 0 ${p.theme.space.md} 0;
     `}
 `;
 
@@ -292,7 +292,7 @@ const Section = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.SIDEBAR &&
     css`
-      padding: 0 ${space(1)};
+      padding: 0 ${p.theme.space.md};
     `}
 
   &:first-child {
@@ -440,6 +440,6 @@ const Footer = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
-      padding: ${space(1)} 0;
+      padding: ${p.theme.space.md} 0;
     `}
 `;

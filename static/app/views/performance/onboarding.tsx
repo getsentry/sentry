@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -60,7 +61,6 @@ import OnboardingDrawerStore, {
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -414,6 +414,7 @@ const STEP_TITLES: Record<StepType, string> = {
 };
 
 export function Onboarding({organization, project}: OnboardingProps) {
+  const theme = useTheme();
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
@@ -613,7 +614,10 @@ export function Onboarding({organization, project}: OnboardingProps) {
               }
             >
               <StepIndexProvider index={index}>
-                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+                <ContentBlocksRenderer
+                  spacing={theme.space.md}
+                  contentBlocks={step.content}
+                />
               </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <Fragment>
@@ -682,7 +686,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -699,7 +703,7 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
 `;
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -710,19 +714,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -734,7 +738,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -747,7 +751,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -785,7 +789,7 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
