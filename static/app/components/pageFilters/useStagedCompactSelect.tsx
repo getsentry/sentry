@@ -30,7 +30,8 @@ type StagedSelectAction<Value extends SelectKey> =
   | {type: 'remove staged'}
   | {type: 'clear anchor'}
   | {search: string; type: 'set search'}
-  | {type: 'reset anchor'};
+  | {type: 'reset anchor'}
+  | {type: 'set staged'; value: Value[]};
 
 function getFlatOptions<Value extends SelectKey>(
   opts: Array<SelectOptionOrSection<Value>>
@@ -115,6 +116,8 @@ function stagingReducer<Value extends SelectKey>(
     }
     case 'remove staged':
       return {...state, stagedValue: null};
+    case 'set staged':
+      return {...state, stagedValue: action.value, lastSelected: null};
     case 'clear anchor':
       return {...state, lastSelected: null};
     case 'set search':
@@ -131,6 +134,7 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   options: Array<SelectOptionOrSection<Value>>;
   value: Value[];
   disableCommit?: boolean;
+  filterOptionsOnSearch?: (option: SelectOption<Value>, search: string) => boolean;
   hasExternalChanges?: boolean;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
@@ -169,6 +173,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   options,
   onStagedValueChange,
   onToggle,
+  filterOptionsOnSearch,
   onReplace,
   onSectionToggle,
   multiple,
@@ -327,6 +332,14 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   );
 
   const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
+    const searchIsActive = state.currentSearch.trim().length > 0;
+    const shouldIncludeOption = (option: SelectOption<Value>) => {
+      if (!searchIsActive || !filterOptionsOnSearch) {
+        return true;
+      }
+      return filterOptionsOnSearch(option, state.currentSearch);
+    };
+
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
@@ -371,12 +384,24 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       },
     });
 
-    return options.map(item =>
-      'options' in item
-        ? {...item, options: item.options.map(mapOption)}
-        : mapOption(item)
-    );
-  }, [options]);
+    return options.flatMap<SelectOptionOrSection<Value>>(item => {
+      if ('options' in item) {
+        const mappedSectionOptions = item.options
+          .filter(shouldIncludeOption)
+          .map(mapOption);
+        if (mappedSectionOptions.length === 0) {
+          return [];
+        }
+        return [{...item, options: mappedSectionOptions}];
+      }
+
+      if (!shouldIncludeOption(item)) {
+        return [];
+      }
+
+      return [mapOption(item)];
+    });
+  }, [filterOptionsOnSearch, options, state.currentSearch]);
 
   const [modifierActive, setModifierActive] = useState(false);
 
