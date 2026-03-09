@@ -833,12 +833,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ]
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(
-                "sentry:preprod_distribution_pr_comments_enabled",
+                "sentry:preprod_distribution_pr_comments_enabled_by_customer",
                 result["preprodDistributionPrCommentsEnabledByCustomer"],
             ):
-                changed_proj_settings["sentry:preprod_distribution_pr_comments_enabled"] = result[
-                    "preprodDistributionPrCommentsEnabledByCustomer"
-                ]
+                changed_proj_settings[
+                    "sentry:preprod_distribution_pr_comments_enabled_by_customer"
+                ] = result["preprodDistributionPrCommentsEnabledByCustomer"]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")

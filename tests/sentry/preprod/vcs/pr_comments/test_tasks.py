@@ -205,7 +205,9 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     def test_skips_when_project_option_disabled(self, mock_get_client):
-        self.project.update_option("sentry:preprod_distribution_pr_comments_enabled", False)
+        self.project.update_option(
+            "sentry:preprod_distribution_pr_comments_enabled_by_customer", False
+        )
         artifact = self._create_artifact()
 
         with self.feature(self._pr_comment_feature):
