@@ -5,9 +5,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  type RootCauseArtifactData,
-  type SolutionArtifactData,
-} from 'sentry/components/events/autofix/types';
+  type RootCauseArtifact,
+  type SolutionArtifact,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/seerExplorer/types';
 
 interface RootCausePreviewProps {
-  artifact: Artifact<RootCauseArtifactData>;
+  artifact: Artifact<RootCauseArtifact>;
 }
 
 export function RootCausePreview({artifact}: RootCausePreviewProps) {
@@ -32,7 +32,7 @@ export function RootCausePreview({artifact}: RootCausePreviewProps) {
 }
 
 interface SolutionPreviewProps {
-  artifact: Artifact<SolutionArtifactData>;
+  artifact: Artifact<SolutionArtifact>;
 }
 
 export function SolutionPreview({artifact}: SolutionPreviewProps) {
