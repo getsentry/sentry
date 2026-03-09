@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
@@ -109,7 +110,7 @@ export function useMutateSelectedAgent({
             automation_handoff: integration
               ? {
                   handoff_point: 'root_cause',
-                  target: 'cursor_background_agent',
+                  target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
                   integration_id: Number(integration.id),
                   auto_create_pr: preference?.automated_run_stopping_point === 'open_pr',
                 }

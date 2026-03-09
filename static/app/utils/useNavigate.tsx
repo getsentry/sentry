@@ -2,8 +2,6 @@ import {useCallback} from 'react';
 import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
 
 type NavigateOptions = {
@@ -32,8 +30,7 @@ export function useNavigate(): ReactRouter3Navigate {
         return router6Navigate(to);
       }
 
-      const normalizedTo = normalizeUrl(to);
-      return router6Navigate(locationDescriptorToTo(normalizedTo), options);
+      return router6Navigate(locationDescriptorToTo(to), options);
     },
     [router6Navigate]
   );

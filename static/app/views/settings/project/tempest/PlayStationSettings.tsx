@@ -120,7 +120,6 @@ export default function PlayStationSettings({organization, project}: Props) {
                 size="sm"
                 onClick={() => {
                   navigate({
-                    pathname: location.pathname,
                     query: {
                       ...location.query,
                       setupInstructions: !isSetupInstructionsOpen,

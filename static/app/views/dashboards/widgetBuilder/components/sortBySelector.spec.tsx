@@ -253,11 +253,7 @@ describe('WidgetBuilderSortBySelector', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const organizationWithFlag = OrganizationFixture({
-      features: [
-        'open-membership',
-        'visibility-explore-view',
-        'visibility-explore-equations',
-      ],
+      features: ['open-membership', 'visibility-explore-view'],
     });
 
     render(
@@ -396,11 +392,7 @@ describe('WidgetBuilderSortBySelector', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const organizationWithFlag = OrganizationFixture({
-      features: [
-        'open-membership',
-        'visibility-explore-view',
-        'visibility-explore-equations',
-      ],
+      features: ['open-membership', 'visibility-explore-view'],
     });
 
     render(

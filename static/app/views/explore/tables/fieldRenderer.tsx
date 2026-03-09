@@ -279,7 +279,7 @@ function BaseExploreFieldRenderer({
       rendered = <Link to={target}>{rendered}</Link>;
     }
 
-    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+    if (field === 'id') {
       return rendered;
     }
   }
