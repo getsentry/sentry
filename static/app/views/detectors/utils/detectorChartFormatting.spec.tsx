@@ -1,3 +1,5 @@
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+
 import {getDetectorChartFormatters} from './detectorChartFormatting';
 
 describe('getDetectorChartFormatters', () => {
@@ -60,7 +62,7 @@ describe('getDetectorChartFormatters', () => {
       expect(result.outputType).toBe('duration');
     });
 
-    it('formats duration tooltip using the server-provided unit', () => {
+    it('formats duration tooltip and axis using the server-provided unit', () => {
       const result = getDetectorChartFormatters({
         detectionType: 'static',
         aggregate: 'avg(value)',
@@ -68,80 +70,29 @@ describe('getDetectorChartFormatters', () => {
         unit: 'day',
       });
 
-      // value=5 with unit=day should display as "5.00d", not "5.00ms"
       expect(result.formatTooltipValue(5)).toBe('5.00d');
-    });
-
-    it('formats duration axis label using the server-provided unit', () => {
-      const result = getDetectorChartFormatters({
-        detectionType: 'static',
-        aggregate: 'avg(value)',
-        serverOutputType: 'duration',
-        unit: 'day',
-      });
-
-      // value=5 with unit=day should display as "5d" on axis
       expect(result.formatYAxisLabel(5)).toBe('5d');
     });
 
-    it('formats duration in hours correctly', () => {
-      const result = getDetectorChartFormatters({
-        detectionType: 'static',
-        aggregate: 'avg(value)',
-        serverOutputType: 'duration',
-        unit: 'hour',
-      });
+    it.each([
+      ['duration', 'hour', 2, '2.00hr', '2hr'],
+      ['duration', 'second', 30, '30.00s', '30s'],
+      ['size', 'kibibyte', 5, '5.0 KiB', '5 KiB'],
+      ['rate', '1/second', 100, '100/s', '100/s'],
+    ])(
+      'formats %s outputType with %s unit correctly',
+      (outputType, unit, value, expectedTooltip, expectedYAxis): void => {
+        const result = getDetectorChartFormatters({
+          detectionType: 'static',
+          aggregate: 'avg(value)',
+          serverOutputType: outputType as AggregationOutputType,
+          unit,
+        });
 
-      expect(result.formatTooltipValue(2)).toBe('2.00hr');
-      expect(result.formatYAxisLabel(2)).toBe('2hr');
-    });
-
-    it('formats duration in seconds correctly', () => {
-      const result = getDetectorChartFormatters({
-        detectionType: 'static',
-        aggregate: 'avg(value)',
-        serverOutputType: 'duration',
-        unit: 'second',
-      });
-
-      expect(result.formatTooltipValue(30)).toBe('30.00s');
-      expect(result.formatYAxisLabel(30)).toBe('30s');
-    });
-
-    it('formats size tooltip using the server-provided unit', () => {
-      const result = getDetectorChartFormatters({
-        detectionType: 'static',
-        aggregate: 'avg(number)',
-        serverOutputType: 'size',
-        unit: 'kibibyte',
-      });
-
-      // value=5 with unit=kibibyte → 5 KiB
-      expect(result.formatTooltipValue(5)).toBe('5.0 KiB');
-    });
-
-    it('formats size axis label using the server-provided unit', () => {
-      const result = getDetectorChartFormatters({
-        detectionType: 'static',
-        aggregate: 'avg(value)',
-        serverOutputType: 'size',
-        unit: 'kibibyte',
-      });
-
-      expect(result.formatYAxisLabel(5)).toBe('5 KiB');
-    });
-
-    it('formats rate using the server-provided unit', () => {
-      const result = getDetectorChartFormatters({
-        detectionType: 'static',
-        aggregate: 'avg(value)',
-        serverOutputType: 'rate',
-        unit: '1/second',
-      });
-
-      expect(result.formatTooltipValue(100)).toBe('100/s');
-      expect(result.formatYAxisLabel(100)).toBe('100/s');
-    });
+        expect(result.formatTooltipValue(value)).toBe(expectedTooltip);
+        expect(result.formatYAxisLabel(value)).toBe(expectedYAxis);
+      }
+    );
 
     it('falls back to client inference when no server type is provided', () => {
       // avg(transaction.duration) would be inferred as 'duration' by client

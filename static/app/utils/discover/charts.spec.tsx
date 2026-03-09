@@ -61,45 +61,25 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
     );
   });
 
-  it('converts duration values from the provided unit to display correctly', () => {
-    // 5 days reported as value=5 with unit=day should display as "5.00d"
-    expect(
-      tooltipFormatterUsingAggregateOutputType(5, 'duration', DurationUnit.DAY)
-    ).toBe('5.00d');
-
-    // 2 hours reported as value=2 with unit=hour should display as "2.00hr"
-    expect(
-      tooltipFormatterUsingAggregateOutputType(2, 'duration', DurationUnit.HOUR)
-    ).toBe('2.00hr');
-
-    // 30 seconds reported as value=30 with unit=second should display as "30.00s"
-    expect(
-      tooltipFormatterUsingAggregateOutputType(30, 'duration', DurationUnit.SECOND)
-    ).toBe('30.00s');
-
-    // 500 milliseconds reported as value=500 with unit=millisecond (default) should display as "500.00ms"
-    expect(
-      tooltipFormatterUsingAggregateOutputType(500, 'duration', DurationUnit.MILLISECOND)
-    ).toBe('500.00ms');
-  });
+  it.each([
+    [5, 'duration', DurationUnit.DAY, '5.00d'],
+    [2, 'duration', DurationUnit.HOUR, '2.00hr'],
+    [30, 'duration', DurationUnit.SECOND, '30.00s'],
+    [500, 'duration', DurationUnit.MILLISECOND, '500.00ms'],
+    [5, 'size', SizeUnit.KIBIBYTE, '5.0 KiB'],
+    [2, 'size', SizeUnit.MEGABYTE, '2 MB'],
+  ])(
+    'converts raw value=%d with type=%s and unit=%s to %s',
+    (value, type, unit, expected) => {
+      expect(tooltipFormatterUsingAggregateOutputType(value, type, unit)).toBe(expected);
+    }
+  );
 
   it('defaults to milliseconds when no duration unit is provided', () => {
     // Without a unit, 500 should be treated as 500ms
     expect(tooltipFormatterUsingAggregateOutputType(500, 'duration')).toBe('500.00ms');
     // 86400000ms = 1 day
     expect(tooltipFormatterUsingAggregateOutputType(86400000, 'duration')).toBe('1.00d');
-  });
-
-  it('converts size values from the provided unit', () => {
-    // 5 kibibytes reported as value=5 with unit=kibibyte
-    expect(tooltipFormatterUsingAggregateOutputType(5, 'size', SizeUnit.KIBIBYTE)).toBe(
-      '5.0 KiB'
-    );
-
-    // 2 megabytes reported as value=2 with unit=megabyte (base 10)
-    expect(tooltipFormatterUsingAggregateOutputType(2, 'size', SizeUnit.MEGABYTE)).toBe(
-      '2 MB'
-    );
   });
 });
 
@@ -197,45 +177,22 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
     ).toBe('1 KB');
   });
 
-  it('converts duration values using the data unit passed via sizeUnit', () => {
-    // value=5 with unit=day → 5 * 86400000ms = 432000000ms → "5d"
+  it.each([
+    [5, DurationUnit.DAY, '5d'],
+    [2, DurationUnit.HOUR, '2hr'],
+    [90, DurationUnit.SECOND, '2min'],
+  ])('converts %d value with %s unit to %s', (value, unit, expected) => {
     expect(
       axisLabelFormatterUsingAggregateOutputType(
-        5,
+        value,
         'duration',
         true,
         undefined,
         undefined,
         0,
-        DurationUnit.DAY
+        unit
       )
-    ).toBe('5d');
-
-    // value=2 with unit=hour → 2 * 3600000ms = 7200000ms → "2hr"
-    expect(
-      axisLabelFormatterUsingAggregateOutputType(
-        2,
-        'duration',
-        true,
-        undefined,
-        undefined,
-        0,
-        DurationUnit.HOUR
-      )
-    ).toBe('2hr');
-
-    // value=90 with unit=second → 90 * 1000ms = 90000ms → "2min" (auto-categorized)
-    expect(
-      axisLabelFormatterUsingAggregateOutputType(
-        90,
-        'duration',
-        true,
-        undefined,
-        undefined,
-        0,
-        DurationUnit.SECOND
-      )
-    ).toBe('2min');
+    ).toBe(expected);
   });
 
   it('converts size values using the data unit passed via sizeUnit', () => {
