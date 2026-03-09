@@ -54,14 +54,6 @@ export function IssuesSecondaryNav() {
           >
             {t('User Feedback')}
           </SecondaryNav.Item>
-          {organization.features.includes('issue-sourcemap-configuration-visible') && (
-            <SecondaryNav.Item
-              to={`${baseUrl}/configuration/`}
-              analyticsItemName="issues_configuration"
-            >
-              {t('Configuration Issues')}
-            </SecondaryNav.Item>
-          )}
           {organization.features.includes('seer-autopilot') && (
             <SecondaryNav.Item
               to={`${baseUrl}/instrumentation/`}
