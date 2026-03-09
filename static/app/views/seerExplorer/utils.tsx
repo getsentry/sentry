@@ -481,7 +481,10 @@ export function toggleSeerExplorerPanel(): void {
 }
 
 function validateIso(val: unknown): string | undefined {
-  const d = new Date(val as string);
+  if (!val || typeof val !== 'string') {
+    return undefined;
+  }
+  const d = new Date(val);
   return isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
