@@ -145,6 +145,7 @@ def _build_comparison_data(
             head_size_analysis=main_metric,
         )
         .select_related("base_size_analysis", "base_size_analysis__preprod_artifact")
+        .order_by("-date_added")
         .first()
     )
 
