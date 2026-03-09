@@ -1062,52 +1062,6 @@ class BaseTestProvider(Provider):
             meta={},
         )
 
-    def create_review_comment_line(
-        self,
-        pull_request_id: str,
-        commit_id: str,
-        body: str,
-        path: str,
-        line: int,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        raw = make_github_review_comment(body=body, path=path)
-        return ActionResult(
-            data=ReviewComment(
-                id=str(raw["id"]),
-                html_url=raw["html_url"],
-                path=raw["path"],
-                body=raw["body"],
-            ),
-            type="github",
-            raw=raw,
-            meta={},
-        )
-
-    def create_review_comment_multiline(
-        self,
-        pull_request_id: str,
-        commit_id: str,
-        body: str,
-        path: str,
-        start_line: int,
-        start_side: ReviewSide,
-        end_line: int,
-        end_side: ReviewSide,
-    ) -> ActionResult[ReviewComment]:
-        raw = make_github_review_comment(body=body, path=path)
-        return ActionResult(
-            data=ReviewComment(
-                id=str(raw["id"]),
-                html_url=raw["html_url"],
-                path=raw["path"],
-                body=raw["body"],
-            ),
-            type="github",
-            raw=raw,
-            meta={},
-        )
-
     def create_review_comment_reply(
         self,
         pull_request_id: str,
@@ -1218,9 +1172,6 @@ class BaseTestProvider(Provider):
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         return None
 
-    def resolve_review_thread(self, thread_node_id: str) -> None:
-        return None
-
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
@@ -1321,13 +1272,6 @@ class FakeGitHubApiClient(GitHubApiClient):
         if self.minimize_comment_data is not None:
             return self.minimize_comment_data
         return {"minimizeComment": {"minimizedComment": {"isMinimized": True}}}
-
-    def resolve_review_thread(self, thread_node_id: str) -> dict[str, Any]:
-        self._record_call("resolve_review_thread", thread_node_id)
-        self._maybe_raise()
-        if self.resolve_thread_data is not None:
-            return self.resolve_thread_data
-        return {"resolveReviewThread": {"thread": {"isResolved": True}}}
 
     def delete_pull_request_review_comment(self, comment_node_id: str) -> dict[str, Any]:
         self._record_call("delete_pull_request_review_comment", comment_node_id)

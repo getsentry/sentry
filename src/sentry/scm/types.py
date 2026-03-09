@@ -107,7 +107,7 @@ type ReviewSide = Literal["LEFT", "RIGHT"]
 """
 
 type BranchName = str
-type CommitSHA = str
+type SHA = str
 type PullRequestState = Literal["open", "closed"]
 type ReviewEvent = Literal["approve", "change_request", "comment"]
 
@@ -184,7 +184,7 @@ class ReactionResult(TypedDict):
 class PullRequestBranch(TypedDict):
     """A branch reference within a pull request (head or base)."""
 
-    sha: CommitSHA
+    sha: SHA
     ref: BranchName
 
 
@@ -247,16 +247,16 @@ class GitRef(TypedDict):
     """A git reference (branch pointer)."""
 
     ref: BranchName
-    sha: CommitSHA
+    sha: SHA
 
 
 class GitBlob(TypedDict):
-    sha: CommitSHA
+    sha: SHA
 
 
 class FileContent(TypedDict):
     path: str
-    sha: CommitSHA
+    sha: SHA
     content: str  # base64-encoded
     encoding: str
     size: int
@@ -275,7 +275,7 @@ class CommitFile(TypedDict):
 
 
 class Commit(TypedDict):
-    id: CommitSHA
+    id: SHA
     message: str
     author: CommitAuthor | None
     files: list[CommitFile]
@@ -291,7 +291,7 @@ class TreeEntry(TypedDict):
     path: str
     mode: TreeEntryMode
     type: TreeEntryType
-    sha: CommitSHA
+    sha: SHA
     size: int | None
 
 
@@ -299,21 +299,21 @@ class InputTreeEntry(TypedDict):
     path: str
     mode: TreeEntryMode
     type: TreeEntryType
-    sha: CommitSHA | None  # None for deletions
+    sha: SHA | None  # None for deletions
 
 
 class GitTree(TypedDict):
-    sha: CommitSHA
+    sha: SHA
     tree: list[TreeEntry]
     truncated: bool
 
 
 class GitCommitTree(TypedDict):
-    sha: CommitSHA
+    sha: SHA
 
 
 class GitCommitObject(TypedDict):
-    sha: CommitSHA
+    sha: SHA
     tree: GitCommitTree
     message: str
 
@@ -323,12 +323,12 @@ class PullRequestFile(TypedDict):
     status: FileStatus
     patch: str | None
     changes: int
-    sha: CommitSHA
+    sha: SHA
     previous_filename: str | None
 
 
 class PullRequestCommit(TypedDict):
-    sha: CommitSHA
+    sha: SHA
     message: str
     author: CommitAuthor | None
 
@@ -416,20 +416,20 @@ class Provider(Protocol):
 
     def get_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[Commit]: ...
 
     def get_tree(
         self,
-        tree_sha: CommitSHA,
+        tree_sha: SHA,
         recursive: bool = True,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitTree]: ...
 
     def get_git_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitCommitObject]: ...
 
@@ -493,7 +493,7 @@ class Provider(Protocol):
 
     def get_commits(
         self,
-        sha: CommitSHA | None = None,
+        sha: SHA | None = None,
         path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -523,8 +523,8 @@ class Provider(Protocol):
 
     def compare_commits(
         self,
-        start_sha: CommitSHA,
-        end_sha: CommitSHA,
+        start_sha: SHA,
+        end_sha: SHA,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
@@ -569,20 +569,20 @@ class Provider(Protocol):
 
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None: ...
 
-    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]: ...
+    def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]: ...
 
     def update_branch(
-        self, branch: BranchName, sha: CommitSHA, force: bool = False
+        self, branch: BranchName, sha: SHA, force: bool = False
     ) -> ActionResult[GitRef]: ...
 
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]: ...
 
     def create_git_tree(
-        self, tree: list[InputTreeEntry], base_tree: CommitSHA | None = None
+        self, tree: list[InputTreeEntry], base_tree: SHA | None = None
     ) -> ActionResult[GitTree]: ...
 
     def create_git_commit(
-        self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
+        self, message: str, tree_sha: SHA, parent_shas: list[SHA]
     ) -> ActionResult[GitCommitObject]: ...
 
     def create_pull_request(
@@ -607,32 +607,10 @@ class Provider(Protocol):
     def create_review_comment_file(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         side: ReviewSide,
-    ) -> ActionResult[ReviewComment]: ...
-
-    def create_review_comment_line(
-        self,
-        pull_request_id: str,
-        commit_id: CommitSHA,
-        body: str,
-        path: str,
-        line: int,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]: ...
-
-    def create_review_comment_multiline(
-        self,
-        pull_request_id: str,
-        commit_id: CommitSHA,
-        body: str,
-        path: str,
-        start_line: int,
-        start_side: ReviewSide,
-        end_line: int,
-        end_side: ReviewSide,
     ) -> ActionResult[ReviewComment]: ...
 
     def create_review_comment_reply(
@@ -645,7 +623,7 @@ class Provider(Protocol):
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: CommitSHA,
+        commit_sha: SHA,
         event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
@@ -654,7 +632,7 @@ class Provider(Protocol):
     def create_check_run(
         self,
         name: str,
-        head_sha: CommitSHA,
+        head_sha: SHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
@@ -672,8 +650,6 @@ class Provider(Protocol):
     ) -> ActionResult[CheckRun]: ...
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None: ...
-
-    def resolve_review_thread(self, thread_node_id: str) -> None: ...
 
 
 class SubscriptionEvent(TypedDict):
