@@ -9,12 +9,12 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconCopy, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -158,6 +158,7 @@ function BlockComponent({
   readOnly = false,
   ref,
 }: BlockProps) {
+  const {copy} = useCopyToClipboard();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -346,14 +347,9 @@ function BlockComponent({
     onDelete?.();
   };
 
-  const handleCopyClick = async (e: React.MouseEvent) => {
+  const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(block.message.content);
-      addSuccessMessage(t('Copied to clipboard'));
-    } catch {
-      addErrorMessage(t('Failed to copy to clipboard'));
-    }
+    copy(block.message.content);
   };
 
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
