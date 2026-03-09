@@ -756,13 +756,6 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     enforce_single_datasource = True
     data_sources = MonitorDataSourceListField(child=MonitorDataSourceValidator(), required=False)
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if not self.instance and not attrs.get("data_sources"):
-            raise serializers.ValidationError(
-                {"data_sources": ["This field is required when creating a cron monitor."]}
-            )
-        return super().validate(attrs)
-
     def validate_enabled(self, value: bool) -> bool:
         """
         Validate that enabling a detector is allowed based on seat availability.

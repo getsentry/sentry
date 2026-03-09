@@ -236,7 +236,7 @@ class PreprodSizeAnalysisDetectorHandler(
 
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
-    pass
+    data_source_required = False
 
 
 @dataclass(frozen=True)
