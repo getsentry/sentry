@@ -272,7 +272,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
             referrer=referrer,
             group_ids=list(group_id_to_group.keys()),
         )
-        chosen_rows = snuba_rows
+        query_result = snuba_rows
 
         callsite = "tasks.summaries.project_key_performance_issues"
         if EAPOccurrencesComparator.should_check_experiment(callsite):
@@ -282,7 +282,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                 referrer=referrer,
                 group_ids=list(group_id_to_group.keys()),
             )
-            chosen_rows = EAPOccurrencesComparator.check_and_choose(
+            query_result = EAPOccurrencesComparator.check_and_choose(
                 snuba_rows,
                 eap_rows,
                 callsite,
@@ -296,16 +296,15 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                     "organization_id": ctx.organization.id,
                     "project_id": project.id,
                     "candidate_group_ids_count": len(group_id_to_group),
-                    "referrer": referrer,
                     "start": ctx.start.isoformat(),
                     "end": (ctx.end + timedelta(days=1)).isoformat(),
                 },
             )
 
         key_performance_issues = []
-        for result in chosen_rows:
-            count = int(result["count()"])
-            group_id = int(result["group_id"])
+        for result in query_result:
+            count = result["count()"]
+            group_id = result["group_id"]
             group = group_id_to_group.get(group_id)
             if group:
                 key_performance_issues.append((group, count))
@@ -382,7 +381,6 @@ def _project_key_performance_issues_eap(
                 "organization_id": ctx.organization.id,
                 "project_id": project.id,
                 "group_ids_count": len(group_ids),
-                "referrer": referrer,
             },
         )
         return []

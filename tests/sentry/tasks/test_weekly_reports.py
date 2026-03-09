@@ -368,7 +368,6 @@ class WeeklyReportsTest(
         assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
 
     def test_project_key_performance_issues_eap_matches_snuba(self) -> None:
-        """Snuba and EAP paths return the same top performance issues with the same counts."""
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
 
