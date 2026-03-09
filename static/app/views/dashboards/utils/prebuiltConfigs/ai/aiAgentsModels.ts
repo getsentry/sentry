@@ -157,6 +157,6 @@ export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
   onboarding: {
     type: 'custom',
     componentId: 'agent-monitoring',
-    projectFlags: ['hasInsightsAgentMonitoring'],
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
   },
 };

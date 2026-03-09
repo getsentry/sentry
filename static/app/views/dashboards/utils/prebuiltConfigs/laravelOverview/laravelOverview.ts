@@ -180,7 +180,7 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   onboarding: {
     type: 'overview',
-    projectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
-    description: 'Get started with Laravel performance monitoring',
+    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    description: 'Get started with Laravel tracing',
   },
 };

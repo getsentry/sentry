@@ -72,17 +72,17 @@ export type OnboardingConfig =
       moduleName: ModulesWithOnboarding;
       // Single-module onboarding: shows ModulesOnboardingPanel
       type: 'module';
-      projectFlags?: ProjectTelemetryFlag[];
+      requiredProjectFlags?: ProjectTelemetryFlag[];
     }
   | {
       componentId: 'agent-monitoring' | 'mcp';
-      projectFlags: ProjectTelemetryFlag[];
+      requiredProjectFlags: ProjectTelemetryFlag[];
       // Custom onboarding component (AI Agents, MCP)
       type: 'custom';
     }
   | {
       description: string;
-      projectFlags: ProjectTelemetryFlag[];
+      requiredProjectFlags: ProjectTelemetryFlag[];
       // Overview dashboard onboarding: shows a generic onboarding panel
       // when NONE of the listed project flags are set
       type: 'overview';

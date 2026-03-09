@@ -190,5 +190,9 @@ export const MCP_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'MCP Overview',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, OVERVIEW_TABLE],
-  onboarding: {type: 'custom', componentId: 'mcp', projectFlags: ['hasInsightsMCP']},
+  onboarding: {
+    type: 'custom',
+    componentId: 'mcp',
+    requiredProjectFlags: ['hasInsightsMCP'],
+  },
 };

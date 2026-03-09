@@ -268,7 +268,7 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   onboarding: {
     type: 'overview',
-    projectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
-    description: 'Get started with Next.js performance monitoring',
+    requiredProjectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
+    description: 'Get started with Next.js tracing',
   },
 };

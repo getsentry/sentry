@@ -204,6 +204,6 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
   onboarding: {
     type: 'module',
     moduleName: ModuleName.SESSIONS,
-    projectFlags: ['hasSessions'],
+    requiredProjectFlags: ['hasSessions'],
   },
 };

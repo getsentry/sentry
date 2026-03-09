@@ -116,5 +116,9 @@ export const MCP_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'MCP Tools',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, TOOLS_TABLE],
-  onboarding: {type: 'custom', componentId: 'mcp', projectFlags: ['hasInsightsMCP']},
+  onboarding: {
+    type: 'custom',
+    componentId: 'mcp',
+    requiredProjectFlags: ['hasInsightsMCP'],
+  },
 };
