@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -183,20 +183,20 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${p => p.theme.space.md} 0;
 `;
 
-const columnStyle = css`
+const columnStyle = (theme: Theme) => css`
   flex: 1;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${p => p.theme.space.xs} 0;
+  padding: ${theme.space.xs} 0;
 `;
 
 const Column = styled('div')`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
 `;
 
 const StyledCount = styled(Count)`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
   font-variant-numeric: tabular-nums;
 `;
 
