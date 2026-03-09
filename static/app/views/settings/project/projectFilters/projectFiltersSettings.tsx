@@ -195,16 +195,10 @@ type RowProps = {
   };
   onToggle: (
     data: RowProps['data'],
-    filters: RowState['subfilters'],
+    filters: Set<string>,
     event: React.MouseEvent
   ) => void;
   disabled?: boolean;
-};
-
-type RowState = {
-  error: boolean | Error;
-  loading: boolean;
-  subfilters: Set<string>;
 };
 
 function getActiveSubfilters() {
@@ -428,7 +422,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
       event: React.MouseEvent;
       onBlur: FormFieldProps['onBlur'];
       onChange: FormFieldProps['onChange'];
-      subfilters: RowState['subfilters'];
+      subfilters: Set<string>;
     }) => {
       onChange?.(subfilters, event);
       onBlur?.(subfilters, event);
