@@ -260,7 +260,7 @@ class _SiloModeTestModification:
         if len(self.silo_modes) == 1:
             (only_mode,) = self.silo_modes
             return only_mode, ()
-        non_monolith_modes = [m for m in self.silo_modes if m != SiloMode.MONOLITH]
+        non_monolith_modes = sorted(m for m in self.silo_modes if m != SiloMode.MONOLITH)
         if len(non_monolith_modes) == 1:
             (other_mode,) = non_monolith_modes
             return other_mode, (SiloMode.MONOLITH,)
