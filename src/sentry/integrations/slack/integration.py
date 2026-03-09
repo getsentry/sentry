@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import functools
 import logging
 from collections import namedtuple
@@ -189,7 +190,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                         "slack.missing_scope",
                         extra={"integration_id": self.model.id, "scope": scope},
                     )
-                    return default
+                    return default if default is None else copy.copy(default)
                 return fn(self, *args, **kwargs)
 
             return wrapper  # type: ignore[return-value]
