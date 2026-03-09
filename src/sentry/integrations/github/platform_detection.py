@@ -615,6 +615,7 @@ FRAMEWORKS: list[FrameworkDef] = [
         "platform": "php-laravel",
         "sort": 10,
         "base_platform": "php",
+        "supersedes": ["php-symfony"],
         "some": [
             {"match_package": "laravel/framework"},
             {"path": "artisan"},
@@ -624,6 +625,7 @@ FRAMEWORKS: list[FrameworkDef] = [
         "platform": "php-wordpress",
         "sort": 10,
         "base_platform": "php",
+        "supersedes": ["php-symfony"],
         "some": [{"path": "wp-config.php"}],
     },
     {
