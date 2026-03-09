@@ -269,9 +269,9 @@ def test_invalidation_project_deleted(
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache.
-    # Callbacks: OutboxBase.save, 2x detector cache invalidation (cascade delete),
-    # 2x schedule_invalidate_project_config, process_resource_change
-    with emulate_transactions(assert_num_callbacks=6):
+    # Callbacks: OutboxBase.save, _delete_project_key_mapping, 2x detector cache invalidation
+    # (cascade delete), 2x schedule_invalidate_project_config, process_resource_change
+    with emulate_transactions(assert_num_callbacks=7):
         default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
@@ -291,7 +291,9 @@ def test_projectkeys(
     # should be cached as disabled.
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=2):
+    # Callbacks: _delete_project_key_mapping, schedule_invalidate_project_config (delete),
+    # ProjectKey.save outbox, schedule_invalidate_project_config (save)
+    with emulate_transactions(assert_num_callbacks=4):
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:
             key.delete()
@@ -305,13 +307,13 @@ def test_projectkeys(
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
 
-    with emulate_transactions():
+    with emulate_transactions(assert_num_callbacks=2):
         pk.status = ProjectKeyStatus.INACTIVE
         pk.save()
 
     assert redis_cache.get(pk.public_key)["disabled"]
 
-    with emulate_transactions():
+    with emulate_transactions(assert_num_callbacks=2):
         pk.delete()
 
     assert redis_cache.get(pk.public_key)["disabled"]
