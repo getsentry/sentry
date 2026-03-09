@@ -33,11 +33,11 @@ class RegionResolutionTest(TestCase):
         assert resolver.resolve({"cell_name": self.target_region.name}) == self.target_region
         # Fallback: callers still using the old region_name parameter
         assert resolver.resolve({"region_name": self.target_region.name}) == self.target_region
-        # When both are present, cell_name takes precedence over region_name
+        # When both are present, region_name takes precedence over cell_name
         other_region = _TEST_REGIONS[1]
         assert (
             resolver.resolve(
-                {"cell_name": self.target_region.name, "region_name": other_region.name}
+                {"cell_name": other_region.name, "region_name": self.target_region.name}
             )
             == self.target_region
         )
