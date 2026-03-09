@@ -249,7 +249,7 @@ class SourceCodeManager:
         """Create a reaction on an issue."""
         return self._exec(lambda p: p.create_issue_reaction(issue_id, reaction))
 
-    def delete_issue_reaction(self, issue_id: str, reaction_id: Reaction) -> None:
+    def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         """Delete a reaction on an issue."""
         return self._exec(lambda p: p.delete_issue_reaction(issue_id, reaction_id))
 
