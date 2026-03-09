@@ -478,7 +478,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/delete/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/distribution/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/'
-  | '/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/recompare/'
