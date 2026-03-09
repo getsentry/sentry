@@ -120,7 +120,7 @@ function OnboardingPanel({
   project: Project;
 }) {
   return (
-    <Container background="primary" border="primary" borderRadius="md">
+    <Container background="primary" border="primary" radius="md" marginBottom="xl">
       <AuthTokenGeneratorProvider projectSlug={project?.slug}>
         <TabSelectionScope>
           <div>
@@ -465,10 +465,6 @@ const Arcade = styled('iframe')`
 
 const OnboardingContainer = styled('div')`
   margin-top: ${p => p.theme.space.md};
-
-  ${Container} {
-    margin-bottom: ${p => p.theme.space.xl};
-  }
 `;
 
 type LogsTabOnboardingProps = {
