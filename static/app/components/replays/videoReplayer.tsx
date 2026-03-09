@@ -381,7 +381,7 @@ export class VideoReplayer {
     };
   }
 
-  protected getSegment(index?: number): VideoEvent | undefined {
+  protected getSegment(index: number | undefined): VideoEvent | undefined {
     if (index === undefined) {
       return undefined;
     }
