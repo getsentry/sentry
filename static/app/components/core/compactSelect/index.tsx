@@ -32,6 +32,7 @@ export type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSectionWithKey,
+  SearchMatchResult,
 } from './types';
 
 export {

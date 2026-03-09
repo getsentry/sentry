@@ -275,7 +275,7 @@ export function CategoricalSeriesWidgetVisualization(
               false
             );
 
-            let formattedValue: string = ECHARTS_MISSING_DATA_VALUE;
+            let formattedValue = ECHARTS_MISSING_DATA_VALUE;
 
             // Technically we've already filtered out invalid values in `filteredParams` above, but TypeScript isn't easy to appease.
             if (Array.isArray(param.value)) {

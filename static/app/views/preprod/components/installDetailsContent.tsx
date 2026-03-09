@@ -1,4 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -20,15 +20,14 @@ import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/install
 
 interface InstallDetailsContentProps {
   artifactId: string;
-  projectId: string;
   size?: 'sm' | 'lg';
 }
 
 export function InstallDetailsContent({
-  projectId,
   artifactId,
   size = 'sm',
 }: InstallDetailsContentProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
   const isLarge = size === 'lg';
@@ -44,11 +43,10 @@ export function InstallDetailsContent({
   } = useApiQuery<InstallDetailsApiResponse>(
     [
       getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/install-details/',
+        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/',
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
             headArtifactId: artifactId,
           },
         }
@@ -95,13 +93,13 @@ export function InstallDetailsContent({
     const details = installDetails.is_code_signature_valid !== undefined && (
       <CodeSignatureInfo>
         {installDetails.profile_name && (
-          <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
+          <Text size="sm" variant="muted" style={{marginBottom: theme.space.xs}}>
             {t('Profile: %s', installDetails.profile_name)}
           </Text>
         )}
         {installDetails.profile_name && installDetails.codesigning_type && <br />}
         {installDetails.codesigning_type && (
-          <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
+          <Text size="sm" variant="muted" style={{marginBottom: theme.space.xs}}>
             {t('Type: %s', installDetails.codesigning_type)}
           </Text>
         )}

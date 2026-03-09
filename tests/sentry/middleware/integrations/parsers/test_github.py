@@ -20,9 +20,9 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 
-region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 region_config = (region,)
 
 
@@ -361,7 +361,61 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        # 35129377 % 100 = 77
+        # 35129377 % 100 = 77, event type appended for per-event-type isolation
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}:77:push",
+            region_names=[region.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_outbox_creation_with_bucketing_isolates_event_types(self) -> None:
+        """Different event types for the same repo land in different mailboxes."""
+        integration = self.get_integration()
+        push_request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        check_run_request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.CHECK_RUN.value},
+        )
+
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
+            push_parser = GithubRequestParser(
+                request=push_request, response_handler=self.get_response
+            )
+            check_run_parser = GithubRequestParser(
+                request=check_run_request, response_handler=self.get_response
+            )
+            assert push_parser.get_mailbox_identifier(
+                integration, {}
+            ) != check_run_parser.get_mailbox_identifier(integration, {})
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_outbox_creation_with_bucketing_no_event_type_header(self) -> None:
+        """Falls back gracefully when X-GitHub-Event header is absent."""
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            # No X-GITHUB-EVENT header
+        )
+
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
+            parser = GithubRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # No event type header — identifier is repo-bucket only
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"github:{integration.id}:77",
@@ -391,7 +445,8 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_webhook_without_repository_falls_back_to_single_mailbox(self) -> None:
+    def test_webhook_without_repository_uses_event_type_only(self) -> None:
+        """No repository ID means no repo bucket, but event type still provides isolation."""
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -408,7 +463,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:issues",
             region_names=[region.name],
         )
 
@@ -434,16 +489,10 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_regions(region_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_drops_unprocessed_event_when_flag_and_allowlist(self, mock_metrics: Mock) -> None:
-        """With flag on and mailbox in allowlist, status event is dropped and metric is incremented."""
-        integration = self.get_integration()
-        mailbox_name = f"github:{integration.id}"
-        with override_options(
-            {
-                "github.webhook.drop-unprocessed-events.enabled": True,
-                "github.webhook.drop-unprocessed-events.mailbox-allowlist": [mailbox_name],
-            }
-        ):
+    def test_drops_unprocessed_event_when_flag_enabled(self, mock_metrics: Mock) -> None:
+        """With flag on, status event is dropped and metric is incremented."""
+        self.get_integration()
+        with override_options({"github.webhook.drop-unprocessed-events.enabled": True}):
             request = self.factory.post(
                 self.path,
                 data={"installation": {"id": "1"}, "repository": {"id": 123}},
@@ -463,12 +512,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    @override_options(
-        {
-            "github.webhook.drop-unprocessed-events.enabled": False,
-            "github.webhook.drop-unprocessed-events.mailbox-allowlist": ["github:99999"],
-        }
-    )
+    @override_options({"github.webhook.drop-unprocessed-events.enabled": False})
     @responses.activate
     def test_does_not_drop_when_flag_off_creates_payloads(self) -> None:
         """With flag off, unprocessed event still creates WebhookPayloads."""
@@ -492,47 +536,11 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    @override_options(
-        {
-            "github.webhook.drop-unprocessed-events.enabled": True,
-            "github.webhook.drop-unprocessed-events.mailbox-allowlist": ["github:other"],
-        }
-    )
     @responses.activate
-    def test_does_not_drop_when_mailbox_not_in_allowlist_creates_payloads(self) -> None:
-        """With mailbox not in allowlist, unprocessed event still creates WebhookPayloads."""
+    def test_supported_event_never_dropped_when_flag_enabled(self) -> None:
+        """Supported event (push) is never dropped even when flag is on."""
         integration = self.get_integration()
-        request = self.factory.post(
-            self.path,
-            data={"installation": {"id": "1"}, "repository": {"id": 123}},
-            content_type="application/json",
-            headers={"X-GITHUB-EVENT": "status"},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            mailbox_name=f"github:{integration.id}",
-            region_names=[region.name],
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
-    @responses.activate
-    def test_supported_event_never_dropped_even_with_flag_and_allowlist(self) -> None:
-        """Supported event (push) is never dropped even when flag on and mailbox in allowlist."""
-        integration = self.get_integration()
-        with override_options(
-            {
-                "github.webhook.drop-unprocessed-events.enabled": True,
-                "github.webhook.drop-unprocessed-events.mailbox-allowlist": [
-                    f"github:{integration.id}"
-                ],
-            }
-        ):
+        with override_options({"github.webhook.drop-unprocessed-events.enabled": True}):
             request = self.factory.post(
                 self.path,
                 data={"installation": {"id": "1"}, "repository": {"id": 123}},
@@ -556,14 +564,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     def test_missing_x_github_event_not_dropped_forwards_to_region(self) -> None:
         """Missing X-GitHub-Event is not dropped; request is forwarded so region returns 400."""
         integration = self.get_integration()
-        with override_options(
-            {
-                "github.webhook.drop-unprocessed-events.enabled": True,
-                "github.webhook.drop-unprocessed-events.mailbox-allowlist": [
-                    f"github:{integration.id}"
-                ],
-            }
-        ):
+        with override_options({"github.webhook.drop-unprocessed-events.enabled": True}):
             request = self.factory.post(
                 self.path,
                 data={"installation": {"id": "1"}, "repository": {"id": 123}},

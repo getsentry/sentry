@@ -177,14 +177,17 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
-            "emails": [
-                {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
-                for e in attrs["emails"]
-            ],
+            "emails": [],
             # TODO(epurkhiser): This can be removed once we confirm the
             # frontend does not use it
             "experiments": {},
         }
+
+        if self._user_is_requester(obj, user) or user.is_superuser:
+            d["emails"] = [
+                {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
+                for e in attrs["emails"]
+            ]
 
         if self._user_is_requester(obj, user):
             d = cast(UserSerializerResponseSelf, d)

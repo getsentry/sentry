@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -115,7 +114,7 @@ const ParticipantListWrapper = styled('div')`
 const ListTitle = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
@@ -126,8 +125,8 @@ const ListTitle = styled('div')`
 const UserRow = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.md};
   line-height: 1.2;
   font-size: ${p => p.theme.font.size.sm};
   min-height: 45px;
@@ -135,7 +134,7 @@ const UserRow = styled('div')`
 
 const NameWrapper = styled('div')`
   & > div:only-child {
-    margin-top: ${space(0.25)};
+    margin-top: ${p => p.theme.space['2xs']};
   }
 `;
 
@@ -145,7 +144,7 @@ const SmallText = styled('div')`
 
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const LastSeen = styled(DateTime)`

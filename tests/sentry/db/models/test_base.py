@@ -9,7 +9,6 @@ from sentry.models.importchunk import (
     ControlImportChunkReplica,
     RegionImportChunk,
 )
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
@@ -43,7 +42,6 @@ class PreventDefaultFieldsModelExistingUseTest(TestCase):
             NotificationSettingBase,
             NotificationSettingOption,
             NotificationSettingProvider,
-            ProjectTemplate,
             ProjectTransactionThreshold,
             ProjectTransactionThresholdOverride,
             RegionImportChunk,

@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function SortableVisualizeFieldWrapper({
   dragId,
@@ -31,7 +30,7 @@ function SortableVisualizeFieldWrapper({
     transition,
     zIndex: 'auto',
     display: 'flex',
-    gap: space(0.5),
+    gap: theme.space.xs,
     width: '100%',
   } as React.CSSProperties;
 

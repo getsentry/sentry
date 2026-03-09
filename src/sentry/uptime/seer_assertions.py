@@ -15,10 +15,7 @@ from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -341,26 +338,19 @@ def generate_assertion_suggestions(
     # Call Seer's LLM proxy endpoint
     # Note: Using Gemini for structured output support (response_schema).
     # Anthropic models don't support structured output in Seer's LLM proxy.
-    body = orjson.dumps(
-        {
-            "provider": "gemini",
-            "model": "flash",
-            "referrer": "sentry.uptime.assertion-suggestions",
-            "prompt": prompt,
-            "system_prompt": SYSTEM_PROMPT,
-            "temperature": 0.3,
-            "max_tokens": 1500,
-            "response_schema": ASSERTION_SUGGESTIONS_SCHEMA,
-        }
+    seer_request = LlmGenerateRequest(
+        provider="gemini",
+        model="flash",
+        referrer="sentry.uptime.assertion-suggestions",
+        prompt=prompt,
+        system_prompt=SYSTEM_PROMPT,
+        temperature=0.3,
+        max_tokens=1500,
+        response_schema=ASSERTION_SUGGESTIONS_SCHEMA,
     )
 
     try:
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            "/v1/llm/generate",
-            body,
-            timeout=30,
-        )
+        response = make_llm_generate_request(seer_request, timeout=30)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
     except (SeerApiError, MaxRetryError, Urllib3TimeoutError) as e:

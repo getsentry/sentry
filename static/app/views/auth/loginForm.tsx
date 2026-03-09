@@ -11,9 +11,8 @@ import Form from 'sentry/components/forms/form';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
@@ -53,6 +52,7 @@ type Props = {
 };
 
 function LoginForm({authConfig}: Props) {
+  const navigate = useNavigate();
   const [error, setError] = useState('');
 
   const {githubLoginLink, vstsLoginLink} = authConfig;
@@ -72,7 +72,7 @@ function LoginForm({authConfig}: Props) {
 
           // TODO(epurkhiser): Reconfigure sentry SDK identity
 
-          browserHistory.push({pathname: response.nextUri});
+          navigate({pathname: response.nextUri});
         }}
         onSubmitError={response => {
           // TODO(epurkhiser): Need much better error handling here
@@ -139,7 +139,7 @@ const ProviderWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-auto-rows: max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 
   &:before {
     position: absolute;

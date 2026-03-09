@@ -13,6 +13,7 @@ import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 
 interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   enabled?: boolean;
+  projectIds?: Array<string | number>;
   query?: string;
   search?: string;
 }
@@ -22,14 +23,15 @@ export function useTraceItemAttributeKeys({
   type,
   traceItemType,
   projects,
+  projectIds: explicitProjectIds,
   query,
   search,
 }: UseTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
 
-  const projectIds = defined(projects)
-    ? projects.map(project => project.id)
-    : selection.projects;
+  const projectIds =
+    explicitProjectIds ??
+    (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
   const queryOptions = useMemo(() => {
     return makeTraceItemAttributeKeysQueryOptions({

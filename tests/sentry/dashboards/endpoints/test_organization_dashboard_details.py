@@ -1280,6 +1280,53 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Title is required during creation" in response.content
 
+    def test_add_widget_description_exceeds_max_length(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Widget with long description",
+                    "displayType": "line",
+                    "description": "x" * 256,
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][1]["description"] == [
+            "Ensure description has no more than 255 characters."
+        ]
+
+    def test_add_text_widget_description_exceeds_max_length(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Widget with long description",
+                    "displayType": "text",
+                    "description": "x" * 256,
+                    "interval": "5m",
+                    "queries": [],
+                },
+            ],
+        }
+        with self.feature("organizations:dashboards-text-widgets"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 200, response.data
+            assert response.data["widgets"][1]["description"] == "x" * 256
+
     def test_add_widget_with_limit(self) -> None:
         data = {
             "title": "First dashboard",
@@ -1973,6 +2020,88 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response.data["widgets"][0]["thresholds"]["preferredPolarity"]
             == "Must be '+', '-', or empty string."
         )
+
+    def test_update_widget_with_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Axis Range",
+                    "displayType": "line",
+                    "axisRange": "dataMin",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["axisRange"] == "dataMin"
+
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.detail["axis_range"] == "dataMin"
+
+    def test_update_widget_with_invalid_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Invalid Axis Range",
+                    "displayType": "line",
+                    "axisRange": "invalid_value",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+
+    def test_create_widget_with_axis_range(self) -> None:
+        data = {
+            "title": "Dashboard with Axis Range Widget",
+            "widgets": [
+                {
+                    "title": "New Line Chart",
+                    "displayType": "line",
+                    "axisRange": "dataMin",
+                    "widgetType": "error-events",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["axisRange"] == "dataMin"
+
+        widget = DashboardWidget.objects.get(dashboard=self.dashboard, title="New Line Chart")
+        assert widget.detail["axis_range"] == "dataMin"
 
     def test_update_migrated_spans_widget_reset_changed_reason(self) -> None:
         new_dashboard = Dashboard.objects.create(
@@ -3660,17 +3789,169 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 409
         assert "Cannot delete prebuilt Dashboards." in response.content.decode()
 
-    def test_cannot_edit_prebuilt_insights_dashboard(self) -> None:
+    def test_cannot_edit_prebuilt_insights_dashboard_widgets(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Frontend Session Health",
             organization=self.organization,
             prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         )
         response = self.do_request(
-            "put", self.url(dashboard.id), data={"title": "Frontend Session Health Edited"}
+            "put",
+            self.url(dashboard.id),
+            data={
+                "title": "Frontend Session Health",
+                "widgets": [
+                    {
+                        "title": "New Widget",
+                        "displayType": "line",
+                        "queries": [{"name": "", "conditions": "", "fields": ["count()"]}],
+                    }
+                ],
+            },
         )
         assert response.status_code == 409
-        assert "Cannot edit prebuilt Dashboards." in response.content.decode()
+        assert "Cannot edit widgets on prebuilt Dashboards." in response.content.decode()
+
+    def test_cannot_edit_prebuilt_insights_dashboard_title(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={"title": "Renamed Dashboard"},
+        )
+        assert response.status_code == 409
+        assert "Cannot change the title of prebuilt Dashboards." in response.content.decode()
+
+    def test_can_edit_prebuilt_insights_dashboard_global_filters(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        project = self.create_project(organization=self.organization)
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            data={
+                "title": "Frontend Session Health",
+                "projects": [project.id],
+                "environment": ["production"],
+                "period": "7d",
+                "filters": {"release": ["v1.0"]},
+            },
+        )
+        assert response.status_code == 200
+
+    def test_add_text_widget_to_dashboard(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "First dashboard",
+                "widgets": [
+                    {"id": str(self.widget_1.id)},
+                    {"id": str(self.widget_2.id)},
+                    {
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "This is a text widget description",
+                    },
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 200, response.data
+
+            widgets = response.data["widgets"]
+            assert len(widgets) == 3
+
+            # Last widget should be the text widget
+            text_widget = widgets[2]
+            assert text_widget["title"] == "Text Widget"
+            assert text_widget["displayType"] == "text"
+            assert text_widget["description"] == "This is a text widget description"
+            assert text_widget.get("widgetType") is None
+
+    def test_add_text_widget_without_feature_flag(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "This is a text widget description",
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "widgets" in response.data, response.data
+        # Error is on the second widget (index 1), the new text widget; first widget has no errors
+        assert "Text widgets are not enabled" in response.data["widgets"][1]["displayType"][0]
+
+    def test_update_widget_to_text_widget(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "First dashboard",
+                "widgets": [
+                    {
+                        "id": str(self.widget_1.id),
+                        "title": "Updated to Text Widget",
+                        "displayType": "text",
+                        "description": "Now it's a text widget",
+                    },
+                    {"id": str(self.widget_2.id)},
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 200, response.data
+
+            widgets = response.data["widgets"]
+            assert len(widgets) == 2
+
+            # First widget should now be a text widget
+            text_widget = widgets[0]
+            assert text_widget["title"] == "Updated to Text Widget"
+            assert text_widget["displayType"] == "text"
+            assert text_widget["description"] == "Now it's a text widget"
+            assert text_widget.get("widgetType") is None
+            assert text_widget["queries"] == []
+
+            # Verify in database that queries were removed
+            widget = DashboardWidget.objects.get(id=self.widget_1.id)
+            assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
+            assert widget.widget_type is None
+            assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
+
+    def test_text_widget_errors_provided_queries(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "First dashboard",
+                "widgets": [
+                    {"id": str(self.widget_1.id)},
+                    {
+                        "title": "Text Widget with Queries",
+                        "displayType": "text",
+                        "description": "This should ignore queries",
+                        "queries": [
+                            {
+                                "name": "errors",
+                                "conditions": "event.type:error",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                            }
+                        ],
+                    },
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400, response.data
+
+            assert "queries" in response.data["widgets"][1], response.data
+            assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

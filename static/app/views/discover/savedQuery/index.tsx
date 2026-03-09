@@ -23,7 +23,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -729,7 +728,7 @@ const ResponsiveButtonBar = styled((props: GridProps) => (
 `;
 
 const StyledOverlay = styled(Overlay)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const SaveAsButton = styled(Button)`
@@ -741,7 +740,7 @@ const IconUpdate = styled('div')`
   width: 10px;
   height: 10px;
 
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
   border-radius: 5px;
   background-color: ${p => p.theme.colors.yellow400};
 `;

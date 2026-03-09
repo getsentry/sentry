@@ -23,7 +23,6 @@ import {
 import {GIGABYTE} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
-  type BillingMetricHistory,
   type BillingStats,
   type CustomerUsage,
   type ReservedBudgetForCategory,
@@ -88,8 +87,7 @@ function calculateCategoryPrepaidUsage(
   prepaidSpend: number;
   prepaidUsage: number;
 } {
-  const categoryInfo: BillingMetricHistory | undefined =
-    subscription.categories[category];
+  const categoryInfo = subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
   // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
@@ -584,8 +582,7 @@ export function ProductUsageChart({
   footer?: React.ReactNode;
 }) {
   const theme = useTheme();
-  const currentHistory: BillingMetricHistory | undefined =
-    subscription.categories[category];
+  const currentHistory = subscription.categories[category];
   const categoryStats = usageStats[category];
 
   function chartMetadata() {

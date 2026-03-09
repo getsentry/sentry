@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
@@ -351,7 +350,7 @@ const Heading = styled('div')`
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   & > form:last-child {
     flex-grow: 1;
   }

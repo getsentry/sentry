@@ -58,8 +58,8 @@ class GithubRequestParser(BaseRequestParser):
         """Override to gate bucketing on an options flag for safe rollout and revert.
 
         When disabled (default), all webhooks route to a single mailbox per integration.
-        When enabled, webhooks are distributed across sub-mailboxes by repository ID,
-        bypassing the rate-limit auto-switch used by the base class.
+        When enabled, webhooks are distributed across sub-mailboxes by repository ID and
+        event type, bypassing the rate-limit auto-switch used by the base class.
         """
         if not options.get("github.webhook.mailbox-bucketing.enabled"):
             metrics.incr(
@@ -68,7 +68,11 @@ class GithubRequestParser(BaseRequestParser):
             )
             return str(integration.id)
 
-        return self._build_bucketed_identifier(integration, data)
+        base = self._build_bucketed_identifier(integration, data)
+        event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        if event_type:
+            return f"{base}:{event_type}"
+        return base
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
@@ -136,9 +140,6 @@ class GithubRequestParser(BaseRequestParser):
                 self.try_forward_to_codecov(event=event)
 
         github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
-        mailbox_name = f"{self.provider}:{self.get_mailbox_identifier(integration, event)}"
-        allowlist = options.get("github.webhook.drop-unprocessed-events.mailbox-allowlist") or ()
-        mailbox_in_allowlist = any(mailbox_name == m for m in allowlist)
 
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the region
@@ -147,7 +148,6 @@ class GithubRequestParser(BaseRequestParser):
             github_event
             and github_event not in REGION_PROCESSED_GITHUB_EVENTS
             and options.get("github.webhook.drop-unprocessed-events.enabled")
-            and mailbox_in_allowlist
         ):
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",

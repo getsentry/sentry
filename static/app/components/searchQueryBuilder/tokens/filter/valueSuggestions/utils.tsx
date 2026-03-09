@@ -26,6 +26,7 @@ export function getValueSuggestions({
 }): SuggestionSection[] | null {
   switch (valueType) {
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
     case FieldValueType.INTEGER:
       return getNumericSuggestions(filterValue);
     case FieldValueType.DURATION:
@@ -62,6 +63,7 @@ export function cleanFilterValue({
 
   switch (valueType) {
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
       if (FILTER_VALUE_NUMERIC.test(value)) {
         return value;
       }

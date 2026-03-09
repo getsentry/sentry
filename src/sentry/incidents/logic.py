@@ -1857,6 +1857,7 @@ EAP_FUNCTIONS = [
     "failure_rate",
     "eps",
     "apdex",
+    "user_misery",
 ]
 
 

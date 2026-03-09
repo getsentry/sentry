@@ -1,5 +1,3 @@
-import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
-
 export enum RuleType {
   PATTERN = 'pattern',
   CREDITCARD = 'creditcard',
@@ -100,11 +98,6 @@ export type EditableRule = Omit<
     [K in KeysOfUnion<Rule>]: K extends 'replaceCaptured' ? boolean : string;
   },
   'id'
->;
-
-export type AttributeResults = Record<
-  AllowedDataScrubbingDatasets,
-  ReturnType<typeof useTraceItemAttributeKeys> | null
 >;
 
 type PiiConfigDefault = {

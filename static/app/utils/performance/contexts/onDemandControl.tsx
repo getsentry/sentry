@@ -7,11 +7,11 @@ import {Switch} from '@sentry/scraps/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -45,22 +45,26 @@ export function OnDemandControlProvider({
       : _forceOnDemandQuery === 'false'
         ? false
         : undefined;
+  const navigate = useNavigate();
   const [isControlEnabled, setIsControlEnabled] = useState(_forceOnDemand !== undefined);
   const [forceOnDemand, _setForceOnDemand] = useState(_forceOnDemand || false);
 
   const setForceOnDemand = useCallback(
     (value: boolean) => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          forceOnDemand: value,
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            forceOnDemand: value,
+          },
         },
-      });
+        {replace: true}
+      );
       _setForceOnDemand(value);
       setIsControlEnabled(true);
     },
-    [setIsControlEnabled, _setForceOnDemand, location]
+    [navigate, setIsControlEnabled, _setForceOnDemand, location]
   );
 
   return (

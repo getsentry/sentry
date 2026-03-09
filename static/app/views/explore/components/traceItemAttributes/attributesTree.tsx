@@ -7,7 +7,6 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -480,26 +479,26 @@ const TreeContainer = styled('div')<{columnCount: number}>`
 const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(min-content, max-content) auto;
-  grid-column-gap: ${space(3)};
+  grid-column-gap: ${p => p.theme.space['2xl']};
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
 const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${space(0.5)};
-  padding-left: ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.md};
   position: relative;
   display: grid;
   align-items: center;
   grid-column: span 2;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
@@ -539,7 +538,7 @@ const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
   grid-column: span 1;
   height: 12px;
   align-self: start;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
@@ -557,11 +556,11 @@ const TreeValueTrunk = styled('div')`
   align-items: center;
   min-height: 22px;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
@@ -589,8 +588,8 @@ const TreeValueDropdown = styled(DropdownMenu)`
   .attribute-button {
     height: 20px;
     min-height: 20px;
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 0;
   }
 `;

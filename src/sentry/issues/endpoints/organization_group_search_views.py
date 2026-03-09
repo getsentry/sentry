@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.expressions import Combinable
@@ -99,7 +99,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             organization=organization, user_id=request.user.id
         ).values_list("group_search_view_id", flat=True)
 
-        createdBy = serializer.validated_data.get("createdBy", "me")
+        createdBy: Literal["me", "others"] = serializer.validated_data.get("createdBy", "me")
         sorts = [SORT_MAP[sort] for sort in serializer.validated_data["sort"]]
         query = serializer.validated_data.get("query")
         base_queryset = (
@@ -160,6 +160,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
             )
+        else:
+            raise ValueError(f"Unexpected createdBy value: {createdBy}")
 
         return self.paginate(
             request=request,

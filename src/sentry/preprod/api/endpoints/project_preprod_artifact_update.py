@@ -388,7 +388,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 }
             )
 
-        mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
+        mobile_app_info = head_artifact.get_mobile_app_info()
         build_version = mobile_app_info.build_version if mobile_app_info else None
         build_number = mobile_app_info.build_number if mobile_app_info else None
         if (
