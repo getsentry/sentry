@@ -7,12 +7,8 @@ import {
   type ContentBlock,
   type DocsParams,
   type OnboardingConfig,
-  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getAISetupStep,
-  getUploadSourceMapsStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {updateDynamicSdkLoaderOptions} from 'sentry/gettingStartedDocs/javascript/updateDynamicSdkLoaderOptions';
@@ -174,9 +170,6 @@ const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
   },
 ];
 
-export const getAiSetupConfig = (): OnboardingStep =>
-  getAISetupStep({skillPath: 'sentry-sdk-setup'});
-
 const getVerifyConfig = (params: Params) => [
   {
     type: StepType.VERIFY,
@@ -310,7 +303,6 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         }
       },
     },
-    getAiSetupConfig(),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -429,7 +421,6 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       ...params,
     }),
-    getAiSetupConfig(),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
