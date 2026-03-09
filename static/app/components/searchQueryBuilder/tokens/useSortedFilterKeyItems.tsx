@@ -23,7 +23,6 @@ import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -175,11 +174,6 @@ export function useSortedFilterKeyItems({
     getTagKeys,
   } = useSearchQueryBuilder();
 
-  const organization = useOrganization();
-  const hasConditionalsInCombobox = organization.features.includes(
-    'search-query-builder-conditionals-combobox-menus'
-  );
-
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
@@ -245,12 +239,12 @@ export function useSortedFilterKeyItems({
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
-        ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
+        ...LOGIC_FILTER_ITEMS,
       ];
     }
 
-    return [...searchKeyItems, ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : [])];
-  }, [flatKeys, getFieldDefinition, hasConditionalsInCombobox, includeSuggestions]);
+    return [...searchKeyItems, ...LOGIC_FILTER_ITEMS];
+  }, [flatKeys, getFieldDefinition, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 

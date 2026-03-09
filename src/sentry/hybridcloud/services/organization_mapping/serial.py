@@ -39,7 +39,7 @@ def serialize_organization_mapping(org_mapping: OrganizationMapping) -> RpcOrgan
         id=org_mapping.organization_id,
         slug=org_mapping.slug,
         name=org_mapping.name,
-        region_name=org_mapping.region_name,
+        region_name=org_mapping.cell_name,
         date_created=org_mapping.date_created,
         customer_id=org_mapping.customer_id,
         status=org_mapping.status,

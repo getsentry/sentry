@@ -92,6 +92,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
@@ -267,6 +268,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
           frameless
         />
       </TableWrapper>
+    );
+  }
+
+  if (widget.displayType === DisplayType.TEXT) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <TextComponent {...props} />
+      </TransitionChart>
     );
   }
 
@@ -625,9 +635,8 @@ function TableComponent({
       }
     }
 
-    const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
     let cellActions = ALLOWED_CELL_ACTIONS;
-    if (disableTableActions || !useCellActionsV2) {
+    if (disableTableActions) {
       cellActions = [];
     } else if (widget.widgetType === WidgetType.SPANS) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
@@ -847,6 +856,16 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
       selection={props.selection}
     />
   );
+}
+
+function TextComponent(props: TableComponentProps): React.ReactNode {
+  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
+
+  if (!hasTextWidgets) {
+    return null;
+  }
+
+  return <TextWidgetVisualization text={props.widget.description} />;
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {

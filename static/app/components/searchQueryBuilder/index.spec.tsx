@@ -422,9 +422,7 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter key menu', () => {
     it('breaks keys into sections', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
       // Should show tab button for each section
@@ -785,9 +783,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('logic category', () => {
       it('renders conditional and parenthetical filters', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        });
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
         // Should show conditionals button
@@ -1325,11 +1321,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('logic items', () => {
       it('will suggest logic items when typing its value', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {
-            features: ['search-query-builder-conditionals-combobox-menus'],
-          },
-        });
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
         await userEvent.type(getLastInput(), 'and');
@@ -4131,9 +4123,7 @@ describe('SearchQueryBuilder', () => {
           initialQuery="span.op:test"
           disallowLogicalOperators
         />,
-        {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        }
+        {}
       );
 
       await userEvent.click(getLastInput());

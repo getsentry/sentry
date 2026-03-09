@@ -44,7 +44,10 @@ describe('SeerAutomation', () => {
     const orgPutRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: {defaultAutofixAutomationTuning: 'high'},
+      body: OrganizationFixture({
+        defaultSeerScannerAutomation: true,
+        defaultAutofixAutomationTuning: 'super_low',
+      }),
     });
 
     // Project details used to populate the project list
@@ -117,7 +120,9 @@ describe('SeerAutomation', () => {
     const orgPutRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: {defaultSeerScannerAutomation: true},
+      body: OrganizationFixture({
+        defaultSeerScannerAutomation: true,
+      }),
     });
 
     MockApiClient.addMockResponse({
