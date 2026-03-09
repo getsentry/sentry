@@ -177,8 +177,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def get_organizations_by_user_and_scope(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when getsentry is updated
-        region_name: str | None = None,  # TODO(cells): remove when getsentry is updated
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
         user: RpcUser,
         scope: str | None = None,
     ) -> list[RpcOrganization]:
@@ -637,7 +637,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(organization_id=organization_id).update(idp_provisioned=False)
 
-    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
+    def update_region_user(
+        self,
+        *,
+        user: RpcRegionUser,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+    ) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
