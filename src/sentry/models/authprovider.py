@@ -224,6 +224,72 @@ class AuthProvider(ReplicatedControlModel):
         sanitizer.set_string(json, SanitizableField(model_name, "provider"))
 
 
+class ScimTokenDisplay:
+    """
+    Represents a SCIM token for display purposes.
+
+    If the token was created more than TOKEN_VISIBILITY_WINDOW_SECONDS ago,
+    is_visible will be False and only the last 4 characters should be shown.
+    """
+
+    TOKEN_VISIBILITY_WINDOW_SECONDS = 300  # 5 minutes
+
+    def __init__(
+        self,
+        token: str | None,
+        token_last_characters: str | None,
+        is_visible: bool,
+    ):
+        self.token = token
+        self.token_last_characters = token_last_characters
+        self.is_visible = is_visible
+
+
+def get_scim_token_for_display(
+    scim_enabled: bool, organization_id: int, provider: str
+) -> ScimTokenDisplay | None:
+    """
+    Get SCIM token info for display in the UI with proper masking.
+
+    Tokens are only fully visible for 5 minutes after creation.
+    After that, only the last 4 characters are shown.
+
+    All models involved (SentryAppInstallationToken, ApiToken,
+    SentryAppInstallationForProvider) are control silo models,
+    so we can query directly without RPC.
+    """
+    from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+
+    if not scim_enabled:
+        return None
+
+    tokens = list(
+        SentryAppInstallationToken.objects.select_related("api_token").filter(
+            sentry_app_installation__sentryappinstallationforprovider__organization_id=organization_id,
+            sentry_app_installation__sentryappinstallationforprovider__provider=f"{provider}_scim",
+        )
+    )
+    if not tokens:
+        return None
+
+    if len(tokens) > 1:
+        logger.warning(
+            "Multiple SCIM tokens found for organization",
+            extra={"organization_id": organization_id, "token_count": len(tokens)},
+        )
+
+    api_token = tokens[0].api_token
+    is_visible = (
+        timezone.now() - api_token.date_added
+    ).total_seconds() < ScimTokenDisplay.TOKEN_VISIBILITY_WINDOW_SECONDS
+
+    return ScimTokenDisplay(
+        token=api_token.token if is_visible else None,
+        token_last_characters=api_token.token[-4:],
+        is_visible=is_visible,
+    )
+
+
 def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
     from sentry.sentry_apps.services.app import app_service
 
