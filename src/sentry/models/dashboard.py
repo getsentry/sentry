@@ -45,6 +45,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             self.filter(
                 organization=organization,
                 user_id=user_id,
+                favorited=True,
                 position__isnull=False,
             )
             .order_by("-position")
@@ -60,7 +61,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         Returns all favorited dashboards for a user in an organization.
         """
-        return self.filter(organization=organization, user_id=user_id).order_by(
+        return self.filter(organization=organization, user_id=user_id, favorited=True).order_by(
             "position", "dashboard__title"
         )
 
@@ -70,7 +71,9 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         Returns the favorite dashboard if it exists, otherwise None.
         """
-        return self.filter(organization=organization, user_id=user_id, dashboard=dashboard).first()
+        return self.filter(
+            organization=organization, user_id=user_id, dashboard=dashboard, favorited=True
+        ).first()
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
@@ -90,6 +93,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         existing_favorite_dashboards = self.filter(
             organization=organization,
             user_id=user_id,
+            favorited=True,
         )
 
         existing_dashboard_ids = {
@@ -149,25 +153,37 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             else:
                 position = self.get_last_position(organization, user_id) + 1
 
-            self.create(
+            # Check if an unfavorited entry already exists and re-favorite it
+            existing_unfavorited = self.filter(
                 organization=organization,
                 user_id=user_id,
                 dashboard=dashboard,
-                position=position,
-            )
+                favorited=False,
+            ).first()
+            if existing_unfavorited:
+                existing_unfavorited.favorited = True
+                existing_unfavorited.position = position
+                existing_unfavorited.save(update_fields=["favorited", "position"])
+            else:
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    position=position,
+                )
             return True
 
-    def delete_favorite_dashboard(
+    def unfavorite_dashboard(
         self, organization: Organization, user_id: int, dashboard: Dashboard
     ) -> bool:
         """
-        Deletes a favorited dashboard from the list.
-        Decrements the position of all dashboards after the deletion point.
+        Unfavorites a dashboard by setting favorited=False and clearing its position.
+        Decrements the position of all remaining favorited dashboards after the removal point.
 
         Args:
             organization: The organization the dashboards belong to
             user_id: The ID of the user whose favorited dashboards are being updated
-            dashboard: The dashboard to delete
+            dashboard: The dashboard to unfavorite
 
         Returns:
             True if the dashboard was unfavorited, False if the dashboard was already unfavorited
@@ -177,10 +193,15 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 return False
 
             deleted_position = favorite.position
-            favorite.delete()
+            favorite.favorited = False
+            favorite.position = None
+            favorite.save(update_fields=["favorited", "position"])
 
             self.filter(
-                organization=organization, user_id=user_id, position__gt=deleted_position
+                organization=organization,
+                user_id=user_id,
+                favorited=True,
+                position__gt=deleted_position,
             ).update(position=models.F("position") - 1)
             return True
 
@@ -265,7 +286,7 @@ class Dashboard(Model):
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
-        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self, favorited=True).values_list(
             "user_id", flat=True
         )
         return user_ids
