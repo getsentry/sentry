@@ -368,7 +368,7 @@ class TestInitializeProvider(TestCase):
             )
         assert exc_info.value.code == "repository_organization_mismatch"
 
-    def test_raises_unsupported_integration(self):
+    def test_raises_integration_not_found(self):
         repository = _make_active_repository(self.organization.id)
 
         with pytest.raises(SCMCodedError) as exc_info:
@@ -378,7 +378,7 @@ class TestInitializeProvider(TestCase):
                 fetch_repository=lambda _, __: repository,
                 fetch_service_provider=lambda _, __: None,
             )
-        assert exc_info.value.code == "unsupported_integration"
+        assert exc_info.value.code == "integration_not_found"
 
 
 class TestExecProviderFn(TestCase):

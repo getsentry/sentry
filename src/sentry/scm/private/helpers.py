@@ -129,7 +129,7 @@ def initialize_provider(
 
     provider = fetch_service_provider(organization_id, repository)
     if provider is None:
-        raise SCMCodedError(code="unsupported_integration")
+        raise SCMCodedError(code="integration_not_found")
 
     return provider
 

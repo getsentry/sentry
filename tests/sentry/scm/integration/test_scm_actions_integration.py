@@ -103,7 +103,7 @@ class TestMakeFromRepositoryId(TestCase):
 
         assert exc_info.value.code == "repository_not_found"
 
-    def test_raises_unsupported_integration_when_no_integration_exists(self):
+    def test_raises_integration_not_found_when_no_integration_exists(self):
         repo = self.create_repo(
             name="test-org/orphan-repo",
             provider="integrations:github",
@@ -117,7 +117,7 @@ class TestMakeFromRepositoryId(TestCase):
                 repo.id,
             )
 
-        assert exc_info.value.code == "unsupported_integration"
+        assert exc_info.value.code == "integration_not_found"
 
 
 class TestMakeFromIntegration(TestCase):
