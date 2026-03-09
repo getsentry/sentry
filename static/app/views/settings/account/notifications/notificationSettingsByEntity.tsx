@@ -101,10 +101,13 @@ function NotificationSettingsByEntity({
   const entityById = keyBy<Organization | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
-    navigate({
-      ...location,
-      query: {organizationId},
-    }, {replace: true});
+    navigate(
+      {
+        ...location,
+        query: {organizationId},
+      },
+      {replace: true}
+    );
   };
 
   const handleAdd = () => {
