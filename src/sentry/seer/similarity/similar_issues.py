@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.util.timeout import Timeout
 
 from sentry import options
 from sentry.conf.server import (
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
+    timeout=Timeout(connect=30, read=30),
 )
 
 

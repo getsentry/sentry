@@ -10,6 +10,7 @@ from typing import Any
 import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
+from urllib3.util.timeout import Timeout
 
 from sentry import features
 from sentry.integrations.github.client import GitHubReaction
@@ -26,7 +27,9 @@ from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
 
-seer_code_review_connection_pool = connection_from_url(settings.SEER_PREVENT_AI_URL)
+seer_code_review_connection_pool = connection_from_url(
+    settings.SEER_PREVENT_AI_URL, timeout=Timeout(connect=30, read=30)
+)
 
 
 class Log(enum.StrEnum):

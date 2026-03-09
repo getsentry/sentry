@@ -6,6 +6,7 @@ from typing import TypedDict
 
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
+from urllib3.util.timeout import Timeout
 
 from sentry import options
 from sentry.conf.server import (
@@ -29,7 +30,9 @@ class CreateGroupingRecordData(TypedDict):
     exception_type: str | None
 
 
-seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_URL)
+seer_grouping_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL, timeout=Timeout(connect=30, read=30)
+)
 
 
 def call_seer_to_delete_project_grouping_records(

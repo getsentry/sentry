@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.util.retry import Retry
+from urllib3.util.timeout import Timeout
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
@@ -160,6 +161,7 @@ class CodingAgentStateUpdateRequest(BaseModel):
 
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=Timeout(connect=30, read=30),
 )
 
 

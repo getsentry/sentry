@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3.util.timeout import Timeout
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
@@ -28,14 +29,17 @@ logger = logging.getLogger(__name__)
 
 seer_summarization_default_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
+    timeout=Timeout(connect=30, read=30),
 )
 
 seer_autofix_default_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=Timeout(connect=30, read=30),
 )
 
 seer_anomaly_detection_default_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
+    timeout=Timeout(connect=30, read=30),
 )
 
 

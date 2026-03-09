@@ -17,6 +17,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3.util.timeout import Timeout
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -37,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 explorer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=Timeout(connect=30, read=30),
 )
 
 
