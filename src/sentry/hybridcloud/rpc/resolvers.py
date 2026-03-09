@@ -32,7 +32,7 @@ class CellResolutionStrategy(ABC):
         except OrganizationMapping.DoesNotExist as e:
             raise RegionMappingNotFound from e
 
-        return get_cell_by_name(mapping.region_name)
+        return get_cell_by_name(mapping.cell_name)
 
 
 @dataclass(frozen=True)
