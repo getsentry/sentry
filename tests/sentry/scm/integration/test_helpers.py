@@ -147,7 +147,7 @@ class TestMapIntegrationToProvider(TestCase):
                 get_installation=lambda _, oid: MagicMock(),
             )
 
-        assert exc_info.value.code == "integration_not_found"
+        assert exc_info.value.code == "unsupported_integration"
 
 
 class TestFetchServiceProvider(TestCase):
@@ -185,7 +185,7 @@ class TestFetchServiceProvider(TestCase):
         with pytest.raises(SCMCodedError) as exc_info:
             fetch_service_provider(self.organization.id, repository)
 
-        assert exc_info.value.code == "unsupported_integration"
+        assert exc_info.value.code == "integration_not_found"
 
 
 class TestIsRateLimited(TestCase):
