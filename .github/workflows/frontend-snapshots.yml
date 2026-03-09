@@ -72,7 +72,23 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           SENTRY_ORG: emerge-tools
           SENTRY_PROJECT: sentry-frontend
-        run: sentry-cli build snapshots .artifacts/snapshots --app-id sentry-frontend
+        run: |
+          sentry-cli \
+           --log-level=debug \
+           --auth-token ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }} \
+           build \
+           snapshots \
+           .artifacts/snapshots \
+           --app-id sentry-frontend
+           --project sentry-frontend \
+           --head-sha ${{ github.event.pull_request.head.sha }} \
+           --base-sha ${{ github.event.pull_request.base.sha }} \
+           --vcs-provider github \
+           --head-repo-name ${{ github.repository }} \
+           --base-repo-name ${{ github.repository }} \
+           --head-ref ${{ github.head_ref }} \
+           --base-ref ${{ github.base_ref }} \
+           --pr-number ${{ github.event.number }} \
 
       - name: Upload snapshot artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
