@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
 import type {GetTagKeys} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
@@ -31,11 +31,6 @@ export function useGetTraceItemAttributeTagKeys({
     projectIds: projects,
   });
 
-  const extraTagValues = useMemo(
-    () => (extraTags ? Object.values(extraTags) : []),
-    [extraTags]
-  );
-
   return useCallback(
     async (searchQuery: string): Promise<Tag[]> => {
       const [s, n, b] = await Promise.all([
@@ -45,8 +40,11 @@ export function useGetTraceItemAttributeTagKeys({
       ]);
       const fetched = [...Object.values(s), ...Object.values(n), ...Object.values(b)];
       const fetchedKeySet = new Set(fetched.map(t => t.key));
-      return [...fetched, ...extraTagValues.filter(t => !fetchedKeySet.has(t.key))];
+      return [
+        ...fetched,
+        ...Object.values(extraTags ?? []).filter(t => !fetchedKeySet.has(t.key)),
+      ];
     },
-    [getStringKeys, getNumberKeys, getBooleanKeys, extraTagValues]
+    [getStringKeys, getNumberKeys, getBooleanKeys, extraTags]
   );
 }
