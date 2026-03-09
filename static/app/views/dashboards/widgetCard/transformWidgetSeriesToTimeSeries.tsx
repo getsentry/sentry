@@ -4,7 +4,7 @@ import {
   SERIES_NAME_PART_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
@@ -12,6 +12,7 @@ interface TransformedSeries {
   label: string;
   seriesName: string;
   timeSeries: TimeSeries;
+  widgetQuery: WidgetQuery;
 }
 
 /**
@@ -25,6 +26,9 @@ export function transformWidgetSeriesToTimeSeries(
   timeseriesResultsUnits?: Record<string, DataUnit>
 ): TransformedSeries | null {
   const firstQuery = widget.queries[0];
+  if (!firstQuery) {
+    return null;
+  }
   const aggregates = firstQuery?.aggregates ?? [];
   const columns = firstQuery?.columns ?? [];
   const fields = firstQuery?.fields ?? [...columns, ...aggregates];
@@ -38,9 +42,9 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const queryName =
-    widget.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ??
-    undefined;
+  const widgetQuery =
+    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ?? firstQuery;
+  const queryName = widgetQuery?.name || undefined;
 
   const timeSeries = transformLegacySeriesToTimeSeries(
     series,
@@ -72,5 +76,5 @@ export function transformWidgetSeriesToTimeSeries(
     .filter((part): part is string => part !== undefined)
     .join(SERIES_NAME_PART_DELIMITER);
 
-  return {timeSeries, label, seriesName};
+  return {timeSeries, label, seriesName, widgetQuery};
 }
