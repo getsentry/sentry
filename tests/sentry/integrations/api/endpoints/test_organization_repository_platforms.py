@@ -10,6 +10,8 @@ from django.utils import timezone
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
+FEATURE_FLAG = "organizations:integrations-github-platform-detection"
+
 
 class OrganizationRepositoryPlatformsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-repository-platforms"
@@ -38,6 +40,10 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
+    def test_feature_flag_required(self) -> None:
+        response = self.get_response(self.organization.slug, self.repo.id)
+        assert response.status_code == 404
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_detects_platforms(self, get_jwt: mock.MagicMock) -> None:
@@ -56,7 +62,10 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                 status=404,
             )
 
-        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug, self.repo.id, status_code=200
+            )
 
         assert response.data == {
             "platforms": [
@@ -100,7 +109,10 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=200,
         )
 
-        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug, self.repo.id, status_code=200
+            )
 
         assert response.data == {
             "platforms": [
@@ -126,7 +138,8 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         }
 
     def test_repo_not_found(self) -> None:
-        response = self.get_response(self.organization.slug, 99999)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_response(self.organization.slug, 99999)
         assert response.status_code == 404
 
     def test_non_github_repo(self) -> None:
@@ -137,7 +150,8 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             external_id="456",
         )
 
-        response = self.get_response(self.organization.slug, repo.id)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
         assert "only supported for GitHub" in response.data["detail"]
 
@@ -150,7 +164,8 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        response = self.get_response(self.organization.slug, repo.id)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
         assert "only supported for GitHub" in response.data["detail"]
 
@@ -163,7 +178,8 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=None,
         )
 
-        response = self.get_response(self.organization.slug, repo.id)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
 
     def test_other_orgs_repo_not_accessible(self) -> None:
@@ -176,7 +192,8 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        response = self.get_response(self.organization.slug, other_repo.id)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_response(self.organization.slug, other_repo.id)
         assert response.status_code == 404
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -189,6 +206,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=500,
         )
 
-        response = self.get_response(self.organization.slug, self.repo.id)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_response(self.organization.slug, self.repo.id)
         assert response.status_code == 502
         assert "Failed to detect" in response.data["detail"]
