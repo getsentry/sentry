@@ -83,8 +83,8 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
             body=body,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
-    except (ReadTimeoutError, TimeoutError, MaxRetryError):
-        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
+    except (ReadTimeoutError, TimeoutError, MaxRetryError) as e:
+        extra.update({"reason": type(e).__name__, "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
         logger.exception(
             "seer.delete_grouping_records.hashes.timeout",
             extra=extra,
@@ -92,7 +92,7 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
         metrics.incr(
             DELETE_HASH_METRIC,
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"success": False, "reason": "ReadTimeoutError"},
+            tags={"success": False, "reason": type(e).__name__},
         )
         return False
 
