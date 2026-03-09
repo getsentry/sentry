@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 
 import Panel from 'sentry/components/panels/panel';
@@ -16,9 +15,16 @@ import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
+interface CategoryInfo {
+  billed_category: string;
+  is_add_on: boolean;
+  name: string;
+  tally_type: string;
+}
+
 export interface BillingPlansResponse {
   data: Plans;
-  not_live: string[];
+  categories?: Record<string, CategoryInfo | string>;
 }
 
 type Plans = Record<string, PlanTier>;
@@ -29,6 +35,7 @@ interface PlanDetails {
   data_categories_disabled: DataCategory[];
   price_tiers: Partial<Record<DataCategory, PriceTier[]>>;
   pricing: Record<string, Price>;
+  id?: string;
 }
 
 interface Price {
@@ -48,7 +55,6 @@ interface PriceTier {
 function BillingPlans() {
   const {
     data: billingPlansResponse = {
-      not_live: [],
       data: {},
     },
   } = useQuery(
@@ -188,7 +194,7 @@ function BillingPlans() {
 
   return (
     <BillingPlansContainer>
-      <h1>Billing Plans</h1>
+      <h1>Application Monitoring Billing Plans</h1>
       <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
         Download CSV
       </Button>
@@ -200,27 +206,49 @@ function BillingPlans() {
             key={planTierId}
             planTierId={planTierId}
             planTier={planTier}
-            notLive={billingPlansResponse.not_live}
+            categories={billingPlansResponse.categories}
           />
         ))}
     </BillingPlansContainer>
   );
 }
 
-const PLAN_COLUMN_ORDER = ['developer', 'team', 'business'] as const;
+const PREFERRED_PLAN_ORDER = [
+  'developer',
+  'team',
+  'business',
+  'enterprise_team',
+  'enterprise_business',
+  'enterprise_trial',
+  'enterprise_team_ds',
+  'enterprise_business_ds',
+  'enterprise_trial_ds',
+] as const;
+
+function getPlanColumnOrder(plans: Plans): string[] {
+  const allPlanNames = new Set<string>();
+  Object.values(plans).forEach(planTier => {
+    Object.keys(planTier).forEach(planName => allPlanNames.add(planName));
+  });
+  const preferred = PREFERRED_PLAN_ORDER.filter(p => allPlanNames.has(p));
+  const preferredSet = new Set<string>(PREFERRED_PLAN_ORDER);
+  const others = [...allPlanNames].filter(p => !preferredSet.has(p)).sort();
+  return [...preferred, ...others];
+}
 
 function TableOfContents({plans}: {plans: Plans}) {
   const sortedTiers = Object.entries(plans).sort(([a], [b]) => b.localeCompare(a));
+  const planColumnOrder = getPlanColumnOrder(plans);
 
   return (
     <TOCContainer>
-      <h2>Table of Contents</h2>
+      <h2 style={{marginTop: 20}}>Table of Contents</h2>
       <Panel>
         <StyledResultTable>
           <thead>
             <tr>
               <th />
-              {PLAN_COLUMN_ORDER.map(planName => (
+              {planColumnOrder.map(planName => (
                 <th key={planName}>{formatPlanName(planName)}</th>
               ))}
             </tr>
@@ -228,7 +256,7 @@ function TableOfContents({plans}: {plans: Plans}) {
           <tbody>
             {sortedTiers.length === 0 ? (
               <tr>
-                <td colSpan={PLAN_COLUMN_ORDER.length + 1}>No plans.</td>
+                <td colSpan={planColumnOrder.length + 1}>No plans.</td>
               </tr>
             ) : (
               sortedTiers.map(([planTierId, planTier]) => {
@@ -236,14 +264,30 @@ function TableOfContents({plans}: {plans: Plans}) {
                 return (
                   <tr key={planTierIdFormatted}>
                     <td>{planTierIdFormatted}</td>
-                    {PLAN_COLUMN_ORDER.map(planName => {
+                    {planColumnOrder.map(planName => {
                       const planDetails = planTier[planName];
                       const planNameFormatted = formatPlanName(planName);
-                      const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
                       return (
                         <td key={planName}>
                           {planDetails ? (
-                            <a href={`#${planTypeId}`}>{planNameFormatted}</a>
+                            <span style={{display: 'block'}}>
+                              <a
+                                href={`#${planDetails.id ?? `${planTierIdFormatted}-${planNameFormatted}`}`}
+                              >
+                                {planNameFormatted}
+                              </a>
+                              {planDetails.id && (
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    fontSize: '0.8rem',
+                                    paddingTop: '7px',
+                                  }}
+                                >
+                                  <code>{planDetails.id}</code>
+                                </span>
+                              )}
+                            </span>
                           ) : (
                             '—'
                           )}
@@ -264,24 +308,31 @@ function TableOfContents({plans}: {plans: Plans}) {
 function PlanTierSection({
   planTierId,
   planTier,
-  notLive,
+  categories,
 }: {
-  notLive: string[];
   planTier: PlanTier;
   planTierId: string;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
   const planTierIdFormatted = formatPlanTierId(planTierId);
 
   return (
-    <div>
-      <h2 id={planTierIdFormatted}>{planTierIdFormatted} Plans</h2>
+    <div
+      style={{
+        borderTop: '1px solid rgb(230, 230, 233)',
+        borderBottom: '1px solid rgb(230, 230, 233)',
+      }}
+    >
+      <h2 id={planTierIdFormatted} style={{marginTop: 20}}>
+        {planTierIdFormatted} Plans
+      </h2>
       {Object.entries(planTier).map(([planName, planDetails]) => (
         <PlanDetailsSection
           key={planName}
           planTierIdFormatted={planTierIdFormatted}
           planName={planName}
           planDetails={planDetails}
-          notLive={notLive.includes(planTierId)}
+          categories={categories}
         />
       ))}
     </div>
@@ -292,33 +343,32 @@ function PlanDetailsSection({
   planTierIdFormatted,
   planName,
   planDetails,
-  notLive,
+  categories,
 }: {
   planDetails: PlanDetails;
   planName: string;
   planTierIdFormatted: string;
-  notLive?: boolean;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
   const theme = useTheme();
   const planNameFormatted = formatPlanName(planName);
-  const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
-  const pricingId = `${planTierIdFormatted}-${planNameFormatted}-pricing`;
 
   return (
     <div>
       <div
         style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
       >
-        <h3 id={planTypeId} style={{margin: 0}}>
+        <h3
+          id={planDetails.id ?? `${planTierIdFormatted}-${planNameFormatted}`}
+          style={{margin: '20px 0 5px'}}
+        >
           {planTierIdFormatted} {planNameFormatted} Plan
+          {planDetails.id ? ` (${planDetails.id})` : null}
         </h3>
-        <Badge variant={notLive ? 'warning' : 'new'} style={{marginLeft: 5}}>
-          {notLive ? 'NOT LIVE' : 'LIVE'}
-        </Badge>
       </div>
 
       {/* Pricing Table */}
-      <h4 id={pricingId}>Pricing:</h4>
+      <h4>Pricing</h4>
       <PricingTable pricing={planDetails.pricing} />
 
       {/* Price Tiers (single merged table) */}
@@ -326,7 +376,7 @@ function PlanDetailsSection({
         planTierIdFormatted={planTierIdFormatted}
         planNameFormatted={planNameFormatted}
         planDetails={planDetails}
-        notLive={notLive}
+        categories={categories}
       />
     </div>
   );
@@ -365,18 +415,33 @@ interface TierGroup {
   dataCategoryId: string;
   isFirstForCategory: boolean;
   tierNumber: number;
+  categoryCode?: string;
+}
+
+function getCategoryCode(
+  categories: Record<string, CategoryInfo | string> | undefined,
+  dataCategory: string,
+  dataCategoryFormatted: string
+): string | undefined {
+  if (!categories) return undefined;
+  const entry =
+    categories[dataCategory] ??
+    categories[dataCategoryFormatted] ??
+    categories[dataCategoryFormatted.toLowerCase()];
+  if (!entry) return undefined;
+  return typeof entry === 'string' ? entry : entry.billed_category;
 }
 
 function MergedPriceTiersTable({
   planTierIdFormatted,
   planNameFormatted,
   planDetails,
-  notLive,
+  categories,
 }: {
   planDetails: PlanDetails;
   planNameFormatted: string;
   planTierIdFormatted: string;
-  notLive?: boolean;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
@@ -393,6 +458,7 @@ function MergedPriceTiersTable({
     const categoryLabel = disabled
       ? `${dataCategoryFormatted} (DISABLED)`
       : dataCategoryFormatted;
+    const categoryCode = getCategoryCode(categories, dataCategory, dataCategoryFormatted);
 
     const byTier = (tiers ?? []).reduce<Map<number, PriceTier[]>>((acc, t) => {
       const list = acc.get(t.tier) ?? [];
@@ -409,6 +475,7 @@ function MergedPriceTiersTable({
           dataCategory,
           tierNumber,
           bands,
+          categoryCode,
           dataCategoryFormatted,
           dataCategoryId,
           categoryLabel,
@@ -428,12 +495,9 @@ function MergedPriceTiersTable({
     });
   };
 
-  const badgeText = notLive ? 'NOT LIVE' : 'LIVE';
-  const badgeType = notLive ? 'warning' : 'new';
-
   const renderBandCells = (tier: PriceTier) => (
     <Fragment>
-      <td>{Number(tier.volume).toLocaleString('en-US')}</td>
+      <td>{formatVolume(tier.volume)}</td>
       <td>{formatCurrency(tier.monthly)}</td>
       <td>{formatCurrency(tier.annual)}</td>
       <td>
@@ -456,18 +520,13 @@ function MergedPriceTiersTable({
   return (
     <div>
       <div style={{display: 'flex', alignItems: 'center', marginBottom: space(3)}}>
-        <h4 style={{margin: 0}}>
-          Price tiers for {planTierIdFormatted} {planNameFormatted}
-        </h4>
-        <Badge variant={badgeType} style={{marginLeft: 5}}>
-          {badgeText}
-        </Badge>
+        <h4 style={{margin: 0}}>Price tiers</h4>
       </div>
       <Panel>
         <StyledResultTable>
           <thead>
             <tr>
-              <th style={{width: 24}} />
+              <th style={{width: 0}} />
               <th>Category</th>
               <th>Tier</th>
               <th>Volume</th>
@@ -493,7 +552,14 @@ function MergedPriceTiersTable({
                     id={group.isFirstForCategory ? dataCategoryId : undefined}
                   >
                     <td />
-                    <td>{categoryLabel}</td>
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{categoryLabel}</span>
+                      {group.categoryCode && (
+                        <code style={{display: 'block', textAlign: 'left'}}>
+                          {group.categoryCode}
+                        </code>
+                      )}
+                    </td>
                     <td>{tierNumber}</td>
                     {renderBandCells(tier)}
                   </tr>
@@ -503,9 +569,9 @@ function MergedPriceTiersTable({
               const [first, ...rest] = bands;
               const volumeRange =
                 bands.length > 0
-                  ? `${Number(bands[0]!.volume).toLocaleString('en-US')} – ${Number(
+                  ? `${formatVolume(bands[0]!.volume)} – ${formatVolume(
                       bands[bands.length - 1]!.volume
-                    ).toLocaleString('en-US')}`
+                    )}`
                   : '—';
 
               return (
@@ -532,7 +598,14 @@ function MergedPriceTiersTable({
                         />
                       </button>
                     </td>
-                    <td>{categoryLabel}</td>
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{categoryLabel}</span>
+                      {group.categoryCode && (
+                        <code style={{display: 'block', textAlign: 'left'}}>
+                          {group.categoryCode}
+                        </code>
+                      )}
+                    </td>
                     <td>{tierNumber}</td>
                     {isExpanded && first ? (
                       renderBandCells(first)
@@ -570,7 +643,17 @@ const BillingPlansContainer = styled('div')`
 `;
 
 const StyledResultTable = styled(ResultTable)`
-  margin-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  thead th {
+    background-color: #f6f6ff;
+    padding: 12px 2px;
+  }
+  td {
+    padding: 12px 2px;
+  }
+  td code {
+    padding: 0.35em 0 0 0;
+  }
 `;
 
 const TOCContainer = styled('nav')`
@@ -591,11 +674,28 @@ const TOCContainer = styled('nav')`
   }
 `;
 
+function formatVolume(volume: number): string {
+  const n = Number(volume);
+  if (n === 0) return '0';
+  if (Math.abs(n) < 0.0001 && Math.abs(n) > 0) {
+    return n.toFixed(15).replace(/\.?0+$/, '');
+  }
+  return n.toLocaleString('en-US', {maximumFractionDigits: 10});
+}
+
 function formatPlanTierId(planTierId: string): string {
   return planTierId.toUpperCase();
 }
 
 function formatPlanName(planType: string): string {
+  // Shorten "enterprise_" prefix to "Ent " for display
+  if (planType.startsWith('enterprise_')) {
+    const suffix = planType.slice('enterprise_'.length);
+    const parts = suffix
+      .split('_')
+      .map(part => (part.length <= 2 ? part.toUpperCase() : capitalizeWords(part)));
+    return 'Ent ' + parts.join(' ');
+  }
   return planType.charAt(0).toUpperCase() + planType.slice(1);
 }
 
