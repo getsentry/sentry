@@ -54,7 +54,6 @@ export default function ProjectTeams() {
 
   const handleCursor: CursorHandler = resultsCursor => {
     navigate({
-      pathname: location.pathname,
       query: {...location.query, cursor: resultsCursor},
     });
   };

@@ -153,7 +153,6 @@ function OrganizationAuditLog() {
       eventType: value,
     }));
     navigate({
-      pathname: location.pathname,
       query: {...location.query, event: value},
     });
   };
@@ -198,7 +197,6 @@ function OrganizationAuditLog() {
     }
 
     navigate({
-      pathname: location.pathname,
       query: newQuery,
     });
   };

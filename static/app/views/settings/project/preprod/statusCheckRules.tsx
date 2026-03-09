@@ -60,7 +60,6 @@ export function StatusCheckRules() {
     (expandedIds: string[]) => {
       navigate(
         {
-          pathname: location.pathname,
           query: {
             ...location.query,
             expanded: expandedIds,
@@ -69,7 +68,7 @@ export function StatusCheckRules() {
         {replace: true}
       );
     },
-    [location.pathname, location.query, navigate]
+    [location.query, navigate]
   );
 
   const handleToggleExpanded = useCallback(

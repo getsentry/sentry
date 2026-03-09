@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -47,7 +48,6 @@ type AutofixOptions = {
 };
 
 interface CodingAgentResult {
-  branch_name: string | null;
   description: string;
   pr_url: string | null;
   repo_full_name: string;
@@ -63,7 +63,15 @@ export enum CodingAgentStatus {
 
 export enum CodingAgentProvider {
   CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
+  CLAUDE_CODE_AGENT = 'claude_code_agent',
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
+}
+
+export function getResultButtonLabel(url: string | null | undefined): string {
+  if (url?.includes('/tree/')) {
+    return t('View Branch');
+  }
+  return t('View Pull Request');
 }
 
 export interface CodingAgentState {
@@ -312,12 +320,21 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
-interface SeerAutomationHandoffConfiguration {
+export interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   integration_id: number;
-  target: 'cursor_background_agent';
+  target: CodingAgentProvider;
   auto_create_pr?: boolean;
 }
+
+export const PROVIDER_TO_HANDOFF_TARGET: Record<
+  string,
+  SeerAutomationHandoffConfiguration['target']
+> = {
+  cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+  claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
+  github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+};
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];

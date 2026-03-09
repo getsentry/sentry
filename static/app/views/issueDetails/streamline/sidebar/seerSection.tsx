@@ -1,10 +1,8 @@
-import {useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
-import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -29,7 +27,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
@@ -107,10 +104,6 @@ export default function SeerSection({
   group: Group;
   project: Project;
 }) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-  // We don't use this on the streamlined UI, since the section folds.
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -194,19 +187,14 @@ export default function SeerSection({
     // Resources only
     if (issueTypeConfig.resources) {
       return (
-        <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
-          <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
+        <ResourcesWrapper>
+          <ResourcesContent>
             <Resources
               configResources={issueTypeConfig.resources}
               eventPlatform={event?.platform}
               group={group}
             />
           </ResourcesContent>
-          {!hasStreamlinedUI && (
-            <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
-              {isExpanded ? t('SHOW LESS') : t('READ MORE')}
-            </ExpandButton>
-          )}
         </ResourcesWrapper>
       );
     }
@@ -218,7 +206,7 @@ export default function SeerSection({
     <SidebarFoldSection
       title={titleComponent}
       sectionKey={SectionKey.SEER}
-      preventCollapse={!hasStreamlinedUI}
+      preventCollapse={false}
     >
       <Stack>
         {renderSectionContent()}
@@ -230,7 +218,7 @@ export default function SeerSection({
               event={event}
               group={group}
               project={project}
-              hasStreamlinedUI={hasStreamlinedUI}
+              hasStreamlinedUI
             />
           ) : (
             <SeerSectionCtaButton
@@ -238,7 +226,7 @@ export default function SeerSection({
               event={event}
               group={group}
               project={project}
-              hasStreamlinedUI={hasStreamlinedUI}
+              hasStreamlinedUI
             />
           ))}
       </Stack>
@@ -251,44 +239,14 @@ const Summary = styled('div')`
   position: relative;
 `;
 
-const ResourcesWrapper = styled('div')<{isExpanded: boolean}>`
+const ResourcesWrapper = styled('div')`
   position: relative;
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const ResourcesContent = styled('div')<{isExpanded: boolean}>`
+const ResourcesContent = styled('div')`
   position: relative;
-  max-height: ${p => (p.isExpanded ? 'none' : '68px')};
-  overflow: hidden;
-  padding-bottom: ${p => (p.isExpanded ? space(2) : 0)};
-
-  ${p =>
-    !p.isExpanded &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 40px;
-        background: linear-gradient(transparent, ${p.theme.tokens.background.primary});
-      }
-    `}
-`;
-
-const ExpandButton = styled(Button)`
-  position: absolute;
-  bottom: -${p => p.theme.space.md};
-  right: 0;
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  border: none;
-  box-shadow: none;
-
-  &:hover {
-    color: ${p => p.theme.colors.gray500};
-  }
+  padding-bottom: ${space(2)};
 `;
 
 const HeaderContainer = styled('div')`
