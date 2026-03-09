@@ -7,6 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {AgentAssistedSetup} from 'sentry/components/onboarding/agentAssistedSetup';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
   OnboardingCopyMarkdownButton,
@@ -184,6 +185,7 @@ export function OnboardingLayout({
               />
             ) : null}
           </Stack>
+          <AgentAssistedSetup platformKey={platformKey} />
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {

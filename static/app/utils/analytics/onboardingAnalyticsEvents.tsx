@@ -1,4 +1,8 @@
 export type OnboardingEventParameters = {
+  'onboarding.agent_assisted_prompt_copied': {
+    platform: string;
+    skill: string;
+  };
   'onboarding.back_button_clicked': {
     browserBackButton: boolean;
     from: string;
@@ -75,12 +79,19 @@ export type OnboardingEventParameters = {
 };
 
 export const onboardingEventMap: Record<keyof OnboardingEventParameters, string> = {
-  'onboarding.js_loader_optional_configuration_shown':
-    'Onboarding: JS Loader Optional Configuration Expanded',
+  'onboarding.agent_assisted_prompt_copied': 'Onboarding: Agent Assisted Prompt Copied',
+  'onboarding.back_button_clicked': 'Onboarding: Back Button Clicked',
+  'onboarding.data_removal_modal_confirm_button_clicked':
+    'Onboarding: Data Removal Modal Confirm Button Clicked',
+  'onboarding.data_removal_modal_dismissed': 'Onboarding: Data Removal Modal Dismissed',
+  'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
+  'onboarding.data_removed': 'Onboarding: Data Removed',
+  'onboarding.dsn-copied': 'Onboarding: DSN Copied',
   'onboarding.js_loader_npm_docs_shown':
     'Onboarding: JS Loader Switch to npm Instructions',
-  'onboarding.setup_loader_docs_rendered': 'Onboarding: Setup Loader Docs Rendered',
-  'onboarding.back_button_clicked': 'Onboarding: Back Button Clicked',
+  'onboarding.js_loader_optional_configuration_shown':
+    'Onboarding: JS Loader Optional Configuration Expanded',
+  'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
   'onboarding.select_framework_modal_close_button_clicked':
     'Onboarding: Framework Modal Close Button Clicked',
   'onboarding.select_framework_modal_configure_sdk_button_clicked':
@@ -88,17 +99,11 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.select_framework_modal_rendered': 'Onboarding: Framework Modal Rendered',
   'onboarding.select_framework_modal_skip_button_clicked':
     'Onboarding: Framework Modal Skip Button Clicked',
-  'onboarding.data_removal_modal_dismissed': 'Onboarding: Data Removal Modal Dismissed',
-  'onboarding.data_removal_modal_confirm_button_clicked':
-    'Onboarding: Data Removal Modal Confirm Button Clicked',
-  'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
-  'onboarding.data_removed': 'Onboarding: Data Removed',
+  'onboarding.setup_loader_docs_rendered': 'Onboarding: Setup Loader Docs Rendered',
+  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.source_maps_wizard_button_copy_clicked':
     'Onboarding: Source Maps Wizard Copy Button Clicked',
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
-  'onboarding.dsn-copied': 'Onboarding: DSN Copied',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
-  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
-  'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
 };
