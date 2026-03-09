@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.db import router, transaction
@@ -698,20 +698,59 @@ A list of actions that take place when all required conditions and filters for t
     )
 
 
+class ConditionsData(TypedDict):
+    id: str
+    value: str | int
+    attribute: NotRequired[str]
+    match: NotRequired[str]
+    interval: NotRequired[str]
+    comparisonType: NotRequired[str]
+    level: NotRequired[str]
+
+
+class FiltersData(TypedDict):
+    id: str
+    match: NotRequired[str]
+    key: NotRequired[str]
+    value: NotRequired[str | int]
+    targetType: NotRequired[Literal["Member", "Team", "Unassigned"]]
+    targetIdentifier: NotRequired[int]
+    fallthroughType: NotRequired[Literal["ActiveMembers", "AllMembers", "NoOne"]]
+    oldest_or_newest: NotRequired[str]
+    older_or_newer: NotRequired[str]
+    environment: NotRequired[str]
+
+
+class ProjectRulePostData(TypedDict):
+    name: str
+    frequency: int
+    actionMatch: Literal["all", "any", "none"]
+    conditions: list[ConditionsData]
+    actions: list[dict[str, Any]]
+    environment: NotRequired[str | None]
+    owner: NotRequired[str | None]
+    filterMatch: NotRequired[Literal["all", "any", "none"]]
+    filters: NotRequired[list[FiltersData]]
+    status: NotRequired[str]
+    snooze: NotRequired[bool]
+    projects: NotRequired[list[str]]
+
+
 def format_request_data(
-    data: dict[str, Any],
+    data: ProjectRulePostData,
 ) -> dict[str, Any]:
     workflow_payload = {
         "name": data.get("name"),
-        "enabled": True if data.get("status") == "active" else False,
+        "enabled": data.get("status") == "active",
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
 
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
-    translated_conditions: dict[str, Any] = {}
     translated_filter_list = []
     fake_dcg = DataConditionGroup()
+    # XXX: In order to avoid making bigger changes to translate_to_data_condition in issue_alert_conditions.py
+    # we pass in a dummy DCG and then pop it off since we just need the formatted data
 
     for condition in data.get("conditions", []):
         translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
@@ -838,7 +877,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(request.data)
+            request_data = format_request_data(cast("ProjectRulePostData", request.data))
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},
@@ -866,7 +905,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
             return Response(
                 serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
-                status=200,
+                status=201,
             )
 
         serializer = DrfRuleSerializer(

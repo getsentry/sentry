@@ -1,6 +1,7 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
+from sentry.workflow_engine.endpoints.validators.base.action import ActionData
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import issue_alert_action_translator_mapping
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def translate_rule_data_actions_to_notification_actions(
     actions: list[dict[str, Any]], skip_failures: bool
-) -> list[dict[str, Any]]:
+) -> list[ActionData]:
     """
     Builds notification actions from action field in Rule's data blob.
     Will only create actions that are valid, and log any errors.
@@ -19,7 +20,7 @@ def translate_rule_data_actions_to_notification_actions(
     :return: list of notification actions (Action)
     """
 
-    notification_actions: list[dict[str, Any]] = []
+    notification_actions: list[ActionData] = []
 
     for action in actions:
         # Fetch the registry ID
@@ -75,7 +76,7 @@ def translate_rule_data_actions_to_notification_actions(
                 "config": translator.action_config,
             }
 
-            notification_actions.append(notification_action_data)
+            notification_actions.append(cast(ActionData, notification_action_data))
         except Exception as e:
             if not skip_failures:
                 raise

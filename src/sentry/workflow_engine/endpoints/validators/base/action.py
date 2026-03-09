@@ -1,5 +1,5 @@
 import builtins
-from typing import Any
+from typing import Any, NotRequired, TypedDict, cast
 
 from rest_framework import serializers
 
@@ -12,8 +12,62 @@ from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
-ActionData = dict[str, Any]
-ActionConfig = dict[str, Any]
+
+class ActionConfig(TypedDict):
+    targetIdentifier: str | None
+    targetDisplay: str | None
+    targetType: int | None
+
+
+class ActionDataBlob(TypedDict):
+    # Slack, Discord
+    tags: NotRequired[str]
+    # Slack
+    notes: NotRequired[str]
+    # PagerDuty, Opsgenie
+    priority: NotRequired[str]
+    # Email (IssueOwners target type)
+    fallthrough_type: NotRequired[str]
+    # Sentry App
+    settings: NotRequired[list[dict[str, Any]]]
+    # Ticket actions (GitHub, Jira, Azure DevOps, etc.)
+    dynamic_form_fields: NotRequired[list[dict[str, Any]]]
+    additional_fields: NotRequired[dict[str, Any]]
+
+
+class ActionConditionData(TypedDict):
+    type: str
+    comparison: bool | str | int
+    conditionResult: bool
+
+
+class ActionTriggersData(TypedDict):
+    actions: []  # empty list
+    logicType: str
+    conditions: ActionConditionData
+
+
+class ActionFiltersActionData(TypedDict):
+    type: str
+    status: str
+    data: ActionDataBlob
+    config: ActionConfig
+
+
+class ActionFiltersData(TypedDict):
+    conditions: []  # empty list
+    logicType: str
+    actions: list[ActionFiltersActionData]
+
+
+class ActionData(TypedDict):
+    name: str
+    detectorIds: list[str]
+    enabled: bool
+    environment: NotRequired[str]
+    config: dict[str, Any]  # e.g. {"frequency": 1440}
+    actionFilters: ActionFiltersData
+    triggers: ActionTriggersData
 
 
 class BaseActionValidator(CamelSnakeSerializer[Any]):
@@ -44,7 +98,7 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
         if config_transformer is not None:
             # Transform from API format (transformer handles API schema validation)
-            return config_transformer.from_api(value)
+            return cast(ActionConfig, config_transformer.from_api(value))
         else:
             # No transformer, validate directly against config schema
             return validate_json_schema(value, action_handler.config_schema)
