@@ -1488,15 +1488,11 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      const organizationWithFlag = OrganizationFixture();
-      organizationWithFlag.features.push('visibility-explore-equations');
-
       render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: organizationWithFlag,
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1543,15 +1539,11 @@ describe('Visualize', () => {
     });
 
     it('adds equations line chart', async () => {
-      const organizationWithFlag = OrganizationFixture();
-      organizationWithFlag.features.push('visibility-explore-equations');
-
       render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: organizationWithFlag,
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,

@@ -1,5 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
@@ -13,7 +14,7 @@ interface Props {
   project: Project;
 }
 
-export default function CursorAgentSettings({
+export default function CodingAgentSettings({
   integration,
   canWrite,
   preference,
@@ -29,23 +30,24 @@ export default function CursorAgentSettings({
     <BooleanField
       disabled={Boolean(disabledReason)}
       disabledReason={disabledReason}
-      name="cursorAutoCreatePullRequests"
+      name="codingAgentAutoCreatePullRequests"
       label={t('Auto Create Pull Requests')}
       help={t(
-        'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
+        'When enabled, %s will automatically create pull requests after hand off.',
+        integration.name
       )}
       value={preference?.automation_handoff?.auto_create_pr ?? false}
       onChange={(value: boolean) => {
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
-            automated_run_stopping_point: preference?.automated_run_stopping_point, // Seer Agent "Create PR" setting
+            automated_run_stopping_point: preference?.automated_run_stopping_point,
             automation_handoff: {
-              handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
-              integration_id: Number(integration.id),
               ...preference?.automation_handoff,
-              auto_create_pr: value, // External coding agent "Create PR" setting
+              handoff_point: 'root_cause',
+              target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
+              integration_id: Number(integration.id),
+              auto_create_pr: value,
             },
           },
           {

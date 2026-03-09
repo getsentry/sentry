@@ -395,7 +395,7 @@ const StyledSummary = styled('summary')`
 
 const StyledButton = styled(Button)`
   width: 100%;
-  > span > span {
+  > span {
     display: block;
   }
 `;

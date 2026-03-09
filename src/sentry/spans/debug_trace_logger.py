@@ -173,16 +173,3 @@ class DebugTraceLogger:
                 "new_ttl_remaining_seconds": new_deadline - message_timestamp,
             },
         )
-
-    def log_empty_segments(self, empty_flush_count: int) -> None:
-        """
-        Log the number of consecutive empty flush_segments calls.
-
-        Args:
-            empty_flush_count: Number of consecutive calls to flush_segments
-                              that returned no segments
-        """
-        logger.info(
-            "spans.buffer.debug_empty_flushes",
-            extra={"empty_flush_count": empty_flush_count},
-        )

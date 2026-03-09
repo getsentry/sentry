@@ -79,9 +79,9 @@ class OrganizationRegionEndpoint(Endpoint):
         return (args, kwargs)
 
     def get(self, request: Request, organization_mapping: OrganizationMapping) -> Response:
-        locality = get_global_directory().get_locality_for_cell(organization_mapping.region_name)
+        locality = get_global_directory().get_locality_for_cell(organization_mapping.cell_name)
         if locality is None:
             raise RegionResolutionError(
-                f"No locality found for cell: {organization_mapping.region_name!r}"
+                f"No locality found for cell: {organization_mapping.cell_name!r}"
             )
         return self.respond(locality.api_serialize())

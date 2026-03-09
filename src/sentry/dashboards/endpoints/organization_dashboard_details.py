@@ -296,7 +296,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
                     dashboard=dashboard,
                 )
             else:
-                DashboardFavoriteUser.objects.delete_favorite_dashboard(
+                DashboardFavoriteUser.objects.unfavorite_dashboard(
                     organization=organization,
                     user_id=request.user.id,
                     dashboard=dashboard,

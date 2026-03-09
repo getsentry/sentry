@@ -37,7 +37,7 @@ from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
-    from sentry.hybridcloud.rpc.resolvers import RegionResolutionStrategy
+    from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def get_name_segments(self) -> Sequence[str]:
         return self.service_name, self.method_name
 
-    def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
+    def _extract_region_resolution(self) -> CellResolutionStrategy | None:
         region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
 
         is_region_service = self.base_service_cls.local_mode == SiloMode.REGION
@@ -178,7 +178,7 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
 
 
 def regional_rpc_method(
-    resolve: RegionResolutionStrategy,
+    resolve: CellResolutionStrategy,
     return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     """Decorate methods to be exposed as part of the RPC interface.

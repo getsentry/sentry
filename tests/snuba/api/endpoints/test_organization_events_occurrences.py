@@ -26,7 +26,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             },
             project=self.project,
         )
-        self.store_occurrences([occ])
+        self.store_eap_items([occ])
 
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
@@ -56,7 +56,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             },
             project=self.project,
         )
-        self.store_occurrences([occ])
+        self.store_eap_items([occ])
 
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}

@@ -71,7 +71,7 @@ class MailgunInboundWebhookView(View):
 
         if org_id:
             org_mapping = OrganizationMapping.objects.get(organization_id=org_id)
-            region_name = org_mapping.region_name
+            region_name = org_mapping.cell_name
         else:
             region_name = settings.SENTRY_MONOLITH_REGION
 
