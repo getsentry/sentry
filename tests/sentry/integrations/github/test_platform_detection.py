@@ -1466,7 +1466,10 @@ class TestDetectPlatforms:
 
         def get_side_effect(path, params=None):
             if path.endswith("/contents"):
-                return [{"name": "wp-config.php", "type": "file"}]
+                return [
+                    {"name": "wp-config.php", "type": "file"},
+                    {"name": "composer.json", "type": "file"},
+                ]
             if "composer.json" in path:
                 return _make_b64_response(
                     json.dumps({"require": {"symfony/framework-bundle": "^6.0"}})
