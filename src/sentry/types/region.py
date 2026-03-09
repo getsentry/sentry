@@ -156,7 +156,7 @@ class RegionDirectory:
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
     @property
-    def regions(self) -> frozenset[Cell]:
+    def cells(self) -> frozenset[Cell]:
         return self._cells
 
     @property
@@ -192,7 +192,7 @@ class RegionDirectory:
         return (r for name in loc.cells if (r := self._by_name.get(name)) is not None)
 
     def validate_all(self) -> None:
-        for region in self.regions:
+        for region in self.cells:
             region.validate()
 
         # Ensure that a cell cannot be registered to more than one locality
@@ -363,7 +363,7 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 
 
 @control_silo_function
-def get_region_for_organization(organization_id_or_slug: str) -> Cell:
+def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     """Resolve an organization to the cell where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
 
@@ -380,6 +380,10 @@ def get_region_for_organization(organization_id_or_slug: str) -> Cell:
         )
 
     return get_cell_by_name(name=mapping.region_name)
+
+
+# TOOD(cells): Remove alias once getsentry import sites are updated
+get_region_for_organization = get_cell_for_organization
 
 
 def get_local_locality() -> Locality:
@@ -450,7 +454,7 @@ def find_regions_for_orgs(org_ids: Iterable[int]) -> set[str]:
     else:
         return set(
             OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
-                "region_name", flat=True
+                "cell_name", flat=True
             )
         )
 
@@ -477,8 +481,8 @@ def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
     ).values_list("organization_id")
     regions = (
         OrganizationMapping.objects.filter(organization_id__in=organizations_with_installations)
-        .distinct("region_name")
-        .values_list("region_name")
+        .distinct("cell_name")
+        .values_list("cell_name")
     )
     return {r[0] for r in regions}
 

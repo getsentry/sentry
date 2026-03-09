@@ -522,7 +522,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
         favorited_dashboard_ids = set(
             DashboardFavoriteUser.objects.filter(
-                user_id=user.id, dashboard_id__in=item_dict.keys()
+                user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
             ).values_list("dashboard_id", flat=True)
         )
 
@@ -668,13 +668,6 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
-
-        if "globalFilter" in tag_filters and not features.has(
-            "organizations:dashboards-global-filters",
-            organization=obj.organization,
-            actor=user,
-        ):
-            tag_filters["globalFilter"] = []
 
         data: DashboardDetailsResponse = {
             "id": str(obj.id),

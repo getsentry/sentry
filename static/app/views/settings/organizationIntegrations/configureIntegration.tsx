@@ -178,7 +178,6 @@ function ConfigureIntegration() {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
     navigate({
-      pathname: location.pathname,
       query: {...query, tab: value},
     });
   };

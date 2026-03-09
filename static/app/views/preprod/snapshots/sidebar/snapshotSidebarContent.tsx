@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -6,7 +6,6 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   IconAdd,
   IconCheckmark,
@@ -36,51 +35,45 @@ const SECTION_ORDER: SectionConfig[] = [
     type: DiffStatus.ADDED,
     label: t('Added'),
     icon: <IconAdd size="xs" />,
-    defaultExpanded: false,
+    defaultExpanded: true,
   },
   {
     type: DiffStatus.REMOVED,
     label: t('Removed'),
     icon: <IconSubtract size="xs" />,
-    defaultExpanded: false,
+    defaultExpanded: true,
   },
   {
     type: DiffStatus.RENAMED,
     label: t('Renamed'),
     icon: <IconCopy size="xs" />,
-    defaultExpanded: false,
+    defaultExpanded: true,
   },
   {
     type: DiffStatus.UNCHANGED,
     label: t('Unchanged'),
     icon: <IconCheckmark size="xs" />,
-    defaultExpanded: false,
+    defaultExpanded: true,
   },
 ];
 
 interface SnapshotSidebarContentProps {
   currentItemName: string | null;
-  fetchNextPage: () => Promise<unknown>;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
   items: SidebarItem[];
   onSearchChange: (query: string) => void;
   onSelectItem: (name: string) => void;
   searchQuery: string;
+  totalItemCount: number;
 }
 
 export function SnapshotSidebarContent({
   items,
+  totalItemCount,
   currentItemName,
   searchQuery,
   onSearchChange,
   onSelectItem,
-  hasNextPage,
-  isFetchingNextPage,
-  fetchNextPage,
 }: SnapshotSidebarContentProps) {
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
   const isDiffMode = items.length > 0 && items[0]!.type !== 'solo';
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
@@ -109,24 +102,6 @@ export function SnapshotSidebarContent({
     return groups;
   }, [items, isDiffMode]);
 
-  useEffect(() => {
-    const sentinel = loadMoreRef.current;
-    if (!sentinel || !hasNextPage) {
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      {threshold: 0}
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   const isSearching = searchQuery.length > 0;
 
   const handleExpandedChange = (type: string, expanded: boolean) => {
@@ -145,7 +120,7 @@ export function SnapshotSidebarContent({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search images...')}
+            placeholder={t('Search %s images...', totalItemCount)}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
@@ -238,17 +213,11 @@ export function SnapshotSidebarContent({
                 </SidebarItemRow>
               );
             })}
-        {items.length === 0 && !hasNextPage && !isFetchingNextPage && (
+        {items.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No images found.')}
             </Text>
-          </Flex>
-        )}
-        <div ref={loadMoreRef} />
-        {isFetchingNextPage && (
-          <Flex align="center" justify="center" padding="md">
-            <LoadingIndicator size={20} />
           </Flex>
         )}
       </Stack>

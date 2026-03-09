@@ -1514,7 +1514,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         first_group = self.create_group(project=self.project)
         second_group = self.create_group(project=self.project)
-        self.store_occurrences(
+        self.store_eap_items(
             [
                 self.create_eap_occurrence(
                     project=self.project,

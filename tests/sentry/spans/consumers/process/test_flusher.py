@@ -33,7 +33,9 @@ def test_backpressure() -> None:
         flusher = SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=append,
+            produce_to_pipe=lambda project_id, payload, dropped: append(
+                (project_id, payload, dropped)
+            ),
         )
 
         try:
@@ -188,7 +190,7 @@ def test_flusher_waits_for_exited_processes_during_startup() -> None:
         SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=lambda _: None,
+            produce_to_pipe=lambda project_id, payload, dropped: None,
         )
 
 
@@ -216,5 +218,5 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
         SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=lambda _: None,
+            produce_to_pipe=lambda project_id, payload, dropped: None,
         )

@@ -43,7 +43,7 @@ class OrgCellMappingsEndpoint(Endpoint):
                 for locality in localities
                 for r in directory.get_cells_for_locality(locality)
             ]
-            query = query.filter(region_name__in=cell_names)
+            query = query.filter(cell_name__in=cell_names)
 
         per_page = self.get_per_page(request, max_per_page=self.MAX_LIMIT)
         paginator = SynapsePaginator(
@@ -63,7 +63,7 @@ class OrgCellMappingsEndpoint(Endpoint):
 
         cell_to_locality = {
             cell.name: loc.name
-            for cell in directory.regions
+            for cell in directory.cells
             if (loc := directory.get_locality_for_cell(cell.name)) is not None
         }
 

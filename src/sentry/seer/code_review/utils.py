@@ -196,7 +196,7 @@ def _get_target_commit_sha(
             raise ValueError("missing-pr-number-for-sha")
 
         client = integration.get_installation(organization_id=repo.organization_id).get_client()
-        sha = client.get_pull_request(repo.name, pr_number).get("head", {}).get("sha")
+        sha = client.get_pull_request(repo.name, str(pr_number)).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-api-pr-head-sha")
         return sha
