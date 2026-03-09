@@ -122,6 +122,7 @@ test-js-ci:
 test-python-ci:
 	@echo "--> Running CI Python tests"
 	python3 -b -m pytest \
+		-n3 \
 		tests \
 		--reuse-db \
 		--ignore tests/acceptance \
