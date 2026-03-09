@@ -507,9 +507,7 @@ function BlockComponent({
               size="xs"
               tooltipProps={{title: t('Copy to clipboard')}}
               onClick={handleCopyClick}
-            >
-              {undefined}
-            </Button>
+            />
             <Button
               size="xs"
               priority="transparent"
