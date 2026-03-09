@@ -318,6 +318,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         choices=DatasetSourcesTypes.as_text_choices(),
         required=False,
         help_text="A widgets's unique id.",
+        error_messages={"invalid_choice": "Invalid dataset source"},
     )
 
     def validate_display_type(self, display_type):
@@ -383,6 +384,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if not data.get("id"):
             if not data.get("title"):
                 raise serializers.ValidationError({"title": "Title is required during creation."})
+
+        dataset_source = data.get("dataset_source")
+        if dataset_source is not None:
+            try:
+                data["dataset_source"] = DATASET_SOURCE_MAP[dataset_source]
+            except KeyError:
+                raise serializers.ValidationError({"dataset_source": "Invalid dataset source"})
 
         return data
 
@@ -617,7 +625,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         dataset_source = data.get("dataset_source")
         if dataset_source is not None:
-            data["dataset_source"] = DATASET_SOURCE_MAP[dataset_source]
+            try:
+                data["dataset_source"] = DATASET_SOURCE_MAP[dataset_source]
+            except KeyError:
+                raise serializers.ValidationError({"dataset_source": "Invalid dataset source"})
 
         return data
 

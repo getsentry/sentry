@@ -70,7 +70,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       }
 
       if ('performance_issues' in value && Array.isArray(value.performance_issues)) {
-        value.performance_issues.forEach(issue => this.occurrences.add(issue));
+        value.performance_issues.forEach(issue => this.addOccurrence(issue));
       }
     }
 
@@ -371,7 +371,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       for (const performanceIssue of this.getRelatedPerformanceIssuesFromTransaction(
         node
       )) {
-        node.occurrences.add(performanceIssue);
+        node.addOccurrence(performanceIssue);
       }
 
       for (const error of this.getRelatedSpanErrorsFromTransaction(node)) {

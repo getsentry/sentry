@@ -10,10 +10,11 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
-import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
+import {IconChevron, IconCopy, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -157,6 +158,7 @@ function BlockComponent({
   readOnly = false,
   ref,
 }: BlockProps) {
+  const {copy} = useCopyToClipboard();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -345,6 +347,11 @@ function BlockComponent({
     onDelete?.();
   };
 
+  const handleCopyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    copy(block.message.content);
+  };
+
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
     if (sortedToolLinks.length === 0) {
@@ -369,6 +376,7 @@ function BlockComponent({
     !isAwaitingQuestion &&
     !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
+  const showCopyButton = block.message.role !== 'tool_use';
 
   return (
     <Block
@@ -489,6 +497,16 @@ function BlockComponent({
           <ActionButtonBar gap="xs">
             {showFeedbackButtons && thumbsFeedbackButton('positive')}
             {showFeedbackButtons && thumbsFeedbackButton('negative')}
+            {showCopyButton && (
+              <Button
+                aria-label={t('Copy block content')}
+                icon={<IconCopy />}
+                priority="transparent"
+                size="xs"
+                tooltipProps={{title: t('Copy to clipboard')}}
+                onClick={handleCopyClick}
+              />
+            )}
             <Button
               size="xs"
               priority="transparent"

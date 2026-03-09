@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.auth.provider import Provider
+    from sentry.models.authprovider import ScimTokenDisplay
 
 
 class RpcApiKey(RpcModel):
@@ -203,6 +204,13 @@ class RpcAuthProvider(RpcModel):
         from sentry.models.authprovider import get_scim_token
 
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
+
+    def get_scim_token_for_display(self) -> Optional["ScimTokenDisplay"]:
+        from sentry.models.authprovider import get_scim_token_for_display
+
+        return get_scim_token_for_display(
+            self.flags.scim_enabled, self.organization_id, self.provider
+        )
 
 
 class RpcAuthIdentity(RpcModel):

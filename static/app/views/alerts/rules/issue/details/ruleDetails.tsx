@@ -36,10 +36,10 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -82,7 +82,7 @@ export default function AlertRuleDetails() {
   const api = useApi();
   const location = useLocation();
   const params = useParams<{projectId: string; ruleId: string}>();
-  const router = useRouter();
+  const navigate = useNavigate();
   const {projects, fetching: projectIsLoading} = useProjects();
   const project = projects.find(({slug}) => slug === params.projectId);
   const {projectId: projectSlug, ruleId} = params;
@@ -149,7 +149,7 @@ export default function AlertRuleDetails() {
     pageUtc?: boolean | null;
     team?: string;
   }) {
-    return router.push({
+    return navigate({
       ...location,
       query: {
         ...location.query,

@@ -128,7 +128,7 @@ class TestMapIntegrationToProvider(TestCase):
     def test_raises_error_for_unsupported_provider(self):
         integration = self.create_integration(
             organization=self.organization,
-            provider="unsupported_provider",
+            provider="integrations:github",
             name="Unsupported Provider Test",
             external_id="1",
         )
@@ -147,7 +147,7 @@ class TestMapIntegrationToProvider(TestCase):
                 get_installation=lambda _, oid: MagicMock(),
             )
 
-        assert exc_info.value.code == "integration_not_found"
+        assert exc_info.value.code == "unsupported_integration"
 
 
 class TestFetchServiceProvider(TestCase):
@@ -423,7 +423,7 @@ class TestExecProviderFn(TestCase):
         repository = _make_active_repository(org_id)
 
         def raise_scm_coded_error(provider):
-            raise SCMCodedError(code="integration_not_found")
+            raise SCMCodedError(code="unsupported_integration")
 
         with pytest.raises(SCMCodedError) as exc_info:
             exec_provider_fn(
@@ -433,7 +433,7 @@ class TestExecProviderFn(TestCase):
                 fetch_service_provider=lambda _, __: _make_provider(),
                 provider_fn=raise_scm_coded_error,
             )
-        assert exc_info.value.code == "integration_not_found"
+        assert exc_info.value.code == "unsupported_integration"
 
     def test_generic_exception_wrapped_in_scm_unhandled_exception(self):
         """Non-SCMError exceptions should be wrapped in SCMUnhandledException."""
