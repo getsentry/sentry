@@ -4,6 +4,7 @@ from typing import Self
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.repository import Repository as RepositoryModel
+from sentry.scm.errors import SCMProviderNotSupported
 from sentry.scm.private.helpers import (
     exec_provider_fn,
     fetch_repository,
@@ -117,7 +118,7 @@ class SourceCodeManager:
     def _exec[P, T](self, protocol: type[P], provider_fn: Callable[[P], T]) -> T:
         provider = self.provider
         if not isinstance(provider, protocol):
-            raise NotImplementedError
+            raise SCMProviderNotSupported
 
         return exec_provider_fn(
             self.provider,

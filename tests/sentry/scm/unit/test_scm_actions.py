@@ -5,8 +5,13 @@ from typing import Any
 import pytest
 
 from sentry.scm.actions import SourceCodeManager
-from sentry.scm.errors import SCMCodedError, SCMProviderException
-from sentry.scm.types import PaginatedActionResult, ReactionResult, Repository
+from sentry.scm.errors import (
+    SCMCodedError,
+    SCMProviderException,
+    SCMProviderNotSupported,
+    SCMUnhandledException,
+)
+from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -610,3 +615,94 @@ def test_provider_exception_is_not_wrapped():
 
     with pytest.raises(SCMProviderException):
         scm.get_issue_reactions(issue_id="1")
+
+
+class MinimalProvider:
+    """A provider that implements Provider but no action protocols."""
+
+    organization_id: int = 1
+    repository: Repository = {
+        "integration_id": 1,
+        "name": "test",
+        "organization_id": 1,
+        "is_active": True,
+    }
+
+    def is_rate_limited(self, referrer: Referrer) -> bool:
+        return False
+
+
+@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
+def test_exec_raises_provider_not_supported_for_all_actions(method: str, kwargs: dict[str, Any]):
+    """Every SCM action raises SCMProviderNotSupported when the provider lacks the protocol."""
+    scm = SourceCodeManager(MinimalProvider())  # type: ignore[arg-type]
+
+    with pytest.raises(SCMProviderNotSupported):
+        getattr(scm, method)(**kwargs)
+
+
+def test_exec_wraps_unhandled_exception():
+    """Non-SCM exceptions raised by the provider are wrapped as SCMUnhandledException."""
+
+    class ExplodingProvider(BaseTestProvider):
+        def get_branch(self, branch, request_options=None):
+            raise RuntimeError("unexpected failure")
+
+    scm = SourceCodeManager(ExplodingProvider())
+
+    with pytest.raises(SCMUnhandledException):
+        scm.get_branch(branch="main")
+
+
+def test_exec_records_failure_metric_on_unhandled_exception():
+    """record_count is called with the failure metric when a non-SCM exception occurs."""
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+
+    class ExplodingProvider(BaseTestProvider):
+        def get_branch(self, branch, request_options=None):
+            raise RuntimeError("boom")
+
+    scm = SourceCodeManager(
+        ExplodingProvider(), record_count=lambda k, a, t: metrics.append((k, a, t))
+    )
+
+    with pytest.raises(SCMUnhandledException):
+        scm.get_branch(branch="main")
+
+    assert metrics == [("sentry.scm.actions.failed", 1, {})]
+
+
+def test_exec_passes_custom_referrer():
+    """The referrer set on SourceCodeManager is forwarded through _exec to exec_provider_fn."""
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+
+    scm = SourceCodeManager(
+        BaseTestProvider(),
+        referrer="autofix",
+        record_count=lambda k, a, t: metrics.append((k, a, t)),
+    )
+    scm.get_branch(branch="main")
+
+    referrer_metrics = [(k, a, t) for k, a, t in metrics if "referrer" in t]
+    assert referrer_metrics == [
+        ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "autofix"}),
+    ]
+
+
+def test_exec_passes_custom_record_count():
+    """A custom record_count callable provided at construction is used by _exec."""
+    calls: list[tuple[str, int, dict[str, str]]] = []
+
+    def custom_record(key: str, amount: int, tags: dict[str, str]) -> None:
+        calls.append((key, amount, tags))
+
+    scm = SourceCodeManager(BaseTestProvider(), record_count=custom_record)
+    scm.get_branch(branch="main")
+
+    assert len(calls) == 2
+    assert calls[0] == (
+        "sentry.scm.actions.success_by_provider",
+        1,
+        {"provider": "BaseTestProvider"},
+    )
+    assert calls[1] == ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"})
