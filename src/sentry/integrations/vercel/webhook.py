@@ -6,11 +6,14 @@ import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -48,14 +51,12 @@ class _ReleasePayload(TypedDict):
     refs: list[dict[str, str]]
 
 
-def verify_signature(request):
-    signature = request.META.get("HTTP_X_VERCEL_SIGNATURE")
+def verify_vercel_hmac(body: bytes, signature: str) -> bool:
+    """Verify a Vercel webhook HMAC-SHA1 signature."""
     secret = options.get("vercel.client-secret")
-
-    expected = hmac.new(
-        key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
-    ).hexdigest()
-
+    if not secret:
+        return False
+    expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1).hexdigest()
     return constant_time_compare(expected, signature)
 
 
@@ -135,6 +136,21 @@ def get_payload_and_token(
     return release_payload, sentry_app_installation_token.api_token.token
 
 
+class VercelSignatureAuthentication(BaseAuthentication):
+    def authenticate_header(self, request: Request) -> str:
+        return "X-Vercel-Signature"
+
+    def authenticate(self, request: Request) -> tuple[Any, Any]:
+        signature = request.META.get("HTTP_X_VERCEL_SIGNATURE")
+        if not signature:
+            logger.warning("vercel.webhook.missing-signature")
+            raise AuthenticationFailed("Missing signature")
+        if not verify_vercel_hmac(request.body, signature):
+            logger.warning("vercel.webhook.invalid-signature")
+            raise AuthenticationFailed("Invalid signature")
+        return (AnonymousUser(), None)
+
+
 @control_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -142,7 +158,7 @@ class VercelWebhookEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    authentication_classes = ()
+    authentication_classes = (VercelSignatureAuthentication,)
     permission_classes = ()
     provider = "vercel"
 
@@ -160,21 +176,7 @@ class VercelWebhookEndpoint(Endpoint):
         )
         return external_id
 
-    def _require_valid_signature(self, request: Request) -> Response | None:
-        """Returns a 401 Response if signature is missing or invalid, else None."""
-        if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
-            logger.warning("vercel.webhook.missing-signature")
-            return self.respond(status=401)
-        if not verify_signature(request):
-            logger.warning("vercel.webhook.invalid-signature")
-            return self.respond(status=401)
-        return None
-
     def post(self, request: Request) -> Response | None:
-        error = self._require_valid_signature(request)
-        if error:
-            return error
-
         # Vercel's webhook allows you to subscribe to different events,
         # denoted by the `type` attribute. We currently subscribe to:
         #     * integration-configuration.removed (Configuration Removed)
@@ -194,9 +196,6 @@ class VercelWebhookEndpoint(Endpoint):
         return None
 
     def delete(self, request: Request) -> Response:
-        error = self._require_valid_signature(request)
-        if error:
-            return error
         external_id = self.parse_external_id(request)
         configuration_id = request.data["payload"]["configuration"]["id"]
         return self._delete(external_id, configuration_id, request)
