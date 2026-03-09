@@ -244,12 +244,12 @@ const HeaderRow = styled('div')`
 `;
 
 const Title = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.muted};
   margin: 0;
 `;
@@ -271,8 +271,8 @@ const PromptBox = styled('div')`
 `;
 
 const PromptText = styled('code')`
-  font-family: ${p => p.theme.text.family.mono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.primary};
   background: none;
