@@ -4,7 +4,7 @@ import functools
 import logging
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Concatenate, ParamSpec, TypeVar
+from typing import Any, TypeVar
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
@@ -40,8 +40,7 @@ from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
 
-P = ParamSpec("P")
-R = TypeVar("R")
+F = TypeVar("F", bound=Callable[..., Any])
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -176,31 +175,24 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             translate_slack_api_error(e)
 
     @staticmethod
-    def requires_scope(
-        scope: SlackScope, *, default: R | None = None
-    ) -> Callable[
-        [Callable[Concatenate[SlackIntegration, P], R]],
-        Callable[Concatenate[SlackIntegration, P], R],
-    ]:
+    def requires_scope(scope: SlackScope, *, default: Any = None) -> Callable[[F], F]:
         """Decorator that gates a method on a required OAuth scope.
 
         If the scope is missing, logs a warning and returns ``default``.
         """
 
-        def decorator(
-            fn: Callable[Concatenate[SlackIntegration, P], R],
-        ) -> Callable[Concatenate[SlackIntegration, P], R]:
+        def decorator(fn: F) -> F:
             @functools.wraps(fn)
-            def wrapper(self: SlackIntegration, *args: P.args, **kwargs: P.kwargs) -> R:
+            def wrapper(self: SlackIntegration, *args: Any, **kwargs: Any) -> Any:
                 if scope not in self.model.metadata.get("scopes", []):
                     _logger.warning(
                         "slack.missing_scope",
                         extra={"integration_id": self.model.id, "scope": scope},
                     )
-                    return default  # type: ignore[return-value]
+                    return default
                 return fn(self, *args, **kwargs)
 
-            return wrapper
+            return wrapper  # type: ignore[return-value]
 
         return decorator
 
