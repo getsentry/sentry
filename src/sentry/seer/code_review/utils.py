@@ -26,7 +26,10 @@ from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
 
-seer_code_review_connection_pool = connection_from_url(settings.SEER_PREVENT_AI_URL)
+seer_code_review_connection_pool = connection_from_url(
+    settings.SEER_PREVENT_AI_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
 
 
 class Log(enum.StrEnum):

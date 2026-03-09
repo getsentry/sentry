@@ -87,6 +87,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         try:
             response = make_replay_summary_start_request(
                 body,
+                timeout=5,
                 retries=0,
                 viewer_context=viewer_context,
             )
@@ -117,6 +118,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         try:
             response = make_replay_summary_state_request(
                 body,
+                timeout=5,
                 retries=0,
                 viewer_context=viewer_context,
             )
