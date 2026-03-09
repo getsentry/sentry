@@ -139,6 +139,7 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
   onSectionToggle?: (section: SelectSection<SelectKey>) => void;
+  onStagedStateChange?: (hasStagedValue: boolean) => void;
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
 }
@@ -158,6 +159,7 @@ interface UseStagedCompactSelectReturn<Value extends SelectKey> {
     | 'closeOnSelect'
   >;
   dispatch: React.Dispatch<StagedSelectAction<Value>>;
+  hasStagedValue: boolean;
   toggleOption: (val: Value) => void;
   value: Value[];
 }
@@ -176,6 +178,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   filterOptionsOnSearch,
   onReplace,
   onSectionToggle,
+  onStagedStateChange,
   multiple,
   disableCommit,
   hasExternalChanges = false,
@@ -206,6 +209,10 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   useEffect(() => {
     onStagedValueChange?.(stagedValue);
   }, [onStagedValueChange, stagedValue]);
+
+  useEffect(() => {
+    onStagedStateChange?.(state.stagedValue !== null);
+  }, [onStagedStateChange, state.stagedValue]);
 
   useEffect(() => {
     if (state.stagedValue === null && hasExternalChanges) {
@@ -444,6 +451,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       },
     },
     dispatch,
+    hasStagedValue: state.stagedValue !== null,
     value: stagedValue,
     toggleOption,
   };
