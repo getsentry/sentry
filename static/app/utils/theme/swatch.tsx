@@ -1,14 +1,10 @@
-import type {color} from 'sentry/utils/theme/scraps/tokens/color';
-
-type CategoricalPaletteKey = keyof typeof color.categorical.light;
-type CategoricalPalette = Record<CategoricalPaletteKey, string>;
 type OnVibrant = {dark: string; light: string};
 
 /**
  * Hardcoded contrast mapping for categorical palette colors.
  * Colors that need light (white) text on top vs dark (black) text.
  */
-const SWATCH_CONTRAST_MAP: Partial<Record<CategoricalPaletteKey, 'light' | 'dark'>> = {
+const SWATCH_CONTRAST_MAP: Record<string, 'light' | 'dark'> = {
   blurple: 'light',
   purple: 'light',
   indigo: 'light',
@@ -31,11 +27,11 @@ function hashIdentifier(identifier: string): number {
 
 export type Swatch = ReturnType<typeof makeSwatch>;
 
-export function makeSwatch(palette: CategoricalPalette, onVibrant: OnVibrant) {
-  const entries = Object.entries(palette) as Array<[CategoricalPaletteKey, string]>;
+export function makeSwatch(palette: Record<string, string>, onVibrant: OnVibrant) {
+  const entries = Object.entries(palette);
   const swatchColors = entries.map(([key, hex]) => ({
     background: hex,
-    content: onVibrant[SWATCH_CONTRAST_MAP[key]],
+    content: onVibrant[SWATCH_CONTRAST_MAP[key]!],
   }));
   const colorSet: ReadonlySet<string> = Object.freeze(
     new Set(entries.map(([, hex]) => hex))
