@@ -6,12 +6,10 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function SettingsPageTabs() {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const {pathname} = useLocation();
 
   const tabs: Array<[string, Path]> = [
@@ -22,10 +20,10 @@ export default function SettingsPageTabs() {
 
   return (
     <Container borderBottom="primary">
-      <Tabs onChange={key => navigate(key)} value={pathname}>
+      <Tabs value={pathname}>
         <TabList>
           {tabs.map(([label, to]) => (
-            <TabList.Item key={normalizeUrl(to)} to={to}>
+            <TabList.Item key={normalizeUrl(to)} to={normalizeUrl(to)}>
               {label}
             </TabList.Item>
           ))}
