@@ -1,7 +1,7 @@
 name: Enforce License Compliance
 
 on:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   enforce-license-compliance:

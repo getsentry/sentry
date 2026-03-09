@@ -1,22 +1,6 @@
 name: dev env
 on:
-  pull_request:
-    paths:
-      - '.pre-commit-config.yaml'
-      - 'Makefile'
-      - '.github/workflows/development-environment.yml'
-      - '.github/workflows/scripts/**'
-      - 'requirements-*.txt'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.python-version'
-      - '.envrc'
-      - 'Brewfile'
-      - 'scripts/**'
-      - 'tools/**'
-      - 'src/sentry/runner/commands/devserver.py'
-      - 'src/sentry/runner/commands/devservices.py'
-      - 'bin/load-mocks'
+  workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value

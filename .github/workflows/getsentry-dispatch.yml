@@ -2,13 +2,7 @@
 name: getsentry dispatcher
 
 on:
-  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
-  # this to run on forks.  It allows forks to access secrets safely by
-  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
-  #
-  # See https://github.com/getsentry/sentry/pull/21600 for more details
-  pull_request_target:
-    types: [labeled, opened, reopened, synchronize]
+  workflow_dispatch:
 
 # disable all other special privileges
 permissions:
@@ -19,7 +13,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: getsentry tests'"
+    if: false # temporarily disabled for parallel pytest testing
     name: getsentry dispatch
     runs-on: ubuntu-24.04
     steps:
