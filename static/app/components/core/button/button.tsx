@@ -1,3 +1,4 @@
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -55,6 +56,7 @@ export function Button({
           minWidth="0"
           height="100%"
           whiteSpace="nowrap"
+          visibility={busy ? 'hidden' : undefined}
         >
           {props.icon && (
             <Flex
@@ -71,6 +73,18 @@ export function Button({
             </Flex>
           )}
           {props.children}
+          {busy && (
+            <Flex
+              align="center"
+              justify="center"
+              position="absolute"
+              visibility="visible"
+            >
+              {({className}) => (
+                <BusySpinner className={className} role="status" aria-label="Busy" />
+              )}
+            </Flex>
+          )}
         </Flex>
       </StyledButton>
     </Tooltip>
@@ -79,4 +93,23 @@ export function Button({
 
 const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
+`;
+
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const BusySpinner = styled('span')`
+  &::after {
+    content: '';
+    display: block;
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: ${spin} 0.6s linear infinite;
+  }
 `;
