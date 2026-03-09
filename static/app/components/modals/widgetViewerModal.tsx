@@ -70,6 +70,7 @@ import type {
   DashboardFilters,
   DashboardPermissions,
   Widget,
+  WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -181,10 +182,21 @@ async function fetchDiscoverTotal(
   }
 }
 
+function generateBlankQuery(): WidgetQuery {
+  return {
+    aggregates: [],
+    columns: [],
+    orderby: '',
+    fields: [],
+    conditions: '',
+    name: '',
+  };
+}
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
-    widget,
+    widget: originalWidget,
     selection,
     Footer,
     Body,
@@ -201,6 +213,17 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
+
+  const widget = useMemo(() => {
+    const widgetClone = cloneDeep(originalWidget);
+    return widgetClone.displayType === DisplayType.TEXT
+      ? {
+          ...widgetClone,
+          queries: [generateBlankQuery()],
+        }
+      : widgetClone;
+  }, [originalWidget]);
+
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -528,6 +551,9 @@ function WidgetViewerModal(props: Props) {
         />
       );
     }
+    if (widget.displayType === DisplayType.TEXT) {
+      return null;
+    }
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
         return (
@@ -761,7 +787,7 @@ function WidgetViewerModal(props: Props) {
                     <Flex align="center" gap="sm">
                       <h3>{widget.title}</h3>
                     </Flex>
-                    {widget.description && (
+                    {widget.description && widget.displayType !== DisplayType.TEXT && (
                       <Tooltip
                         title={widget.description}
                         containerDisplayMode="grid"
@@ -800,7 +826,7 @@ function WidgetViewerModal(props: Props) {
                           {t('Edit Widget')}
                         </Button>
                       )}
-                      {widget.widgetType && (
+                      {widget.widgetType && widget.displayType !== DisplayType.TEXT && (
                         <OpenButton
                           widget={primaryWidget}
                           dashboardFilters={dashboardFilters}
@@ -908,10 +934,19 @@ function OpenButton({
   );
 }
 
-function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
+function renderTotalResults(
+  totalResults?: string,
+  widgetType?: WidgetType,
+  displayType?: DisplayType
+) {
   if (totalResults === undefined) {
     return <span />;
   }
+
+  if (displayType === DisplayType.TEXT) {
+    return null;
+  }
+
   switch (widgetType) {
     case WidgetType.ISSUE:
       return (

@@ -1324,6 +1324,33 @@ describe('Modals -> WidgetViewerModal', () => {
     });
   });
 
+  describe('Text Widget', () => {
+    const mockTextWidget: Widget = {
+      id: '1',
+      title: 'Text Widget',
+      description: 'A note for the dashboard',
+      displayType: DisplayType.TEXT,
+      interval: '5m',
+      queries: [],
+      widgetType: undefined,
+    };
+
+    it('renders the widget title', async () => {
+      await renderModal({initialData, widget: mockTextWidget});
+      expect(await screen.findByText('Text Widget')).toBeInTheDocument();
+    });
+
+    it('does not render the description tooltip', async () => {
+      await renderModal({initialData, widget: mockTextWidget});
+      expect(screen.queryByText('A note for the dashboard')).not.toBeInTheDocument();
+    });
+
+    it('does not render an Open button', async () => {
+      await renderModal({initialData, widget: mockTextWidget});
+      expect(screen.queryByRole('button', {name: /open in/i})).not.toBeInTheDocument();
+    });
+  });
+
   describe('Span Widgets', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
