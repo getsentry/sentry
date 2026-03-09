@@ -145,7 +145,18 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             True if the dashboard was favorited, False if the dashboard was already favorited
         """
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            if self.get_favorite_dashboard(organization, user_id, dashboard):
+            # Lock any existing row to prevent concurrent insert races
+            existing = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+                .select_for_update()
+                .first()
+            )
+
+            if existing and existing.favorited:
                 return False
 
             if self.count() == 0:
@@ -153,17 +164,10 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             else:
                 position = self.get_last_position(organization, user_id) + 1
 
-            # Check if an unfavorited entry already exists and re-favorite it
-            existing_unfavorited = self.filter(
-                organization=organization,
-                user_id=user_id,
-                dashboard=dashboard,
-                favorited=False,
-            ).first()
-            if existing_unfavorited:
-                existing_unfavorited.favorited = True
-                existing_unfavorited.position = position
-                existing_unfavorited.save(update_fields=["favorited", "position"])
+            if existing:
+                existing.favorited = True
+                existing.position = position
+                existing.save(update_fields=["favorited", "position"])
             else:
                 self.create(
                     organization=organization,
