@@ -320,7 +320,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         #       middleware has handled routing.
         produce_event_to_scm_stream(
             {
-                "event_type_hint": request.headers["X-GitHub-Event"],
+                "event_type_hint": request.headers.get("X-GitHub-Event"),
                 "event": request.body.decode("utf-8"),
                 "extra": {
                     "host": host,
