@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 from arroyo.backends.kafka import KafkaProducer
+from django.conf import settings
 from django.core.cache.backends.base import BaseCache
 from taskbroker_client.metrics import MetricsBackend, Tags
 from taskbroker_client.router import TaskRouter as LibraryRouter
@@ -51,7 +52,9 @@ class SentryMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         sample_rate: float | None = None,
     ) -> None:
-        sentry_metrics.incr(name, amount=int(value), tags=tags, sample_rate=sample_rate or 1.0)
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+        sentry_metrics.incr(name, amount=int(value), tags=tags, sample_rate=sample_rate)
 
     def distribution(
         self,
@@ -61,8 +64,10 @@ class SentryMetricsBackend(MetricsBackend):
         unit: str | None = None,
         sample_rate: float | None = None,
     ) -> None:
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
         sentry_metrics.distribution(
-            name, value=value, tags=tags, unit=unit, sample_rate=sample_rate or 1.0
+            name, value=value, tags=tags, unit=unit, sample_rate=sample_rate
         )
 
     @contextmanager
@@ -73,7 +78,9 @@ class SentryMetricsBackend(MetricsBackend):
         sample_rate: float | None = None,
         stacklevel: int = 0,
     ) -> Generator[None]:
-        with sentry_metrics.timer(key, tags=tags, sample_rate=sample_rate or 1.0):
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+        with sentry_metrics.timer(key, tags=tags, sample_rate=sample_rate):
             yield
 
     @contextmanager

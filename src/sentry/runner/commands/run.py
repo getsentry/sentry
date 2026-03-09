@@ -143,7 +143,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
 
     if settings.TASKWORKER_USE_LIBRARY:
-        from django.conf import settings
         from taskbroker_client.app import TaskbrokerApp
         from taskbroker_client.scheduler import RunStorage as TbRunStorage
         from taskbroker_client.scheduler import ScheduleRunner as TbScheduleRunner
