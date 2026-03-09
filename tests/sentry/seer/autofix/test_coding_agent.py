@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-from requests import HTTPError
-
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
@@ -805,11 +803,18 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.get_session_status.return_value = MagicMock(status="idle", result=None)
-        mock_client.list_session_events.return_value = []
-        mock_client.extract_result_url_from_events.return_value = (
-            "https://github.com/getsentry/sentry/pull/999"
-        )
+        mock_client.list_session_events.return_value = [
+            {
+                "type": "agent",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "PR created: https://github.com/getsentry/sentry/pull/999",
+                    }
+                ],
+            },
+            {"type": "status_idle"},
+        ]
         mock_client.build_result_from_session.return_value = MagicMock(
             pr_url="https://github.com/getsentry/sentry/pull/999"
         )
@@ -819,7 +824,7 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_client.get_session_status.assert_called_once_with("claude-session-123")
+        mock_client.list_session_events.assert_called_once_with("claude-session-123")
         mock_update_state.assert_called_once()
         call_kwargs = mock_update_state.call_args[1]
         assert call_kwargs["agent_id"] == "claude-session-123"
@@ -833,34 +838,9 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.get_session_status.return_value = MagicMock(status="idle", result=None)
-        mock_client.list_session_events.return_value = []
-        mock_client.extract_result_url_from_events.return_value = None
-        mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
-        mock_import_string.return_value = lambda **kwargs: mock_client
-
-        agents = {"claude-session-123": self._create_claude_agent()}
-        autofix_state = self._create_autofix_state_with_agents(agents)
-        poll_claude_code_agents(autofix_state=autofix_state)
-
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
-        assert call_kwargs["status"] == CodingAgentStatus.FAILED
-
-    @patch(MOCK_UPDATE_STATE_PATH)
-    @patch(MOCK_CLIENT_CLASS_PATH)
-    @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_marks_failed_when_stalled_tool_use(
-        self, mock_integration_service, mock_import_string, mock_update_state
-    ):
-        self._mock_integration(mock_integration_service)
-        mock_client = MagicMock()
-        mock_client.get_session_status.return_value = MagicMock(status="idle", result=None)
         mock_client.list_session_events.return_value = [
-            {
-                "type": "agent",
-                "content": [{"type": "tool_use", "id": "tool-1"}],
-            },
+            {"type": "agent", "content": [{"type": "text", "text": "Done, no PR."}]},
+            {"type": "status_idle"},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
         mock_import_string.return_value = lambda **kwargs: mock_client
@@ -881,7 +861,8 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.get_session_status.return_value = MagicMock(status="running", result=None)
+        # Last event is status_running — agent is already RUNNING, no update needed
+        mock_client.list_session_events.return_value = [{"type": "status_running"}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent()}
@@ -893,15 +874,51 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_continues_on_http_error(
+    def test_no_update_when_events_empty(
         self, mock_integration_service, mock_import_string, mock_update_state
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.get_session_status.side_effect = HTTPError("Request Error")
+        mock_client.list_session_events.return_value = []
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_not_called()
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_updates_pending_to_running_on_non_idle_event(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [{"type": "agent", "content": []}]
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.RUNNING
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_stays_pending_on_status_pending_event(
+        self, mock_integration_service, mock_import_string, mock_update_state
+    ):
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [{"type": "status_pending"}]
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
@@ -944,7 +961,7 @@ class TestPollClaudeCodeAgents(TestCase):
 
         def make_client(**kwargs):
             client = MagicMock()
-            client.get_session_status.return_value = MagicMock(status="running", result=None)
+            client.list_session_events.return_value = [{"type": "status_running"}]
             clients[kwargs["api_key"]] = client
             return client
 
@@ -973,8 +990,8 @@ class TestPollClaudeCodeAgents(TestCase):
 
         assert mock_integration_service.get_integration.call_count == 2
         assert len(clients) == 2
-        clients["sk-ant-aaa"].get_session_status.assert_called_once_with("session-a")
-        clients["sk-ant-bbb"].get_session_status.assert_called_once_with("session-b")
+        clients["sk-ant-aaa"].list_session_events.assert_called_once_with("session-a")
+        clients["sk-ant-bbb"].list_session_events.assert_called_once_with("session-b")
 
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
@@ -984,7 +1001,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.get_session_status.return_value = MagicMock(status="running", result=None)
+        mock_client.list_session_events.return_value = [{"type": "status_running"}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agent_a = self._create_claude_agent(agent_id="session-a")
@@ -995,4 +1012,4 @@ class TestPollClaudeCodeAgents(TestCase):
         poll_claude_code_agents(autofix_state=autofix_state)
 
         mock_integration_service.get_integration.assert_called_once()
-        assert mock_client.get_session_status.call_count == 2
+        assert mock_client.list_session_events.call_count == 2
