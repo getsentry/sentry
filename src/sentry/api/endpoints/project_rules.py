@@ -700,7 +700,7 @@ A list of actions that take place when all required conditions and filters for t
 
 class ConditionsData(TypedDict):
     id: str
-    value: str | int
+    value: NotRequired[str | int]
     attribute: NotRequired[str]
     match: NotRequired[str]
     interval: NotRequired[str]
