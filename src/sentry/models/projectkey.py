@@ -197,6 +197,14 @@ class ProjectKey(Model):
         from sentry.hybridcloud.services.replica import control_replica_service
         from sentry.types.region import get_local_region
 
+        old_public_key = None
+        if self.pk:
+            old_public_key = (
+                self.__class__.objects.filter(pk=self.pk)
+                .values_list("public_key", flat=True)
+                .first()
+            )
+
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
@@ -216,6 +224,14 @@ class ProjectKey(Model):
             ),
             using=router.db_for_write(ProjectKey),
         )
+
+        if old_public_key and old_public_key != public_key:
+            transaction.on_commit(
+                lambda: control_replica_service.delete_project_key_mapping(
+                    public_key=old_public_key
+                ),
+                using=router.db_for_write(ProjectKey),
+            )
 
     def get_dsn(self, domain=None, secure=True, public=False):
         urlparts = urlparse(self.get_endpoint())
