@@ -54,7 +54,13 @@ function useFetchBroadcasts() {
   });
 }
 
-function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
+interface WhatsNewContentProps {
+  broadcasts: Broadcast[];
+  isPending: boolean;
+  unseenPostIds: string[];
+}
+
+function WhatsNewContent({broadcasts, isPending, unseenPostIds}: WhatsNewContentProps) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -71,14 +77,16 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
       setApiQueryData<Broadcast[]>(
         queryClient,
         makeBroadcastsQueryKey({organization}),
-        data => (data ? data.map(item => ({...item, hasSeen: true})) : [])
+        data => data?.map(item => ({...item, hasSeen: true})) ?? data
       );
     },
   });
 
-  const {isPending, data: broadcasts = []} = useFetchBroadcasts();
-
   useEffect(() => {
+    if (unseenPostIds.length === 0) {
+      return undefined;
+    }
+
     const markSeenTimeout = window.setTimeout(() => {
       markBroadcastsAsSeen(unseenPostIds);
     }, MARK_SEEN_DELAY);
@@ -116,7 +124,7 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
 }
 
 export function PrimaryNavigationWhatsNew() {
-  const {data: broadcasts = []} = useFetchBroadcasts();
+  const {isPending, data: broadcasts = []} = useFetchBroadcasts();
   const unseenPostIds = useMemo(
     () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
     [broadcasts]
@@ -149,7 +157,11 @@ export function PrimaryNavigationWhatsNew() {
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
-          <WhatsNewContent unseenPostIds={unseenPostIds} />
+          <WhatsNewContent
+            broadcasts={broadcasts}
+            isPending={isPending}
+            unseenPostIds={unseenPostIds}
+          />
         </PrimaryButtonOverlay>
       )}
     </Fragment>
