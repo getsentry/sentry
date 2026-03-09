@@ -8,12 +8,6 @@ type EventTypeHint = Literal["check_run", "comment", "pull_request"]
 type HybridCloudSilo = Literal["control", "region"]
 
 
-type Action = Literal["check_run", "comment", "pull_request"]
-type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
-type EventTypeHint = Literal["check_run", "comment", "pull_request"]
-type HybridCloudSilo = Literal["control", "region"]
-
-
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 """The SCM provider that owns an integration or repository."""
 
