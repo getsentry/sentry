@@ -209,7 +209,9 @@ function UserDetails() {
     {
       key: 'emails',
       name: 'Addresses',
-      content: ({Panel}) => <UserEmails Panel={Panel} user={user} />,
+      content: ({Panel}) => (
+        <UserEmails Panel={Panel} user={user} onUserUpdate={refetchUser} />
+      ),
     },
     {
       key: 'log',
