@@ -305,20 +305,28 @@ class Dashboard(Model):
         """
         from django.db import router, transaction
 
-        existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
-            "user_id", flat=True
-        )
+        existing_favorites = DashboardFavoriteUser.objects.filter(dashboard=self)
+        existing_user_ids = set(existing_favorites.values_list("user_id", flat=True))
+        new_user_ids = set(user_ids)
+
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            newly_favourited = [
-                DashboardFavoriteUser(
-                    dashboard=self, user_id=user_id, organization=self.organization
-                )
-                for user_id in set(user_ids) - set(existing_user_ids)
-            ]
-            DashboardFavoriteUser.objects.filter(
-                dashboard=self, user_id__in=set(existing_user_ids) - set(user_ids)
-            ).delete()
-            DashboardFavoriteUser.objects.bulk_create(newly_favourited)
+            existing_favorites.filter(
+                user_id__in=existing_user_ids - new_user_ids, favorited=True
+            ).update(favorited=False)
+
+            users_to_add = new_user_ids - existing_user_ids
+            users_to_refavorite = new_user_ids & existing_user_ids
+            existing_favorites.filter(user_id__in=users_to_refavorite, favorited=False).update(
+                favorited=True
+            )
+            DashboardFavoriteUser.objects.bulk_create(
+                [
+                    DashboardFavoriteUser(
+                        dashboard=self, user_id=user_id, organization=self.organization
+                    )
+                    for user_id in users_to_add
+                ]
+            )
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
