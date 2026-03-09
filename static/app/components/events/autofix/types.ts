@@ -1,6 +1,8 @@
 import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {isArrayOf} from 'sentry/types/utils';
+import {isArtifact, type Artifact} from 'sentry/views/seerExplorer/types';
 
 export enum DiffFileType {
   ADDED = 'A',
@@ -8,10 +10,26 @@ export enum DiffFileType {
   DELETED = 'D',
 }
 
+function isDiffFileType(value: unknown): value is DiffFileType {
+  return (
+    value === DiffFileType.ADDED ||
+    value === DiffFileType.MODIFIED ||
+    value === DiffFileType.DELETED
+  );
+}
+
 export enum DiffLineType {
   ADDED = '+',
   REMOVED = '-',
   CONTEXT = ' ',
+}
+
+function isDiffLineType(value: unknown): value is DiffLineType {
+  return (
+    value === DiffLineType.ADDED ||
+    value === DiffLineType.REMOVED ||
+    value === DiffLineType.CONTEXT
+  );
 }
 
 export enum AutofixStepType {
@@ -263,6 +281,22 @@ export type FilePatch = {
   type: DiffFileType;
 };
 
+export function isFilePatch(value: unknown): value is FilePatch {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.added === 'number' &&
+    isArrayOf(obj.hunks, isHunk) &&
+    typeof obj.path === 'string' &&
+    typeof obj.removed === 'number' &&
+    typeof obj.source_file === 'string' &&
+    typeof obj.target_file === 'string' &&
+    isDiffFileType(obj.type)
+  );
+}
+
 type Hunk = {
   lines: DiffLine[];
   section_header: string;
@@ -272,6 +306,21 @@ type Hunk = {
   target_start: number;
 };
 
+function isHunk(value: unknown): value is Hunk {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    isArrayOf(obj.lines, isDiffLine) &&
+    typeof obj.section_header === 'string' &&
+    typeof obj.source_length === 'number' &&
+    typeof obj.source_start === 'number' &&
+    typeof obj.target_length === 'number' &&
+    typeof obj.target_start === 'number'
+  );
+}
+
 export type DiffLine = {
   diff_line_no: number | null;
   line_type: DiffLineType;
@@ -279,6 +328,20 @@ export type DiffLine = {
   target_line_no: number | null;
   value: string;
 };
+
+function isDiffLine(value: unknown): value is DiffLine {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    (typeof obj.diff_line_no === 'number' || obj.diff_line_no === null) &&
+    isDiffLineType(obj.line_type) &&
+    (typeof obj.source_line_no === 'number' || obj.source_line_no === null) &&
+    (typeof obj.target_line_no === 'number' || obj.target_line_no === null) &&
+    typeof obj.value === 'string'
+  );
+}
 
 export interface AutofixRepoDefinition {
   name: string;
@@ -326,3 +389,61 @@ export interface ProjectSeerPreferences {
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+export interface RootCauseArtifactData {
+  five_whys: string[];
+  one_line_description: string;
+  reproduction_steps: string[];
+}
+
+export function isRootCauseArtifact(
+  value: unknown
+): value is Artifact<RootCauseArtifactData> {
+  if (!isArtifact(value)) {
+    return false;
+  }
+  const data = value.data;
+  if (data === null || typeof data !== 'object') {
+    return false;
+  }
+  return (
+    isString(data.one_line_description) &&
+    isArrayOf(data.five_whys, isString) &&
+    isArrayOf(data.reproduction_steps, isString)
+  );
+}
+
+interface SolutionStep {
+  description: string;
+  title: string;
+}
+
+function isSolutionStep(value: unknown): value is SolutionStep {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return isString(obj.title) && isString(obj.description);
+}
+
+export interface SolutionArtifactData {
+  one_line_summary: string;
+  steps: SolutionStep[];
+}
+
+export function isSolutionArtifact(
+  value: unknown
+): value is Artifact<SolutionArtifactData> {
+  if (!isArtifact(value)) {
+    return false;
+  }
+  const data = value.data;
+  if (data === null || typeof data !== 'object') {
+    return false;
+  }
+  return isString(data.one_line_summary) && isArrayOf(data.steps, isSolutionStep);
+}

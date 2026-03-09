@@ -251,6 +251,87 @@ export function getOrderedArtifactKeys(
   });
 }
 
+export function hasAutofixArtifacts(blocks: Block[]): boolean {
+  for (const block of blocks) {
+    if (block.artifacts?.length) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const CODE_CHANGES_KEY = Symbol('codeChanges');
+
+type ArtifactKey = string | typeof CODE_CHANGES_KEY;
+type ArtifactOrExplorerFilePatches = Artifact | ExplorerFilePatch[] | RepoPRState[];
+
+export function getOrderedAutofixArtifacts(
+  runState: ExplorerAutofixState | null
+): ArtifactOrExplorerFilePatches[] {
+  const blocks = runState?.blocks ?? [];
+  if (!blocks.length) {
+    return [];
+  }
+
+  type OrderedArtifact = {
+    artifact: Artifact;
+    index: number;
+    type: 'artifact';
+  };
+
+  type OrderedExplorerFilePatch = {
+    index: number;
+    patches: Map<string, ExplorerFilePatch>;
+    type: 'patch';
+  };
+
+  const artifactsByKey = new Map<
+    ArtifactKey,
+    OrderedArtifact | OrderedExplorerFilePatch
+  >();
+  const mergedByFile = new Map<string, ExplorerFilePatch>();
+
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index]!;
+
+    for (const artifact of block.artifacts ?? []) {
+      artifactsByKey.set(artifact.key, {
+        type: 'artifact',
+        index,
+        artifact,
+      });
+    }
+
+    if (block.merged_file_patches?.length) {
+      for (const patch of block.merged_file_patches) {
+        const key = `${patch.repo_name}:${patch.patch.path}`;
+        mergedByFile.set(key, patch);
+      }
+      artifactsByKey.set(CODE_CHANGES_KEY, {
+        type: 'patch',
+        index,
+        patches: mergedByFile,
+      });
+    }
+  }
+
+  const artifacts: ArtifactOrExplorerFilePatches[] = [...artifactsByKey.values()]
+    .sort((artifact1, artifact2) => artifact1.index - artifact2.index)
+    .map(artifact => {
+      if (artifact.type === 'artifact') {
+        return artifact.artifact;
+      }
+      return Array.from(artifact.patches.values());
+    });
+
+  if (runState?.repo_pr_states) {
+    artifacts.push(Object.values(runState.repo_pr_states));
+  }
+
+  return artifacts;
+}
+
 /**
  * Extract merged file patches from Explorer blocks.
  * Returns the latest merged patch (original → current) for each file.
