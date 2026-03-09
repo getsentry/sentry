@@ -25,7 +25,7 @@ from sentry.seer.entrypoints.metrics import (
     SeerOperatorInteractionType,
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
-from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -54,13 +54,44 @@ PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
-class SeerOperator[AutofixCachePayloadT, ExplorerCachePayloadT]:
+def has_seer_entrypoint_access(
+    *,
+    organization: Organization,
+    entrypoint_key: SeerEntrypointKey | None = None,
+) -> bool:
+    """
+    Checks if the organization has access to Seer, and at least one entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
+    """
+    if not has_seer_access(organization):
+        return False
+
+    if entrypoint_key:
+        if entrypoint_key not in entrypoint_registry.registrations:
+            logger.error(
+                "seer.operator.invalid_entrypoint_key",
+                extra={
+                    "entrypoint_key": str(entrypoint_key),
+                    "organization_id": organization.id,
+                },
+            )
+            return False
+        entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
+        return entrypoint_cls.has_access(organization)
+
+    return any(
+        entrypoint_cls.has_access(organization=organization)
+        for entrypoint_cls in entrypoint_registry.registrations.values()
+    )
+
+
+class SeerOperator[CachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs operations for Seer with them.
     It does this to ensure all entrypoints have consistent behavior and responses.
     """
 
-    def __init__(self, entrypoint: SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT]):
+    def __init__(self, entrypoint: SeerAutofixEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
 
     @classmethod
@@ -70,30 +101,7 @@ class SeerOperator[AutofixCachePayloadT, ExplorerCachePayloadT]:
         organization: Organization,
         entrypoint_key: SeerEntrypointKey | None = None,
     ) -> bool:
-        """
-        Checks if the organization has access to Seer, and atleast one entrypoint.
-        If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
-        """
-        if not has_seer_access(organization):
-            return False
-
-        if entrypoint_key:
-            if entrypoint_key not in entrypoint_registry.registrations:
-                logger.error(
-                    "seer.operator.invalid_entrypoint_key",
-                    extra={
-                        "entrypoint_key": str(entrypoint_key),
-                        "organization_id": organization.id,
-                    },
-                )
-                return False
-            entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
-            return entrypoint_cls.has_access(organization)
-
-        return any(
-            entrypoint_cls.has_access(organization=organization)
-            for entrypoint_cls in entrypoint_registry.registrations.values()
-        )
+        return has_seer_entrypoint_access(organization=organization, entrypoint_key=entrypoint_key)
 
     @classmethod
     def can_trigger_autofix(cls, *, group: Group) -> bool:
