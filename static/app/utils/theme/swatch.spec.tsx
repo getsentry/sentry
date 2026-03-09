@@ -94,9 +94,9 @@ describe('makeSwatch', () => {
   });
 
   describe('values', () => {
-    it('yields all 11 categorical colors', () => {
+    it('yields all categorical colors', () => {
       const colors = Array.from(swatch.values());
-      expect(colors).toHaveLength(11);
+      expect(colors).toHaveLength(Object.keys(TEST_PALETTE).length);
     });
 
     it('contains all colors from the palette', () => {

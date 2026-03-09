@@ -861,7 +861,10 @@ const lightThemeDefinition = {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
-  swatch: makeSwatch(color.categorical.light, baseLightTheme.tokens.content.onVibrant),
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.light),
+    baseLightTheme.tokens.content.onVibrant
+  ),
 
   colors: lightColors,
 };
@@ -898,7 +901,10 @@ export const darkTheme: SentryTheme = {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 
-  swatch: makeSwatch(color.categorical.dark, baseDarkTheme.tokens.content.onVibrant),
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.dark),
+    baseDarkTheme.tokens.content.onVibrant
+  ),
 
   colors: darkColors,
 };

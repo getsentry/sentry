@@ -8,7 +8,7 @@ type OnVibrant = {dark: string; light: string};
  * Hardcoded contrast mapping for categorical palette colors.
  * Colors that need light (white) text on top vs dark (black) text.
  */
-const SWATCH_CONTRAST_MAP: Record<CategoricalPaletteKey, 'light' | 'dark'> = {
+const SWATCH_CONTRAST_MAP: Partial<Record<CategoricalPaletteKey, 'light' | 'dark'>> = {
   blurple: 'light',
   purple: 'light',
   indigo: 'light',
@@ -18,7 +18,6 @@ const SWATCH_CONTRAST_MAP: Record<CategoricalPaletteKey, 'light' | 'dark'> = {
   salmon: 'dark',
   orange: 'dark',
   yellow: 'dark',
-  lime: 'dark',
   green: 'dark',
 };
 
