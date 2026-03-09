@@ -47,6 +47,16 @@ function SubscriptionBox({
     );
   }
 
+  if (
+    resource === 'size_analysis' &&
+    !features.includes('preprod-size-analysis-webhooks')
+  ) {
+    disabled = true;
+    message = t(
+      'Your organization does not have access to the size analysis subscription resource.'
+    );
+  }
+
   if (webhookDisabled) {
     message = t('Cannot enable webhook subscription without specifying a webhook url');
   }
@@ -56,6 +66,7 @@ function SubscriptionBox({
     error: 'created',
     comment: 'created, edited, deleted',
     seer: 'root_cause_started, root_cause_completed, solution_started, solution_completed, coding_started, coding_completed, pr_created',
+    size_analysis: 'completed',
   };
 
   return (
