@@ -1,13 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -57,15 +51,19 @@ describe('EventsSearchBar', () => {
       }
     );
 
-    // Focus the input and type "has:p" to simulate a search for p50
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(input, {delay: null});
     await userEvent.paste('has:p', {delay: null});
 
-    // Check that "p50" (a function tag) is NOT in the dropdown
-    await waitFor(() => {
-      expect(screen.queryByText(/p50/)).not.toBeInTheDocument();
-    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: has'})
+    );
+
+    // Assert we actually have has: dropdown options before checking exclusions.
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+
+    // p50 is a function and should not be suggested as a has: tag.
+    expect(screen.queryByRole('option', {name: 'p50'})).not.toBeInTheDocument();
   });
 
   it('shows the selected aggregate in the dropdown', async () => {
