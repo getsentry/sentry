@@ -21,7 +21,7 @@ import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient'
 type Props = {
   integration: Integration;
   onCancel: () => void;
-  onSubmitSuccess: (data: any) => void;
+  onSubmitSuccess: () => void;
   organization: Organization;
   projects: Project[];
   repos: Repository[];
@@ -88,9 +88,7 @@ export default function RepositoryProjectPathConfigForm({
         url: endpoint,
         data,
       }),
-    onSuccess: (resp: any) => {
-      onSubmitSuccess(resp);
-    },
+    onSuccess: onSubmitSuccess,
   });
 
   const form = useScrapsForm({
