@@ -262,7 +262,7 @@ export function GridLineOverlay({
         },
         {
           location,
-          push: navigate,
+          push: (path: Parameters<typeof navigate>[0]) => navigate(path),
           replace: (path: Parameters<typeof navigate>[0]) =>
             navigate(path, {replace: true}),
         } as any,
