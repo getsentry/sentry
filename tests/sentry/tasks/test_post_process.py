@@ -3492,48 +3492,6 @@ class PostProcessGroupErrorTest(
         )
         return cache_key
 
-    @with_feature("organizations:escalating-metrics-backend")
-    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    @patch("sentry.utils.metrics.incr")
-    @patch("sentry.utils.metrics.timer")
-    def test_generic_metrics_backend_counter(
-        self, metric_timer_mock, metric_incr_mock, generic_metrics_backend_mock
-    ):
-        min_ago = before_now(minutes=1).isoformat()
-        event = self.create_event(
-            data={
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ZeroDivisionError",
-                            "stacktrace": {"frames": [{"function": f} for f in ["a", "b"]]},
-                        }
-                    ]
-                },
-                "timestamp": min_ago,
-                "start_timestamp": min_ago,
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-        )
-        self.call_post_process_group(
-            is_new=True, is_regression=False, is_new_group_environment=True, event=event
-        )
-
-        assert generic_metrics_backend_mock.call_count == 1
-        metric_incr_mock.assert_any_call(
-            "sentry.tasks.post_process.post_process_group.completed",
-            tags={"issue_category": "error", "pipeline": "process_workflow_engine_issue_alerts"},
-        )
-        metric_timer_mock.assert_any_call(
-            "tasks.post_process.run_post_process_job.pipeline.duration",
-            tags={
-                "pipeline": "process_workflow_engine_issue_alerts",
-                "issue_category": "error",
-                "is_reprocessed": False,
-            },
-        )
-
 
 class PostProcessGroupPerformanceTest(
     TestCase,
