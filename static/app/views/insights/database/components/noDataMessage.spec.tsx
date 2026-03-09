@@ -94,7 +94,7 @@ describe('NoDataMessage', () => {
 
     expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/projects/awesome-api/'
+      '/organizations/org-slug/projects/awesome-api/'
     );
   });
 });

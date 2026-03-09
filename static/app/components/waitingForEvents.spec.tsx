@@ -39,7 +39,7 @@ describe('WaitingForEvents', () => {
       await userEvent.click(screen.getByText('Installation Instructions'));
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          '/organizations/org-slug/insights/projects/project-slug/getting-started/'
+          '/organizations/org-slug/projects/project-slug/getting-started/'
         );
       });
     });

@@ -124,9 +124,7 @@ describe('ProjectPageFilter', () => {
     // Activating the link triggers a route change
     await userEvent.keyboard('{Enter}');
 
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/insights/projects/project-1/'
-    );
+    expect(router.location.pathname).toBe('/organizations/org-slug/projects/project-1/');
     expect(router.location.query).toEqual({project: '1'});
 
     // Move focus to "Project Settings" link
