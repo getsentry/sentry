@@ -853,23 +853,10 @@ export function buildResult(
     lines = lines.map(l => (l.length > 0 ? l.slice(minIndent) : l));
   }
 
-  // Step 3: Collapse consecutive blank rows into a single blank line.
-  // Large empty vertical gaps carry no information but cost tokens.
-  const collapsed: string[] = [];
-  let lastWasBlank = false;
-  for (const line of lines) {
-    if (line.length === 0) {
-      if (!lastWasBlank) {
-        collapsed.push('');
-      }
-      lastWasBlank = true;
-    } else {
-      collapsed.push(line);
-      lastWasBlank = false;
-    }
-  }
+  // Step 3: Drop all blank rows
+  const nonBlank = lines.filter(l => l.length > 0);
 
-  let result = url + '\n' + collapsed.join('\n');
+  let result = url + '\n' + nonBlank.join('\n');
 
   if (chartTables.length > 0 || projectSlugs.length > 0) {
     result += '\n\n=== FOOTNOTES ===\n\n';

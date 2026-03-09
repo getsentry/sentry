@@ -33,13 +33,9 @@ describe('buildResult whitespace trimming', () => {
     expect(contentLines.some(l => l.startsWith('Hello'))).toBe(true);
     expect(contentLines.some(l => l.startsWith('World'))).toBe(true);
 
-    // --- Step 3: consecutive blank rows are collapsed ---
-    // Between "Hello" (row 1) and "World" (row 5) there were 3 blank rows;
-    // after collapsing they become 1. Verify no two consecutive blank lines.
-    for (let i = 1; i < lines.length - 1; i++) {
-      const bothBlank = lines[i]!.length === 0 && lines[i + 1]!.length === 0;
-      expect(bothBlank).toBe(false);
-    }
+    // --- Step 3: blank rows are removed entirely ---
+    const blankLines = lines.slice(1).filter(l => l.length === 0);
+    expect(blankLines).toHaveLength(0);
 
     // --- Overall size reduction ---
     // The naive grid is 8 rows * 10 chars + 7 newlines = 87 chars.
