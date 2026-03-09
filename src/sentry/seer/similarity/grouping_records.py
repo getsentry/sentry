@@ -83,7 +83,7 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
             body=body,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
-    except (ReadTimeoutError, TimeoutError, MaxRetryError) as e:
+    except (TimeoutError, MaxRetryError) as e:
         extra.update({"reason": type(e).__name__, "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
         logger.exception(
             "seer.delete_grouping_records.hashes.timeout",
