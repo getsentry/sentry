@@ -795,7 +795,9 @@ function WidgetViewerModal(props: Props) {
                         isHoverable
                         position="bottom"
                       >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <WidgetDescription data-test-id="widget-description">
+                          {widget.description}
+                        </WidgetDescription>
                       </Tooltip>
                     )}
                   </Stack>
