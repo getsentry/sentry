@@ -159,7 +159,10 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             if existing and existing.favorited:
                 return False
 
-            if self.count() == 0:
+            existing_favorites = self.filter(
+                organization=organization, user_id=user_id, favorited=True
+            )
+            if not existing_favorites.exists():
                 position = 0
             else:
                 position = self.get_last_position(organization, user_id) + 1
