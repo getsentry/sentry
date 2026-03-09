@@ -231,15 +231,27 @@ importers:
       '@tanstack/query-async-storage-persister':
         specifier: 5.83.1
         version: 5.83.1
+      '@tanstack/react-devtools':
+        specifier: 0.9.9
+        version: 0.9.9(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
       '@tanstack/react-form':
         specifier: ^1.28.0
         version: 1.28.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-form-devtools':
+        specifier: 0.2.17
+        version: 0.2.17(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
       '@tanstack/react-pacer':
         specifier: ^0.17.0
         version: 0.17.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-pacer-devtools':
+        specifier: 0.5.3
+        version: 0.5.3(@tanstack/pacer@0.16.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
       '@tanstack/react-query':
         specifier: 5.85.0
         version: 5.85.0(react@19.2.3)
+      '@tanstack/react-query-devtools':
+        specifier: 5.85.0
+        version: 5.85.0(@tanstack/react-query@5.85.0(react@19.2.3))(react@19.2.3)
       '@tanstack/react-query-persist-client':
         specifier: 5.85.0
         version: 5.85.0(@tanstack/react-query@5.85.0(react@19.2.3))(react@19.2.3)
@@ -571,18 +583,6 @@ importers:
       '@tanstack/eslint-plugin-query':
         specifier: 5.83.1
         version: 5.83.1(eslint@9.34.0(jiti@2.6.1))(typescript@5.9.3)
-      '@tanstack/react-devtools':
-        specifier: 0.9.9
-        version: 0.9.9(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
-      '@tanstack/react-form-devtools':
-        specifier: 0.2.17
-        version: 0.2.17(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
-      '@tanstack/react-pacer-devtools':
-        specifier: 0.5.3
-        version: 0.5.3(@tanstack/pacer@0.16.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
-      '@tanstack/react-query-devtools':
-        specifier: 5.85.0
-        version: 5.85.0(@tanstack/react-query@5.85.0(react@19.2.3))(react@19.2.3)
       '@testing-library/dom':
         specifier: 10.4.0
         version: 10.4.0
