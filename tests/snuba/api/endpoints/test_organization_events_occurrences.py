@@ -186,7 +186,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                     "environment",
                     "timestamp",
                 ],
-                "statsPeriod": "1h",
+                "statsPeriod": "90d",
                 "project": [self.project.id],
                 "query": f"group_id:{group.group_id}",
             }
@@ -327,7 +327,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         timestamp_response = self.do_occurrences_request(
             {
                 "field": ["group_id", "title", "timestamp"],
-                "statsPeriod": "1h",
+                "statsPeriod": "90d",
                 "project": [self.project.id],
                 "sort": "-timestamp",
             }
@@ -349,7 +349,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         title_response = self.do_occurrences_request(
             {
                 "field": ["group_id", "title", "timestamp"],
-                "statsPeriod": "1h",
+                "statsPeriod": "90d",
                 "project": [self.project.id],
                 "sort": "title",
             }
