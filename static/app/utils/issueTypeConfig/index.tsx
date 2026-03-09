@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import aiDetectedConfig from 'sentry/utils/issueTypeConfig/aiDetectedConfig';
-import configurationConfig from 'sentry/utils/issueTypeConfig/configurationConfig';
+import configurationIssuesConfig from 'sentry/utils/issueTypeConfig/configurationIssuesConfig';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import dbQueryConfig from 'sentry/utils/issueTypeConfig/dbQueryConfig';
 import {
@@ -111,7 +111,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.AI_DETECTED]: aiDetectedConfig,
   [IssueCategory.PREPROD]: preprodConfig,
   [IssueCategory.INSTRUMENTATION]: instrumentationConfig,
-  [IssueCategory.CONFIGURATION]: configurationConfig,
+  [IssueCategory.CONFIGURATION]: configurationIssuesConfig,
 };
 
 /**

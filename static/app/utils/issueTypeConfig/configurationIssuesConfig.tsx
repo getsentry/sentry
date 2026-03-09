@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const configurationConfig: IssueCategoryConfigMapping = {
+const configurationIssuesConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     evidence: {title: t('Details')},
@@ -36,4 +36,4 @@ const configurationConfig: IssueCategoryConfigMapping = {
   },
 };
 
-export default configurationConfig;
+export default configurationIssuesConfig;

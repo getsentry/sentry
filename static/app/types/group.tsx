@@ -152,7 +152,7 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
     'Improvements to your instrumentation and SDK usage.'
   ),
   [IssueCategory.CONFIGURATION]: t(
-    'Issues detected from SDK or tooling configuration problems.'
+    'Issues detected from SDK/tooling configuration problems.'
   ),
 };
 
@@ -209,7 +209,7 @@ export enum IssueType {
   PREPROD_DELTA = 'preprod_delta',
   PREPROD_SIZE_ANALYSIS = 'preprod_size_analysis',
 
-  // Configuration
+  // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
 }
 
