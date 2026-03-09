@@ -154,7 +154,7 @@ class GetTargetCommitShaTest(TestCase):
         mock_integration.get_installation.assert_called_once_with(
             organization_id=self.repo.organization_id
         )
-        mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", 42)
+        mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", "42")
 
     def test_issue_comment_raises_without_integration(self) -> None:
         event = {"issue": {"number": 42}}
