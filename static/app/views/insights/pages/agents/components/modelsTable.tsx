@@ -126,7 +126,7 @@ export function ModelsTable() {
     }
 
     return modelsRequest.data.map(span => ({
-      model: `${span['gen_ai.request.model']}`,
+      model: span['gen_ai.request.model'],
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,

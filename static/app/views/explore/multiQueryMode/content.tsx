@@ -177,7 +177,7 @@ function Content({datePageFilterProps}: ContentProps) {
                   triggerProps.onClick?.(e);
                 }}
               >
-                {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
+                {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
               </Button>
             )}
           />

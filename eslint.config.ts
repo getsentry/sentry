@@ -590,6 +590,7 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-duplicate-type-constituents': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-template-expression': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',

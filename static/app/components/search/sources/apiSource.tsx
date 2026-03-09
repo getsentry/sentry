@@ -238,8 +238,8 @@ async function createShortIdResult(
   const issue = shortIdLookup?.group;
   return [
     {
-      title: `${issue?.metadata?.type ?? shortIdLookup.shortId}`,
-      description: `${issue?.metadata?.value ?? t('Issue')}`,
+      title: issue?.metadata?.type ?? shortIdLookup.shortId,
+      description: issue?.metadata?.value ?? t('Issue'),
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
@@ -262,7 +262,7 @@ async function createEventIdResult(
   const event = eventIdLookup?.event;
   return [
     {
-      title: `${event?.metadata?.type ?? t('Event')}`,
+      title: event?.metadata?.type ?? t('Event'),
       description: event?.metadata?.value,
       model: event,
       sourceType: 'event',

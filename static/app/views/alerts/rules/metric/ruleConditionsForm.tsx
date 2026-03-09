@@ -213,7 +213,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   };
 
   formElemBaseStyle = {
-    padding: `${space(0.5)}`,
+    padding: space(0.5),
     border: 'none',
   };
 
@@ -286,7 +286,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       }),
       container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
-        margin: `${space(0.5)}`,
+        margin: space(0.5),
       }),
     };
   }
