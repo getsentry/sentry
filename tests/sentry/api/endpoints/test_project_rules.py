@@ -196,6 +196,10 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             == ExistingHighPriorityIssueCondition.id
         )
         assert len(issue_resolved_trigger_resp["filters"]) == 1
+        assert (
+            issue_resolved_trigger_resp["errors"][0]["detail"]
+            == f"Condition not supported: {Condition.ISSUE_RESOLVED_TRIGGER}"
+        )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_only_fetch_workflows_in_project(self) -> None:

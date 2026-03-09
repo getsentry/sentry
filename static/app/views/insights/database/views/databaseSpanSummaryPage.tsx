@@ -199,7 +199,7 @@ export function DatabaseSpanSummaryPage() {
                   <DatabaseSpanDescription
                     groupId={groupId}
                     preliminaryDescription={
-                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION]
+                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION] ?? undefined
                     }
                   />
                 </DescriptionContainer>

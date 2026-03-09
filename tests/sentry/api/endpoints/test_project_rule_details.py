@@ -1654,6 +1654,43 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=self.workflow_triggers.id).exists()
         assert not Action.objects.filter(id=self.action.id).exists()
 
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_dual_delete_workflow_engine_flag_enabled(self) -> None:
+        rule = self.create_project_rule(
+            self.project,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                    "name": "The event occurs",
+                },
+            ],
+        )
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = alert_rule_workflow.workflow
+        when_dcg = workflow.when_condition_group
+        assert when_dcg
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
+        )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
+        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
+        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
+        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+        assert not Rule.objects.filter(id=rule.id).exists()
+
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(
             self.project,

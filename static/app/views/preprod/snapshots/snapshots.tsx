@@ -197,7 +197,7 @@ export default function SnapshotsPage() {
           minHeight="0"
           width="100%"
           overflow="hidden"
-          style={{maxHeight: 'calc(100vh - 160px)'}}
+          style={{maxHeight: 'calc(100vh - 205px)'}}
         >
           <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent

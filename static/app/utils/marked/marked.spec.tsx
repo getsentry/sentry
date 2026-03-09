@@ -25,7 +25,7 @@ describe('marked', () => {
       ['[x](mailto:foo@example.com)', '<a href="mailto:foo@example.com">x</a>'],
       [
         '[x](https://example.com "Example Title")',
-        '<a title="Example Title" href="https://example.com">x</a>',
+        '<a href="https://example.com" title="Example Title">x</a>',
       ],
     ]) {
       expectMarkdown(test);
@@ -49,9 +49,9 @@ describe('marked', () => {
 
   it('normal images get rendered as html', () => {
     for (const test of [
-      ['![](http://example.com)', '<img alt="" src="http://example.com">'],
-      ['![x](http://example.com)', '<img alt="x" src="http://example.com">'],
-      ['![x](https://example.com)', '<img alt="x" src="https://example.com">'],
+      ['![](http://example.com)', '<img src="http://example.com" alt="">'],
+      ['![x](http://example.com)', '<img src="http://example.com" alt="x">'],
+      ['![x](https://example.com)', '<img src="https://example.com" alt="x">'],
     ]) {
       expectMarkdown(test);
     }
@@ -75,7 +75,7 @@ describe('marked', () => {
       ],
       [
         '[x](https://evil.example.com "class=\\"bar")',
-        '<a title="class=&quot;bar" href="https://evil.example.com">x</a>',
+        '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
       ],
     ].forEach(expectMarkdown);
     expect(sanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
@@ -114,7 +114,7 @@ describe('marked', () => {
       ],
       [
         '[x](https://evil.example.com "class=\\"bar")',
-        '<a title="class=&quot;bar" href="https://evil.example.com">x</a>',
+        '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
       ],
     ];
     for (const test of tests) {

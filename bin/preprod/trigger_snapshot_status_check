@@ -40,15 +40,29 @@ BUILD_1 = {
     "state": "compared_with_changes",
     "create_base": True,
     # Snapshot comparison results
-    "images_changed": 0,
-    "images_added": 0,
+    "images_changed": 3,
+    "images_added": 1,
     "images_removed": 0,
-    "images_unchanged": 24,
+    "images_unchanged": 20,
     "image_count": 24,
 }
 
 # Set to None to disable BUILD_2
-BUILD_2 = None
+BUILD_2 = {
+    "app_id": "com.emerge.hackernews.ios",
+    "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
+    "app_name": "HackerNews iOS",
+    "build_version": "1.0.3",
+    "build_number": 15,
+    "state": "compared_no_changes",
+    "create_base": True,
+    # Snapshot comparison results
+    "images_changed": 0,
+    "images_added": 0,
+    "images_removed": 0,
+    "images_unchanged": 15,
+    "image_count": 15,
+}
 
 # Available states:
 # - "no_metrics":              Artifact has no snapshot metrics yet (processing)
