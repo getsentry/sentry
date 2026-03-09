@@ -71,9 +71,9 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
   const filesChanged = useMemo(() => {
     const changed = new Set<string>();
 
-    for (const patchesForRepo of patchesForRepos.values()) {
+    for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
       for (const patch of patchesForRepo) {
-        changed.add(patch.patch.path);
+        changed.add(`${repo}:${patch.patch.path}`);
       }
     }
 

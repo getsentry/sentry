@@ -2,7 +2,6 @@ import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {isArrayOf} from 'sentry/types/utils';
-import {isArtifact, type Artifact} from 'sentry/views/seerExplorer/types';
 
 export enum DiffFileType {
   ADDED = 'A',
@@ -389,61 +388,3 @@ export interface ProjectSeerPreferences {
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;
-
-function isString(value: unknown): value is string {
-  return typeof value === 'string';
-}
-
-export interface RootCauseArtifactData {
-  five_whys: string[];
-  one_line_description: string;
-  reproduction_steps: string[];
-}
-
-export function isRootCauseArtifact(
-  value: unknown
-): value is Artifact<RootCauseArtifactData> {
-  if (!isArtifact(value)) {
-    return false;
-  }
-  const data = value.data;
-  if (data === null || typeof data !== 'object') {
-    return false;
-  }
-  return (
-    isString(data.one_line_description) &&
-    isArrayOf(data.five_whys, isString) &&
-    isArrayOf(data.reproduction_steps, isString)
-  );
-}
-
-interface SolutionStep {
-  description: string;
-  title: string;
-}
-
-function isSolutionStep(value: unknown): value is SolutionStep {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  return isString(obj.title) && isString(obj.description);
-}
-
-export interface SolutionArtifactData {
-  one_line_summary: string;
-  steps: SolutionStep[];
-}
-
-export function isSolutionArtifact(
-  value: unknown
-): value is Artifact<SolutionArtifactData> {
-  if (!isArtifact(value)) {
-    return false;
-  }
-  const data = value.data;
-  if (data === null || typeof data !== 'object') {
-    return false;
-  }
-  return isString(data.one_line_summary) && isArrayOf(data.steps, isSolutionStep);
-}

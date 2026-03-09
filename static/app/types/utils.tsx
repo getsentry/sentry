@@ -27,3 +27,7 @@ export function isArrayOf<T>(
 ): value is T[] {
   return Array.isArray(value) && value.every(predicate);
 }
+
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
