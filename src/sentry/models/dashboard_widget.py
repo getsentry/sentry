@@ -178,6 +178,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     WHEEL = 10
     RAGE_AND_DEAD_CLICKS = 11
     SERVER_TREE = 12
+    TEXT = 13
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -191,6 +192,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (WHEEL, "wheel"),
         (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
         (SERVER_TREE, "server_tree"),
+        (TEXT, "text"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

@@ -13,7 +13,10 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.integrations.claude_code.utils import ClaudeSessionStatus
+from sentry.issues.auto_source_code_config.code_mapping import (
+    get_sorted_code_mapping_configs,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -79,6 +82,20 @@ class CodingAgentStatus(StrEnum):
 
         return status_mapping.get(cursor_status.upper(), None)
 
+    @classmethod
+    def from_claude_code_status(cls, claude_code_status: str) -> "CodingAgentStatus":
+        status_mapping = {
+            ClaudeSessionStatus.PENDING: cls.PENDING,
+            ClaudeSessionStatus.RUNNING: cls.RUNNING,
+            ClaudeSessionStatus.IDLE: cls.COMPLETED,
+            ClaudeSessionStatus.CLOSED: cls.COMPLETED,
+        }
+        try:
+            status = ClaudeSessionStatus(claude_code_status.lower())
+        except ValueError:
+            return cls.RUNNING
+        return status_mapping[status]
+
 
 class AutofixTriggerSource(StrEnum):
     ROOT_CAUSE = "root_cause"
@@ -89,13 +106,13 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
-    branch_name: str | None = None
     pr_url: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
+    CLAUDE_CODE_AGENT = "claude_code_agent"
 
 
 class CodingAgentState(BaseModel):
@@ -106,6 +123,7 @@ class CodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
+    integration_id: int | None = None
 
 
 class CodebaseState(BaseModel):

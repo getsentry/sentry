@@ -14,8 +14,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
@@ -27,7 +27,7 @@ type Props = {
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -73,13 +73,14 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       }
     }
 
-    router.replace(
+    navigate(
       makeProjectsPathname({
         path: '/new/',
         organization,
-      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
+      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`,
+      {replace: true}
     );
-  }, [api, recentCreatedProject, organization, isProjectActive, router]);
+  }, [api, recentCreatedProject, organization, isProjectActive, navigate]);
 
   useBlocker(({historyAction}) => {
     if (historyAction === 'POP') {

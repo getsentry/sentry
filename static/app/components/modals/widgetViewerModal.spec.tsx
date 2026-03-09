@@ -1336,9 +1336,7 @@ describe('Modals -> WidgetViewerModal', () => {
       });
       const projects = [ProjectFixture()];
       initialData = {
-        organization: OrganizationFixture({
-          features: ['discover-cell-actions-v2'],
-        }),
+        organization: OrganizationFixture(),
         projects,
         initialRouterConfig: {
           ...defaultInitialRouterConfig,

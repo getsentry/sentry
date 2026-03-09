@@ -92,6 +92,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_TOOL_NAME,
+              staticDashboardId: 20,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -112,6 +119,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_RESOURCE_URI],
           fieldAliases: [t('Resource'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_RESOURCE_URI,
+              staticDashboardId: 21,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -132,6 +146,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_PROMPT_NAME],
           fieldAliases: [t('Prompt'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_PROMPT_NAME,
+              staticDashboardId: 22,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -154,15 +175,15 @@ const OVERVIEW_TABLE = {
       fields: [
         SpanFields.SPAN_DESCRIPTION,
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `${SpanFunction.FAILURE_RATE}()`,
+        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -170,8 +191,8 @@ const OVERVIEW_TABLE = {
       fieldAliases: [
         t('Span Description'),
         t('Requests'),
-        t('Errors'),
         t('Error Rate'),
+        t('Errors'),
         t('Avg'),
         t('P95'),
       ],

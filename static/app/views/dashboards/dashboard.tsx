@@ -89,7 +89,6 @@ type Props = {
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
 };
 
@@ -114,7 +113,6 @@ function Dashboard({
   onEditWidget,
   onNewWidgetScrollComplete,
   onSetNewWidget,
-  useTimeseriesVisualization,
   widgetInterval,
 }: Props) {
   const theme = useTheme();
@@ -441,7 +439,6 @@ function Dashboard({
               index={String(index)}
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
-              useTimeseriesVisualization={useTimeseriesVisualization}
               widgetInterval={widgetInterval}
             />
           </div>

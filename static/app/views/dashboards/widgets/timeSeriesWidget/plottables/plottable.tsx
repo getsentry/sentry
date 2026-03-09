@@ -28,6 +28,10 @@ export interface Plottable {
    */
   isEmpty: boolean;
   /**
+   * Label for this plottable, used in the legend and in tooltips.
+   */
+  label: string;
+  /**
    * Name of the series. This is used under-the-hood in ECharts.
    */
   name: string;
@@ -48,10 +52,6 @@ export interface Plottable {
    * Optional callback to get access to the chart `ref`. Some Plottables implement this to allow dispatching events to the chart
    */
   handleChartRef?: (ref: ReactEchartsRef) => void;
-  /**
-   * Optional label for this plottable, if it appears in the legend and in tooltips.
-   */
-  label?: string;
   /**
    * `TimeSeriesWidgetVisualization` will call this function if the user clicks a point on a series that originated from this plottable.
    */

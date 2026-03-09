@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0024_add_project_distribution_scope
+hybridcloud: 0025_rename_slugreservationreplica_region_name_to_cell_name
 
 insights: 0002_backfill_team_starred
 
@@ -33,7 +33,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0002_add_default_coding_agent
 
-sentry: 1040_drop_fk_projecttemplate
+sentry: 1050_projectkeymapping_uniq_constraint
 
 social_auth: 0003_social_auth_json_field
 
@@ -41,4 +41,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0109_add_detector_state_triggered_date_index
+workflow_engine: 0110_owner_team_break_fk
