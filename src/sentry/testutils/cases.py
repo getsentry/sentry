@@ -1048,7 +1048,7 @@ class SnubaTestCase(BaseTestCase):
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba, call_snuba):
+    def initialize(self, call_snuba):
         self.call_snuba = call_snuba
 
     def create_project(self, **kwargs) -> Project:
@@ -2202,10 +2202,6 @@ class BaseIncidentsTest(SnubaTestCase):
 @pytest.mark.snuba
 @requires_snuba
 class OutcomesSnubaTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
-
     def store_outcomes(self, outcome, num_times=1):
         outcomes = []
         for _ in range(num_times):
@@ -2224,7 +2220,6 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-@pytest.mark.usefixtures("reset_snuba")
 class ProfilesSnubaTestCase(
     TestCase,
     BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
@@ -2378,10 +2373,6 @@ class ProfilesSnubaTestCase(
 @pytest.mark.snuba
 @requires_snuba
 class ReplaysSnubaTestCase(TestCase):
-    def setUp(self):
-        super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
-
     def store_replays(self, replay):
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
@@ -2404,7 +2395,6 @@ class ReplaysSnubaTestCase(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-@pytest.mark.usefixtures("reset_snuba")
 class UptimeCheckSnubaTestCase(TestCase):
     def store_uptime_check(self, uptime_check):
         response = requests.post(
@@ -2479,13 +2469,9 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         self.now = datetime.now(UTC)
         super().setUp()
-        self.drop_replays()
         patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
         patcher.start()
         self.addCleanup(patcher.stop)
-
-    def drop_replays(self):
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replays):
         assert len(replays) >= 2, (
@@ -3067,7 +3053,6 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         )
 
 
-@pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     def build_and_store_session(
         self,
@@ -4012,7 +3997,6 @@ class ReplayBreadcrumbType(Enum):
 
 @pytest.mark.snuba
 @requires_snuba
-@pytest.mark.usefixtures("reset_snuba")
 class ReplayEAPTestCase(BaseTestCase):
     def create_eap_replay_breadcrumb(
         self,

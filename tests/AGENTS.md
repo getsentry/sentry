@@ -13,6 +13,17 @@ Notice that we prefix `tests/` to the path and prefix `test_` to the module name
 
 **Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
 
+## Parallel Test Execution
+
+Each `pytest` process auto-isolates via file-lock slots (`src/sentry/testutils/pytest/isolation.py`): separate PostgreSQL databases, Redis DBs, and Kafka topics. No configuration needed.
+
+- `pytest -n4` — distribute tests across 4 workers via pytest-xdist.
+- Every pytest process auto-acquires an isolated slot via file locks — works across xdist, plain pytest, and concurrent worktrees.
+- Max 15 parallel slots (Redis DBs 1–15, DB 0 reserved). `--reuse-db` works (stable DB suffixes).
+- **ClickHouse** is shared across workers. Tables are dropped/recreated once per session. Isolation relies on unique snowflake IDs — each test gets fresh org/project IDs. Tests that query ClickHouse without org/project filtering (e.g. cross-org discovery) must scope assertions to their own IDs.
+
+Key files: `isolation.py` (slot allocation), `sentry.py` (xdist hooks).
+
 ## Testing Best Practices
 
 ### Python Tests

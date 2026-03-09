@@ -333,8 +333,25 @@ def call_snuba(settings):
     return inner
 
 
-@pytest.fixture
-def reset_snuba(call_snuba):
+@pytest.fixture(scope="session", autouse=True)
+def reset_snuba():
+    """Drop and recreate all ClickHouse tables once per session.
+
+    Within a session, test isolation relies on unique project_id / org_id
+    values from PostgreSQL sequences — every test gets fresh IDs that
+    never collide with other tests in the same run.  This session-scoped
+    cleanup only needs to clear stale data left over from *previous* runs.
+
+    In parallel mode the coordinator handles this before spawning workers,
+    so worker processes skip this fixture.
+    """
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        return
+
+    from django.conf import settings
+
+    snuba = settings.SENTRY_SNUBA
+
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
@@ -350,7 +367,9 @@ def reset_snuba(call_snuba):
 
     assert all(
         response.status_code == 200
-        for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
+        for response in ThreadPoolExecutor(len(init_endpoints)).map(
+            lambda endpoint: requests.post(snuba + endpoint), init_endpoints
+        )
     )
 
 

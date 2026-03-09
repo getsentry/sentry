@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import socket
+from urllib.parse import urlparse
 
 import pytest
+
+from sentry.testutils.pytest import isolation
 
 
 def _service_available(host: str, port: int) -> bool:
@@ -22,7 +25,8 @@ def _requires_service_message(name: str) -> str:
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
     # TODO: ability to ask devservices what port a service is on
-    if not _service_available("127.0.0.1", 1218):
+    port = urlparse(isolation.get_snuba_url() or "").port or 1218
+    if not _service_available("127.0.0.1", port):
         pytest.fail(_requires_service_message("snuba"))
 
 

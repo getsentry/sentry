@@ -19,6 +19,7 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
+from sentry.testutils.pytest import isolation
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -32,7 +33,7 @@ TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
 
-TEST_REDIS_DB = 9
+TEST_REDIS_DB = isolation.get_redis_db()
 
 
 def _use_monolith_dbs() -> bool:
@@ -40,21 +41,21 @@ def _use_monolith_dbs() -> bool:
 
 
 def configure_split_db() -> None:
+    suffix = isolation.get_db_suffix()
+
     already_configured = "control" in settings.DATABASES
     if already_configured or _use_monolith_dbs():
+        if suffix:
+            settings.DATABASES["default"]["NAME"] += suffix
         return
 
-    # Add connections for the region & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
-    settings.DATABASES["control"]["NAME"] = "control"
+    settings.DATABASES["control"]["NAME"] = f"control{suffix}"
 
-    # Use the region database in the default connection as region
-    # silo database is the 'default' elsewhere in application logic.
-    settings.DATABASES["default"]["NAME"] = "region"
+    settings.DATABASES["default"]["NAME"] = f"region{suffix}"
 
-    # Add a connection for the secondary db
     settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
-    settings.DATABASES["secondary"]["NAME"] = "secondary"
+    settings.DATABASES["secondary"]["NAME"] = f"secondary{suffix}"
 
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
@@ -71,8 +72,16 @@ def _configure_test_env_regions() -> None:
     # depends on region attributes, use `override_regions` in your test case.
     region_name = "testregion" + "".join(random.choices(string.digits, k=6))
 
+    # Each parallel worker gets a unique snowflake_id so concurrent model
+    # creation doesn't produce colliding IDs.  Slot 0 keeps the historical
+    # default of 0 for backward compatibility.
+    region_snowflake_id = isolation.worker_num if isolation.worker_num > 0 else 0
+
     default_region = Cell(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -196,6 +205,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
+
+    if snuba_url := isolation.get_snuba_url():
+        settings.SENTRY_SNUBA = snuba_url
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
@@ -356,6 +368,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
 
+    from sentry.testutils.pytest.isolation import release_slot
+
+    release_slot()
+
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
@@ -372,8 +388,49 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    # Flush Redis but preserve snowflake ID counters.  flushdb() resets the
+    # counters and under @freeze_time the timestamp component is constant,
+    # so regenerated (timestamp, sequence) pairs collide with earlier tests
+    # — causing ClickHouse data bleed.
+    cluster = clusters.get("default")
+    for host_id in range(len(cluster.hosts)):
+        conn = cluster.get_local_client(host_id)
+
+        # Collect all snowflake keys via SCAN.
+        all_keys: list[bytes] = []
+        cursor: int | bytes = 0
+        while True:
+            cursor, keys = conn.scan(cursor, match="snowflakeid:*", count=500)
+            all_keys.extend(keys)
+            if cursor == 0:
+                break
+
+        if not all_keys:
+            conn.flushdb()
+            continue
+
+        # Batch-read values and TTLs in a single pipeline round trip.
+        pipe = conn.pipeline(transaction=False)
+        for k in all_keys:
+            pipe.get(k)
+            pipe.ttl(k)
+        results = pipe.execute()
+
+        saved: list[tuple[bytes, bytes, int]] = []
+        for i, k in enumerate(all_keys):
+            val = results[i * 2]
+            ttl = results[i * 2 + 1]
+            if val is not None:
+                saved.append((k, val, max(ttl, 300)))
+
+        conn.flushdb()
+
+        # Batch-restore in a single pipeline round trip.
+        if saved:
+            pipe = conn.pipeline(transaction=False)
+            for k, val, ttl in saved:
+                pipe.set(k, val, ex=ttl)
+            pipe.execute()
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
@@ -419,7 +476,7 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, select tests based on selective file filter and group strategy.
+    """After collection, select tests based on selective filter and group strategy.
 
     When SELECTED_TESTS_FILE is set, only tests from files listed in that file are kept.
     This enables selective testing while maintaining proper conftest loading order by
@@ -428,7 +485,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     keep, discard = [], []
 
-    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    # Filter by selected test files if SELECTED_TESTS_FILE is set.
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
     if selected_tests_file:
         selected_path = Path(selected_tests_file)
@@ -438,8 +495,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
             if selected_files:
                 for item in items:
-                    test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    if item.nodeid.split("::")[0] in selected_files:
                         keep.append(item)
                     else:
                         discard.append(item)
@@ -496,6 +552,35 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_xdist_setupnodes() -> None:
-    # prevent out-of-order django initialization
+def pytest_xdist_make_scheduler(config: pytest.Config, log) -> DeterministicScheduling:  # noqa: F821
+    from sentry.testutils.pytest.xdist_scheduler import DeterministicScheduling
+
+    return DeterministicScheduling(config, log)
+
+
+def pytest_xdist_setupnodes(config: pytest.Config, specs: list) -> None:
+    # Prevent out-of-order Django initialization in workers.
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+
+    # Drop and recreate all ClickHouse tables before workers spawn.
+    from concurrent.futures import ThreadPoolExecutor
+
+    import requests
+
+    snuba = settings.SENTRY_SNUBA
+    endpoints = [
+        "/tests/events_analytics_platform/drop",
+        "/tests/spans/drop",
+        "/tests/events/drop",
+        "/tests/functions/drop",
+        "/tests/groupedmessage/drop",
+        "/tests/transactions/drop",
+        "/tests/metrics/drop",
+        "/tests/generic_metrics/drop",
+        "/tests/search_issues/drop",
+        "/tests/group_attributes/drop",
+    ]
+    results = list(
+        ThreadPoolExecutor(len(endpoints)).map(lambda ep: requests.post(snuba + ep), endpoints)
+    )
+    assert all(r.status_code == 200 for r in results)

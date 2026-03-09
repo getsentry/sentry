@@ -5,6 +5,13 @@ from collections.abc import Generator, MutableMapping
 
 import psutil
 import pytest
+import pytest_rerunfailures
+
+# Disable socket-based crash-recovery IPC — it has unfixed bugs (infinite
+# loop on EOF, TimeoutError not caught) and our xdist scheduler doesn't
+# support mark_test_pending anyway.  Normal within-worker reruns still work.
+pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False  # type: ignore[attr-defined]
+
 import responses
 import sentry_sdk
 from django.core.cache import cache
@@ -52,9 +59,18 @@ else:
 
 @pytest.fixture(autouse=True)
 def unclosed_files() -> Generator[None]:
-    fds = _open_files()
+    from sentry.testutils.pytest.isolation import _SLOT_DIR
+
+    # Slot lock fds must stay open for the entire session — closing them
+    # releases the file lock, allowing another process to claim the slot.
+    slot_dir = str(_SLOT_DIR)
+
+    def _filtered() -> frozenset[str]:
+        return frozenset(f for f in _open_files() if not f.startswith(slot_dir))
+
+    fds = _filtered()
     yield
-    assert _open_files() == fds
+    assert _filtered() == fds
 
 
 @pytest.fixture(autouse=True)
