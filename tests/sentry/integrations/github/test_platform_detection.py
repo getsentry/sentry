@@ -156,6 +156,13 @@ class TestGetRepoFileContent:
 
         assert _get_repo_file_content(client, "owner/repo", "binary.bin") is None
 
+    def test_returns_none_on_directory_listing(self) -> None:
+        client = mock.MagicMock()
+        # GitHub returns a list (not a dict) when path is a directory
+        client.get.return_value = [{"name": "file.txt", "type": "file"}]
+
+        assert _get_repo_file_content(client, "owner/repo", "some-dir") is None
+
 
 class TestDetectFramework:
     def test_detects_python_django(self) -> None:
