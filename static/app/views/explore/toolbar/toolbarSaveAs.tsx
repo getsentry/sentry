@@ -344,7 +344,7 @@ export function ToolbarSaveAs() {
                 : {title: t('Add two or more charts to compare chart queries.')}
           }
         >
-          {`${t('Compare Queries')}`}
+          {t('Compare Queries')}
         </WideLinkButton>
       </Grid>
     </StyledToolbarSection>
