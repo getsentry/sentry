@@ -52,7 +52,7 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
         start: getUtcDateString(startTimestamp),
         end: getUtcDateString(endTimestamp),
       },
-      {location, push: navigate, replace: path => navigate(path, {replace: true})},
+      {location, push: navigate, replace: path => navigate(path, {replace: true})} as any,
       {save: true}
     );
 
