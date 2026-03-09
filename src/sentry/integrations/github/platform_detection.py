@@ -824,7 +824,7 @@ FRAMEWORKS: list[FrameworkDef] = [
     {
         "platform": "godot",
         "sort": 10,
-        "base_platform": "native",
+        "base_platform": "godot",
         "some": [{"path": "project.godot"}],
     },
     # ===================================================================
