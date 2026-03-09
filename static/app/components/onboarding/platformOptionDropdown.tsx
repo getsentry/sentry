@@ -8,8 +8,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
-import useLocation from 'sentry/utils/useLocation';
-import useNavigate from 'sentry/utils/useNavigate';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type OptionControlProps = {
   onChange: (selectedOption: SelectOption<string>) => void;
