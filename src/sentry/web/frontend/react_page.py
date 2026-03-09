@@ -18,7 +18,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.types.region import (
     find_all_multitenant_locality_names,
-    subdomain_is_region,
+    subdomain_is_locality,
 )
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.client_config import get_client_config
@@ -134,7 +134,7 @@ class ReactMixin:
             return HttpResponseRedirect(redirect_url)
 
         # We don't allow HTML pages to be served from region domains.
-        if request.subdomain and subdomain_is_region(request):
+        if request.subdomain and subdomain_is_locality(request):
             redirect_url = resolve_activeorg_redirect_url(request)
             if redirect_url:
                 logger.info(

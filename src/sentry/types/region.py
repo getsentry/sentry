@@ -347,15 +347,17 @@ def get_locality_by_name(name: str) -> Locality:
         )
 
 
-def is_region_name(name: str) -> bool:
-    return get_global_directory().get_cell_by_name(name) is not None
+def subdomain_is_locality(request: HttpRequest) -> bool:
+    """Check whether the request's subdomain is a locality name.
 
-
-def subdomain_is_region(request: HttpRequest) -> bool:
+    Locality subdomains (e.g. "us.sentry.io", "de.sentry.io") are reserved for
+    infrastructure routing and must not be treated as organization slugs. Returns
+    False when there is no subdomain or when it does not match any known locality.
+    """
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return False
-    return is_region_name(subdomain)
+    return get_global_directory().get_locality_by_name(subdomain) is not None
 
 
 @control_silo_function
