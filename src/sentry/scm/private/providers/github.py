@@ -140,11 +140,11 @@ class GitHubProvider:
         self.organization_id = organization_id
         self.repository = repository
 
-    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
+    def is_rate_limited(self, referrer: Referrer) -> bool:
         # from sentry.scm.helpers import is_rate_limited_with_allocation_policy
 
         # return is_rate_limited_with_allocation_policy(
-        #     organization_id,
+        #     self.organization_id,
         #     referrer,
         #     provider="github",
         #     window=3600,

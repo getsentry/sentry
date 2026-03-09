@@ -1,6 +1,7 @@
 from typing import Protocol, runtime_checkable
 
 from sentry.scm.types import (
+    SHA,
     ActionResult,
     BranchName,
     BuildConclusion,
@@ -9,7 +10,6 @@ from sentry.scm.types import (
     CheckRunOutput,
     Comment,
     Commit,
-    CommitSHA,
     FileContent,
     GitBlob,
     GitCommitObject,
@@ -203,13 +203,13 @@ class GetBranchProtocol(Protocol):
 
 @runtime_checkable
 class CreateBranchProtocol(Protocol):
-    def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]: ...
+    def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]: ...
 
 
 @runtime_checkable
 class UpdateBranchProtocol(Protocol):
     def update_branch(
-        self, branch: BranchName, sha: CommitSHA, force: bool = False
+        self, branch: BranchName, sha: SHA, force: bool = False
     ) -> ActionResult[GitRef]: ...
 
 
@@ -220,7 +220,7 @@ class UpdateBranchProtocol(Protocol):
 class GetCommitProtocol(Protocol):
     def get_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[Commit]: ...
 
@@ -229,7 +229,7 @@ class GetCommitProtocol(Protocol):
 class GetCommitsProtocol(Protocol):
     def get_commits(
         self,
-        sha: CommitSHA | None = None,
+        sha: SHA | None = None,
         path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -240,8 +240,8 @@ class GetCommitsProtocol(Protocol):
 class CompareCommitsProtocol(Protocol):
     def compare_commits(
         self,
-        start_sha: CommitSHA,
-        end_sha: CommitSHA,
+        start_sha: SHA,
+        end_sha: SHA,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
@@ -334,7 +334,7 @@ class RequestReviewProtocol(Protocol):
 class GetTreeProtocol(Protocol):
     def get_tree(
         self,
-        tree_sha: CommitSHA,
+        tree_sha: SHA,
         recursive: bool = True,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitTree]: ...
@@ -344,7 +344,7 @@ class GetTreeProtocol(Protocol):
 class GetGitCommitProtocol(Protocol):
     def get_git_commit(
         self,
-        sha: CommitSHA,
+        sha: SHA,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitCommitObject]: ...
 
@@ -357,14 +357,14 @@ class CreateGitBlobProtocol(Protocol):
 @runtime_checkable
 class CreateGitTreeProtocol(Protocol):
     def create_git_tree(
-        self, tree: list[InputTreeEntry], base_tree: CommitSHA | None = None
+        self, tree: list[InputTreeEntry], base_tree: SHA | None = None
     ) -> ActionResult[GitTree]: ...
 
 
 @runtime_checkable
 class CreateGitCommitProtocol(Protocol):
     def create_git_commit(
-        self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
+        self, message: str, tree_sha: SHA, parent_shas: list[SHA]
     ) -> ActionResult[GitCommitObject]: ...
 
 
@@ -398,7 +398,7 @@ class CreateCheckRunProtocol(Protocol):
     def create_check_run(
         self,
         name: str,
-        head_sha: CommitSHA,
+        head_sha: SHA,
         status: BuildStatus | None = None,
         conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
@@ -427,7 +427,7 @@ class CreateReviewCommentFileProtocol(Protocol):
     def create_review_comment_file(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         side: ReviewSide,
@@ -439,7 +439,7 @@ class CreateReviewCommentLineProtocol(Protocol):
     def create_review_comment_line(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         line: int,
@@ -452,7 +452,7 @@ class CreateReviewCommentMultilineProtocol(Protocol):
     def create_review_comment_multiline(
         self,
         pull_request_id: str,
-        commit_id: CommitSHA,
+        commit_id: SHA,
         body: str,
         path: str,
         start_line: int,
@@ -477,7 +477,7 @@ class CreateReviewProtocol(Protocol):
     def create_review(
         self,
         pull_request_id: str,
-        commit_sha: CommitSHA,
+        commit_sha: SHA,
         event: ReviewEvent,
         comments: list[ReviewCommentInput],
         body: str | None = None,
