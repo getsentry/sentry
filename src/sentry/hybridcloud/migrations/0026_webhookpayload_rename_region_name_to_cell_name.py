@@ -25,29 +25,34 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="webhookpayload",
-            name="webhookpayload_region_name_not_null",
-        ),
-        migrations.AlterField(
-            model_name="webhookpayload",
-            name="region_name",
-            field=models.CharField(db_column="region_name", null=True),
-        ),
-        migrations.RenameField(
-            model_name="webhookpayload",
-            old_name="region_name",
-            new_name="cell_name",
-        ),
-        migrations.AddConstraint(
-            model_name="webhookpayload",
-            constraint=models.CheckConstraint(
-                condition=models.Q(
-                    models.Q(("destination_type", "sentry_region"), _negated=True),
-                    ("cell_name__isnull", False),
-                    _connector="OR",
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.RemoveConstraint(
+                    model_name="webhookpayload",
+                    name="webhookpayload_region_name_not_null",
                 ),
-                name="webhookpayload_region_name_not_null",
-            ),
-        ),
+                migrations.AlterField(
+                    model_name="webhookpayload",
+                    name="region_name",
+                    field=models.CharField(db_column="region_name", null=True),
+                ),
+                migrations.RenameField(
+                    model_name="webhookpayload",
+                    old_name="region_name",
+                    new_name="cell_name",
+                ),
+                migrations.AddConstraint(
+                    model_name="webhookpayload",
+                    constraint=models.CheckConstraint(
+                        condition=models.Q(
+                            models.Q(("destination_type", "sentry_region"), _negated=True),
+                            ("cell_name__isnull", False),
+                            _connector="OR",
+                        ),
+                        name="webhookpayload_region_name_not_null",
+                    ),
+                ),
+            ],
+        )
     ]
