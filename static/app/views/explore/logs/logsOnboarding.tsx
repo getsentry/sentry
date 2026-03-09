@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -31,8 +32,6 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -121,53 +120,47 @@ function OnboardingPanel({
   project: Project;
 }) {
   return (
-    <StyledPanel>
-      <PanelBody>
-        <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <TabSelectionScope>
-            <div>
-              <HeaderWrapper>
-                <HeaderText>
-                  <Title>{t('Your Source for Log-ical Data')}</Title>
-                  <SubTitle>
-                    {t(
-                      "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
-                    )}
-                  </SubTitle>
-                  <BulletList>
-                    <li>
-                      {t('Access logs in real time and query them by any attribute')}
-                    </li>
-                    <li>
-                      {t('Correlate your logs with errors and traces for full context')}
-                    </li>
-                    <li>
-                      {t('Build alerts and dashboard widgets based on log queries')}
-                    </li>
-                  </BulletList>
-                </HeaderText>
-                <Image src={connectDotsImg} />
-              </HeaderWrapper>
-              <Divider />
-              <Body>
-                <Setup>
-                  {children}
-                  <LogDrainsLink project={project} />
-                </Setup>
-                <Preview>
-                  <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
-                  <Arcade
-                    src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
-                    loading="lazy"
-                    allowFullScreen
-                  />
-                </Preview>
-              </Body>
-            </div>
-          </TabSelectionScope>
-        </AuthTokenGeneratorProvider>
-      </PanelBody>
-    </StyledPanel>
+    <Container background="primary" border="primary" borderRadius="md">
+      <AuthTokenGeneratorProvider projectSlug={project?.slug}>
+        <TabSelectionScope>
+          <div>
+            <HeaderWrapper>
+              <HeaderText>
+                <Title>{t('Your Source for Log-ical Data')}</Title>
+                <SubTitle>
+                  {t(
+                    "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
+                  )}
+                </SubTitle>
+                <BulletList>
+                  <li>{t('Access logs in real time and query them by any attribute')}</li>
+                  <li>
+                    {t('Correlate your logs with errors and traces for full context')}
+                  </li>
+                  <li>{t('Build alerts and dashboard widgets based on log queries')}</li>
+                </BulletList>
+              </HeaderText>
+              <Image src={connectDotsImg} />
+            </HeaderWrapper>
+            <Divider />
+            <Body>
+              <Setup>
+                {children}
+                <LogDrainsLink project={project} />
+              </Setup>
+              <Preview>
+                <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                <Arcade
+                  src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </Preview>
+            </Body>
+          </div>
+        </TabSelectionScope>
+      </AuthTokenGeneratorProvider>
+    </Container>
   );
 }
 
@@ -472,10 +465,10 @@ const Arcade = styled('iframe')`
 
 const OnboardingContainer = styled('div')`
   margin-top: ${p => p.theme.space.md};
-`;
 
-const StyledPanel = styled(Panel)`
-  border-bottom: none;
+  ${Container} {
+    margin-bottom: ${p => p.theme.space.xl};
+  }
 `;
 
 type LogsTabOnboardingProps = {
