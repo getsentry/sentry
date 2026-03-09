@@ -76,13 +76,13 @@ class GitHubPullRequest(msgspec.Struct, gc=False):
 
 class GitHubPullRequestBase(msgspec.Struct, gc=False):
     ref: str
-    repo: "GitHubPullRequestRepo" | None
+    repo: "GitHubPullRequestRepo"
     sha: str
 
 
 class GitHubPullRequestHead(msgspec.Struct, gc=False):
     ref: str
-    repo: "GitHubPullRequestRepo"
+    repo: "GitHubPullRequestRepo" | None
     sha: str
 
 
@@ -133,6 +133,8 @@ def deserialize_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
 def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
     e = pull_request_decoder.decode(event["event"])
 
+    repo = e.pull_request.head.repo or e.pull_request.base.repo
+
     return PullRequestEvent(
         action=e.action,
         pull_request={
@@ -141,7 +143,7 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
             "description": e.pull_request.body,
             "head": {"ref": e.pull_request.head.ref, "sha": e.pull_request.head.sha},
             "id": str(e.number),
-            "is_private_repo": e.pull_request.head.repo.private,
+            "is_private_repo": repo.private,
             "title": e.pull_request.title,
         },
         subscription_event=event,
