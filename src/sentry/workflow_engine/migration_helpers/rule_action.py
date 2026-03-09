@@ -75,7 +75,7 @@ def translate_rule_data_actions_to_notification_actions(
             )
 
         try:
-            notification_action_data = {
+            notification_action_data: NotificationActionData = {
                 "type": translator.action_type,
                 "data": translator.get_sanitized_data(),
                 "integration_id": translator.integration_id,

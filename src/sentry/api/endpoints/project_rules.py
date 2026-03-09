@@ -773,6 +773,7 @@ def format_request_data(
         if action_config is not None:
             target_type = action_config.get("target_type")
         if target_type is not None:
+            assert isinstance(target_type, int)
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
 
     filter_match = data.get("filterMatch", "any-short")
