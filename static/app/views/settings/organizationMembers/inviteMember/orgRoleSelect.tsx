@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Radio} from '@sentry/scraps/radio';
@@ -29,54 +28,50 @@ type Props = {
   setSelected: (id: string) => void;
 };
 
-class OrganizationRoleSelect extends Component<Props> {
-  render() {
-    const {
-      disabled,
-      enforceRetired,
-      enforceAllowed,
-      roleList,
-      roleSelected,
-      setSelected,
-      helpText,
-    } = this.props;
+function OrganizationRoleSelect({
+  disabled,
+  enforceRetired,
+  enforceAllowed,
+  roleList,
+  roleSelected,
+  setSelected,
+  helpText,
+}: Props) {
+  return (
+    <Panel>
+      <StyledPanelHeader>
+        <div>{t('Organization Role')}</div>
+        {disabled && helpText && <QuestionTooltip size="sm" title={helpText} />}
+      </StyledPanelHeader>
 
-    return (
-      <Panel>
-        <StyledPanelHeader>
-          <div>{t('Organization Role')}</div>
-          {disabled && helpText && <QuestionTooltip size="sm" title={helpText} />}
-        </StyledPanelHeader>
+      <PanelBody>
+        {roleList.map(role => {
+          const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
 
-        <PanelBody>
-          {roleList.map(role => {
-            const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
+          const isRetired = enforceRetired && roleRetired;
+          const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
 
-            const isRetired = enforceRetired && roleRetired;
-            const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
-
-            return (
-              <PanelItem
-                key={id}
-                onClick={() => !isDisabled && setSelected(id)}
-                css={isDisabled ? {color: 'grey', cursor: 'default'} : {}}
-              >
-                <Label>
-                  <Radio id={id} value={name} checked={id === roleSelected} readOnly />
-                  <div style={{flex: 1, padding: '0 16px'}}>
-                    {name}
-                    <TextBlock noMargin>
-                      <div className="help-block">{desc}</div>
-                    </TextBlock>
-                  </div>
-                </Label>
-              </PanelItem>
-            );
-          })}
-        </PanelBody>
-      </Panel>
-    );
-  }
+          return (
+            <PanelItem
+              key={id}
+              onClick={() => !isDisabled && setSelected(id)}
+              css={isDisabled ? {color: 'grey', cursor: 'default'} : {}}
+            >
+              <Label>
+                <Radio id={id} value={name} checked={id === roleSelected} readOnly />
+                <div style={{flex: 1, padding: '0 16px'}}>
+                  {name}
+                  <TextBlock noMargin>
+                    <div className="help-block">{desc}</div>
+                  </TextBlock>
+                </div>
+              </Label>
+            </PanelItem>
+          );
+        })}
+      </PanelBody>
+    </Panel>
+  );
 }
 
 const StyledPanelHeader = styled(PanelHeader)`
