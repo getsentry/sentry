@@ -236,14 +236,17 @@ def get_enabled_prebuilt_dashboards(
     based on the prebuilt-dashboard-ids option and the sync-all feature flag.
     """
     enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
+    should_sync_all_registered_prebuilt_dashboards = features.has(
+        "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+        organization,
+    )
+    all_prebuilt_dashboards = [dashboard for dashboard in PREBUILT_DASHBOARDS]
+    if should_sync_all_registered_prebuilt_dashboards:
+        return all_prebuilt_dashboards
     return [
         dashboard
-        for dashboard in PREBUILT_DASHBOARDS
+        for dashboard in all_prebuilt_dashboards
         if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
-        or features.has(
-            "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-            organization,
-        )
     ]
 
 
