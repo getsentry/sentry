@@ -2,6 +2,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -17,6 +22,21 @@ export function PrCommentsToggle() {
   const {mutate: updateProject} = useUpdateProject(project);
 
   const enabled = (project[WRITE_KEY] ?? project.options?.[READ_KEY]) !== false;
+
+  function handleToggle() {
+    addLoadingMessage(t('Saving...'));
+    updateProject(
+      {[WRITE_KEY]: !enabled},
+      {
+        onSuccess: () => {
+          addSuccessMessage(t('PR comment settings updated'));
+        },
+        onError: () => {
+          addErrorMessage(t('Failed to save changes. Please try again.'));
+        },
+      }
+    );
+  }
 
   return (
     <Panel>
@@ -34,7 +54,7 @@ export function PrCommentsToggle() {
           <Switch
             size="lg"
             checked={enabled}
-            onChange={() => updateProject({[WRITE_KEY]: !enabled})}
+            onChange={handleToggle}
             aria-label={t('Toggle build distribution PR comments')}
           />
         </Flex>
