@@ -62,7 +62,7 @@ function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    location.query?.organizationId ??
+    (location.query?.organizationId as string | undefined) ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
