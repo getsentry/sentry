@@ -532,6 +532,73 @@ describe('ProjectPageFilter', () => {
     });
   });
 
+  it.each([
+    {
+      label: 'My Projects',
+      // 52 members + 1 non-member so the "My Projects" sentinel appears
+      // (requires memberProjectList.length < projects.length)
+      memberCount: 52,
+      nonMemberCount: 1,
+      urlProjects: [] as number[],
+      urlQuery: {} as Record<string, string>,
+      triggerName: 'My Projects',
+    },
+    {
+      label: 'All Projects',
+      // 51 members + 1 non-member so the "All Projects" sentinel appears
+      // (requires nonMemberProjectList.length > 0)
+      memberCount: 51,
+      nonMemberCount: 1,
+      urlProjects: [-1],
+      urlQuery: {project: '-1'},
+      triggerName: 'All Projects',
+    },
+  ])(
+    'shows selection limit warning when $label is active and a single project is unchecked',
+    async ({memberCount, nonMemberCount, urlProjects, urlQuery, triggerName}) => {
+      const manyProjects = [
+        ...Array.from({length: memberCount}, (_, index) =>
+          ProjectFixture({
+            id: String(index + 1),
+            slug: `project-${index + 1}`,
+            isMember: true,
+          })
+        ),
+        ...Array.from({length: nonMemberCount}, (_, index) =>
+          ProjectFixture({
+            id: String(memberCount + index + 1),
+            slug: `project-${memberCount + index + 1}`,
+            isMember: false,
+          })
+        ),
+      ];
+      ProjectsStore.loadInitialData(manyProjects);
+
+      PageFiltersStore.onInitializeUrlState({
+        projects: urlProjects,
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: urlQuery},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: triggerName}));
+
+      // Unchecking one project leaves memberCount explicit selections, which exceeds the limit of 50
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+
+      expect(
+        screen.getByText(/only up to 50 can be selected at a time/i)
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Apply'})).toBeDisabled();
+    }
+  );
+
   it('shows selection limit warning after editing All Projects sentinel selection', async () => {
     const manyProjects = Array.from({length: 52}, (_, index) =>
       ProjectFixture({
