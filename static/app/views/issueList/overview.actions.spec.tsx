@@ -517,11 +517,11 @@ describe('IssueListOverview (actions)', () => {
     });
 
     beforeEach(() => {
-      jest.spyOn(Cookies, 'get').mockImplementation((key?: string) => {
-        if (key === 'realtimeActive') {
+      jest.spyOn(Cookies, 'get').mockImplementation((name?: string) => {
+        if (name === 'realtimeActive') {
           return 'true';
         }
-        return undefined;
+        return {};
       });
 
       MockApiClient.addMockResponse({
