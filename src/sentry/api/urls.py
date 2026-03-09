@@ -154,6 +154,9 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardFavoriteEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGenerateEndpoint,
+)
 from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
@@ -1563,6 +1566,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
         OrganizationDashboardsStarredOrderEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-starred-order",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/generate/$",
+        OrganizationDashboardGenerateEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboards-generate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/$",
