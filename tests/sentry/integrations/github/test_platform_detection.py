@@ -1424,7 +1424,7 @@ class TestDetectPlatforms:
 
     def test_godot_detected_from_project_file(self) -> None:
         client = mock.MagicMock()
-        client.get_languages.return_value = {"C++": 50000}
+        client.get_languages.return_value = {"GDScript": 50000}
 
         def get_side_effect(path, params=None):
             if path.endswith("/contents"):
